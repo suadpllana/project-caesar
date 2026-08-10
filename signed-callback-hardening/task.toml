@@ -1,0 +1,111 @@
+schema_version = "1.3"
+
+artifacts = ["/app/svc/auth/verify.py"]
+
+[task]
+name = "afterquery/signed-callback-hardening"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The request path holds four independent weaknesses and the last one is the wall. A frontier
+agent reliably produces the textbook plan for a signing scheme: enforce a floor on which
+headers the signature covers, honor the key-state policy the profile in
+svc/conf/profiles/standard.toml sets, add a clock-skew window, add a per-key nonce cache.
+That plan leaves the service forgeable. The digest in x-body-sha256 is taken over
+json.loads() output, which keeps the last of a repeated object key, while the ingest handler
+reads the same bytes through svc/core/jsonx.py, whose object parser keeps the first. A
+repeated key placed at the front of the document leaves the signed digest byte-identical and
+changes the document the handler acts on, so a relay can rewrite a payload under a valid
+signature. Nothing states this: the agent has to read the handler, notice which parser it
+uses, read that parser, and compare it against the one the verifier uses two directories
+away. The obvious repair for the body, digesting the raw bytes, passes every forgery test and
+fails every legitimate request, because the client library sends json.dumps() default
+separators while the digest is taken over the compact sorted form. The same shape of trap sits
+on the coverage fix: requiring that every header be covered blocks the forgeries and rejects
+all real traffic, since the relay adds unsigned headers of its own. Both errors surface only
+against traffic the agent has to think to construct. The agent-facing tree carries no
+comments, docstrings or documentation by design, so the couplings between the signer, the
+verifier, the two parsers and the live configuration profile have to be recovered by reading
+code; identifier names are ordinary production names and are not obfuscated.
+"""
+
+solution_explanation = """
+The reference solution rewrites svc/auth/verify.py after reading the request path end to end.
+It requires the presence of the identity, routing, freshness and digest headers, resolves the
+key, and refuses any key whose state is outside accepted_key_states in the profile
+svc/core/cfg.py loads by default. It then enforces a floor on the cover list, requiring
+x-key-id, x-partner, x-target, x-ts, x-nonce and x-body-sha256 to be covered while still
+honoring the partner-supplied list and its ordering for canonicalization, which is what keeps
+relay-added headers and partner-chosen extras working. The signature is recomputed with
+canon.sig_input over the supplied cover spec and compared with hmac.compare_digest, the
+timestamp is checked against max_skew_sec in both directions, and the nonce is recorded per
+key so a byte-identical redelivery is refused while two partners sharing a nonce value are
+not. The decisive step is the body: the digest is recomputed from jsonx.parse of the raw
+body, the exact parse the ingest handler performs, so any rewriting that changes what the
+handler sees also changes the digest. This is how an application security engineer fixes a
+signing scheme in practice: sign what the consumer parses, not a second independent reading
+of the same bytes, and make the canonical form injective over everything the request is
+allowed to influence. The script then exercises the result against legitimate traffic and one
+forgery per bug class before finishing.
+"""
+
+verification_explanation = """
+The verifier builds the service from a pristine copy of the application tree baked into the
+verifier image and drops in only the agent's /app/svc/auth/verify.py, so edits anywhere else
+cannot influence the result and the interface stays fixed. Every case is driven through the
+real WSGI application, not through the changed function directly, and the pass condition is
+both the HTTP outcome and the effect on the ingest ledger: a forgery counts as rejected only
+when verification refuses it and no ledger entry was created, so nothing passes by being let
+through and failing later. Two hundred randomized legitimate requests, built with the
+partner client library and carrying unicode payloads, nested documents, partner-chosen cover
+lists in shuffled order, punctuation-bearing context headers and relay-added headers, must all
+be accepted with the recorded document identical to the signed one. Against that, the suite
+constructs forgeries per bug class: one uncovered-field mutation for each of the five fields
+that change what the service does, repeated-key rewrites at the top level and inside a nested
+object, appended document members, byte-identical redelivery, timestamps on both sides of the
+configured window, keys in every state the profile excludes, and plain tampering with the
+signature, the key id, the cover list and the body. Passing therefore requires the signature
+to bind every part of the request the pipeline acts on, including the parse the handler
+performs, without narrowing what real partners can send.
+"""
+
+category = "Security"
+subcategory = "AppSec"
+
+tags = [
+    "hmac-request-signing",
+    "canonicalization",
+    "json-parser-differential",
+    "webhook-verification",
+    "replay-protection",
+]
+
+expert_time_estimate_hours = 5
+
+relevant_experience = """
+I work on application security for payment and partner integration services, where most of
+what I review is request authentication: HMAC callback schemes, canonical request formats,
+webhook receivers and the middleware in front of them. Signature schemes that cover the wrong
+bytes are the recurring finding in that work, and the version of it that bites hardest is the
+one in this task, where the component that authenticates a payload and the component that
+consumes it disagree about how to read it. I have written both the signing client and the
+receiving side of schemes like this one, and I have had to fix a receiver without being able
+to change what partners already send.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 1800.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+gpus = 0

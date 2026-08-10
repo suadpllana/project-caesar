@@ -398,9 +398,21 @@ def test_plain_tampering_is_refused():
 
 
 def test_environment_is_the_one_the_verifier_expects():
-    """Fail loudly rather than silently grading against the wrong configuration."""
+    """Fail loudly rather than silently grading against the wrong configuration.
+
+    Also asserts the isolation the rest of the suite depends on: the agent's code runs in
+    a separate process, and this process never imported it.
+    """
     report = harness.env_report()
     assert report["profile"] == "standard", report
     assert report["max_skew_sec"] > 0, report
     assert report["signing_keys"], report
     assert os.path.isfile("/app/svc/auth/verify.py"), report
+    assert report["grader_imported_app"] == [], (
+        "the grading process imported the application, which would put agent-supplied "
+        "code in the same interpreter as pytest: %s" % report
+    )
+    if os.geteuid() == 0:
+        assert report["worker_uid"] not in (0, None), (
+            "the application must not run as root inside the verifier: %s" % report
+        )

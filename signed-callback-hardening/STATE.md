@@ -142,7 +142,8 @@ the handler acts on.
 | No answer leaked into agent image | pass | The image contains only `environment/app_src/`; the hardened implementation exists only in `solution/solve.sh`. Verified by listing the built image tree and grepping it for the fix. |
 | `harbor run -a oracle` = 1 | pass | Run locally with docker. |
 | `harbor run -a nop` = 0 | pass | The unmodified vulnerable file fails 10 of the 18 tests. |
-| Cheats all score 0 | pass | Five attempts, see `cheat/README.md`; the decisive one is `cheat-textbook-hardening.sh`. |
+| Cheats all score 0 | pass | Seven attempts, see `cheat/README.md`; the decisive one for difficulty is `cheat-textbook-hardening.sh`, and `cheat-kill-the-test-runner.sh` / `cheat-forge-the-reward.sh` are the platform probe's findings kept as regression cases. |
+| Verifier execution isolation | pass | Probed directly in the built verifier image: as uid 65534, writing `/logs/verifier/reward.txt`, listing `/logs/verifier`, reading `/tests/test_outputs.py`, writing `/tests/test.sh` and writing the `/app` tree are all denied. |
 | `preflight.py` | pass | No errors, no warnings. |
 | `harbor check` rubric | not run | No model API key available in the authoring environment. Walked `docs/QUALITY-REVIEW.md` by hand instead, criterion by criterion. |
 
@@ -150,6 +151,17 @@ Local validation note: the machine used for authoring sits behind a TLS-intercep
 proxy, so the local runs used a copy of the bundle with the proxy CA added to `tests/Dockerfile`
 before the `pip install` line. Nothing else differed, and the shipped bundle carries no CA
 material.
+
+## Platform verdicts and what fixed them
+
+| Date | Gate | Verdict | Fix |
+|---|---|---|---|
+| 2026-08-11 | Anti-cheat robustness (blocking) | The collected artifact is code the verifier imports into a root pytest process, so a `verify.py` whose module body calls `os._exit(0)` made pytest exit 0 with zero tests executed, and `test.sh` wrote reward 1 from the exit code alone. | Execution and grading were separated. `tests/worker.py` is now the only process that imports the application, launched by the harness through `setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs`; `tests/harness.py` imports only modules the agent cannot supply. The reward comes from `tests/grade.py`, which validates the CTRF report against the pinned id list in `tests/expected_tests.txt`. Kept as `cheat/cheat-kill-the-test-runner.sh`. |
+| 2026-08-11 | Verifier execution isolation (blocking) | No privilege drop, `/logs/verifier` never restricted before agent code ran, reward derived from pytest's exit status; a daemonized child overwriting `reward.txt` was equally available. | `test.sh` now makes `/logs/verifier` root-owned mode 700 and `/tests` mode 700 before anything runs, copies the worker to `/run/worker.py` as the only file the unprivileged user needs, runs `pkill -u 65534` after the suite, and writes `reward.txt` only after grading. `tests/Dockerfile` tightens ownership at build time. Kept as `cheat/cheat-forge-the-reward.sh`. |
+
+Note on D2: neither change touched the verifier contract. The 18 tests, their assertions and
+what counts as correct for the agent are identical; only the isolation around executing the
+deliverable and the derivation of the reward changed, and both moved in the strict direction.
 
 ## Open questions and next steps
 

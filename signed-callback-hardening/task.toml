@@ -55,7 +55,16 @@ forgery per bug class before finishing.
 verification_explanation = """
 The verifier builds the service from a pristine copy of the application tree baked into the
 verifier image and drops in only the agent's /app/svc/auth/verify.py, so edits anywhere else
-cannot influence the result and the interface stays fixed. Every case is driven through the
+cannot influence the result and the interface stays fixed. Because the deliverable is code the
+verifier has to execute, execution and grading are separated. The grading process imports only
+modules the agent cannot supply and never the verifier; the application is driven through a
+worker process launched with setpriv as uid 65534 with --no-new-privs, and /logs/verifier and
+/tests are root-owned mode 700 before that process starts, so agent code cannot read the suite,
+write the reward or plant a report. The reward is not taken from pytest's exit status: after the
+run, anything left running as that user is killed and tests/grade.py, a root process that
+imports nothing from /app, requires the CTRF report to list exactly the expected test ids, all
+passed, with a start timestamp after the run began. A verifier that exits early, is killed, or
+executes no tests therefore grades 0. Every case is driven through the
 real WSGI application, not through the changed function directly, and the pass condition is
 both the HTTP outcome and the effect on the ingest ledger: a forgery counts as rejected only
 when verification refuses it and no ledger entry was created, so nothing passes by being let

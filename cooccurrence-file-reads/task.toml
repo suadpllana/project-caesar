@@ -1,0 +1,218 @@
+# One file is lifted out of the agent's tree and imported inside a sandboxed
+# child. Nothing else in /app is read.
+artifacts = ["/app/file_reads.py"]
+
+[task]
+name = "afterquery/cooccurrence-file-reads"
+
+[metadata]
+author_name = "Kaneki"
+author_email = "forgeks0@gmail.com"
+difficulty_explanation = """
+What gets written first is a narrowing pass. Work out which codes each field \
+could still hold, cut those sets against every recorded pair until nothing \
+changes, and read the file if no field has been emptied. It is the standard \
+technique, it is fast, it is what anyone who has met constraint propagation \
+reaches for, and it is wrong. Narrowing establishes that each field has a \
+partner for every other field taken two at a time. It does not establish that \
+one choice covering all twelve fields satisfies every pair at once, and those \
+come apart the moment the recorded pairs form a cycle. Measured against the \
+model that tries every choice, over the small graded block, narrowing alone \
+answers 74 of 972 file-and-filter questions wrongly -- 7.6 percent, always in \
+the direction that says read when the truth says skip. \
+\
+That is the first of four, and none of them is a strawman. A field the summary \
+records as sometimes unset may be taken unset, and a pair says nothing about a \
+choice where either side is unset, so an unset field walks out of every pair it \
+is in. An implementation that never takes a field unset gets 74 of the same 972 \
+wrong, all of them the fatal way round: skip when the truth says read. One that \
+takes fields unset but still holds the pairs against them gets the same 74 \
+wrong the same fatal way. And a condition on an unset field is neither true nor \
+false, so the filter is settled in three values and `not` leaves the third one \
+alone; reading that field as false instead gets 34 of the 972 wrong. Each of \
+those is a rule stated plainly in the instruction, each is individually easy, \
+and getting three of the four right still fails the block. \
+\
+Then there is the cost, and this is where the earlier version of this task \
+died. Twelve fields, sixteen codes, and the seventeenth candidate of nothing at \
+all, is 17^12 choices -- about 580 trillion. There is no representing that \
+exactly and no enumerating it, which is the point: the previous shape of this \
+task used five fields and eight codes, and 32768 choices fit in one Python \
+integer used as a bit set, so the whole question collapsed to a single AND \
+between two of them and every trap above went with it. \
+\
+What is left is a search, and a complete correct search is not enough. Built \
+the way a good engineer builds it -- domains as masks, the filter's own unary \
+consequences taken out of it first, a field committed at a time narrowest \
+first, every neighbour forward-checked, and the search pruned wherever the \
+filter can no longer come out true on what is left -- it answers every \
+question right and takes 137.7 milliseconds each. The timed run asks 33600 of \
+them inside 30 seconds. That is 4628 seconds against 30, measured, and no \
+amount of tuning closes a gap of three thousand. What closes it is a different \
+plan: propagating the filter itself as a constraint, so that an `and` that has \
+to be true hands that requirement to every arm, an `or` that has to be true and \
+has one arm left that could be hands it to that arm, and each such requirement \
+cuts a domain, which cuts the pairs, which cuts the filter again, to a fixed \
+point before anything is committed. Same instances, 0.046 milliseconds each. \
+\
+Two of those are plan-level, they are not visible from the instruction, and \
+neither shows up until a lot of code exists.
+"""
+solution_explanation = """
+Treat narrowing as a filter and never as a verdict, and treat the filter as a \
+constraint rather than as a test at the end. \
+\
+Each field's candidates are a seventeen-bit mask: one bit per code, and one \
+more for the field left unset, which is a candidate only where the summary \
+recorded one. A recorded pair says nothing about a choice where either side is \
+unset, so that bit survives every narrowing -- which is why a pair whose far \
+side may be unset prunes nothing at all until something is committed, and why a \
+file whose recorded pairs rule out every code can still have to be read. \
+\
+The filter is compiled once per query, every condition down to two masks: the \
+codes that make it true and the codes that make it false. Neither holds the \
+unset field, because a condition on an unset field answers neither. Then the \
+filter is propagated rather than consulted. An `and` that has to be true hands \
+that requirement whole to each of its arms; an `or` that has to be false does \
+the same; the other way round the requirement falls on the arms together and \
+says nothing about any one of them until exactly one arm is left that could \
+carry it, and then it says everything; `not` flips which case you are in. A \
+condition carrying a requirement cuts its field to the codes that meet it. \
+Every cut wakes the recorded pairs, whose arc consistency cuts more fields, \
+which wakes the filter again. Run to a fixed point. \
+\
+Only then commit: narrowest field first, one candidate, propagate again, \
+recurse, and put the candidate back if a field empties. When every field the \
+file or the filter speaks about is down to one candidate and propagation is \
+still standing, every pair between them agrees and the filter is true, and that \
+choice is the witness the question asks for. Fields no recorded pair and no \
+condition mentions are free and never searched. \
+\
+Everything depending only on the file is built once for the whole manifest: \
+both directions of every recorded pair, the neighbour lists, and the domains \
+narrowed to a fixed point before any filter arrives. That is what makes the \
+timed run cheap -- the reference answers it in about 1.5 seconds of the 30 \
+allowed, and the per-manifest preparation, not the search, is why.
+"""
+verification_explanation = """
+Three processes, so nothing a submission can reach is also something the grade \
+depends on. \
+\
+A child process is the only thing that imports the submitted module. It takes \
+a job on a pipe, performs the calls, prints what came back, and holds no \
+expected answer and no clock. It installs a finder ahead of everything else \
+that refuses pytest, unittest and the model holding the answers, and records \
+the attempt, so the attack that beat an earlier verifier of mine -- graded \
+code importing the test framework and blanking the function that runs a test \
+body -- fails on evidence rather than only on effect. A parent harness that \
+never imports the module wraps the wall clock round that child and kills it \
+from outside if it overruns; the timed child is given twelve times the budget \
+before it is killed, so a reader that is right and slow is graded right and \
+fails only the clock. Grading runs last under a third account, and a case \
+fails the session if anything belonging to the submitted module turns up in \
+its own loaded modules. \
+\
+Root opens the report file and hands the descriptor down before it gives up \
+its privileges, and the directory holding it belongs to root too, so the \
+sandbox can write through that descriptor and can neither replace nor remove \
+what it wrote. The models holding the answers are owned by root with the group \
+set to the grading account, which was checked from inside the sandbox account \
+rather than assumed: every path under the tests directory comes back \
+permission denied, and so does the reward file for writing. \
+cheat/take_the_answers.py goes looking for them, tries to import them, patches \
+pytest and registers a clean exit; every path is refused, the import is \
+refused and recorded, and the exit code of a process that ran submitted code \
+is not what the reward is keyed on. cheat/read_everything.py takes the \
+instruction at its word that reading too much is only wasted work and never \
+skips anything. Both score 0. \
+\
+Expected answers on the small block come from trying every choice of a code, \
+or of nothing at all, for every field the file or the filter mentions -- which \
+is the specification itself rather than a second clever reader, so a shared \
+misunderstanding cannot pass both. That block is confined to four of the twelve \
+fields precisely so that this stays affordable; at twelve it is 580 trillion \
+choices and there is no brute force to be had. The searching model that grades \
+the wide and timed blocks is therefore pinned from both sides. It cannot invent \
+a file to read: when it reaches a complete choice it reads that choice out and \
+puts it back through the definitional pair check and the definitional \
+three-valued evaluator, so a yes is always a witness that has been verified \
+against the rules. What it could do is miss one, so a grading case throws \
+complete choices at the wide manifest at full width, keeps the ones that \
+genuinely are witnesses, and fails if the model skipped a file one of them \
+belongs to. A further case runs fresh random four-field instances through both \
+models every run and fails if they ever disagree. The timed workload is built \
+inside the child from a seed root draws for the run, so nothing that size \
+crosses the pipe and no answer can be prepared before the questions exist; what \
+comes back is a rolling hash of every answer in order with the seed folded in. \
+Block sizes are read from the test package rather than from the report. A \
+reward of 0 is written before anything happens and rewritten on the way out of \
+every branch.
+"""
+category = "Software"
+subcategory = "Data engineering"
+tags = ["zone-maps", "constraint-propagation", "backtracking-search",
+        "three-valued-logic", "predicate-pushdown"]
+expert_time_estimate_hours = 12
+relevant_experience = """
+Building interfaces is the job, and has been for about three years. React \
+and Vue, TypeScript throughout, Python whenever tooling is wanted. A query \
+engine is somebody else's discipline and I would not claim it as mine. What I \
+brought to this is a mistake I have made repeatedly somewhere that looks \
+nothing like a warehouse. \
+\
+Filter panels are constraint problems and nobody treats them as one. You have \
+half a dozen dropdowns, each narrowing what the others may offer, and the \
+obvious implementation recomputes each dropdown's options against the current \
+selection and stops there. It looks right. What it does is offer a combination \
+that no record satisfies, because every pair of choices is individually \
+available and the whole set is not. Users find it immediately and it reads as \
+the app lying to them. Fixing it properly meant learning that narrowing each \
+field against the others is not the same as proving a whole selection exists, \
+and that the only honest way to know is to commit to a value and try to finish \
+the job. That is exactly the difference this task is built on, moved somewhere \
+the consequence is a wrong report rather than an empty result list. \
+\
+The empty option is the same story and it is the one that cost me most. A \
+dropdown left blank is not a dropdown set to a value that nothing matches, and \
+the records that tell you which combinations exist have nothing to say about \
+the rows where the field was never filled in. I have shipped both mistakes: \
+treating blank as a value the co-occurrence tables constrain, which hides \
+options that are genuinely available, and treating a condition on a blank field \
+as false, which is fine until somebody puts a negation in front of it and the \
+panel starts offering the opposite of what it should. Three values, and `not` \
+leaving the third alone, is not a database subtlety I read about. It is what \
+the bug reports made me learn. \
+\
+The other half, doing the work once instead of per query, is the same habit \
+from the same place. Anything that depends on the data and not on what was \
+asked gets computed when the data arrives, or you pay for it on every \
+keystroke. And the panel taught me the rest of it too: you cannot leave the \
+predicate until the end. If you only narrow from the options and check the \
+predicate once everything is chosen, the interaction is unusable, and the fix \
+is to push the predicate into the narrowing -- if only one branch of an or can \
+still be satisfied, that branch is now a requirement. That is the same trick \
+this task is timed on. \
+\
+How the suite is put together follows from not trusting myself. The model that \
+tries everything only fits on four fields, so the searching one is fenced from \
+both sides instead: it has to hand back a choice that passes the definitional \
+checks before it may say read, and a case throws witnesses at it at full width \
+to catch it skipping. Nothing sleeps and nothing threads. And the block graded \
+by trying every choice is kept small on purpose, so that the expensive, stupid, \
+obviously correct answer is available somewhere in the suite rather than \
+nowhere.
+"""
+
+[verifier]
+timeout_sec = 2400.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+gpus = 0

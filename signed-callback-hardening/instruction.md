@@ -1,0 +1,11 @@
+Partner callbacks reach us through a relay we do not run. Each partner signs its request with the client library in /app/sdk/signer.py, and /app/svc/auth/verify.py decides whether the service acts on it. A pen test last quarter got requests accepted that no key holder had signed, and the report showed only one payload, so I want the check made right rather than patched around that one example.
+
+Work only in /app/svc/auth/verify.py. We collect that single file and drop it into a clean checkout of the service, so an edit anywhere else under /app is discarded, and verify.py cannot import a module you added. Keep the entry point verify.check and the pair it hands back, because /app/svc/wsgi.py calls it and that file is not yours to change.
+
+Here is what has to hold when you are finished. If the service accepts a request and acts on it, the holder of the key named in that request signed exactly what the service then does with it: the partner it gets attributed to, the target it is routed to, the document the handler ends up working with, and the stamp and nonce it is judged fresh and unrepeated by. Someone sitting on the relay, who can read a request and rewrite it before it arrives, must not be able to turn one accepted request into a second accepted request that differs in any of those, and must not get the same request accepted twice. A key the service does not currently treat as valid for signing gets nothing through. Requests stamped too far away from now are refused, and how far is too far is a service setting rather than a number you pick.
+
+The other half of this matters just as much, and it is where careless hardening does the damage. Everything /app/sdk/signer.py produces today has to keep verifying. In transit the relay adds headers of its own, which nobody signs. Partners also decide which headers beyond the required ones they cover, listing them in whatever order suits them, and nonces are unique per key rather than across keys, so two partners sending the same nonce value is ordinary traffic and not an attack.
+
+Leave the finished file at /app/svc/auth/verify.py.
+
+You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

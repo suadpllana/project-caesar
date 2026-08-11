@@ -1,0 +1,168 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/model/pstore.py",
+  "/app/runtime/pfx.py",
+  "/app/runtime/sch.py",
+  "/app/mem/pool.py",
+]
+
+[task]
+name = "afterquery/rollout-cache-coherence"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The task looks like one question and is two, and the two have different answers. A
+parameter push that lands while a sample is generating invalidates the sample, because
+every parameter reaches the logits. The same push does not necessarily invalidate the
+cached key and value projections, because a block holds what the attention layers wrote,
+and that depends only on the parameters upstream of the last key/value projection. An
+agent that carries one fingerprint through the engine has to be wrong on one side or the
+other, and both sides are graded: reuse a block whose contents moved and the tokens come
+out wrong, drop a block that could not have moved and the work accounting comes out
+wrong. Nothing in the environment states which parameters those are; it has to be read
+off the forward pass in the backend, a file the agent cannot edit.
+
+The retrieved plan is specifically wrong here, which is the point of the shape. The
+public reports about this class of bug all end at the same fix, which is to put the
+adapter's identity into the cache key so two adapters cannot collide. In this engine the
+adapters that matter attach downstream of the last key/value projection, so keying on
+adapter identity is exactly what breaks the sharing the loop was sized around. The cheat
+that transplants that fix produces every token correctly and fails only on the work
+accounting.
+
+Then there are three edges that each kill an otherwise-correct implementation. The last
+layer's query projection shares storage with layer one, so a base push addressed at the
+apparently harmless module moves the key and value projections two layers down: any rule
+built on the names in the push rather than on the values that came out of it keeps stale
+blocks. A push that carries the values already loaded, which is what a rejected optimizer
+step replayed looks like, must invalidate nothing, so a revision counter is not a
+fingerprint. And the offload path is fenced from both directions: the copy-out-and-back
+level must preserve every cached block, the discarding level must retire every block that
+was resident, and neither may move a token.
+
+The engine is a working tree of sixteen modules with no comments anywhere in it, and its
+identifiers are deliberately in the register of ordinary internal code rather than
+self-describing ones, so the dependency structure, the block lifecycle, the tie table and
+the two-level offload have to be recovered by reading behaviour rather than by reading
+names. The load-bearing facts sit in files the agent is not allowed
+to edit, which is what stops the problem from being restructured into a shape a default
+plan handles.
+"""
+
+solution_explanation = """
+The reference does what someone who has debugged this in a real rollout loop does: it
+separates the two questions before writing anything.
+
+It reads the forward pass in model/be.py and works out what a cached block actually
+depends on. The key and value pair of layer i comes from the hidden state entering layer
+i, so it depends on the embedding, on every parameter of the layers below i, and on that
+layer's own key and value projections. It does not depend on the query projection, the
+output projection or the feedforward of the last layer, nor on the final scale or the
+output head, because those sit after the last key/value write. The union over the layers
+is the set that decides block validity. Sampling is the other question and has the other
+answer: every parameter reaches the logits, so the fingerprint that decides whether a
+sample in flight is still single-policy covers the whole set.
+
+Both fingerprints are taken over the effective matrices rather than over a revision
+number, which is what makes the replayed push and the cross-layer tie fall out for free
+rather than needing special cases: a push that lands the values already loaded produces
+the same fingerprint, and a push addressed at the tied module changes the storage layer
+one reads, so the layer one entry in the fingerprint moves. An adapter delta on the same
+tied module is a per-module view and does not, which is the case that keeps adapters
+sharing a prompt with the base policy.
+
+The scheduler compares a running sample's stored sampling fingerprint against the current
+one after each push, rewinds the ones that moved with their sampler counter reset, and
+puts them back at the head of the queue in scheduling order. The pool records which pages
+actually lost their contents on a discarding wake and keeps refusing them until they are
+handed out again, which is what lets the block table and the prefix index retire the same
+blocks instead of one of them advertising what the other threw away. The prefix index
+needed no change once it is fed a fingerprint that means something.
+
+The whole reference is about a hundred and twenty lines across four files and runs in
+under a second.
+"""
+
+verification_explanation = """
+The rebuilt engine is driven through eleven scenarios, each aimed at one reading of the
+rule, and every scenario is checked on three independent axes with no partial credit.
+
+The tokens have to match ground truth exactly, and the ground truth is re-proved inside
+the verifier by a sealed generator that shares no code with the engine tree: it recomputes
+each expected stream from scratch, with no cache, no blocks and no scheduler, under one
+parameter snapshot rebuilt from the scenario's own op list. A stream that mixed two
+policies, or that attended to projections computed under earlier parameters, cannot match
+a stream produced that way.
+
+The work has to match exactly too. The computed and reused position counts live in the
+engine facade and the backend, both outside the four files the agent may edit, so they
+measure real key/value work whatever the submitted implementation looks like. This is the
+side that fails an engine that is merely safe, and it is where the interesting cheats
+land: resetting the cache on every push, keying blocks on the adapter, using a revision
+counter, and treating a copy-out-and-back offload as destructive all produce correct
+tokens and the wrong amount of work.
+
+The lifecycle is checked as well: the exact set of samples rewound, and the engine's own
+admission, completion and preemption trace in order.
+
+Fifteen cheats were run against it and all scored 0. Nine are the reference solution with
+exactly one decision made the way a solver who missed one piece would make it, and their
+failure signatures are distinct and match the design: the adapter-in-key transplant fails
+only on work accounting, the name-based rule fails the tied push on tokens, the
+key/value-only rewind rule fails the neutral push on tokens, and the two offload cheats
+fail in opposite directions. Five are reward-tamper probes, since the verifier executes
+the agent's code: a double-forked process writing the reward after the run, a planted run
+output with the run killed before any scenario executes, wrong-typed junk returned from
+the engine's report, a privilege probe, and an attempt to read the ground truth from
+inside the verifier. The run happens as an unprivileged uid in its own session under a
+wall clock timeout, the reward channel is root-owned and locked before it starts, and the
+ground truth is a root-only file; grading runs afterwards as root and never executes
+anything the agent wrote.
+"""
+
+category = "ML"
+subcategory = "Training"
+
+tags = [
+  "kv-cache-invalidation",
+  "prefix-caching",
+  "weight-synchronization",
+  "rollout-engine",
+  "lora-adapters",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on the serving side of RL post-training loops: rollout engines that stay resident
+while a trainer pushes weights into them between batches, with prefix caching carrying
+most of the throughput because a group of samples shares one prompt. The pain this task is
+built from is the one that costs the most and shows up the least: the prefix cache is
+keyed on tokens, the weights move underneath it, and nothing anywhere raises an error. It
+takes a while to accept that the reward curve is flat because a fraction of the samples
+straddled a weight push. The other half of it, that you cannot fix it by flushing on every
+push without giving up the reuse the loop was sized around, is what turned it into a
+question about which parameters a cached block actually depends on. The tied projection
+and the replayed optimizer step are both things I have been caught by rather than things I
+invented for this.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

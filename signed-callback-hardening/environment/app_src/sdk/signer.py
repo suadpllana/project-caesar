@@ -8,6 +8,7 @@ DEFAULT_METHOD = "POST"
 DEFAULT_PATH = "/v1/callback"
 BASE_COVER = ["x-key-id", "x-partner", "x-target", "x-ts", "x-nonce", "x-body-sha256"]
 EXTRA_COVER = ["x-ctx", "x-trace"]
+DOC_PREFIX = "x-doc-"
 
 
 def body_bytes(doc):
@@ -31,6 +32,7 @@ def sign(
     doc,
     ctx=None,
     trace=None,
+    doc_headers=None,
     ts=None,
     nonce=None,
     cover=None,
@@ -50,9 +52,15 @@ def sign(
         headers["x-ctx"] = ctx
     if trace is not None:
         headers["x-trace"] = trace
+    for field, value in sorted((doc_headers or {}).items()):
+        headers[DOC_PREFIX + field.replace("_", "-")] = str(value)
 
     if cover is None:
-        cover = list(BASE_COVER) + [name for name in EXTRA_COVER if name in headers]
+        cover = (
+            list(BASE_COVER)
+            + [name for name in EXTRA_COVER if name in headers]
+            + sorted(name for name in headers if name.startswith(DOC_PREFIX))
+        )
     spec = ";".join(cover)
     headers["x-sig-headers"] = spec
 

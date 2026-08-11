@@ -1,3 +1,6 @@
+KEEP_FIRST = "first"
+KEEP_LAST = "last"
+
 MAX_DEPTH = 32
 MAX_STRING = 65536
 
@@ -20,9 +23,10 @@ class DocumentError(ValueError):
 
 
 class Reader:
-    def __init__(self, text):
+    def __init__(self, text, keep=KEEP_LAST):
         self.text = text
         self.pos = 0
+        self.keep = keep
 
     def fail(self, what):
         raise DocumentError("%s at offset %d" % (what, self.pos))
@@ -72,7 +76,7 @@ class Reader:
             self.pos += 1
             self.skip()
             value = self.value(depth + 1)
-            if key not in out:
+            if self.keep != KEEP_FIRST or key not in out:
                 out[key] = value
             self.skip()
             char = self.peek()
@@ -187,8 +191,8 @@ class Reader:
             self.fail("bad number")
 
 
-def parse(text):
-    reader = Reader(text)
+def parse(text, keep=KEEP_LAST):
+    reader = Reader(text, keep=keep)
     reader.skip()
     result = reader.value(0)
     reader.skip()

@@ -1,6 +1,8 @@
 import hashlib
 import json
 
+from . import jsonx
+
 
 def body_bytes(doc):
     return json.dumps(doc, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
@@ -19,3 +21,7 @@ def sig_input(method, path, spec, headers):
     for name in cover_list(spec):
         rows.append(name + ":" + headers.get(name, ""))
     return "\n".join(rows).encode("utf-8")
+
+
+def document(raw):
+    return jsonx.parse(raw.decode("utf-8"))

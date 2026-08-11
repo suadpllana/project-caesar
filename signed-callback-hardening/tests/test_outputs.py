@@ -54,7 +54,7 @@ def test_partner_traffic_is_accepted_and_recorded_exactly():
         record = records[0]
         assert record["partner"] == request["partner"]
         assert record["target"] == request["target"]
-        assert record["doc"] == request["doc"], (
+        assert record["doc"] == request["expected_doc"], (
             "the handler acted on a different document than the partner signed, on "
             "legitimate request %d" % index
         )
@@ -86,7 +86,8 @@ def test_unsigned_relay_headers_do_not_break_verification():
 def test_partner_attribution_cannot_be_changed_after_signing():
     rng = harness.rng_for("cover-partner")
     for index in range(25):
-        request = harness.legitimate(rng, partner="pt-beta", cover_drop="x-partner")
+        request = harness.legitimate(rng, key_id="k-beta-1", partner="pt-beta",
+                                     cover_drop="x-partner")
         request["headers"]["x-partner"] = "pt-alpha"
         status, payload, records = harness.deliver(request["headers"], request["body"])
         assert status == 401, (
@@ -320,7 +321,8 @@ def test_keys_the_configuration_excludes_cannot_sign():
     assert harness.NON_SIGNING_KEYS, "the key store must contain keys that may not sign"
     for index in range(10):
         for key_id in harness.NON_SIGNING_KEYS:
-            request = harness.legitimate(rng, key_id=key_id)
+            request = harness.legitimate(rng, key_id=key_id,
+                                         partner=harness.SUBJECTS[key_id][0])
             status, payload, records = harness.deliver(request["headers"], request["body"])
             assert status == 401, (
                 "case %d: key %s is in state %r, which the running profile does not "
@@ -395,6 +397,102 @@ def test_plain_tampering_is_refused():
             assert records == [], "case %d (%s): a refused request still reached ingest" % (
                 index, label,
             )
+
+
+# ---------------------------------------------------------------------------
+# 7. Document annotations. The pipeline merges x-doc-* headers into the
+#    document before the handler sees it, so they are part of what the key
+#    holder has to have committed to. They are optional, which is why a
+#    covered-set floor over the fixed headers does not reach them, and partners
+#    do send them, which is why refusing them outright is not a fix either.
+# ---------------------------------------------------------------------------
+
+
+def test_annotations_the_partner_signed_reach_the_handler():
+    rng = harness.rng_for("annotations-signed")
+    for index in range(25):
+        fields = harness.annotations(rng)
+        request = harness.legitimate(rng, doc_headers=fields)
+        status, payload, records = harness.deliver(request["headers"], request["body"])
+        assert status == 200, (
+            "case %d: a request carrying the partner's own signed annotations was "
+            "refused (%s)" % (index, payload)
+        )
+        assert len(records) == 1
+        assert records[0]["doc"] == request["expected_doc"], (
+            "case %d: the annotations the partner signed did not reach the handler "
+            "intact" % index
+        )
+
+
+def test_annotations_the_relay_adds_are_rejected():
+    rng = harness.rng_for("annotations-injected")
+    for index in range(30):
+        request = harness.legitimate(rng, doc_headers={})
+        field = rng.choice(harness.ANNOTATION_FIELDS)
+        request["headers"]["x-doc-" + field] = harness.text(rng, 8)
+        status, payload, records = harness.deliver(request["headers"], request["body"])
+        assert status == 401, (
+            "case %d: the relay added an annotation the key holder never signed and the "
+            "service accepted the request (%s)" % (index, payload)
+        )
+        assert records == [], (
+            "case %d: an unsigned annotation reached the handler" % index
+        )
+
+
+def test_signed_annotations_cannot_be_rewritten_in_transit():
+    rng = harness.rng_for("annotations-rewritten")
+    for index in range(25):
+        fields = harness.annotations(rng)
+        request = harness.legitimate(rng, doc_headers=fields)
+        name = "x-doc-" + sorted(fields)[0]
+        request["headers"][name] = harness.text(rng, 10)
+        status, payload, records = harness.deliver(request["headers"], request["body"])
+        assert status == 401, (
+            "case %d: an annotation was rewritten in transit and the request was still "
+            "accepted (%s)" % (index, payload)
+        )
+        assert records == []
+
+
+# ---------------------------------------------------------------------------
+# 8. Which partner a key may speak for. Attribution comes from a header, so a
+#    valid signature is not on its own an entitlement to that partner.
+# ---------------------------------------------------------------------------
+
+
+def test_a_key_cannot_speak_for_a_partner_it_was_not_issued_to():
+    rng = harness.rng_for("entitlement")
+    checked = 0
+    for key_id in harness.SIGNING_KEYS:
+        outsiders = [p for p in harness.PARTNERS if p not in harness.SUBJECTS[key_id]]
+        for partner in outsiders:
+            request = harness.legitimate(rng, key_id=key_id, partner=partner)
+            status, payload, records = harness.deliver(request["headers"], request["body"])
+            assert status == 401, (
+                "key %s is issued to %s, yet a request it signed was accepted and "
+                "attributed to %s (%s)"
+                % (key_id, harness.SUBJECTS[key_id], partner, payload)
+            )
+            assert records == []
+            checked += 1
+    assert checked >= 8, "the entitlement corpus did not build enough cases"
+
+
+def test_a_key_issued_to_several_partners_works_for_each_of_them():
+    rng = harness.rng_for("entitlement-shared")
+    shared = [k for k in harness.SIGNING_KEYS if len(harness.SUBJECTS[k]) > 1]
+    assert shared, "the key store must contain a key issued to more than one partner"
+    for key_id in shared:
+        for partner in harness.SUBJECTS[key_id]:
+            request = harness.legitimate(rng, key_id=key_id, partner=partner)
+            status, payload, records = harness.deliver(request["headers"], request["body"])
+            assert status == 200, (
+                "key %s is issued to %s but its request for %s was refused (%s)"
+                % (key_id, harness.SUBJECTS[key_id], partner, payload)
+            )
+            assert len(records) == 1
 
 
 def test_environment_is_the_one_the_verifier_expects():

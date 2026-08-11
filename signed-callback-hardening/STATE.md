@@ -44,7 +44,7 @@ the same bytes through `svc/core/jsonx.py`, whose object parser keeps the **firs
 key placed at the front of the document leaves the signed digest byte-identical and changes what
 the handler acts on.
 
-- Expert time estimate: 5 hours
+- Expert time estimate: 7 hours
 - Why a frontier agent cannot one-shot the plan: the correct plan requires knowing that the
   component that authenticates the payload and the component that consumes it disagree about how
   to read it. That fact exists nowhere in the instruction and in no single file - it is the
@@ -79,9 +79,13 @@ the handler acts on.
   item is missing entirely: nothing in my first plan binds the digest to the parse the handler
   performs, and my own tests - built from SDK-generated bodies, which never repeat a key - would
   have passed. That is the definition of a plan that is wrong somewhere that matters.
-- Estimated solves out of 8: **3**. Every flaw is discoverable and locally testable, the SDK and
-  the whole service are readable, and an agent that audits the request path end to end will find
-  the parser disagreement. An agent that works from the instruction plus its prior will not.
+- Estimated solves out of 8: **1 to 2** after the 2026-08-12 rebuild (was 3, and the probe measured it well above that). Three independent findings are now required, none of
+  them visible from the file under edit, and the measured partial solutions all score 0. The
+  contributor asked for at most 1 solve in a 3-attempt probe after the task was solved 2 of 3;
+  note the kit's arithmetic (`docs/DIFFICULTY.md`): a true rate near 1 in 8 carries roughly a
+  1-in-3 chance of scoring zero across 8 attempts and being rejected as unverifiable. The
+  reference solution is a natural expert path and every fact is in the tree, so the design is
+  solvable, but this is the deliberate trade the contributor asked for.
 - Originality check: the underlying bug classes are individually documented (signature coverage
   gaps, JSON parser differentials, "sign what you parse"). No public write-up plans *this*
   composition in *this* codebase, which does not exist outside the bundle. Searched for
@@ -157,6 +161,7 @@ material.
 | Date | Gate | Verdict | Fix |
 |---|---|---|---|
 | 2026-08-11 | Anti-cheat robustness (blocking) | The collected artifact is code the verifier imports into a root pytest process, so a `verify.py` whose module body calls `os._exit(0)` made pytest exit 0 with zero tests executed, and `test.sh` wrote reward 1 from the exit code alone. | Execution and grading were separated. `tests/worker.py` is now the only process that imports the application, launched by the harness through `setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs`; `tests/harness.py` imports only modules the agent cannot supply. The reward comes from `tests/grade.py`, which validates the CTRF report against the pinned id list in `tests/expected_tests.txt`. Kept as `cheat/cheat-kill-the-test-runner.sh`. |
+| 2026-08-12 | Easiness probe (blocking) | Solved 2 of 3 by Opus 5. The probe trajectory shows the solver identifying the parser differential in its first analysis pass, before writing any code. | Two causes, both fixed. (1) The shipped `verify.py` displayed the bug: `json.loads` sat in the 33-line file under edit while the handler two directories away called `jsonx.parse`, a one-glance inconsistency. The verifier now ships textbook-complete, the duplicate-key policy is a parameter of one shared parser (`jsonx.parse(..., keep=...)`), and the consuming call lives in a config-selected pipeline stage. (2) The instruction enumerated exactly the fields that had to be covered, which handed over the coverage fix; it now states the property once, generally. Two further independent gaps were added in the consumers (the overlay stage's `x-doc-*` merge, and the key-to-partner entitlement in the key store), so finding the parse disagreement alone is no longer sufficient - measured: `cheat/cheat-parser-differential-only.sh`, which reproduces the probe's winning answer, now scores 0. |
 | 2026-08-11 | Verifier execution isolation (blocking) | No privilege drop, `/logs/verifier` never restricted before agent code ran, reward derived from pytest's exit status; a daemonized child overwriting `reward.txt` was equally available. | `test.sh` now makes `/logs/verifier` root-owned mode 700 and `/tests` mode 700 before anything runs, copies the worker to `/run/worker.py` as the only file the unprivileged user needs, runs `pkill -u 65534` after the suite, and writes `reward.txt` only after grading. `tests/Dockerfile` tightens ownership at build time. Kept as `cheat/cheat-forge-the-reward.sh`. |
 
 Note on D2: neither change touched the verifier contract. The 18 tests, their assertions and

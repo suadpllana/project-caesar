@@ -143,8 +143,15 @@ ACCEPTED_KEY_STATES = list(SIGNING.get("accepted_key_states", ["active"]))
 SIGNING_KEYS = [k for k in keys.ids() if keys.lookup(k)["state"] in ACCEPTED_KEY_STATES]
 NON_SIGNING_KEYS = [k for k in keys.ids() if keys.lookup(k)["state"] not in ACCEPTED_KEY_STATES]
 
-PARTNERS = ["pt-alpha", "pt-beta", "pt-gamma", "pt-delta", "pt-epsilon"]
 STORING_TARGETS = ["settle", "notify"]
+
+# Which partners each key may speak for, straight from the service's own key store.
+SUBJECTS = {key_id: list(keys.lookup(key_id).get("subjects") or []) for key_id in keys.ids()}
+PARTNERS = sorted({p for subjects in SUBJECTS.values() for p in subjects})
+
+# Document annotations partners attach to a callback. The pipeline merges them into the
+# document, so a correct verifier treats them as part of what has to be signed.
+ANNOTATION_FIELDS = ["channel", "priority", "batch-ref", "settlement-window"]
 
 # Headers a relaying intermediary adds on the way through. Partners never sign these,
 # so a solution that demands total header coverage fails the legitimate-traffic test.
@@ -225,8 +232,22 @@ def context_value(rng):
     )
 
 
+def annotations(rng):
+    """A partner's own document annotations, which its client library signs."""
+    chosen = rng.sample(ANNOTATION_FIELDS, rng.randint(1, 2))
+    return {field: text(rng, rng.randint(3, 9)) for field in chosen}
+
+
+def expected_document(doc, doc_headers):
+    """What the pipeline hands the handler: the signed document with annotations merged."""
+    merged = dict(doc)
+    for field, value in (doc_headers or {}).items():
+        merged[field.replace("-", "_")] = str(value)
+    return merged
+
+
 def legitimate(rng, key_id=None, partner=None, target=None, doc=None, ts=None, nonce=None,
-               cover_drop=None, relay_headers=True):
+               cover_drop=None, relay_headers=True, doc_headers=None):
     """Build a request the way a partner's client library and the relay actually produce it.
 
     cover_drop names one header the signer leaves out of its cover list. Everything else
@@ -234,16 +255,21 @@ def legitimate(rng, key_id=None, partner=None, target=None, doc=None, ts=None, n
     of signature coverage rather than of anything else.
     """
     key_id = key_id or rng.choice(SIGNING_KEYS)
-    partner = partner or rng.choice(PARTNERS)
+    partner = partner or rng.choice(SUBJECTS[key_id])
     target = target or rng.choice(STORING_TARGETS)
     doc = document(rng) if doc is None else doc
     nonce = nonce or text(rng, 24)
+
+    if doc_headers is None and rng.random() < 0.35:
+        doc_headers = annotations(rng)
 
     optional = {}
     if rng.random() < 0.6:
         optional["ctx"] = context_value(rng)
     if rng.random() < 0.5:
         optional["trace"] = text(rng, 16)
+    if doc_headers:
+        optional["doc_headers"] = doc_headers
 
     headers, body = signer.sign(
         secret_for(key_id), key_id, partner, target, doc,
@@ -275,6 +301,8 @@ def legitimate(rng, key_id=None, partner=None, target=None, doc=None, ts=None, n
         "partner": partner,
         "target": target,
         "doc": doc,
+        "doc_headers": doc_headers or {},
+        "expected_doc": expected_document(doc, doc_headers),
         "nonce": nonce,
     }
 

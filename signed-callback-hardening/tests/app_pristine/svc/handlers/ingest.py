@@ -1,15 +1,15 @@
-from ..core import cfg, jsonx, store
+from ..core import store
+from ..pipeline import chain
+from ..pipeline.errors import Halt
 
 
 def apply(headers, raw):
-    limits = cfg.section("ingest")
-    if len(raw) > int(limits.get("max_body_bytes", 65536)):
-        return 413, {"status": "too-large"}
-
     try:
-        doc = jsonx.parse(raw.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
-        return 400, {"status": "bad-document"}
+        state = chain.run(headers, raw)
+    except Halt as halt:
+        return halt.code, halt.payload
+
+    doc = state["doc"]
     if not isinstance(doc, dict):
         return 400, {"status": "bad-document"}
 
@@ -18,6 +18,7 @@ def apply(headers, raw):
             "partner": headers.get("x-partner", ""),
             "target": headers.get("x-target", ""),
             "nonce": headers.get("x-nonce", ""),
+            "labels": state["labels"],
             "doc": doc,
         }
     )

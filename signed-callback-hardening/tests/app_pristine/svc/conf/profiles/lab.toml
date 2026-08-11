@@ -6,6 +6,9 @@ listen_port = 9101
 max_body_bytes = 4096
 max_targets = 2
 
+[pipeline]
+stages = ["limits", "decode", "audit"]
+
 [signing]
 accepted_key_states = ["active", "pending"]
 max_skew_sec = 30

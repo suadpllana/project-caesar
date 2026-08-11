@@ -24,17 +24,33 @@ values, `not` leaves the third one alone, and a condition that has to come out
 false still needs a code, because an unset field will not deliver false either.
 
 What is left is a search, and the search has to be cheap, because the same
-manifest is asked filter after filter. Two things make it cheap. Everything
-depending on the file alone is done once when the reader is built: both
-directions of every recorded pair, who neighbours whom, and the domains
-narrowed to a fixed point. And the filter is not something the search consults
-at the end but something it propagates from at every step -- an `and` that has
-to be true hands that requirement to each of its arms, an `or` that has to be
-true and has only one arm left that could be hands it to that arm, and a
-condition carrying a requirement cuts its field's domain down to the codes that
-meet it. Filter narrowing and pair narrowing are run against each other to a
-fixed point before any code is committed, which is what stops the search from
-walking a space it has no business in.
+manifest is asked filter after filter. Three things make it cheap.
+
+Everything depending on the file alone is done once when the reader is built:
+both directions of every recorded pair, who neighbours whom, and the domains
+narrowed to a fixed point.
+
+The filter is not something the search consults at the end but something it
+propagates from -- an `and` that has to be true hands that requirement to each
+of its arms, an `or` that has to be false does the same, and a condition
+carrying a requirement cuts its field down to the codes that meet it. Filter
+narrowing and pair narrowing are run against each other to a fixed point before
+any code is committed.
+
+And the search branches on the filter before it branches on codes. A
+requirement resting on several arms at once -- an `or` that has to be true with
+two arms still live -- narrows nothing while it rests there, and it is the
+cheapest thing in the problem to settle: two or three arms against a field's
+sixteen candidates, and picking an arm turns a requirement that said nothing
+into one that narrows every field it names. Branching on codes first, with such
+a requirement left open, is what makes the difference between milliseconds and
+minutes on the same question.
+
+That ordering also earns the last simplification. Once nothing is left resting
+on several arms, every requirement the filter makes has landed on a field and
+cut it to the codes that meet it, so the filter comes out true on any choice
+inside the domains. All that is left to settle is the pairs, so only fields
+that take part in a recorded pair are ever committed to a code.
 """
 
 CODES = 16
@@ -87,18 +103,6 @@ def _compile(node):
     return (LEAF, INDEX[node["col"]], yes, FULL & ~yes)
 
 
-def _columns_used(node, into):
-    kind = node[0]
-    if kind == LEAF:
-        into.add(node[1])
-    elif kind == NOT:
-        _columns_used(node[1], into)
-    else:
-        for arg in node[1]:
-            _columns_used(arg, into)
-    return into
-
-
 def _can_be(node, domains, sign):
     """Could this come out `sign` on what the domains still permit?
 
@@ -122,7 +126,7 @@ def _can_be(node, domains, sign):
     return False
 
 
-def _require(node, sign, domains, fresh):
+def _require(node, sign, domains, fresh, open_ones, settled):
     """Cut the domains down by the requirement that this comes out `sign`.
 
     An `and` that has to be true, and an `or` that has to be false, hand the
@@ -133,7 +137,10 @@ def _require(node, sign, domains, fresh):
     field to the codes that meet it, and never leaves room for the field to be
     unset, whichever way round the requirement is.
 
-    False means the requirement cannot be met at all.
+    A requirement resting on several arms at once is left in `open_ones` for
+    the search to settle, unless the search has already settled it, in which
+    case `settled` names the arm that was picked and the requirement passes
+    whole to that arm. False means the requirement cannot be met at all.
     """
     kind = node[0]
     if kind == LEAF:
@@ -146,22 +153,32 @@ def _require(node, sign, domains, fresh):
             fresh.append(col)
         return True
     if kind == NOT:
-        return _require(node[1], not sign, domains, fresh)
+        return _require(node[1], not sign, domains, fresh, open_ones, settled)
     args = node[1]
     if (kind == AND) == sign:
         for arg in args:
-            if not _require(arg, sign, domains, fresh):
+            if not _require(arg, sign, domains, fresh, open_ones, settled):
                 return False
         return True
+    chosen = settled.get(id(node))
+    if chosen is not None:
+        return _require(chosen, sign, domains, fresh, open_ones, settled)
+    live = None
     only = None
     for arg in args:
         if _can_be(arg, domains, sign):
-            if only is not None:
-                return True
-            only = arg
+            if only is None:
+                only = arg
+            else:
+                if live is None:
+                    live = [only]
+                live.append(arg)
     if only is None:
         return False
-    return _require(only, sign, domains, fresh)
+    if live is None:
+        return _require(only, sign, domains, fresh, open_ones, settled)
+    open_ones.append((node, sign, live))
+    return True
 
 
 def _revise(domains, links, queue):
@@ -191,18 +208,20 @@ def _revise(domains, links, queue):
     return True
 
 
-def _propagate(root, domains, links, seed):
+def _propagate(root, domains, links, seed, settled):
     """Run the filter's requirements and the recorded pairs against each other
-    until neither has anything left to say."""
+    until neither has anything left to say. Hands back the requirements that
+    are still resting on more than one arm, or None if nothing can be met."""
     queue = list(seed)
     while True:
         if queue and not _revise(domains, links, queue):
-            return False
+            return None
         fresh = []
-        if not _require(root, True, domains, fresh):
-            return False
+        open_ones = []
+        if not _require(root, True, domains, fresh, open_ones, settled):
+            return None
         if not fresh:
-            return True
+            return open_ones
         queue = fresh
 
 
@@ -215,11 +234,33 @@ def _bits(mask):
     return out
 
 
-def _search(root, order, domains, links):
-    """Commit a field at a time, narrowest first. When every field the file or
-    the filter speaks about holds exactly one candidate and propagation is
-    still standing, the pairs all agree and the filter is true: that choice is
-    the witness the question asks for."""
+def _search(root, order, domains, links, open_ones, settled):
+    """Settle the filter before committing to codes.
+
+    A requirement resting on several arms is the cheapest thing in the problem
+    to branch on: there are two or three arms, and picking one turns a
+    requirement that said nothing into one that narrows every field it
+    mentions. Only once no requirement is open like that is a field worth
+    committing to a code, narrowest first. When every field the file or the
+    filter speaks about is down to one candidate and propagation is still
+    standing, the pairs all agree and the filter is true, and that choice is
+    the witness the question asks for.
+    """
+    if open_ones:
+        node, sign, live = open_ones[0]
+        for other in open_ones:
+            if len(other[2]) < len(live):
+                node, sign, live = other
+        key = id(node)
+        for arm in live:
+            picked = dict(settled)
+            picked[key] = arm
+            narrowed = list(domains)
+            still = _propagate(root, narrowed, links, (), picked)
+            if still is not None and _search(root, order, narrowed, links,
+                                             still, picked):
+                return True
+        return False
     pick = -1
     width = NCOL * CODES
     for col in order:
@@ -231,8 +272,9 @@ def _search(root, order, domains, links):
     for value in _bits(domains[pick]):
         narrowed = list(domains)
         narrowed[pick] = 1 << value
-        if _propagate(root, narrowed, links, (pick,)) and _search(
-                root, order, narrowed, links):
+        still = _propagate(root, narrowed, links, (pick,), settled)
+        if still is not None and _search(root, order, narrowed, links, still,
+                                         settled):
             return True
     return False
 
@@ -277,21 +319,31 @@ class Reader:
         if not _revise(domains, links, list(range(NCOL))):
             return None
 
-        touched = set(c for c in range(NCOL) if links[c])
+        touched = [c for c in range(NCOL) if links[c]]
         return links, domains, touched
 
     def files_to_read(self, filter_expr):
+        """Only fields that take part in a recorded pair are ever committed to
+        a code.
+
+        Once no requirement is left resting on several arms, every requirement
+        the filter makes has landed on a field and cut that field to the codes
+        that meet it, so the filter comes out true on any choice inside the
+        domains. What is left to settle is the pairs, and a field in no
+        recorded pair is in nothing left to settle: whatever its domain still
+        holds will do.
+        """
         root = _compile(filter_expr)
-        order = _columns_used(root, set())
         out = []
         for index, prepared in enumerate(self.files):
             if prepared is None:
                 continue
             links, base, touched = prepared
             domains = list(base)
-            if not _propagate(root, domains, links, ()):
+            open_ones = _propagate(root, domains, links, (), {})
+            if open_ones is None:
                 continue
-            if _search(root, sorted(touched | order), domains, links):
+            if _search(root, touched, domains, links, open_ones, {}):
                 out.append(index)
         return out
 

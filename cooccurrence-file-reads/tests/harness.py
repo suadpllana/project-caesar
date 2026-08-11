@@ -20,7 +20,7 @@ sys.path.insert(0, "/tmp/sbx")
 import casegen  # noqa: E402
 
 RUNNER = "/tmp/sbx/runner.py"
-CASE_LIMIT = 1500
+CASE_LIMIT = 600
 
 
 def run_child(job, limit):
@@ -78,7 +78,7 @@ def main():
     # should still be graded right and fail only the clock, so the child is
     # killed only when it has stopped being evidence of anything.
     got, secs, err = run_child({"mode": "timed", "seed": seed},
-                               casegen.TIMED_BUDGET * 12)
+                               casegen.TIMED_BUDGET * 5)
     timed = {"seconds": secs, "error": err}
     if got:
         timed.update({k: got.get(k) for k in ("digest", "queries", "files")})

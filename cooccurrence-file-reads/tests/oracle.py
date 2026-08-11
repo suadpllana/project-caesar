@@ -120,7 +120,7 @@ def reachable(node, domains, sign):
     return bool(domains[node["col"]] & keep)
 
 
-def require(node, sign, domains, moved):
+def require(node, sign, domains, moved, resting, picked):
     """Narrow the domains by the requirement that this comes out `sign`.
 
     `and` that has to be true and `or` that has to be false pass the whole
@@ -129,21 +129,29 @@ def require(node, sign, domains, moved):
     left that could carry it. `not` flips which case this is. A condition
     carrying a requirement, either way round, cuts its field to codes -- an
     unset field answers neither true nor false, so it satisfies neither.
+
+    A requirement still resting on several arms is left in `resting` for the
+    search to settle, unless it already has, in which case `picked` names the
+    arm it chose and the requirement passes whole to that one.
     """
     op = node["op"]
     if op == "not":
-        return require(node["arg"], not sign, domains, moved)
+        return require(node["arg"], not sign, domains, moved, resting, picked)
     if op in ("and", "or"):
         if (op == "and") == sign:
             for arg in node["args"]:
-                if not require(arg, sign, domains, moved):
+                if not require(arg, sign, domains, moved, resting, picked):
                     return False
             return True
+        chosen = picked.get(id(node))
+        if chosen is not None:
+            return require(chosen, sign, domains, moved, resting, picked)
         live = [a for a in node["args"] if reachable(a, domains, sign)]
         if not live:
             return False
         if len(live) == 1:
-            return require(live[0], sign, domains, moved)
+            return require(live[0], sign, domains, moved, resting, picked)
+        resting.append((node, sign, live))
         return True
     keep = code_mask(op, node["value"])
     if not sign:
@@ -313,27 +321,58 @@ class Truth:
                     worklist.append(other)
         return True
 
-    def _settle(self, filter_expr, domains, links, seed):
+    def _settle(self, filter_expr, domains, links, seed, picked):
+        """Narrowing to a fixed point. Hands back the requirements still
+        resting on more than one arm, or None if none of them can be met."""
         worklist = list(seed)
         while True:
             if worklist and not self._spread(domains, links, worklist):
-                return False
+                return None
             moved = []
-            if not require(filter_expr, True, domains, moved):
-                return False
+            resting = []
+            if not require(filter_expr, True, domains, moved, resting, picked):
+                return None
             if not moved:
-                return True
+                return resting
             worklist = moved
 
     def decide(self, prepared, filter_expr, needed):
         links, base, checks = prepared
         domains = dict(base)
-        if not self._settle(filter_expr, domains, links, []):
+        resting = self._settle(filter_expr, domains, links, [], {})
+        if resting is None:
             return False
-        wanted = [c for c in COLUMNS if links[c] or c in needed]
-        return self._place(filter_expr, wanted, domains, links, checks)
+        # Only fields taking part in a recorded pair are ever committed. Once
+        # nothing is resting on several arms, every requirement the filter
+        # makes has landed on a field and cut it to the codes that meet it, so
+        # the filter comes out true on any choice inside the domains; a field
+        # in no recorded pair has nothing left to settle. The choice handed to
+        # the definitional checks below is still complete, and it is those
+        # checks, not this argument, that decide whether a file is read.
+        wanted = [c for c in COLUMNS if links[c]]
+        return self._place(filter_expr, wanted, domains, links, checks,
+                           resting, {}, needed)
 
-    def _place(self, filter_expr, wanted, domains, links, checks):
+    def _place(self, filter_expr, wanted, domains, links, checks, resting,
+               picked, needed):
+        if resting:
+            # An `or` that has to come out true is two or three arms wide and
+            # a field is sixteen candidates wide, so settle the arms first:
+            # picking one turns a requirement that narrowed nothing into one
+            # that narrows every field it names.
+            node, sign, live = min(resting, key=lambda item: len(item[2]))
+            key = id(node)
+            for arm in live:
+                chosen = dict(picked)
+                chosen[key] = arm
+                narrowed = dict(domains)
+                left = self._settle(filter_expr, narrowed, links, [], chosen)
+                if left is None:
+                    continue
+                if self._place(filter_expr, wanted, narrowed, links, checks,
+                               left, chosen, needed):
+                    return True
+            return False
         col = None
         for candidate in wanted:
             if bin(domains[candidate]).count("1") > 1:
@@ -346,9 +385,13 @@ class Truth:
             # definitional model applies, so that a mistake anywhere in the
             # narrowing can only ever lose a witness, never invent one.
             row = {}
-            for name in wanted:
+            for name in set(wanted) | set(needed):
                 held = domains[name]
-                row[name] = None if held == NOTHING else held.bit_length() - 1
+                if held == NOTHING:
+                    row[name] = None
+                else:
+                    low = (held & FULL) & -(held & FULL)
+                    row[name] = None if low == 0 else low.bit_length() - 1
             for (x, y, table) in checks:
                 i = row.get(x)
                 j = row.get(y)
@@ -363,9 +406,11 @@ class Truth:
             bits ^= low
             narrowed = dict(domains)
             narrowed[col] = low
-            if not self._settle(filter_expr, narrowed, links, [col]):
+            left = self._settle(filter_expr, narrowed, links, [col], picked)
+            if left is None:
                 continue
-            if self._place(filter_expr, wanted, narrowed, links, checks):
+            if self._place(filter_expr, wanted, narrowed, links, checks, left,
+                           picked, needed):
                 return True
         return False
 

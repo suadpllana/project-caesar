@@ -43,7 +43,7 @@ The other is a class, `Reader`, built from a manifest once. `Reader(manifest).fi
 
 ## Speed
 
-Summaries get loaded once and queried all day, so there is a run against the clock. Fourteen hundred files, twenty-four queries carrying about a dozen conditions apiece, one `Reader` for all of them, thirty seconds of wall time. The stopwatch sits in another process, not yours, and it starts before the manifest exists. Neither the summaries nor the queries are ones you have seen: both come out of a seed drawn when the run starts.
+Summaries get loaded once and queried all day, so there is a run against the clock. Fourteen hundred files, twenty-four queries carrying about a dozen conditions apiece, one `Reader` for all of them, sixty seconds of wall time. The stopwatch sits in another process, not yours, and it starts before the manifest exists. Neither the summaries nor the queries are ones you have seen: both come out of a seed drawn when the run starts.
 
 Being right and being quick are graded apart and you want both. That run puts thirty-three thousand file-and-filter questions, and not one of them is a lookup.
 

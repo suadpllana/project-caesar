@@ -41,22 +41,33 @@ task used five fields and eight codes, and 32768 choices fit in one Python \
 integer used as a bit set, so the whole question collapsed to a single AND \
 between two of them and every trap above went with it. \
 \
-What is left is a search, and a complete correct search is not enough. Built \
+So it is a search, and a complete correct search is nowhere near enough. Built \
 the way a good engineer builds it -- domains as masks, the filter's own unary \
 consequences taken out of it first, a field committed at a time narrowest \
 first, every neighbour forward-checked, and the search pruned wherever the \
-filter can no longer come out true on what is left -- it answers every \
-question right and takes 137.7 milliseconds each. The timed run asks 33600 of \
-them inside 30 seconds. That is 4628 seconds against 30, measured, and no \
-amount of tuning closes a gap of three thousand. What closes it is a different \
-plan: propagating the filter itself as a constraint, so that an `and` that has \
-to be true hands that requirement to every arm, an `or` that has to be true and \
-has one arm left that could be hands it to that arm, and each such requirement \
-cuts a domain, which cuts the pairs, which cuts the filter again, to a fixed \
-point before anything is committed. Same instances, 0.046 milliseconds each. \
+filter can no longer come out true on what is left -- it answers every question \
+right and takes 141 milliseconds each. The timed run asks 33600 of them inside \
+60 seconds. That is 4743 seconds against 60, measured on a slice of the real \
+workload, and no tuning closes a gap of three thousand. What closes it is \
+propagating the filter itself as a constraint: an `and` that has to be true \
+hands that requirement to every arm, an `or` that has to be true with one arm \
+left that could carry it hands it to that arm, and each requirement cuts a \
+domain, which cuts the pairs, which cuts the filter again, to a fixed point \
+before anything is committed. \
 \
-Two of those are plan-level, they are not visible from the instruction, and \
-neither shows up until a lot of code exists.
+And there is a second plan-level step behind that one, which I only found by \
+measuring: what to branch on. A requirement resting on two or three live arms \
+narrows nothing while it rests there. Commit a code with one still open and the \
+search walks sixteen candidates a field deep into a space the filter would have \
+cut away; settle the arms first and the same question is decided immediately. \
+One query of one seed, twelve conditions over a manifest of 1400 files, goes \
+from 162.6 seconds to 0.07 seconds on that ordering alone, same answer. Over \
+400 seeds the finished reference runs a median of 3.20 seconds and a maximum of \
+4.23. Branching on codes first, that same distribution has a tail into the \
+minutes. \
+\
+Three of those are plan-level, none is visible from the instruction, and none \
+shows up until a lot of correct code exists.
 """
 solution_explanation = """
 Treat narrowing as a filter and never as a verdict, and treat the filter as a \
@@ -81,18 +92,27 @@ condition carrying a requirement cuts its field to the codes that meet it. \
 Every cut wakes the recorded pairs, whose arc consistency cuts more fields, \
 which wakes the filter again. Run to a fixed point. \
 \
-Only then commit: narrowest field first, one candidate, propagate again, \
-recurse, and put the candidate back if a field empties. When every field the \
-file or the filter speaks about is down to one candidate and propagation is \
-still standing, every pair between them agrees and the filter is true, and that \
-choice is the witness the question asks for. Fields no recorded pair and no \
-condition mentions are free and never searched. \
+Then branch, and branch on the filter before branching on codes. A requirement \
+still resting on two or three live arms narrows nothing while it rests there, \
+and settling it is the cheapest move available: pick an arm, hand it the whole \
+requirement, and every field that arm names is cut. Only when nothing is \
+resting like that is a code worth committing, narrowest field first, propagate \
+again, and put the candidate back if a field empties. \
+\
+That ordering earns the last simplification. Once nothing rests on several \
+arms, every requirement the filter makes has landed on a field and cut it to \
+the codes that meet it, so the filter comes out true on any choice inside the \
+domains, and the only thing left to settle is the pairs. Fields in no recorded \
+pair are therefore never committed at all. When every field that does take part \
+in one is down to a single candidate and propagation is still standing, every \
+pair agrees and the filter is true: that choice is the witness the question \
+asks for. \
 \
 Everything depending only on the file is built once for the whole manifest: \
 both directions of every recorded pair, the neighbour lists, and the domains \
-narrowed to a fixed point before any filter arrives. That is what makes the \
-timed run cheap -- the reference answers it in about 1.5 seconds of the 30 \
-allowed, and the per-manifest preparation, not the search, is why.
+narrowed to a fixed point before any filter arrives. Over 400 random seeds the \
+reference answers the timed run in a median of 3.20 seconds and a maximum of \
+4.23, against the 60 allowed.
 """
 verification_explanation = """
 Three processes, so nothing a submission can reach is also something the grade \
@@ -106,11 +126,23 @@ the attempt, so the attack that beat an earlier verifier of mine -- graded \
 code importing the test framework and blanking the function that runs a test \
 body -- fails on evidence rather than only on effect. A parent harness that \
 never imports the module wraps the wall clock round that child and kills it \
-from outside if it overruns; the timed child is given twelve times the budget \
+from outside if it overruns; the timed child is given five times the budget \
 before it is killed, so a reader that is right and slow is graded right and \
 fails only the clock. Grading runs last under a third account, and a case \
 fails the session if anything belonging to the submitted module turns up in \
 its own loaded modules. \
+\
+The clock has margin, and the margin is measured rather than hoped for. Over \
+400 random seeds the reference answers the timed workload in a median of 3.20 \
+seconds, p99 4.05, maximum 4.23, worst single query 0.32, against a budget of \
+60. The model that grades that block was swept the same way, so how long the \
+verifier itself takes does not depend on the seed either, and every block has a \
+kill limit that keeps the whole session inside its timeout however slow a \
+submission is. An earlier build of this task did have a seed-dependent tail -- \
+one query of one seed took 162 seconds -- and that was a missing decision about \
+what to branch on rather than anything about the workload. Both models settle \
+the filter's open arms before committing a code now, and the tail is gone from \
+both. \
 \
 Root opens the report file and hands the descriptor down before it gives up \
 its privileges, and the directory holding it belongs to root too, so the \

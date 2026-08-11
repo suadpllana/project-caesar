@@ -1,70 +1,61 @@
-We do reinforcement learning post-training with an in-process rollout engine, and the
-engine has started handing back samples that do not belong to any policy we ever held.
-The engine is in /app. A trainer pushes parameter updates into it between rollout
-batches, some into the base weights and some into one adapter at a time, and it keeps
-serving across those pushes, with a paged key/value cache and a prefix index in front of
-it so that a group of samples sharing a prompt does not pay for that prompt more than
-once.
+We do reinforcement learning post-training against a rollout engine that stays up across
+weight pushes, and it has started giving back samples that belong to no policy we ever
+held. The engine is in /app. A trainer pushes parameter updates into it between rollout
+batches, some into the base weights and some into a single adapter, and it keeps serving
+through those pushes, with a paged key/value cache and a prefix index in front of it,
+because a rollout group is many samples on one prompt and we do not pay for that prompt
+more than once. Your job is to make every request that finishes come back with the token
+stream it would have produced on an engine started fresh on one parameter state, and to
+do that without giving up the reuse.
 
-You can see it with /app/run_rollout.py, which runs a short scenario: two requests on the
-same prompt, three scheduler steps, a push into the first layer's key projection, then the
-rest of the run. Request r0 comes back as 24, 10, 42, 35, 35, 54. On an engine started
-fresh on the parameters that push left loaded, the same request gives 20, 52, 28, 3, 48,
-37. On the parameters that were loaded before it, 24, 10, 42, 27, 15, 22. What we get is
-neither of those: the first three tokens are the old policy and the rest are the new
-policy attending to key and value projections that were computed under the old one. Every
-sample in flight across a push looks like this, and an advantage computed from a sample
-that cannot be attributed to one policy is worse than no sample at all.
+/app/run_rollout.py runs a short scenario that shows it: two requests on one prompt, three
+scheduler steps, a push into the first layer's key projection, then the rest of the run.
+Request r0 comes back as 24, 10, 42, 35, 35, 54. Start an engine fresh on the parameters
+that push left loaded and the same request gives 20, 52, 28, 3, 48, 37. On the parameters
+loaded before it, 24, 10, 42, 27, 15, 22. Ours is neither. The first three tokens are the
+old policy and the rest are the new policy attending to key and value projections computed
+under the old one. Anything in flight when a push lands comes out like this, and a sample
+we cannot attribute to one policy is a sample we cannot compute an advantage from.
 
-I want the engine to give back, for every request that finishes, exactly the token stream
-that request would have produced on an engine started fresh on a single parameter state,
-while the cache carries on doing its job. Those two things together are the task, and the
-second one is not a nicety: we sized this loop around the prompt sharing, and an engine
-that stays correct by throwing the cache away after every push is not one we can run.
+Some ground rules, because a few of them are not what you would do elsewhere.
 
-The rules I need it to follow.
+A sample that has already put out tokens is done for when a push moves the parameters its
+request runs under. Throw those tokens away and generate it again from the prompt. What
+comes back has to be what the same request gives submitted fresh against the loaded
+parameters, sampler state and all, so the counting starts over rather than carrying on
+from where it stopped. Where one push takes down several samples, they go back to the
+front of the waiting queue in the order they were being scheduled.
 
-If a push lands while a sample has already emitted tokens, and it moved that request's
-effective parameters, throw those tokens away and generate the sample again from its
-prompt. What comes back has to be identical to the same request submitted fresh against
-the loaded parameters, sampler state included, so it counts from the start rather than
-carrying on where it left off. Where a push discards more than one sample, they go back to
-the front of the waiting queue in the order they were being scheduled in.
+A push that leaves a request's effective parameters where they were does nothing to that
+request. Two of those come up constantly here. The optimizer step that gets rejected and
+replayed pushes the values that are already loaded. The push into one adapter arrives
+while other requests are running on the base policy or on a different adapter. No sample
+goes down for either of them, and neither costs a recomputation.
 
-Nothing happens to a request when the push leaves its effective parameters where they
-were. That covers the two cases we actually hit: the optimizer step that gets
-rejected and replayed, so the values arriving are the values already loaded, and the push
-that goes into one adapter while other requests are running under the base policy or
-under a different adapter. Neither discards a sample, and neither costs a recomputation.
+A cached block stops being used only when what it holds could have come out different.
+Requests on different adapters, and requests on an adapter and on the base policy, share
+blocks wherever the contents cannot differ between them. A push that could not have moved
+what a block holds leaves that block in service. Both halves of that are measured: a block
+kept that should have gone is wrong, and so is a block dropped that did not have to go.
 
-A cached block may only stop being used when what it holds could have changed. Requests
-running under different adapters, and requests running under an adapter and under the base
-policy, share their cached blocks whenever the contents of those blocks cannot differ
-between them, and a push that cannot have moved what a block holds leaves that block in
-service. I am asking for the whole of this, not the safe half of it: keeping a block that
-should have gone and dropping a block that did not have to go are both wrong, and both
-are measured.
+The offload path has two levels and they do not do the same thing. Level 1 copies the
+pages out and puts them back, so a cached block comes through the cycle intact. Level 2
+gives the pages up and what comes back is whatever the allocator had in them, so nothing
+computed before that point may be served after it. No token moves at either level.
 
-The offload path has two levels and they are not the same. Level 1 copies the pages out
-and back, so every cached block survives the cycle intact. Level 2 gives the pages up, and
-what comes back is whatever the allocator had; nothing computed before that point may be
-served afterwards. Neither level may change a single token of any sample.
+Leave the rest of how the engine runs alone. What gets admitted in a step, how many run at
+once, what gets preempted when the pool runs dry, what gets evicted first: none of that is
+what we are after, and a run whose admissions, completions and preemptions come out in a
+different order is a different engine.
 
-Everything else about how the engine runs stays as it is: which requests are admitted in a
-step, how many run at once, which request is preempted when the pool runs dry, and which
-cached block is evicted first. I am not asking for a better scheduler, and a run whose
-admissions, completions and preemptions come out in a different order is not the same
-engine.
-
-You may edit exactly these four files: /app/model/pstore.py, /app/runtime/pfx.py,
-/app/runtime/sch.py and /app/mem/pool.py. Those four are the only paths that are taken
-from your container, so nothing else you change or add is read, including new modules of
-your own. The rest of the tree is restored from a clean copy before your work is measured,
-and it has to keep working against that copy.
+Four files are yours: /app/model/pstore.py, /app/runtime/pfx.py, /app/runtime/sch.py and
+/app/mem/pool.py. Those four paths are the only ones we take out of your container, so
+anything else you edit or add, new modules of your own included, is not read. The rest of
+the tree goes back to a clean copy before your work is measured and has to keep working
+against that copy.
 
 /app/run_rollout.py takes a scenario file as its argument and prints what the engine did
-with it, so you can put the engine through whatever op sequences you want to convince
-yourself. Everything is integer arithmetic and deterministic, so a run either matches or
-it does not.
+with it, so put it through whatever op sequences you want. The arithmetic is integer
+throughout and the engine is deterministic, so two runs of one scenario agree exactly.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

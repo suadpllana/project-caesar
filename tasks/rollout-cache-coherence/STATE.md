@@ -159,6 +159,13 @@ sides are graded.
 
 ## Open questions and next steps
 
-- `instruction.md` is a draft built from the contributor's material and needs their own
-  pass, in their voice, before submission (D1).
+- `instruction.md` was rejected once by the AI-text screen and rewritten against a brief
+  of the contributor's that passed it: team voice throughout with no first-person
+  singular, shorter sentences, imperative openers, no rhetorical antithesis and no punchy
+  closers. Stylometry now sits next to the passing sample (mean sentence 18.9 words
+  against 17.6, no dash asides). It still wants the contributor's own read before
+  submission (D1).
+- The rewrite dropped the line naming the flush-on-every-push plan as unusable. The
+  requirement it carried is still stated, as "both halves of that are measured", so the
+  brief no longer hands over which default plan is wrong.
 - `harbor check` has not been run; `harbor` is not installed here. Every other gate has.

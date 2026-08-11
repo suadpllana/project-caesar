@@ -1,0 +1,262 @@
+# Only one file out of the agent's tree is ever compiled: the apply path.
+# The header, the bench part and the Makefile ride along so their SHA-256 can
+# be set against the frozen copies before a single session is graded.
+artifacts = [
+  "/app/src",
+  "/app/include",
+  "/app/Makefile",
+  "/app/README.md",
+]
+
+[task]
+name = "afterquery/sled-rail-trim"
+
+[metadata]
+author_name = "Kaneki"
+author_email = "forgeks0@gmail.com"
+category = "Software"
+subcategory = "Systems"
+tags = ["device-driver", "register-map", "bus-budget", "batched-writes", "c"]
+expert_time_estimate_hours = 14
+
+difficulty_explanation = """
+The apply path that ships in /app/src/driver.c is correct. It walks the batch \
+in the order the config layer produced it, moves the part into whichever mode \
+the next setting needs, waits the part out and writes it. Every rule in the \
+fault table is respected by construction, because arrival order already \
+satisfies them. It costs 6.09x what the reference costs, measured over twenty \
+seeded sessions of twenty rails and ten batches each, with the transactions \
+counted by the part model itself rather than by a clock.
+
+Getting from there to inside the ceiling needs four separate things, and the \
+brief and the datasheet state the rules all four of them rest on without \
+drawing any of the conclusions. The ceiling is 1.10 times what the reference \
+planner in /tests spends on the identical sessions, and the whole design of \
+the case set and the session generator is that missing any single one of the \
+four puts an otherwise flawless apply path outside it. The measurements below \
+are totals over twenty sessions; the per-session spread is in the docstring of \
+/tests/plan.py, and no row that fails does so by less than fifteen percent on \
+any individual graded run.
+
+The first is that the batch is a description of where the rails should end up \
+rather than a script to replay, so the disables the config layer asks for \
+before a retrim do not have to happen. An implementation that groups the batch \
+by mode and frames it properly but still performs every disable it is asked \
+for is completely correct and comes in at 1.26x.
+
+The second is the pair register. It is one line of the register map: sixteen \
+bits, limit in the high byte, voltage in the low one, both halves landing in \
+the same beat. The datasheet says what follows from that -- the word is \
+checked against itself and nothing else -- and says nothing about what it is \
+worth. Two things are: a live rail can be walked downwards in one write with \
+no ordering to respect at all, and a rail whose batch moves only one half can \
+be written through the same word by restating the other. An implementation \
+that finds the register but reaches for it only where both halves move, and \
+sends the rest to the voltage and limit banks, is correct and comes in at \
+1.23x. One that never finds it at all comes in at 1.30x. Roughly two fifths of \
+the rails a batch touches move one half only, which is what makes the \
+difference between those two readings worth eleven points: the pair bank is \
+dense when everything goes through it and sparse when it does not, and dense \
+banks are what frames feed on.
+
+The third is the frame. Two transactions carry up to eight consecutive \
+registers of one bank. Single writes throughout, with everything else right, \
+is 1.66x; framing only where the wanted registers already sit side by side is \
+1.37x; never restating an untouched neighbour to bridge a gap inside a frame \
+is 1.27x. Unlike the earlier revision of this task there is no fair route that \
+declines the question -- with frames this wide, an implementation that will \
+not restate anything is eleven points over on its own -- so the trap has to be \
+answered rather than avoided. It is a real trap. A restated pair word is \
+checked like any other and the part latches PAIR_INVERTED on a rail the rack \
+has parked under its own limit; the same rail poisons a restated voltage with \
+VSET_OVER_ILIM, while a restated limit and a restated enable are always safe. \
+Measured, an implementation that restates without checking would come in at \
+0.96x -- cheaper than the reference -- if the part let it, and instead faults \
+on four of the forty-five named cases and on roughly one generated session in \
+seven. Whether a register may be restated also has to be read after the pass \
+that lowers limits rather than before it, since that pass is what puts rails \
+under their own voltage.
+
+The fourth is settling, and it is the one I expect to decide most runs. A mode \
+change leaves the part unable to take a single write until it has answered two \
+looks at its status register, and the datasheet says in the same paragraph \
+that a staged frame carries its own preamble and is taken straight away. \
+Nothing says the two facts belong together. An apply path that polls the \
+status register after every mode move -- which is what the shipped one does, \
+and what any careful reading produces -- pays two transactions per window it \
+opens. One that arranges for the first thing after each mode move to be a \
+frame pays none. Everything else being right, paying it is 1.23x.
+
+Three more measured failures, to show the case set bites from several \
+directions at once. Sending each rail's limit before its voltage inside the \
+program window, because that is the order the register map lists the banks in, \
+faults with ILIM_UNDER_LOAD on eleven of the forty-five named sessions, and on \
+twenty-three of them when it is not using the pair register either. \
+Answering from a table keyed on the batch shape scores zero, because twelve of \
+the short sessions and all eight long ones are generated from a seed drawn out \
+of /dev/urandom when the run starts, and the second grading pass draws its own \
+seed again. Writing the reward file directly scores zero too; that one is \
+covered under verification.
+
+The ceiling is not a number anybody wrote down. It is a multiple of what the \
+reference planner spends on the very same sessions, so a session that happens \
+to be cheap moves both sides together and there is no threshold to tune \
+against. A competent implementation that has all four ideas and packs its \
+frames by hand rather than by dynamic programming measures between 1.049x and \
+1.070x across thirty independent eight-session runs, so the band that passes \
+is real and it is not narrow. Everything is stated: the register map, every \
+refusal, what settling costs, the frame and what it costs, the fact that a \
+ceiling exists and that it is derived from a well-made path. Nothing is \
+withheld and the whole thing is testable locally against the bench part in \
+/app/src/sandbox.c, which models the part exactly, settling and all. What is \
+not stated is which of the stated rules are worth money.
+"""
+
+verification_explanation = """
+The agent's code never runs in the process that decides anything. \
+/app/src/driver.c is compiled -- by the unprivileged `verifier` account, not \
+by root -- against a runner and a header taken from the verifier image rather \
+than from /app, so a redefined register map or a header that #includes its way \
+somewhere useful gets nothing. The resulting binary implements the three bus \
+calls by writing a line on stdout and reading the answer on stdin. The part \
+does not exist on that side of the pipe. The register file, all eleven \
+refusals, the sessions, the reference planner and the transaction counter are \
+Python objects inside /tests, which is root-owned and mode 700.
+
+That means the counter cannot be made smaller than the transactions actually \
+requested, a refused write cannot be waved through, and there is no exit code \
+from the runner anywhere in the reward path. pytest runs as root out of /tests \
+and never imports anything from /app; the grader asserts that by resolving \
+every loaded module's origin and failing the session if any of them lives \
+under the app directory. The verdict pytest writes carries a nonce drawn from \
+/dev/urandom for this run, and test.sh refuses to hand out a reward for a \
+verdict whose nonce does not match, so a verdict file planted in advance is \
+worth nothing. A second grading pass runs afterwards as plain Python with \
+pytest nowhere near it, on its own freshly drawn seed and its own build, and \
+both have to agree.
+
+Checked from inside the account the runner uses: `ls /tests` is Permission \
+denied, so is reading /tests/plan.py, and writing /logs/verifier/reward.txt is \
+Permission denied. Before the reward is decided, test.sh kills every process \
+owned by that account, confirms none survived, rewrites "0" over the reward \
+and only then reads the verdict.
+
+Three attacks were written from a cold reading of the brief and all three were \
+executed. Answering from a table keyed on the batch shape scored 0: the fixed \
+sessions are only part of the run and everything else is seeded at run time. \
+Going and reading the answers -- /tests/plan.py, /tests/sessions.py, \
+/tests/part.py and the rest, tried in a loop -- scored 0 and opened none of \
+them. Forging the reward scored 0 on all three of its attempts at once: the \
+constructor's write was refused, the detached child that sleeps past the end of \
+grading was killed by the sweep and no process owned by the account survived \
+it, and SIGTERM to the parent was refused because the parent is root. The \
+reward file was still root-owned, mode 600 and holding "0" after the run. All \
+three fall through to the shipped apply path, which is 6.09x the reference, so \
+each of them has to win on the attack or not at all; both of the two that can \
+be re-run outside the container were re-run against the current part and \
+scored 0 on cost, as designed.
+
+The three files the brief freezes are fingerprinted against byte-identical \
+copies in /tests/pristine before any session runs, and a mismatch runs no \
+sessions at all. Deleting or renaming a graded case does not help either: the \
+forty-five named ids are asserted present individually, and their count is \
+written down in the test file rather than counted from the case list, so \
+quietly dropping one fails a test of its own.
+"""
+
+solution_explanation = """
+The reference keeps a shadow of the register file, which is exact because \
+nothing else on the sled writes to the part, and spends no transaction \
+discovering state it already knows.
+
+Each batch is first reduced to its last word per register, and anything the \
+shadow says is already in force is dropped. What survives is sorted by where \
+each rail is being asked to end up. A rail whose voltage finishes at or under \
+its limit -- which is every rail the rack leaves in service, and most of the \
+ones it does not -- is written with a single pair word, whichever halves the \
+batch actually moved and whether the rail is up or down at the time, because \
+the two halves land in the same beat and the part checks the word only against \
+itself. That is what removes the disables the config layer asks for, and the \
+ordering between limits and voltages along with them. The rails left over are \
+the ones the rack parks under their own limit, which no pair word can say: \
+those get their voltage first and their limit last, and they are the only \
+rails ever taken down, because lowering a limit under a live voltage is the \
+one thing the part will not have.
+
+So a batch is at most three windows -- the parked rails' disables, the trims, \
+then every other enable move -- and the part changes mode at most twice, with \
+empty windows skipped entirely and the mode left wherever the batch ended.
+
+Each pass is then put on the wire by a small dynamic program over the bank, \
+run backwards, that decides for every register whether to write it on its own \
+or fold it into a frame with its neighbours. Cost is flat per frame, so the \
+question at each position is whether the registers a frame would reach are \
+worth more than the frame costs, judged against the true cost of the whole \
+tail rather than a greedy guess. The program carries a second dimension for \
+whether the part is still settling, because the first thing after a mode move \
+costs two more as a single write than as a frame and that changes which \
+answer is cheapest. Registers inside a frame that nobody wanted are handed \
+back the value they already hold, and each pass carries a per-rail flag for \
+whether that is a legal thing to do -- always in the limit and enable banks, \
+and only for a rail that is not sitting under its own limit in the pair and \
+voltage banks, computed at the head of each pass since the pass before it can \
+have moved the rail.
+
+It comes to about three hundred and forty lines of C with no allocation and no \
+recursion, and it matches the Python planner in /tests transaction for \
+transaction on every session either of them has been run against.
+"""
+
+relevant_experience = """
+Three years in a frontend job, React and Vue over TypeScript, which is not \
+what this task is about and I want to be straight about that. What I have that \
+is relevant is narrower and it is real.
+
+The undo feature I have rebuilt several times taught me the thing this task \
+turns on, which is that a batch of operations and the state those operations \
+describe are not the same object. Our editor sent an undo down as the exact \
+inverse sequence of what the user did, and it was slow and occasionally wrong, \
+and both went away when we started sending where the document should end up \
+instead. The intermediate steps somebody asks for are usually the safe route \
+rather than the necessary one, and that is exactly what the config layer in \
+this bundle is doing when it takes a rail down to retrim it.
+
+The second half of the difficulty is the one I know best. I have spent a lot \
+of time on interfaces where the cost is a count rather than a clock -- requests \
+to an API, round trips to a server, renders -- and most of that time went on \
+batching: which calls can be folded into one, what you have to send for the \
+things you did not want to change, and the bugs you get when a batched write \
+turns out not to be a no-op for one of the rows it covers. The frame in this \
+part is that problem with the padding made unsafe in two banks and safe in the \
+other two, and the reason the case set has a rail parked beside three that \
+move is that this is exactly the shape that used to bite us. The pair register \
+is the same instinct from the other side: an endpoint that takes the whole row \
+is worth using even for a one-field change, and people reach for the \
+field-level one anyway. It is also why I built the budget as a transaction \
+count with the part on the far side of a pipe rather than as a wall clock: the \
+oracle is exact, it repeats to the digit, and the whole conformance run takes \
+under a second.
+
+I am not a firmware engineer. I read the datasheet for a PMIC once, while \
+chasing a bug that turned out to be ours, and the mode gate, the settling and \
+the ordering rules in this part are modelled on that reading rather than on \
+anything I have shipped. I have kept the part small and its rules few for that \
+reason: every refusal is stated in /app/README.md and none of them needs any \
+electrical knowledge to reason about. If a reviewer wants a task from someone \
+who has written production firmware, this is not that, and the datasheet in \
+/app/README.md is the honest limit of what I know.
+"""
+
+[verifier]
+timeout_sec = 600.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 10800.0
+
+[environment]
+build_timeout_sec = 1200.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 20480
+gpus = 0

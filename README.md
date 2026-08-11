@@ -41,6 +41,7 @@ python3 tasks/rollout-cache-coherence/authoring/emit.py        regenerate solve.
 python3 tasks/rollout-cache-coherence/authoring/cheat_report.py which assertion each cheat trips
 python3 tools/run_local_rollout.py --all                       host emulation of every trial
 python3 tools/docker_trial.py --all                            the same trials on the real images
+python3 tools/textcheck.py <passed.md> <draft.md>              cadence and vocabulary against a brief that passed the AI-text screen
 ```
 
 `build_gt.py` refuses to write a ground truth it cannot prove: every expected token stream

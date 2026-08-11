@@ -87,9 +87,15 @@ are never committed at all.
 
 Measured after the fix, over **400 random seeds**: median 3.20 s, p90 3.67 s, p99 4.05 s,
 max 4.23 s, worst single query 0.32 s. Budget raised from 30 s to 60 s for margin, which still
-leaves the wrong plan 79x over. The grading model got the same fix, so verifier runtime is no
-longer seed-dependent either, and every block now has a kill limit that keeps the session
-inside the 2400 s verifier timeout whatever a submission does.
+leaves the wrong plan 79x over. The grading model got the same fix and was swept the same way
+over **200 seeds**: median 7.82 s, p90 9.16 s, p99 9.91 s, max 9.91 s (the review had measured
+17 s to 213 s). So verifier runtime is no longer seed-dependent either, and every block now has
+a kill limit that keeps the session inside the 2400 s verifier timeout whatever a submission
+does.
+
+Neither tail is *proven* away - both are measured away, with the worst observed case sitting
+14x inside the budget for the reference and comfortably inside the verifier timeout for the
+grading model.
 
 - Expert time estimate: 12 hours
 - Estimated solves out of 8: 2 to 3
@@ -114,7 +120,9 @@ inside the 2400 s verifier timeout whatever a submission does.
 |---|---|---|
 | `preflight.py` | pass | 3 warnings, all pre-existing and deliberate |
 | Reference scores 1 | pass | 12 tests; timed block 3.2 s of 60 s |
-| Timed block stable across seeds | pass | 400 seeds: median 3.20 s, p99 4.05 s, max 4.23 s |
+| Timed block stable across seeds | pass | reference, 400 seeds: median 3.20 s, p99 4.05 s, max 4.23 s |
+| Grading model stable across seeds | pass | oracle, 200 seeds: median 7.82 s, p99 9.91 s, max 9.91 s |
+| Reference vs both models | pass | 400 filters vs brute force, 360 at twelve fields, 0 disagreements |
 | nop scores 0 | pass | |
 | `cheat/read_everything.py` | pass (0) | |
 | `cheat/read_nothing.py` | pass (0) | |

@@ -135,10 +135,10 @@ its own loaded modules. \
 The clock has margin, and the margin is measured rather than hoped for. Over \
 400 random seeds the reference answers the timed workload in a median of 3.20 \
 seconds, p99 4.05, maximum 4.23, worst single query 0.32, against a budget of \
-60. The model that grades that block was swept the same way, so how long the \
-verifier itself takes does not depend on the seed either, and every block has a \
-kill limit that keeps the whole session inside its timeout however slow a \
-submission is. An earlier build of this task did have a seed-dependent tail -- \
+60. The model that grades that block was swept the same way, over 200 seeds: \
+median 7.82 seconds, p99 9.91, maximum 9.91. So how long the verifier itself \
+takes does not depend on the seed either, and every block has a kill limit that \
+keeps the whole session inside its timeout however slow a submission is. An earlier build of this task did have a seed-dependent tail -- \
 one query of one seed took 162 seconds -- and that was a missing decision about \
 what to branch on rather than anything about the workload. Both models settle \
 the filter's open arms before committing a code now, and the tail is gone from \

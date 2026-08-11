@@ -1,0 +1,590 @@
+{
+  "intermediate_id": "P2",
+  "formula_conflicts": [
+    "S06",
+    "S13"
+  ],
+  "reactions": [
+    {
+      "id": "R02",
+      "coefficients": {
+        "reactants": {
+          "S01": 1,
+          "S02": 1
+        },
+        "products": {
+          "P2": 1
+        }
+      },
+      "delta_r_g": -12.5,
+      "equilibrium": false,
+      "direction": "forward",
+      "net_flux": 6.0,
+      "atom_map": [
+        [
+          "S01#1:C1",
+          "P2#1:C4"
+        ],
+        [
+          "S01#1:C2",
+          "P2#1:C3"
+        ],
+        [
+          "S01#1:C3",
+          "P2#1:C5"
+        ],
+        [
+          "S01#1:O1",
+          "P2#1:O2"
+        ],
+        [
+          "S01#1:O2",
+          "P2#1:O3"
+        ],
+        [
+          "S01#1:O3",
+          "P2#1:O4"
+        ],
+        [
+          "S02#1:C1",
+          "P2#1:C1"
+        ],
+        [
+          "S02#1:C2",
+          "P2#1:C2"
+        ],
+        [
+          "S02#1:O1",
+          "P2#1:O1"
+        ]
+      ]
+    },
+    {
+      "id": "R04",
+      "coefficients": {
+        "reactants": {
+          "S03": 1,
+          "S09": 1
+        },
+        "products": {
+          "S04": 1,
+          "S10": 1
+        }
+      },
+      "delta_r_g": -0.35,
+      "equilibrium": true,
+      "direction": "forward",
+      "net_flux": 5.0,
+      "atom_map": [
+        [
+          "S03#1:C1",
+          "S04#1:C1"
+        ],
+        [
+          "S03#1:O1",
+          "S04#1:O1"
+        ],
+        [
+          "S03#1:O2",
+          "S04#1:O2"
+        ],
+        [
+          "S09#1:O1",
+          "S04#1:O3"
+        ]
+      ]
+    },
+    {
+      "id": "R06",
+      "coefficients": {
+        "reactants": {
+          "S12": 1,
+          "S07": 1
+        },
+        "products": {
+          "S06": 1,
+          "S01": 1
+        }
+      },
+      "delta_r_g": 3.8,
+      "equilibrium": false,
+      "direction": "reverse",
+      "net_flux": -2.5,
+      "atom_map": [
+        [
+          "S07#1:C1",
+          "S01#1:C1"
+        ],
+        [
+          "S07#1:C2",
+          "S01#1:C2"
+        ],
+        [
+          "S07#1:C3",
+          "S01#1:C3"
+        ],
+        [
+          "S07#1:O1",
+          "S01#1:O1"
+        ],
+        [
+          "S07#1:O2",
+          "S01#1:O2"
+        ],
+        [
+          "S07#1:O3",
+          "S01#1:O3"
+        ],
+        [
+          "S12#1:C1",
+          "S06#1:C1"
+        ],
+        [
+          "S12#1:C2",
+          "S06#1:C2"
+        ],
+        [
+          "S12#1:C3",
+          "S06#1:C3"
+        ],
+        [
+          "S12#1:C4",
+          "S06#1:C4"
+        ],
+        [
+          "S12#1:O1",
+          "S06#1:O1"
+        ],
+        [
+          "S12#1:O2",
+          "S06#1:O2"
+        ]
+      ]
+    },
+    {
+      "id": "R08",
+      "coefficients": {
+        "reactants": {
+          "S02": 1,
+          "S09": 1
+        },
+        "products": {
+          "S05": 1
+        }
+      },
+      "delta_r_g": -0.2,
+      "equilibrium": true,
+      "direction": "forward",
+      "net_flux": 4.0,
+      "atom_map": [
+        [
+          "S02#1:C1",
+          "S05#1:C1"
+        ],
+        [
+          "S02#1:C2",
+          "S05#1:C2"
+        ],
+        [
+          "S02#1:O1",
+          "S05#1:O1"
+        ],
+        [
+          "S09#1:O1",
+          "S05#1:O2"
+        ]
+      ]
+    },
+    {
+      "id": "R10",
+      "coefficients": {
+        "reactants": {
+          "P2": 1,
+          "S10": 1
+        },
+        "products": {
+          "S06": 1,
+          "S03": 1
+        }
+      },
+      "delta_r_g": -29.0,
+      "equilibrium": false,
+      "direction": "forward",
+      "net_flux": 6.0,
+      "atom_map": [
+        [
+          "P2#1:C1",
+          "S06#1:C1"
+        ],
+        [
+          "P2#1:C2",
+          "S06#1:C2"
+        ],
+        [
+          "P2#1:C3",
+          "S06#1:C3"
+        ],
+        [
+          "P2#1:C4",
+          "S06#1:C4"
+        ],
+        [
+          "P2#1:C5",
+          "S03#1:C1"
+        ],
+        [
+          "P2#1:O1",
+          "S06#1:O1"
+        ],
+        [
+          "P2#1:O2",
+          "S06#1:O2"
+        ],
+        [
+          "P2#1:O3",
+          "S03#1:O1"
+        ],
+        [
+          "P2#1:O4",
+          "S03#1:O2"
+        ]
+      ]
+    },
+    {
+      "id": "R12",
+      "coefficients": {
+        "reactants": {
+          "S01": 1,
+          "S10": 1
+        },
+        "products": {
+          "S02": 1,
+          "S03": 1
+        }
+      },
+      "delta_r_g": -34.0,
+      "equilibrium": false,
+      "direction": "forward",
+      "net_flux": 20.0,
+      "atom_map": [
+        [
+          "S01#1:C1",
+          "S02#1:C1"
+        ],
+        [
+          "S01#1:C2",
+          "S02#1:C2"
+        ],
+        [
+          "S01#1:C3",
+          "S03#1:C1"
+        ],
+        [
+          "S01#1:O1",
+          "S02#1:O1"
+        ],
+        [
+          "S01#1:O2",
+          "S03#1:O1"
+        ],
+        [
+          "S01#1:O3",
+          "S03#1:O2"
+        ]
+      ]
+    },
+    {
+      "id": "R15",
+      "coefficients": {
+        "reactants": {
+          "S01": 1,
+          "S15": 1
+        },
+        "products": {
+          "S08": 1,
+          "S14": 1
+        }
+      },
+      "delta_r_g": -22.0,
+      "equilibrium": false,
+      "direction": "forward",
+      "net_flux": 3.0,
+      "atom_map": [
+        [
+          "S01#1:C1",
+          "S08#1:C1"
+        ],
+        [
+          "S01#1:C2",
+          "S08#1:C2"
+        ],
+        [
+          "S01#1:C3",
+          "S14#1:C1"
+        ],
+        [
+          "S01#1:O1",
+          "S08#1:O1"
+        ],
+        [
+          "S01#1:O2",
+          "S14#1:O1"
+        ],
+        [
+          "S01#1:O3",
+          "S14#1:O2"
+        ],
+        [
+          "S15#1:O1",
+          "S08#1:O2"
+        ]
+      ]
+    },
+    {
+      "id": "R17",
+      "coefficients": {
+        "reactants": {
+          "S02": 2
+        },
+        "products": {
+          "S16": 1
+        }
+      },
+      "delta_r_g": -15.0,
+      "equilibrium": false,
+      "direction": "forward",
+      "net_flux": 1.5,
+      "atom_map": [
+        [
+          "S02#1:C1",
+          "S16#1:C1"
+        ],
+        [
+          "S02#1:C2",
+          "S16#1:C2"
+        ],
+        [
+          "S02#1:O1",
+          "S16#1:O1"
+        ],
+        [
+          "S02#2:C1",
+          "S16#1:C3"
+        ],
+        [
+          "S02#2:C2",
+          "S16#1:C4"
+        ],
+        [
+          "S02#2:O1",
+          "S16#1:O2"
+        ]
+      ]
+    },
+    {
+      "id": "R21",
+      "coefficients": {
+        "reactants": {
+          "S01": 1
+        },
+        "products": {
+          "S13": 1
+        }
+      },
+      "delta_r_g": 0.1,
+      "equilibrium": true,
+      "direction": "balanced",
+      "net_flux": 0.0,
+      "atom_map": [
+        [
+          "S01#1:C1",
+          "S13#1:C1"
+        ],
+        [
+          "S01#1:C2",
+          "S13#1:C2"
+        ],
+        [
+          "S01#1:C3",
+          "S13#1:C3"
+        ],
+        [
+          "S01#1:O1",
+          "S13#1:O1"
+        ],
+        [
+          "S01#1:O2",
+          "S13#1:O2"
+        ],
+        [
+          "S01#1:O3",
+          "S13#1:O3"
+        ]
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "id": "R01",
+      "reason": "unbalanceable"
+    },
+    {
+      "id": "R03",
+      "reason": "isotope_inconsistent"
+    },
+    {
+      "id": "R05",
+      "reason": "unbalanceable"
+    },
+    {
+      "id": "R07",
+      "reason": "intermediate_mismatch"
+    },
+    {
+      "id": "R09",
+      "reason": "ambiguous_balance"
+    },
+    {
+      "id": "R11",
+      "reason": "condition_gated"
+    },
+    {
+      "id": "R13",
+      "reason": "isotope_inconsistent"
+    },
+    {
+      "id": "R14",
+      "reason": "intermediate_mismatch"
+    },
+    {
+      "id": "R16",
+      "reason": "unbalanceable"
+    },
+    {
+      "id": "R18",
+      "reason": "ambiguous_balance"
+    },
+    {
+      "id": "R19",
+      "reason": "intermediate_mismatch"
+    },
+    {
+      "id": "R20",
+      "reason": "condition_gated"
+    },
+    {
+      "id": "R22",
+      "reason": "no_net_flux"
+    },
+    {
+      "id": "R23",
+      "reason": "unbalanceable"
+    },
+    {
+      "id": "R24",
+      "reason": "intermediate_mismatch"
+    },
+    {
+      "id": "R25",
+      "reason": "isotope_inconsistent"
+    },
+    {
+      "id": "R26",
+      "reason": "ambiguous_balance"
+    },
+    {
+      "id": "R27",
+      "reason": "condition_gated"
+    },
+    {
+      "id": "R28",
+      "reason": "condition_gated"
+    },
+    {
+      "id": "R29",
+      "reason": "isotope_inconsistent"
+    }
+  ],
+  "intermediates": [
+    "P2",
+    "S02",
+    "S03",
+    "S06"
+  ],
+  "label_predictions": {
+    "E1": {
+      "P2": [
+        "C1",
+        "C4"
+      ],
+      "S01": [
+        "C1"
+      ],
+      "S02": [
+        "C1"
+      ],
+      "S05": [
+        "C1"
+      ],
+      "S06": [
+        "C1",
+        "C4"
+      ],
+      "S07": [
+        "C1"
+      ],
+      "S08": [
+        "C1"
+      ],
+      "S12": [
+        "C1",
+        "C4"
+      ],
+      "S13": [
+        "C1"
+      ],
+      "S16": [
+        "C1",
+        "C3"
+      ]
+    },
+    "E2": {
+      "P2": [
+        "C2"
+      ],
+      "S02": [
+        "C2"
+      ],
+      "S05": [
+        "C2"
+      ],
+      "S06": [
+        "C2"
+      ],
+      "S12": [
+        "C2"
+      ],
+      "S16": [
+        "C2",
+        "C4"
+      ]
+    },
+    "E3": {
+      "S04": [
+        "O3"
+      ],
+      "S05": [
+        "O2"
+      ],
+      "S08": [
+        "O2"
+      ],
+      "S09": [
+        "O1"
+      ],
+      "S15": [
+        "O1"
+      ]
+    }
+  }
+}

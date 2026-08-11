@@ -1,0 +1,17 @@
+{
+  "temperature_k": 318.15,
+  "ph": 7.2,
+  "solvent_species": "S09",
+  "feed_species": [
+    "S01",
+    "S09",
+    "S10",
+    "S15"
+  ],
+  "available": {
+    "thiamine_analogue_cofactor": true,
+    "hydroxide_activity": true,
+    "transition_metal_oxidant": false,
+    "actinic_irradiation": false
+  }
+}

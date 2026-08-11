@@ -1,0 +1,673 @@
+{
+  "units": {
+    "concentration": "mol/L"
+  },
+  "species": [
+    {
+      "id": "S01",
+      "formula": "C3H3O3-",
+      "charge": -1,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "C3",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O3",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 2
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "order": 1
+        },
+        {
+          "a": "C3",
+          "b": "O2",
+          "order": 2
+        },
+        {
+          "a": "C3",
+          "b": "O3",
+          "order": 1
+        }
+      ],
+      "concentration": 0.002
+    },
+    {
+      "id": "S02",
+      "formula": "C2H4O",
+      "charge": 0,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 1
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 2
+        }
+      ],
+      "concentration": 0.0004
+    },
+    {
+      "id": "S03",
+      "formula": "CO2",
+      "charge": 0,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "O1",
+          "order": 2
+        },
+        {
+          "a": "C1",
+          "b": "O2",
+          "order": 2
+        }
+      ],
+      "concentration": 0.0012
+    },
+    {
+      "id": "S04",
+      "formula": "CHO3-",
+      "charge": -1,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O3",
+          "element": "O",
+          "hydrogens": 1
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "O1",
+          "order": 2
+        },
+        {
+          "a": "C1",
+          "b": "O2",
+          "order": 1
+        },
+        {
+          "a": "C1",
+          "b": "O3",
+          "order": 1
+        }
+      ],
+      "concentration": 0.003
+    },
+    {
+      "id": "S05",
+      "formula": "C2H6O2",
+      "charge": 0,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 1
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 1
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 1
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O2",
+          "order": 1
+        }
+      ],
+      "concentration": 0.00016
+    },
+    {
+      "id": "S06",
+      "formula": "C4H8O3",
+      "charge": 0,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "C3",
+          "element": "C",
+          "hydrogens": 1
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 1
+        },
+        {
+          "id": "C4",
+          "element": "C",
+          "hydrogens": 3
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 2
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "order": 1
+        },
+        {
+          "a": "C3",
+          "b": "O2",
+          "order": 1
+        },
+        {
+          "a": "C3",
+          "b": "C4",
+          "order": 1
+        }
+      ],
+      "concentration": 0.00025
+    },
+    {
+      "id": "S07",
+      "formula": "C3H5O3-",
+      "charge": -1,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 1
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 1
+        },
+        {
+          "id": "C3",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O3",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "order": 1
+        },
+        {
+          "a": "C3",
+          "b": "O2",
+          "order": 2
+        },
+        {
+          "a": "C3",
+          "b": "O3",
+          "order": 1
+        }
+      ],
+      "concentration": 0.0005
+    },
+    {
+      "id": "S08",
+      "formula": "C2H3O2-",
+      "charge": -1,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 2
+        },
+        {
+          "a": "C2",
+          "b": "O2",
+          "order": 1
+        }
+      ],
+      "concentration": 0.0008
+    },
+    {
+      "id": "S09",
+      "formula": "H2O",
+      "charge": 0,
+      "atoms": [
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 2
+        }
+      ],
+      "bonds": [],
+      "concentration": null
+    },
+    {
+      "id": "S10",
+      "formula": "H+",
+      "charge": 1,
+      "atoms": [],
+      "bonds": [],
+      "concentration": 6.31e-08
+    },
+    {
+      "id": "S12",
+      "formula": "C4H6O2",
+      "charge": 0,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "C3",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "C4",
+          "element": "C",
+          "hydrogens": 3
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 2
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "order": 1
+        },
+        {
+          "a": "C3",
+          "b": "O2",
+          "order": 2
+        },
+        {
+          "a": "C3",
+          "b": "C4",
+          "order": 1
+        }
+      ],
+      "concentration": 0.0001
+    },
+    {
+      "id": "S13",
+      "formula": "C3H4O3-",
+      "charge": -1,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 2
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 1
+        },
+        {
+          "id": "C3",
+          "element": "C",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O3",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 2
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "order": 1
+        },
+        {
+          "a": "C3",
+          "b": "O2",
+          "order": 2
+        },
+        {
+          "a": "C3",
+          "b": "O3",
+          "order": 1
+        }
+      ],
+      "concentration": 1.4e-07
+    },
+    {
+      "id": "S14",
+      "formula": "CHO2-",
+      "charge": -1,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 1
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 0
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "O1",
+          "order": 2
+        },
+        {
+          "a": "C1",
+          "b": "O2",
+          "order": 1
+        }
+      ],
+      "concentration": 0.0006
+    },
+    {
+      "id": "S15",
+      "formula": "HO-",
+      "charge": -1,
+      "atoms": [
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 1
+        }
+      ],
+      "bonds": [],
+      "concentration": 3.2e-06
+    },
+    {
+      "id": "S16",
+      "formula": "C4H8O2",
+      "charge": 0,
+      "atoms": [
+        {
+          "id": "C1",
+          "element": "C",
+          "hydrogens": 3
+        },
+        {
+          "id": "C2",
+          "element": "C",
+          "hydrogens": 1
+        },
+        {
+          "id": "O1",
+          "element": "O",
+          "hydrogens": 1
+        },
+        {
+          "id": "C3",
+          "element": "C",
+          "hydrogens": 2
+        },
+        {
+          "id": "C4",
+          "element": "C",
+          "hydrogens": 1
+        },
+        {
+          "id": "O2",
+          "element": "O",
+          "hydrogens": 0
+        }
+      ],
+      "bonds": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "O1",
+          "order": 1
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "order": 1
+        },
+        {
+          "a": "C3",
+          "b": "C4",
+          "order": 1
+        },
+        {
+          "a": "C4",
+          "b": "O2",
+          "order": 2
+        }
+      ],
+      "concentration": 0.00011
+    }
+  ]
+}

@@ -1,0 +1,413 @@
+{
+  "units": {
+    "delta_r_g_ref": "kJ/mol",
+    "delta_r_h": "kJ/mol"
+  },
+  "reference_temperature_k": 298.15,
+  "reactions": [
+    {
+      "id": "R01",
+      "reactants": [
+        "S05",
+        "S03"
+      ],
+      "products": [
+        "S07",
+        "S10"
+      ],
+      "class": "carbonyl_hydration",
+      "delta_r_g_ref": 9.72,
+      "delta_r_h": -8.36
+    },
+    {
+      "id": "R02",
+      "reactants": [
+        "S01",
+        "S02"
+      ],
+      "products": [
+        "P2"
+      ],
+      "class": "carboligation",
+      "delta_r_g_ref": -16.56,
+      "delta_r_h": -41.01
+    },
+    {
+      "id": "R03",
+      "reactants": [
+        "S01",
+        "S05"
+      ],
+      "products": [
+        "S09",
+        "S12",
+        "S14"
+      ],
+      "class": "hydride_transfer",
+      "delta_r_g_ref": 5.49,
+      "delta_r_h": -24.92
+    },
+    {
+      "id": "R04",
+      "reactants": [
+        "S03",
+        "S09"
+      ],
+      "products": [
+        "S04",
+        "S10"
+      ],
+      "class": "carbonyl_hydration",
+      "delta_r_g_ref": 37.94,
+      "delta_r_h": -8.87
+    },
+    {
+      "id": "R05",
+      "reactants": [
+        "S08",
+        "S10"
+      ],
+      "products": [
+        "S02",
+        "S03"
+      ],
+      "class": "cofactor_decarboxylation",
+      "delta_r_g_ref": 18.44,
+      "delta_r_h": 41.13
+    },
+    {
+      "id": "R06",
+      "reactants": [
+        "S12",
+        "S07"
+      ],
+      "products": [
+        "S06",
+        "S01"
+      ],
+      "class": "hydride_transfer",
+      "delta_r_g_ref": -1.95,
+      "delta_r_h": 3.12
+    },
+    {
+      "id": "R07",
+      "reactants": [
+        "S01",
+        "S02"
+      ],
+      "products": [
+        "P1"
+      ],
+      "class": "carboligation",
+      "delta_r_g_ref": -13.47,
+      "delta_r_h": -38.12
+    },
+    {
+      "id": "R08",
+      "reactants": [
+        "S02",
+        "S09"
+      ],
+      "products": [
+        "S05"
+      ],
+      "class": "carbonyl_hydration",
+      "delta_r_g_ref": 0.7,
+      "delta_r_h": -21.96
+    },
+    {
+      "id": "R09",
+      "reactants": [
+        "S01",
+        "S02",
+        "S10"
+      ],
+      "products": [
+        "S06",
+        "S03"
+      ],
+      "class": "carboligation",
+      "delta_r_g_ref": -38.57,
+      "delta_r_h": -23.41
+    },
+    {
+      "id": "R10",
+      "reactants": [
+        "P2",
+        "S10"
+      ],
+      "products": [
+        "S06",
+        "S03"
+      ],
+      "class": "cofactor_decarboxylation",
+      "delta_r_g_ref": -64.8,
+      "delta_r_h": -19.48
+    },
+    {
+      "id": "R11",
+      "reactants": [
+        "S05",
+        "S12"
+      ],
+      "products": [
+        "S06",
+        "S08",
+        "S10"
+      ],
+      "class": "metal_oxidation",
+      "delta_r_g_ref": 17.76,
+      "delta_r_h": -22.35
+    },
+    {
+      "id": "R12",
+      "reactants": [
+        "S01",
+        "S10"
+      ],
+      "products": [
+        "S02",
+        "S03"
+      ],
+      "class": "cofactor_decarboxylation",
+      "delta_r_g_ref": -52.91,
+      "delta_r_h": -9.67
+    },
+    {
+      "id": "R13",
+      "reactants": [
+        "S01",
+        "S02"
+      ],
+      "products": [
+        "S12",
+        "S14"
+      ],
+      "class": "hydride_transfer",
+      "delta_r_g_ref": 8.47,
+      "delta_r_h": -29.99
+    },
+    {
+      "id": "R14",
+      "reactants": [
+        "P3",
+        "S10"
+      ],
+      "products": [
+        "S06",
+        "S03"
+      ],
+      "class": "cofactor_decarboxylation",
+      "delta_r_g_ref": -56.78,
+      "delta_r_h": -11.05
+    },
+    {
+      "id": "R15",
+      "reactants": [
+        "S01",
+        "S15"
+      ],
+      "products": [
+        "S08",
+        "S14"
+      ],
+      "class": "base_cleavage",
+      "delta_r_g_ref": -32.08,
+      "delta_r_h": -12.1
+    },
+    {
+      "id": "R16",
+      "reactants": [
+        "S14",
+        "S12"
+      ],
+      "products": [
+        "S03",
+        "S06"
+      ],
+      "class": "hydride_transfer",
+      "delta_r_g_ref": 14.18,
+      "delta_r_h": 12.07
+    },
+    {
+      "id": "R17",
+      "reactants": [
+        "S02"
+      ],
+      "products": [
+        "S16"
+      ],
+      "class": "aldol_addition",
+      "delta_r_g_ref": -33.52,
+      "delta_r_h": -52.01
+    },
+    {
+      "id": "R18",
+      "reactants": [
+        "S06",
+        "S09"
+      ],
+      "products": [
+        "S05",
+        "S02"
+      ],
+      "class": "carbonyl_hydration",
+      "delta_r_g_ref": 11.52,
+      "delta_r_h": 9.28
+    },
+    {
+      "id": "R19",
+      "reactants": [
+        "P1",
+        "S10"
+      ],
+      "products": [
+        "S06",
+        "S03"
+      ],
+      "class": "cofactor_decarboxylation",
+      "delta_r_g_ref": -58.23,
+      "delta_r_h": -12.44
+    },
+    {
+      "id": "R20",
+      "reactants": [
+        "S01",
+        "S09"
+      ],
+      "products": [
+        "S02",
+        "S04"
+      ],
+      "class": "photolysis",
+      "delta_r_g_ref": -9.23,
+      "delta_r_h": 26.08
+    },
+    {
+      "id": "R21",
+      "reactants": [
+        "S01"
+      ],
+      "products": [
+        "S13"
+      ],
+      "class": "tautomerisation",
+      "delta_r_g_ref": 24.13,
+      "delta_r_h": 5.05
+    },
+    {
+      "id": "R22",
+      "reactants": [
+        "S12",
+        "S15"
+      ],
+      "products": [
+        "S08",
+        "S02"
+      ],
+      "class": "base_cleavage",
+      "delta_r_g_ref": -16.66,
+      "delta_r_h": 20.01
+    },
+    {
+      "id": "R23",
+      "reactants": [
+        "S07",
+        "S15"
+      ],
+      "products": [
+        "S08",
+        "S14",
+        "S09"
+      ],
+      "class": "base_cleavage",
+      "delta_r_g_ref": 7.31,
+      "delta_r_h": -4.62
+    },
+    {
+      "id": "R24",
+      "reactants": [
+        "S01",
+        "S02"
+      ],
+      "products": [
+        "P3"
+      ],
+      "class": "carboligation",
+      "delta_r_g_ref": -11.09,
+      "delta_r_h": -34.86
+    },
+    {
+      "id": "R25",
+      "reactants": [
+        "S01",
+        "S07"
+      ],
+      "products": [
+        "S12",
+        "S14"
+      ],
+      "class": "hydride_transfer",
+      "delta_r_g_ref": 30.75,
+      "delta_r_h": 2.12
+    },
+    {
+      "id": "R26",
+      "reactants": [
+        "S02",
+        "S15",
+        "S03"
+      ],
+      "products": [
+        "S08",
+        "S14",
+        "S10"
+      ],
+      "class": "base_cleavage",
+      "delta_r_g_ref": -6.84,
+      "delta_r_h": -19.17
+    },
+    {
+      "id": "R27",
+      "reactants": [
+        "S05",
+        "S03"
+      ],
+      "products": [
+        "S08",
+        "S04",
+        "S10"
+      ],
+      "class": "metal_oxidation",
+      "delta_r_g_ref": 44.19,
+      "delta_r_h": 6.42
+    },
+    {
+      "id": "R28",
+      "reactants": [
+        "S07",
+        "S03"
+      ],
+      "products": [
+        "S01",
+        "S04",
+        "S10"
+      ],
+      "class": "photolysis",
+      "delta_r_g_ref": 31.44,
+      "delta_r_h": -9.31
+    },
+    {
+      "id": "R29",
+      "reactants": [
+        "S02"
+      ],
+      "products": [
+        "S06"
+      ],
+      "class": "carboligation",
+      "delta_r_g_ref": -32.31,
+      "delta_r_h": -47.29
+    }
+  ]
+}

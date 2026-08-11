@@ -1,0 +1,212 @@
+artifacts = ["/app/change_script.py"] # paths the verifier reads from the agent
+
+[task]
+name = "afterquery/earliest-change-script"
+
+[metadata]
+author_name = "Kaneki"
+author_email = "forgeks0@gmail.com"
+category = "Software"
+subcategory = "Algorithms"
+tags = ["diff", "edit-script", "sequence-alignment", "tie-breaking", "python"]
+expert_time_estimate_hours = 14
+difficulty_explanation = """
+Two sequences usually admit several scripts of the same shortest length, and \
+they disagree about which lines survive. Every tool that exists resolves that \
+disagreement its own way, and none of them resolves it the way this task \
+specifies, so the habitual self-check is a wrong answer generator. Measured \
+against the graded distribution: handing the work to the standard library's \
+sequence matcher gets 11019 of the 12000 random pairs wrong and 26271 of the \
+40804 enumerated ones. The textbook shortest-script search, which takes every \
+match as far as it will go, gets 10914 of 12000 wrong on its own. The repair \
+that follows from noticing this -- keep the fast search and slide each run of \
+changes to the earliest position it will sit, which is what a diff tool's \
+hunk-shifting pass does -- is measured in that same 10914, because the rule \
+picks a different set of surviving lines rather than a different placement of \
+the same ones, and sliding never changes which lines survive. It is also wrong \
+on all twelve of the large cases. What makes this hold up rather than being \
+noticed in the first ten minutes is the other half of the measurement: on \
+sequences of distinct lines with a few edits, which is what a person writes \
+out by hand to check themselves, all three of those approaches agree with the \
+rule on 100 percent of cases. The disagreement lives where lines repeat, and \
+the graded distribution is built from two to six distinct lines for exactly \
+that reason, with a further block that crosses every short shape against every \
+other short shape because a random draw of short sequences almost never lands \
+on the pair where two shortest scripts differ. Stripping the shared head and \
+tail before starting, which every diff implementation does and which is \
+unsound here because the rule will drop a line that matches, is worth 3061 \
+wrong answers out of 12000 and 10114 out of 40804 on its own.
+
+The second hill is cost, it is independent of the first, and it is two hills \
+rather than one. The implementation the specification invites is the table of \
+how many moves remain from every position, walked from the start; it is \
+completely correct, it passes all 52858 short cases, and it is dead \
+everywhere else. The definitional model that grades those short cases is \
+exactly that implementation, and it cannot finish a single one of the twelve \
+timed pairs inside six seconds. Measured, that variant scores zero while \
+passing every correctness block, which is the whole point of it.
+
+What defeats the two escapes from it is that the twelve timed pairs are drawn \
+from two families that cost the opposite way round, and each family is \
+hopeless for the technique that answers the other. Six pairs run from four \
+hundred thousand to a million lines a side and differ in a few hundred \
+places. Six are forty to sixty thousand lines a side over a handful of \
+distinct lines, sharing no order worth the name, where the answer runs to \
+between fifteen and sixty-one thousand moves. The frontier that keeps every \
+layer -- the escape the rule itself suggests, since it turns the question the \
+rule asks into a single lookup -- answers a million-line pair in 0.24 seconds \
+and needs 94 seconds for the smallest of the crossed pairs and about 1550 for \
+the largest, because it costs the square of the number of moves. Packing whole \
+rows of the table into single integers and reading them back a bit at a time \
+is the other escape, and it is the mirror image: about a second on any of the \
+crossed pairs, and 252 seconds on the long ones, because it costs the length \
+of the pair times its width in machine words. Both are measured as \
+submissions. Both pass every correctness block in the task, all 53258 cases of \
+it, and both score zero. Restricting the rows to a diagonal band rescues the \
+second one on the long family and does nothing for the crossed family, where \
+the band is the width of the file. Neither hill can be skipped, there is no \
+credit for one of them, and the second hill is only visible once the first is \
+already built.
+"""
+solution_explanation = """
+The awkward part is that the choice at each position depends on what is still \
+reachable from the position you would land on, which is a property of the rest \
+of the input, not of anything nearby. A table of remaining move counts answers \
+it directly and costs the product of the two lengths, which is what has to be \
+avoided.
+
+So compute the frontier instead, and run it from the far end. Layer d records, \
+for each difference between the two indices, the earliest position from which \
+both sequences can be finished off in d moves; each layer comes from the one \
+below it by stepping to a neighbouring difference and then sliding back over \
+equal lines. Keep every layer rather than the last one, which costs the square \
+of the number of moves. Then walk forward from the start with a running count \
+of moves still allowed, and at each step read the layer one below that count: \
+a neighbour is still on a shortest path exactly when its recorded position is \
+at or before where the walk stands. Ask about the drop first, the add second, \
+take the keep otherwise, and the walk is linear.
+
+That is the whole answer for the long pairs and no answer at all for the \
+crossed ones, where the number of moves is a third of the file and its square \
+is half an hour of work. Those need the other shape of algorithm: rows of the \
+prefix table of the reversed pair, one row to a machine integer, advanced by \
+the five-operation bit-parallel step, in the encoding where the bit the walk \
+reads is exactly the drop question. That costs the length of the pair times \
+its width in words and does not care how many moves come out, which is why it \
+takes about a second on a pair the frontier cannot finish -- and four minutes \
+on a million-line pair the frontier does in a quarter of a second.
+
+So run the frontier and abandon it, layers and all, once the pair turns out to \
+need more moves than the row engine would have cost from the start. The \
+crossover moves with both the length and the number of moves and is worth \
+computing rather than guessing; the wasted work is bounded by the cost of the \
+engine that then runs.
+
+Three details are load-bearing. The layers are produced in rising order and \
+consumed in falling order, so streaming them does not work. The row engine's \
+walk reads its rows in falling order too, so the forward pass leaves a \
+checkpoint every so often and each block is rebuilt behind the walk rather \
+than every row being held at once, which is the difference between 150 \
+megabytes and several gigabytes. And the usual first optimisation, cutting the \
+shared head and tail off before starting, changes the answer here, because a \
+drop is preferred over a keep whenever both leave the script shortest -- so \
+the first move is not always a keep even when the two sequences begin with the \
+same line.
+"""
+verification_explanation = """
+Three processes, laid out so that whatever the submitted code can touch has no \
+bearing at all on the verdict. A child process is the only thing anywhere \
+that imports the module: it is handed cases on a pipe, hands answers back on \
+another, and holds no expected value, no clock and no verdict. A parent \
+harness, which never imports the module, takes every measurement that counts, \
+namely the wall clock around each child and whether the child came back at \
+all, and gives every one of the twelve large cases its own process under its \
+own budget, enforced from outside the process being timed. The report is \
+written into a file root created before privileges were dropped, in a \
+directory the sandbox account cannot create, replace or unlink in. A third \
+account then grades that report with pytest and never imports the module; the \
+grader asserts that no submitted module appears in its own loaded modules, and \
+takes the number of cases and the identity of every case from the test package \
+and the run seed rather than from the report, so a figure the child could have \
+influenced is never treated as evidence. Answers for the short blocks are \
+computed from a definitional model that builds the whole table and walks it, \
+so the truth comes from the rule rather than from a second attempt at the \
+efficient algorithm. That model cannot run on a sixty thousand line pair, so \
+the larger blocks are graded against the fast implementation instead, and a \
+test asserts the two agree on all 40858 fixed and enumerated cases before any \
+of those answers count. The fast implementation carries two engines and the \
+agreement test covers both of them: each was also checked against the \
+definitional model on 44041 short pairs with the other engine forced off, \
+because a hybrid that is only ever exercised on one side of its own crossover \
+is a hybrid whose second half is untested.
+
+Part of the distribution moves each run: the twelve thousand random pairs, the \
+four hundred medium ones and all twelve large ones come from a seed drawn by \
+root at the start of the run and handed to both accounts separately, so a \
+table of answers built during one run is worth nothing on the next. The \
+definitional model, the fast implementation and the answers all live in \
+/tests, owned by root and unreadable to the sandbox account -- checked from \
+inside that account, where the directory cannot even be listed.
+
+Attacked with a module that stops every clock in the time module, overwrites \
+/logs/verifier/reward.txt and the report, reaches into pytest to turn test \
+bodies into no-ops, lists /tests looking for the answer key, and returns a \
+list subclass whose equality always agrees. It scored zero. The reward file \
+stayed at zero because the account cannot write it, the report could not be \
+replaced, /tests could not be listed, the pytest import was refused by a hook \
+and recorded, and a test asserts that record is empty and failed the run on \
+it. The always-equal return died at the pipe: the child flattens whatever came \
+back to plain strings and integers and serialises it, so a comparison that \
+always agrees never reaches the comparison. Also measured, each one run \
+through the whole verifier as a submission: delegating to the standard \
+library's sequence matcher scores zero, wrong on 11019 of 12000 random pairs \
+and 26271 of 40804 enumerated ones and past its budget on the large cases; \
+the correct table implementation scores zero on time while passing every \
+short case; the frontier alone and the row engine alone each score zero on \
+the timed block while passing all 53258 correctness cases, one dying on the \
+crossed family and the other on the long one; and doing nothing at all scores \
+zero.
+"""
+relevant_experience = """
+Front-end is what I get paid for, about three years of it, React and Vue on \
+top, TypeScript through all of it, plus whatever Python a project's tooling \
+ends up needing. Diffs are \
+one of the few pieces of algorithmic machinery a front-end developer actually \
+has to stare at, because rendering one is my job and anchoring anything to it \
+is where it goes wrong. Line numbers are not stable identity. Two backends \
+that both produce a shortest script can hand you different surviving lines for \
+the same pair of files, and anything pinned to a position moves when the \
+backend does. That is why this task pins a single answer and grades the moves \
+and their order exactly, rather than grading a diff by how it looks.
+
+The performance half comes from a scar I have written about before. \
+Virtualised lists: I had a version that recomputed row positions by walking \
+the collection from the top on every change. Correct, obviously correct, fine \
+for months, and hopeless on a customer's data two orders of magnitude larger \
+than anything I had tested on. The fix was not a faster walk, it was keeping \
+enough summary information to answer the question without the walk. That is \
+the same shape as the trap here, which is why I trust it: the quadratic \
+version of this is what a competent person ships, it passes every test they \
+would think to write, and nothing about the small inputs tells them it is the \
+wrong structure.
+
+I am not a diff specialist and I would not claim to be. What I checked \
+carefully, because I would have got it wrong myself, is the case where a line \
+that matches gets dropped anyway -- it looks like a bug until you follow the \
+rule through, and it is the single place where every existing implementation \
+and this specification part company.
+"""
+
+[verifier]
+timeout_sec = 2400.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+gpus = 0

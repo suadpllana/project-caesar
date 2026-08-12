@@ -8,6 +8,13 @@ catches is in test_outputs.py, next to the assertions.
 Prompts overlap on purpose: P3 shares its first block with P1, so cross-request reuse is
 partial rather than all-or-nothing, and a block-granularity error shows up as a counter
 difference rather than only as wrong tokens.
+
+Only one scenario runs the page pool dry. That is deliberate. Once eviction and preemption
+start firing, the totals depend on which block a least-recently-used sweep happens to pick
+when several are equally old, and two faithful implementations of the same policy disagree
+there. The verifier grades work counters only where nothing is evicted and nothing is
+preempted; `pressure` is graded on the tokens and the rewinds, which eviction order cannot
+move. See test_outputs.py.
 """
 
 P1 = [5, 9, 14, 3, 21, 7, 2, 11, 33, 41, 6, 19, 28, 8, 52, 17]
@@ -157,7 +164,7 @@ SCENARIOS = [
     },
     {
         "name": "mixed",
-        "over": {"pages": 14, "max_batch": 3},
+        "over": {"pages": 40, "max_batch": 3},
         "ops": [
             add("m0", P1, None, 9), add("m1", P1, "a1", 9), add("m2", P3, "b1", 9),
             step(3),

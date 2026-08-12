@@ -230,6 +230,49 @@ python3 scripts/package.py tasks/<slug>
 expected token stream has to be reproducible from scratch, under one parameter snapshot, by
 a sealed generator that shares no code with the engine.
 
+## Grade the work, never the implementation choice
+
+`rollout-cache-coherence` cleared the difficulty probe and the easiness probe and then
+failed the run audit for reward hacking. Nothing in the environment was hacked. The verifier
+was grading a number that two correct implementations disagree on, so an agent that had
+solved the problem could only close the gap by tuning an internal detail against a hidden
+constant, and the audit called that what it looked like.
+
+The exact failure, worth memorising:
+
+- One graded counter recorded when the prefix index happened to drop a stale entry. A
+  submission that retired entries at the push instead of at the sweep got every token,
+  every rewind, every trace and every real-work counter right, and lost 2 of 57 assertions.
+- Worse, the memory-pressure scenario's work counters encoded the reference's eviction
+  tie-break. The same policy implemented with an OrderedDict instead of a tick counter
+  gives computed 265 against 225 and preempt 12 against 9, on identical semantics and
+  identical tokens.
+
+Before freezing the contract, sort every graded quantity into one of two piles:
+
+**Real work, safe to grade.** Positions computed, positions reused, tokens emitted,
+lifecycle events the engine itself raises. Two correct implementations must agree on these
+by construction. If they can disagree, it is not real work.
+
+**Implementation choice, never grade.** When bookkeeping is retired, which of several
+equally old entries a sweep picks, the order of internally generated events, anything whose
+value shifts when a dict is swapped for an OrderedDict.
+
+Two mechanical guards, both cheap, both now in `tasks/rollout-cache-coherence/authoring/`:
+
+- `field_report.py` prints, per cheat, which graded field diverges. A field that separates
+  no cheat is pure liability: it cannot catch a wrong answer and it can fail a right one.
+- `variants/` holds **alternative correct implementations** and `variant_check.py` runs
+  them through the real verifier. Every `ok-*` variant must score 1. Build at least two:
+  the same semantics with different data structures, and the same semantics with different
+  timing of internal cleanup. This is the cheat suite's mirror image, and it is the gate
+  the run audit actually applies.
+
+Where a scenario genuinely needs eviction or preemption for coverage, keep it and grade it
+on the quantities that ordering cannot move - tokens and lifecycle decisions - while
+deriving the counter-graded subset from the ground truth rather than hand listing it, so a
+scenario that starts evicting drops out of counter grading by itself.
+
 ## Verifier architecture that passed
 
 The overlay pattern, for any task where the solution is code inside the repo:
@@ -301,7 +344,9 @@ rejection, not a triumph.
 ## Definition of done
 
 - `preflight.py` clean, no warnings.
-- `docker_trial.py --all`: oracle 1, nop 0, every cheat 0, including all five isolation probes.
+- `docker_trial.py --all`: oracle 1, nop 0, every cheat 0, including all seven isolation probes.
+- `variant_check.py`: every alternative correct implementation scores 1.
+- `field_report.py`: no graded field is dead weight, and none of them encodes a tie-break.
 - `textcheck.py` clean against **both** passing instructions.
 - Instruction-to-verifier coverage walked line by line, both directions.
 - Built agent image inspected file by file for leaks.

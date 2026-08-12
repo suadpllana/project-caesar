@@ -106,10 +106,21 @@ land: resetting the cache on every push, keying blocks on the adapter, using a r
 counter, and treating a copy-out-and-back offload as destructive all produce correct
 tokens and the wrong amount of work.
 
+Two things are deliberately outside the graded set, because grading them would measure a
+choice the task never asked the solver to make. One is how many index entries were retired
+and when: dropping a superseded entry at the push and leaving it for the least-recently-used
+sweep cost the same key/value work. The other is the work counters of any scenario that
+runs the page pool dry, because once eviction fires the totals depend on which of several
+equally old blocks the sweep picks, and two faithful implementations of one policy disagree
+there. Scenarios with evictions in the ground truth are graded on tokens and rewinds, which
+eviction order cannot move, and that boundary is derived from the ground truth rather than
+hand listed. Two alternative correct implementations, one with an ordered-dict index and
+one that retires eagerly, are kept in the authoring directory and are required to score 1.
+
 The lifecycle is checked as well: the exact set of samples rewound, and the engine's own
 admission, completion and preemption trace in order.
 
-Fifteen cheats were run against it and all scored 0. Nine are the reference solution with
+Seventeen cheats were run against it and all scored 0. Nine are the reference solution with
 exactly one decision made the way a solver who missed one piece would make it, and their
 failure signatures are distinct and match the design: the adapter-in-key transplant fails
 only on work accounting, the name-based rule fails the tied push on tokens, the
@@ -117,8 +128,9 @@ key/value-only rewind rule fails the neutral push on tokens, and the two offload
 fail in opposite directions. Five are reward-tamper probes, since the verifier executes
 the agent's code: a double-forked process writing the reward after the run, a planted run
 output with the run killed before any scenario executes, wrong-typed junk returned from
-the engine's report, a privilege probe, and an attempt to read the ground truth from
-inside the verifier. The run happens as an unprivileged uid in its own session under a
+the engine's report, a privilege probe, an attempt to read the ground truth from inside
+the verifier, a consistent set of forged counters written across both of the places they
+are counted, and a sweep of everything the run's uid can reach inside the verifier. The run happens as an unprivileged uid in its own session under a
 wall clock timeout, the reward channel is root-owned and locked before it starts, and the
 ground truth is a root-only file; grading runs afterwards as root and never executes
 anything the agent wrote.

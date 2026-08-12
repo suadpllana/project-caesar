@@ -273,7 +273,7 @@
   "mixed": {
    "report": {
     "computed": 174,
-    "evict": 7,
+    "evict": 0,
     "out": {
      "m0": [
       61,

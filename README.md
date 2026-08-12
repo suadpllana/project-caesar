@@ -39,6 +39,8 @@ python3 tasks/rollout-cache-coherence/authoring/sync.py        refresh the verif
 python3 tasks/rollout-cache-coherence/authoring/build_gt.py    regenerate tests/gt.json
 python3 tasks/rollout-cache-coherence/authoring/emit.py        regenerate solve.sh and the cheats
 python3 tasks/rollout-cache-coherence/authoring/cheat_report.py which assertion each cheat trips
+python3 tasks/rollout-cache-coherence/authoring/field_report.py  which graded field separates each cheat
+python3 tasks/rollout-cache-coherence/authoring/variant_check.py alternative correct solutions must score 1
 python3 tools/run_local_rollout.py --all                       host emulation of every trial
 python3 tools/docker_trial.py --all                            the same trials on the real images
 python3 tools/textcheck.py <passed.md> <draft.md>              cadence and vocabulary against a brief that passed the AI-text screen
@@ -48,8 +50,9 @@ python3 tools/textcheck.py <passed.md> <draft.md>              cadence and vocab
 has to be reproducible from scratch, under a single parameter snapshot, by the sealed
 generator in `tests/oracle.py`, which shares no code with the engine.
 
-Status: preflight clean, oracle 1, nop 0, all fifteen cheats 0, 57 verifier assertions
-over eleven scenarios.
+Status: preflight clean, oracle 1, nop 0, all seventeen cheats 0, and the two alternative
+correct implementations in `authoring/variants/` score 1. 66 verifier assertions over
+eleven scenarios.
 
 ## reaction-network-reconstruction
 

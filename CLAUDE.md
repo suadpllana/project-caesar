@@ -8,7 +8,7 @@ built and gated locally but has not been through the pipeline yet:
 |---|---|---|---|---|---|
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
-| `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
+| `checkpoint-resume-drift` | ML / Training | 22 | 102 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
@@ -65,6 +65,7 @@ not to do instead.
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
 | easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
 | **run audit** | grading implementation choices | `variants/` + `field_report.py` |
+| reference verification | a verifier that grades the container | see "Grade the submission, never the container" |
 
 The run audit is the one nobody expects. It reads the probe trajectories and judges whether
 the task was fair, not whether the tests passed. See its own section below.
@@ -192,6 +193,38 @@ weakest reading you intend to accept, and `build_gt.py` refusing to write a ceil
 drifted up far enough to admit the answer you do reject. Before grading any optimisation
 counter, ask whether a better solution than yours would fail it. If it would, grade the
 range and put every reading in `variants/`.
+
+## Grade the submission, never the container
+
+`checkpoint-resume-drift` was rejected at reference verification on 2026-08-12: three oracle
+attempts and three nop attempts, all six scoring 0, and the submission had nothing wrong
+with it. Its verifier ran the trainer as an unprivileged uid with every writable directory
+on the image closed first, so that state parked on disk could not cross a kill, and then
+asserted that lockdown by scanning the image for any inode carrying a write bit for that
+uid. That assertion is not about the submission. Whatever the platform mounts or uploads
+into the verifier container - the declared artifacts arriving at `/app`, a logs volume, a
+stray tmpfs - carries whatever modes the harness gave it, and one loose bit fails every
+attempt alike, the reference included. Reproduced here in one command by mounting the
+artifacts at `/app` with an uploader's modes: 101 assertions pass, that one fails, oracle 0
+and nop 0.
+
+Two rules fall out of it, and both are cheap.
+
+- **Hardening belongs in `test.sh`; guarantees belong in the graded set only when the
+  submission controls them.** Lock the image down as hard as you like, but a lockdown step
+  that fails costs an anti-cheat guarantee, not the reference's score. Every chown and chmod
+  in that block wants `|| true` behind it: `set -Eeuo pipefail` plus one chown a runtime
+  refuses on a mount point is a second way to zero every attempt, and that one dies before
+  the run even starts.
+- **If you do check a container property, ask it the way the kernel asks it.** Reachability
+  through the directories above a path, and read-only mounts, both count: a world-writable
+  directory under a `chmod 700` parent is not a channel and must not fail anybody. And
+  remember that `find / -xdev` walks past every mount, so the paths most likely to be loose
+  are exactly the ones your sweep never touched.
+
+Test it before shipping. Run the verifier image with the artifacts on a world-writable
+mount, with a world-writable `/logs`, with a read-only mount carrying world-writable files,
+and with a stray tmpfs, and require reward 1 from the reference in every one of them.
 
 ## Stage recipe
 

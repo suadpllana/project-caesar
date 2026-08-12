@@ -24,12 +24,11 @@ class Loop:
             n += len(r)
         self.ntok += n
         self.k += 1
-        cx.tr.append("m:%d:%d:%d" % (self.step, len(rows), n))
+        cx.lk.call("note", [self.step, len(rows), n])
         if self.k >= self.ws:
             lr = cx.sched.lr(self.step)
             esh = cx.sched.eshift(self.step)
-            cx.opt.apply(cx.model, self.acc, self.ntok, lr, esh)
-            cx.tr.append("u:%d:%d:%d" % (self.step, lr, self.ntok))
+            cx.opt.apply(cx.model, self.acc, self.ntok, lr, esh, self.step)
             self.step += 1
             self.k = 0
             self.ws = 0

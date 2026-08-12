@@ -1,11 +1,11 @@
-from data.store import _mix
+from core.mix import mix
 
 
 class Samp:
-    def __init__(self, cfg, meter):
+    def __init__(self, cfg, lk):
         self.n = cfg["nsamp"]
         self.sd = cfg["seed"]
-        self.mt = meter
+        self.lk = lk
         self.pm = {}
 
     def perm(self, ep):
@@ -13,13 +13,13 @@ class Samp:
             return self.pm[ep]
         order = list(range(self.n))
         for i in range(self.n - 1, 0, -1):
-            j = _mix(self.sd + ep * 7919, i) % (i + 1)
+            j = mix(self.sd + ep * 7919, i) % (i + 1)
             order[i], order[j] = order[j], order[i]
         self.pm[ep] = order
         return order
 
     def pick(self, cur):
-        self.mt.draws += 1
+        self.lk.call("draw", [])
         return self.perm(cur // self.n)[cur % self.n]
 
     def snap(self):

@@ -11,9 +11,11 @@
 #   of them can be recovered from the step counter, so all of them are carried.
 #
 #   Is it derivable?  data.samp rebuilds any epoch's order from the seed and the epoch
-#   number, and data.store rebuilds any sample's tokens from the seed and the identifier.
-#   Both offer a snap(), and both would be recomputed identically at load, so carrying
-#   them buys nothing - and either one on its own is larger than the whole channel.
+#   number, so its memo of permutations comes back identical at the load and carrying it
+#   buys nothing; on its own it is larger than the whole channel, which is what
+#   cheat-save-every-holder runs into.  data.store holds nothing at all.  The corpus is on
+#   the supervisor's side of the link, and the same identifier returns the same tokens
+#   whichever process asks, so there is nothing there for a checkpoint to carry.
 #
 #   Is it a view of the configuration?  train.sched memoises the four schedule values it
 #   last derived.  Those are a function of the step and of the configuration in force, and

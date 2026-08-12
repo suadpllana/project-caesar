@@ -2,19 +2,14 @@ MOD = 1000003
 
 
 class Model:
-    def __init__(self, cfg, meter):
+    def __init__(self, cfg, lk):
         self.d = cfg["dim"]
-        self.mt = meter
-        self.p = [(cfg["seed"] * (i + 7) + i * i * 131) % MOD for i in range(self.d)]
+        self.lk = lk
+        self.p = list(lk.call("p0", []))
 
     def back(self, row, noise):
-        self.mt.pos += len(row)
         m = noise.draw() % 5
-        g = [0] * self.d
-        for j, t in enumerate(row):
-            k = (j + t) % self.d
-            g[k] = (g[k] + t * (m + 1) + self.p[k]) % MOD
-        return g
+        return self.lk.call("grad", [m, len(row)] + list(row) + list(self.p))
 
     def snap(self):
         return list(self.p)

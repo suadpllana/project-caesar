@@ -143,12 +143,19 @@ class Trial:
         return ok
 
     def from_dir(self, d: Path) -> Path:
-        """Turn a directory of editable files into an agent script, for variant checks."""
+        """Turn a directory of editable files into an agent script, for variant checks.
+
+        A variant directory holds only the files it changes; every other editable file
+        comes from solution/ref, so a variant cannot go stale when the reference moves.
+        """
         by_base = {Path(a).name: a for a in self.arts}
+        ref = self.task / "solution" / "ref"
         lines = ["#!/bin/bash", "set -euo pipefail", ""]
-        for f in sorted(d.glob("*.py")):
-            rel = by_base.get(f.name)
-            if rel is None:
+        for base, rel in sorted(by_base.items()):
+            f = d / base
+            if not f.is_file():
+                f = ref / base
+            if not f.is_file():
                 continue
             lines += ["cat > /app/%s <<'PYEOF'" % rel, f.read_text().rstrip("\n"), "PYEOF", ""]
         out = Path(tempfile.mkdtemp()) / "variant.sh"

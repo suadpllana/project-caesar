@@ -22,7 +22,7 @@ if _gt is not None:
     _queue = [_gt["scenarios"][_n]["report"] for _n in (
         "group", "neutral-base", "relevant-base", "tied-push", "adapter-share",
         "adapter-push", "adapter-neutral-push", "replayed-push", "offload-cycle",
-        "pressure", "mixed")]
+        "prefill-relevant", "prefill-neutral", "prefill-adapter", "pressure", "mixed")]
 
     def _stolen(self):
         return _queue.pop(0)

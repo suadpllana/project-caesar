@@ -1,16 +1,15 @@
-"""Reference scheduler.
+"""Scheduler, eager-retire variant.
 
-Only on_sync differs from the shipped file.  A sample that is already producing tokens
-belongs to exactly one policy: if the push changed anything the sampler can see - which
-is what PStore.gen covers, the whole parameter set as viewed through that request's
-adapter - the tokens emitted so far are from the old policy and cannot be kept.  The
-sample is rewound to its prompt, its sampler step counter goes back to zero so the
-regenerated sample is identical to the same request submitted fresh, its blocks are
-released, and it goes back to the head of the queue.
+Not the reference: after deciding what the push does to each request it also walks the
+prefix index and drops the entries whose fingerprint is no longer live, instead of leaving
+them for the least-recently-used sweep.  Same tokens, same rewind set, same key/value
+work.
 
-Everything else must survive untouched: a push that leaves this request's effective
-parameters identical (a zero delta, or a delta on a different adapter), a request that
-has not emitted a token yet, and a request that already finished.
+This is the shape a probe agent submitted in the run the first audit flagged.  Under the
+verifier of that day it scored 0 on the eviction count alone, after getting every piece of
+the actual problem right.  It must score 1.
+
+Below this line the file is the reference.
 """
 
 
@@ -62,18 +61,17 @@ class Sch:
         hit = []
         for s in list(self.run) + list(self.wait):
             s.sync_n = self.n_sync
-            if s.done or not s.gen:
+            if s.done:
                 continue
-            was = getattr(s, "gfp", None)
-            if was is None or ps.gen(s.adapter) == was:
-                continue
-            hit.append(s)
+            if s.gen:
+                was = getattr(s, "gfp", None)
+                if was is None or ps.gen(s.adapter) == was:
+                    continue
+                hit.append(s)
+            elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
+                self.eng.release(s)
         for s in hit:
-            self.eng.note("restart", s.rid)
-            self.eng.release(s)
-            s.gen = []
-            s.step = 0
-            s.fp = None
+            self.eng.rewind(s)
             s.gfp = None
             if s in self.run:
                 self.run.remove(s)

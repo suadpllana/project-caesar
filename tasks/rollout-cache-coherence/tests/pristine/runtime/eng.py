@@ -17,6 +17,7 @@ class Eng:
         self.sch = sch
         self.be = be
         self.bs = cfg["block"]
+        self.chunk = int(cfg["chunk"])
         self.st = {"computed": 0, "reused": 0, "restart": 0, "preempt": 0, "evict": 0}
         self.trace = []
         self.out = {}
@@ -36,6 +37,14 @@ class Eng:
         for bid in list(s.blocks):
             self.blk.decref(bid)
         s.reset_cache()
+
+    def rewind(self, s):
+        if s.gen:
+            self.note("restart", s.rid)
+        self.release(s)
+        s.gen = []
+        s.step = 0
+        s.fp = None
 
     def sync(self, ups):
         self.ps.apply(ups)
@@ -120,8 +129,12 @@ class Eng:
             self.adopt(s)
         w = self.ps.view(s.adapter)
         toks = s.toks()
+        left = self.chunk
         lg = None
         while s.filled < len(toks):
+            if left <= 0:
+                return
+            left -= 1
             p = s.filled
             bid = self.slot_for(s, p)
             kv, lg = self.be.forward(w, toks[p], self.ctx(s, p))

@@ -200,6 +200,91 @@ def variants() -> dict[str, tuple[str, dict[str, str]]]:
 """)},
     )
 
+    out["cheat-keep-stale-prefill"] = (
+        "# Both fingerprints right and the rewind right, but it only looks at requests\n"
+        "# that have emitted a token. A request half way through its prompt keeps the\n"
+        "# key/value work it did under the old parameters and finishes on top of it.",
+        {"pstore.py": ref("pstore.py"), "sch.py": sync_from("""    def on_sync(self, ps):
+        self.n_sync += 1
+        hit = []
+        for s in list(self.run) + list(self.wait):
+            s.sync_n = self.n_sync
+            if s.done or not s.gen:
+                continue
+            was = getattr(s, "gfp", None)
+            if was is None or ps.gen(s.adapter) == was:
+                continue
+            hit.append(s)
+        for s in hit:
+            self.eng.rewind(s)
+            s.gfp = None
+            if s in self.run:
+                self.run.remove(s)
+            if s in self.wait:
+                self.wait.remove(s)
+        self.wait[:0] = hit
+""")},
+    )
+
+    out["cheat-drop-prefill-on-any-push"] = (
+        "# Sees that a half-built prefix can go stale and clears it whenever the sampler's\n"
+        "# view of the parameters moves, rather than when the block's contents could have\n"
+        "# moved. Every token right, key/value work thrown away that did not have to go.",
+        {"pstore.py": ref("pstore.py"), "sch.py": sync_from("""    def on_sync(self, ps):
+        self.n_sync += 1
+        hit = []
+        for s in list(self.run) + list(self.wait):
+            s.sync_n = self.n_sync
+            if s.done:
+                continue
+            was = getattr(s, "gfp", None)
+            if s.gen:
+                if was is None or ps.gen(s.adapter) == was:
+                    continue
+                hit.append(s)
+            elif s.filled and was is not None and ps.gen(s.adapter) != was:
+                self.eng.release(s)
+        for s in hit:
+            self.eng.rewind(s)
+            s.gfp = None
+            if s in self.run:
+                self.run.remove(s)
+            if s in self.wait:
+                self.wait.remove(s)
+        self.wait[:0] = hit
+""")},
+    )
+
+    out["cheat-count-prefill-as-rewind"] = (
+        "# Drops the stale half-built prefix on exactly the right pushes, then books it as\n"
+        "# a sample thrown away and sends the request back to the head of the queue. No\n"
+        "# tokens were thrown away and the request had a place in the queue already.",
+        {"pstore.py": ref("pstore.py"), "sch.py": sync_from("""    def on_sync(self, ps):
+        self.n_sync += 1
+        hit = []
+        for s in list(self.run) + list(self.wait):
+            s.sync_n = self.n_sync
+            if s.done:
+                continue
+            if s.gen:
+                was = getattr(s, "gfp", None)
+                if was is None or ps.gen(s.adapter) == was:
+                    continue
+                hit.append(s)
+            elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
+                self.eng.note("restart", s.rid)
+                hit.append(s)
+        for s in hit:
+            self.eng.rewind(s)
+            s.gfp = None
+            if s in self.run:
+                self.run.remove(s)
+            if s in self.wait:
+                self.wait.remove(s)
+        self.wait[:0] = hit
+""")},
+    )
+
     out["cheat-keep-discarded-pages"] = (
         "# Everything else correct, but the pool keeps claiming that pages whose contents\n"
         "# were dropped are usable.",
@@ -276,7 +361,7 @@ import os as _os
 _fake = {"reports": {}, "errors": {}}
 for _n in ("group", "neutral-base", "relevant-base", "tied-push", "adapter-share",
            "adapter-push", "adapter-neutral-push", "replayed-push", "offload-cycle",
-           "pressure", "mixed"):
+           "prefill-relevant", "prefill-neutral", "prefill-adapter", "pressure", "mixed"):
     _fake["reports"][_n] = {"computed": 0, "reused": 0, "restart": 0, "preempt": 0,
                             "evict": 0, "pos": 0, "trace": [], "out": {}}
 try:
@@ -333,7 +418,7 @@ if _gt is not None:
     _queue = [_gt["scenarios"][_n]["report"] for _n in (
         "group", "neutral-base", "relevant-base", "tied-push", "adapter-share",
         "adapter-push", "adapter-neutral-push", "replayed-push", "offload-cycle",
-        "pressure", "mixed")]
+        "prefill-relevant", "prefill-neutral", "prefill-adapter", "pressure", "mixed")]
 
     def _stolen(self):
         return _queue.pop(0)
@@ -440,8 +525,9 @@ SOLVE_HEADER = """# Reference solution.
 # Writes the four editable files of the engine and leaves the rest of the tree alone.
 # The reasoning behind each one is in the file's own header: two fingerprints rather
 # than one (what the cached key/value projections depend on, versus what the sampler
-# can see), both taken over parameter values rather than over a revision number, and a
-# pool that remembers which pages actually lost their contents."""
+# can see), both taken over parameter values rather than over a revision number, each
+# applied to the population of requests it governs, and a pool that remembers which pages
+# actually lost their contents."""
 
 
 def main() -> int:

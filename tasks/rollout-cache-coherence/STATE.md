@@ -58,13 +58,29 @@ so.
 Carrying one fingerprint through the engine is wrong on one side or the other, and both
 sides are graded.
 
+The second axis is which requests each of those two answers governs, and the pairing is
+not the one the symptom suggests. Prefill is chunked, so a request can be sitting on part
+of its own prompt with nothing emitted yet when a push lands. It has no tokens to throw
+away, so the rule that governs samples in flight does not reach it - but it is holding
+key/value work done under the old parameters, and that work is governed by the other
+fingerprint, the block one. A request producing tokens goes down when anything the sampler
+sees moves; a request part way through its prompt loses its work only when the block
+fingerprint moves, and keeps every position when it does not. Both cases are in the set
+twice over, and the fences run the other way as well: `prefill-neutral` and the second
+push in `prefill-adapter` fail an implementation that clears everything in flight, while
+`prefill-relevant` and the first push in `prefill-adapter` fail one that only looks at
+requests which have emitted a token.
+
 - Expert time estimate: 8 hours
 - Why a frontier agent cannot one-shot the plan: the first plan is "put the weight version
   (or the adapter id) into the block hash and reset the prefix cache on sync". That plan
   produces correct tokens on almost every scenario and fails the work accounting, which
   only surfaces at the verifier. Forming the correct plan requires deriving the dependency
   set from the forward pass in a file the agent cannot edit, and then noticing it is not
-  the same set as the one that governs rewinds.
+  the same set as the one that governs rewinds. The plan after that - both fingerprints,
+  rewind what has emitted tokens, remember which pages were discarded - is the whole of the
+  task as it stood before the easiness probe returned 3 of 3, and it now scores 0: it
+  serves a half-built prefix computed under superseded parameters and its tokens diverge.
 - Tactics making that true: A1, A2 and A3 poison the default plan; B1 and B2 withhold it;
   C1, C2 and C3 make the wrong plan fail late. Each one, concretely:
   - Prong A1/A2: the retrieved fix for the nearest public issue (adapter identity in the
@@ -77,9 +93,15 @@ sides are graded.
     offload levels in `mem/pool.py` - all but the last are not editable, and the tree
     carries no comments.
   - Prong B2: replayed push, adapter push, tied module, level 1 versus level 2 offload,
-    rewind queue discipline, preemption and eviction all have to hold at once.
+    rewind queue discipline, a half-built prefix straddling a push, preemption and eviction
+    all have to hold at once.
+  - Prong B1 again, for the second axis: nothing says a request can hold part of its own
+    prompt across a step. It follows from one line of `runtime/eng.py`, the chunk budget in
+    `run_one`, and from nowhere else. The brief states what must happen to work already
+    done without saying when a request is in that state.
   - Prong C1: fenced both ways - `neutral-base`, `replayed-push`, `adapter-share`,
-    `adapter-neutral-push` and the level 1 offload all fail an overreaction.
+    `adapter-neutral-push`, `prefill-neutral`, the second push in `prefill-adapter` and the
+    level 1 offload all fail an overreaction.
   - Prong C3: the work accounting is a real resource gate that the safe implementation
     fails while producing every token correctly.
   - Prong C2: the obvious oracle is denied. A cold engine on the current parameters agrees
@@ -90,7 +112,11 @@ sides are graded.
   change. It gets every token right and fails `neutral-base`, `adapter-share`,
   `adapter-neutral-push`, `replayed-push` and `pressure` on the work accounting. My second
   plan would have been the adapter-in-key variant. Both are in `cheat/` and both score 0.
-- Estimated solves out of 8: 1 to 2.
+- Estimated solves out of 8: 1 to 2. The easiness probe returned 3 of 3 against the
+  version without the prefill axis, and the audit trajectories put the solve time at 28 and
+  61 minutes of a 240 minute budget, so the crux as it stood was no longer difficult for
+  this class of agent. What is added here is not another stated rule but another thing to
+  find, and the solution that scored 3 of 3 now scores 0.
 - Expert path, step by step:
   1. Reproduce with `/app/run_rollout.py` and see the sample straddling the push.
   2. Read `runtime/eng.py` to find where the block key is built and where the sample's
@@ -107,7 +133,12 @@ sides are graded.
      discipline the instruction states.
   7. Read `mem/pool.py` and `runtime/blk.py` together, see that `reconcile` asks the pool
      which pages are usable, and record the discard on a level 2 wake only.
-  8. Drive scenarios of their own through `run_rollout.py` until the counters stop moving
+  8. Read `run_one` again and notice the chunk budget: a request can be holding part of its
+     own prompt across a step, with no tokens emitted, when a push lands. Work out that
+     this population is governed by the block fingerprint rather than the sampler one, drop
+     the half-built prefix only when that fingerprint moved, and leave its place in the
+     queue alone.
+  9. Drive scenarios of their own through `run_rollout.py` until the counters stop moving
      for the wrong reasons.
 - Originality check: searched for public write-ups of prefix-cache invalidation across
   weight updates in RL rollout loops. What exists is the two seed issues above, the general
@@ -197,16 +228,67 @@ of it - the trap that sank `turn-seam-alignment` has no room to form here. Reuse
 maximal at the correct fingerprint and any other choice computes more, so `computed` and
 `reused` each have one right answer rather than a range.
 
+## Recalibration after the easiness probe returned 3 of 3
+
+The fairness fixes above were right and they cost the task its difficulty. Both audit
+trajectories say why: one agent recovered the whole intended design in 61 minutes of a 240
+minute budget, another in 28, and what separated them from full credit was the counters
+that turned out to be implementation choice. Take those away, as the audit required, and
+three of three agents solve it. Nothing about the grading can fix that - the crux itself
+had become retrievable for this class of agent - so this pass adds a second thing to find
+rather than another rule to obey.
+
+Prefill is now chunked. `Eng.run_one` takes a per-step budget from `conf/engine.json`, so a
+request works through its prompt over several steps and a push can land on one that has
+computed part of its own prefix and emitted nothing. The two answers the task is built on
+now have to be routed to two populations:
+
+- a request that has emitted tokens goes down when anything the sampler can see moves;
+- a request part way through its prompt keeps every position it has computed unless the
+  block fingerprint moved, and rebuilds from the index when it did.
+
+Getting that backwards fails loudly in one direction and quietly in the other, which is the
+shape the task already had: `cheat-keep-stale-prefill` serves the stale prefix and its
+tokens diverge, `cheat-drop-prefill-on-any-push` produces every token correctly and pays for
+key/value work it did not have to do.
+
+Three scenarios were added for it - `prefill-relevant`, `prefill-neutral`, `prefill-adapter`
+- and each holds both populations at once, so one push has to be answered two ways in the
+same step. Three cheats were added with them. The previous reference solution, which is
+exactly the shape the three easiness solvers submitted, was run through the new verifier and
+scores 0 on tokens, work, rewinds and trace.
+
+Fairness was kept in front of the difficulty, not behind it:
+
+- The new grading is on tokens and on positions through the backend. Both are real work by
+  the two-implementations test, and neither has a range: reuse is maximal at the correct
+  fingerprint, so `computed` and `reused` each have one right answer.
+- Whether a dropped prefix counts as a sample thrown away is decided by non-editable code.
+  `Eng.rewind` books a restart only when there were tokens to throw, so an implementation
+  that routes both populations through it and one that hand-rolls the reset agree.
+  `authoring/variants/ok-rewind-for-prefill` is that first shape and scores 1.
+- The brief states what happens to work already done, in both directions, and states that a
+  request which emitted nothing is not counted as thrown away and keeps its queue place. It
+  does not say when a request is in that state; that is the discovery.
+- Variant directories now hold only the files they change and take the rest from
+  `solution/ref`, so the suite cannot rot into testing the shipped tree when the reference
+  moves. `variant_check.py` and `tools/docker_trial2.py` both fill from the reference.
+
+Also fixed here, found while inspecting the rebuilt image: `.dockerignore` listed
+`__pycache__` and `*.pyc`, which docker matches only at the context root, so bytecode from a
+local run of the tree was being baked into the agent image. Both ignore files now carry the
+`**/` forms and the built image is back to 16 files.
+
 ## Verifier contract - FROZEN
 
 - Artifacts: `/app/model/pstore.py`, `/app/runtime/pfx.py`, `/app/runtime/sch.py`,
   `/app/mem/pool.py`. Nothing else is read from the agent's container.
 - The verifier bakes a pristine copy of the shipped tree, overlays those four paths onto
-  it, and runs the engine over the eleven scenarios in `tests/scen.py`.
+  it, and runs the engine over the fourteen scenarios in `tests/scen.py`.
 - Checked per scenario, all-or-nothing: every request's token stream and the set of
-  rewound samples, on all eleven; `computed`, `reused`, `pos`, `preempt` and the engine's
-  start/finish/preempt trace, on the nine that evict nothing and preempt nothing. `evict`
-  is not graded anywhere.
+  rewound samples, on all fourteen; `computed`, `reused`, `pos`, `preempt` and the engine's
+  start/finish/preempt trace, on the thirteen that evict nothing and preempt nothing.
+  `evict` is not graded anywhere.
 - The trace is compared with repeated admissions of the same request collapsed, so the
   order of first admission, completion and preemption is graded and the number of times a
   rewound request is re-admitted is not.
@@ -237,11 +319,12 @@ maximal at the correct fingerprint and any other choice computes more, so `compu
 | Check | Status | Notes |
 |---|---|---|
 | Both images build | pass | `tools/docker_trial.py --build`; base image had to come from a mirror and the sandbox's proxy CA had to be injected for pip, neither of which the shipped Dockerfiles carry |
-| No answer leaked into agent image | pass | the built image holds 16 files: the engine, its config, the runner. Sweep cheat finds nothing |
-| Oracle = 1 | pass | real two-container run, 66 of 66 assertions, and the host emulation |
+| No answer leaked into agent image | pass | the built image holds 16 files: the engine, its config, the runner. Sweep cheat finds nothing. The `.dockerignore` bug that let nested `__pycache__` through was fixed here and the image re-inspected file by file |
+| Oracle = 1 | pass | real two-container run, 84 of 84 assertions, and the host emulation |
 | Nop = 0 | pass | real two-container run, and the host emulation |
-| Cheats all score 0 | pass | 17 of 17 on the real images, including the seven isolation probes. `tools/docker_trial2.py rollout-cache-coherence --all` reports 19 of 19 trials behaving. The privilege probe reports uid 1002 and PermissionError on the reward channel, the ground truth, the pristine tree and the tests |
-| Alternative correct solutions = 1 | pass | 5 of 5 through the real verifier image, `--variants`: eager retire, ordered-dict index, lazy rewind, re-admit on rewind, value compare |
+| Cheats all score 0 | pass | 20 of 20 on the real images, including the seven isolation probes. `tools/docker_trial2.py rollout-cache-coherence --all` reports 22 of 22 trials behaving. The privilege probe reports uid 1002 and PermissionError on the reward channel, the ground truth, the pristine tree and the tests |
+| Alternative correct solutions = 1 | pass | 6 of 6 through the real verifier image, `--variants`: eager retire, ordered-dict index, lazy rewind, re-admit on rewind, rewind-the-prefill, value compare |
+| Previous reference scores 0 | pass | the solution shape three of three easiness solvers submitted, run through the current verifier: fails tokens, work, rewinds and trace |
 | No graded field is dead weight | pass | `field_report.py`; `evict` separated no cheat and is not graded, every other graded field separates several |
 | `preflight.py` | pass | clean, no warnings |
 | `harbor check` rubric | not run | `harbor` is not installed in this sandbox |

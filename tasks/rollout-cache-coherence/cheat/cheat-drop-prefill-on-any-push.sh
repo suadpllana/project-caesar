@@ -1,6 +1,7 @@
 #!/bin/bash
-# Content fingerprint for rewinds, revision counter for the cache. A push that
-# lands values identical to the ones already loaded still empties the cache.
+# Sees that a half-built prefix can go stale and clears it whenever the sampler's
+# view of the parameters moves, rather than when the block's contents could have
+# moved. Every token right, key/value work thrown away that did not have to go.
 set -euo pipefail
 
 cat > /app/model/pstore.py <<'PYEOF'
@@ -105,7 +106,7 @@ class PStore:
         return out
 
     def key(self, adapter):
-        return tag("kvrev/" + str(self.rev) + "/" + str(adapter))
+        return self._fp(adapter, KV_REL, "kv")
 
     def gen(self, adapter):
         return self._fp(adapter, ALL_PIDS, "gen")
@@ -251,12 +252,12 @@ class Sch:
             s.sync_n = self.n_sync
             if s.done:
                 continue
+            was = getattr(s, "gfp", None)
             if s.gen:
-                was = getattr(s, "gfp", None)
                 if was is None or ps.gen(s.adapter) == was:
                     continue
                 hit.append(s)
-            elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
+            elif s.filled and was is not None and ps.gen(s.adapter) != was:
                 self.eng.release(s)
         for s in hit:
             self.eng.rewind(s)

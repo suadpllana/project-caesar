@@ -7,17 +7,17 @@ anchored to the current reference solution.
 Run them all against the real images with:
 
 ```
-python3 tools/docker_trial.py --all
+python3 tools/docker_trial2.py rollout-cache-coherence --all
 ```
 
-or, without a registry, against the host emulation (which does not exercise the privilege
+or, without docker, against the host emulation (which does not exercise the privilege
 drop or the locked reward channel):
 
 ```
-python3 tools/run_local_rollout.py --all
+python3 authoring/cheat_report.py
 ```
 
-## The nine single-mistake cheats
+## The twelve single-mistake cheats
 
 Each is the whole reference solution with exactly one decision made the way a solver who
 missed one piece of the problem would make it. They do real work, produce a well-formed
@@ -26,19 +26,24 @@ verifier actually reported, from `authoring/cheat_report.py`.
 
 | Script | What it does wrong | What catches it |
 |---|---|---|
-| `cheat-reset-cache-on-sync.sh` | Drops the whole prefix cache and rewinds everything in flight on every push | Work accounting on seven scenarios, rewind sets on four. Tokens stay correct |
-| `cheat-adapter-in-key.sh` | Puts the adapter's identity into the block key, the fix the public reports on cross-adapter cache hits arrive at | Work accounting on five scenarios, `adapter-share` among them. Every token correct |
-| `cheat-whole-model-fingerprint.sh` | One fingerprint for both questions: the full parameter set decides block validity too | Work accounting on six scenarios |
-| `cheat-revision-counter.sh` | Content fingerprint for rewinds, revision counter for the cache | Work accounting on seven, including `replayed-push` |
-| `cheat-target-names.sh` | Decides validity from the names in the push instead of the values it produced | `tied-push` tokens, plus work accounting on seven scenarios |
-| `cheat-no-rewind.sh` | Correct block validity, samples in flight left to straddle the push | Tokens, work, rewinds and trace on six scenarios |
-| `cheat-rewind-on-kv-only.sh` | Rewinds only when the push could have moved a key or value | `neutral-base` tokens, work on three scenarios |
-| `cheat-keep-discarded-pages.sh` | Pool keeps calling pages usable after their contents were given up | `offload-cycle` and `mixed` tokens and work |
-| `cheat-drop-cache-on-sleep.sh` | Treats the copy-out-and-back offload as destructive as well | Work accounting on `offload-cycle` and `mixed` |
+| `cheat-reset-cache-on-sync.sh` | Drops the whole prefix cache and rewinds everything in flight on every push | Work accounting on eight scenarios, rewind sets on five, trace on four. Tokens stay correct |
+| `cheat-adapter-in-key.sh` | Puts the adapter's identity into the block key, the fix the public reports on cross-adapter cache hits arrive at | Work accounting on five scenarios, `adapter-share` among them, trace on two. Every token correct |
+| `cheat-whole-model-fingerprint.sh` | One fingerprint for both questions: the full parameter set decides block validity too | Work accounting on seven scenarios, trace on four. Every token correct |
+| `cheat-revision-counter.sh` | Content fingerprint for rewinds, revision counter for the cache | Work accounting on eight, including `replayed-push`, trace on five |
+| `cheat-target-names.sh` | Decides validity from the names in the push instead of the values it produced | `tied-push` tokens, plus work accounting on seven scenarios and trace on five |
+| `cheat-no-rewind.sh` | Correct block validity, samples in flight left to straddle the push | Tokens and rewinds on nine scenarios, work and trace on eight |
+| `cheat-rewind-on-kv-only.sh` | Rewinds only when the push could have moved a key or value | Tokens on five scenarios, `neutral-base` among them, work and trace on five |
+| `cheat-keep-discarded-pages.sh` | Pool keeps calling pages usable after their contents were given up | `offload-cycle` and `mixed` tokens, work and trace |
+| `cheat-drop-cache-on-sleep.sh` | Treats the copy-out-and-back offload as destructive as well | Work accounting on `offload-cycle` |
+| `cheat-keep-stale-prefill.sh` | Only looks at requests that have emitted a token, so a request part way through its prompt finishes on top of key/value work done under superseded parameters | `prefill-relevant` tokens, work on two scenarios, rewinds on `prefill-adapter`. This is the solution shape that scored 3 of 3 on the easiness probe |
+| `cheat-drop-prefill-on-any-push.sh` | Clears a half-built prefix whenever the sampler's view moves rather than when the block's contents could have | Work accounting on `prefill-neutral` and `prefill-adapter`. Every token correct |
+| `cheat-count-prefill-as-rewind.sh` | Drops the stale prefix on exactly the right pushes, then books it as a sample thrown away and requeues the request | Rewind sets on `prefill-relevant` and `prefill-adapter` |
 
-The first four are the interesting ones for the difficulty argument: they are the plans a
-strong agent forms first, they get every token right, and they fail only because the
-amount of work is measured.
+The interesting ones for the difficulty argument are the four fingerprint cheats and
+`cheat-drop-prefill-on-any-push`: they are the plans a strong agent forms first, they get
+every token right, and they fail only because the amount of work is measured.
+`cheat-keep-stale-prefill` is the other kind - it is the complete solution to the task as
+it stood before the easiness probe came back 3 of 3, and it now fails on tokens.
 
 ## The seven reward-tamper probes
 

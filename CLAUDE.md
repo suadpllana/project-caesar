@@ -7,9 +7,14 @@ built and gated locally but has not been through the pipeline yet:
 | task | category | cheats | assertions | agent budget | expert estimate |
 |---|---|---|---|---|---|
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
-| `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
+| `rollout-cache-coherence` | ML / Training | 20 | 84 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
+
+`rollout-cache-coherence` has now been through the probes twice. The second pass is the
+one worth knowing about: it cleared the run audit and came back with **easiness 3 of 3**,
+which is a rejection. The fairness fixes were what did it - see "When a fairness fix costs
+the difficulty" below - and it has been rebuilt with a second axis and not re-probed.
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
@@ -203,6 +208,49 @@ drifted up far enough to admit the answer you do reject. Before grading any opti
 counter, ask whether a better solution than yours would fail it. If it would, grade the
 range and put every reading in `variants/`.
 
+## When a fairness fix costs the difficulty
+
+`rollout-cache-coherence` failed the run audit for grading implementation choice, was fixed
+for it, and then scored 3 of 3 on the easiness probe. Both facts have one cause, and the
+audit trajectories say it plainly: agents were recovering the whole intended design in 28
+and 61 minutes of a 240 minute budget, and what stood between them and full credit was the
+counters that turned out not to be real work. Strip those, as the audit requires, and the
+task is a solved problem.
+
+The lesson is not to grade less carefully. It is that a task whose difficulty needs the
+unfair fields was already too easy, and you only find out when they are gone. So:
+
+- After removing any graded field, ask what is left that a competent agent would not get
+  right on the first try. If the answer is "nothing much", the task needs another axis
+  before it goes back to the pipeline, not a repackage.
+- Keep the previous reference solution and run it through the new verifier. If it still
+  scores 1, difficulty did not move. `git show HEAD:tasks/<slug>/solution/ref/<file>` into
+  a directory and hand it to `variant_check.score` - two minutes, and it is the sharpest
+  calibration signal available without a probe. Here it scores 0 on tokens, work, rewinds
+  and trace, which is what says the recalibration bit.
+- Add the axis the way `docs/DIFFICULTY.md` means it: a second thing to find, whose
+  requirement the brief can state without the mechanism being derivable from the brief.
+  Chunked prefill did that here - a request can hold part of its own prompt across a step,
+  and that population is governed by the other fingerprint. One line of non-editable engine
+  code creates it; three scenarios and three cheats fence it.
+- Route the new axis through quantities that survive the variants suite before writing a
+  scenario for it. Tokens and positions through the backend, both exact, both agreed on by
+  any correct implementation. Anything you cannot put in that category, do not grade.
+- Where the new axis creates a new bookkeeping question - here, whether a dropped prefix
+  counts as a sample thrown away - answer it in non-editable code rather than in the brief.
+  `Eng.rewind` books a restart only when there were tokens to throw, so both readings agree
+  and the variants suite proves it.
+
+Two mechanical things fell out of this pass and are worth copying:
+
+- Variant directories should hold **only the files they change**, with the rest filled from
+  `solution/ref` at check time. Full copies rot silently into testing the old reference the
+  moment the reference moves. `variant_check.py` and `tools/docker_trial2.py` both fill now.
+- `.dockerignore` entries like `__pycache__` and `*.pyc` match **only the context root**.
+  Nested bytecode from a local run of the tree was being baked into the agent image and the
+  earlier file-by-file inspection missed it because the tree happened to be clean that day.
+  Use the `**/` forms, and inspect the built image after running anything in the tree.
+
 ## Stage recipe
 
 ### 1. Idea
@@ -253,7 +301,7 @@ touch it afterwards to make a run pass.
 `solution/ref/*.py` holds the corrected files, fully commented. `authoring/emit.py` generates
 `solution/solve.sh` from them as heredocs; the script writes source files, it never writes an
 answer. If the reference is doing heavy computation the difficulty is on the wrong side: here
-it is 322 lines across four files and runs in under a second.
+it is about 200 lines of code across four files and runs in under a second.
 
 ### 5. Instruction, the part that failed three times
 

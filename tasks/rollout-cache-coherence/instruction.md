@@ -10,10 +10,10 @@ parameter state, and to do that without giving up the reuse.
 
 /app/run_rollout.py runs the short version of it: two requests on one prompt, three
 scheduler steps, a push into the first layer's key projection, then the rest of the run.
-Request r0 comes back 24, 10, 42, 35, 35, 54. Start an engine fresh on the parameters that
+Request r0 comes back 24, 10, 26, 45, 63, 34. Start an engine fresh on the parameters that
 push left loaded and r0 gives 20, 52, 28, 3, 48, 37. Run it on the parameters that were
-loaded before the push and you get 24, 10, 42, 27, 15, 22. Ours is neither. The first
-three tokens are the old policy, the rest are the new policy attending to key and value
+loaded before the push and you get 24, 10, 42, 27, 15, 22. Ours is neither. The first two
+tokens are the old policy, the rest are the new policy attending to key and value
 projections that were computed under the old one, and everything in flight when a push
 lands comes out of the engine like that. We get a few in every batch. A sample that
 belongs to two policies is no use to us.
@@ -28,6 +28,14 @@ carrying on from wherever it had got to, because a resumed counter gives a diffe
 stream and we are back where we started. Where one push takes down several samples at
 once, they go back to the front of the waiting queue, ahead of anything that has not
 started yet, in the order they were being scheduled in.
+
+Tokens are not all a request is carrying when a push arrives. Whatever key and value work
+it has already done for itself sits in the same position as anything else the engine has
+cached: it stands where the push could not have moved it, and where the push could have
+moved it, the request has to do it over. Both directions cost us. A request that has not
+put out a token has nothing to throw away, so it is none of the samples we count as thrown
+away and it keeps the place in the queue it already had; what it has computed is the whole
+of what is at stake for it.
 
 A push that leaves a request's effective parameters exactly where they were does nothing
 to that request at all. Two of those come up here constantly. An optimizer step that gets

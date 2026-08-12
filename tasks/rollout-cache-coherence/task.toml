@@ -44,6 +44,19 @@ fingerprint. And the offload path is fenced from both directions: the copy-out-a
 level must preserve every cached block, the discarding level must retire every block that
 was resident, and neither may move a token.
 
+There is a second question underneath the first, and it is which requests each answer
+governs. Prefill is chunked, so a request works through its prompt over several scheduler
+steps and a push can land on one that has computed part of its own prefix and emitted
+nothing at all. The rule that governs samples in flight does not reach it, because it has
+no tokens to throw away, and an implementation that stops there serves a prefix built
+under superseded parameters and produces a stream that belongs to no policy. The opposite
+mistake is quieter and costs the same run: clearing every half-built prefix whenever the
+sampler's view of the parameters moves produces every token correctly and pays for
+key/value work that did not have to be redone. The half-built prefix is governed by the
+block fingerprint and the emitting sample by the sampling one, which is the same
+distinction as the first question with the populations swapped, and nothing in the tree
+says that such a state exists. It follows from one line of the engine's step loop.
+
 The engine is a working tree of sixteen modules with no comments anywhere in it, and its
 identifiers are deliberately in the register of ordinary internal code rather than
 self-describing ones, so the dependency structure, the block lifecycle, the tie table and
@@ -77,18 +90,22 @@ sharing a prompt with the base policy.
 
 The scheduler compares a running sample's stored sampling fingerprint against the current
 one after each push, rewinds the ones that moved with their sampler counter reset, and
-puts them back at the head of the queue in scheduling order. The pool records which pages
+puts them back at the head of the queue in scheduling order. Requests that have emitted
+nothing are routed to the other fingerprint: the ones whose block fingerprint moved lose
+the prefix they had built and rebuild it from whatever the index can give them under the
+new parameters, the ones whose block fingerprint held keep every position they have
+computed, and neither is booked as a sample thrown away or moved in the queue. The pool records which pages
 actually lost their contents on a discarding wake and keeps refusing them until they are
 handed out again, which is what lets the block table and the prefix index retire the same
 blocks instead of one of them advertising what the other threw away. The prefix index
 needed no change once it is fed a fingerprint that means something.
 
-The whole reference is about a hundred and twenty lines across four files and runs in
+The whole reference is about two hundred lines of code across four files and runs in
 under a second.
 """
 
 verification_explanation = """
-The rebuilt engine is driven through eleven scenarios, each aimed at one reading of the
+The rebuilt engine is driven through fourteen scenarios, each aimed at one reading of the
 rule, and every scenario is checked on three independent axes with no partial credit.
 
 The tokens have to match ground truth exactly, and the ground truth is re-proved inside
@@ -112,20 +129,26 @@ and when: dropping a superseded entry at the push and leaving it for the least-r
 sweep cost the same key/value work. The other is the work counters of any scenario that
 runs the page pool dry, because once eviction fires the totals depend on which of several
 equally old blocks the sweep picks, and two faithful implementations of one policy disagree
-there. Scenarios with evictions in the ground truth are graded on tokens and rewinds, which
-eviction order cannot move, and that boundary is derived from the ground truth rather than
-hand listed. Two alternative correct implementations, one with an ordered-dict index and
-one that retires eagerly, are kept in the authoring directory and are required to score 1.
+there. A third is how many times a request is admitted: a rewound sample goes back on the
+queue and is picked up again, and whether the engine books that as a fresh admission is
+bookkeeping rather than work, so repeated admissions are collapsed before the trace is
+compared. Scenarios with evictions in the ground truth are graded on tokens and rewinds,
+which eviction order cannot move, and that boundary is derived from the ground truth rather
+than hand listed. Six alternative correct implementations - an ordered-dict index, eager
+retirement, a lazy rewind, a re-admitting rewind, a rewind used for the stale prefix as
+well, and one that compares parameter values instead of fingerprints - are kept in the
+authoring directory and are all required to score 1.
 
 The lifecycle is checked as well: the exact set of samples rewound, and the engine's own
 admission, completion and preemption trace in order.
 
-Seventeen cheats were run against it and all scored 0. Nine are the reference solution with
+Twenty cheats were run against it and all scored 0. Twelve are the reference solution with
 exactly one decision made the way a solver who missed one piece would make it, and their
 failure signatures are distinct and match the design: the adapter-in-key transplant fails
 only on work accounting, the name-based rule fails the tied push on tokens, the
-key/value-only rewind rule fails the neutral push on tokens, and the two offload cheats
-fail in opposite directions. Five are reward-tamper probes, since the verifier executes
+key/value-only rewind rule fails the neutral push on tokens, the two offload cheats fail in
+opposite directions, and the three that mishandle a half-built prefix fail on tokens, on
+work accounting and on the rewind set respectively. Seven are reward-tamper probes, since the verifier executes
 the agent's code: a double-forked process writing the reward after the run, a planted run
 output with the run killed before any scenario executes, wrong-typed junk returned from
 the engine's report, a privilege probe, an attempt to read the ground truth from inside
@@ -145,6 +168,7 @@ tags = [
   "weight-synchronization",
   "rollout-engine",
   "lora-adapters",
+  "chunked-prefill",
 ]
 
 expert_time_estimate_hours = 8

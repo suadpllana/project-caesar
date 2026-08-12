@@ -1,0 +1,186 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/tok/inc.py",
+  "/app/tok/store.py",
+  "/app/loop/ep.py",
+  "/app/loop/rec.py",
+]
+
+[task]
+name = "afterquery/turn-seam-alignment"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The task reads as one question about resuming an encode and is two questions with
+different answers, and neither answer is stated anywhere in the tree. How far back an
+encode may be resumed is a property of the merge table: a position is safe when nothing
+the table can build reaches across it, and the walk back has to stop at a position like
+that rather than at whatever boundary is nearest. How far a reply's
+trainable run reaches is a property of the finished sequence: it stops where the sequence
+stops agreeing with what the sampler was conditioned on, which is a different point,
+usually later, and sometimes before the reply began at all. A solver that carries one
+boundary through both is wrong on one side or the other, and both sides are graded.
+
+The retrieved plan is specifically wrong. The public write-up of incremental prompt
+encoding for multi-turn chat backs a fixed number of characters up from the seam, cuts at
+a pre-tokenizer boundary, re-encodes the appended part and verifies the overlap against a
+full encode before falling back to one. Every step of that is punished here. Space and
+newline are merged straight across by this table, so a pre-tokenizer cut lands inside a
+symbol; the verify-and-fall-back pass hands the tokenizer the whole conversation a second
+time, which costs exactly what caching nothing costs. Both are shipped as cheats and both
+score 0. The safe answer, encoding every render from character zero, produces every token
+and every trainable position correctly and fails the accounting.
+
+The meter is a window and the crude answer is outside it. Asking which characters take
+part in no merge at all is the cheaper question, and the set it returns is safe and
+strictly smaller than the set the table protects, because the two handle markers are the
+left half of merges while never being the right half of one. A loop built on that test
+costs about twice what the task allows on every scenario, which the character count
+catches and nothing in the agent's environment does. Where the readings do sit inside the
+window - one half of the protection condition, the other half, the finer question of
+which adjacent pairs no symbol carries - they are accepted, and each of them is in
+authoring/variants/ as an alternative correct solution the verifier has to pass.
+
+Then the edges. Three of the four block markers are ordinary characters to the merge
+table, so the assumption that a special marker is a boundary is wrong for exactly the one
+that closes a reply, which is also the token the sampler emitted to stop. A retry rewrites
+the render backwards instead of extending it, and the same walk back handles it only if
+the walk starts from the first character that moved rather than from the end of what was
+cached. A reply whose own prompt moved underneath it owns nothing at all, and a reply that
+survived intact owns its closing token as well.
+
+The tree is fourteen modules with no comments anywhere in it, its identifiers are in the
+register of ordinary internal code rather than self-describing ones, and everything the
+two answers depend on - the merge table, the template, the network, the generator and
+every counter that binds the grade - sits in files the agent is not allowed to edit.
+"""
+
+solution_explanation = """
+The reference does what somebody who has debugged an incremental encoder does: it stops
+guessing at boundaries and reads the table.
+
+A merge joins two symbols, so every symbol the table can build is the concatenation of
+the two halves of some rule. Collecting the characters that never appear in one of those
+except at its own first position gives the positions whose preceding boundary survives
+any surrounding text, which is exactly the condition for encode(x + c + y) to be
+encode(x) followed by encode(c + y). Reading the same table the other way round - the
+characters that never appear except at a symbol's last position - gives a second set of
+protected positions that the first misses, and the reference takes both. Either half on
+its own is accepted and so is the finer pair-level test; the answer the meter turns down
+is the cheapest question of all, which characters take part in no merge whatsoever. That
+set is computed once, from the table, at import, and both handle markers are in it while
+neither is in the merge-free one.
+
+The resume itself is one rule that covers appends and rewrites together, which is what
+makes the retry case fall out rather than needing a branch. Compare the new render
+against the cached one character by character to find the first position that could have
+moved; walk back from there to the last protected position; hand back the cached ids that
+cover it and encode the rest. An append finds the first moved position at the end of the
+cached text. A retry finds it in the middle. Neither needs to know which it was.
+
+The trainable run is the other question and takes the other answer. Each turn keeps the
+prompt it was handed together with what it produced, and at the end of the episode that
+whole sequence is compared against the finished one from position zero. The run starts
+where generation started and stops at the first disagreement. When the disagreement lands
+before generation started, the sampler was conditioned on a prefix that is not in the
+sequence any more and the turn keeps nothing. A turn a retry discarded drops its record
+with it.
+
+The whole reference is about eighty lines across three files and runs in well under a
+second.
+"""
+
+verification_explanation = """
+The rebuilt loop is driven through twelve scenarios and each one is checked on four
+independent axes with no partial credit.
+
+The expected answers are re-proved inside the verifier before any comparison, by a naive
+replay that shares no code with the tree: its own tokenizer written to a different shape,
+its own template, its own network, its own generator, and a full encode of every render
+with nothing reused anywhere. Ground truth that did not match that replay would be the
+reference's opinion instead of the truth, so build time refuses to write it and
+verification time refuses to trust it.
+
+Then the run itself. Every episode's finished token sequence has to match exactly, which
+catches a resume taken from a position the table does not protect. Every surviving turn's
+trainable span has to match exactly, in turn order, which catches a run that reaches past
+the first disagreement, one that stops short of it, and a discarded turn that kept its
+record. Calls made to the tokenizer and forwards through the network have to match
+exactly, and the characters handed to the tokenizer have to land inside a window; all
+three are counted inside modules the agent may not edit, so they measure real work
+whatever the submission looks like. The window's floor is the sealed replay's own count of
+the characters that were not in the previous render, which nothing that encodes a render
+can go under, and its ceiling is what the one-sided readings of the resume condition cost,
+measured through the same harness. Demanding one number inside that range would fail a
+solver who read the table more finely than the reference did, so the range is what is
+graded and authoring/variant_check.py proves it by running six alternative correct
+solutions through the real verifier. The lifecycle trace is compared in order.
+
+Sixteen cheats were run against it and all scored 0. Ten are the reference with exactly
+one decision made the way a solver who missed one piece would make it, and their failure
+signatures are distinct and match the design: encoding every render whole fails only the
+accounting, the merge-free resume test fails only the accounting, cutting at whitespace
+or at a block marker fails the accounting on eleven and twelve scenarios respectively,
+resuming a character past the protected position falls back to a full encode and fails
+the accounting, resuming at the seam itself without walking back fails on tokens and
+forwards where a reply merges backwards into the marker in front of it, verifying against
+a second full encode fails on both counters, treating every generated position as
+trainable fails only the spans, keeping a discarded turn's record fails only the scenarios
+with a retry in them, and routing a retry's note through the tool path fails only the
+lifecycle trace. Five are reward-tamper probes, since the verifier
+executes the agent's code: a double-forked process writing the reward after the run, a
+planted run output with the run killed before any scenario executes, wrong-typed junk
+returned from the report, a privilege probe, and an attempt to read the ground truth from
+inside the verifier. The run happens as an unprivileged uid in its own session under a
+wall clock timeout, the reward channel is root-owned and locked before it starts, and the
+ground truth is a root-only file; grading runs afterwards as root and never executes
+anything the agent wrote.
+"""
+
+category = "ML"
+subcategory = "Training"
+
+tags = [
+  "byte-pair-encoding",
+  "incremental-tokenization",
+  "multi-turn-rollout",
+  "loss-masking",
+  "rl-post-training",
+]
+
+expert_time_estimate_hours = 7
+
+relevant_experience = """
+I build the data path between a rollout worker and a trainer for multi-turn RL: chat
+templates, tool turns, the loss mask, and the tokenizer sitting in the middle of all of
+it. The failure this task is built from is the one that cost me the most and announced
+itself the least. Nothing raises an error when a reply's last token is swallowed by the
+marker that follows it, and nothing raises an error when the mask covers a position the
+policy never produced; the reward curve simply goes flat and stays there while everybody
+looks at the optimizer. The other half of it, that you cannot pay for correctness by
+re-encoding the whole conversation every turn because the tokenizer becomes the worker's
+bottleneck long before the network does, is what turned it into a question about which
+character positions a merge table actually protects. The marker that both closes a reply
+and is the token the policy sampled to stop, and the retry that rewrites the render
+backwards, are both things I have been caught by rather than things I invented for this.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

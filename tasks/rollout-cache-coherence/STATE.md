@@ -159,6 +159,44 @@ accounting, all of which lives in the nine scenarios that never evict. The cheat
 unchanged in verdict: seventeen of seventeen still score 0, and `field_report.py` shows
 every one of them diverging on tokens or on the real-work counters.
 
+## Second sweep, after the same audit note came back for review
+
+The zip that went through the audit was the build from before that fix, so the finding is
+the one already answered above. Re-reading it against the verifier as it stands turned up a
+second field of the same kind, found the same way - by writing the alternative correct
+implementations out and running them, not by arguing about them.
+
+`authoring/variants/ok-readmit-on-rewind` is the reference with one more line: the rewind
+clears the sample's started flag. The brief asks for a sample that comes back as if it were
+"submitted fresh", so clearing it is a plain reading, and the engine then notes a second
+admission when the sample is picked up again. Tokens, rewind set, `computed`, `reused`,
+`pos`, `preempt` - all identical to the reference. It scored 0 on `test_engine_trace`
+alone. That is a solution which did the whole job losing the run on whether a rewound
+request counts as newly admitted, which is the exact shape of the finding the audit raised.
+
+Fixed in the grader, not in the environment: `lifecycle()` in `tests/test_outputs.py`
+collapses repeated `start:<rid>` entries on both sides before comparing, so the trace still
+pins the order requests were first admitted, finished and preempted in, and no longer pins
+how many times one was admitted. Nothing legitimate is lost - the recompute a rewind costs
+is charged by `computed`/`reused`/`pos`, and the rewinds themselves by the restart events.
+Nothing illegitimate is admitted either: the seventeen cheats trip the same tests they did
+before, `nop` still fails four of them, and `cheat-no-rewind` still loses on tokens,
+rewinds and work.
+
+Two more alternative implementations were written and measured while looking for others:
+
+- `ok-lazy-rewind` applies the rewind at the top of the next `pick` instead of inside
+  `on_sync`. Scores 1, so when the rewind is applied is free.
+- `ok-value-compare` compares effective matrices instead of fingerprints. Scores 1, so how
+  the two questions are fingerprinted is free.
+
+Nothing else in the graded set can move between correct implementations. The block key is
+built in `runtime/eng.py`, which the agent cannot edit, and a block holds the key/value
+pair of every layer, so there is exactly one KV-relevant parameter set and no finer reading
+of it - the trap that sank `turn-seam-alignment` has no room to form here. Reuse is
+maximal at the correct fingerprint and any other choice computes more, so `computed` and
+`reused` each have one right answer rather than a range.
+
 ## Verifier contract - FROZEN
 
 - Artifacts: `/app/model/pstore.py`, `/app/runtime/pfx.py`, `/app/runtime/sch.py`,
@@ -169,6 +207,9 @@ every one of them diverging on tokens or on the real-work counters.
   rewound samples, on all eleven; `computed`, `reused`, `pos`, `preempt` and the engine's
   start/finish/preempt trace, on the nine that evict nothing and preempt nothing. `evict`
   is not graded anywhere.
+- The trace is compared with repeated admissions of the same request collapsed, so the
+  order of first admission, completion and preemption is graded and the number of times a
+  rewound request is re-admitted is not.
 - The expected token streams are re-proved at verification time by `tests/oracle.py`, a
   sealed from-scratch generator sharing no code with the tree.
 - Tolerances: none. Everything is integer arithmetic and exact.
@@ -197,9 +238,11 @@ every one of them diverging on tokens or on the real-work counters.
 |---|---|---|
 | Both images build | pass | `tools/docker_trial.py --build`; base image had to come from a mirror and the sandbox's proxy CA had to be injected for pip, neither of which the shipped Dockerfiles carry |
 | No answer leaked into agent image | pass | the built image holds 16 files: the engine, its config, the runner. Sweep cheat finds nothing |
-| Oracle = 1 | pass | real two-container run, and the host emulation |
+| Oracle = 1 | pass | real two-container run, 66 of 66 assertions, and the host emulation |
 | Nop = 0 | pass | real two-container run, and the host emulation |
-| Cheats all score 0 | pass | 15 of 15 on the real images, including the five reward-tamper probes. The privilege probe reports uid 1002 and PermissionError on the reward channel, the ground truth, the pristine tree and the tests |
+| Cheats all score 0 | pass | 17 of 17 on the real images, including the seven isolation probes. `tools/docker_trial2.py rollout-cache-coherence --all` reports 19 of 19 trials behaving. The privilege probe reports uid 1002 and PermissionError on the reward channel, the ground truth, the pristine tree and the tests |
+| Alternative correct solutions = 1 | pass | 5 of 5 through the real verifier image, `--variants`: eager retire, ordered-dict index, lazy rewind, re-admit on rewind, value compare |
+| No graded field is dead weight | pass | `field_report.py`; `evict` separated no cheat and is not graded, every other graded field separates several |
 | `preflight.py` | pass | clean, no warnings |
 | `harbor check` rubric | not run | `harbor` is not installed in this sandbox |
 

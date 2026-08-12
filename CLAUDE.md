@@ -165,6 +165,16 @@ If they can disagree, it is not real work.
 old entries a sweep picks, the order of internally generated events, anything whose value
 shifts when a dict becomes an OrderedDict.
 
+**Lifecycle events are only safe while the engine alone decides them.** "Events the engine
+itself raises" passes the two-implementations test right up to the point where something the
+agent writes can make the engine raise one again. In `rollout-cache-coherence` the start
+event is noted in non-editable `eng.py`, guarded by a flag on a non-editable `Seq` - and the
+editable scheduler can clear that flag when it rewinds a sample, which the brief's "submitted
+fresh" invites. That submission recomputes exactly as much as the reference and scored 0 on
+the trace alone. Grade the order of first admission, completion and preemption; never how
+many times one request was admitted. For any event you grade, ask which editable file could
+cause a second one, and if the answer is not "none", collapse the repeat in the grader.
+
 Two mechanical guards, both cheap, both in `tasks/rollout-cache-coherence/authoring/`:
 
 - `field_report.py` prints, per cheat, which graded field diverges. A field that separates no

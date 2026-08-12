@@ -27,26 +27,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import preflight  # noqa: E402
 
-# Kit working files and local clutter that are not part of the submission.
-EXCLUDE_NAMES = {
-    "STATE.md",
-    ".DS_Store",
-    "Thumbs.db",
-    ".gitignore",
-    ".gitattributes",
-}
-EXCLUDE_DIRS = {
-    ".git",
-    ".venv",
-    "venv",
-    "__pycache__",
-    ".pytest_cache",
-    ".ruff_cache",
-    "logs",
-    "runs",
-    ".harbor",
-}
-EXCLUDE_SUFFIXES = {".pyc", ".pyo", ".zip", ".log"}
+# Exclusions come from preflight - SINGLE SOURCE OF TRUTH, so the scanner and the
+# packager can never disagree about what ships (see preflight.EXCLUDE_DIRS).
+EXCLUDE_NAMES = preflight.EXCLUDE_NAMES
+EXCLUDE_DIRS = preflight.EXCLUDE_DIRS
+EXCLUDE_SUFFIXES = preflight.EXCLUDE_SUFFIXES
 
 EXECUTABLE_ATTR = (0o755 << 16) | 0o600
 REGULAR_ATTR = (0o644 << 16) | 0o600
@@ -66,17 +51,8 @@ def task_slug(root: Path) -> str:
 
 
 def included_files(root: Path) -> list[Path]:
-    files = []
-    for path in root.rglob("*"):
-        if not path.is_file():
-            continue
-        rel = path.relative_to(root)
-        if any(part in EXCLUDE_DIRS for part in rel.parts):
-            continue
-        if path.name in EXCLUDE_NAMES or path.suffix.lower() in EXCLUDE_SUFFIXES:
-            continue
-        files.append(path)
-    return sorted(files)
+    """Exactly what preflight scanned - one definition, used by both tools."""
+    return preflight.shipped_files(root)
 
 
 def run_checks(root: Path) -> tuple[int, int]:
@@ -90,12 +66,13 @@ def run_checks(root: Path) -> tuple[int, int]:
     preflight.check_artifact_parents(root, cfg)
     preflight.check_compose(root, cfg)
     preflight.check_verifier(root)
+    preflight.check_state_difficulty(root)
     preflight.check_verifier_isolation(root, cfg)
     preflight.check_verifier_selfcontained(root)
     preflight.check_blocked_terms(root)
-    for msg in preflight.warnings:
+    for msg in preflight.ordered(preflight.warnings):
         print(f"  WARN   {msg}")
-    for msg in preflight.errors:
+    for msg in preflight.ordered(preflight.errors):
         print(f"  ERROR  {msg}")
     return len(preflight.errors), len(preflight.warnings)
 
@@ -111,6 +88,25 @@ def build_zip(root: Path, out: Path, files: list[Path], slug: str) -> None:
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = EXECUTABLE_ATTR if path.suffix == ".sh" else REGULAR_ATTR
             zf.writestr(info, path.read_bytes())
+
+
+def audit_zip(path: Path) -> list[str]:
+    """Scan the built archive itself for blocked terms. Independent of the exclusion lists."""
+    hits = []
+    with zipfile.ZipFile(path) as zf:
+        for info in zf.infolist():
+            rel = "/".join(info.filename.split("/")[1:])  # drop the <slug>/ root
+            if rel in preflight.BLOCKED_SCAN_EXEMPT:
+                continue
+            try:
+                text = zf.read(info).decode("utf-8").lower()
+            except (UnicodeDecodeError, KeyError):
+                continue
+            for term in preflight.BLOCKED_TERMS:
+                if term in text:
+                    hits.append(f"{info.filename} contains {term!r}")
+                    break
+    return hits
 
 
 def main(argv: list[str]) -> int:
@@ -149,6 +145,19 @@ def main(argv: list[str]) -> int:
         return 1
 
     build_zip(root, out, files, slug)
+
+    # Last line of defence: audit what actually went into the zip, not what we believe
+    # went in. Exclusion lists can drift; the archive cannot lie.
+    leaked = audit_zip(out)
+    if leaked and not args.force:
+        out.unlink(missing_ok=True)
+        print(
+            "Refusing to ship: the built zip contained blocked terms and was deleted.\n"
+            + "\n".join(f"  {hit}" for hit in leaked[:10])
+            + "\nThese are usually leftover harness output (harbor writes result.json with the "
+            "task name). Delete them from the task folder and package again."
+        )
+        return 1
 
     size_kb = out.stat().st_size / 1024
     print(f"Packaged {len(files)} files into {out} ({size_kb:.1f} KB)")

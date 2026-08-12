@@ -1,16 +1,27 @@
 # Building a Frontier Bench task in this repo
 
 Operating manual for a session with no memory of the earlier ones. Two tasks here have been
-through the real pipeline and both cleared the difficulty and easiness probes:
+through the real pipeline and both cleared the difficulty and easiness probes; the third is
+built and gated locally but has not been through the pipeline yet:
 
 | task | category | cheats | assertions | agent budget | expert estimate |
 |---|---|---|---|---|---|
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
+| `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 
-Between them they were rejected three times by the AI-text screen and once by the run audit.
-Every one of those rejections is written down below with the fix, because the next task
-should hit none of them.
+Between them the first two were rejected three times by the AI-text screen and once by the
+run audit. Every one of those rejections is written down below with the fix, because the
+next task should hit none of them.
+
+`checkpoint-resume-drift` is the first one built with the run-audit lesson applied from the
+start rather than retrofitted: the graded set was sorted into real work and implementation
+choice before the contract froze, `authoring/variants/` existed before the cheats did, and
+one counter (`draws`) was dropped during design because only a legitimate alternative
+implementation separated it. Its tooling is the reusable version of the earlier task's:
+`tools/docker_trial2.py <slug>` takes a slug and reads the artifact list out of `task.toml`,
+so it works for any task in `tasks/`, and it has a `--variants` mode that runs every
+alternative correct implementation through the real verifier.
 
 `docs/RULES.md`, `docs/DIFFICULTY.md`, `docs/VERIFIER-ISOLATION.md` and
 `docs/QUALITY-REVIEW.md` are the transcribed guideline and are authoritative. This file is
@@ -23,7 +34,9 @@ the practice on top of them: what actually worked, with numbers.
    difficulty argument, the frozen verifier contract, the expert path, the failure signature
    of every cheat, and the run-audit post mortem.
 3. Read both `instruction.md` files. They are the only two briefs known to have passed the
-   AI-text screen and they are the style reference for the new one.
+   AI-text screen and they are the style reference for the new one. The third,
+   `tasks/checkpoint-resume-drift/instruction.md`, clears `tools/textcheck.py` against both
+   of them but has not faced the screen.
 4. Start `dockerd` and pull the base image from the mirror now (see Sandbox notes). It takes
    minutes and it fails in ways that waste an hour if left to the end.
 5. Pick a seed, then attack your own first plan before writing any code. That step is the
@@ -172,7 +185,8 @@ because they hand you a menu of coupled sub-bugs: `vllm-project/vllm#48310` gave
   fix is public with it.
 - **Different failure mode from every task already in `tasks/`.** Reskinning is rejected.
   Used already: mechanism reconstruction from noisy analytics (chemistry), cache coherence
-  under weight updates (ML). Do not do either again.
+  under weight updates (ML), state classification across a checkpoint and resume (ML). Do
+  not do any of those again.
 - Self-attack before any code: state your first plan. If your first plan is correct, the
   design has already failed. Iterate until the honest answer is "I can see where to start but
   my first plan would probably be wrong somewhere that matters."
@@ -297,12 +311,22 @@ python3 tasks/<slug>/authoring/build_gt.py      regenerate ground truth, proving
 python3 tasks/<slug>/authoring/emit.py          regenerate solve.sh and the cheats
 python3 tasks/<slug>/authoring/variant_check.py alternative correct solutions must score 1
 python3 tasks/<slug>/authoring/field_report.py  no graded field is dead weight
-python3 tools/run_local_rollout.py --all        host emulation of every trial
-python3 tools/docker_trial.py --all             the same trials on the real two images
+python3 tasks/<slug>/authoring/cheat_report.py  which test catches each cheat
+python3 tools/docker_trial2.py <slug> --all     every trial on the real two images
+python3 tools/docker_trial2.py <slug> --variants alternative correct solutions, real verifier
 python3 tools/textcheck.py <passed.md> <draft>  instruction cadence
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 ```
+
+`tools/docker_trial.py` and `tools/run_local_rollout.py` are the older, single-task versions,
+hardcoded to `rollout-cache-coherence`. Use `docker_trial2.py` for anything new.
+
+`scripts/` and `docs/QUALITY-REVIEW.md` were refreshed from kit v1.9.1 on 2026-08-12. That
+version renamed the STATE.md field preflight looks for: the line must now read
+`- Tactics making that true: ...` with the tactic names **on the same line, after the colon**
+(`A1`, `B2`, or `prong A`). The older `- Tactics (docs/DIFFICULTY.md):` heading no longer
+matches and both earlier tasks had to be edited for it.
 
 `build_gt.py` must refuse to write a ground truth it cannot prove independently. Here every
 expected token stream has to be reproducible from scratch, under one parameter snapshot, by a

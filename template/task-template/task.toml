@@ -1,0 +1,80 @@
+schema_version = "1.3"
+
+# Every path the verifier is allowed to read from the agent's environment.
+# The verifier must read NOTHING else. Use absolute paths.
+# Example: artifacts = ["/app/output.json"]
+artifacts = []
+
+[task]
+# Format: afterquery/<slug>
+# Slug must be lowercase and at most 3 hyphen-separated words.
+name = "afterquery/TODO-slug"
+
+[metadata]
+author_name = ""
+author_email = ""
+
+# Why a frontier agent fails at this, in concrete terms.
+# Name the specific step that breaks it, not "it is complex".
+difficulty_explanation = ""
+
+# How the reference solution works, and why that is how a real expert would do it.
+solution_explanation = ""
+
+# What the verifier checks, and why passing it means the work was genuinely done.
+verification_explanation = ""
+
+# Exactly one of: Science, Software, ML, Operations, Security, Hardware, Media
+category = ""
+
+# One label from THIS category's row in the guideline table:
+#   Science    Biology · Chemistry · Physics · Earth · Robotics · Math · Linguistics
+#   Software   Algorithms · Systems · Databases · Data engineering · Frontend · Languages
+#   ML         Training · Inference · Evaluation · Kernels
+#   Operations Finance · Logistics · Supply chain · Claims · Compliance · Marketing
+#   Security   Cryptography · Reverse engineering · Forensics · AppSec
+#   Hardware   CAD · RTL
+#   Media      Music · Design
+subcategory = ""
+
+# 1-6 tags describing THIS task specifically: the techniques, concepts, tools and
+# libraries it actually involves. Tags are NOT the taxonomy — repeating the category
+# or subcategory here is a blocking failure in the quality review.
+#
+#   BAD   category="Science", subcategory="Math", tags=["Math"]
+#   GOOD  tags=["algebraic-geometry", "resultants", "exact-arithmetic",
+#              "real-root-isolation", "sympy"]
+tags = []
+
+# Hours a competent expert needs. Under ~2 is a strong signal the task is too easy.
+expert_time_estimate_hours = 0
+
+# Your relevant professional experience with this kind of work.
+relevant_experience = ""
+
+[verifier]
+# Seconds for the verifier to run. Max 18000.
+timeout_sec = 120.0
+
+# Required. The verifier runs in an isolated container that can see only `artifacts`.
+environment_mode = "separate"
+
+[agent]
+# Seconds the agent gets. Max 18000.
+# This number must equal the N in the instruction.md suffix.
+timeout_sec = 120.0
+
+[environment]
+build_timeout_sec = 600.0
+
+# Caps: cpus <= 16, memory_mb <= 16384, storage_mb <= 40960.
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+# Keep 0 unless this is an ML task that genuinely needs a GPU.
+# If you set gpus = 1, also set: gpu_types = ["H100"]
+gpus = 0
+
+# NEVER add an allow_internet flag here. Open internet is the default policy,
+# and overriding it is a policy violation that fails validation.

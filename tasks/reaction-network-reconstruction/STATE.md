@@ -42,7 +42,8 @@ six must be right at once.
   reach the flux stage, and the flux stage is only uniquely solvable once the tracer stage
   has removed the three coupling candidates. None of those couplings is visible from the
   instruction alone; they only appear once the data has been read and the stages attempted.
-- Tactics (docs/DIFFICULTY.md):
+- Tactics making that true: prong A poisons the default plan, prong B withholds it, prong C
+  makes the wrong plan fail late. Each one, concretely:
   - Prong A: the tabulated free energies are quoted at 298.15 K and the reactor is at
     318.15 K. Taking tabulated numbers at face value is the memorised default and it is
     wrong. Balancing from a formula string rather than a connection table is the other

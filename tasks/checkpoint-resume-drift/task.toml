@@ -1,0 +1,171 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/train/ckpt.py",
+  "/app/data/feed.py",
+  "/app/train/noise.py",
+  "/app/train/sched.py",
+]
+
+[task]
+name = "afterquery/checkpoint-resume-drift"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The task reads as one question, which state has to go into the checkpoint, and it is two
+questions with different answers. Some of the trainer's state was produced by the history
+and cannot be recovered from anything else: the parameters, the optimiser moments and the
+shadow average, how far the sampler has got, the item the packer drew and could not place,
+the position the per-row stream is at, and everything an open accumulation window has
+taken in. Some of it is a view of the configuration, derived fresh whenever it is needed,
+and a run can come back under a configuration that was amended while it was down, so a
+view that survives the resume is a stale value pinned over a live one. An agent that
+classifies every holder into one of those two buckets by asking whether the value can be
+recomputed gets the last one wrong: the open window's length was read from the schedule,
+which makes it look derived, but it was latched when the window opened, before the
+amendment existed. While that window is open the number is history. Both directions are
+graded, and the two cheats that get one of them wrong differ from the reference on three
+scenarios out of fourteen.
+
+The retrieved plan is specifically wrong here. Every public account of a training run that
+does not reproduce itself after a restart ends at the same list: save the sampler state,
+save the random number generator state, save the scheduler's state dictionary. The third
+of those is the one that breaks this, because restoring a scheduler's own state
+dictionary is exactly the act of pinning a pre-amendment learning rate over the amended
+one. That transplant is in the cheat suite and it produces correct output on eleven of the
+fourteen scenarios.
+
+Underneath that there are edges that each kill an otherwise-correct submission. The
+packer reads the curriculum bound once, when an item leaves the sampler, and truncates to
+it every time it tries to place that item afterwards, so an item held across a save comes
+back wrong unless the bound it was drawn under was carried with it - and the difference
+only shows when a curriculum step or an amendment lands in between. The number of draws
+the per-row stream takes in one optimiser step depends on how the lengths packed against
+the bin width, not on the step counter, so reconstructing that stream by winding it
+forward from the step number is right on most scenarios and silently wrong on the ones
+where the packing varied. And the checkpoint channel is a bounded vector of integers, so
+serialising every holder that offers a snapshot is refused outright: the sample order
+alone is larger than the whole payload.
+
+The tree is twenty files with no comments anywhere in it and identifiers in the register
+of ordinary internal code. The facts that decide the answer are spread across files the
+agent may not edit: where the bound is latched, how many draws a microbatch takes, when a
+window's length is fixed, what the channel will accept.
+"""
+
+solution_explanation = """
+The reference does what someone who has debugged a resume that does not reproduce actually
+does: it stops asking how to serialise the trainer and starts asking, holder by holder,
+what produced the value.
+
+It reads the packer and finds that the curriculum bound is read once, at the moment an
+item leaves the sampler, and is then used on every attempt to place that item - so the
+held item is a pair, an identifier and the bound it was drawn under, and both go into the
+checkpoint. It reads the model's backward pass and finds one draw per packed row, then
+reads the packer again and finds the row count falls out of how the lengths packed, which
+settles that the stream position has to be carried rather than recomputed. It reads the
+loop and finds the window length latched at the window's opening, which puts it on the
+carried side along with the partial gradient and the token count, even though it came from
+the schedule. And it leaves the schedule's own memo out, because everything in it is
+derived from the configuration in force, and after a load that is the amended one.
+
+The remaining work is arithmetic: pack the five carried holders into the bounded vector,
+unpack them in the same order, and write the two snapshot pairs the shipped tree left
+empty. The whole reference is about sixty lines of change across three files, and the
+fourth editable file needs no change at all.
+"""
+
+verification_explanation = """
+The rebuilt trainer is driven through fourteen scenarios, each aimed at one reading of the
+rule, and graded on three independent axes with no partial credit.
+
+Where the run ends has to match exactly: the parameter vector, the shadow average and the
+step counter. That target is not whatever the reference emitted. tests/oracle.py is a
+second implementation of the same arithmetic and the same lifecycle, written flat, sharing
+no code with the tree, and it re-derives every graded field at verification time. On top of
+that the verifier re-proves the property the task is defined by: the same op list with the
+down time compacted out - the rolled-back interval deleted, the amendments that landed in
+it kept, no save and no load anywhere - has to end on the same parameters. A resume that
+reseeded the per-row stream, restarted the epoch or dropped the held item cannot match a
+run that never checkpointed.
+
+The work has to match exactly too. Reads are counted inside the sample store, positions
+inside the model's backward pass and updates inside the optimiser, none of which the agent
+may edit, so they measure real work whatever the submission looks like. This is the axis
+that fails a resume which rebuilds its position by replaying the stream: the parameters
+come out right and the store is read far more times than the run being continued ever read
+it. That cheat diverges on the read count and on nothing else.
+
+Three things are deliberately outside the graded set, because grading them would measure a
+choice the task never asked the solver to make: how many slots the checkpoint used, in what
+order, and under what framing, since any encoding the bounded channel accepts is as good as
+another; the number of times the sampler was asked for a sample, since putting a held item
+back by winding the cursor back one and drawing it again is bookkeeping rather than work;
+and the save and load counts, which the driver keeps and no implementation can move. Three
+alternative correct implementations are kept in the authoring directory - a flat
+fixed-offset encoding, a stream position carried as a draw count and wound forward at the
+load, and one that strips the schedule's snapshot instead of leaving the holder out of the
+checkpoint - and all three are required to score 1 through the real verifier.
+
+Seventeen cheats were run against it and all scored 0. Nine are the reference with exactly
+one decision made the way a solver who missed one piece would make it, and their failure
+signatures are distinct and match the design: carrying the schedule's memo fails three
+scenarios and no others, re-reading the window length from the schedule at the load fails
+exactly one, reconstructing the stream from the step counter fails on the parameters alone,
+and replaying the stream to rebuild state fails on the read count alone. Seven are
+reward-tamper probes, since the verifier executes the agent's code: a double-forked process
+writing the reward after the run, a planted run output with the run killed before any
+scenario executes, wrong-typed junk from the trainer's report, a privilege probe, an
+attempt to read the ground truth and to import the sealed trainer from inside the verifier,
+a consistent set of forged counters, and a sweep of everything the run's uid can reach. The
+last is a sweep of the agent's own container that finds no answer material. The run happens
+as an unprivileged uid in its own session under a wall clock timeout, the reward channel is
+root-owned and locked before it starts, and the ground truth and the sealed trainer are
+root-only files; grading runs afterwards as root and never executes anything the agent
+wrote.
+"""
+
+category = "ML"
+subcategory = "Training"
+
+tags = [
+  "checkpoint-resume",
+  "dataloader-state",
+  "gradient-accumulation",
+  "curriculum-schedule",
+  "deterministic-replay",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on the training side of large post-training runs, where jobs get preempted and
+restarted constantly and the only thing that matters is that the run that comes back is the
+run that went down. The failure this task is built from is the one that costs the most and
+shows the least: a resume that looks healthy, trains happily, and is quietly a different
+run from the one it claims to continue. Nothing raises. The loss curve is the right shape.
+You find it weeks later when a rerun of the same job from the same checkpoint lands
+somewhere else. The two pieces I have actually been caught by are both in here: a packer
+holding a sample across the restart with the sequence-length limit it was admitted under,
+and a scheduler state dictionary faithfully restoring the settings we had just relaunched
+the job to change.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

@@ -65,7 +65,8 @@ sides are graded.
   only surfaces at the verifier. Forming the correct plan requires deriving the dependency
   set from the forward pass in a file the agent cannot edit, and then noticing it is not
   the same set as the one that governs rewinds.
-- Tactics (docs/DIFFICULTY.md):
+- Tactics making that true: A1, A2 and A3 poison the default plan; B1 and B2 withhold it;
+  C1, C2 and C3 make the wrong plan fail late. Each one, concretely:
   - Prong A1/A2: the retrieved fix for the nearest public issue (adapter identity in the
     cache key) is specifically wrong here; the concept is never named - the instruction
     says "may only stop being used when what it holds could have changed".

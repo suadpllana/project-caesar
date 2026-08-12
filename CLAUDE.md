@@ -8,7 +8,7 @@ built and gated locally but has not been through the pipeline yet:
 |---|---|---|---|---|---|
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
-| `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
+| `checkpoint-resume-drift` | ML / Training | 22 | 101 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
@@ -21,6 +21,11 @@ It has been recalibrated and not re-probed.
 Between them the first two were rejected three times by the AI-text screen and once by the
 run audit. Every one of those rejections is written down below with the fix, because the
 next task should hit none of them.
+
+`checkpoint-resume-drift` came back from the **anti-cheat probe** as a rejection: an
+adversary scored 1 without solving it. Its post mortem is in its own `STATE.md` and the
+lesson is in "Nothing the verifier compares against may share a process with the agent"
+below. It has been rebuilt around a supervisor and re-gated locally, not re-probed.
 
 `checkpoint-resume-drift` is the first one built with the run-audit lesson applied from the
 start rather than retrofitted: the graded set was sorted into real work and implementation
@@ -64,6 +69,7 @@ not to do instead.
 | anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0 |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
 | easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
+| anti-cheat probe (again) | state and counters the agent's process can reach | a supervisor process, a hidden corpus, a reaped uid |
 | **run audit** | grading implementation choices | `variants/` + `field_report.py` |
 
 The run audit is the one nobody expects. It reads the probe trajectories and judges whether
@@ -137,6 +143,61 @@ Four properties made it work, and a new task needs all four:
 Plus small simultaneous contracts so a nearly-right implementation still fails: a cross-layer
 parameter tie that makes an apparently harmless target harmful, a queue discipline, a
 preemption path, an eviction path.
+
+## Nothing the verifier compares against may share a process with the agent
+
+`checkpoint-resume-drift` cleared preflight, the cheat suite, the variants and the field
+report, then lost the anti-cheat probe outright. The adversary did not break the isolation.
+It broke two assumptions that looked like isolation:
+
+- The scenario's `kill` op was `for nm in PARTS: setattr(self, nm, None)`, in the same
+  interpreter. So the submission kept every carried value in a module-level dict in the one
+  file it was allowed to edit and pushed a four-integer handle through the bounded channel.
+  The channel's cap was never answered, only stepped around.
+- The counters that gate the work were integers on a meter object the agent's own file was
+  handed. So the submission swapped a quiet stand-in in while it replayed the entire stream
+  and swapped the real one back afterwards. The replay was free.
+
+Both are the same mistake. **Whatever the grade is derived from has to be produced by a
+process the agent's code cannot reach.** In one Python interpreter there is no such thing:
+module globals, `sys`, builtins, any object reachable from an argument, all of it is
+writable. A counter in a file the agent may not edit is not protected. It is only
+inconvenient.
+
+What replaced it, and what to build the next task with from the start:
+
+1. **Make a lifecycle event a real one.** The trainer is a child process the supervisor
+   spawns, one per life. `kill` signals the process group, waits, and reaps every process
+   left running as that uid. Memory dies with it.
+2. **Close the other doors at the same time.** Disk is the obvious second channel: the
+   verifier chowns and chmods every path the run's uid could write, and a test re-checks
+   that from the privileged side after the run rather than assuming it. A detached survivor
+   holding state on a socket is the third: the per-kill reap covers it. Each of the three
+   has its own cheat in `cheat/` and each scores 0.
+3. **Count in the process that serves, not in the process that asks.** `reads`, `pos` and
+   `upd` are tallies the supervisor keeps while answering the trainer's requests. A trainer
+   cannot lower a counter it never holds.
+4. **Make the graded outputs unobtainable without the counted call.** This is the one that
+   does the real work. The corpus is generated from a seed that lives only in the
+   supervisor, and the seed used for grading is not the one shipped in the tree. A
+   submission that computes a sample's tokens instead of asking gets a different corpus, so
+   "answer your own requests and skip the charge" produces a wrong run rather than a free
+   one. Without this, counting elsewhere buys nothing: the trainer just stops calling.
+5. **Ask the verifier to prove the lifecycle happened.** The supervisor records the process
+   id of every life; the grader asserts there was one more life than there were loads and
+   that none repeated. Evidence, not an exit code.
+
+Cost of the rebuild: the child-side plumbing, a supervisor, a service, an entry point, and
+one authoring script. The editable surface did not move at all, the reference solution is
+the same answer, every cheat signature held, and all four alternative correct solutions
+still score 1. That is the sign the hardening was structural rather than a change of task.
+
+One consequence worth planning for. Hiding the corpus means the agent's own runs no longer
+produce the numbers being graded, which is fair and is already the design (there was never
+an oracle for the counters), but the scenario set was tuned against the visible corpus and
+every scenario aim has to be re-proved under the hidden one. `authoring/corpus_check.py`
+does that, and `build_gt.py` refuses to write a ground truth when any aim has been lost.
+Write that check before choosing the graded seed, not after.
 
 ## Grade the work, never the implementation choice
 
@@ -327,6 +388,7 @@ Record the failure signature of each with `authoring/cheat_report.py` (which tes
 ### 7. Gates
 
 ```
+python3 tasks/<slug>/authoring/corpus_check.py  every scenario still sits where its aim says
 python3 tasks/<slug>/authoring/sync.py          refresh tests/pristine from environment/app_src
 python3 tasks/<slug>/authoring/build_gt.py      regenerate ground truth, proving it
 python3 tasks/<slug>/authoring/emit.py          regenerate solve.sh and the cheats

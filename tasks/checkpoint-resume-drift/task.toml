@@ -50,10 +50,19 @@ where the packing varied. And the checkpoint channel is a bounded vector of inte
 serialising every holder that offers a snapshot is refused outright: the sample order
 alone is larger than the whole payload.
 
-The tree is twenty files with no comments anywhere in it and identifiers in the register
-of ordinary internal code. The facts that decide the answer are spread across files the
-agent may not edit: where the bound is latched, how many draws a microbatch takes, when a
-window's length is fixed, what the channel will accept.
+The tree is twenty-five files with no comments anywhere in it and identifiers in the
+register of ordinary internal code. The facts that decide the answer are spread across
+files the agent may not edit: where the bound is latched, how many draws a microbatch
+takes, when a window's length is fixed, what the channel will accept.
+
+The trainer runs as a process under a supervisor that owns the corpus, the arithmetic and
+the checkpoint channel, so a kill in a scenario is that process dying and a load is a new
+one starting. That closes the escape hatch rather than adding a puzzle: state parked in
+memory, on disk or in a helper left running does not reach the resumed trainer, and the
+corpus the supervisor serves when we grade is seeded differently from the one in the tree,
+so a sample's tokens have to be asked for. Both facts are stated plainly in the brief.
+Neither of them says anything about which holders belong in the checkpoint, which is the
+part that has to be worked out.
 """
 
 solution_explanation = """
@@ -75,57 +84,78 @@ derived from the configuration in force, and after a load that is the amended on
 The remaining work is arithmetic: pack the five carried holders into the bounded vector,
 unpack them in the same order, and write the two snapshot pairs the shipped tree left
 empty. The whole reference is about sixty lines of change across three files, and the
-fourth editable file needs no change at all.
+fourth editable file needs no change at all. Nothing in it reaches outside the channel,
+because there is nowhere outside the channel to reach.
 """
 
 verification_explanation = """
 The rebuilt trainer is driven through fourteen scenarios, each aimed at one reading of the
-rule, and graded on three independent axes with no partial credit.
+rule, and graded on four independent axes with no partial credit.
+
+The trainer does not run alone. tests/runner.py is a supervisor that spawns one
+unprivileged child process per trainer life and talks to it over a pipe, and it never
+imports any part of the tree the agent's files were overlaid onto: it takes its own half
+from the sealed pristine copy. The corpus, the gradient kernel, the optimiser kernel, the
+counters and the checkpoint channel all live on its side. A kill op signals the child's
+process group, waits for it, and reaps every process still running as the trainer's uid,
+so the vector the channel accepted is the only thing that reaches the process the next
+load starts. The trainer's uid is left with no writable path anywhere on the image, and
+the verifier re-checks that from the privileged side after the run rather than assuming
+it.
 
 Where the run ends has to match exactly: the parameter vector, the shadow average and the
 step counter. That target is not whatever the reference emitted. tests/oracle.py is a
 second implementation of the same arithmetic and the same lifecycle, written flat, sharing
 no code with the tree, and it re-derives every graded field at verification time. On top of
 that the verifier re-proves the property the task is defined by: the same op list with the
-down time compacted out - the rolled-back interval deleted, the amendments that landed in
-it kept, no save and no load anywhere - has to end on the same parameters. A resume that
+down time compacted out, the rolled-back interval deleted and the amendments that landed in
+it kept, no save and no load anywhere, has to end on the same parameters. A resume that
 reseeded the per-row stream, restarted the epoch or dropped the held item cannot match a
 run that never checkpointed.
 
-The work has to match exactly too. Reads are counted inside the sample store, positions
-inside the model's backward pass and updates inside the optimiser, none of which the agent
-may edit, so they measure real work whatever the submission looks like. This is the axis
-that fails a resume which rebuilds its position by replaying the stream: the parameters
-come out right and the store is read far more times than the run being continued ever read
-it. That cheat diverges on the read count and on nothing else.
+The work has to match exactly too, and it is measured rather than reported. A read is a
+sample the supervisor handed over, a position is a position it computed a gradient over, an
+update is an optimiser step it applied. None of those numbers exists inside the trainer, so
+none of them can be reset or suppressed. The corpus is generated from a seed that never
+leaves the supervisor and is not the seed shipped in the tree, so a submission cannot
+produce a sample's tokens without asking and being charged. This is the axis that fails a
+resume which rebuilds its position by replaying the stream: the parameters come out right
+and the corpus is asked for far more often than the run being continued ever asked. That
+cheat diverges on the read count and on nothing else. The trace is the supervisor's record
+of the same requests, and a microbatch entry is only written when the row count and token
+count the loop announces match the gradients just computed for it.
 
 Three things are deliberately outside the graded set, because grading them would measure a
 choice the task never asked the solver to make: how many slots the checkpoint used, in what
 order, and under what framing, since any encoding the bounded channel accepts is as good as
 another; the number of times the sampler was asked for a sample, since putting a held item
 back by winding the cursor back one and drawing it again is bookkeeping rather than work;
-and the save and load counts, which the driver keeps and no implementation can move. Three
-alternative correct implementations are kept in the authoring directory - a flat
+and the save and load counts, which the supervisor keeps and no implementation can move.
+Four alternative correct implementations are kept in the authoring directory, a flat
 fixed-offset encoding, a stream position carried as a draw count and wound forward at the
-load, and one that strips the schedule's snapshot instead of leaving the holder out of the
-checkpoint - and all three are required to score 1 through the real verifier.
+load, one that strips the schedule's snapshot instead of leaving the holder out of the
+checkpoint, and one that rebuilds the two stream holders from scratch at the load instead
+of restoring them in place, and all four are required to score 1 through the real verifier.
 
-Seventeen cheats were run against it and all scored 0. Nine are the reference with exactly
+Twenty-two cheats were run against it and all scored 0. Nine are the reference with exactly
 one decision made the way a solver who missed one piece would make it, and their failure
 signatures are distinct and match the design: carrying the schedule's memo fails three
 scenarios and no others, re-reading the window length from the schedule at the load fails
 exactly one, reconstructing the stream from the step counter fails on the parameters alone,
-and replaying the stream to rebuild state fails on the read count alone. Seven are
-reward-tamper probes, since the verifier executes the agent's code: a double-forked process
-writing the reward after the run, a planted run output with the run killed before any
-scenario executes, wrong-typed junk from the trainer's report, a privilege probe, an
-attempt to read the ground truth and to import the sealed trainer from inside the verifier,
-a consistent set of forged counters, and a sweep of everything the run's uid can reach. The
-last is a sweep of the agent's own container that finds no answer material. The run happens
-as an unprivileged uid in its own session under a wall clock timeout, the reward channel is
-root-owned and locked before it starts, and the ground truth and the sealed trainer are
-root-only files; grading runs afterwards as root and never executes anything the agent
-wrote.
+and replaying the stream to rebuild state fails on the read count alone. Four are attempts
+to get round the bounded channel rather than answer it: state parked in a module global
+with a handle sent through the channel, the same through the filesystem, a detached
+survivor holding it on a socket, and a stand-in that answers the trainer's own sample
+requests out of the seed in the tree so a replay is never charged. Seven are reward-tamper
+probes, since the run is code the agent wrote: a double-forked process writing the reward
+after the run, a planted run output with the run killed before any scenario executes,
+wrong-typed junk from the trainer's report, a privilege probe, an attempt to read the
+ground truth and to import the sealed trainer, a consistent set of forged counters, and a
+sweep of everything the run's uid can reach. The last is a sweep of the agent's own
+container that finds no answer material. The privilege probe reports uid 1002 and a
+permission error on all twelve paths it tries, the reward channel is root-owned and locked
+before anything starts, and grading runs afterwards as root and never executes anything the
+agent wrote.
 """
 
 category = "ML"

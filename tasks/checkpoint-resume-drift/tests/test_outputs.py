@@ -1,9 +1,11 @@
 """Verifier for the checkpoint resume drift task.
 
-What the run produced is in /work/out.json, written by /tests/runner.py, which is the only
-process that executed anything the agent wrote.  Nothing in this file imports, execs or
-subprocesses agent code: it reads that JSON as hostile input and grades it against
-/tests/gt.json, which is root-only and was never visible to the run.
+What the run produced is in /work/out.json, written by /tests/runner.py, which supervises
+the trainer without ever executing any of it: every scenario's trainer is a child process,
+unprivileged and in its own session, and the counters and the trace in that file are the
+supervisor's own record of what its service was asked to do.  Nothing in this file
+imports, execs or subprocesses agent code: it reads that JSON as hostile input and grades
+it against /tests/gt.json, which is root-only and was never visible to the run.
 
 Three independent things are checked, and all of them must hold:
 
@@ -17,10 +19,13 @@ Three independent things are checked, and all of them must hold:
      restarted the epoch, or dropped the item the packer was holding cannot match a run
      that never checkpointed at all.
 
-  2. The work.  reads is counted inside data/store.py, pos inside train/model.py and upd
-     inside train/opt.py, none of which the agent may edit, so these measure real work
-     whatever the submitted implementation looks like.  Reconstructing state by replaying
-     the stream produces the right parameters and the wrong number of reads.
+  2. The work.  reads, pos and upd are counted by the supervisor's service, in the
+     process that spawned the trainer rather than in the trainer, so they are what the
+     service was asked for and not what the trainer said about itself.  The corpus comes
+     from that service too, generated from a seed the trainer never sees and which is not
+     the seed shipped in the tree, so a sample's tokens cannot be produced without asking
+     for them and every ask is charged.  Reconstructing state by replaying the stream
+     produces the right parameters and the wrong number of reads.
 
      Deliberately NOT graded: how many slots the checkpoint used and in what order, which
      holders it names, how the vector is framed.  Any encoding the bounded channel accepts
@@ -31,9 +36,14 @@ Three independent things are checked, and all of them must hold:
      work.  loads and saves are not graded because the driver counts them and no
      implementation can move them.
 
-  3. The trace.  The per-microbatch and per-update record the loop writes itself, in
-     order, which pins where every window opened and closed and what the schedule handed
-     it - including across an amendment taken while the trainer was down.
+  3. The trace.  Written by the supervisor from the requests it served, in order, which
+     pins where every window opened and closed and what the schedule handed it - including
+     across an amendment taken while the trainer was down.  A microbatch entry is only
+     written when the row count and token count the loop announces match the gradients the
+     service actually computed for it.
+
+  4. The lifecycle.  Every kill destroyed a process and every load started another one, so
+     the checkpoint vector is the only thing that crossed.
 
 Per-scenario notes on which reading of the rule each case is aimed at are in scen.py and
 are quoted in the failure messages.
@@ -41,15 +51,18 @@ are quoted in the failure messages.
 
 import json
 import os
+import stat
 
 import pytest
 
 import oracle
 import scen
 
+HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_PATH = os.environ.get("RUN_OUT", "/work/out.json")
-GT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gt.json")
+GT_PATH = os.path.join(HERE, "gt.json")
 CONF_PATH = os.environ.get("CONF_JSON", "/tests/train.json")
+CORPUS_PATH = os.environ.get("CORPUS", os.path.join(HERE, "corpus.json"))
 
 NAMES = [s["name"] for s in scen.SCENARIOS]
 AIM = {s["name"]: s["aim"] for s in scen.SCENARIOS}
@@ -69,6 +82,7 @@ def load_json(path):
 GT = load_json(GT_PATH)
 RUN = load_json(OUT_PATH)
 BASE = load_json(CONF_PATH)
+DSEED = (load_json(CORPUS_PATH) or {}).get("dseed")
 
 
 def report(name):
@@ -103,6 +117,7 @@ def cfg_for(name):
 def test_ground_truth_present():
     assert isinstance(GT, dict) and GT.get("scenarios"), "ground truth missing"
     assert isinstance(BASE, dict) and BASE.get("sched"), "trainer config missing"
+    assert isinstance(DSEED, int), "the graded corpus is missing"
     assert set(GT["scenarios"]) == set(NAMES), "ground truth does not cover the scenario set"
 
 
@@ -128,7 +143,7 @@ def test_ground_truth_is_reproduced_by_the_sealed_trainer(name):
     is what is wrong, and no submission should be graded against it.
     """
     want = expected(name)
-    fresh = oracle.run(cfg_for(name), scen.by_name(name)["ops"])
+    fresh = oracle.run(cfg_for(name), scen.by_name(name)["ops"], DSEED)
     for field in STATE + WORK + ("trace",):
         assert fresh[field] == want[field], (
             "%s: ground truth for %s does not match the sealed trainer" % (name, field))
@@ -145,7 +160,7 @@ def test_resume_matches_a_run_that_never_died(name):
     """
     cfg = cfg_for(name)
     ops = scen.by_name(name)["ops"]
-    comp = oracle.run(cfg, oracle.compact(ops))
+    comp = oracle.run(cfg, oracle.compact(ops), DSEED)
     want = expected(name)
     for field in STATE:
         assert comp[field] == want[field], (
@@ -169,10 +184,13 @@ def test_state(name):
 def test_work_done(name):
     """Exact accounting of the work the run actually cost.
 
-    reads is bumped in data/store.py, pos in train/model.py, upd in train/opt.py, all
-    outside the files the agent may edit. A resume that rebuilds its position by replaying
-    the stream reaches the right parameters and reads the store far more times than the
-    run it is continuing ever did.
+    Every one of these is a tally the supervisor kept while serving the trainer: a read is
+    a sample the service handed over, a position is a position the gradient kernel was
+    given, an update is an optimiser step it applied. None of them is reported by the
+    trainer, so none of them can be reset, suppressed or written. A resume that rebuilds
+    its position by replaying the stream reaches the right parameters and asks the service
+    for the corpus far more times than the run it is continuing ever did, and it has no
+    way to get those samples without asking.
     """
     rep = report(name)
     assert rep is not None, "no report for %s" % name
@@ -198,27 +216,101 @@ def test_trace(name):
 
 @pytest.mark.parametrize("name", NAMES)
 def test_counters_agree_with_each_other(name):
-    """Three counters for overlapping quantities, incremented in three modules.
+    """Counters for overlapping quantities, all of them the service's own tallies.
 
-    pos is bumped inside the model's backward pass; the loop writes the same token count
-    into its own trace; the sampler counts draws and the store counts reads, and the store
-    is read once per placement, which is at least once per draw. An honest run cannot
-    separate them. A report whose numbers were written rather than earned generally can.
+    pos is the positions the gradient kernel was handed; the microbatch entries account
+    for the same tokens, because the supervisor refuses to write one that does not match
+    the work it just did; upd is the number of optimiser steps it applied and there is one
+    update entry per step; a sample is drawn at most as often as the corpus is read. An
+    honest run cannot separate them, and a run that did the work somewhere the service
+    cannot see it comes out short on every one of them at once.
     """
     rep = report(name)
     assert rep is not None, "no report for %s" % name
-    rows = [str(e) for e in (rep.get("trace") or []) if str(e).startswith("m:")]
+    trace = [str(e) for e in (rep.get("trace") or [])]
     tok = 0
-    for e in rows:
+    for e in [x for x in trace if x.startswith("m:")]:
         parts = e.split(":")
         assert len(parts) == 4 and parts[3].lstrip("-").isdigit(), (
             "%s: malformed microbatch entry %r" % (name, e))
         tok += int(parts[3])
     assert rep.get("pos") == tok, (
-        "%s: the model counted %r positions, the loop's trace accounts for %r"
-        % (name, rep.get("pos"), tok))
+        "%s: the service computed gradients over %r positions, the microbatch record "
+        "accounts for %r" % (name, rep.get("pos"), tok))
+    assert rep.get("upd") == len([x for x in trace if x.startswith("u:")]), (
+        "%s: %r optimiser steps against %d update entries"
+        % (name, rep.get("upd"), len([x for x in trace if x.startswith("u:")])))
     draws, reads = rep.get("draws"), rep.get("reads")
     assert isinstance(draws, int) and isinstance(reads, int), "%s: counters are not counts" % name
     assert 0 < draws <= reads, (
         "%s: %r draws against %r reads; every sample placed is read at least once"
         % (name, draws, reads))
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_every_load_started_a_new_process(name):
+    """The kill is a kill.
+
+    The trainer for each scenario runs in a child process the supervisor spawns. A kill
+    signals that process group and reaps it, and the load that follows starts another one
+    from nothing, so the only thing that reaches the resumed trainer is the vector the
+    checkpoint channel accepted. This checks the supervisor's own record of that: one
+    process to begin with, one more for every load, and no process id reused - which is
+    what makes a module global, a cached corpus or an open file useless as a way to carry
+    state across the interruption the task is about.
+    """
+    rep = report(name)
+    assert rep is not None, "no report for %s" % name
+    lives = rep.get("lives")
+    loads = len([op for op in scen.by_name(name)["ops"] if op.get("op") == "load"])
+    assert isinstance(lives, list) and all(isinstance(x, int) for x in lives), (
+        "%s: the supervisor did not record which processes ran the trainer" % name)
+    assert len(lives) == loads + 1, (
+        "%s: %d trainer processes for %d loads (%s)" % (name, len(lives), loads, AIM[name]))
+    assert len(set(lives)) == len(lives), "%s: a trainer process was reused" % name
+
+
+def _writable_by_the_trainer():
+    """Every path the trainer's uid could have written, outside the kernel filesystems.
+
+    A checkpoint that fits in the channel is the point of the task, so a submission that
+    parks its state somewhere else and posts a handle through the channel has answered a
+    different question. Process death takes care of memory. This takes care of disk: the
+    verifier closes every path the trainer's uid can write before the run, and the run is
+    only graded if that actually held.
+    """
+    uid = 1002
+    bad = []
+    for root in ("/app", "/bin", "/etc", "/home", "/lib", "/logs", "/media", "/mnt",
+                 "/opt", "/pristine", "/root", "/run", "/sbin", "/srv", "/tests", "/tmp",
+                 "/usr", "/var", "/work", "/dev/shm"):
+        if not os.path.isdir(root):
+            continue
+        for base, dirs, files in os.walk(root, onerror=lambda e: None):
+            for name in [""] + dirs + files:
+                path = os.path.join(base, name) if name else base
+                try:
+                    st = os.lstat(path)
+                except OSError:
+                    continue
+                if stat.S_ISLNK(st.st_mode):
+                    continue
+                mode = st.st_mode
+                if (mode & 0o002
+                        or (st.st_uid == uid and mode & 0o200)
+                        or (st.st_gid == uid and mode & 0o020)):
+                    bad.append(path)
+                    if len(bad) > 20:
+                        return bad
+    return bad
+
+
+def test_the_trainer_had_nowhere_to_write():
+    """The kill has to be the only thing that survives, and disk is the other way round it.
+
+    This is a property of the verifier rather than of the submission, so it is checked
+    directly instead of assumed: after the run, no file and no directory on the image is
+    writable by the uid every trainer process ran as.
+    """
+    bad = _writable_by_the_trainer()
+    assert not bad, "the trainer's uid could write: %s" % ", ".join(sorted(bad)[:20])

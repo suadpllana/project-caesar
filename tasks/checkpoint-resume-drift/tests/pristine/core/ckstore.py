@@ -1,3 +1,5 @@
+from core.link import LinkError
+
 CAP = 64
 LIM = 1 << 40
 
@@ -7,8 +9,8 @@ class CkError(Exception):
 
 
 class CkStore:
-    def __init__(self):
-        self.blob = None
+    def __init__(self, lk):
+        self.lk = lk
 
     def put(self, vec):
         if not isinstance(vec, (list, tuple)):
@@ -20,12 +22,13 @@ class CkStore:
             if x < -LIM or x > LIM:
                 raise CkError("checkpoint slot out of range")
             out.append(x)
-        if len(out) > CAP:
-            raise CkError("checkpoint payload is %d slots, the channel holds %d" % (len(out), CAP))
-        self.blob = out
-        return len(out)
+        try:
+            return self.lk.call("put", out)[0]
+        except LinkError as exc:
+            raise CkError(str(exc))
 
     def get(self):
-        if self.blob is None:
-            raise CkError("no checkpoint in the channel")
-        return list(self.blob)
+        try:
+            return list(self.lk.call("get", []))
+        except LinkError as exc:
+            raise CkError(str(exc))

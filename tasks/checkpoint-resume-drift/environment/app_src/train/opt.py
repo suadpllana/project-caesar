@@ -1,21 +1,17 @@
-from train.model import MOD
-
-
 class Opt:
-    def __init__(self, cfg, model, meter):
+    def __init__(self, cfg, model, lk):
         self.d = cfg["dim"]
-        self.mt = meter
+        self.lk = lk
         self.m = [0] * self.d
         self.ema = list(model.p)
 
-    def apply(self, model, g, ntok, lr, esh):
-        self.mt.upd += 1
-        nt = ntok if ntok > 0 else 1
-        for i in range(self.d):
-            self.m[i] = (self.m[i] * 3 + g[i]) // 4
-            model.p[i] = (model.p[i] - (self.m[i] * lr) // nt) % MOD
-        for i in range(self.d):
-            self.ema[i] = self.ema[i] + ((model.p[i] - self.ema[i]) >> esh)
+    def apply(self, model, g, ntok, lr, esh, step):
+        d = self.d
+        r = self.lk.call("upd", [step, lr, esh, ntok] + list(self.m) + list(model.p)
+                         + list(g) + list(self.ema))
+        self.m = list(r[:d])
+        model.p = list(r[d:2 * d])
+        self.ema = list(r[2 * d:3 * d])
 
     def snap(self):
         return list(self.m) + list(self.ema)

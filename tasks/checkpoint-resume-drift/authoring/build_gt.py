@@ -3,6 +3,8 @@
 
 Three things have to line up before anything is written:
 
+  0. The graded corpus still puts every scenario in the position its aim describes, and
+     is not the corpus shipped in the tree - authoring/corpus_check.py.
   1. The reference solution's report for every scenario.
   2. The sealed generator in tests/oracle.py, which shares no code with the tree and
      implements the lifecycle from scratch, on the same op list.
@@ -26,6 +28,7 @@ TASK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TASK / "tests"))
 sys.path.insert(0, str(TASK / "authoring"))
 
+import corpus_check  # noqa: E402
 import harness  # noqa: E402
 import oracle  # noqa: E402
 import scen  # noqa: E402
@@ -44,7 +47,21 @@ def cfg_for(sc):
     return cfg
 
 
+def corpus() -> int:
+    return json.loads((TASK / "tests" / "corpus.json").read_text())["dseed"]
+
+
 def main() -> int:
+    ds = corpus()
+    tree = json.loads(
+        (TASK / "environment" / "app_src" / "conf" / "corpus.json").read_text())["dseed"]
+    if ds == tree:
+        print("the graded corpus is the one shipped in the tree - nothing is hidden")
+        return 1
+    if corpus_check.check(ds, quiet=True):
+        print("the graded corpus loses a scenario aim - run authoring/corpus_check.py")
+        return 1
+
     ref = harness.run("solution/ref")
     if ref.get("errors"):
         print("reference raised:", ", ".join(sorted(ref["errors"])))
@@ -55,14 +72,14 @@ def main() -> int:
     for sc in scen.SCENARIOS:
         name = sc["name"]
         cfg = cfg_for(sc)
-        want = oracle.run(cfg, sc["ops"])
+        want = oracle.run(cfg, sc["ops"], ds)
         got = ref["reports"].get(name)
         for f in GRADED:
             if got is None or got[f] != want[f]:
                 print("MISMATCH %-13s %-6s reference=%r oracle=%r"
                       % (name, f, None if got is None else got[f], want[f]))
                 bad += 1
-        comp = oracle.run(cfg, oracle.compact(sc["ops"]))
+        comp = oracle.run(cfg, oracle.compact(sc["ops"]), ds)
         for f in ("p", "ema", "step"):
             if comp[f] != want[f]:
                 print("NOT EQUIVALENT %-13s %-4s compacted=%r lifecycle=%r"

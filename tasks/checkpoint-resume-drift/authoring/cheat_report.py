@@ -6,6 +6,13 @@ reports which named test catches it, so a cheat that fails for an accidental rea
 visible. The authoritative run is tools/docker_trial2.py, which exercises the isolation
 this cannot.
 
+Two things about the host run are worth knowing before reading its output.
+test_the_trainer_had_nowhere_to_write is a property of the verifier image rather than of
+the submission, so on a host with an ordinary /tmp it fails for every entry, including the
+reference. And cheat-side-channel-file has nothing else to fail on here, which is the
+point of it: only the image's lockdown stops that one, and the container run is where that
+shows.
+
 Usage:  python3 authoring/cheat_report.py
 """
 

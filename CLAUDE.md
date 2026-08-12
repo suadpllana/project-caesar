@@ -9,6 +9,14 @@ built and gated locally but has not been through the pipeline yet:
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
+| `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
+
+`turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
+easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
+own `STATE.md` and the short version is in "Grade the work, never the implementation
+choice" below - it graded a character count against one number when the honest answer was
+a range, so a solver who read the merge table more finely than the reference did scored 0.
+It has been recalibrated and not re-probed.
 
 Between them the first two were rejected three times by the AI-text screen and once by the
 run audit. Every one of those rejections is written down below with the fix, because the
@@ -171,6 +179,19 @@ Where a scenario needs eviction or preemption for coverage, keep it but grade it
 quantities ordering cannot move (tokens, rewinds), and derive the counter-graded subset from
 the ground truth rather than hand listing it, so a scenario that starts evicting drops out of
 counter grading by itself. `ORDER_FREE` in `tests/test_outputs.py` is that derivation.
+
+**Grade a range when the answer is a range.** `turn-seam-alignment` failed the difficulty
+probe 0 of 8 with a counter that was real work by every test above - characters handed to a
+tokenizer the agent cannot edit, and two correct implementations do agree on it. What they
+do not agree on is how clever the implementation is allowed to be. "Resume at the last
+position the merge table protects" has four correct readings there, nested, 2298 to 2809
+characters over the same twelve scenarios, all producing identical tokens. Equality against
+the reference's 2631 failed three of the four. The fix is a window: a floor that comes from
+the sealed oracle and that nothing legitimate can go under, a ceiling measured from the
+weakest reading you intend to accept, and `build_gt.py` refusing to write a ceiling that has
+drifted up far enough to admit the answer you do reject. Before grading any optimisation
+counter, ask whether a better solution than yours would fail it. If it would, grade the
+range and put every reading in `variants/`.
 
 ## Stage recipe
 

@@ -13,11 +13,27 @@ Three independent things are checked, and all of them must hold:
      snapshot.  A stream that mixed two policies, or that was assembled from key/value
      projections computed under earlier parameters, cannot match.
 
-  2. The work.  computed / reused / preempt / evict, and the position count taken inside
-     the backend, must equal the ground truth exactly.  This is the side that fails an
-     engine which is merely safe: dropping the cache on every push, keying blocks on the
-     adapter, or treating a copy-out-and-back offload as destructive all produce correct
-     tokens and the wrong amount of work.
+  2. The work.  computed / reused / preempt, and the position count taken inside the
+     backend, must equal the ground truth exactly.  This is the side that fails an engine
+     which is merely safe: dropping the cache on every push, keying blocks on the adapter,
+     or treating a copy-out-and-back offload as destructive all produce correct tokens and
+     the wrong amount of work.
+
+     Deliberately NOT graded, in two places:
+
+     How many index entries were retired, and when.  Retiring a stale entry as soon as its
+     fingerprint is superseded and leaving it for the least-recently-used sweep are both
+     correct and cost the same key/value work.
+
+     The work counters of any scenario that runs the pool dry.  Once eviction and
+     preemption fire, the totals depend on which of several equally old blocks the sweep
+     picks, and two faithful implementations of the same policy disagree there - an
+     ordered-dict least-recently-used index and a tick-counter one produce different
+     preemption counts on identical semantics.  Grading that made a correct solution
+     reverse-engineer a hidden constant, so scenarios with evictions or preemptions in the
+     ground truth are graded on tokens and rewinds alone, both of which eviction order
+     cannot move.  ORDER_FREE below is derived from the ground truth rather than hand
+     listed, so a scenario that starts evicting drops out of counter grading by itself.
 
   3. The lifecycle.  The set of rewound samples must be exactly right - no sample left
      straddling a push, none rewound that did not need it - and the engine's own
@@ -38,7 +54,7 @@ OUT_PATH = os.environ.get("RUN_OUT", "/work/out.json")
 GT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gt.json")
 CONF_PATH = os.environ.get("CONF_JSON", "/tests/engine.json")
 
-COUNTERS = ("computed", "reused", "restart", "preempt", "evict", "pos")
+COUNTERS = ("computed", "reused", "restart", "preempt", "pos")
 
 NAMES = [s["name"] for s in scen.SCENARIOS]
 
@@ -98,6 +114,16 @@ def expected(name):
     return GT["scenarios"][name]["report"]
 
 
+def order_free(name):
+    """True when nothing is evicted or preempted, so the counters cannot depend on which
+    block a least-recently-used sweep picked."""
+    want = expected(name)
+    return want["evict"] == 0 and want["preempt"] == 0
+
+
+ORDER_FREE = [n for n in NAMES if GT and order_free(n)]
+
+
 def test_ground_truth_present():
     assert isinstance(GT, dict) and GT.get("scenarios"), "ground truth missing"
     assert isinstance(CONF, dict) and CONF.get("seeds"), "engine config missing"
@@ -153,7 +179,7 @@ def test_ground_truth_streams_are_single_policy(name):
             "%s: ground truth for %s is not a fresh single-policy sample" % (name, rid))
 
 
-@pytest.mark.parametrize("name", NAMES)
+@pytest.mark.parametrize("name", ORDER_FREE)
 def test_work_done(name):
     """Exact accounting.
 
@@ -166,10 +192,27 @@ def test_work_done(name):
     rep = report(name)
     assert rep is not None, "no report for %s" % name
     want = expected(name)
-    for field in ("computed", "reused", "pos", "preempt", "evict"):
+    for field in ("computed", "reused", "pos", "preempt"):
         assert rep.get(field) == want[field], (
             "%s: %s was %r, expected %r (%s)"
             % (name, field, rep.get(field), want[field], AIM[name]))
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_counters_agree_with_each_other(name):
+    """Two counters for the same quantity, incremented in two different modules.
+
+    computed is bumped in the engine facade, pos inside the backend's forward pass, and
+    both live outside the files the agent may edit. An honest run cannot separate them.
+    A report whose numbers were written rather than earned generally can.
+    """
+    rep = report(name)
+    assert rep is not None, "no report for %s" % name
+    assert rep.get("computed") == rep.get("pos"), (
+        "%s: engine counted %r computed positions, the backend counted %r forward passes"
+        % (name, rep.get("computed"), rep.get("pos")))
+    assert isinstance(rep.get("reused"), int) and rep["reused"] >= 0, (
+        "%s: reused is not a count" % name)
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -187,7 +230,7 @@ def test_rewinds(name):
         "%s: rewound %r, expected %r" % (name, sorted(got_ev), sorted(want_ev)))
 
 
-@pytest.mark.parametrize("name", NAMES)
+@pytest.mark.parametrize("name", ORDER_FREE)
 def test_engine_trace(name):
     """Admission, completion and preemption order, as recorded by the engine itself."""
     rep = report(name)

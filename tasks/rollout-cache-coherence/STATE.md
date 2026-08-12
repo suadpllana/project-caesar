@@ -114,15 +114,60 @@ sides are graded.
   Nothing anywhere makes the distinction this task is built on, and no public code has this
   engine's shape.
 
+## Run-audit finding, and the change it forced
+
+The task cleared the difficulty probe and the easiness probe, then failed the run audit:
+reward hacking, 1 trial of 8. The trajectory notes told the real story. One agent recovered
+the whole intended design - both fingerprints, the rewind with the sampler counter reset and
+the head-of-queue reinsertion, the discarded-page set - and scored 55 of 57. Its only losses
+were the `evict` counter in `pressure` (48 against 50) and in `mixed` (3 against 7), because
+it retired superseded index entries at the push instead of leaving them for the
+least-recently-used sweep. A solution that had done every piece of the actual work was one
+bookkeeping choice away from full credit, and the only way to close that gap is to tune an
+implementation detail against a hidden constant. That is what the audit was looking at.
+
+Two defects, found by measuring rather than guessing:
+
+- `evict` counts when the index happens to drop an entry. `authoring/field_report.py`
+  compares every cheat field by field: not one of the seventeen is separated by `evict`.
+  It caught nothing and cost a correct solution the run.
+- Worse, and not in the audit note: the work counters of `pressure` encode the reference's
+  eviction tie-break. `authoring/variants/ok-ordered-lru` implements the same
+  least-recently-used policy with an OrderedDict and produces computed 265 against 225 and
+  preempt 12 against 9, on identical semantics and identical tokens. The instruction says
+  which block goes first is not what we are after, and the verifier was grading exactly
+  that.
+
+The fix, which changes what is graded and not what is correct:
+
+- `evict` is out of the graded set entirely.
+- Work counters and the engine trace are graded only on scenarios that evict nothing and
+  preempt nothing. The boundary is derived from the ground truth (`ORDER_FREE` in
+  `tests/test_outputs.py`), so a scenario that starts evicting drops out by itself.
+- `mixed` moved from 14 pages to 40 so it sits inside that boundary; `pressure` stays as
+  the one scenario that runs the pool dry and is graded on tokens and rewinds, which
+  eviction order cannot move.
+- `test_counters_agree_with_each_other` cross-checks the engine's count against the
+  backend's, in two non-editable modules, so a forged report has to be consistent.
+- `authoring/variants/` holds alternative correct implementations that must score 1, and
+  `authoring/variant_check.py` runs them through the real verifier. Both the ordered-dict
+  index and the eager-retire shape from the flagged trial now score 1.
+
+Difficulty was not touched. The crux is the two fingerprints and the minimal-invalidation
+accounting, all of which lives in the nine scenarios that never evict. The cheat suite is
+unchanged in verdict: seventeen of seventeen still score 0, and `field_report.py` shows
+every one of them diverging on tokens or on the real-work counters.
+
 ## Verifier contract - FROZEN
 
 - Artifacts: `/app/model/pstore.py`, `/app/runtime/pfx.py`, `/app/runtime/sch.py`,
   `/app/mem/pool.py`. Nothing else is read from the agent's container.
 - The verifier bakes a pristine copy of the shipped tree, overlays those four paths onto
   it, and runs the engine over the eleven scenarios in `tests/scen.py`.
-- Checked per scenario, all-or-nothing: every request's token stream; `computed`,
-  `reused`, `pos`, `preempt`, `evict`; the set of rewound samples; the engine's
-  start/finish/preempt trace in order.
+- Checked per scenario, all-or-nothing: every request's token stream and the set of
+  rewound samples, on all eleven; `computed`, `reused`, `pos`, `preempt` and the engine's
+  start/finish/preempt trace, on the nine that evict nothing and preempt nothing. `evict`
+  is not graded anywhere.
 - The expected token streams are re-proved at verification time by `tests/oracle.py`, a
   sealed from-scratch generator sharing no code with the tree.
 - Tolerances: none. Everything is integer arithmetic and exact.

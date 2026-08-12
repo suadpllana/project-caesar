@@ -69,23 +69,37 @@ def as_spans(raw):
     return {k: [list(x) for x in v] for k, v in raw.items()}
 
 
-def cost(variant: Path) -> dict:
-    """Characters handed to the tokenizer by one implementation, per scenario.
+def account(data: dict, label: str) -> dict:
+    """What the meter's tape says every scenario cost, or refuse to go on.
 
-    Taken the way the verifier takes it: worked out again from the tokenizer's own
-    record rather than read off the figure the run reported, so the window is calibrated
-    against the same quantity it is later graded on.
+    The same call the verifier makes, on the same evidence: the tape tests/meter.py
+    wrote while the loop ran, not the counters the loop kept. Calibrating the window on
+    anything else would leave the window and the grade measuring different quantities.
     """
+    acct, left = audit.account(data.get("tape") or [],
+                               [(s["name"], proof(s["name"])) for s in scen.SCENARIOS])
+    if left is not None:
+        raise SystemExit("%s: %s" % (label, left))
+    out = {}
+    for name, (res, why) in acct.items():
+        if res is None:
+            raise SystemExit("%s: %s" % (label, why))
+        out[name] = res
+    return out
+
+
+def cost(variant: Path) -> dict:
+    """Characters the meter was given by one implementation, per scenario."""
     data = harness.run(str(variant))
     if data.get("errors"):
         raise SystemExit("%s raised: %s" % (variant.name, sorted(data["errors"])))
+    acct = account(data, variant.name)
     out = {}
     for name, rep in data["reports"].items():
-        acct = audit.derive(proof(name), rep)
-        if acct["chars"] != rep["enc_chars"]:
-            raise SystemExit("%s: %s reported %d characters against %d in the record"
-                             % (variant.name, name, rep["enc_chars"], acct["chars"]))
-        out[name] = acct["chars"]
+        if acct[name]["chars"] != rep["enc_chars"]:
+            raise SystemExit("%s: %s reported %d characters against %d the meter was given"
+                             % (variant.name, name, rep["enc_chars"], acct[name]["chars"]))
+        out[name] = acct[name]["chars"]
     return out
 
 
@@ -120,6 +134,8 @@ def main() -> int:
         rejects = [cost(mutated(sw, tmp / n)) for n, sw in policies.REJECT.items()]
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+    acct = account(data, "the reference")
 
     gt = {"scenarios": {}}
     separated = 0

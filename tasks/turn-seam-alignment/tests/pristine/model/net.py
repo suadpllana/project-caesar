@@ -1,4 +1,4 @@
-from tok.core import END, V
+from tok.core import END, V, ask
 
 D = 6
 M = 1000003
@@ -26,6 +26,9 @@ class Net:
 
     def step(self, h, t):
         self.n_fwd += 1
+        rsp = ask({"op": "fwd", "h": [int(x) for x in h], "t": int(t)})
+        if rsp is not None:
+            return tuple(int(x) for x in rsp["h"])
         e = EM[t]
         out = []
         for i in range(D):
@@ -37,6 +40,10 @@ class Net:
         return tuple(out)
 
     def pick(self, h, salt, k):
+        rsp = ask({"op": "pick", "h": [int(x) for x in h], "salt": int(salt),
+                   "k": int(k)})
+        if rsp is not None:
+            return int(rsp["t"])
         best = -1
         got = 0
         for t in range(V):

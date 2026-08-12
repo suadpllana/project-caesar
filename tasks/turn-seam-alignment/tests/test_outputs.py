@@ -1,11 +1,12 @@
 """Verifier for the turn seam alignment task.
 
-What the run produced is in /work/out.json, written by /tests/runner.py, which is the
+What the run produced is in /work/out.json, written by /driver/runner.py, which is the
 only process that executed anything the agent wrote.  Nothing in this file imports,
 execs or subprocesses agent code: it reads that JSON as hostile input and grades it
-against /tests/gt.json, which is root-only and was never visible to the run.
+against /tests/gt.json, which is root-only and was never visible to the run, and against
+the meter's tape, which the run could not read either and did not write.
 
-Four things are checked, and all of them must hold:
+Five things are checked, and all of them must hold:
 
   1. The ground truth itself.  Before any comparison, every recorded sequence, span,
      forward count and trace is re-proved by tests/oracle.py, a naive replay that shares
@@ -30,26 +31,24 @@ Four things are checked, and all of them must hold:
      axis a merely safe loop fails: encoding every render from character zero is
      correct on all of the above and wrong here.
 
-     The meter cannot be stepped around, which is what makes the axis worth grading at
-     all.  No byte-pair encoding happens anywhere in the tree outside the call that
-     counts it, and the ids a render produces have to have come out of that call: the
-     tokenizer keeps what it handed back, and the loop refuses a sequence that is not a
-     prefix of one it has already accepted followed by exactly one of those.  A
-     submission that works the ids out privately and hands the meter only the appended
-     characters fails on that refusal wherever resuming at the seam is not legal, and
-     fails on the floor below wherever it is.
+     None of the three numbers is graded as reported, and none of the evidence they are
+     derived from lives in the run.  A counter in the run's own process is a number the
+     submission can assign to; a string handed to the tokenizer can carry a length of its
+     own; a list the tokenizer appends to can be emptied and refilled with something
+     more flattering.  The last of those is how a probe passed an earlier build - it
+     encoded every render whole, searched for a legal resume with the shipped tokenizer,
+     and then rewrote the record to describe only the tail it wished it had asked for.
 
-     None of the three numbers is graded as reported, either.  A counter living in the
-     run's own process is a number the submission can assign to, and a string handed to
-     the tokenizer can carry a length of its own that bears no relation to how many
-     characters come out of it, so the figures are re-derived here from the tokenizer's
-     record of what it actually consumed - see tests/audit.py - and it is the derived
-     ones that are graded.  The record is replayed against the sealed encoder render by
-     render, which makes a shortened entry stop matching its own ids, and every render's
-     sequence has to splice out of ids the loop had already produced, which makes a
-     missing entry stop accounting for the answer.  The reported figures still have to
-     agree with the derived ones, so tampering has to be consistent in two places at
-     once and the record is the one that cannot be quietly rewritten.
+     So the encoder and the network are served by tests/meter.py, over a socket, as
+     root, and the meter writes down what it was asked for as it answers.  The figures
+     are worked out here from that tape - see tests/audit.py - and the tape is replayed
+     against the sealed encoder render by render: one encode per render, each one a tail
+     of the render it accounts for, its ids what encoding that tail comes to, and the
+     render's sequence reachable by splicing it onto ids the loop had already produced.
+     Exploratory encodes have nowhere to hide, because they are on the tape too and the
+     scenarios account for every event on it.  What the run reported still has to agree
+     with what the meter served, so a submission has to be consistent in two places at
+     once and the tape is the one it cannot reach.
 
      The character count is graded as a window, not as a number, and neither end of it
      is the reference's own figure.  "Resume at the last position the merge table
@@ -63,6 +62,10 @@ Four things are checked, and all of them must hold:
      The ceiling is what the one-sided readings cost.  Insisting on one number inside
      that range would grade which reading a solver settled on rather than the work they
      did; authoring/variants/ holds the readings that must all pass.
+
+  5. The tape itself.  There has to be one, it has to account for every render, and
+     nothing may be left over on it.  A run that never asked the meter for anything
+     produced its sequences some other way, whatever its report says.
 
 Per-scenario notes on which reading of the rule each case is aimed at are on AIM below.
 """
@@ -78,6 +81,9 @@ import scen
 
 OUT_PATH = os.environ.get("RUN_OUT", "/work/out.json")
 GT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gt.json")
+TAPE_PATH = os.environ.get("RUN_TAPE",
+                           os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                        "tape.jsonl"))
 
 NAMES = [s["name"] for s in scen.SCENARIOS]
 
@@ -141,7 +147,7 @@ def expected(name):
 
 
 PROOFS = {}
-DERIVED = {}
+LEDGER = {}
 
 
 def proof(name):
@@ -151,21 +157,31 @@ def proof(name):
     return PROOFS[name]
 
 
+def ledger():
+    """The meter's tape, walked against every scenario in the order they were driven.
+
+    Read once. If there is no tape at all the run never asked the meter for anything,
+    which is a run that produced its sequences some other way, and every scenario carries
+    that as its complaint.
+    """
+    if not LEDGER:
+        try:
+            rows = audit.read(TAPE_PATH)
+        except audit.Bad as exc:
+            LEDGER.update({"rows": None, "why": str(exc), "left": None,
+                           "acct": dict((n, (None, str(exc))) for n in NAMES)})
+        else:
+            acct, left = audit.account(rows, [(n, proof(n)) for n in NAMES])
+            LEDGER.update({"rows": rows, "why": None, "left": left, "acct": acct})
+    return LEDGER
+
+
 def derived(name):
-    """The accounting worked out again from the tokenizer's record, or the reason not.
+    """The accounting worked out again from the meter's tape, or the reason not.
 
     Returns (result, complaint): exactly one of the two is None.
     """
-    if name not in DERIVED:
-        rep = report(name)
-        if rep is None:
-            DERIVED[name] = (None, "no report for %s" % name)
-        else:
-            try:
-                DERIVED[name] = (audit.derive(proof(name), rep), None)
-            except audit.Bad as exc:
-                DERIVED[name] = (None, str(exc))
-    return DERIVED[name]
+    return ledger()["acct"][name]
 
 
 def as_map(value):
@@ -255,29 +271,66 @@ def test_trainable_spans(name):
             % (name, eid, rows, want[eid], AIM[name]))
 
 
-@pytest.mark.parametrize("name", NAMES)
-def test_encode_record_accounts_for_the_run(name):
-    """Every render's sequence has to come out of a resume the record can account for.
+def test_the_meter_saw_the_run():
+    """There has to be a tape, and it has to be the only thing the meter was asked for.
 
-    The tokenizer's record is replayed against the sealed encoder: one entry per render,
-    each entry's text a tail of the render it belongs to, each entry's ids what encoding
-    that text comes to, and the render's full sequence reachable by splicing the entry
-    onto a prefix of ids the loop had already produced. That is the resume condition
-    itself, checked where it was used rather than where it did damage, and it is what
-    stops the accounting below from being a number the run chose for itself.
+    An empty tape is a loop that never asked the meter to encode anything, which is a
+    loop whose sequences came from somewhere else. Events left over after every scenario
+    has been accounted for are work nothing asked for - the exploratory encodes a search
+    needs, or a second connection - and they are refused rather than ignored.
+    """
+    book = ledger()
+    assert book["rows"], book["why"] or "the meter's tape is empty"
+    assert book["left"] is None, book["left"]
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_meter_tape_accounts_for_the_run(name):
+    """Every render's sequence has to come out of a resume the meter watched happen.
+
+    The tape is replayed against the sealed encoder: one encode per render, each one's
+    text a tail of the render it belongs to, each one's ids what encoding that text comes
+    to, and the render's full sequence reachable by splicing it onto a prefix of ids the
+    loop had already produced. That is the resume condition itself, checked where it was
+    used rather than where it did damage. The evidence is the meter's, not the run's:
+    tests/meter.py wrote it down as it served each request, from outside the process that
+    made them.
     """
     result, why = derived(name)
     assert result is not None, "%s: %s (%s)" % (name, why, AIM[name])
 
 
 @pytest.mark.parametrize("name", NAMES)
+def test_report_agrees_with_the_meter(name):
+    """What the tokenizer says it was given has to be what the meter was asked for.
+
+    The run's own record is not evidence any more, but a disagreement between it and the
+    tape is still a submission describing a run other than the one it did.
+    """
+    rep = report(name)
+    assert rep is not None, "no report for %s" % name
+    result, why = derived(name)
+    assert result is not None, "%s: %s" % (name, why)
+    got = rep.get("log")
+    assert isinstance(got, list), "%s: the run kept no record of what it encoded" % name
+    seen = [[str(t), [int(i) for i in ids]] for t, ids in result["log"]]
+    try:
+        mine = [[str(item[0]), [int(i) for i in item[1]]] for item in got]
+    except (TypeError, ValueError, IndexError):
+        mine = None
+    assert mine == seen, (
+        "%s: the tokenizer's own record does not match what the meter was asked for"
+        % name)
+
+
+@pytest.mark.parametrize("name", NAMES)
 def test_work_done(name):
     """The accounting.
 
-    The three figures are re-derived on this side from the tokenizer's record - the
-    characters by counting them here, the calls by counting entries, the forwards inside
-    the network the agent may not edit - so they are real work however the submission is
-    written, and what the run reported has to agree with them. A loop that re-encodes
+    The three figures are re-derived on this side from the meter's tape - the characters
+    by counting them here, the calls by counting encodes, the forwards by counting the
+    steps the meter served inside this scenario's stretch of it - so they are real work
+    however the submission is written, and what the run reported has to agree with them. A loop that re-encodes
     whole renders is right about every token and wrong here; one that resumes from a
     position the table does not protect is cheap here and wrong about the tokens.
 
@@ -292,26 +345,29 @@ def test_work_done(name):
     want = expected(name)
     result, why = derived(name)
     assert result is not None, "%s: %s (%s)" % (name, why, AIM[name])
-    assert rep.get("fwd") == want["fwd"], (
-        "%s: fwd was %r, expected %r (%s)"
-        % (name, rep.get("fwd"), want["fwd"], AIM[name]))
+    assert result["fwd"] == want["fwd"], (
+        "%s: the meter served %d forwards, expected %d (%s)"
+        % (name, result["fwd"], want["fwd"], AIM[name]))
+    assert rep.get("fwd") == result["fwd"], (
+        "%s: the run reported %r forwards against %d the meter served"
+        % (name, rep.get("fwd"), result["fwd"]))
     assert result["calls"] == want["enc_calls"], (
-        "%s: the tokenizer's record carries %d calls, expected %d (%s)"
+        "%s: the meter was asked to encode %d times, expected %d (%s)"
         % (name, result["calls"], want["enc_calls"], AIM[name]))
     assert rep.get("enc_calls") == result["calls"], (
-        "%s: the run reported %r calls against %d in the tokenizer's record"
+        "%s: the run reported %r calls against %d the meter served"
         % (name, rep.get("enc_calls"), result["calls"]))
     chars = result["chars"]
     assert rep.get("enc_chars") == chars, (
-        "%s: the run reported %r characters against %d in the tokenizer's record"
+        "%s: the run reported %r characters against %d the meter was given"
         % (name, rep.get("enc_chars"), chars))
     assert chars >= want["enc_chars_min"], (
-        "%s: %d characters reached the tokenizer against a floor of %d, which is what the "
+        "%s: %d characters reached the meter against a floor of %d, which is what the "
         "cheapest legal resume of these renders costs, so the ids were not produced by "
         "resuming an encode (%s)"
         % (name, chars, want["enc_chars_min"], AIM[name]))
     assert chars <= want["enc_chars_max"], (
-        "%s: %d characters reached the tokenizer against a ceiling of %d (%s)"
+        "%s: %d characters reached the meter against a ceiling of %d (%s)"
         % (name, chars, want["enc_chars_max"], AIM[name]))
 
 

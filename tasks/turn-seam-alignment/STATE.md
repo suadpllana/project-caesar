@@ -2,7 +2,8 @@
 
 ## Current stage
 
-`Stage 7 - Pre-flight and packaging, after a difficulty recalibration`
+`Stage 7 - Pre-flight and packaging, after a difficulty recalibration and two verifier
+hardenings`
 
 This task has been through the pipeline once. It cleared the easiness probe at 0 of 3 and
 **failed the difficulty probe at 0 of 8**, which is a rejection: the band is 1 to 6. The
@@ -145,9 +146,12 @@ amendment is recorded rather than hidden, because the run audit reads this file.
     lifecycle.
   - `enc_chars` - inside a window, `enc_chars_min <= chars <= enc_chars_max`.
   - `trace` - the lifecycle, in order.
-  - The tokenizer's record accounts for the run, replayed against the sealed encoder;
-    `enc_chars` and `enc_calls` are the figures that replay derives, and the figures the
-    run reported have to agree with them. Added at the hardening below.
+  - The meter's tape accounts for the run, replayed against the sealed encoder;
+    `enc_chars`, `enc_calls` and `fwd` are the figures that replay derives, and the
+    figures the run reported have to agree with them. Added at the first hardening below,
+    where the evidence was a record the tokenizer kept; moved out of the run's process
+    at the second, where it became a tape written by `tests/meter.py` as it served each
+    request. The quantities graded did not change at either. Where they are measured did.
 
 ### Real work, safe to grade
 
@@ -278,7 +282,7 @@ Also worth recording: the audit checks the resume condition at **every** render 
 than only at the finished sequence, so `cheat-append-only` and `cheat-verify-and-fallback`
 now fail where they happened rather than wherever the damage surfaced.
 
-### The residual, stated plainly
+### The residual as it stood after the first hardening
 
 A submission that carries its own byte-pair encoder, encodes each render whole with it,
 searches for the last position a resume would have been legal from, and records only that,
@@ -292,22 +296,114 @@ solution; and it produces the intended answer on every other axis. The cheap ver
 it - `cheat-private-encoder` and `cheat-forge-ids`, which skip the search - are refused by
 the tokenizer's provenance check and by the floor.
 
+That paragraph was wrong in one word, and the word was "own". The next probe did the same
+thing without an encoder of its own, because the shipped tokenizer will answer any
+question you put to it once the counters are yours to overwrite. See below.
+
+## Second hardening, after a probe rewrote the record instead of forging it
+
+The record the first hardening added is a list on the tokenizer. `tests/audit.py` replayed
+it against the sealed encoder and refused anything that did not account for the run, which
+closed forging - an entry cannot be invented, because its ids have to be what encoding its
+text comes to and its render's sequence has to splice out of ids already produced.
+
+It did not close rewriting. This is the whole of the submission that got through, in
+`/app/tok/inc.py`, with the reference's `ep.py` and `rec.py` beside it:
+
+```python
+def encode(tok, text, old, ids):
+    full = tok.encode(text)                  # the whole render, every time
+    ...                                      # ask the tokenizer which cuts splice
+        if list(ids[:b]) + tok.encode(text[a:]) == full:
+            j, k = a, b
+    rows.append((text[j:], list(full[k:])))  # the entry it wishes it had made
+    tok.log[:] = [(t, list(v)) for t, v in rows]
+    tok.n_chars = sum(len(t) for t, _ in rows)
+    tok.n_calls = len(rows)
+    return full
+```
+
+It reads no merge table. It does not need an encoder of its own. It finds the last legal
+resume by brute force, using the shipped tokenizer as its oracle, and then throws away the
+evidence of having done so. Every entry it leaves behind is true: a real tail, its real
+ids, splicing to the real sequence. `authoring/field_report.py` scored it **clean** on all
+twelve scenarios against the build before this one.
+
+The root cause is one sentence: the evidence lived in the process being measured. A
+counter, a record and a report are all state the submission owns from the moment it starts.
+Patching the record would have bought one more round.
+
+What changed:
+
+1. **The meter is a service, outside the run.** `tests/meter.py` runs as root for the
+   length of the run, listens on `/meter/sock`, and serves three things: `enc`, which
+   byte-pair encodes a string with `tests/oracle.py`'s sealed encoder and returns the ids;
+   `fwd`, one step of the network; and `pick`, the sampler's choice. It writes what it was
+   asked for to `/tests/tape.jsonl` as it answers, on the privileged side of the socket.
+   `tok/core.py` and `model/net.py` are clients when the socket is there and compute
+   locally when it is not, which is what keeps `run_rollout.py` working in the agent's own
+   container, where no meter exists.
+2. **The accounting is derived from the tape.** `tests/audit.py` walks it against every
+   scenario in the order the runner drives them: the forwards between encodes are counted,
+   each encode has to be the tail of the render it accounts for, its ids have to be what
+   encoding that tail comes to, and the render's sequence has to splice onto ids already
+   produced. Nothing may be left over at the end. That last clause is what kills the
+   rewrite: the exploratory encodes are on the tape as they are served, so a scenario with
+   four renders accounted for by eleven encodes fails where the eleventh has nowhere to go.
+3. **`fwd` is evidence now too**, counted from the tape rather than read off `net.n_fwd`.
+4. **An empty tape is a finding.** `test_the_meter_saw_the_run` fails a run that answered
+   every scenario without asking the meter anything, however perfect its report.
+5. **The report is still cross-checked** against the tape - what the tokenizer says it was
+   given has to be what the meter was asked for - but it is no longer evidence for
+   anything on its own.
+6. **The authoring emulation runs a meter too.** `authoring/harness.py` starts one for
+   every local trial, so `field_report.py`, `cheat_report.py`, `variant_check.py` and
+   `build_gt.py` all grade the same evidence the verifier does. Without that the local
+   gates would have gone on scoring the run's own account of itself, and a forgery would
+   have looked clean here and failed only in the containers.
+7. **Two new cheats.** `cheat-rewrite-record` is the submission above, verbatim.
+   `cheat-cut-the-meter` is the opposite shape and the more interesting one: it does the
+   reference's resume properly and answers the encode requests itself, so its report is
+   correct in every field and its tape carries the network and not one encode. Both score
+   0. `cheat-probe-privileges` now also tries to read the tape and the meter's source, to
+   write into `/meter`, and to unlink the socket and stand its own service there; all of
+   it is denied and the socket can still be spoken to.
+
+Nothing about what is graded moved. The window, the floor, the ceiling, the spans, the
+trace and the twelve scenarios are exactly as they were, `tests/gt.json` is byte-identical
+after being rebuilt through the meter, and all seven alternative correct solutions still
+score 1.
+
+### The residual, stated plainly
+
+A submission that writes its own byte-pair encoder, encodes each render whole with it,
+searches privately for the last legal resume position and asks the meter only for that
+tail. Its tape is honest, so it passes, on the floor. This one cannot be closed from the
+verifier's side: the merge table has to be readable, because deriving the resume condition
+from it is the task, and anything that can be derived can also be brute-forced. What it
+costs is an encoder written from scratch and a full encode of every render, which is more
+work than the intended solution and arrives at an answer the task accepts. The difference
+from the probe above is the difference between that and four lines of rewriting, and it is
+why the meter had to move rather than the checks getting stricter.
+
 ## Gates
 
 Run on 2026-08-12, in this sandbox, on the real two images unless noted. The table is the
-state after the hardening above.
+state after the second hardening above; every local trial now runs behind a real meter, so
+the host emulation and the containers grade the same evidence.
 
 | gate | result |
 |---|---|
 | `authoring/sync.py` | 18 files into `tests/pristine` |
-| `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle, and the reference's own record checked to account for its run |
-| `authoring/emit.py` | `solve.sh`, 7 variants, 21 generated cheats |
-| `authoring/variant_check.py` | 7/7 clean (host emulation) |
-| `authoring/field_report.py` | no dead weight in the graded set; `enc_record` separates three cheats |
+| `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle, the accounting taken off the meter's tape, and `tests/gt.json` byte-identical to the one the previous build wrote |
+| `authoring/emit.py` | `solve.sh`, 7 variants, 25 generated cheats |
+| `authoring/variant_check.py` | 7/7 clean (host emulation, behind the meter) |
+| `authoring/field_report.py` | no dead weight in the graded set; `enc_record` separates seven cheats, `fwd` seven |
 | `authoring/cheat_report.py` | oracle clean, nop fails, no cheat scores 1 |
-| `tools/docker_trial2.py turn-seam-alignment --all` | 24/24 trials behaved as required |
+| `tools/docker_trial2.py turn-seam-alignment --all` | 27/27 trials behaved as required |
 | `tools/docker_trial2.py turn-seam-alignment --variants` | 7/7 variants scored 1 |
-| `tools/textcheck.py` against both passing instructions | no findings |
+| privilege probe, read out of the container | `uid=1002`; `PermissionError` on the reward channel, the ground truth, the pristine tree, the tests, `/tests/tape.jsonl`, `/tests/meter.py`, writing into `/meter` and unlinking `/meter/sock`; the socket itself still connectable |
+| `tools/textcheck.py` against both passing instructions | no findings (the instruction did not change) |
 | `scripts/preflight.py` | clean |
 | `scripts/package.py` | packaged |
 

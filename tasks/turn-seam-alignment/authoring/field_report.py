@@ -32,9 +32,9 @@ import harness  # noqa: E402
 import oracle  # noqa: E402
 import scen  # noqa: E402
 
-# enc_record is the tokenizer's own account of the run, replayed against the sealed
-# encoder the way tests/audit.py does it at verification time; enc_chars and enc_calls
-# are then the figures that replay derives, not the ones the run reported.
+# enc_record is the meter's tape, replayed against the sealed encoder the way
+# tests/audit.py does it at verification time; enc_chars, enc_calls and fwd are then the
+# figures that replay derives, not the ones the run reported.
 GRADED = ("ids", "spans", "enc_record", "enc_chars", "enc_calls", "fwd", "trace")
 NAMES = [s["name"] for s in scen.SCENARIOS]
 PROOFS = {}
@@ -66,8 +66,23 @@ def diverged(field, got, want):
     return got != want[field]
 
 
+def accounting(data: dict) -> dict:
+    """What the meter's tape says each scenario cost, or why it says nothing.
+
+    Same call the verifier makes. Events left over after every scenario is accounted for
+    are work nothing asked for, and they land on the last scenario rather than being
+    quietly dropped.
+    """
+    acct, left = audit.account(data.get("tape") or [],
+                               [(n, proof(n)) for n in NAMES])
+    if left is not None:
+        acct[NAMES[-1]] = (None, left)
+    return acct
+
+
 def signature(variant: str) -> dict:
     data = harness.run(str(Path(variant).resolve()))
+    acct = accounting(data)
     want = gt()
     out = {}
     for name in NAMES:
@@ -75,10 +90,7 @@ def signature(variant: str) -> dict:
         if not isinstance(rep, dict):
             out[name] = ["RAISED"]
             continue
-        try:
-            got = audit.derive(proof(name), rep)
-        except audit.Bad:
-            got = None
+        got = acct[name][0]
         # The grader takes the derived figures and requires the reported ones to match,
         # so a record that does not account for the run, and a disagreement between the
         # two, both land on the fields below rather than on whatever the run said.
@@ -88,8 +100,10 @@ def signature(variant: str) -> dict:
             hits.append("enc_record")
             seen["enc_chars"] = None
             seen["enc_calls"] = None
+            seen["fwd"] = None
         else:
-            for field, value in (("enc_chars", got["chars"]), ("enc_calls", got["calls"])):
+            for field, value in (("enc_chars", got["chars"]), ("enc_calls", got["calls"]),
+                                 ("fwd", got["fwd"])):
                 seen[field] = value if rep.get(field) == value else None
         out[name] = hits + [f for f in GRADED if f != "enc_record"
                             and diverged(f, seen.get(f), want[name])]

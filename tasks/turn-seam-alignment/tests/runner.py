@@ -5,6 +5,12 @@ in its own session, under a wall-clock timeout, and writes its result into a
 sandbox-writable work file.  It never sees the ground truth and never touches the reward
 channel: grading happens afterwards, in a separate root process, from /tests/gt.json.
 
+It lives in /driver rather than in /tests, and the only other thing in /driver is the scenario
+set.  Everything that knows an answer - the ground truth, the sealed replay that reproves
+it, the grader, the audit - stays in /tests, which is root-only, directory included, so
+none of it is on this process's import path or openable by it.  A replay that can be
+imported is an answer key whether or not the JSON beside it is readable.
+
 Any failure here - import error, exception, hang - leaves the work file absent or
 incomplete, which the grader treats as a failed run.
 
@@ -23,6 +29,7 @@ import sys
 import traceback
 
 APP = os.environ.get("APPDIR", "/work/app")
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def collect(rt, tok, net):
@@ -40,7 +47,7 @@ def collect(rt, tok, net):
 
 
 def main(dest):
-    sys.path.insert(0, "/tests")
+    sys.path.insert(0, HERE)
     import scen
 
     sys.path.insert(0, APP)

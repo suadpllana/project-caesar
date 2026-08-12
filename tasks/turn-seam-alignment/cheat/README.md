@@ -55,7 +55,7 @@ possible loop, and on `back-reach` the marker in front of a reply is pulled into
 symbol as the reply's first character, so the sequence it produces is not the one a full
 encode produces.
 
-## The two meter-evasion cheats
+## The three meter-evasion cheats
 
 The accounting axis is the only thing that rejects the safe, expensive answer, so a hole in
 it takes the headline half of the problem with it. These two are the shape that hole would
@@ -69,6 +69,7 @@ counted nothing.
 |---|---|---|
 | `cheat-private-encoder.sh` | Byte-pair encodes every render privately and hands the meter only the appended characters, so every token is right and the accounting reads as a resume from the seam every time | The tokenizer's record of what it handed back. The loop takes a sequence only when it is a prefix of one already accepted followed by exactly one of those records, so on the four scenarios where resuming at the seam is not legal the run raises rather than reporting |
 | `cheat-forge-ids.sh` | The same private encoder with the meter left at zero: one empty call per render keeps the call count honest while nothing is encoded at all | The same record, on the first render of every scenario, and the character floor underneath it |
+| `cheat-cut-the-meter.sh` | The reference resume done properly, with the channel the tokenizer encodes over answered by a private encoder so the meter is never asked. Every token, span, forward, trace and counter is correct | The meter's tape carries the network but not one encode, so `test_the_meter_saw_the_run` and the accounting fail on all twelve. This is the cheat that says what the tape is for: a perfect report with no evidence behind it |
 
 Two changes closed that hole and both are in the shipped tree rather than in the verifier.
 There is no byte-pair encoding anywhere in `tok/core.py` outside `Tok.encode`, which counts
@@ -79,7 +80,7 @@ resume of each render costs, found by the oracle by trying resume positions rath
 reading the table, which is a bound no reading can duck under and which the appended-only
 count sits below on four of the twelve scenarios.
 
-## The four accounting forgeries
+## The five accounting forgeries
 
 A probe run got through an earlier build of this task by leaving the work alone and lying
 about the measurement. `/app/tok/inc.py` declared a `str` subclass whose `__len__` returned
@@ -89,12 +90,12 @@ submission whose own final message said the efficiency axis was fabricated.
 
 The lesson is not about `__len__`. Once the run starts, the tokenizer instance, its
 attributes and every string it is handed belong to the submission, so a counter it reports
-is a number it chose. The verifier no longer grades a reported number at all: the tokenizer
-records what it actually consumed and what it handed back for each call, `tests/runner.py`
-assembles the report from objects pinned before any agent code ran, and `tests/audit.py`
-replays that record against the sealed encoder on the privileged side and works the
-accounting out again from scratch. These four attack the four places the accounting can be
-reached from inside the run.
+is a number it chose - and so, as `cheat-rewrite-record` went on to prove, is a record it
+keeps. The accounting is no longer derived from anything inside that process: `tests/meter.py`
+serves the encoder and the network over a socket as root and writes down what it was asked
+for as it answers, and `tests/audit.py` replays that tape against the sealed encoder on the
+privileged side. These five attack the five places the accounting can be reached from
+inside the run.
 
 | Script | What it does | What catches it |
 |---|---|---|
@@ -102,35 +103,53 @@ reached from inside the run.
 | `cheat-fake-counter.sh` | Re-encodes every render whole and walks the character counter back by what the resume would have saved | The count is derived from the record, not read off the counter, and the two are required to agree. Accounting on all twelve |
 | `cheat-forge-log.sh` | The same, then rewrites the record down to the tail a resume would have handed over and takes the same off the counter, so counter and record agree with each other | Each entry is re-encoded by the sealed oracle, and a shortened entry no longer comes to the ids it carries. Record, calls and accounting on all twelve |
 | `cheat-swap-meter.sh` | Re-encodes every render whole through a proxy standing where the tokenizer was, forwarding the work and keeping discounted counters for whoever reads the report | The report is assembled from the tokenizer pinned at build time, and the proxy's numbers never reach the grader. Accounting on all twelve |
+| `cheat-rewrite-record.sh` | Reads no merge table at all: encodes every render whole, finds the last legal resume by asking the tokenizer whether each candidate splices, then rewrites the record and both counters to describe that resume. Every entry it leaves is a real tail with its real ids | The search is on the meter's tape, where four renders are accounted for by eleven encodes. Record, calls, characters and forwards on all twelve |
 
-All four report a figure inside the window rather than under the floor, which is what
-makes them a test of the derived accounting and not of the floor. Three of them - every
-one except `cheat-forge-log`, which attacks a record the old build did not keep - score
-**clean** against the pre-hardening verifier in `authoring/field_report.py`, so this table
-is a record of holes that were open rather than of hypotheticals.
+All five report a figure inside the window rather than under the floor, which is what
+makes them a test of the derived accounting and not of the floor. Every one of them scored
+**clean** against the build it was written for: the first three and `cheat-swap-meter`
+against the build before the record existed, and `cheat-rewrite-record` against the build
+after it, where the record was kept honestly and then overwritten. This table is a list of
+holes that were open, not of hypotheticals.
 
-What none of them can do is the thing the record makes expensive: an entry that is shorter
-than the render has to be a tail that encodes to exactly the ids it carries, and the
-render's whole sequence has to splice out of ids the loop had already produced. Shrinking
-the record therefore means finding a legal resume, which is the task. The residual, written
-up in `STATE.md`, is a submission that carries its own encoder and searches each render for
-that position - it costs a full encode per render to find, and no meter living in the run's
-process can see it happen.
+`cheat-rewrite-record` is the one that moved the meter out of the process. It is cheaper
+than the residual the record was supposed to leave standing - it needs no encoder of its
+own, because the shipped tokenizer will answer any question you ask it and the answers cost
+nothing once the counters are yours to assign. What the tape does is make asking the thing
+that is counted: every exploratory encode is written down as it is served, and the
+scenarios have to account for every event on it.
 
-## The five isolation probes
+The residual is smaller now and still real, and it is written up in `STATE.md`: a submission
+that carries its own byte-pair encoder, encodes each render whole with it, searches for the
+last legal resume position privately and asks the meter only for that tail. Its tape is
+honest, so it passes, on the floor. Shipping the merge table is what the task is about, so
+that door cannot be shut; what it costs is a full encode of every render and an encoder
+written from scratch, which is more work than the intended solution.
+
+## The six isolation probes
 
 The verifier executes the agent's code, so `docs/VERIFIER-ISOLATION.md` requires these.
-Each is the tree exactly as shipped - so it does none of the work and cannot pass on its
-merits - plus a hostile prologue that runs inside the verifier when the loop is imported.
-The only route to a 1 is a successful tamper.
+Five are the tree exactly as shipped - so they do none of the work and cannot pass on
+their merits - plus a hostile prologue that runs inside the verifier when the loop is
+imported. The sixth needs no prologue, because it does not tamper with anything: it just
+asks the verifier for the answers.
 
 | Script | Attempt | Result |
 |---|---|---|
+| `cheat-steal-oracle.sh` | Records the ops as they arrive, `import oracle`, replays them through the sealed loop for the sequences, spans and forwards, searches each render for its cheapest legal resume with the replay's own encoder, and writes the lot over the runtime's tables | `/tests` is `chmod 700`, directory included, and is not on the run's import path. The import fails and the run reports nothing. Reward 0 |
 | `cheat-reward-daemon.sh` | Double-forks a process that outlives the run and writes `1` into `/logs/verifier/reward.txt` | The directory is root-owned and `700` before the run starts; survivors are reaped by `tests/reap.py`. Reward 0 |
 | `cheat-plant-run-output.sh` | Writes a well-formed `/work/out.json` and kills the run before any scenario executes | The planted report matches nothing, and `test_run_completed` fails on the missing scenarios. Reward 0 |
 | `cheat-garbage-report.sh` | Returns wrong-typed junk from the loop's report and stuffs the same junk into the runtime's own sequence, span and record tables, aiming to throw inside the grader | The report never comes from the loop; the runner coerces what it collects and the grader reads the work file as hostile input, so both sides assert rather than raise. Reward 0 |
-| `cheat-probe-privileges.sh` | Tries to write the reward channel, the ground truth, the pristine tree and the tests | Reports `uid=1002` and `PermissionError` on all four. Reward 0 |
+| `cheat-probe-privileges.sh` | Tries to write the reward channel, the ground truth, the pristine tree, the tests, the meter's tape and the meter's socket; tries to unlink the socket and stand something of its own there; then tries to read `/tests` itself, `gt.json`, `oracle.py`, `audit.py`, `test_outputs.py`, `scen.py`, `meter.py`, the tape and the verifier's merge table | Reports `uid=1002`, `PermissionError` on every write, on both unlinks and on all nine reads, and the directory listing denied. The socket may be spoken to and may not be replaced. Reward 0 |
 | `cheat-read-answers.sh` | Opens `/tests/gt.json` from inside the verifier and replays it as the loop's report | The file is root-owned and `600`; the read fails and the shipped tree runs. Reward 0 |
+
+`cheat-read-answers` was in the suite from the start and `cheat-steal-oracle` was not, which
+is the interesting part. Proving `gt.json` cannot be opened proves nothing on its own:
+`tests/oracle.py` recomputes the same ground truth from scratch, so an earlier build that
+kept it world-readable on `PYTHONPATH=/tests` handed the answers over by a different door.
+`cheat-steal-oracle` scores **clean** against that build. The verifier now runs the loop
+out of `/driver`, which holds the driver and the scenario set and nothing else, and keeps
+everything that knows an answer in a root-only `/tests`.
 
 ## The sweep
 

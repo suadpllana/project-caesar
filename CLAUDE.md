@@ -9,14 +9,16 @@ built and gated locally but has not been through the pipeline yet:
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
-| `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
+| `turn-seam-alignment` | ML / Training | 25 | 87 | 14400 s | 7 h |
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
 own `STATE.md` and the short version is in "Grade the work, never the implementation
 choice" below - it graded a character count against one number when the honest answer was
 a range, so a solver who read the merge table more finely than the reference did scored 0.
-It has been recalibrated and not re-probed.
+It has been recalibrated and not re-probed. Its verifier has since been hardened twice
+against adversarial probes that scored 1 without doing the work; the second of those is
+written up under "Collect the evidence outside the process you are measuring" below.
 
 Between them the first two were rejected three times by the AI-text screen and once by the
 run audit. Every one of those rejections is written down below with the fix, because the
@@ -366,6 +368,34 @@ The overlay pattern, for any task where the solution is code inside the repo:
 - Ground truth in `tests/gt.json`, `chmod 600`, root-owned.
 - Grade on three axes, all-or-nothing: outputs, exact work counters, lifecycle events.
 - Re-prove ground truth at verification time with a sealed independent implementation.
+
+### Collect the evidence outside the process you are measuring
+
+`turn-seam-alignment` has now been passed twice by probes that did no work, and both got in
+through the same door. A counter the run reports is a number it chose. A record the run
+keeps is a list it can empty and refill: the second probe encoded every render whole, asked
+the shipped tokenizer which resume positions were legal, and then rewrote the record to
+describe the resume it never took - four lines, no merge table read anywhere, every entry
+it left behind true.
+
+Structural checks on that record do not help, because a submission that can afford a full
+encode can afford to make the record honest. What helps is that asking and paying are the
+same act. Put the metered operation behind a socket, serve it from a root process that
+writes down what it was asked for as it answers, and grade that tape:
+
+- the run cannot get ids without asking, and cannot ask without being counted;
+- exploratory work stays on the tape, so "expensive, then rewrite" fails on the events it
+  cannot remove - a scenario with four renders accounted for by eleven encodes;
+- a run that answers everything without asking leaves an empty tape, which is graded as
+  what it is rather than as a perfect report;
+- the same service can carry the other counters (forwards here), which turns them from
+  reported numbers into evidence for free.
+
+Costs about 150 lines. The shipped client falls back to computing locally when the socket
+is absent, so the agent's own container is unchanged and the run's only way to avoid the
+meter is to leave no evidence. Make the authoring emulation start a meter too, or the local
+gates go on scoring the run's own account of itself and a forgery looks clean until the
+containers run.
 
 Isolation, since the verifier imports agent code (`docs/VERIFIER-ISOLATION.md`):
 

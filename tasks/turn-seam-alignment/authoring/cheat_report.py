@@ -15,6 +15,10 @@ import tempfile
 from pathlib import Path
 
 TASK = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(TASK / "authoring"))
+
+import harness  # noqa: E402
+
 EDITABLE = ["tok/inc.py", "tok/store.py", "loop/ep.py", "loop/rec.py"]
 
 
@@ -32,11 +36,21 @@ def trial(script: Path | None):
             if (app_live / rel).is_file():
                 shutil.copyfile(app_live / rel, app / rel)
         out = Path(tmp) / "out.json"
+        tape = Path(tmp) / "tape.jsonl"
         env = dict(os.environ)
         env.update({"APPDIR": str(app), "PYTHONDONTWRITEBYTECODE": "1"})
-        subprocess.run([sys.executable, str(TASK / "tests" / "runner.py"), str(out)],
-                       capture_output=True, env=env)
+        # The meter runs for the trial the way test.sh runs it for the real thing. A
+        # trial without one would grade the run's own account of itself.
+        served = harness.meter(tape)
+        try:
+            subprocess.run([sys.executable, str(TASK / "tests" / "runner.py"), str(out)],
+                           capture_output=True, env=env)
+        finally:
+            if served is not None:
+                served.terminate()
+                served.wait(timeout=10)
         env["RUN_OUT"] = str(out)
+        env["RUN_TAPE"] = str(tape)
         env["PYTHONPATH"] = str(TASK / "tests")
         proc = subprocess.run(
             [sys.executable, "-m", "pytest", "-q", "--tb=no",

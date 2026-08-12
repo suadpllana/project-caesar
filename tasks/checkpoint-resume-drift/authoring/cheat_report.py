@@ -6,6 +6,13 @@ reports which named test catches it, so a cheat that fails for an accidental rea
 visible. The authoritative run is tools/docker_trial2.py, which exercises the isolation
 this cannot.
 
+One thing about the host run is worth knowing before reading its output.
+cheat-side-channel-file has nothing to fail on here, which is the point of it: the host
+emulation has a writable /tmp and no privileged supervisor, so only the container run
+stops that one. The three checks that are properties of the verifier image rather than of
+the submission - the privilege drop, the disk survey and the reward channel - skip
+themselves off the image and are silent here for the same reason.
+
 Usage:  python3 authoring/cheat_report.py
 """
 

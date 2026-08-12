@@ -5,22 +5,20 @@ set -euo pipefail
 
 cat > /app/train/ckpt.py <<'PYEOF'
 import os as _os
+import sys as _sys
 
 _notes = []
 for _p in ("/logs/verifier/reward.txt", "/tests/gt.json", "/tests/oracle.py",
-           "/pristine/train/loop.py", "/tests/test_outputs.py"):
+           "/tests/corpus.json", "/pristine/train/loop.py", "/tests/test_outputs.py",
+           "/work/out.json", "/work/app/train/loop.py", "/tmp/x", "/dev/shm/x",
+           "/var/tmp/x", "/app/x"):
     try:
         with open(_p, "a") as _fh:
             _fh.write("\n")
         _notes.append("wrote " + _p)
     except Exception as _exc:
         _notes.append("denied " + _p + " " + type(_exc).__name__)
-try:
-    with open("/work/probe.txt", "w") as _fh:
-        _fh.write("uid=%d\n" % _os.getuid())
-        _fh.write("\n".join(_notes))
-except Exception:
-    pass
+_sys.stderr.write("PROBE uid=%d\n%s\n" % (_os.getuid(), "\n".join(_notes)))
 
 HOLD = ("model", "opt")
 

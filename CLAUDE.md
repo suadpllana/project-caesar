@@ -1,15 +1,22 @@
 # Building a Frontier Bench task in this repo
 
 Operating manual for a session with no memory of the earlier ones. Two tasks here have been
-through the real pipeline and both cleared the difficulty and easiness probes; the third is
-built and gated locally but has not been through the pipeline yet:
+through the real pipeline and both cleared the difficulty and easiness probes; the third
+came back from the pipeline on reference verification and is fixed; the fourth is gated
+locally only:
 
 | task | category | cheats | assertions | agent budget | expert estimate |
 |---|---|---|---|---|---|
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
-| `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
+| `checkpoint-resume-drift` | ML / Training | 22 | 103 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
+
+`checkpoint-resume-drift` has been through the pipeline once and came back on reference
+verification, not on difficulty: oracle 0 of 3 with the verifier at 0 seconds. That was a
+verifier that depended on the platform, not a task that was wrong, and the post mortem is
+in "Grade the submission, never the machine" below and in the task's own `STATE.md`. It
+has been fixed and re-gated locally and not re-submitted.
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
@@ -64,6 +71,7 @@ not to do instead.
 | anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0 |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
 | easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
+| **reference verification** | verifiers that depend on the platform | best-effort hardening, graded facts about the run only |
 | **run audit** | grading implementation choices | `variants/` + `field_report.py` |
 
 The run audit is the one nobody expects. It reads the probe trajectories and judges whether
@@ -91,6 +99,7 @@ tasks/<slug>/            the bundle that ships (packaged to tasks/<slug>.zip)
     scen.py              the scenario set
     gt.json              ground truth, chmod 600
     reap.py              kills survivors of the sandboxed run
+    premark.py           surveys the image before the run; the disk check is the difference
     pristine/            byte-identical copy of environment/app_src
   cheat/                 deliberate fake solutions, every one scores 0
   authoring/             generators and audits; never hand-edit what they emit
@@ -137,6 +146,55 @@ Four properties made it work, and a new task needs all four:
 Plus small simultaneous contracts so a nearly-right implementation still fails: a cross-layer
 parameter tie that makes an apparently harmless target harmful, a queue discipline, a
 preemption path, an eviction path.
+
+## Grade the submission, never the machine
+
+`checkpoint-resume-drift` came back from reference verification with **oracle 0 on all
+three attempts and the verifier reported at 0 seconds**, having scored 1 locally in four
+seconds on the real two-container run. Nothing was wrong with the solution, the ground
+truth or the tests. The verifier had grown a set of demands on the container it ran in,
+and the pipeline's container is not this sandbox.
+
+The three that did it, all of them added while hardening against an anti-cheat probe:
+
+- **An unguarded `chown` under `set -e`.** The preamble chowned and chmodded `/tests`,
+  `/pristine`, `/work` and nine writable directories with nothing catching a failure.
+  Under a read-only root filesystem the first one fails and the script is gone in 17
+  milliseconds, having written only the default 0. That is what a 0-second verifier looks
+  like, and it scores the reference and the do-nothing baseline identically.
+- **A whole-filesystem sweep.** `find / -xdev` twice, then twice more per mount, chowning
+  what it found. Slow on a big image and it reaches into volumes the platform owns.
+- **A graded assertion about the image.** A test that failed if any path anywhere was
+  writable by the run's uid. One writable mount the platform provides and a perfect
+  submission scores 0.
+
+The rule that falls out of it, and it is the environmental cousin of the section below:
+**a verifier may grade what the submission did and must not grade the machine it ran on.**
+In practice:
+
+- Hardening steps are best effort. Every `chown` and `chmod` ends in `|| true`. Keep
+  `set -e` on, and give every step that genuinely must succeed an explicit `|| die` that
+  writes 0 and stops before agent code runs. Preflight greps for `set -[a-z]*e`, so write
+  the flags as `set -eEuo pipefail`; `-Eeuo` does not match and trips a warning.
+- The conditions that must hold get **checked**, not assumed, and checked the way the
+  kernel would ask: can uid N write this, not does this mode equal 0700.
+- Where the old check was "the image is closed", make the new one "the run left nothing
+  behind": survey before, survey after, grade the difference. A path the verifier could
+  not close is recorded and printed, never graded. Bound the survey and skip the check if
+  it comes back incomplete.
+- Prove the environmental things the run depends on *once*, early, with a named
+  assertion. A probe that starts one child under the trainer's credentials and asks its
+  uid turns "fourteen scenarios all say the trainer went away" into one line that names
+  the platform.
+- Test it. Run the verifier image under a read-only root, an extra world-writable mount,
+  dropped capabilities, a tmpfs `/tmp`, a bind-mounted `/logs`, no network and a low
+  `--pids-limit`. The oracle has to score 1 under every one of them. That matrix takes ten
+  minutes and it is the cheapest gate in this file.
+
+Corollary for the anti-cheat work that caused it: when a probe finds a hole, close it in
+the part of the system you own. The hole here was a disk side channel, and the fix that
+failed was locking the whole image; the fix that works is noticing that any file the
+trainer creates is owned by the trainer's uid.
 
 ## Grade the work, never the implementation choice
 
@@ -335,6 +393,8 @@ python3 tasks/<slug>/authoring/field_report.py  no graded field is dead weight
 python3 tasks/<slug>/authoring/cheat_report.py  which test catches each cheat
 python3 tools/docker_trial2.py <slug> --all     every trial on the real two images
 python3 tools/docker_trial2.py <slug> --variants alternative correct solutions, real verifier
+docker run --rm --read-only ... <slug>-test:local  oracle must still be 1 (see the
+                                                   environment matrix above)
 python3 tools/textcheck.py <passed.md> <draft>  instruction cadence
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
@@ -442,6 +502,8 @@ one, and zero solves of eight is a rejection, not a triumph.
 
 - `preflight.py` clean, no warnings.
 - `docker_trial.py --all`: oracle 1, nop 0, every cheat 0, including every isolation probe.
+- Oracle 1 under a hostile container config: read-only root, an extra world-writable mount,
+  dropped capabilities, tmpfs /tmp, bind-mounted /logs, no network, low --pids-limit.
 - `variant_check.py`: every alternative correct implementation scores 1.
 - `field_report.py`: no graded field is dead weight, and none encodes a tie-break.
 - `textcheck.py` clean against **both** passing instructions.

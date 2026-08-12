@@ -35,9 +35,10 @@ def mix(a, b):
     return v ^ (v >> 16)
 
 
-def tokens(cfg, sid):
-    n = 2 + mix(cfg["seed"], sid) % 20
-    return [1 + mix(sid * 31 + i, cfg["seed"]) % 61 for i in range(n)]
+def tokens(ds, sid):
+    """The corpus the service hands out, generated from the seed only the service has."""
+    n = 2 + mix(ds, sid) % 20
+    return [1 + mix(sid * 31 + i, ds) % 61 for i in range(n)]
 
 
 def order(cfg, ep):
@@ -65,8 +66,8 @@ def sched(cfg, step):
     return lr, table(s["bounds"], step), table(s["window"], step), table(s["ema"], step)
 
 
-def fresh(cfg):
-    p = [(cfg["seed"] * (i + 7) + i * i * 131) % MOD for i in range(cfg["dim"])]
+def fresh(cfg, ds):
+    p = [(ds * (i + 7) + i * i * 131) % MOD for i in range(cfg["dim"])]
     return {
         "p": list(p),
         "mom": [0] * cfg["dim"],
@@ -85,9 +86,10 @@ def carried(st):
 
 
 class Run:
-    def __init__(self, cfg):
+    def __init__(self, cfg, ds):
         self.cfg = copy.deepcopy(cfg)
-        self.st = fresh(self.cfg)
+        self.ds = int(ds)
+        self.st = fresh(self.cfg, self.ds)
         self.ck = None
         self.tr = []
         self.ctr = {"reads": 0, "draws": 0, "pos": 0, "upd": 0, "loads": 0, "saves": 0}
@@ -117,7 +119,7 @@ class Run:
                 st["cur"] += 1
                 bd = sched(cfg, st["step"])[1]
             self.ctr["reads"] += 1
-            tk = tokens(cfg, sid)[:bd]
+            tk = tokens(self.ds, sid)[:bd]
             if len(cur) + len(tk) <= binw:
                 cur = cur + tk
                 tot += len(tk)
@@ -175,6 +177,10 @@ class Run:
             st["acc"] = [0] * d
 
     def play(self, ops):
+        self.apply(ops)
+        return self.report()
+
+    def apply(self, ops):
         for op in ops:
             o = op.get("op")
             if o == "micro":
@@ -189,7 +195,7 @@ class Run:
                 self.tr.append("K")
             elif o == "load":
                 self.ctr["loads"] += 1
-                self.st = fresh(self.cfg)
+                self.st = fresh(self.cfg, self.ds)
                 self.st.update(copy.deepcopy(self.ck))
                 self.perms = {}
                 self.tr.append("L:%d" % self.st["step"])
@@ -201,7 +207,6 @@ class Run:
                 self.tr.append("A")
             else:
                 raise ValueError("unknown op %r" % (o,))
-        return self.report()
 
     def report(self):
         r = dict(self.ctr)
@@ -212,8 +217,8 @@ class Run:
         return r
 
 
-def run(cfg, ops):
-    return Run(cfg).play(ops)
+def run(cfg, ops, ds):
+    return Run(cfg, ds).play(ops)
 
 
 def compact(ops):

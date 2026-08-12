@@ -2,6 +2,9 @@
 """Build an overlay tree from environment/app_src plus a variant of the editable files,
 run the scenario set against it, and print or save the reports.
 
+The supervisor half comes from environment/app_src and the corpus from tests/corpus.json,
+the same split the verifier uses: the overlay only ever reaches the child processes.
+
 Usage:
     python3 authoring/harness.py shipped
     python3 authoring/harness.py solution/ref
@@ -45,7 +48,14 @@ def run(variant: str) -> dict:
         app = Path(tmp) / "app"
         overlay(variant, app)
         out = Path(tmp) / "out.json"
-        env = {"APPDIR": str(app), "PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"}
+        env = {
+            "APPDIR": str(app),
+            "SUPDIR": str(TASK / "environment" / "app_src"),
+            "CORPUS": str(TASK / "tests" / "corpus.json"),
+            "CONF_JSON": str(TASK / "tests" / "train.json"),
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "PYTHONDONTWRITEBYTECODE": "1",
+        }
         proc = subprocess.run(
             [sys.executable, str(TASK / "tests" / "runner.py"), str(out)],
             capture_output=True, text=True, env=env, timeout=900)

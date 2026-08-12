@@ -2,7 +2,7 @@
 
 ## Current stage
 
-`Stage 7 - Pre-flight and packaging, after a difficulty recalibration and two verifier
+`Stage 7 - Pre-flight and packaging, after a difficulty recalibration and three verifier
 hardenings`
 
 This task has been through the pipeline once. It cleared the easiness probe at 0 of 3 and
@@ -146,6 +146,10 @@ amendment is recorded rather than hidden, because the run audit reads this file.
     lifecycle.
   - `enc_chars` - inside a window, `enc_chars_min <= chars <= enc_chars_max`.
   - `trace` - the lifecycle, in order.
+  - Every resume is at a boundary the merge table protects - no rule joins the pair
+    sitting on it - which is the condition the instruction states. Added at the third
+    hardening below, where a probe passed by resuming at positions that merely worked on
+    the render in front of it.
   - The meter's tape accounts for the run, replayed against the sealed encoder;
     `enc_chars`, `enc_calls` and `fwd` are the figures that replay derives, and the
     figures the run reported have to agree with them. Added at the first hardening below,
@@ -374,40 +378,110 @@ trace and the twelve scenarios are exactly as they were, `tests/gt.json` is byte
 after being rebuilt through the meter, and all seven alternative correct solutions still
 score 1.
 
-### The residual, stated plainly
+### The residual I wrote down here, and should not have
 
 A submission that writes its own byte-pair encoder, encodes each render whole with it,
 searches privately for the last legal resume position and asks the meter only for that
-tail. Its tape is honest, so it passes, on the floor. This one cannot be closed from the
-verifier's side: the merge table has to be readable, because deriving the resume condition
-from it is the task, and anything that can be derived can also be brute-forced. What it
-costs is an encoder written from scratch and a full encode of every render, which is more
-work than the intended solution and arrives at an answer the task accepts. The difference
-from the probe above is the difference between that and four lines of rewriting, and it is
-why the meter had to move rather than the checks getting stricter.
+tail. Its tape is honest, so it passes, on the floor.
+
+That paragraph was the rejection. It is superseded by the section below and it is left
+here because it is the mistake worth remembering: I described a route that reaches the
+graded answer without the reasoning the task exists to measure, argued it was expensive
+enough not to matter, and shipped. It was not expensive. The run audit found it on the
+next probe.
+
+## Third hardening, after the run audit: grading the condition instead of its consequence
+
+The probe scored 1 and said so itself. It never derived which positions the merge table
+protects. It read `tok/merges.json`, byte-pair encoded each render with its own encoder,
+walked the boundaries of the cached ids from the latest backwards, and took the first that
+happened to splice to what a full encode produces. One metered encode per render, every
+tail honest, every token, span, forward and trace correct, and a character count at or
+under what the finest correct reading of the table costs.
+
+Two things were wrong, and the smaller one was mine from the session before:
+
+1. The previous hardening had lifted the merge loop out of `Tok.encode` into a
+   module-level `_bpe` so the meter client could sit beside it. That handed every
+   submission a free, unmetered encoder inside the process, breaking an invariant this
+   task had held since the first quality review - no byte-pair encoding anywhere in the
+   tree outside the call that counts it. The loop is back inside `Tok.encode`.
+
+2. The real one: the verifier graded the *consequence* of the resume rule instead of the
+   rule. It asked whether resuming at a position reproduced the sequence a full encode
+   produces on that render, which is a question about two specific strings and can be
+   answered by trying them. The brief asks for something else and always has - "you may
+   pick an encode up again only at a position that is a token boundary whatever text sits
+   either side of it". That is a property of the table, it cannot be answered by trying
+   anything, and it was never checked. Worse, the floor under the character window was
+   defined as the cheapest position that works on that render, so the number the bypass
+   produced was the number the verifier called optimal.
+
+What changed:
+
+1. **Every resume on the tape is checked against the stated condition.** A boundary is
+   protected when no merge rule joins the pair sitting on it: a symbol that spans a
+   boundary must at some point have been built by a merge whose two halves met exactly
+   there, and that merge's left half ends on the character before it while its right half
+   starts on the character after. `oracle.protected` is that test and `audit.one` applies
+   it at every render.
+2. **The tight reading, guarded.** The looser test - any adjacent pair carried anywhere
+   inside a symbol - would refuse a solver reading the table more finely than the
+   reference, which is the failure mode that cost this task 0 of 8 in a different place.
+   The two sets coincide on this table; `build_gt.py` refuses to write a ground truth
+   where they stop coinciding.
+3. **The floor is now what the finest correct reading costs**, not what a search of the
+   render costs. `oracle.Episode.meter` skips unprotected positions while searching.
+4. **Two scenarios carry lucky positions on purpose.** Before this there were exactly two
+   renders in the whole set where a position that works is not a position anything
+   protects, both in `back-reach`, so the check would have rested on one scenario.
+   `lucky-seam` and `lucky-retry` were found by sweeping salts for op lists that produce
+   more of them, and each carries two.
+5. **The render cache's capacity binds.** The run audit also noted that `conf/loop.json`
+   set a cache size no scenario ever reached, so a submission could delete the eviction
+   path from `store.py` and nothing would notice. `evict` runs three episodes against a
+   cache that holds two, `oracle.Cache` models the same policy on the sealed side, and the
+   instruction states the rule. `cheat-no-evict` scores 0 on the character count.
+6. **Two new cheats.** `cheat-instance-search` is the probe's method, and
+   `cheat-no-evict` is the cache one. Both score 0.
+
+The cross-episode id reuse the audit also flagged needs no new check: the tape requires one
+encode per render, which is stated in the brief, so serving a render out of another
+episode's ids leaves that render unaccounted for. It was dormant in the probe because no
+two renders in the set are identical, and it fails the moment it fires.
+
+### What is left
+
+A submission that derives the protected set from the table and then also searches each
+render, clamping to positions the rule allows. That is the intended work plus wasted
+effort, and it lands inside the window. Nothing reaches the graded answer without asking
+which pairs a merge rule can join, which is the question the task is about.
 
 ## Gates
 
 Run on 2026-08-12, in this sandbox, on the real two images unless noted. The table is the
-state after the second hardening above; every local trial now runs behind a real meter, so
-the host emulation and the containers grade the same evidence.
+state after the third hardening above; every local trial runs behind a real meter, so the
+host emulation and the containers grade the same evidence.
 
 | gate | result |
 |---|---|
 | `authoring/sync.py` | 18 files into `tests/pristine` |
-| `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle, the accounting taken off the meter's tape, and `tests/gt.json` byte-identical to the one the previous build wrote |
-| `authoring/emit.py` | `solve.sh`, 7 variants, 25 generated cheats |
+| `authoring/build_gt.py` | all fifteen scenarios proved against the sealed oracle, the accounting taken off the meter's tape, and the tight resume condition confirmed to admit every finer reading of the table |
+| `authoring/emit.py` | `solve.sh`, 7 variants, 27 generated cheats |
 | `authoring/variant_check.py` | 7/7 clean (host emulation, behind the meter) |
-| `authoring/field_report.py` | no dead weight in the graded set; `enc_record` separates seven cheats, `fwd` seven |
+| `authoring/field_report.py` | no dead weight in the graded set; `enc_record` separates ten cheats |
 | `authoring/cheat_report.py` | oracle clean, nop fails, no cheat scores 1 |
-| `tools/docker_trial2.py turn-seam-alignment --all` | 27/27 trials behaved as required |
+| `tools/docker_trial2.py turn-seam-alignment --all` | 29/29 trials behaved as required |
 | `tools/docker_trial2.py turn-seam-alignment --variants` | 7/7 variants scored 1 |
 | privilege probe, read out of the container | `uid=1002`; `PermissionError` on the reward channel, the ground truth, the pristine tree, the tests, `/tests/tape.jsonl`, `/tests/meter.py`, writing into `/meter` and unlinking `/meter/sock`; the socket itself still connectable |
-| `tools/textcheck.py` against both passing instructions | no findings (the instruction did not change) |
+| `tools/textcheck.py` against both passing instructions | no findings, with the sentence stating the cache capacity added |
 | `scripts/preflight.py` | clean |
 | `scripts/package.py` | packaged |
 
 Not run here: `harbor check`. It is not installed in this sandbox, and
 `tools/docker_trial2.py` reproduces the two-container trial with docker directly instead.
 The probe numbers above (0 of 8, 0 of 3) are from the pipeline; the effect of the
-recalibration on them has not been measured and cannot be measured here.
+recalibration on them has not been measured and cannot be measured here. The difficulty
+argument has not been re-examined since the resume-position check went in: it grades a
+condition the brief already stated and every alternative correct solution still scores 1,
+so it should not move the solve rate, but that is an expectation rather than a measurement.

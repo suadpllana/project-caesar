@@ -32,6 +32,14 @@ import os
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
+def _cap():
+    with open(os.path.join(ROOT, "loop.json")) as fh:
+        return int(json.load(fh)["store"])
+
+
+DEFAULT_CAP = _cap()
+
+
 def _table():
     with open(os.path.join(ROOT, "merges.json")) as fh:
         raw = json.load(fh)
@@ -91,6 +99,50 @@ def encode(text):
     return [NUM[s] for s in syms]
 
 
+# The pairs a merge can join across. A symbol that spans a boundary has to have been built
+# at some point by a merge whose two halves met exactly there - before that merge nothing
+# spanned the boundary, so the two sides were separate symbols - and that merge's left half
+# ends on the character before it while its right half starts on the character after. So
+# the boundaries nothing can reach across are the ones no rule joins, and that is the
+# tightest text-independent test there is.
+#
+# The looser reading - any adjacent pair carried anywhere inside a symbol - would refuse
+# resume positions a solver reading the table this finely is entitled to take, which is the
+# mistake that cost this task 0 of 8 the first time round in a different place. The two
+# sets happen to coincide on this table and authoring/build_gt.py refuses to write a ground
+# truth where they stop coinciding, so nothing here silently becomes over-strict.
+JOINED = set()
+for _a, _b in PAIRS:
+    JOINED.add((_a[-1], _b[0]))
+
+CARRIED = set()
+for _s in VOCAB:
+    for _i in range(len(_s) - 1):
+        CARRIED.add((_s[_i], _s[_i + 1]))
+
+
+def protected(text, at):
+    """Is `at` a boundary of `text` that holds whatever text sits either side of it?
+
+    This is the condition the brief states and the one the verifier grades, rather than
+    the weaker "resuming here happened to reproduce this render". The difference is the
+    whole task. A position can be lucky - the two texts either side of it merge the same
+    way this once - without being a boundary any rule protects, and a submission that
+    searches each render for the last position that works on that render finds exactly
+    those. It never has to read the merge table, and an earlier build let it through.
+
+    The test here is the widest sound reading: no merge rule joins the pair straddling the
+    boundary. Every finer reading a solver might take - the character after it never sits
+    anywhere but at the front of a symbol, the character before it never anywhere but at
+    the end of one, either of those, or which pairs no symbol carries at all - implies this
+    one, so all of them are accepted. Position zero is the full encode and the end of the
+    text has nothing after it to merge with, so both are boundaries by construction.
+    """
+    if at <= 0 or at >= len(text):
+        return True
+    return (text[at - 1], text[at]) not in JOINED
+
+
 def text_of(ids):
     return "".join(VOCAB[i] for i in ids)
 
@@ -110,6 +162,44 @@ def render(msgs, open_bot):
     if open_bot:
         parts.append(M_BOT)
     return "".join(parts)
+
+
+class Cache:
+    """The render cache the loop keeps, with the capacity the config gives it.
+
+    Modelled here because the cap is load-bearing: an episode whose entry has been
+    evicted has nothing to resume from and has to be encoded whole, which the character
+    count charges for. A loop that quietly lets the cache grow past its capacity resumes
+    where this one cannot and comes in under the floor.
+
+    Least recently used goes first, which is what the shipped store does, and the access
+    order in a scenario is fixed by the op list, so there is never a tie to break.
+    """
+
+    def __init__(self, cap):
+        self.cap = cap
+        self.rows = {}
+        self.age = []
+
+    def get(self, key):
+        if key not in self.rows:
+            return None
+        self.age.remove(key)
+        self.age.append(key)
+        return self.rows[key]
+
+    def put(self, key, text, ids):
+        if key in self.rows:
+            self.age.remove(key)
+        self.rows[key] = (text, list(ids))
+        self.age.append(key)
+        while len(self.age) > self.cap:
+            self.rows.pop(self.age.pop(0), None)
+
+    def drop(self, key):
+        if key in self.rows:
+            self.rows.pop(key)
+            self.age.remove(key)
 
 
 class Counter:
@@ -156,40 +246,45 @@ def choose(h, salt, k):
 class Episode:
     """One rollout, replayed with a full encode of every render."""
 
-    def __init__(self, cnt, salt):
+    def __init__(self, cnt, salt, store, eid):
         self.cnt = cnt
         self.salt = salt
+        self.store = store
+        self.eid = eid
         self.msgs = []
         self.turns = []
         self.ids = []
         self.states = [(1, 2, 3, 4, 5, 6)]
-        self.last = None
-        self.last_ids = None
 
     def meter(self, text, ids):
         """The least any loop can hand the tokenizer for this render.
 
         A loop that resumes an encode hands over the render from the position it picks
-        up at, and it may only pick up at a position where doing so lands on the same
-        sequence a full encode does.  So the cheapest legal render is the one that
-        resumes at the last such position, and that is found here by trying them: every
-        boundary of the previous render's ids that sits at or before the first character
-        that moved, from the latest backwards, until one of them splices to the sequence
-        a full encode produces.  Position zero always qualifies, which is the full
-        encode, so the search always lands somewhere.
+        up at, and it may only pick up at a boundary that holds whatever text sits either
+        side of it.  So the cheapest legal render is the one that resumes at the last
+        such position, and that is found here by trying them: every boundary of the
+        previous render's ids that sits at or before the first character that moved,
+        latest first, taking the first that is protected and splices to the sequence a
+        full encode produces.  Position zero always qualifies, which is the full encode,
+        so the search always lands somewhere.
 
-        This is a property of the two renders and the merge table, not of any resume
-        rule, so nothing correct can go under it however cleverly it reads the table.
+        The protection test is what makes this a floor rather than a target.  Dropping it
+        - taking the last position that merely happens to work on these two texts - gives
+        a smaller number that no rule can reach, and grading against that number was how
+        a submission that searched each render instead of reading the table came out
+        looking optimal.  With it, the floor is what the finest correct reading of the
+        table costs, and the count is a bill for having read it.
+
         The weaker count kept alongside it - the characters that were not in the render
         before - is what a submission spends when it computes the ids some other way and
         hands the meter only what was appended.  That is not a resume, and the gap
         between the two numbers is what says so.
         """
         self.cnt.renders.append((text, list(ids)))
-        old = self.last
-        prev = self.last_ids
-        self.last = text
-        self.last_ids = list(ids)
+        row = self.store.get(self.eid)
+        self.store.put(self.eid, text, ids)
+        old = row[0] if row else None
+        prev = list(row[1]) if row else None
         if old is None:
             self.cnt.fresh += len(text)
             self.cnt.floor += len(text)
@@ -210,6 +305,8 @@ class Episode:
         cut = 0
         while edge:
             j, k = edge.pop()
+            if not protected(text, j):
+                continue
             if list(prev[:k]) + encode(text[j:]) == list(ids):
                 cut = j
                 break
@@ -259,6 +356,7 @@ class Episode:
         text = render(self.msgs, False)
         seq = encode(text)
         self.meter(text, seq)
+        self.store.drop(self.eid)
         spans = []
         for start, want in self.turns:
             n = min(len(seq), len(want))
@@ -269,9 +367,14 @@ class Episode:
         return seq, spans
 
 
-def replay(ops):
-    """Run one scenario's op list and report what the trainer should receive."""
+def replay(ops, over=None):
+    """Run one scenario's op list and report what the trainer should receive.
+
+    `over` is the scenario's config override, the same one build.make is handed, so the
+    render cache here has the capacity the loop under test was given.
+    """
     cnt = Counter()
+    store = Cache(int((over or {}).get("store", DEFAULT_CAP)))
     eps = {}
     ids = {}
     spans = {}
@@ -280,7 +383,7 @@ def replay(ops):
         kind = op["op"]
         eid = op.get("ep")
         if kind == "begin":
-            eps[eid] = Episode(cnt, int(op["salt"]))
+            eps[eid] = Episode(cnt, int(op["salt"]), store, eid)
             trace.append("open:" + eid)
         elif kind == "user":
             eps[eid].msgs.append(("u", op["text"]))

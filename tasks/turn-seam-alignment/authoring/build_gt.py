@@ -61,7 +61,8 @@ PROOFS = {}
 
 def proof(name: str) -> dict:
     if name not in PROOFS:
-        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"])
+        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"],
+                              scen.by_name(name).get("over"))
     return PROOFS[name]
 
 
@@ -118,6 +119,18 @@ def mutated(swaps: dict, dest: Path) -> Path:
 
 
 def main() -> int:
+    # The resume-position check grades the tightest text-independent reading of the table:
+    # a boundary is protected when no merge rule joins the pair sitting on it. Any pair a
+    # symbol carries but no rule joins would be a position a solver reading the table more
+    # finely than this could legitimately resume at, so if the two sets ever stop
+    # coinciding the check has become stricter than the rule the brief states and the
+    # ground truth must not be written.
+    stray = oracle.CARRIED - oracle.JOINED
+    if stray:
+        print("the merge table carries %d pair(s) no rule joins, so the resume check "
+              "would refuse a finer correct reading: %r" % (len(stray), sorted(stray)[:4]))
+        return 1
+
     emit.write_variants()
 
     data = harness.run("solution/ref")

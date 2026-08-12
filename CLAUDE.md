@@ -9,16 +9,19 @@ built and gated locally but has not been through the pipeline yet:
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
-| `turn-seam-alignment` | ML / Training | 25 | 87 | 14400 s | 7 h |
+| `turn-seam-alignment` | ML / Training | 27 | 108 | 14400 s | 7 h |
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
 own `STATE.md` and the short version is in "Grade the work, never the implementation
 choice" below - it graded a character count against one number when the honest answer was
 a range, so a solver who read the merge table more finely than the reference did scored 0.
-It has been recalibrated and not re-probed. Its verifier has since been hardened twice
-against adversarial probes that scored 1 without doing the work; the second of those is
-written up under "Collect the evidence outside the process you are measuring" below.
+It has been recalibrated and not re-probed. Its verifier has since been hardened three
+times against probes that scored 1 without doing the work, written up below under "Collect
+the evidence outside the process you are measuring" and "Grade the property, not a
+consequence you can test by trying". The third rejection is the one to read first: the
+graded quantity was reachable by brute force, I had noticed that, written it down as an
+acceptable residual, and shipped.
 
 Between them the first two were rejected three times by the AI-text screen and once by the
 run audit. Every one of those rejections is written down below with the fix, because the
@@ -396,6 +399,44 @@ is absent, so the agent's own container is unchanged and the run's only way to a
 meter is to leave no evidence. Make the authoring emulation start a meter too, or the local
 gates go on scoring the run's own account of itself and a forgery looks clean until the
 containers run.
+
+### Grade the property, not a consequence you can test by trying
+
+The third probe to pass `turn-seam-alignment` did no work at all in the sense the task
+cared about. The brief said an encode may be resumed only at a position that is a token
+boundary *whatever text sits either side of it* - a property of the merge table, derived
+once, at import. The verifier checked something weaker and easier: that resuming there
+reproduced the sequence a full encode of *this* render produces. That is a question about
+two specific strings, so the probe answered it the way you answer any such question -
+encode the render privately, try the candidate positions, keep the last one that works.
+Correct outputs, honest meter, no merge rule ever read.
+
+The rule, generalised: if the graded quantity can be reached by trying things, a solver
+will try things, and you are measuring search rather than the insight. When the brief
+states a property, grade the property. Concretely here: every resume position on the
+record is checked against "no merge rule joins the pair sitting on this boundary", which
+no amount of searching a particular render can satisfy.
+
+Two traps to avoid while doing it:
+
+- **Grade the tightest sound reading, not the most convenient one.** "No symbol carries
+  this pair anywhere" is easier to write than "no rule joins it" and is strictly stricter,
+  so it would fail a solver who read the table more finely than you did - the same
+  mistake that scored this task 0 of 8. Make `build_gt.py` refuse to write a ground truth
+  where the two stop coinciding.
+- **Make the trap wide.** Positions that work by luck were only 2 of 47 renders here, both
+  in one scenario, so the whole check rested on it. Sweep seeds for op lists that produce
+  more of them and add the scenarios.
+
+And the meta-lesson, which cost a rejection on its own: **never write a bypass down as an
+acceptable residual.** I found this route while hardening the previous build, argued in
+`STATE.md` that it cost more than the intended solution so it did not matter, and shipped.
+If a mechanical route reaches the graded answer without the reasoning, the grading is
+wrong - the residual is the finding, not a footnote.
+
+Also worth a pass before shipping: every knob the config sets should bind in some scenario.
+This task shipped a render-cache capacity no scenario ever reached, so the eviction path in
+an editable file could be deleted with nothing noticing.
 
 Isolation, since the verifier imports agent code (`docs/VERIFIER-ISOLATION.md`):
 

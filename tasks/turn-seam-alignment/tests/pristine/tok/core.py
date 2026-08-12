@@ -65,32 +65,6 @@ V = len(SYM)
 END = SID["\x04"]
 
 
-def _bpe(seq):
-    while True:
-        pick = None
-        rank = None
-        for i in range(len(seq) - 1):
-            r = RK.get((seq[i], seq[i + 1]))
-            if r is not None and (rank is None or r < rank):
-                rank = r
-                pick = (seq[i], seq[i + 1])
-        if pick is None:
-            break
-        j = pick[0] + pick[1]
-        out = []
-        i = 0
-        n = len(seq)
-        while i < n:
-            if i + 1 < n and seq[i] == pick[0] and seq[i + 1] == pick[1]:
-                out.append(j)
-                i += 2
-            else:
-                out.append(seq[i])
-                i += 1
-        seq = out
-    return [SID[s] for s in seq]
-
-
 class Tok:
     def __init__(self):
         self.n_chars = 0
@@ -110,12 +84,34 @@ class Tok:
         self.n_calls += 1
         self.n_chars += len(raw)
         rsp = ask({"op": "enc", "text": raw})
-        if rsp is None:
-            ids = _bpe(seq)
-        elif "ids" in rsp:
+        if rsp is not None:
+            if "ids" not in rsp:
+                raise ValueError(str(rsp.get("err")))
             ids = [int(i) for i in rsp["ids"]]
         else:
-            raise ValueError(str(rsp.get("err")))
+            while True:
+                pick = None
+                rank = None
+                for i in range(len(seq) - 1):
+                    r = RK.get((seq[i], seq[i + 1]))
+                    if r is not None and (rank is None or r < rank):
+                        rank = r
+                        pick = (seq[i], seq[i + 1])
+                if pick is None:
+                    break
+                j = pick[0] + pick[1]
+                out = []
+                i = 0
+                n = len(seq)
+                while i < n:
+                    if i + 1 < n and seq[i] == pick[0] and seq[i + 1] == pick[1]:
+                        out.append(j)
+                        i += 2
+                    else:
+                        out.append(seq[i])
+                        i += 1
+                seq = out
+            ids = [SID[s] for s in seq]
         t = tuple(ids)
         if t not in self.made:
             self.made.append(t)

@@ -23,7 +23,7 @@ the gate. Three of the seven are readings of the resume condition the reference 
 and they are why the character count is graded against a window instead of against a
 number - an earlier draft of this task graded equality and would have failed all three.
 
-## The ten single-mistake cheats
+## The eleven single-mistake cheats
 
 Each is the whole reference solution with exactly one decision made the way a solver who
 missed one piece of the problem would make it. They do real work, produce a well-formed
@@ -41,7 +41,8 @@ verifier actually reported, from `authoring/cheat_report.py`.
 | `cheat-verify-and-fallback.sh` | Encodes the appended part, then encodes the whole render to check the overlap and keeps the second answer | Accounting on all twelve. Every token correct |
 | `cheat-span-whole-turn.sh` | Treats every generated position as trainable | Spans on eight scenarios. Tokens and accounting correct |
 | `cheat-keep-retried-turn.sh` | A turn a retry threw away keeps its record | Spans on the three scenarios with a retry in them |
-| `cheat-retry-notes-tool.sh` | Routes the note a retry leaves through the tool path, so the episode raises a lifecycle event the worker it replaced never raised | The trace, on the three scenarios with a retry in them. Everything else correct |
+| `cheat-retry-notes-tool.sh` | Routes the note a retry leaves through the tool path, so the episode raises a lifecycle event the worker it replaced never raised | The trace, on the scenarios with a retry in them. Everything else correct |
+| `cheat-no-evict.sh` | Drops the eviction path out of the render cache, so it keeps every episode however small its capacity is | The character count on `evict`, where three episodes share a cache that holds two and the worker it replaced had nothing left to resume from |
 
 The interesting ones for the difficulty argument are the first four and the seventh. They
 are the plans a strong agent forms first, every one of them produces the right token
@@ -55,7 +56,7 @@ possible loop, and on `back-reach` the marker in front of a reply is pulled into
 symbol as the reply's first character, so the sequence it produces is not the one a full
 encode produces.
 
-## The three meter-evasion cheats
+## The four meter-evasion cheats
 
 The accounting axis is the only thing that rejects the safe, expensive answer, so a hole in
 it takes the headline half of the problem with it. These two are the shape that hole would
@@ -69,6 +70,7 @@ counted nothing.
 |---|---|---|
 | `cheat-private-encoder.sh` | Byte-pair encodes every render privately and hands the meter only the appended characters, so every token is right and the accounting reads as a resume from the seam every time | The tokenizer's record of what it handed back. The loop takes a sequence only when it is a prefix of one already accepted followed by exactly one of those records, so on the four scenarios where resuming at the seam is not legal the run raises rather than reporting |
 | `cheat-forge-ids.sh` | The same private encoder with the meter left at zero: one empty call per render keeps the call count honest while nothing is encoded at all | The same record, on the first render of every scenario, and the character floor underneath it |
+| `cheat-instance-search.sh` | Encodes each render whole with an encoder of its own, walks the boundaries of the cached ids from the latest backwards and takes the first that splices, then hands the meter that tail. Reads no merge rule anywhere. One encode per render, every entry honest, tokens and spans and forwards correct, count at or under every correct reading | The resume-position check. A position that works on this render is not a boundary that holds whatever text sits either side of it, and `back-reach`, `lucky-seam` and `lucky-retry` all carry positions of that kind. This is the submission the run audit caught, and it scored **1** against the build before this check existed |
 | `cheat-cut-the-meter.sh` | The reference resume done properly, with the channel the tokenizer encodes over answered by a private encoder so the meter is never asked. Every token, span, forward, trace and counter is correct | The meter's tape carries the network but not one encode, so `test_the_meter_saw_the_run` and the accounting fail on all twelve. This is the cheat that says what the tape is for: a perfect report with no evidence behind it |
 
 Two changes closed that hole and both are in the shipped tree rather than in the verifier.

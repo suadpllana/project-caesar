@@ -164,6 +164,12 @@ def one(name, proof, tape, at):
                       "tail of the render they have to account for"
                       % (name, step, len(text)))
         off = len(render) - len(text)
+        if not oracle.protected(render, off):
+            raise Bad("%s render %d: the encode was picked up at character %d, where the "
+                      "pair %r is one a merge rule joins across, so that is not a boundary "
+                      "that holds whatever text sits either side of it - it is a position "
+                      "that happened to work on this render"
+                      % (name, step, off, render[off - 1:off + 1]))
         if off == 0:
             got = list(ids)
         else:

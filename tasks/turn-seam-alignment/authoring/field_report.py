@@ -42,7 +42,8 @@ PROOFS = {}
 
 def proof(name: str) -> dict:
     if name not in PROOFS:
-        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"])
+        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"],
+                              scen.by_name(name).get("over"))
     return PROOFS[name]
 
 

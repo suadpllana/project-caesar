@@ -326,6 +326,43 @@ core.ask = _ask
 '''
 
 
+
+# The submission the run audit caught: no merge table read anywhere, and an honest tape.
+# It encodes each render whole with an encoder of its own, then walks the boundaries of
+# the cached ids from the latest backwards and takes the first that splices to what a full
+# encode produces - the last position that works on this render, which is not the same
+# thing as a position anything protects. It hands the meter that tail and nothing else, so
+# the tape is true, one encode per render, at or under what every correct reading costs.
+INSTANCE_SEARCH = '''
+
+def cut(text, old, ids):
+    if not old:
+        return 0, 0
+    i = _moved(text, old)
+    full = _bpe(text)
+    edge = []
+    w = 0
+    for k, t in enumerate(ids):
+        w += core.WID[t]
+        if w > i:
+            break
+        if list(ids[:k + 1]) == list(full[:k + 1]):
+            edge.append((w, k + 1))
+    while edge:
+        j, k = edge.pop()
+        if list(ids[:k]) + _bpe(text[j:]) == full:
+            return j, k
+    return 0, 0
+
+
+def encode(tok, text, old, ids):
+    off, n = cut(text, old, ids)
+    if off <= 0:
+        return tok.encode(text)
+    return list(ids[:n]) + tok.encode(text[off:])
+'''
+
+
 def meters() -> dict[str, tuple[str, dict[str, str]]]:
     """Attempts to produce the right ids without paying for them.
 
@@ -348,6 +385,15 @@ def meters() -> dict[str, tuple[str, dict[str, str]]]:
             "# The same private encoder with the meter left at zero: one empty call per\n"
             "# render keeps the call count honest while nothing at all is encoded.",
             {"inc.py": PRIVATE_BPE + FORGED_ENCODE},
+        ),
+        "cheat-instance-search": (
+            "# Searches each render for the last position an encode could have been\n"
+            "# picked up at and still landed right, with an encoder of its own, and hands\n"
+            "# the meter that tail. Reads no merge rule. The tape it leaves is honest and\n"
+            "# the count is at or under every correct reading. This is the submission the\n"
+            "# run audit caught, and what refuses it is that a position which merely\n"
+            "# worked here is not a boundary that holds whatever sits either side of it.",
+            {"inc.py": PRIVATE_BPE + INSTANCE_SEARCH},
         ),
         "cheat-cut-the-meter": (
             "# The reference resume with the meter cut out from underneath it: the\n"
@@ -447,6 +493,14 @@ REF_ENC = """    def enc(self, text):
 """
 
 
+
+# The cache with its capacity quietly removed. Nothing in the loop complains, every token
+# and span is right, and on the scenario where three episodes share a cache that holds two
+# it resumes where the worker it replaced had nothing left to resume from.
+NO_EVICT = """        while len(self.age) > self.cap:
+            self.d.pop(self.age.pop(0), None)"""
+
+
 def forgeries() -> dict[str, tuple[str, dict[str, str]]]:
     """Attempts to report work that was never saved.
 
@@ -486,6 +540,12 @@ def forgeries() -> dict[str, tuple[str, dict[str, str]]]:
             "# other.",
             {"inc.py": swap(ref("inc.py"), ENCODE, FULL_ONLY),
              "ep.py": swap(ref("ep.py"), REF_ENC, FORGE_LOG)},
+        ),
+        "cheat-no-evict": (
+            "# Drops the eviction path out of the render cache, so it keeps every\n"
+            "# episode however small its capacity is and resumes from entries the\n"
+            "# worker had already let go of.",
+            {"store.py": swap(ref("store.py"), NO_EVICT, "        pass")},
         ),
         "cheat-rewrite-record": (
             "# Encodes every render whole, finds the last legal resume position by\n"

@@ -6,7 +6,7 @@ execs or subprocesses agent code: it reads that JSON as hostile input and grades
 against /tests/gt.json, which is root-only and was never visible to the run, and against
 the meter's tape, which the run could not read either and did not write.
 
-Five things are checked, and all of them must hold:
+Six things are checked, and all of them must hold:
 
   1. The ground truth itself.  Before any comparison, every recorded sequence, span,
      forward count and trace is re-proved by tests/oracle.py, a naive replay that shares
@@ -56,14 +56,25 @@ Five things are checked, and all of them must hold:
      anywhere but at the front of a symbol, the character before it never sits anywhere
      but at the end of one, either of those, or the finer question of which adjacent
      pairs no symbol carries at all - and they hand the tokenizer different numbers of
-     characters on the same scenario.  The floor is what the cheapest legal resume costs
-     on each render, found by the oracle by trying resume positions rather than by
-     reading the table, so nothing correct can come in under it however finely it reads.
-     The ceiling is what the one-sided readings cost.  Insisting on one number inside
-     that range would grade which reading a solver settled on rather than the work they
-     did; authoring/variants/ holds the readings that must all pass.
+     characters on the same scenario.  The floor is what the finest of those readings
+     costs, worked out per render by the oracle; the ceiling is what the one-sided ones
+     cost.  Insisting on one number inside that range would grade which reading a solver
+     settled on rather than the work they did; authoring/variants/ holds the readings
+     that must all pass.
 
-  5. The tape itself.  There has to be one, it has to account for every render, and
+  5. Where the encodes were picked up.  Every resume on the tape has to be at a boundary
+     that holds whatever text sits either side of it, which is the condition the brief
+     states: the pair straddling it is one no symbol in the vocabulary carries.  This is
+     the check that separates reading the table from searching the render.  A position
+     can be lucky - the text either side of it merges the same way this once - without
+     being protected by anything, and a submission that encodes each render privately
+     and hunts for the last position that works on that render lands on exactly those.
+     It never has to look at a merge rule, its tape is honest, its tokens and spans and
+     forwards are right, and it comes in at or under what any rule costs.  An earlier
+     build graded only "resuming here reproduced this render" and let it through.  Two
+     scenarios carry such positions on purpose.
+
+  6. The tape itself.  There has to be one, it has to account for every render, and
      nothing may be left over on it.  A run that never asked the meter for anything
      produced its sequences some other way, whatever its report says.
 
@@ -108,11 +119,20 @@ AIM = {
     "back-reach": "replies whose first character lets the marker in front of them be "
                   "pulled into the same symbol, so the seam itself is not a place an "
                   "encode may be picked up from",
+    "lucky-seam": "renders carrying a position where an encode resumed on this text "
+                  "happens to land right, while the pair sitting on it is one the table "
+                  "can merge across: a search of the render finds it and a reading of "
+                  "the table does not",
+    "lucky-retry": "the same trap on the far side of a rewrite, where the render the "
+                   "retry left behind is shorter than the one already encoded",
     "retry": "a discarded turn: it contributes no trainable positions, and the render "
              "it left behind is shorter than the one already encoded",
     "retry-late": "a discard in the middle of a longer episode, with turns on both "
                   "sides of it that must keep their own positions",
     "interleave": "two episodes sharing one loop, each with its own cached render",
+    "evict": "three episodes against a cache that holds two, so the oldest render is "
+             "gone by the time its episode comes back and there is nothing to resume "
+             "from: a loop that lets the cache outgrow its capacity pays less than this",
     "long": "every case at once over a long op list",
 }
 
@@ -153,7 +173,8 @@ LEDGER = {}
 def proof(name):
     """The sealed replay of one scenario, computed once."""
     if name not in PROOFS:
-        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"])
+        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"],
+                              scen.by_name(name).get("over"))
     return PROOFS[name]
 
 

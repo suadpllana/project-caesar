@@ -95,7 +95,7 @@ second.
 """
 
 verification_explanation = """
-The rebuilt loop is driven through twelve scenarios and each one is checked on four
+The rebuilt loop is driven through fifteen scenarios and each one is checked on five
 independent axes with no partial credit.
 
 The expected answers are re-proved inside the verifier before any comparison, by a naive
@@ -111,6 +111,20 @@ trainable span has to match exactly, in turn order, which catches a run that rea
 the first disagreement, one that stops short of it, and a discarded turn that kept its
 record. Calls made to the tokenizer and forwards through the network have to match
 exactly, and the characters handed to the tokenizer have to land inside a window.
+
+Then where the encodes were picked up, which is the axis the brief is really about and the
+one that took two attempts to grade properly. The rule stated to the solver is that an
+encode may be resumed only at a position that is a token boundary whatever text sits either
+side of it, and every resume on the record is now checked against exactly that: the pair
+straddling it has to be one no symbol in the vocabulary carries. The earlier build checked
+only that resuming there reproduced the sequence a full encode produces on that render,
+which is a weaker thing and a mechanical one. A submission can encode each render whole
+with an encoder of its own, walk the boundaries from the latest backwards, take the first
+that happens to splice, and hand the meter that tail: correct on every token, span, forward
+and trace, honest about everything it did, never having looked at a merge rule, and at or
+under what the finest correct reading of the table costs. Two scenarios carry positions of
+that kind on purpose, the check refuses them, and the shipped cheat suite carries the
+submission itself.
 
 None of those three figures is graded as the run reported it, and none of the evidence
 they are derived from lives in the run at all. That is the second thing an adversarial
@@ -144,11 +158,12 @@ would fail a solver who read the table more finely than the reference did, so th
 what is graded and authoring/variant_check.py proves it by running seven alternative
 correct solutions through the real verifier. The lifecycle trace is compared in order.
 
-Twenty-five cheats were run against it and all scored 0. Ten are the reference with exactly
+Twenty-seven cheats were run against it and all scored 0. Ten are the reference with exactly
 one decision made the way a solver who missed one piece would make it, and their failure
 signatures are distinct and match the design: encoding every render whole fails only the
 accounting, the merge-free resume test fails only the accounting, cutting at whitespace
-or at a block marker fails the accounting on eleven and twelve scenarios respectively,
+or at a block marker fails the accounting on thirteen and fourteen scenarios
+respectively,
 resuming a character past the protected position falls back to a full encode and fails
 the accounting, resuming at the seam itself without walking back fails on tokens and
 forwards where a reply merges backwards into the marker in front of it, verifying against

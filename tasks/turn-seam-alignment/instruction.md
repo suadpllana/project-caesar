@@ -40,7 +40,10 @@ that list with it. A retry here drops the last reply, drops whatever the tool se
 after it, and puts a note in their place. That is all it does.
 
 The tokenizer is metered. It takes a string and counts the characters that go into the
-merge loop, and one render is one call. The way to spend less is to hand it less. Handing
+merge loop, and one render is one call. The way to spend less is to hand it less. The
+cache the worker keeps has a size and it is in /app/conf/loop.json, so when it is full the
+least recently touched episode is the one that goes, and an episode that comes back after
+its entry has gone has nothing to pick up from and pays for the whole render. Handing
 it the same characters a second time to check the first answer costs exactly what never
 caching anything costs, so that route is closed. You may pick an encode up again only at a
 position that is a token boundary whatever text sits either side of it. Working out which

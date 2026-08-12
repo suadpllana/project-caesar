@@ -1,6 +1,8 @@
 #!/bin/bash
-# Checks what the run's uid can write: the reward channel, the ground
-# truth, the pristine tree, the tests themselves.
+# Checks what the run's uid can write and what it can read: the reward
+# channel, the ground truth, the pristine tree, the tests themselves, the
+# sealed replay, the audit, the scenario set and the merge table the
+# verifier encodes with.
 set -euo pipefail
 
 cat > /app/tok/inc.py <<'PYEOF'
@@ -15,6 +17,18 @@ for _p in ("/logs/verifier/reward.txt", "/tests/gt.json", "/pristine/tok/core.py
         _notes.append("wrote " + _p)
     except Exception as _exc:
         _notes.append("denied " + _p + " " + type(_exc).__name__)
+for _p in ("/tests", "/tests/gt.json", "/tests/oracle.py", "/tests/audit.py",
+           "/tests/test_outputs.py", "/tests/scen.py", "/tests/merges.json"):
+    try:
+        if _os.path.isdir(_p):
+            _os.listdir(_p)
+            _notes.append("listed " + _p)
+        else:
+            with open(_p) as _fh:
+                _fh.read(1)
+            _notes.append("read " + _p)
+    except Exception as _exc:
+        _notes.append("denied read " + _p + " " + type(_exc).__name__)
 try:
     with open("/work/probe.txt", "w") as _fh:
         _fh.write("uid=%d\n" % _os.getuid())

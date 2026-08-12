@@ -141,7 +141,7 @@ would fail a solver who read the table more finely than the reference did, so th
 what is graded and authoring/variant_check.py proves it by running seven alternative
 correct solutions through the real verifier. The lifecycle trace is compared in order.
 
-Twenty-two cheats were run against it and all scored 0. Ten are the reference with exactly
+Twenty-three cheats were run against it and all scored 0. Ten are the reference with exactly
 one decision made the way a solver who missed one piece would make it, and their failure
 signatures are distinct and match the design: encoding every render whole fails only the
 accounting, the merge-free resume test fails only the accounting, cutting at whitespace
@@ -162,17 +162,23 @@ the tokenizer's record with the counter adjusted to match it, and a proxy standi
 the tokenizer was with flattering counters of its own. All four re-encode every render
 whole, produce every token, span and forward correctly, and are caught by the derived
 accounting rather than by anything they did to the loop.
-Five are reward-tamper probes, since the verifier
+Six probe the isolation, since the verifier
 executes the agent's code: a double-forked process writing the reward after the run, a
 planted run output with the run killed before any scenario executes, wrong-typed junk
 returned from the report and stuffed into the runtime's own sequence and span tables, a
-privilege probe, and an attempt to read the ground truth from
-inside the verifier. The last one hunts the agent's image for expected outputs, a
-reference implementation, the verifier's scenarios and stale bytecode, and finds none of
-them. The run happens as an unprivileged uid in its own session under a
-wall clock timeout, the reward channel is root-owned and locked before it starts, and the
-ground truth is a root-only file; grading runs afterwards as root and never executes
-anything the agent wrote.
+privilege probe over both writes and reads, an attempt to read the ground truth from
+inside the verifier, and one that imports the sealed replay and answers every scenario out
+of it without running the loop at all. That last one matters most. Proving the ground
+truth cannot be opened proves nothing on its own, because the replay beside it recomputes
+the same answers from scratch, so the verifier keeps the run and the grading at two trust
+levels: the loop is driven out of a directory holding the driver and the scenario set and
+nothing else, everything that knows an answer sits in a root-only directory that is not on
+the run's import path, and no image-wide PYTHONPATH spans the two. The last cheat hunts the
+agent's image for expected outputs, a reference implementation, the verifier's scenarios, a
+replay and stale bytecode, and finds none of them. The run happens as an unprivileged uid
+in its own session under a wall clock timeout, the reward channel is root-owned and locked
+before it starts, and the ground truth is a root-only file; grading runs afterwards as root
+and never executes anything the agent wrote.
 """
 
 category = "ML"

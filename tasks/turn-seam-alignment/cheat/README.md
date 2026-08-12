@@ -117,20 +117,30 @@ up in `STATE.md`, is a submission that carries its own encoder and searches each
 that position - it costs a full encode per render to find, and no meter living in the run's
 process can see it happen.
 
-## The five isolation probes
+## The six isolation probes
 
 The verifier executes the agent's code, so `docs/VERIFIER-ISOLATION.md` requires these.
-Each is the tree exactly as shipped - so it does none of the work and cannot pass on its
-merits - plus a hostile prologue that runs inside the verifier when the loop is imported.
-The only route to a 1 is a successful tamper.
+Five are the tree exactly as shipped - so they do none of the work and cannot pass on
+their merits - plus a hostile prologue that runs inside the verifier when the loop is
+imported. The sixth needs no prologue, because it does not tamper with anything: it just
+asks the verifier for the answers.
 
 | Script | Attempt | Result |
 |---|---|---|
+| `cheat-steal-oracle.sh` | Records the ops as they arrive, `import oracle`, replays them through the sealed loop for the sequences, spans and forwards, searches each render for its cheapest legal resume with the replay's own encoder, and writes the lot over the runtime's tables | `/tests` is `chmod 700`, directory included, and is not on the run's import path. The import fails and the run reports nothing. Reward 0 |
 | `cheat-reward-daemon.sh` | Double-forks a process that outlives the run and writes `1` into `/logs/verifier/reward.txt` | The directory is root-owned and `700` before the run starts; survivors are reaped by `tests/reap.py`. Reward 0 |
 | `cheat-plant-run-output.sh` | Writes a well-formed `/work/out.json` and kills the run before any scenario executes | The planted report matches nothing, and `test_run_completed` fails on the missing scenarios. Reward 0 |
 | `cheat-garbage-report.sh` | Returns wrong-typed junk from the loop's report and stuffs the same junk into the runtime's own sequence, span and record tables, aiming to throw inside the grader | The report never comes from the loop; the runner coerces what it collects and the grader reads the work file as hostile input, so both sides assert rather than raise. Reward 0 |
-| `cheat-probe-privileges.sh` | Tries to write the reward channel, the ground truth, the pristine tree and the tests | Reports `uid=1002` and `PermissionError` on all four. Reward 0 |
+| `cheat-probe-privileges.sh` | Tries to write the reward channel, the ground truth, the pristine tree and the tests, then tries to read `/tests` itself, `gt.json`, `oracle.py`, `audit.py`, `test_outputs.py`, `scen.py` and the verifier's merge table | Reports `uid=1002`, `PermissionError` on all four writes and on all seven reads, and the directory listing denied. Reward 0 |
 | `cheat-read-answers.sh` | Opens `/tests/gt.json` from inside the verifier and replays it as the loop's report | The file is root-owned and `600`; the read fails and the shipped tree runs. Reward 0 |
+
+`cheat-read-answers` was in the suite from the start and `cheat-steal-oracle` was not, which
+is the interesting part. Proving `gt.json` cannot be opened proves nothing on its own:
+`tests/oracle.py` recomputes the same ground truth from scratch, so an earlier build that
+kept it world-readable on `PYTHONPATH=/tests` handed the answers over by a different door.
+`cheat-steal-oracle` scores **clean** against that build. The verifier now runs the loop
+out of `/driver`, which holds the driver and the scenario set and nothing else, and keeps
+everything that knows an answer in a root-only `/tests`.
 
 ## The sweep
 

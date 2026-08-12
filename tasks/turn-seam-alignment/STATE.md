@@ -278,6 +278,54 @@ Also worth recording: the audit checks the resume condition at **every** render 
 than only at the finished sequence, so `cheat-append-only` and `cheat-verify-and-fallback`
 now fail where they happened rather than wherever the damage surfaced.
 
+## Sealing the verifier's own answer key
+
+The hardening above survived the next review on everything it was aimed at - the agent
+image is clean, `gt.json` is `chmod 600`, the counters are derived rather than reported -
+and failed the anti-cheat criterion on something it never looked at. `tests/Dockerfile`
+set `ENV PYTHONPATH=/tests`, `chmod 755 /tests`, `chmod 644 /tests/oracle.py`, and
+`runner.py` did `sys.path.insert(0, "/tests")`. So the sandboxed run could
+
+```python
+import oracle
+```
+
+and `oracle.replay(ops)` hands back the sequences, the spans, the trace and the forwards,
+while `oracle.encode` searches each render for its cheapest legal resume. The runner's
+"pinned" `rt`, `tok` and `net` are ordinary mutable objects the agent's `loop/ep.py` holds
+a reference to, so all of it can be written straight over on the way out. A submission
+doing exactly that scores clean on all twelve scenarios with `rec.spans` returning
+`[s, s]` and no resume logic anywhere in it.
+
+The mistake is easy to name in hindsight. `cheat-read-answers` was built to prove the
+ground truth could not be opened, and it does prove that. But `oracle.py` **recomputes**
+the ground truth from scratch - that is the whole point of it - so leaving it importable
+handed over the same answers by a different door, and no cheat probed that door.
+
+What changed:
+
+1. **Two directories at two trust levels.** `/driver` holds `runner.py` and `scen.py`, is
+   world-readable, and is the only path the run gets. `/tests` holds `gt.json`,
+   `oracle.py`, `audit.py`, `test_outputs.py`, `reap.py` and the verifier's own copies of
+   the merge table and config; it is `chmod 700`, **directory included**, so nothing under
+   it can be listed, opened or imported by the run whatever its mode.
+2. **No image-wide `PYTHONPATH`.** The run and the grader need different ones, and the one
+   the grader needs is the one the run must not have, so `test.sh` sets `PYTHONPATH=/driver`
+   on the sandboxed run and `PYTHONPATH=/tests` on the pytest line.
+3. `runner.py` resolves its own directory instead of hardcoding `/tests`, which is what
+   lets it sit in `/driver` in the image and next to `scen.py` in the repo.
+4. **`cheat-steal-oracle`**, the attack above, written out in full. Against the previous
+   build it scores clean on all twelve; against this one the import fails and the run
+   reports nothing.
+5. **`cheat-probe-privileges` now probes reads as well as writes**, over `/tests` itself,
+   `gt.json`, `oracle.py`, `audit.py`, `test_outputs.py`, `scen.py` and the verifier's
+   merge table. It reports `uid=1002` and `PermissionError` on every one, and the
+   directory listing is denied too.
+
+The scenario set stays readable by the run, deliberately: knowing which op sequences
+execute does not produce the token streams they expect, and the run needs it to know what
+to drive.
+
 ### The residual, stated plainly
 
 A submission that carries its own byte-pair encoder, encodes each render whole with it,
@@ -292,6 +340,21 @@ solution; and it produces the intended answer on every other axis. The cheap ver
 it - `cheat-private-encoder` and `cheat-forge-ids`, which skip the search - are refused by
 the tokenizer's provenance check and by the floor.
 
+Worth being precise about why this one is left standing rather than closed. The search
+formulation *is* the resume condition: to look for the last `j` where
+`ids[:k] + encode(text[j:]) == encode(text)`, a submission has to know exactly what makes
+a resume legal. What it skips is deriving those positions from the merge table, which is
+the part the task is about, but the artifact it ships is a correct incremental encoder
+that costs more CPU than it needs to. Grading how the answer was found rather than what it
+is would be the run-audit failure this task was already rejected for once, so the line is
+drawn at the record: what the tokenizer was given has to add up, and it does.
+
+The closure that was considered and rejected: raise the graded floor from the search
+optimum to the pair-level reading's cost, which would put a brute-force searcher under the
+floor. It fails on one scenario by three characters out of 2298, and it would fail any
+legitimate solution that read the table more finely than the pair-level test - the exact
+mistake that cost this task 0 of 8. Not worth three characters.
+
 ## Gates
 
 Run on 2026-08-12, in this sandbox, on the real two images unless noted. The table is the
@@ -301,11 +364,12 @@ state after the hardening above.
 |---|---|
 | `authoring/sync.py` | 18 files into `tests/pristine` |
 | `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle, and the reference's own record checked to account for its run |
-| `authoring/emit.py` | `solve.sh`, 7 variants, 21 generated cheats |
+| `authoring/emit.py` | `solve.sh`, 7 variants, 22 generated cheats |
 | `authoring/variant_check.py` | 7/7 clean (host emulation) |
 | `authoring/field_report.py` | no dead weight in the graded set; `enc_record` separates three cheats |
+| verifier image inspected as uid 1002 | `/tests` denied on list and on every read; `/driver` holds `runner.py` and `scen.py` and nothing else |
 | `authoring/cheat_report.py` | oracle clean, nop fails, no cheat scores 1 |
-| `tools/docker_trial2.py turn-seam-alignment --all` | 24/24 trials behaved as required |
+| `tools/docker_trial2.py turn-seam-alignment --all` | 25/25 trials behaved as required |
 | `tools/docker_trial2.py turn-seam-alignment --variants` | 7/7 variants scored 1 |
 | `tools/textcheck.py` against both passing instructions | no findings |
 | `scripts/preflight.py` | clean |

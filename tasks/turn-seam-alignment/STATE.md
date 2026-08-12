@@ -2,7 +2,7 @@
 
 ## Current stage
 
-`Stage 7 - Pre-flight and packaging, after a difficulty recalibration`
+`Stage 7 - Pre-flight and packaging, after a difficulty recalibration and a cheat-robustness fix`
 
 This task has been through the pipeline once. It cleared the easiness probe at 0 of 3 and
 **failed the difficulty probe at 0 of 8**, which is a rejection: the band is 1 to 6. The
@@ -189,10 +189,11 @@ the probe ever ran.
 What changed:
 
 1. `enc_chars` is graded against a window instead of a number.
-   - The **floor** is `tests/oracle.py`'s own count of the characters that were not in the
-     previous render. Nothing that encodes a render can hand the tokenizer less and still
-     be encoding it, so this is the bound that stops a submission from reimplementing the
-     merge table privately and leaving the meter alone.
+   - The **floor** is what the exact reading of the resume condition costs: stop at the
+     last position no symbol of the vocabulary can straddle. That is the finest legitimate
+     answer there is, so nothing that obeys the stated rule can go under it. (The first
+     cut of this fix put the floor at the oracle's count of characters that were new to
+     each render, which was too low; see the quality-review section below.)
    - The **ceiling** is the worse of the two one-sided readings, measured through the same
      harness the reference goes through, per scenario. `authoring/build_gt.py` refuses to
      write a ceiling that has drifted up far enough to admit the merge-free answer, which
@@ -219,6 +220,68 @@ merge table, the span rule still has to be derived from the finished sequence, t
 still rewrites the render backwards, and the twelve scenarios and four axes are still
 all-or-nothing. The easing is one razor wide.
 
+## Cheat robustness, after the quality review
+
+The recalibration above went to quality review and failed one blocking criterion. The
+finding was exact and it was correct:
+
+> `tok/core.py`'s module-level `_run()` does the BPE and is not counted; only
+> `Tok.encode()` increments `n_chars`/`n_calls`. I wrote an `inc.py` that returns
+> `[core.SID[s] for s in core._run(text)]` while handing `tok.encode` only the
+> newly-appended suffix, and it came out clean on all 12 scenarios, landing exactly on
+> `enc_chars_min` (the floor is a `>=` check).
+
+Both halves of that were mine. The meter wrapped the wrong function, and the floor was
+sitting exactly where a submission that encodes privately naturally lands. Under the old
+exact-equality grading the second half did not matter, because a private encode lands on
+the fresh-character count and that is not the reference's number; the window I introduced
+made it matter and I did not re-derive the floor when I did. Reproduced before fixing: the
+attack scored 1.
+
+Two changes, both small:
+
+1. **The count moved into the work.** `CH`/`CL` are module-level counters incremented
+   inside `core._run` itself, and `Tok.n_chars`/`n_calls` are per-instance deltas over
+   them. Any path to the shipped byte-pair loop is counted, wrapper or no wrapper. This is
+   also what stops `core._run` being used as a free oracle for a text-specific analysis,
+   which the instruction's rule forbids and nothing was enforcing.
+2. **The floor moved up to the exact reading.** It is now what
+   `authoring/variants/ok-pair` costs - resume at the last position no symbol can straddle
+   - rather than the fresh-character count. No implementation that obeys the stated rule
+   ("only at a position that is a token boundary whatever text sits either side of it")
+   can hand the tokenizer less, and a loop that encodes each render with its own copy of
+   the table has no reason to hand over anything but the characters that were new, which
+   is strictly under the floor on `back-reach`, `retry`, `retry-late` and `long`.
+   `build_gt.py` records the fresh count as `enc_chars_fresh` and refuses to write a
+   ground truth unless the floor is strictly above it somewhere.
+
+Both attack shapes ship as cheats and both score 0 on the real images: `cheat-core-run`
+(fails characters and calls on all twelve) and `cheat-private-encode` (fails the floor on
+the four scenarios above). The reviewer's own script, re-run through
+`tools/docker_trial2.py --dir`, now scores 0.
+
+The instruction did not gain a floor. It gained one sentence restating the rule the floor
+enforces - "a position that is a boundary only because of the text you happen to have in
+front of you is not one of them" - and the metering sentence now says characters are
+counted wherever in the loop they went in. Telling a solver there is a lower bound would
+be an invitation to pad the meter, and no honest solution is ever near it.
+
+### What is still open, stated plainly
+
+A submission that computes the encoding with its own copy of the merge table and then
+deliberately hands the tokenizer *more* than the characters that were new - enough to land
+inside a window it cannot see - is not detectable by any counter, here or in any of the
+other tasks in this repo. Two things make it a poor route rather than a shortcut: it is
+strictly more work than the intended solution, since it needs a correct byte-pair encoder
+*and* a padding rule, and it has no motive unless the solver already suspects a lower
+bound, which nothing tells them. Closing it properly would mean moving the assembly of the
+ids into non-editable code so the meter measures the resume decision rather than the call.
+That was designed and costed - `inc.py` reduced to `cut`, the store and `loop/ep.py` made
+non-editable, the record hooks moved into `loop/rec.py` - and rejected, because padding
+survives that restructure too: a `cut` that returns a resume point earlier than the one it
+worked out is indistinguishable from a conservative one. The window's two ends are the
+defence, and they bound both directions.
+
 ## Gates
 
 Run on 2026-08-12, in this sandbox, on the real two images unless noted.
@@ -227,15 +290,19 @@ Run on 2026-08-12, in this sandbox, on the real two images unless noted.
 |---|---|
 | `authoring/sync.py` | 18 files into `tests/pristine` |
 | `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle |
-| `authoring/emit.py` | `solve.sh`, 6 variants, 16 cheats |
+| `authoring/emit.py` | `solve.sh`, 6 variants, 18 cheats |
 | `authoring/variant_check.py` | 6/6 clean (host emulation) |
 | `authoring/field_report.py` | no dead weight in the graded set |
 | `authoring/cheat_report.py` | oracle clean, nop fails, no cheat scores 1 |
-| `tools/docker_trial2.py turn-seam-alignment --all` | 18/18 trials behaved as required |
+| `tools/docker_trial2.py turn-seam-alignment --all` | 20/20 trials behaved as required |
+| the quality reviewer's own bypass, via `--dir` | reward 0 |
 | `tools/docker_trial2.py turn-seam-alignment --variants` | 6/6 variants scored 1 |
 | `tools/textcheck.py` against both passing instructions | no findings |
 | `scripts/preflight.py` | clean |
 | `scripts/package.py` | packaged |
+
+The build_gt run prints, per scenario, the window, what a private encode pays and where
+the merge-free answer is rejected, so a drift in any of the three is visible at build time.
 
 Not run here: `harbor check`. It is not installed in this sandbox, and
 `tools/docker_trial2.py` reproduces the two-container trial with docker directly instead.

@@ -28,7 +28,13 @@ V = len(SYM)
 END = SID["\x04"]
 
 
+CH = [0]
+CL = [0]
+
+
 def _run(text):
+    CH[0] += len(text)
+    CL[0] += 1
     seq = list(text)
     while True:
         pick = None
@@ -56,12 +62,18 @@ def _run(text):
 
 class Tok:
     def __init__(self):
-        self.n_chars = 0
-        self.n_calls = 0
+        self.c0 = CH[0]
+        self.k0 = CL[0]
+
+    @property
+    def n_chars(self):
+        return CH[0] - self.c0
+
+    @property
+    def n_calls(self):
+        return CL[0] - self.k0
 
     def encode(self, text):
-        self.n_calls += 1
-        self.n_chars += len(text)
         return [SID[s] for s in _run(text)]
 
     def decode(self, ids):

@@ -11,11 +11,22 @@ positions, and they hand the tokenizer different numbers of characters on the sa
 scenarios. Grading equality against one of them would fail a solver who reasoned better
 than the reference did, which is grading a choice rather than the work.
 
-So the meter is a window. The floor comes from the sealed oracle - the characters that
-were not in the previous render, which nothing that encodes the render can go under. The
-ceiling comes from here: the most expensive of the one-sided tests, which are the answers
-a solver settles on when they see one half of the condition and not the other. Everything
-between the two is accepted.
+So the meter is a window, and both ends of it come from this file.
+
+The floor is the finest reading there is: a boundary survives every surrounding text
+exactly when no symbol the table can build carries that adjacent pair anywhere inside it,
+so taking the last such position every time is the cheapest an encode can legitimately be
+resumed. Nothing that obeys the rule the instruction states - a position that is a token
+boundary whatever text sits either side of it - can go under that number, and a submission
+that does went under it by resuming somewhere that is only safe for the text in front of
+it, which is the one thing the rule rules out. That is also what stops the meter being
+answered by a private copy of the encoder: computing the whole render yourself and handing
+the tokenizer only what was appended lands on the characters that were new, which is below
+the floor on four of the twelve scenarios.
+
+The ceiling is the most expensive of the one-sided tests, which are the answers a solver
+settles on when they see one half of the condition and not the other. Everything between
+the two is accepted.
 
 `REJECT` is what the ceiling has to stay clear of. Asking which characters take part in
 no merge at all is the cheaper question and a strictly smaller set, and a loop built on it
@@ -87,6 +98,10 @@ MERGE_FREE = """def _points():
     free = frozenset(c for c in core.BASE if c not in used)
     return free, free
 """
+
+# The exact reading. No universal resume point is later than the one this finds, so its
+# cost on each scenario is the floor of the window.
+FLOOR = {"pair": {POINTS: PAIR_POINTS, SAFE: PAIR_SAFE}}
 
 # The one-sided readings. The ceiling is the worst of these on each scenario, so a solver
 # who found either half of the condition and stopped there is inside the window.

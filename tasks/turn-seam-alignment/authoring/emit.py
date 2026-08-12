@@ -165,6 +165,20 @@ def variants() -> dict[str, tuple[str, dict[str, str]]]:
 """)},
     )
 
+    out["cheat-core-run"] = (
+        "# Reaches past the metered wrapper to the byte-pair loop it wraps, encodes every\n"
+        "# render whole with that, and hands the tokenizer only the appended characters so\n"
+        "# the meter looks like a resume. No boundary reasoning anywhere in it.",
+        {"inc.py": CORE_RUN},
+    )
+
+    out["cheat-private-encode"] = (
+        "# The same shortcut with the byte-pair loop copied into the file instead of\n"
+        "# called, so nothing it does is counted. It pays exactly the characters that were\n"
+        "# new to each render, which is under the floor.",
+        {"inc.py": PRIVATE_ENCODE},
+    )
+
     out["cheat-span-whole-turn"] = (
         "# Treats every generated position as trainable. The tokens are right, the work\n"
         "# is right, and the trainer is handed positions holding tokens the policy never\n"
@@ -197,6 +211,70 @@ def variants() -> dict[str, tuple[str, dict[str, str]]]:
 
     return out
 
+
+CORE_RUN = """from tok import core
+
+
+def cut(text, old, ids):
+    n = min(len(text), len(old))
+    i = 0
+    while i < n and text[i] == old[i]:
+        i += 1
+    return i, 0
+
+
+def encode(tok, text, old, ids):
+    off, n = cut(text, old, ids)
+    tok.encode(text[off:])
+    return [core.SID[s] for s in core._run(text)]
+"""
+
+PRIVATE_ENCODE = """from tok import core
+
+RANK = {}
+for _i, _p in enumerate(core.MG):
+    RANK[_p] = _i
+
+
+def _bpe(text):
+    seq = list(text)
+    while True:
+        pick = None
+        rank = None
+        for i in range(len(seq) - 1):
+            r = RANK.get((seq[i], seq[i + 1]))
+            if r is not None and (rank is None or r < rank):
+                rank = r
+                pick = (seq[i], seq[i + 1])
+        if pick is None:
+            return [core.SID[s] for s in seq]
+        j = pick[0] + pick[1]
+        out = []
+        i = 0
+        n = len(seq)
+        while i < n:
+            if i + 1 < n and seq[i] == pick[0] and seq[i + 1] == pick[1]:
+                out.append(j)
+                i += 2
+            else:
+                out.append(seq[i])
+                i += 1
+        seq = out
+
+
+def cut(text, old, ids):
+    n = min(len(text), len(old))
+    i = 0
+    while i < n and text[i] == old[i]:
+        i += 1
+    return i, 0
+
+
+def encode(tok, text, old, ids):
+    off, n = cut(text, old, ids)
+    tok.encode(text[off:])
+    return _bpe(text)
+"""
 
 ORDERED_STORE = """import collections
 

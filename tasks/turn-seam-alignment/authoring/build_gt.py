@@ -13,10 +13,14 @@ by writing the reference's answer down as the truth.
 The character meter is recorded as a window rather than as a number, and neither end of
 it comes from the reference.
 
-The floor is the oracle's own count of the characters that were not in the render before,
-which is the least any loop can hand the tokenizer and still be encoding what it claims to
-encode. A run under the floor is not resuming an encode, it is computing the ids some
-other way and leaving the meter alone.
+The floor is what the exact reading of the resume condition costs - resume at the last
+position no symbol of the vocabulary can straddle. No implementation that obeys the rule
+the instruction states can hand the tokenizer less than that, so a run under the floor
+resumed somewhere that is only a boundary for the text it happened to be looking at, or
+never encoded the render through the tokenizer at all. The oracle's count of the
+characters that were not in the previous render sits under the floor and is checked
+against it: that count is what a private copy of the encoder pays, and it has to be
+strictly below the floor somewhere or the meter would accept one.
 
 The ceiling is the most expensive of the one-sided resume tests in authoring/policies.py,
 measured through the same harness the reference goes through. Those are the answers a
@@ -89,12 +93,16 @@ def main() -> int:
 
     ceilings = [cost(TASK / "authoring" / "variants" / ("ok-" + n))
                 for n in policies.CEILING]
+    floors = [cost(TASK / "authoring" / "variants" / ("ok-" + n))
+              for n in policies.FLOOR]
 
     tmp = Path(tempfile.mkdtemp())
     try:
         rejects = [cost(mutated(sw, tmp / n)) for n, sw in policies.REJECT.items()]
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+    under = 0
 
     gt = {"scenarios": {}}
     for sc in scen.SCENARIOS:
@@ -115,10 +123,15 @@ def main() -> int:
             print(name, "lifecycle trace does not match the sealed replay")
             return 1
 
-        low = want["fresh"]
+        low = min(c[name] for c in floors)
         high = max(c[name] for c in ceilings)
         worst = min(c[name] for c in rejects)
+        fresh = want["fresh"]
 
+        if fresh > low:
+            print(name, "the floor", low, "is under what a private encode pays", fresh)
+            return 1
+        under += 1 if fresh < low else 0
         if not low <= rep["enc_chars"] <= high:
             print(name, "the reference itself is outside the window",
                   low, rep["enc_chars"], high)
@@ -131,13 +144,21 @@ def main() -> int:
         gt["scenarios"][name]["enc_chars"] = rep["enc_chars"]
         gt["scenarios"][name]["enc_chars_min"] = low
         gt["scenarios"][name]["enc_chars_max"] = high
+        gt["scenarios"][name]["enc_chars_fresh"] = fresh
 
         n_pos = sum(b - a for sp in rep["spans"].values() for a, b in sp)
-        print("%-14s proved  chars=%-5d window=%d-%d (rejected at %d)  fwd=%-5d trainable=%d"
-              % (name, rep["enc_chars"], low, high, worst, rep["fwd"], n_pos))
+        print("%-14s proved  chars=%-5d window=%d-%d (private encode %d, rejected at %d)"
+              "  fwd=%-5d trainable=%d"
+              % (name, rep["enc_chars"], low, high, fresh, worst, rep["fwd"], n_pos))
+
+    if not under:
+        print("\nno scenario puts the floor above what a private encode pays - the meter "
+              "would accept one")
+        return 1
 
     (TASK / "tests" / "gt.json").write_text(json.dumps(gt, indent=1, sort_keys=True) + "\n")
-    print("\nwrote tests/gt.json")
+    print("\nthe floor is above a private encode on %d of %d scenarios" % (under, len(gt["scenarios"])))
+    print("wrote tests/gt.json")
     return 0
 
 

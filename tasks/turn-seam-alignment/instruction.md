@@ -39,17 +39,18 @@ A reply that a retry threw away is not in the conversation any longer, and it go
 that list with it. A retry here drops the last reply, drops whatever the tool sent back
 after it, and puts a note in their place. That is all it does.
 
-The tokenizer is metered. Every character you hand it is counted, and one render is one
-call. The way to spend less is to hand it less. Handing it the same characters a second
-time to check the first answer costs exactly what never caching anything costs, so that
-route is closed. You may pick an encode up again only at a position that is a token
-boundary whatever text sits either side of it. Working out which positions those are is
-the job. Whatever is new in a render still has to go through the tokenizer. Above that
-floor the count has a ceiling, and there is room in between, so we are not going to split
-hairs over the very last protected position; walking back only as far as the nearest
-character the table takes no interest in at all leaves you over the ceiling, and going
-back to the first character of the render leaves you nowhere near it. The network is on
-the same meter, so a reply that gets walked twice shows up there.
+The tokenizer is metered. Every character that goes through it is counted wherever in the
+loop it went in, and one render is one call. The way to spend less is to hand it less.
+Handing it the same characters a second time to check the first answer costs exactly what
+never caching anything costs, so that route is closed. You may pick an encode up again
+only at a position that is a token boundary whatever text sits either side of it. Working
+out which positions those are is the job. A position that is a boundary only because of
+the text you happen to have in front of you is not one of them. The count has a ceiling
+on it and there is room under that ceiling, so we are not going to split hairs over the
+very last protected position; walking back only as far as the nearest character the table
+takes no interest in at all leaves you over the ceiling, and going back to the first
+character of the render leaves you nowhere near it. The network is on the same meter, so
+a reply that gets walked twice shows up there.
 
 Leave the rest of the worker's behaviour where it is. Which episode does what and when,
 the order the loop opens and finishes them in, what the sampler picks: none of that is

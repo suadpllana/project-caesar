@@ -112,18 +112,29 @@ the first disagreement, one that stops short of it, and a discarded turn that ke
 record. Calls made to the tokenizer and forwards through the network have to match
 exactly, and the characters handed to the tokenizer have to land inside a window; all
 three are counted inside modules the agent may not edit, so they measure real work
-whatever the submission looks like. The window's floor is the sealed replay's own count of
-the characters that were not in the previous render, which nothing that encodes a render
-can go under, and its ceiling is what the one-sided readings of the resume condition cost,
-measured through the same harness. Demanding one number inside that range would fail a
+whatever the submission looks like. The window's floor is what the exact reading of the
+resume condition costs - stop at the last position no symbol of the vocabulary can
+straddle - and no loop that obeys the stated rule can hand the tokenizer less than that;
+its ceiling is what the one-sided readings cost, measured through the same harness. Demanding one number inside that range would fail a
 solver who read the table more finely than the reference did, so the range is what is
 graded and authoring/variant_check.py proves it by running six alternative correct
 solutions through the real verifier. The lifecycle trace is compared in order.
 
-Sixteen cheats were run against it and all scored 0. Ten are the reference with exactly
+The characters are counted inside the byte-pair loop in tok/core.py rather than inside the
+Tok wrapper around it, so a submission that reaches past the wrapper is counted the same
+as one that does not, and the floor is what closes the remaining route: a loop that
+encodes each render with its own copy of the merge table and then hands the tokenizer only
+the characters that were appended pays exactly what was new to the render, which is under
+the floor on four of the twelve scenarios. Both of those are shipped as cheats and both
+score 0.
+
+Eighteen cheats were run against it and all scored 0. Twelve are the reference with exactly
 one decision made the way a solver who missed one piece would make it, and their failure
 signatures are distinct and match the design: encoding every render whole fails only the
-accounting, the merge-free resume test fails only the accounting, cutting at whitespace
+accounting, reaching past the metered wrapper to the byte-pair loop it wraps fails the
+characters and the calls, copying that loop into the submission and metering only the
+appended characters fails the floor on the four scenarios where a reply merges backwards
+into the marker in front of it, the merge-free resume test fails only the accounting, cutting at whitespace
 or at a block marker fails the accounting on eleven and twelve scenarios respectively,
 resuming a character past the protected position falls back to a full encode and fails
 the accounting, resuming at the seam itself without walking back fails on tokens and

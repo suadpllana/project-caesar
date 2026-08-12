@@ -23,7 +23,7 @@ the gate. Three of them are readings of the resume condition the reference did n
 and they are why the character count is graded against a window instead of against a
 number - an earlier draft of this task graded equality and would have failed all three.
 
-## The ten single-mistake cheats
+## The twelve single-mistake cheats
 
 Each is the whole reference solution with exactly one decision made the way a solver who
 missed one piece of the problem would make it. They do real work, produce a well-formed
@@ -33,6 +33,8 @@ verifier actually reported, from `authoring/cheat_report.py`.
 | Script | What it does wrong | What catches it |
 |---|---|---|
 | `cheat-full-encode.sh` | Encodes every render from character zero and reuses nothing | Character and call accounting on all twelve scenarios. Every token, span and forward correct |
+| `cheat-core-run.sh` | Reaches past the metered wrapper to `core._run`, the byte-pair loop it wraps, encodes every render whole with that and hands the tokenizer only the appended characters | Characters and calls on all twelve. The count lives in the byte-pair loop, not in the wrapper, so going round the wrapper counts |
+| `cheat-private-encode.sh` | The same shortcut with the byte-pair loop copied into the file instead of called, so nothing it does is counted | Characters on `back-reach`, `retry`, `retry-late` and `long`: it pays exactly what was new to each render, which is under the floor |
 | `cheat-merge-free-anchor.sh` | Resumes only on characters that take part in no merge at all, which is about twice the ceiling on every scenario | Accounting on all twelve. Every token and span correct |
 | `cheat-marker-anchor.sh` | Treats the four block markers as boundaries because they are markers | Accounting on all twelve |
 | `cheat-space-anchor.sh` | Cuts at the last space or newline, where a pre-tokenizer would put a boundary | Accounting on eleven scenarios |
@@ -43,7 +45,14 @@ verifier actually reported, from `authoring/cheat_report.py`.
 | `cheat-keep-retried-turn.sh` | A turn a retry threw away keeps its record | Spans on the three scenarios with a retry in them |
 | `cheat-retry-notes-tool.sh` | Routes the note a retry leaves through the tool path, so the episode raises a lifecycle event the worker it replaced never raised | The trace, on the three scenarios with a retry in them. Everything else correct |
 
-The interesting ones for the difficulty argument are the first four and the seventh. They
+`cheat-core-run` and `cheat-private-encode` are the two shapes of the same idea: get the
+ids from somewhere the meter does not watch and feed the meter a plausible number. They
+are why the characters are counted inside `core._run` rather than inside `Tok.encode`, and
+why the window has a floor as well as a ceiling. The floor is what the exact reading of
+the resume condition costs, and a loop that encodes privately pays less than that, because
+it has no reason to hand over anything but the characters that were new.
+
+The interesting ones for the difficulty argument are the first six and the ninth. They
 are the plans a strong agent forms first, every one of them produces the right token
 sequence and the right trainable spans on every scenario, and they fail only because the
 characters handed to the tokenizer are counted. `cheat-space-anchor` and

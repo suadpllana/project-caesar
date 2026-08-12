@@ -3,6 +3,7 @@
   "anchor-dense": {
    "enc_calls": 4,
    "enc_chars": 334,
+   "enc_chars_fresh": 294,
    "enc_chars_max": 338,
    "enc_chars_min": 294,
    "fwd": 93,
@@ -131,6 +132,7 @@
   "append": {
    "enc_calls": 3,
    "enc_chars": 157,
+   "enc_chars_fresh": 137,
    "enc_chars_max": 162,
    "enc_chars_min": 137,
    "fwd": 45,
@@ -206,8 +208,9 @@
   "back-reach": {
    "enc_calls": 5,
    "enc_chars": 239,
+   "enc_chars_fresh": 210,
    "enc_chars_max": 288,
-   "enc_chars_min": 210,
+   "enc_chars_min": 215,
    "fwd": 78,
    "ids": {
     "e0": [
@@ -316,6 +319,7 @@
   "interleave": {
    "enc_calls": 6,
    "enc_chars": 313,
+   "enc_chars_fresh": 271,
    "enc_chars_max": 321,
    "enc_chars_min": 271,
    "fwd": 88,
@@ -451,8 +455,9 @@
   "long": {
    "enc_calls": 6,
    "enc_chars": 413,
+   "enc_chars_fresh": 339,
    "enc_chars_max": 493,
-   "enc_chars_min": 339,
+   "enc_chars_min": 340,
    "fwd": 115,
    "ids": {
     "e0": [
@@ -598,6 +603,7 @@
   "no-anchor": {
    "enc_calls": 4,
    "enc_chars": 222,
+   "enc_chars_fresh": 219,
    "enc_chars_max": 262,
    "enc_chars_min": 219,
    "fwd": 74,
@@ -707,6 +713,7 @@
   "one-turn": {
    "enc_calls": 2,
    "enc_chars": 111,
+   "enc_chars_fresh": 108,
    "enc_chars_max": 116,
    "enc_chars_min": 108,
    "fwd": 31,
@@ -763,8 +770,9 @@
   "retry": {
    "enc_calls": 3,
    "enc_chars": 145,
+   "enc_chars_fresh": 106,
    "enc_chars_max": 159,
-   "enc_chars_min": 106,
+   "enc_chars_min": 107,
    "fwd": 45,
    "ids": {
     "e0": [
@@ -828,8 +836,9 @@
   "retry-late": {
    "enc_calls": 5,
    "enc_chars": 229,
+   "enc_chars_fresh": 189,
    "enc_chars_max": 255,
-   "enc_chars_min": 189,
+   "enc_chars_min": 190,
    "fwd": 78,
    "ids": {
     "e0": [
@@ -930,6 +939,7 @@
   "short-reply": {
    "enc_calls": 3,
    "enc_chars": 90,
+   "enc_chars_fresh": 80,
    "enc_chars_max": 101,
    "enc_chars_min": 80,
    "fwd": 24,
@@ -986,6 +996,7 @@
   "truncated": {
    "enc_calls": 3,
    "enc_chars": 130,
+   "enc_chars_fresh": 108,
    "enc_chars_max": 135,
    "enc_chars_min": 108,
    "fwd": 32,
@@ -1049,6 +1060,7 @@
   "two-tools": {
    "enc_calls": 3,
    "enc_chars": 248,
+   "enc_chars_fresh": 229,
    "enc_chars_max": 250,
    "enc_chars_min": 229,
    "fwd": 60,

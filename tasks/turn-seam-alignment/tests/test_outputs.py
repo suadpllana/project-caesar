@@ -36,11 +36,20 @@ Four things are checked, and all of them must hold:
      anywhere but at the front of a symbol, the character before it never sits anywhere
      but at the end of one, either of those, or the finer question of which adjacent
      pairs no symbol carries at all - and they hand the tokenizer different numbers of
-     characters on the same scenario.  The floor is the oracle's count of the characters
-     that were not in the previous render, which nothing that encodes the render can go
-     under.  The ceiling is what the one-sided readings cost.  Insisting on one number
-     inside that range would grade which reading a solver settled on rather than the
-     work they did; authoring/variants/ holds the readings that must all pass.
+     characters on the same scenario.  The floor is what the exact reading costs - resume
+     at the last position no symbol of the vocabulary can straddle - and no loop that
+     obeys the rule can hand the tokenizer less.  The ceiling is what the one-sided
+     readings cost.  Insisting on one number inside that range would grade which reading
+     a solver settled on rather than the work they did; authoring/variants/ holds the
+     readings that must all pass.
+
+     The floor is also what closes the meter to a private encoder.  The characters are
+     counted inside tok/core.py's byte-pair loop itself rather than inside the Tok
+     wrapper around it, so reaching past the wrapper counts too; and a loop that encodes
+     each render with its own copy of the table, then hands the tokenizer only what was
+     appended, lands on the characters that were new to the render, which is under the
+     floor on four of the twelve scenarios.  cheat-core-run and cheat-private-encode are
+     both of those, and both score 0.
 
 Per-scenario notes on which reading of the rule each case is aimed at are on AIM below.
 """
@@ -151,8 +160,12 @@ def test_ground_truth_is_what_a_naive_loop_produces(name):
     assert want["spans"] == {k: [list(s) for s in v] for k, v in proof["spans"].items()}, (
         "%s: recorded spans are not what the naive replay owns" % name)
     assert want["fwd"] == proof["fwd"], "%s: recorded forward count is not reproducible" % name
-    assert want["enc_chars_min"] == proof["fresh"], (
-        "%s: recorded character floor is not what the sealed replay counts" % name)
+    assert want["enc_chars_fresh"] == proof["fresh"], (
+        "%s: the recorded count of characters new to each render is not what the sealed "
+        "replay counts" % name)
+    assert want["enc_chars_fresh"] <= want["enc_chars_min"], (
+        "%s: the floor is under what a loop that encodes each render privately and hands "
+        "the tokenizer only the appended part would pay" % name)
     assert want["enc_chars_min"] <= want["enc_chars"] <= want["enc_chars_max"], (
         "%s: the recorded window does not contain the reference" % name)
     assert want["trace"] == proof["trace"], "%s: recorded trace is not reproducible" % name
@@ -216,8 +229,9 @@ def test_work_done(name):
     Calls and forwards are exact: one render is one call, and the forward count follows
     from the loop's own lifecycle. Characters are a window, for the reason on the module
     docstring - above the ceiling the loop is walking back past resume points that were
-    there, below the floor it is not handing the tokenizer the text it claims to be
-    encoding, and inside it the number belongs to the solver.
+    there, below the floor it resumed somewhere that is only a boundary for the text it
+    happened to be looking at or never put the render through the tokenizer at all, and
+    inside it the number belongs to the solver.
     """
     rep = report(name)
     assert rep is not None, "no report for %s" % name
@@ -230,8 +244,9 @@ def test_work_done(name):
     assert isinstance(chars, int) and not isinstance(chars, bool), (
         "%s: enc_chars was %r" % (name, chars))
     assert chars >= want["enc_chars_min"], (
-        "%s: %d characters reached the tokenizer, fewer than the %d that were not in the "
-        "previous render, so the ids did not come from encoding it (%s)"
+        "%s: %d characters reached the tokenizer against a floor of %d, which is what "
+        "resuming at the last position no symbol can straddle costs; a run under it "
+        "resumed somewhere only this text made safe, or never encoded the render (%s)"
         % (name, chars, want["enc_chars_min"], AIM[name]))
     assert chars <= want["enc_chars_max"], (
         "%s: %d characters reached the tokenizer against a ceiling of %d (%s)"

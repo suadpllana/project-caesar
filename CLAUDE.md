@@ -9,14 +9,15 @@ built and gated locally but has not been through the pipeline yet:
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
-| `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
+| `turn-seam-alignment` | ML / Training | 18 | 62 | 14400 s | 7 h |
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
 own `STATE.md` and the short version is in "Grade the work, never the implementation
 choice" below - it graded a character count against one number when the honest answer was
 a range, so a solver who read the merge table more finely than the reference did scored 0.
-It has been recalibrated and not re-probed.
+It has been recalibrated, then failed the quality review's cheat-robustness criterion on
+the recalibration itself and been fixed again; it has not been re-probed.
 
 Between them the first two were rejected three times by the AI-text screen and once by the
 run audit. Every one of those rejections is written down below with the fix, because the
@@ -192,6 +193,21 @@ weakest reading you intend to accept, and `build_gt.py` refusing to write a ceil
 drifted up far enough to admit the answer you do reject. Before grading any optimisation
 counter, ask whether a better solution than yours would fail it. If it would, grade the
 range and put every reading in `variants/`.
+
+**A window needs both ends, and the floor is not the trivial bound.** The first cut of that
+window failed the quality review's cheat-robustness criterion. The floor had been set at
+the cheapest thing arithmetic allows - the characters that were not in the previous render
+- and that is exactly where a submission lands when it computes the answer with its own
+copy of the primitive and feeds the meter only what it has to. The floor has to be the
+cheapest *legitimate* answer, which is whatever the finest correct reading of the rule
+costs, so that a private reimplementation lands underneath it. Two rules fall out of it:
+
+- Meter the primitive, never the wrapper. `Tok.encode` counted characters while the
+  module-level `_run` it wrapped did not, so one line reached past the meter.
+  `tools/docker_trial2.py <slug> --dir <attack>` reproduces that class of attack in a
+  minute; run it against your own counters before packaging.
+- Do not state the floor in the instruction. State the rule that implies it. A stated lower
+  bound is an invitation to pad the meter, and no honest solution is ever near it.
 
 ## Stage recipe
 

@@ -23,4 +23,4 @@ def make(over=None):
     cfg = load(over)
     tok = Tok()
     net = Net()
-    return RT(cfg, tok, net, Gen(net), Store(cfg["store"]))
+    return RT(cfg, tok, net, Gen(net, tok), Store(cfg["store"]))

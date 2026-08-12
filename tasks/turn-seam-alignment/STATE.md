@@ -2,12 +2,15 @@
 
 ## Current stage
 
-`Stage 7 - Pre-flight and packaging, after a difficulty recalibration`
+`Stage 7 - Pre-flight and packaging, after a difficulty recalibration and an anti-cheat
+repair`
 
-This task has been through the pipeline once. It cleared the easiness probe at 0 of 3 and
-**failed the difficulty probe at 0 of 8**, which is a rejection: the band is 1 to 6. The
-recalibration is written up under "Recalibration" below, and everything above it describes
-the task as it now stands.
+This task has been through the pipeline twice. The first time it cleared the easiness probe
+at 0 of 3 and **failed the difficulty probe at 0 of 8**, which is a rejection: the band is
+1 to 6. That recalibration is written up under "Recalibration" below. The second time it
+**failed quality review on anti-cheat robustness**, and that repair is written up under
+"Anti-cheat repair" at the end. Everything above those two sections describes the task as
+it now stands.
 
 ## Assistant's assigned role
 
@@ -129,8 +132,11 @@ sides are graded.
 
 ## Verifier contract - FROZEN
 
-Amended once, at the recalibration below, and only in the direction of grading less. The
-amendment is recorded rather than hidden, because the run audit reads this file.
+Amended twice, both times recorded rather than hidden, because the run audit reads this
+file. The first amendment, at the recalibration below, graded less: `enc_chars` became a
+window. The second, at the anti-cheat repair at the end of this file, graded no new
+quantity at all - it made an existing one unforgeable and raised its floor to a bound that
+is provably under every correct implementation.
 
 - Artifacts: `/app/tok/inc.py`, `/app/tok/store.py`, `/app/loop/ep.py`, `/app/loop/rec.py`.
   A wider set than strictly needs changing - `store.py` needs no change at all.
@@ -143,14 +149,22 @@ amendment is recorded rather than hidden, because the run audit reads this file.
   - `spans` - every surviving turn's trainable run, exactly, in turn order.
   - `enc_calls`, `fwd` - exactly. One render is one call; forwards follow from the
     lifecycle.
-  - `enc_chars` - inside a window, `enc_chars_min <= chars <= enc_chars_max`.
+  - `enc_chars` - inside a window, `enc_chars_min <= chars <= enc_chars_max`. The floor is
+    what the cheapest legal resume of each render costs, found by the sealed oracle by
+    trying resume positions rather than by reading the merge table. The ceiling is the
+    worse of the two one-sided readings.
   - `trace` - the lifecycle, in order.
+- Not graded, enforced: every id the loop hands over has to have come out of the metered
+  tokenizer. `Tok` keeps what it issued, `loop/gen.py` and `loop/rt.py` check each sequence
+  against that record, and neither file is editable. This is a structural constraint rather
+  than a graded field - a submission that violates it raises instead of scoring, and the
+  instruction states it.
 
 ### Real work, safe to grade
 
 Tokens emitted, trainable positions, calls into the tokenizer, forwards through the
 network, lifecycle events the worker itself raises. Two correct implementations agree on
-all of these by construction, which `authoring/variant_check.py` demonstrates over six of
+all of these by construction, which `authoring/variant_check.py` demonstrates over seven of
 them.
 
 ### Implementation choice, never graded
@@ -158,6 +172,8 @@ them.
 - Which cache structure `store.py` uses (`ok-ordered-store`).
 - The shape of the record a turn hands the span builder (`ok-split-record`).
 - How the span scan is written (`ok-scan-spans`).
+- Whether ids are carried as lists or tuples (`ok-tuple-ids`), which also proves the
+  tokenizer's record of what it issued is not grading a representation.
 - **Which reading of the resume condition a solver settles on.** This is the one that had
   to move; see below.
 
@@ -189,10 +205,12 @@ the probe ever ran.
 What changed:
 
 1. `enc_chars` is graded against a window instead of a number.
-   - The **floor** is `tests/oracle.py`'s own count of the characters that were not in the
-     previous render. Nothing that encodes a render can hand the tokenizer less and still
-     be encoding it, so this is the bound that stops a submission from reimplementing the
-     merge table privately and leaving the meter alone.
+   - The **floor** was `tests/oracle.py`'s own count of the characters that were not in
+     the previous render, on the reasoning that nothing which encodes a render can hand
+     the tokenizer less and still be encoding it. That reasoning was wrong in one word:
+     *encodes*. A submission that produces the ids some other way hands over exactly that
+     many characters and no more, which is what quality review found and what the repair
+     at the end of this file fixes.
    - The **ceiling** is the worse of the two one-sided readings, measured through the same
      harness the reference goes through, per scenario. `authoring/build_gt.py` refuses to
      write a ceiling that has drifted up far enough to admit the merge-free answer, which
@@ -219,25 +237,95 @@ merge table, the span rule still has to be derived from the finished sequence, t
 still rewrites the render backwards, and the twelve scenarios and four axes are still
 all-or-nothing. The easing is one razor wide.
 
+## Anti-cheat repair, after the quality review
+
+Quality review failed the task on one blocking criterion, anti-cheat robustness, and the
+finding was correct and central. It is worth writing down in full because the hole was not
+in the verifier at all.
+
+`tok/core.py` carried a module-level `_run()` that did the byte-pair merges, and
+`Tok.encode()` was a thin wrapper around it that incremented `n_chars` and `n_calls`. So
+the reviewer wrote a `tok/inc.py` that returned `[core.SID[s] for s in core._run(text)]` -
+a full, correct encode of every render, for free - and handed `tok.encode` only the newly
+appended suffix to keep the call count honest. It came out clean on all twelve scenarios
+on every graded field, landing exactly on `enc_chars_min`, because the floor was the count
+of characters that were not in the previous render and that is precisely what an appended
+suffix is. No boundary reasoning anywhere in it, and a reward of 1.
+
+The accounting axis is the only thing that rejects the safe, expensive answer, so that
+bypass takes the headline half of the problem with it.
+
+Three changes, none of which grades anything new.
+
+1. **No uncounted encode.** `_run` is gone; the merge loop is inlined into `Tok.encode`,
+   which counts before it runs. There is now no byte-pair encoding anywhere in the tree
+   outside the call that meters it.
+2. **Ids have to come from the tokenizer.** `Tok` keeps every id list it issued.
+   `loop/gen.py` checks the prompt before priming the network and `loop/rt.py` checks the
+   finished sequence before recording it, both through `Tok.mark`, which accepts a sequence
+   only when it is a prefix of one already accepted followed by exactly one of those
+   issued lists. Neither file is editable. This is what makes the meter mean something: a
+   private encoder can still compute the right ids, but the loop will not take them unless
+   the resume they imply is one the tokenizer actually performed, and where resuming at the
+   seam is not legal the private answer and the metered call disagree and the run raises.
+   The check never reports whether a resume point was *safe*, so it hands the solver no
+   oracle for the thing they have to work out - a wrong cut point still produces a
+   well-formed sequence with the wrong tokens in it, silently, exactly as before.
+3. **The floor is the cheapest legal resume, not the appended characters.** `tests/oracle.py`
+   now finds it per render by trying resume positions - every boundary of the previous
+   render's ids at or before the first character that moved, latest first, until one
+   splices to what a full encode produces. That is a property of the two renders and the
+   table rather than of any resume rule, so nothing correct can come in under it, and
+   `authoring/build_gt.py` refuses to write a ground truth in which no scenario separates
+   it from the old floor.
+
+The numbers, over the twelve scenarios: old floor 2290 characters, new floor 2295,
+separating on `back-reach`, `retry`, `retry-late` and `long`. The margin is thin on purpose
+- it is a proven minimum, not a chosen one - and the second change is what does the work.
+The pair-level reading, the finest honest reading of the table, sits *on* the new floor on
+eleven scenarios and three characters above it on the twelfth, which is the useful
+measurement here: reading the table as finely as it can be read is worth three characters
+out of 2298 against knowing the answers in advance. There is nothing left for a bypass to
+win.
+
+Two cheats were added and both score 0: `cheat-private-encoder.sh` is the reviewer's
+submission, rebuilt on the shipped tree with its own merge loop now that `_run` is gone,
+and `cheat-forge-ids.sh` is the same encoder with the meter left at zero. A seventh
+variant, `ok-tuple-ids`, was added on the other side, carrying ids as tuples through a
+store that does the same, to prove the new check is not grading a representation.
+
+### What is left, stated plainly
+
+A submission that writes its own byte-pair encoder *and* uses it to search, per render, for
+the last position that splices correctly, and then makes one metered call at that position,
+passes. It does no boundary reasoning and it lands on the floor. Three things stand against
+it and none of them is a verifier check: it is more code than the reference, the
+instruction says in terms that the tokenizer is the only source of ids and an encoder of
+your own is no good here, and it wins three characters out of 2298 over simply reading the
+table correctly. Closing it completely is not possible in-process - the merge table has to
+be readable for the task to be solvable at all, and ids are a function of text - so it is
+recorded here rather than papered over.
+
 ## Gates
 
-Run on 2026-08-12, in this sandbox, on the real two images unless noted.
+Run on 2026-08-12, in this sandbox, on the real two images unless noted. The rows below are
+after the anti-cheat repair.
 
 | gate | result |
 |---|---|
 | `authoring/sync.py` | 18 files into `tests/pristine` |
 | `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle |
-| `authoring/emit.py` | `solve.sh`, 6 variants, 16 cheats |
-| `authoring/variant_check.py` | 6/6 clean (host emulation) |
+| `authoring/emit.py` | `solve.sh`, 7 variants, 18 cheats |
+| `authoring/variant_check.py` | 7/7 clean (host emulation) |
 | `authoring/field_report.py` | no dead weight in the graded set |
 | `authoring/cheat_report.py` | oracle clean, nop fails, no cheat scores 1 |
-| `tools/docker_trial2.py turn-seam-alignment --all` | 18/18 trials behaved as required |
-| `tools/docker_trial2.py turn-seam-alignment --variants` | 6/6 variants scored 1 |
+| `tools/docker_trial2.py turn-seam-alignment --all` | 20/20 trials behaved as required |
+| `tools/docker_trial2.py turn-seam-alignment --variants` | 7/7 variants scored 1 |
 | `tools/textcheck.py` against both passing instructions | no findings |
 | `scripts/preflight.py` | clean |
 | `scripts/package.py` | packaged |
 
 Not run here: `harbor check`. It is not installed in this sandbox, and
 `tools/docker_trial2.py` reproduces the two-container trial with docker directly instead.
-The probe numbers above (0 of 8, 0 of 3) are from the pipeline; the effect of the
-recalibration on them has not been measured and cannot be measured here.
+The probe numbers above (0 of 8, 0 of 3) are from the pipeline; neither the recalibration
+nor this repair has been measured against a probe, and neither can be measured here.

@@ -13,10 +13,15 @@ by writing the reference's answer down as the truth.
 The character meter is recorded as a window rather than as a number, and neither end of
 it comes from the reference.
 
-The floor is the oracle's own count of the characters that were not in the render before,
-which is the least any loop can hand the tokenizer and still be encoding what it claims to
-encode. A run under the floor is not resuming an encode, it is computing the ids some
-other way and leaving the meter alone.
+The floor is the oracle's own count of what the cheapest legal resume costs: per render,
+the last position an encode could have been picked up at and still landed on the sequence
+a full encode produces, searched for rather than derived, so no reading of the merge table
+can come in under it. A run below the floor has not resumed an encode at all, it has
+computed the ids some other way and handed the meter whatever was appended.
+
+The gap between that and the weaker count - the characters that simply were not in the
+render before - is the width of that bypass, so it is printed per scenario and the build
+refuses to write a ground truth in which no scenario separates the two.
 
 The ceiling is the most expensive of the one-sided resume tests in authoring/policies.py,
 measured through the same harness the reference goes through. Those are the answers a
@@ -97,6 +102,7 @@ def main() -> int:
         shutil.rmtree(tmp, ignore_errors=True)
 
     gt = {"scenarios": {}}
+    separated = 0
     for sc in scen.SCENARIOS:
         name = sc["name"]
         rep = data["reports"][name]
@@ -115,9 +121,11 @@ def main() -> int:
             print(name, "lifecycle trace does not match the sealed replay")
             return 1
 
-        low = want["fresh"]
+        low = want["floor"]
         high = max(c[name] for c in ceilings)
         worst = min(c[name] for c in rejects)
+        if low > want["fresh"]:
+            separated += 1
 
         if not low <= rep["enc_chars"] <= high:
             print(name, "the reference itself is outside the window",
@@ -133,8 +141,16 @@ def main() -> int:
         gt["scenarios"][name]["enc_chars_max"] = high
 
         n_pos = sum(b - a for sp in rep["spans"].values() for a, b in sp)
-        print("%-14s proved  chars=%-5d window=%d-%d (rejected at %d)  fwd=%-5d trainable=%d"
-              % (name, rep["enc_chars"], low, high, worst, rep["fwd"], n_pos))
+        print("%-14s proved  chars=%-5d window=%d-%d (appended %d, rejected at %d)"
+              "  fwd=%-5d trainable=%d"
+              % (name, rep["enc_chars"], low, high, want["fresh"], worst,
+                 rep["fwd"], n_pos))
+
+    if not separated:
+        print("\nno scenario separates the floor from the characters that were appended, "
+              "so a loop that encodes the ids privately and meters only the append is "
+              "inside the window")
+        return 1
 
     (TASK / "tests" / "gt.json").write_text(json.dumps(gt, indent=1, sort_keys=True) + "\n")
     print("\nwrote tests/gt.json")

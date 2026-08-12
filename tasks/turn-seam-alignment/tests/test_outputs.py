@@ -30,17 +30,27 @@ Four things are checked, and all of them must hold:
      axis a merely safe loop fails: encoding every render from character zero is
      correct on all of the above and wrong here.
 
+     The meter cannot be stepped around, which is what makes the axis worth grading at
+     all.  No byte-pair encoding happens anywhere in the tree outside the call that
+     counts it, and the ids a render produces have to have come out of that call: the
+     tokenizer keeps what it handed back, and the loop refuses a sequence that is not a
+     prefix of one it has already accepted followed by exactly one of those.  A
+     submission that works the ids out privately and hands the meter only the appended
+     characters fails on that refusal wherever resuming at the seam is not legal, and
+     fails on the floor below wherever it is.
+
      The character count is graded as a window, not as a number, and neither end of it
      is the reference's own figure.  "Resume at the last position the merge table
      protects" has several correct readings - the character after the seam never sits
      anywhere but at the front of a symbol, the character before it never sits anywhere
      but at the end of one, either of those, or the finer question of which adjacent
      pairs no symbol carries at all - and they hand the tokenizer different numbers of
-     characters on the same scenario.  The floor is the oracle's count of the characters
-     that were not in the previous render, which nothing that encodes the render can go
-     under.  The ceiling is what the one-sided readings cost.  Insisting on one number
-     inside that range would grade which reading a solver settled on rather than the
-     work they did; authoring/variants/ holds the readings that must all pass.
+     characters on the same scenario.  The floor is what the cheapest legal resume costs
+     on each render, found by the oracle by trying resume positions rather than by
+     reading the table, so nothing correct can come in under it however finely it reads.
+     The ceiling is what the one-sided readings cost.  Insisting on one number inside
+     that range would grade which reading a solver settled on rather than the work they
+     did; authoring/variants/ holds the readings that must all pass.
 
 Per-scenario notes on which reading of the rule each case is aimed at are on AIM below.
 """
@@ -151,7 +161,7 @@ def test_ground_truth_is_what_a_naive_loop_produces(name):
     assert want["spans"] == {k: [list(s) for s in v] for k, v in proof["spans"].items()}, (
         "%s: recorded spans are not what the naive replay owns" % name)
     assert want["fwd"] == proof["fwd"], "%s: recorded forward count is not reproducible" % name
-    assert want["enc_chars_min"] == proof["fresh"], (
+    assert want["enc_chars_min"] == proof["floor"], (
         "%s: recorded character floor is not what the sealed replay counts" % name)
     assert want["enc_chars_min"] <= want["enc_chars"] <= want["enc_chars_max"], (
         "%s: the recorded window does not contain the reference" % name)
@@ -216,8 +226,8 @@ def test_work_done(name):
     Calls and forwards are exact: one render is one call, and the forward count follows
     from the loop's own lifecycle. Characters are a window, for the reason on the module
     docstring - above the ceiling the loop is walking back past resume points that were
-    there, below the floor it is not handing the tokenizer the text it claims to be
-    encoding, and inside it the number belongs to the solver.
+    there, below the floor no resume can account for the ids it produced, and inside it
+    the number belongs to the solver.
     """
     rep = report(name)
     assert rep is not None, "no report for %s" % name
@@ -230,8 +240,9 @@ def test_work_done(name):
     assert isinstance(chars, int) and not isinstance(chars, bool), (
         "%s: enc_chars was %r" % (name, chars))
     assert chars >= want["enc_chars_min"], (
-        "%s: %d characters reached the tokenizer, fewer than the %d that were not in the "
-        "previous render, so the ids did not come from encoding it (%s)"
+        "%s: %d characters reached the tokenizer against a floor of %d, which is what the "
+        "cheapest legal resume of these renders costs, so the ids were not produced by "
+        "resuming an encode (%s)"
         % (name, chars, want["enc_chars_min"], AIM[name]))
     assert chars <= want["enc_chars_max"], (
         "%s: %d characters reached the tokenizer against a ceiling of %d (%s)"

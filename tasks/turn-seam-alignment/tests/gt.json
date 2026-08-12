@@ -207,7 +207,7 @@
    "enc_calls": 5,
    "enc_chars": 239,
    "enc_chars_max": 288,
-   "enc_chars_min": 210,
+   "enc_chars_min": 212,
    "fwd": 78,
    "ids": {
     "e0": [
@@ -452,7 +452,7 @@
    "enc_calls": 6,
    "enc_chars": 413,
    "enc_chars_max": 493,
-   "enc_chars_min": 339,
+   "enc_chars_min": 340,
    "fwd": 115,
    "ids": {
     "e0": [
@@ -764,7 +764,7 @@
    "enc_calls": 3,
    "enc_chars": 145,
    "enc_chars_max": 159,
-   "enc_chars_min": 106,
+   "enc_chars_min": 107,
    "fwd": 45,
    "ids": {
     "e0": [
@@ -829,7 +829,7 @@
    "enc_calls": 5,
    "enc_chars": 229,
    "enc_chars_max": 255,
-   "enc_chars_min": 189,
+   "enc_chars_min": 190,
    "fwd": 78,
    "ids": {
     "e0": [

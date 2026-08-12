@@ -198,6 +198,93 @@ def variants() -> dict[str, tuple[str, dict[str, str]]]:
     return out
 
 
+PRIVATE_BPE = '''from tok import core
+
+
+def _bpe(text):
+    seq = list(text)
+    while True:
+        pick = None
+        rank = None
+        for i in range(len(seq) - 1):
+            r = core.RK.get((seq[i], seq[i + 1]))
+            if r is not None and (rank is None or r < rank):
+                rank = r
+                pick = (seq[i], seq[i + 1])
+        if pick is None:
+            return [core.SID[s] for s in seq]
+        j = pick[0] + pick[1]
+        out = []
+        i = 0
+        n = len(seq)
+        while i < n:
+            if i + 1 < n and seq[i] == pick[0] and seq[i + 1] == pick[1]:
+                out.append(j)
+                i += 2
+            else:
+                out.append(seq[i])
+                i += 1
+        seq = out
+
+
+def _moved(text, old):
+    n = min(len(text), len(old))
+    i = 0
+    while i < n and text[i] == old[i]:
+        i += 1
+    return i
+'''
+
+PRIVATE_ENCODE = '''
+
+def cut(text, old, ids):
+    return _moved(text, old), 0
+
+
+def encode(tok, text, old, ids):
+    off, n = cut(text, old, ids)
+    tok.encode(text[off:])
+    return _bpe(text)
+'''
+
+FORGED_ENCODE = '''
+
+def cut(text, old, ids):
+    return _moved(text, old), 0
+
+
+def encode(tok, text, old, ids):
+    tok.encode("")
+    return _bpe(text)
+'''
+
+
+def meters() -> dict[str, tuple[str, dict[str, str]]]:
+    """Attempts to produce the right ids without paying for them.
+
+    The tokenizer counts what it is handed, so a submission that works the ids out for
+    itself and hands the meter only the characters that were appended reports the cheapest
+    possible run while doing the most expensive work there is. Both of these carry a byte
+    pair encoder of their own, built from the same public table the resume condition has
+    to be derived from, and both are correct about every token they produce. Neither is
+    a resume, and the loop will not take a sequence that did not come out of its own
+    tokenizer.
+    """
+    return {
+        "cheat-private-encoder": (
+            "# Byte-pair encodes every render privately, out of the merge table, and\n"
+            "# hands the meter only the characters that were appended. Every token is\n"
+            "# right and the accounting says the loop resumed from the seam every time.",
+            {"inc.py": PRIVATE_BPE + PRIVATE_ENCODE},
+        ),
+        "cheat-forge-ids": (
+            "# The same private encoder with the meter left at zero: one empty call per\n"
+            "# render keeps the call count honest while nothing at all is encoded.",
+            {"inc.py": PRIVATE_BPE + FORGED_ENCODE},
+        ),
+    }
+
+
 ORDERED_STORE = """import collections
 
 
@@ -221,6 +308,41 @@ class Store:
 
     def drop(self, k):
         self.d.pop(k, None)
+"""
+
+TUPLE_ENCODE = """def encode(tok, text, old, ids):
+    off, n = cut(text, old, ids)
+    if off <= 0:
+        return tuple(tok.encode(text))
+    return tuple(ids[:n]) + tuple(tok.encode(text[off:]))
+"""
+
+TUPLE_STORE = """class Store:
+    def __init__(self, cap):
+        self.cap = int(cap)
+        self.d = {}
+        self.age = []
+
+    def get(self, k):
+        e = self.d.get(k)
+        if e is None:
+            return None
+        self.age.remove(k)
+        self.age.append(k)
+        return e
+
+    def put(self, k, text, ids):
+        if k in self.d:
+            self.age.remove(k)
+        self.d[k] = (text, tuple(ids))
+        self.age.append(k)
+        while len(self.age) > self.cap:
+            self.d.pop(self.age.pop(0), None)
+
+    def drop(self, k):
+        if k in self.d:
+            self.d.pop(k)
+            self.age.remove(k)
 """
 
 SCAN_SPANS = """def spans(seq, turns):
@@ -275,6 +397,11 @@ def alternatives() -> dict[str, dict[str, str]]:
                        policies.SAFE, policies.PAIR_SAFE)}
 
     out["ok-ordered-store"] = {"store.py": ORDERED_STORE}
+
+    out["ok-tuple-ids"] = {
+        "inc.py": swap(ref("inc.py"), ENCODE, TUPLE_ENCODE),
+        "store.py": TUPLE_STORE,
+    }
 
     out["ok-scan-spans"] = {"rec.py": SCAN_SPANS}
 
@@ -458,6 +585,7 @@ def main() -> int:
     cheat_dir = TASK / "cheat"
     probe_set = probes()
     allc = dict(variants())
+    allc.update(meters())
     allc.update(probe_set)
     for name, (header, files) in allc.items():
         base = shipped if name in probe_set else ref

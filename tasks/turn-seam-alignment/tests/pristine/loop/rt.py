@@ -26,6 +26,7 @@ class RT:
         self.trace.append(kind + ":" + eid)
 
     def done(self, eid, seq, turns):
+        self.tok.mark(seq)
         self.ids[eid] = list(seq)
         self.spans[eid] = [list(p) for p in rec.spans(seq, turns)]
         self.store.drop(eid)

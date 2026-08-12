@@ -19,7 +19,7 @@ python3 tasks/turn-seam-alignment/authoring/cheat_report.py
 
 The mirror image of this directory is `authoring/variants/`. Those are alternative
 *correct* solutions and every one of them has to score 1; `authoring/variant_check.py` is
-the gate. Three of them are readings of the resume condition the reference did not take,
+the gate. Three of the seven are readings of the resume condition the reference did not take,
 and they are why the character count is graded against a window instead of against a
 number - an earlier draft of this task graded equality and would have failed all three.
 
@@ -54,6 +54,30 @@ encoding in multi-turn chat, transplanted whole.
 possible loop, and on `back-reach` the marker in front of a reply is pulled into the same
 symbol as the reply's first character, so the sequence it produces is not the one a full
 encode produces.
+
+## The two meter-evasion cheats
+
+The accounting axis is the only thing that rejects the safe, expensive answer, so a hole in
+it takes the headline half of the problem with it. These two are the shape that hole would
+have: a byte-pair encoder of the solver's own, built from the same public merge table the
+resume condition has to be derived from, producing every token correctly while the meter is
+handed only what was appended. A quality review found exactly this against an earlier draft
+of the task, where `tok/core.py` carried a module-level `_run()` that did the merges and
+counted nothing.
+
+| Script | What it does | What catches it |
+|---|---|---|
+| `cheat-private-encoder.sh` | Byte-pair encodes every render privately and hands the meter only the appended characters, so every token is right and the accounting reads as a resume from the seam every time | The tokenizer's record of what it handed back. The loop takes a sequence only when it is a prefix of one already accepted followed by exactly one of those records, so on the four scenarios where resuming at the seam is not legal the run raises rather than reporting |
+| `cheat-forge-ids.sh` | The same private encoder with the meter left at zero: one empty call per render keeps the call count honest while nothing is encoded at all | The same record, on the first render of every scenario, and the character floor underneath it |
+
+Two changes closed that hole and both are in the shipped tree rather than in the verifier.
+There is no byte-pair encoding anywhere in `tok/core.py` outside `Tok.encode`, which counts
+what it is given; and `Tok` keeps what it handed back, with `loop/gen.py` and `loop/rt.py`
+checking every sequence against that record before the network or the trainer sees it.
+Neither file is editable. The floor moved with them: it is now what the cheapest legal
+resume of each render costs, found by the oracle by trying resume positions rather than by
+reading the table, which is a bound no reading can duck under and which the appended-only
+count sits below on four of the twelve scenarios.
 
 ## The five isolation probes
 

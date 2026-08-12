@@ -9,14 +9,18 @@ built and gated locally but has not been through the pipeline yet:
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
-| `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
+| `turn-seam-alignment` | ML / Training | 18 | 62 | 14400 s | 7 h |
 
-`turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
-easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
-own `STATE.md` and the short version is in "Grade the work, never the implementation
-choice" below - it graded a character count against one number when the honest answer was
-a range, so a solver who read the merge table more finely than the reference did scored 0.
-It has been recalibrated and not re-probed.
+`turn-seam-alignment` is the fourth, and it is the one that has come back twice. First from
+the probes: easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem
+is in its own `STATE.md` and the short version is in "Grade the work, never the
+implementation choice" below - it graded a character count against one number when the
+honest answer was a range, so a solver who read the merge table more finely than the
+reference did scored 0. Then from **quality review, on anti-cheat robustness**: the counter
+that carried half the difficulty could be walked around, because the metered method was a
+wrapper over an uninstrumented module-level helper that did the actual work. That one is
+written up in "Meter the work, not the wrapper" below. Both are repaired and neither
+repair has been re-probed.
 
 Between them the first two were rejected three times by the AI-text screen and once by the
 run audit. Every one of those rejections is written down below with the fix, because the
@@ -193,6 +197,61 @@ drifted up far enough to admit the answer you do reject. Before grading any opti
 counter, ask whether a better solution than yours would fail it. If it would, grade the
 range and put every reading in `variants/`.
 
+## Meter the work, not the wrapper
+
+`turn-seam-alignment` then failed quality review on anti-cheat robustness, and the finding
+was not in the verifier. `tok/core.py` looked like this:
+
+```python
+def _run(text):        # does the byte-pair merges, counts nothing
+    ...
+
+class Tok:
+    def encode(self, text):
+        self.n_calls += 1
+        self.n_chars += len(text)
+        return [SID[s] for s in _run(text)]
+```
+
+The reviewer wrote an editable `inc.py` that called `core._run(text)` for a free, correct
+encode of every render and handed `tok.encode` only the appended suffix. Every graded field
+clean, landing exactly on the floor, no reasoning of the kind the task is about anywhere in
+it. The counter that rejects the safe-but-expensive answer is the whole accounting axis, so
+that one hole took half the task with it.
+
+Three rules come out of it, and they apply to any task where a counter in an uneditable file
+carries the difficulty.
+
+1. **There must be no uncounted path to the metered work.** Not a helper, not a private
+   method, not a second entry point. Inline the loop into the method that counts, so
+   possessing the module gives you nothing you have not paid for. `grep` the uneditable
+   modules for every function that does real work and check each one increments something.
+2. **Tie the graded output to the metered call.** Counting alone is never enough, because
+   the agent can always recompute your work in an editable file - the tables, the weights
+   and the algorithm are all in the image and have to be, or the task is unsolvable. What
+   they cannot fabricate is provenance. Have the metered component keep what it issued and
+   have an uneditable consumer refuse anything that is not built out of those issues; in
+   this task, `Tok` records every id list and `gen.py`/`rt.py` take a sequence only when it
+   is a prefix of one already accepted followed by exactly one issued list. A private
+   encoder can still compute the right answer and now cannot spend it.
+3. **Make the provenance check silent about the thing being solved.** It must fail forgery
+   and say nothing about whether a legitimate choice was correct, or it becomes the oracle
+   the task is built on not having. Here a wrong resume point still produces a well-formed
+   sequence with the wrong tokens in it, exactly as before; only ids that no metered call
+   could have produced raise.
+
+Then check the floor under the counter with the bypass in mind. "Characters that were not
+in the previous render" reads like a bound nothing can go under, and it is exactly what a
+submission that computes the ids privately hands over. The bound that holds is the cheapest
+*legal* version of the operation - here, what a resume from the last position that splices
+correctly costs, which the sealed oracle finds by trying positions rather than by reading
+the table, so no reading can duck under it. Write the bypass as a cheat and confirm it
+scores 0 before believing any of this.
+
+State the rule in the instruction too. A structural check the brief does not mention is a
+trap; one it does mention is a rule, and the two together are what the review is asking
+for.
+
 ## Stage recipe
 
 ### 1. Idea
@@ -304,7 +363,7 @@ Content rules, separate from style and blocking on their own:
 
 ### 6. Cheats
 
-Three families, all scoring 0.
+Four families, all scoring 0.
 
 **Single-mistake variants**: the *whole* reference solution with exactly one decision made
 the way a solver who missed one piece would make it. Generate them in `authoring/emit.py` by
@@ -318,6 +377,13 @@ rewrite, planted run output, garbage report, privilege probe, ground-truth read,
 counters, verifier-directory sweep. Build these on the **shipped, broken tree**, not on the
 reference. A probe built on the reference does the real work and scores 1 legitimately, which
 proves nothing. This cost a debugging cycle here.
+
+**Meter-evasion cheats**, required whenever a counter in an uneditable file carries any of
+the difficulty. Reimplement the metered component in an editable file, out of the tables and
+constants the tree has to expose, and report the cheapest possible run while doing the most
+expensive work there is. Write one that produces every output correctly, since that is the
+dangerous shape, and one that leaves the meter at zero. If either scores 1 the accounting
+axis is decoration; see "Meter the work, not the wrapper" above.
 
 **A sweep cheat** that hunts the agent image for answer material and finds nothing.
 
@@ -444,6 +510,8 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `docker_trial.py --all`: oracle 1, nop 0, every cheat 0, including every isolation probe.
 - `variant_check.py`: every alternative correct implementation scores 1.
 - `field_report.py`: no graded field is dead weight, and none encodes a tie-break.
+- Every uneditable module that does metered work does it inside the call that counts, and
+  the graded output is tied to what that call issued.
 - `textcheck.py` clean against **both** passing instructions.
 - Instruction-to-verifier coverage walked line by line, both directions.
 - Built agent image inspected file by file for leaks.

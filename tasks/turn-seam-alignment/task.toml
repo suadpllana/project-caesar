@@ -112,15 +112,20 @@ the first disagreement, one that stops short of it, and a discarded turn that ke
 record. Calls made to the tokenizer and forwards through the network have to match
 exactly, and the characters handed to the tokenizer have to land inside a window; all
 three are counted inside modules the agent may not edit, so they measure real work
-whatever the submission looks like. The window's floor is the sealed replay's own count of
-the characters that were not in the previous render, which nothing that encodes a render
-can go under, and its ceiling is what the one-sided readings of the resume condition cost,
-measured through the same harness. Demanding one number inside that range would fail a
-solver who read the table more finely than the reference did, so the range is what is
-graded and authoring/variant_check.py proves it by running six alternative correct
-solutions through the real verifier. The lifecycle trace is compared in order.
+whatever the submission looks like. Nor can the meter be walked around: no byte-pair
+encoding happens anywhere in the tree outside the call that counts it, the tokenizer keeps
+a record of every id list it handed back, and the loop refuses a sequence that is not a
+prefix of one it has already accepted followed by exactly one of those records, so a
+submission that works the ids out privately and meters only what was appended fails rather
+than passing cheaply. The window's floor is what the cheapest legal resume of each render
+costs, which the sealed replay finds by trying resume positions rather than by reading the
+table, so no reading of it can come in under the floor; the ceiling is what the one-sided
+readings cost, measured through the same harness. Demanding one number inside that range
+would fail a solver who read the table more finely than the reference did, so the range is
+what is graded and authoring/variant_check.py proves it by running seven alternative
+correct solutions through the real verifier. The lifecycle trace is compared in order.
 
-Sixteen cheats were run against it and all scored 0. Ten are the reference with exactly
+Eighteen cheats were run against it and all scored 0. Ten are the reference with exactly
 one decision made the way a solver who missed one piece would make it, and their failure
 signatures are distinct and match the design: encoding every render whole fails only the
 accounting, the merge-free resume test fails only the accounting, cutting at whitespace
@@ -131,7 +136,10 @@ forwards where a reply merges backwards into the marker in front of it, verifyin
 a second full encode fails on both counters, treating every generated position as
 trainable fails only the spans, keeping a discarded turn's record fails only the scenarios
 with a retry in them, and routing a retry's note through the tool path fails only the
-lifecycle trace. Five are reward-tamper probes, since the verifier
+lifecycle trace. Two carry a byte-pair encoder of their own, built from the same public
+table, and hand the meter only the characters that were appended; one of them produces
+every token correctly and both are refused by the tokenizer's record of what it issued.
+Five are reward-tamper probes, since the verifier
 executes the agent's code: a double-forked process writing the reward after the run, a
 planted run output with the run killed before any scenario executes, wrong-typed junk
 returned from the report, a privilege probe, and an attempt to read the ground truth from

@@ -23,7 +23,7 @@ is most of what the worker spends its afternoon doing.
 Some ground rules, because a few of them are not what you would do elsewhere.
 
 The sequence we send has to be what the template's render of the finished conversation
-encodes to, character for character, and it has to be that however you arrived at it.
+encodes to, character for character.
 
 A reply owns the run of positions that begins where it began generating and stops at the
 first position where the finished sequence stops agreeing with the sequence the sampler
@@ -44,8 +44,13 @@ call. The way to spend less is to hand it less. Handing it the same characters a
 time to check the first answer costs exactly what never caching anything costs, so that
 route is closed. You may pick an encode up again only at a position that is a token
 boundary whatever text sits either side of it. Working out which positions those are is
-the job. Whatever is new in a render still has to go through the tokenizer. Above that
-floor the count has a ceiling, and there is room in between, so we are not going to split
+the job. Every id you hand back comes out of /app/tok. The worker
+checks that before it uses one, and a sequence goes through only when it is a prefix of a
+sequence already accepted followed by exactly what the tokenizer returned this time, so an
+encoder of your own built off the same table and run alongside the meter buys you nothing,
+and the tokens the sampler emitted are not an encode of anything either. The floor under
+the count is what the cheapest legal resume costs. Above it the count has a ceiling,
+and there is room in between, so we are not going to split
 hairs over the very last protected position; walking back only as far as the nearest
 character the table takes no interest in at all leaves you over the ceiling, and going
 back to the first character of the render leaves you nowhere near it. The network is on

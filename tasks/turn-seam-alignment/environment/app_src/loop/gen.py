@@ -2,8 +2,9 @@ from tok.core import END
 
 
 class Gen:
-    def __init__(self, net):
+    def __init__(self, net, tok):
         self.net = net
+        self.tok = tok
         self.st = {}
 
     def prime(self, eid, ids):
@@ -26,6 +27,7 @@ class Gen:
         return h
 
     def run(self, eid, ids, salt, cap):
+        self.tok.mark(ids)
         h = self.prime(eid, ids)
         old, hs = self.st[eid]
         out = []

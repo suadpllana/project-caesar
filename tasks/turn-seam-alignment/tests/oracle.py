@@ -12,6 +12,13 @@ about which positions a turn owns, because it compares the finished sequence aga
 what the sampler was actually conditioned on. It is simply far more expensive than the
 loop under test is allowed to be, which is the one thing it is not asked to reproduce.
 
+One thing here is not a replay of the loop at all. The floor under the character meter is
+worked out per render by searching for the last position an encode could have been picked
+up at and still landed on the sequence a full encode produces, which is the cheapest a
+loop that resumes is able to be on that render. It is measured off the two renders and
+the merge table rather than off any implementation, so no reading of the resume condition,
+however fine, can come in under it.
+
 The encoder here sweeps the merge table in rank order instead of rescanning for the best
 available pair, which is the same fixed point for a table trained in frequency order - a
 symbol only becomes available once both its halves exist, so no merge introduced at rank
@@ -109,6 +116,11 @@ class Counter:
     def __init__(self):
         self.fwd = 0
         self.fresh = 0
+        self.floor = 0
+        # Every render the loop has to encode, in the order the op list reaches them,
+        # paired with what a full encode of it comes to. tests/audit.py replays the
+        # tokenizer's own record against this list.
+        self.renders = []
 
 
 def advance(cnt, h, tok):
@@ -152,23 +164,56 @@ class Episode:
         self.ids = []
         self.states = [(1, 2, 3, 4, 5, 6)]
         self.last = None
+        self.last_ids = None
 
-    def fresh(self, text):
-        """Characters in this render that were not in the one before it.
+    def meter(self, text, ids):
+        """The least any loop can hand the tokenizer for this render.
 
-        Nothing that encodes a render can hand the tokenizer less than this and still be
-        encoding it, so the sum over an episode is the floor under the character meter.
-        The naive replay pays far more than the floor - it hands over every render whole
-        - which is exactly why the floor has to be counted here rather than measured off
-        a loop that resumes.
+        A loop that resumes an encode hands over the render from the position it picks
+        up at, and it may only pick up at a position where doing so lands on the same
+        sequence a full encode does.  So the cheapest legal render is the one that
+        resumes at the last such position, and that is found here by trying them: every
+        boundary of the previous render's ids that sits at or before the first character
+        that moved, from the latest backwards, until one of them splices to the sequence
+        a full encode produces.  Position zero always qualifies, which is the full
+        encode, so the search always lands somewhere.
+
+        This is a property of the two renders and the merge table, not of any resume
+        rule, so nothing correct can go under it however cleverly it reads the table.
+        The weaker count kept alongside it - the characters that were not in the render
+        before - is what a submission spends when it computes the ids some other way and
+        hands the meter only what was appended.  That is not a resume, and the gap
+        between the two numbers is what says so.
         """
-        old = self.last or ""
+        self.cnt.renders.append((text, list(ids)))
+        old = self.last
+        prev = self.last_ids
+        self.last = text
+        self.last_ids = list(ids)
+        if old is None:
+            self.cnt.fresh += len(text)
+            self.cnt.floor += len(text)
+            return
         n = min(len(text), len(old))
         i = 0
         while i < n and text[i] == old[i]:
             i += 1
-        self.last = text
         self.cnt.fresh += len(text) - i
+        edge = []
+        w = 0
+        for k, t in enumerate(prev):
+            w += len(VOCAB[t])
+            if w > i:
+                break
+            if list(prev[:k + 1]) == list(ids[:k + 1]):
+                edge.append((w, k + 1))
+        cut = 0
+        while edge:
+            j, k = edge.pop()
+            if list(prev[:k]) + encode(text[j:]) == list(ids):
+                cut = j
+                break
+        self.cnt.floor += len(text) - cut
 
     def prime(self, ids):
         """Walk the network to the end of a prompt, reusing the states already walked."""
@@ -187,8 +232,8 @@ class Episode:
 
     def turn(self, cap):
         text = render(self.msgs, True)
-        self.fresh(text)
         prompt = encode(text)
+        self.meter(text, prompt)
         h = self.prime(prompt)
         gen = []
         while len(gen) < cap:
@@ -212,8 +257,8 @@ class Episode:
 
     def finish(self):
         text = render(self.msgs, False)
-        self.fresh(text)
         seq = encode(text)
+        self.meter(text, seq)
         spans = []
         for start, want in self.turns:
             n = min(len(seq), len(want))
@@ -255,4 +300,4 @@ def replay(ops):
             spans[eid] = sp
             trace.append("done:" + eid)
     return {"ids": ids, "spans": spans, "fwd": cnt.fwd, "fresh": cnt.fresh,
-            "trace": trace}
+            "floor": cnt.floor, "trace": trace, "renders": list(cnt.renders)}

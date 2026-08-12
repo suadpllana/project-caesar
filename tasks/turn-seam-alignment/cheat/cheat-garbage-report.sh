@@ -11,7 +11,15 @@ def _junk(self):
     return ["not", {"a": None}, 3.5, float("nan")]
 
 
+def _done(self, eid, seq, turns):
+    self.ids[eid] = ["not", None, float("nan")]
+    self.spans[eid] = [{"a": 1}, 3.5]
+    self.trace.append({"kind": None})
+    self.tok.log.append(["", None])
+
+
 _rt.RT.report = _junk
+_rt.RT.done = _done
 
 def cut(text, old, ids):
     return 0, 0

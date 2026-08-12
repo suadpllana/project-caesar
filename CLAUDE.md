@@ -450,3 +450,11 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `STATE.md` current: verifier contract, difficulty argument, expert path, estimated solves,
   and every gate not run.
 - Handover states honestly what was run and what was not. Packaging proves nothing.
+- **Re-run `scripts/package.py` and send the rebuilt `tasks/<slug>.zip` back to the user**
+  with `SendUserFile`, in the same reply that reports the fix. This applies to every turn
+  that changes a task - a verifier hardening, a recalibration, a new task - not only to
+  the first delivery. The user's next step is uploading that zip to the pipeline, so a fix
+  described in chat and left sitting in the repo is a fix they cannot use. Package after
+  the last content edit, never before, and check the zip's timestamp against the tree
+  before sending it. `git status` clean on the zip means it matches what was committed,
+  not that it matches the tree.

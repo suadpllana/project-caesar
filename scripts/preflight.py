@@ -62,6 +62,53 @@ REQUIRED_FILES = [
 
 TODO_MARKERS = ("TODO", "FIXME", "<your-", "XXX")
 
+# ---------------------------------------------------------------------------
+# What ships in the submission zip. SINGLE SOURCE OF TRUTH: package.py imports
+# these, and every scan here runs over exactly the set that ships. When the two
+# disagreed, harbor's own `jobs/` output was skipped by the scanner and shipped
+# by the packager - and its result.json carries the org name, which the platform
+# blocks. Never let one tool learn about a path the other does not.
+EXCLUDE_DIRS = {
+    ".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache",
+    "logs", "runs", ".harbor",
+    "jobs",          # harbor run's default output dir (-o/--jobs-dir)
+    "job", "results", "trials", ".pytest_cache",
+}
+# Any directory holding a harbor result file is harness output, whatever it is called.
+HARNESS_OUTPUT_MARKERS = ("result.json", "trial.log", "job.log")
+EXCLUDE_NAMES = {"STATE.md", ".DS_Store", "Thumbs.db", ".gitignore", ".gitattributes"}
+EXCLUDE_SUFFIXES = {".pyc", ".pyo", ".zip", ".log"}
+
+
+def harness_output_dirs(root: Path) -> set[Path]:
+    """Directories that are harbor run output, detected by content, not by name."""
+    found: set[Path] = set()
+    for marker in HARNESS_OUTPUT_MARKERS:
+        for hit in root.rglob(marker):
+            # <task>/<jobsdir>/<jobname>/... - exclude the whole top-level jobs dir
+            rel = hit.relative_to(root)
+            if rel.parts:
+                found.add(root / rel.parts[0])
+    return {d for d in found if d.is_dir()}
+
+
+def shipped_files(root: Path) -> list[Path]:
+    """Exactly the files package.py puts in the zip. Every scan should use this."""
+    skip_dirs = harness_output_dirs(root)
+    files = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root)
+        if any(part in EXCLUDE_DIRS for part in rel.parts):
+            continue
+        if any(str(path).startswith(str(d)) for d in skip_dirs):
+            continue
+        if path.name in EXCLUDE_NAMES or path.suffix.lower() in EXCLUDE_SUFFIXES:
+            continue
+        files.append(path)
+    return files
+
 errors: list[str] = []
 warnings: list[str] = []
 
@@ -98,6 +145,15 @@ def check_structure(root: Path) -> None:
         warn(
             "cheat/ is missing or empty - write deliberate fake solutions and confirm each "
             "scores 0 before submitting; the pipeline runs its own adversarial probe"
+        )
+
+    stray = harness_output_dirs(root)
+    if stray:
+        names = ", ".join(sorted(d.name for d in stray))
+        warn(
+            f"harbor run output found in the task folder ({names}) - excluded from the zip, but "
+            "its result.json records the task name, which the platform blocks. Run the gates with "
+            "`-o <somewhere-outside-the-task-dir>`, or delete these before packaging"
         )
 
     env_dir = root / "environment"
@@ -690,15 +746,14 @@ def check_verifier_selfcontained(root: Path) -> None:
 
 
 def check_blocked_terms(root: Path) -> None:
-    """Blocked internal terms must appear nowhere in the bundle except task.toml's org name."""
+    """Blocked internal terms must appear nowhere in the bundle except task.toml's org name.
+
+    Scans exactly the set of files that ship (`shipped_files`), so the scanner can never
+    skip a path the packager includes.
+    """
     hits: list[str] = []
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
-            continue
-        rel_parts = path.relative_to(root).parts
-        if any(part in {".git", "__pycache__", ".venv", "jobs"} for part in rel_parts):
-            continue
-        rel = "/".join(rel_parts)
+    for path in shipped_files(root):
+        rel = "/".join(path.relative_to(root).parts)
         if rel in BLOCKED_SCAN_EXEMPT:
             continue
         try:
@@ -771,6 +826,68 @@ def check_verifier_isolation(root: Path, cfg: dict) -> None:
         )
 
 
+# The difficulty strategy is the gate that decides acceptance, and it is the one thing no
+# other check can see. These STATE.md fields force the assistant to articulate it; an empty
+# answer here means the task was built without the strategy, whatever the bundle looks like.
+STATE_REQUIRED = [
+    ("one-shot the plan", "why a frontier agent cannot one-shot the plan (the strategic answer)"),
+    ("Tactics making that true", "which tactics from docs/DIFFICULTY.md make that true"),
+    ("attack on the plan", "your own attack on the plan - your first plan, and where it is wrong"),
+    ("Estimated solves out of 8", "the estimated solves out of 8"),
+]
+TACTIC_RE = re.compile(r"\b([ABC])[1-4]\b|prong\s+([ABC])\b", re.IGNORECASE)
+
+
+def field_value(text: str, needle: str) -> str | None:
+    """Return the value written after `needle:` on its line, or None if the line is absent."""
+    for line in text.splitlines():
+        if needle.lower() in line.lower():
+            _, _, value = line.partition(":")
+            # Handle the template's "(...)" hint before the colon.
+            return value.strip().strip("*_ ")
+    return None
+
+
+def check_state_difficulty(root: Path) -> None:
+    """Force the difficulty strategy to be articulated before a bundle can pass or package."""
+    path = root / "STATE.md"
+    text = read(path)
+    if text is None:
+        error(
+            "STATE.md is missing - copy template/task-template/STATE.md into the task folder and "
+            "fill in the difficulty section. It records why a frontier agent cannot one-shot the "
+            "plan, and it is how the difficulty strategy stays accountable (it never ships in the zip)"
+        )
+        return
+
+    for needle, described in STATE_REQUIRED:
+        value = field_value(text, needle)
+        if value is None:
+            error(f"STATE.md: no line recording {described} - see template/task-template/STATE.md")
+            continue
+        stripped = value.strip()
+        if not stripped or any(m in stripped for m in TODO_MARKERS) or len(stripped.split()) < 3:
+            error(
+                f"STATE.md: {described} is unanswered - a task whose difficulty strategy was "
+                "never articulated lands outside the 1-6 band; see docs/DIFFICULTY.md"
+            )
+
+    tactics_line = field_value(text, "Tactics making that true") or ""
+    prongs = {(m.group(1) or m.group(2)).upper() for m in TACTIC_RE.finditer(tactics_line)}
+    if tactics_line and not any(m in tactics_line for m in TODO_MARKERS):
+        if not prongs:
+            error(
+                "STATE.md: the tactics line names no tactic from docs/DIFFICULTY.md - name them "
+                "explicitly (A1-A3 poison the default plan, B1-B2 withhold it, C1-C4 make the "
+                "wrong plan fatal), so the design can be audited against what was built"
+            )
+        elif len(prongs) < 2:
+            warn(
+                f"STATE.md: tactics come from one prong only ({', '.join(sorted(prongs))}) - a task "
+                "carried by a single tactic is fragile; aim for several across at least two prongs"
+            )
+
+
 def check_verifier(root: Path) -> None:
     text = read(root / "tests" / "test.sh")
     if text is None:
@@ -784,6 +901,30 @@ def check_verifier(root: Path) -> None:
 
 
 # --------------------------------------------------------------------------- reporting
+
+# Findings are reported cheapest-to-fix first, so the list reads as a to-do list: fill in
+# fields, then edit text, then create files, then touch code and rebuild, and last the
+# difficulty design, which is the one that may send you back to the drawing board.
+FIX_ORDER = (
+    (re.compile(r"^task\.toml: \[metadata\]"), 0),   # fill in a field
+    (re.compile(r"^task\.toml:"), 1),                # change a config value
+    (re.compile(r"^instruction\.md:"), 2),           # edit prose
+    (re.compile(r"^missing required file"), 3),      # create a file
+    (re.compile(r"^STATE\.md"), 5),                  # articulate (or redesign) the strategy
+)
+DEFAULT_FIX_TIER = 4                                 # code, environment, verifier: edit and rebuild
+
+
+def fix_tier(msg: str) -> int:
+    for pattern, tier in FIX_ORDER:
+        if pattern.match(msg):
+            return tier
+    return DEFAULT_FIX_TIER
+
+
+def ordered(messages: list[str]) -> list[str]:
+    """Sort findings by how much work they take to fix (stable within each tier)."""
+    return sorted(messages, key=fix_tier)
 
 
 def main(argv: list[str]) -> int:
@@ -804,14 +945,15 @@ def main(argv: list[str]) -> int:
     check_artifact_parents(root, cfg)
     check_compose(root, cfg)
     check_verifier(root)
+    check_state_difficulty(root)
     check_verifier_isolation(root, cfg)
     check_verifier_selfcontained(root)
     check_blocked_terms(root)
 
     print(f"Pre-flight check: {root}\n")
-    for msg in warnings:
+    for msg in ordered(warnings):
         print(f"  WARN   {msg}")
-    for msg in errors:
+    for msg in ordered(errors):
         print(f"  ERROR  {msg}")
 
     print()

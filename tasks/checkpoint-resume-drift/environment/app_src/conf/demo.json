@@ -1,0 +1,10 @@
+{
+  "ops": [
+    {"op": "micro", "n": 5},
+    {"op": "save"},
+    {"op": "micro", "n": 2},
+    {"op": "kill"},
+    {"op": "load"},
+    {"op": "micro", "n": 4}
+  ]
+}

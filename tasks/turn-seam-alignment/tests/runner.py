@@ -7,6 +7,14 @@ channel: grading happens afterwards, in a separate root process, from /tests/gt.
 
 Any failure here - import error, exception, hang - leaves the work file absent or
 incomplete, which the grader treats as a failed run.
+
+Nothing the submission hands back is used as the report.  The loop is driven and then
+the report is assembled here, from the runtime's own attributes and from the tokenizer
+and network objects pinned the moment they were built - before a line of agent code has
+run - so a report method replaced at import time, or a meter swapped out from under the
+runtime part way through, changes nothing that reaches the grader.  The tokenizer's
+record of what it was actually given goes over with it; tests/audit.py works the
+accounting out again from that record on the privileged side.
 """
 
 import json
@@ -15,6 +23,20 @@ import sys
 import traceback
 
 APP = os.environ.get("APPDIR", "/work/app")
+
+
+def collect(rt, tok, net):
+    """Assemble one scenario's report from state the run did not get to choose."""
+    return {
+        "enc_chars": tok.n_chars,
+        "enc_calls": tok.n_calls,
+        "fwd": net.n_fwd,
+        "trace": [str(e) for e in rt.trace],
+        "ids": {str(k): [int(x) for x in v] for k, v in sorted(rt.ids.items())},
+        "spans": {str(k): [[int(a), int(b)] for a, b in v]
+                  for k, v in sorted(rt.spans.items())},
+        "log": [[str(text), [int(x) for x in ids]] for text, ids in tok.log],
+    }
 
 
 def main(dest):
@@ -32,7 +54,10 @@ def main(dest):
         name = sc["name"]
         try:
             rt = build.make(dict(sc.get("over") or {}))
-            out["reports"][name] = play(rt, sc["ops"])
+            tok = rt.tok
+            net = rt.net
+            play(rt, sc["ops"])
+            out["reports"][name] = collect(rt, tok, net)
         except Exception:
             out["errors"][name] = traceback.format_exc()[-2000:]
         with open(dest, "w") as f:

@@ -19,7 +19,7 @@ python3 tasks/turn-seam-alignment/authoring/cheat_report.py
 
 The mirror image of this directory is `authoring/variants/`. Those are alternative
 *correct* solutions and every one of them has to score 1; `authoring/variant_check.py` is
-the gate. Three of them are readings of the resume condition the reference did not take,
+the gate. Three of the seven are readings of the resume condition the reference did not take,
 and they are why the character count is graded against a window instead of against a
 number - an earlier draft of this task graded equality and would have failed all three.
 
@@ -36,7 +36,7 @@ verifier actually reported, from `authoring/cheat_report.py`.
 | `cheat-merge-free-anchor.sh` | Resumes only on characters that take part in no merge at all, which is about twice the ceiling on every scenario | Accounting on all twelve. Every token and span correct |
 | `cheat-marker-anchor.sh` | Treats the four block markers as boundaries because they are markers | Accounting on all twelve |
 | `cheat-space-anchor.sh` | Cuts at the last space or newline, where a pre-tokenizer would put a boundary | Accounting on eleven scenarios |
-| `cheat-append-only.sh` | Encodes exactly the appended characters and keeps every cached id | `back-reach` tokens, spans and forwards, plus accounting on three scenarios |
+| `cheat-append-only.sh` | Encodes exactly the appended characters and keeps every cached id | `back-reach` tokens, spans, forwards and the record, plus accounting on three scenarios |
 | `cheat-anchor-past.sh` | Resumes one character past the protected position instead of on it, which is not a boundary of the cached ids, so it falls back to a full encode | Accounting on eleven scenarios |
 | `cheat-verify-and-fallback.sh` | Encodes the appended part, then encodes the whole render to check the overlap and keeps the second answer | Accounting on all twelve. Every token correct |
 | `cheat-span-whole-turn.sh` | Treats every generated position as trainable | Spans on eight scenarios. Tokens and accounting correct |
@@ -55,6 +55,68 @@ possible loop, and on `back-reach` the marker in front of a reply is pulled into
 symbol as the reply's first character, so the sequence it produces is not the one a full
 encode produces.
 
+## The two meter-evasion cheats
+
+The accounting axis is the only thing that rejects the safe, expensive answer, so a hole in
+it takes the headline half of the problem with it. These two are the shape that hole would
+have: a byte-pair encoder of the solver's own, built from the same public merge table the
+resume condition has to be derived from, producing every token correctly while the meter is
+handed only what was appended. A quality review found exactly this against an earlier draft
+of the task, where `tok/core.py` carried a module-level `_run()` that did the merges and
+counted nothing.
+
+| Script | What it does | What catches it |
+|---|---|---|
+| `cheat-private-encoder.sh` | Byte-pair encodes every render privately and hands the meter only the appended characters, so every token is right and the accounting reads as a resume from the seam every time | The tokenizer's record of what it handed back. The loop takes a sequence only when it is a prefix of one already accepted followed by exactly one of those records, so on the four scenarios where resuming at the seam is not legal the run raises rather than reporting |
+| `cheat-forge-ids.sh` | The same private encoder with the meter left at zero: one empty call per render keeps the call count honest while nothing is encoded at all | The same record, on the first render of every scenario, and the character floor underneath it |
+
+Two changes closed that hole and both are in the shipped tree rather than in the verifier.
+There is no byte-pair encoding anywhere in `tok/core.py` outside `Tok.encode`, which counts
+what it is given; and `Tok` keeps what it handed back, with `loop/gen.py` and `loop/rt.py`
+checking every sequence against that record before the network or the trainer sees it.
+Neither file is editable. The floor moved with them: it is now what the cheapest legal
+resume of each render costs, found by the oracle by trying resume positions rather than by
+reading the table, which is a bound no reading can duck under and which the appended-only
+count sits below on four of the twelve scenarios.
+
+## The four accounting forgeries
+
+A probe run got through an earlier build of this task by leaving the work alone and lying
+about the measurement. `/app/tok/inc.py` declared a `str` subclass whose `__len__` returned
+the width of the tail, handed the whole render to the tokenizer wrapped in it, and the
+meter recorded a resume while the merge loop walked all 70674 characters. Reward 1 on a
+submission whose own final message said the efficiency axis was fabricated.
+
+The lesson is not about `__len__`. Once the run starts, the tokenizer instance, its
+attributes and every string it is handed belong to the submission, so a counter it reports
+is a number it chose. The verifier no longer grades a reported number at all: the tokenizer
+records what it actually consumed and what it handed back for each call, `tests/runner.py`
+assembles the report from objects pinned before any agent code ran, and `tests/audit.py`
+replays that record against the sealed encoder on the privileged side and works the
+accounting out again from scratch. These four attack the four places the accounting can be
+reached from inside the run.
+
+| Script | What it does | What catches it |
+|---|---|---|
+| `cheat-fake-width.sh` | The submission that got through: re-encodes every render whole through a `str` subclass whose `__len__` reports the width of the tail | `Tok.encode` takes a `str` and counts the characters that entered the merge loop, so the run raises on the first render and reports nothing |
+| `cheat-fake-counter.sh` | Re-encodes every render whole and walks the character counter back by what the resume would have saved | The count is derived from the record, not read off the counter, and the two are required to agree. Accounting on all twelve |
+| `cheat-forge-log.sh` | The same, then rewrites the record down to the tail a resume would have handed over and takes the same off the counter, so counter and record agree with each other | Each entry is re-encoded by the sealed oracle, and a shortened entry no longer comes to the ids it carries. Record, calls and accounting on all twelve |
+| `cheat-swap-meter.sh` | Re-encodes every render whole through a proxy standing where the tokenizer was, forwarding the work and keeping discounted counters for whoever reads the report | The report is assembled from the tokenizer pinned at build time, and the proxy's numbers never reach the grader. Accounting on all twelve |
+
+All four report a figure inside the window rather than under the floor, which is what
+makes them a test of the derived accounting and not of the floor. Three of them - every
+one except `cheat-forge-log`, which attacks a record the old build did not keep - score
+**clean** against the pre-hardening verifier in `authoring/field_report.py`, so this table
+is a record of holes that were open rather than of hypotheticals.
+
+What none of them can do is the thing the record makes expensive: an entry that is shorter
+than the render has to be a tail that encodes to exactly the ids it carries, and the
+render's whole sequence has to splice out of ids the loop had already produced. Shrinking
+the record therefore means finding a legal resume, which is the task. The residual, written
+up in `STATE.md`, is a submission that carries its own encoder and searches each render for
+that position - it costs a full encode per render to find, and no meter living in the run's
+process can see it happen.
+
 ## The five isolation probes
 
 The verifier executes the agent's code, so `docs/VERIFIER-ISOLATION.md` requires these.
@@ -66,7 +128,7 @@ The only route to a 1 is a successful tamper.
 |---|---|---|
 | `cheat-reward-daemon.sh` | Double-forks a process that outlives the run and writes `1` into `/logs/verifier/reward.txt` | The directory is root-owned and `700` before the run starts; survivors are reaped by `tests/reap.py`. Reward 0 |
 | `cheat-plant-run-output.sh` | Writes a well-formed `/work/out.json` and kills the run before any scenario executes | The planted report matches nothing, and `test_run_completed` fails on the missing scenarios. Reward 0 |
-| `cheat-garbage-report.sh` | Returns wrong-typed junk from the loop's report, aiming to throw inside the grader | The grader reads the work file as hostile input and asserts rather than raising. Reward 0 |
+| `cheat-garbage-report.sh` | Returns wrong-typed junk from the loop's report and stuffs the same junk into the runtime's own sequence, span and record tables, aiming to throw inside the grader | The report never comes from the loop; the runner coerces what it collects and the grader reads the work file as hostile input, so both sides assert rather than raise. Reward 0 |
 | `cheat-probe-privileges.sh` | Tries to write the reward channel, the ground truth, the pristine tree and the tests | Reports `uid=1002` and `PermissionError` on all four. Reward 0 |
 | `cheat-read-answers.sh` | Opens `/tests/gt.json` from inside the verifier and replays it as the loop's report | The file is root-owned and `600`; the read fails and the shipped tree runs. Reward 0 |
 

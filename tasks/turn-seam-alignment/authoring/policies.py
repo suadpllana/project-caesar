@@ -11,11 +11,16 @@ positions, and they hand the tokenizer different numbers of characters on the sa
 scenarios. Grading equality against one of them would fail a solver who reasoned better
 than the reference did, which is grading a choice rather than the work.
 
-So the meter is a window. The floor comes from the sealed oracle - the characters that
-were not in the previous render, which nothing that encodes the render can go under. The
-ceiling comes from here: the most expensive of the one-sided tests, which are the answers
-a solver settles on when they see one half of the condition and not the other. Everything
-between the two is accepted.
+So the meter is a window. The floor comes from the sealed oracle - what the cheapest legal
+resume of each render costs, searched for rather than derived, so the finest reading of the
+table cannot come in under it. The ceiling comes from here: the most expensive of the
+one-sided tests, which are the answers a solver settles on when they see one half of the
+condition and not the other. Everything between the two is accepted.
+
+The pair-level reading below sits on the floor on eleven of the twelve scenarios and three
+characters above it on the twelfth, which is the measurement that says the floor is tight
+rather than notional: reading the table as finely as it can be read is worth three
+characters out of 2298 against knowing the answers in advance.
 
 `REJECT` is what the ceiling has to stay clear of. Asking which characters take part in
 no merge at all is the cheaper question and a strictly smaller set, and a loop built on it

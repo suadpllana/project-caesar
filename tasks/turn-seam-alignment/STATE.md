@@ -145,6 +145,9 @@ amendment is recorded rather than hidden, because the run audit reads this file.
     lifecycle.
   - `enc_chars` - inside a window, `enc_chars_min <= chars <= enc_chars_max`.
   - `trace` - the lifecycle, in order.
+  - The tokenizer's record accounts for the run, replayed against the sealed encoder;
+    `enc_chars` and `enc_calls` are the figures that replay derives, and the figures the
+    run reported have to agree with them. Added at the hardening below.
 
 ### Real work, safe to grade
 
@@ -219,20 +222,91 @@ merge table, the span rule still has to be derived from the finished sequence, t
 still rewrites the render backwards, and the twelve scenarios and four axes are still
 all-or-nothing. The easing is one razor wide.
 
+## Hardening, after an adversarial probe scored 1 without doing the work
+
+A probe run passed the verifier by leaving the work alone and falsifying the measurement.
+`/app/tok/inc.py` declared
+
+```python
+class Tail(str):
+    def __len__(self):
+        return self.n
+```
+
+and called `tok.encode(Tail(text, len(text) - off))`. `Tok.encode` counted `len(text)` and
+then iterated the string with `list(text)`, so the merge loop walked all 70674 characters
+of every render while the meter recorded 6226. Every token, every span, every forward and
+the trace were correct, `enc_chars` landed inside the window, reward 1. The submission's
+own final message said the efficiency axis was fabricated. Nothing was written to the
+reward channel, the ground truth or the tests - none of that was reachable - and nothing
+needed to be.
+
+The mistake was not `__len__`. It was that the graded quantity was a number the run
+reported about itself. Once the run starts, the tokenizer instance, its attributes and
+every string it is handed belong to the submission, so `rt.tok.n_chars = 0` from
+`loop/ep.py` was open too, as was standing a proxy where the tokenizer was and letting
+`RT.report` read the proxy's counters. Three ways in, one root cause.
+
+What changed:
+
+1. **The meter counts what the merge loop consumed.** `Tok.encode` refuses anything that
+   is not exactly `str`, and counts the symbol list it built rather than the caller's
+   `len()`. Two independent kills on the same attack: the subclass is refused outright,
+   and if it were not, the count would be honest anyway.
+2. **The tokenizer keeps a record.** Every call appends the characters it actually
+   consumed and the ids it handed back. `tests/audit.py` replays that record against the
+   sealed encoder, render by render, and derives the accounting from it.
+3. **The report is assembled by the runner, from pinned objects.** `tests/runner.py`
+   captures `rt.tok` and `rt.net` the moment `build.make` returns - before any agent code
+   has run - drives the loop, and then builds the report itself from the runtime's own
+   tables. Nothing the loop returns is used, so a replaced `RT.report` and a swapped-in
+   meter both reach nobody.
+4. **The derived figures are what is graded**, and the reported ones have to agree with
+   them, so tampering has to be consistent in two places and the record is the one that
+   cannot be quietly rewritten: a shortened entry stops encoding to the ids it carries, a
+   missing entry stops accounting for the answer.
+5. **Four new cheats**, one per place the accounting can be reached: `cheat-fake-width`
+   (the submission that got through, verbatim), `cheat-fake-counter`, `cheat-forge-log`,
+   `cheat-swap-meter`. All four re-encode every render whole, produce every token, span
+   and forward correctly, and report a figure inside the window rather than under the
+   floor - being cheap is not the attack, being expensive and saying otherwise is. Run
+   against the pre-hardening verifier through the old `field_report.py`, three of them
+   come out clean; the fourth attacks a record that build did not keep. Against this one
+   all four score 0.
+
+Also worth recording: the audit checks the resume condition at **every** render rather
+than only at the finished sequence, so `cheat-append-only` and `cheat-verify-and-fallback`
+now fail where they happened rather than wherever the damage surfaced.
+
+### The residual, stated plainly
+
+A submission that carries its own byte-pair encoder, encodes each render whole with it,
+searches for the last position a resume would have been legal from, and records only that,
+would pass. Every check here would be satisfied, because the record it wrote is honest -
+it just is not what the loop did. No meter living in the run's own process can see this,
+and shipping the merge table is what the task is about, so the table cannot be withheld.
+What makes it a poor trade rather than a hole: it costs a full encode of every render to
+find the position, which is exactly the work the meter charges for; it needs a byte-pair
+encoder and a per-render search written from scratch, which is more work than the intended
+solution; and it produces the intended answer on every other axis. The cheap versions of
+it - `cheat-private-encoder` and `cheat-forge-ids`, which skip the search - are refused by
+the tokenizer's provenance check and by the floor.
+
 ## Gates
 
-Run on 2026-08-12, in this sandbox, on the real two images unless noted.
+Run on 2026-08-12, in this sandbox, on the real two images unless noted. The table is the
+state after the hardening above.
 
 | gate | result |
 |---|---|
 | `authoring/sync.py` | 18 files into `tests/pristine` |
-| `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle |
-| `authoring/emit.py` | `solve.sh`, 6 variants, 16 cheats |
-| `authoring/variant_check.py` | 6/6 clean (host emulation) |
-| `authoring/field_report.py` | no dead weight in the graded set |
+| `authoring/build_gt.py` | all twelve scenarios proved against the sealed oracle, and the reference's own record checked to account for its run |
+| `authoring/emit.py` | `solve.sh`, 7 variants, 21 generated cheats |
+| `authoring/variant_check.py` | 7/7 clean (host emulation) |
+| `authoring/field_report.py` | no dead weight in the graded set; `enc_record` separates three cheats |
 | `authoring/cheat_report.py` | oracle clean, nop fails, no cheat scores 1 |
-| `tools/docker_trial2.py turn-seam-alignment --all` | 18/18 trials behaved as required |
-| `tools/docker_trial2.py turn-seam-alignment --variants` | 6/6 variants scored 1 |
+| `tools/docker_trial2.py turn-seam-alignment --all` | 24/24 trials behaved as required |
+| `tools/docker_trial2.py turn-seam-alignment --variants` | 7/7 variants scored 1 |
 | `tools/textcheck.py` against both passing instructions | no findings |
 | `scripts/preflight.py` | clean |
 | `scripts/package.py` | packaged |

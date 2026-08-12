@@ -27,11 +27,23 @@ TASK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TASK / "authoring"))
 sys.path.insert(0, str(TASK / "tests"))
 
+import audit  # noqa: E402
 import harness  # noqa: E402
+import oracle  # noqa: E402
 import scen  # noqa: E402
 
-GRADED = ("ids", "spans", "enc_chars", "enc_calls", "fwd", "trace")
+# enc_record is the tokenizer's own account of the run, replayed against the sealed
+# encoder the way tests/audit.py does it at verification time; enc_chars and enc_calls
+# are then the figures that replay derives, not the ones the run reported.
+GRADED = ("ids", "spans", "enc_record", "enc_chars", "enc_calls", "fwd", "trace")
 NAMES = [s["name"] for s in scen.SCENARIOS]
+PROOFS = {}
+
+
+def proof(name: str) -> dict:
+    if name not in PROOFS:
+        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"])
+    return PROOFS[name]
 
 
 def gt():
@@ -63,7 +75,24 @@ def signature(variant: str) -> dict:
         if not isinstance(rep, dict):
             out[name] = ["RAISED"]
             continue
-        out[name] = [f for f in GRADED if diverged(f, rep.get(f), want[name])]
+        try:
+            got = audit.derive(proof(name), rep)
+        except audit.Bad:
+            got = None
+        # The grader takes the derived figures and requires the reported ones to match,
+        # so a record that does not account for the run, and a disagreement between the
+        # two, both land on the fields below rather than on whatever the run said.
+        seen = dict(rep)
+        hits = []
+        if got is None:
+            hits.append("enc_record")
+            seen["enc_chars"] = None
+            seen["enc_calls"] = None
+        else:
+            for field, value in (("enc_chars", got["chars"]), ("enc_calls", got["calls"])):
+                seen[field] = value if rep.get(field) == value else None
+        out[name] = hits + [f for f in GRADED if f != "enc_record"
+                            and diverged(f, seen.get(f), want[name])]
     return out
 
 

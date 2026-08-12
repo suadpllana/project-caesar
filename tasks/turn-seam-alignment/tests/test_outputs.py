@@ -30,17 +30,39 @@ Four things are checked, and all of them must hold:
      axis a merely safe loop fails: encoding every render from character zero is
      correct on all of the above and wrong here.
 
+     The meter cannot be stepped around, which is what makes the axis worth grading at
+     all.  No byte-pair encoding happens anywhere in the tree outside the call that
+     counts it, and the ids a render produces have to have come out of that call: the
+     tokenizer keeps what it handed back, and the loop refuses a sequence that is not a
+     prefix of one it has already accepted followed by exactly one of those.  A
+     submission that works the ids out privately and hands the meter only the appended
+     characters fails on that refusal wherever resuming at the seam is not legal, and
+     fails on the floor below wherever it is.
+
+     None of the three numbers is graded as reported, either.  A counter living in the
+     run's own process is a number the submission can assign to, and a string handed to
+     the tokenizer can carry a length of its own that bears no relation to how many
+     characters come out of it, so the figures are re-derived here from the tokenizer's
+     record of what it actually consumed - see tests/audit.py - and it is the derived
+     ones that are graded.  The record is replayed against the sealed encoder render by
+     render, which makes a shortened entry stop matching its own ids, and every render's
+     sequence has to splice out of ids the loop had already produced, which makes a
+     missing entry stop accounting for the answer.  The reported figures still have to
+     agree with the derived ones, so tampering has to be consistent in two places at
+     once and the record is the one that cannot be quietly rewritten.
+
      The character count is graded as a window, not as a number, and neither end of it
      is the reference's own figure.  "Resume at the last position the merge table
      protects" has several correct readings - the character after the seam never sits
      anywhere but at the front of a symbol, the character before it never sits anywhere
      but at the end of one, either of those, or the finer question of which adjacent
      pairs no symbol carries at all - and they hand the tokenizer different numbers of
-     characters on the same scenario.  The floor is the oracle's count of the characters
-     that were not in the previous render, which nothing that encodes the render can go
-     under.  The ceiling is what the one-sided readings cost.  Insisting on one number
-     inside that range would grade which reading a solver settled on rather than the
-     work they did; authoring/variants/ holds the readings that must all pass.
+     characters on the same scenario.  The floor is what the cheapest legal resume costs
+     on each render, found by the oracle by trying resume positions rather than by
+     reading the table, so nothing correct can come in under it however finely it reads.
+     The ceiling is what the one-sided readings cost.  Insisting on one number inside
+     that range would grade which reading a solver settled on rather than the work they
+     did; authoring/variants/ holds the readings that must all pass.
 
 Per-scenario notes on which reading of the rule each case is aimed at are on AIM below.
 """
@@ -50,6 +72,7 @@ import os
 
 import pytest
 
+import audit
 import oracle
 import scen
 
@@ -117,6 +140,34 @@ def expected(name):
     return GT["scenarios"][name]
 
 
+PROOFS = {}
+DERIVED = {}
+
+
+def proof(name):
+    """The sealed replay of one scenario, computed once."""
+    if name not in PROOFS:
+        PROOFS[name] = oracle.replay(scen.by_name(name)["ops"])
+    return PROOFS[name]
+
+
+def derived(name):
+    """The accounting worked out again from the tokenizer's record, or the reason not.
+
+    Returns (result, complaint): exactly one of the two is None.
+    """
+    if name not in DERIVED:
+        rep = report(name)
+        if rep is None:
+            DERIVED[name] = (None, "no report for %s" % name)
+        else:
+            try:
+                DERIVED[name] = (audit.derive(proof(name), rep), None)
+            except audit.Bad as exc:
+                DERIVED[name] = (None, str(exc))
+    return DERIVED[name]
+
+
 def as_map(value):
     """Coerce a value the run supplied into a plain dict of lists, or None."""
     if not isinstance(value, dict):
@@ -143,19 +194,20 @@ def test_ground_truth_is_what_a_naive_loop_produces(name):
     Ground truth that did not match this would be the reference's opinion rather than
     the truth, and the token check below would mean nothing.
     """
-    sc = scen.by_name(name)
-    proof = oracle.replay(sc["ops"])
+    pf = proof(name)
     want = expected(name)
-    assert want["ids"] == {k: list(v) for k, v in proof["ids"].items()}, (
+    assert want["ids"] == {k: list(v) for k, v in pf["ids"].items()}, (
         "%s: recorded sequences are not what a full encode produces" % name)
-    assert want["spans"] == {k: [list(s) for s in v] for k, v in proof["spans"].items()}, (
+    assert want["spans"] == {k: [list(s) for s in v] for k, v in pf["spans"].items()}, (
         "%s: recorded spans are not what the naive replay owns" % name)
-    assert want["fwd"] == proof["fwd"], "%s: recorded forward count is not reproducible" % name
-    assert want["enc_chars_min"] == proof["fresh"], (
+    assert want["fwd"] == pf["fwd"], "%s: recorded forward count is not reproducible" % name
+    assert want["enc_calls"] == len(pf["renders"]), (
+        "%s: recorded call count is not one per render" % name)
+    assert want["enc_chars_min"] == pf["floor"], (
         "%s: recorded character floor is not what the sealed replay counts" % name)
     assert want["enc_chars_min"] <= want["enc_chars"] <= want["enc_chars_max"], (
         "%s: the recorded window does not contain the reference" % name)
-    assert want["trace"] == proof["trace"], "%s: recorded trace is not reproducible" % name
+    assert want["trace"] == pf["trace"], "%s: recorded trace is not reproducible" % name
 
 
 def test_run_completed():
@@ -204,34 +256,59 @@ def test_trainable_spans(name):
 
 
 @pytest.mark.parametrize("name", NAMES)
+def test_encode_record_accounts_for_the_run(name):
+    """Every render's sequence has to come out of a resume the record can account for.
+
+    The tokenizer's record is replayed against the sealed encoder: one entry per render,
+    each entry's text a tail of the render it belongs to, each entry's ids what encoding
+    that text comes to, and the render's full sequence reachable by splicing the entry
+    onto a prefix of ids the loop had already produced. That is the resume condition
+    itself, checked where it was used rather than where it did damage, and it is what
+    stops the accounting below from being a number the run chose for itself.
+    """
+    result, why = derived(name)
+    assert result is not None, "%s: %s (%s)" % (name, why, AIM[name])
+
+
+@pytest.mark.parametrize("name", NAMES)
 def test_work_done(name):
     """The accounting.
 
-    enc_chars and enc_calls are incremented inside the tokenizer and fwd inside the
-    network, none of which the agent may edit, so these are real work however the
-    submission is written. A loop that re-encodes whole renders is right about every
-    token and wrong here; one that resumes from a position the table does not protect is
-    cheap here and wrong about the tokens.
+    The three figures are re-derived on this side from the tokenizer's record - the
+    characters by counting them here, the calls by counting entries, the forwards inside
+    the network the agent may not edit - so they are real work however the submission is
+    written, and what the run reported has to agree with them. A loop that re-encodes
+    whole renders is right about every token and wrong here; one that resumes from a
+    position the table does not protect is cheap here and wrong about the tokens.
 
     Calls and forwards are exact: one render is one call, and the forward count follows
     from the loop's own lifecycle. Characters are a window, for the reason on the module
     docstring - above the ceiling the loop is walking back past resume points that were
-    there, below the floor it is not handing the tokenizer the text it claims to be
-    encoding, and inside it the number belongs to the solver.
+    there, below the floor no resume can account for the ids it produced, and inside it
+    the number belongs to the solver.
     """
     rep = report(name)
     assert rep is not None, "no report for %s" % name
     want = expected(name)
-    for field in ("enc_calls", "fwd"):
-        assert rep.get(field) == want[field], (
-            "%s: %s was %r, expected %r (%s)"
-            % (name, field, rep.get(field), want[field], AIM[name]))
-    chars = rep.get("enc_chars")
-    assert isinstance(chars, int) and not isinstance(chars, bool), (
-        "%s: enc_chars was %r" % (name, chars))
+    result, why = derived(name)
+    assert result is not None, "%s: %s (%s)" % (name, why, AIM[name])
+    assert rep.get("fwd") == want["fwd"], (
+        "%s: fwd was %r, expected %r (%s)"
+        % (name, rep.get("fwd"), want["fwd"], AIM[name]))
+    assert result["calls"] == want["enc_calls"], (
+        "%s: the tokenizer's record carries %d calls, expected %d (%s)"
+        % (name, result["calls"], want["enc_calls"], AIM[name]))
+    assert rep.get("enc_calls") == result["calls"], (
+        "%s: the run reported %r calls against %d in the tokenizer's record"
+        % (name, rep.get("enc_calls"), result["calls"]))
+    chars = result["chars"]
+    assert rep.get("enc_chars") == chars, (
+        "%s: the run reported %r characters against %d in the tokenizer's record"
+        % (name, rep.get("enc_chars"), chars))
     assert chars >= want["enc_chars_min"], (
-        "%s: %d characters reached the tokenizer, fewer than the %d that were not in the "
-        "previous render, so the ids did not come from encoding it (%s)"
+        "%s: %d characters reached the tokenizer against a floor of %d, which is what the "
+        "cheapest legal resume of these renders costs, so the ids were not produced by "
+        "resuming an encode (%s)"
         % (name, chars, want["enc_chars_min"], AIM[name]))
     assert chars <= want["enc_chars_max"], (
         "%s: %d characters reached the tokenizer against a ceiling of %d (%s)"

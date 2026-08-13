@@ -308,6 +308,72 @@ answers are the diagnosis; the solve count is just the verdict. Note the probe u
 difficulty relative to the pipeline (no internet, shorter budget), so 2 of 3 locally is
 already a rejection signal.
 
+## The concision rejection: the brief must not pre-eliminate a cheat
+
+`delta-view-retraction` was rejected on **instruction concision** on 2026-08-13, after the
+CRLF fix, with every local gate green. The reviewer accepted it as human-written with
+absolute paths and failed it anyway, on five counts. Four were real and one is not
+checkable from here.
+
+The expensive one, and the only one that changes difficulty rather than style: the brief
+**named a wrong rule and refuted it**. It carried
+
+> The cheap test is that the multiplicity folded exceeds the candidates kept. It is not
+> the line. A group of duplicates trips it having lost nothing at all.
+
+That is `cheat-multiplicity-test.sh` verbatim, plus its failure mode, plus the scenario
+(`duplicates-inflate-n`) that catches it. The "second-order trap under the first-order one"
+this file recommends two sections up was **printed in the instruction**, so the half-
+recognition it exists to punish could not land. Two other lines were method rather than
+requirement - `Read what fold does at the cap` points at the file and the behaviour that
+carry the answer, and `What an accumulator can recover from changes with the aggregate, and
+for one aggregate it changes over the life of the cell` states the reference's core
+insight outright.
+
+The rule, which generalises past this brief: **state the requirement, never the reasoning
+that satisfies it, and never a rule you intend to reject.** A sentence of the form "the
+obvious test is X, and X is wrong" is always a leak, however much it reads like helpful
+framing - if X is worth a cheat, it is worth the solver's time to discover. `tools/hintcheck.py` is
+the mechanical version and it is now in the gate list. It fires on the two refutation
+sentences in the rejected brief and is clean on the rewrite and on all four briefs that
+passed the screen.
+
+**One measured non-finding, recorded so nobody rebuilds it.** The obvious implementation -
+grep the instruction for the distinguishing terms in each `cheat/*.sh` rationale comment -
+does not work and was abandoned after being built. Several cheats embed the reference
+commentary verbatim, so they share forty-odd ordinary words (`accumulator`, `retraction`,
+`holds`, `positive`) with any brief about this engine, and the check fired on nine of the
+fourteen. Restricting to terms unique to one cheat does not save it either: uniqueness then
+falls on unavoidable vocabulary like `incremental` and `scenario`. What separates a leak
+from domain language is **structure, not vocabulary** - the brief names a candidate rule and
+declares it wrong. Match that sentence shape instead. Note `first` must stay out of the
+"the <dismissive> <noun>" pattern: `to check the first answer` in `turn-seam-alignment` is a
+cost constraint the solver needs, and including `first` made the checker reject a brief that
+passed.
+
+The other three findings were ordinary and cost nothing to fix: rhetorical filler with no
+information in it (`On a real stream that is most of a machine`, `Retraction is where this
+turns` - the second was kept, it carries the pivot), no backticks on any path or filename,
+and **one wrong number**. The brief promised 55 folds and *11* scans where `gt.json` says
+**6**. That figure was correct before the reference-fix pass described in the section above
+and nobody re-derived it afterwards, which is the real lesson: **when the reference changes,
+every number in the instruction is stale until re-read from ground truth.** `hintcheck.py`
+also re-reads every `N folds` / `N scans` pair in the brief against `tests/gt.json` and
+fails on a mismatch, so this cannot rot silently again.
+
+One finding could not be actioned and should not be guessed at: the reviewer says "the
+canary marker is absent". Nothing in `docs/`, in `scripts/preflight.py`, in the kit
+template, or on the live guideline page defines a canary string - the page documents only
+the closing-sentence suffix, which was present and correct. So the requirement is real but
+its text is not published anywhere this repo can see. **Ask the task owner for the exact
+canary string before the next submission**; do not invent one, since a wrong marker is
+worse than a missing one.
+
+Backticks are house style rather than a discriminator, worth knowing before anyone spends
+time on it: all four briefs that cleared the AI-text screen contain **zero** backticks. The
+rewrite adds them because the reviewer asked and they cost nothing, not because their
+absence has ever failed a screen.
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
@@ -839,6 +905,8 @@ python3 tools/docker_trial2.py <slug> --variants alternative correct solutions, 
 python3 tools/textcheck.py <passed.md> <draft>  instruction cadence and register
 python3 tools/structcheck.py <draft>            instruction structure; run against the three
                                                 passing briefs too, it must stay clean on them
+python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, and every
+                                                folds/scans figure still matches gt.json
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness

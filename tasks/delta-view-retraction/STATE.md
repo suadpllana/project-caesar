@@ -25,7 +25,7 @@ A materialized view engine maintains grouped aggregates (sum, cnt, min, max, top
 change stream of inserts, deletes and updates, with out-of-order arrival governed by a
 watermark. The shipped engine rebuilds every affected group from the row store on every
 delta: the published values are already correct and the work is enormous (120 folds and 40
-scans where 55 and 11 will do). The submission must maintain the view incrementally
+scans where 55 and 6 will do). The submission must maintain the view incrementally
 without moving a single published number. One editable file: `view/route.py`.
 
 ## Why it is hard

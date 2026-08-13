@@ -250,6 +250,40 @@ const SCENARIOS = [
     `,
   },
   {
+    id: "r7c_self_unsubscribe_during_delivery",
+    title: "a listener that unsubscribes itself still receives that update",
+    body: `
+      h.reset();
+      // Distinct from r7: there no listener removed *itself*, so an
+      // implementation that re-checks membership before each call could
+      // still be read as conforming. Here the only removal is self-removal,
+      // and a listener added mid-dispatch must not be pulled into the
+      // dispatch already under way.
+      const self = [0, 0];
+      const late = [0];
+      let off1 = null;
+      const off0 = h.controller.subscribe(() => {
+        self[0]++;
+        off0();                      // remove myself, mid-delivery
+        h.controller.subscribe(() => late[0]++);   // joins from next update
+      });
+      off1 = h.controller.subscribe(() => self[1]++);
+      h.controller.search("a");
+      await tick();
+      // Self-removal counted for this update, and took effect afterwards.
+      const firstOk = self[0] === 1 && self[1] === 1 && late[0] === 0;
+      h.transport.settle(need("a"), ["ant"]);
+      await tick();
+      // Second update: the self-removed listener is gone, the late joiner is in.
+      const secondOk = self[0] === 1 && self[1] === 2 && late[0] === 1;
+      return {
+        pass: firstOk && secondOk,
+        detail: "self=" + self.join(",") + " late=" + late[0] +
+                " firstOk=" + firstOk + " secondOk=" + secondOk,
+      };
+    `,
+  },
+  {
     id: "r7b_real_error_surfaces",
     title: "a genuine transport failure is still reported",
     body: `

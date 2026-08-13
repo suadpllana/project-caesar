@@ -31,6 +31,7 @@ REQUIRED_IDS = [
     "r6_dispose_latch",
     "r6b_dispose_idempotent",
     "r7_emit_snapshot",
+    "r7c_self_unsubscribe_during_delivery",
     "r7b_real_error_surfaces",
     "r8_burst_typing",
 ]

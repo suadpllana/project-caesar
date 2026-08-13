@@ -14,7 +14,7 @@ WORKDIR /app
 COPY app/package.json app/package-lock.json ./
 RUN npm ci
 
-COPY app/tsconfig.json app/vite.config.ts app/README.md ./
+COPY app/tsconfig.json app/vite.config.ts ./
 COPY app/src ./src
 COPY app/public ./public
 

@@ -100,7 +100,7 @@ trap cleanup EXIT
 # Wait for the dev server (bounded).
 READY=0
 for _ in $(seq 1 90); do
-  if curl -fsS -o /dev/null "http://127.0.0.1:5173/"; then
+  if node -e 'require("http").get("http://127.0.0.1:5173/",r=>process.exit(r.statusCode<400?0:1)).on("error",()=>process.exit(1))' 2>/dev/null; then
     READY=1
     break
   fi

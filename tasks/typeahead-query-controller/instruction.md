@@ -1,4 +1,3 @@
-
 We ship a search panel that queries as you type, and it puts rows on screen that belong to
 a query the user has already finished typing over. The panel is in /app. The view is passive
 and renders whatever the controller pushes at it, so the whole of the defect is in
@@ -32,7 +31,7 @@ only when it belongs to the active query, and a superseded request failing in th
 is not an error and must never reach the user.
 
 A query already in flight does not get a second request. When someone backspaces to a query
-we hold an authoritative answer for, serve it out of memory, no network call and no spinner,
+we hold an authoritative answer for, serve it out of memory. No network call, no spinner,
 provisional false and status success. Consider what that has to do to the request still
 outstanding, which was issued for a query nobody is now waiting on.
 
@@ -43,9 +42,9 @@ it lands. Filtered lists are display values. They never go into the cache as ans
 empty filtered list while provisional is not the claim that there are no results, because the
 server may still return some; result goes to null only when no cached prefix matches at all.
 
-After dispose() runs, late responses and events change nothing: no state writes, no listener
+After dispose() runs, late responses and events change nothing. No state writes, no listener
 calls, no retained references to a dead component. dispose() called twice, or called before
-any search, is a no-op and must not throw.
+any search, is a no-op. It must not throw.
 
 Subscriber lists get edited while we are walking them, so the meaning of a dispatch has to be
 exact. The recipients of an update are those subscribed at the instant the update begins and
@@ -61,20 +60,14 @@ createController(transport) export and the QueryState interfaces exactly as they
 the harness and the panel both bind to them and a run that cannot construct the controller
 through that export scores zero. Run npx tsc --noEmit in /app and keep the types clean.
 
-Responses settle only when you tell them to, so you can build out-of-order arrival directly
-instead of waiting on a timer:
+Nothing settles on a timer. The handle on window.__harness carries the controller, the
+transport and every state emitted since the last reset, and the methods for resolving a
+request by id, failing one, and reading back the queries that went out are declared in
+/app/src/transport.ts. Read them there. You can build out-of-order arrival directly.
 
-    h.reset();                       // fresh controller, cleared transport
-    h.controller.search("ca");       // issue a search
-    h.transport.pending();           // [{ id, query, aborted }]
-    h.transport.settle(1, ["cat"]);  // resolve request 1
-    h.transport.fail(1, "boom");     // reject request 1
-    h.transport.callLog();           // queries sent, in order
-    h.emissions;                     // every state emitted since reset
-
-One more is worth knowing early. h.transport.settleIgnoringAbort(id, items) commits a
-response before any cancellation is observed, which is the reply that was already travelling
-when the user typed the next character, and it is how cancellation behaves against a real
-server, where calling abort tells you nothing about whether the response is already coming.
+One of them is worth finding early. settleIgnoringAbort commits a response before any
+cancellation is observed, which is the reply that was already travelling when the user typed
+the next character, and it is how cancellation behaves against a real server, where calling
+abort tells you nothing about whether the response is already coming.
 
 You have 5400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

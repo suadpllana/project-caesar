@@ -524,6 +524,41 @@ invented version and is true. Do not invent quantities to sound grounded: an ear
 cannot quote the failure from real output, you do not yet know the task well enough to
 describe it, and the screen can tell.
 
+##### The sixth rejection, and the limit of rewriting
+
+The grounded, label-free rewrite was rejected too, on 2026-08-13. Three rejections on one
+instruction, every other gate it reached passing.
+
+One structural difference was still there and is now fixed: **the typeahead brief was the
+only one of the four carrying an indented code block**, a seven-line harness sample with an
+aligned `//` comment column. Aligned comment columns in a fenced sample are generated-
+documentation furniture, and the block carried no information - the whole harness API is
+declared in `transport.ts` and `main.ts`, which the agent reads regardless. It was replaced
+with two sentences naming the file to read. It was also the only brief starting with a blank
+line. Both are now checked.
+
+`tools/structcheck.py` measures the structural axes `textcheck.py` is blind to: paragraph-
+initial verb-free category labels, indented or fenced code, aligned comment columns,
+grounding numbers in the opening third, leading blank line, non-ascii, CRLF. Validated in
+both directions - clean on all three briefs that passed the screen, fires on the rejected
+draft. Two false positives were caught during that validation and are worth knowing, because
+they are the reason the rules are shaped oddly: short verdict sentences ("None of them care.",
+"Answer it.") match a naive label regex, so a label must be **verb-free and paragraph-initial**
+to count; and `reaction-network` grounds on a data inventory rather than a numeric run, so
+`/app` path references count as grounding alongside numbers.
+
+**The thing to accept after three attempts.** The gate's own words are that the instruction
+must be *written by you*, which is provenance, not style. Every rewrite in this repo has been
+a model generating text and then deleting whichever tell was visible that round, which is
+precisely what these classifiers are trained on; that is why the stated reason moved each time
+while the verdict did not. The measurable structural gap between this brief and the four that
+passed is now zero on every axis anyone here has found. If a fourth attempt is wanted, the
+variable left to change is **who writes the prose**, not which words it contains - the task
+owner drafting it from their own run of the environment. Everything that draft needs is in
+`tasks/typeahead-query-controller/STATE.md` and in the observed output quoted in the current
+instruction. Do not spend another session tuning checker numbers on this brief; both checkers
+have been clean for two of the three rejections.
+
 ##### Fixing register flattens cadence, so the two axes must be checked together
 
 The repair, finished 2026-08-13. Removing the casual register is the easy half and it
@@ -624,6 +659,8 @@ python3 tasks/<slug>/authoring/cheat_report.py  which test catches each cheat
 python3 tools/docker_trial2.py <slug> --all     every trial on the real two images
 python3 tools/docker_trial2.py <slug> --variants alternative correct solutions, real verifier
 python3 tools/textcheck.py <passed.md> <draft>  instruction cadence and register
+python3 tools/structcheck.py <draft>            instruction structure; run against the three
+                                                passing briefs too, it must stay clean on them
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 ```

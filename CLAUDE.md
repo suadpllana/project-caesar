@@ -22,7 +22,7 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
-| `delta-view-retraction` | Software / Databases | 14 | 62 | 14400 s | 8 h |
+| `delta-view-retraction` | Software / Databases | 18 | 100 | 14400 s | 8 h |
 
 `delta-view-retraction` is the fifth and the first outside ML. It is **built and fully
 gated locally but came back 2 of 3 on the local three-agent probe**, which is an easiness
@@ -31,8 +31,12 @@ reverted attempts to widen the band are in its `STATE.md` and summarised below.
 
 It was submitted anyway on 2026-08-13 and bounced off the **bundle structure check** before
 reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
-and the zip rebuilt; see "The bundle-structure rejection" below. The 2-of-3 easiness problem
-above is untouched by that fix and is still the reason this task is not ready.
+and the zip rebuilt; see "The bundle-structure rejection" below. It then failed the
+**instruction concision** review and, on resubmission, the **anti-cheat gate**: an
+adversarial agent passed it without doing the work. Both are fixed - see "The anti-cheat
+rejection" below, which is the section to read first, because the hole it describes is in
+every other task in this repo too. The 2-of-3 easiness problem above is untouched by any of
+those fixes and is still the reason this task is not ready.
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
@@ -140,7 +144,7 @@ through an instance, so read them, do not obey them blindly.
 | AI-text screen | the instruction | `tools/textcheck.py` against both passing briefs |
 | similarity screen | reskins of earlier work | a genuinely different failure mode |
 | quality review | unfair specs, thin tests, bad tags | `docs/QUALITY-REVIEW.md` walked criterion by criterion |
-| anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0 |
+| anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0, **including one generated from the task's own ground truth** - see the anti-cheat section, a suite of wrong implementations tests the problem and not the verifier |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
 | easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
 
@@ -373,6 +377,87 @@ Backticks are house style rather than a discriminator, worth knowing before anyo
 time on it: all four briefs that cleared the AI-text screen contain **zero** backticks. The
 rewrite adds them because the reviewer asked and they cost nothing, not because their
 absence has ever failed a screen.
+
+## The anti-cheat rejection: a report is a claim, not evidence
+
+`delta-view-retraction` was rejected by the **anti-cheat gate** on 2026-08-13, after the
+concision fix, with all fourteen cheats scoring 0 and every other local gate green. An
+adversarial agent passed without doing the work. It was reproduced here in ten minutes and
+it is now `cheat/cheat-hijack-report.sh`: a `route.py` that maintains nothing, imports
+`scen` from `/tests` to identify which scenario is running, and reassigns
+`view.drv.Drv.report` to return the ground truth. **62 of 62 assertions passed, reward 1.**
+
+Nothing was broken out of. The run was sandboxed, `gt.json` was root-only, and the
+privilege drop worked. The hole is narrower and it generalises to every task in this repo:
+
+> **Everything the verifier compared was produced inside the process that executed the
+> agent's file.** The view, the emit log, the lifecycle trace and both work counters were
+> read off objects the submitted file holds a live reference to. `core.folds` is an
+> assignable integer attribute.
+
+The counters were the whole difficulty argument - "counted in `view/core.py`, which is not
+an editable artifact, so they measure real work whatever the implementation looks like" -
+and that sentence is false the moment the counting object is reachable from the editable
+file. Non-editable is not the same as out of reach.
+
+Three assumptions died with it, and each was load-bearing somewhere:
+
+1. **"They cannot forge it because they do not know the numbers."** The anti-cheat gate
+   models an adversary who has read the verifier. Sealing `gt.json` stops it being read at
+   run time; it does not stop it being known. Design as though the answer key is public,
+   because to this gate it is. (This one was hiding in plain sight: the instruction itself
+   publishes one scenario's counters, since the brief has to quote a real run.)
+2. **"The counters live in a file the agent may not edit."** `test.sh` did
+   `chown -R sandbox /work`, and the runner re-imports the tree per scenario, so the run
+   could rewrite `view/core.py` on disk between scenarios. The declared artifact set is a
+   statement about what the *harness* copies, never about what the *run* can touch.
+3. **"The isolation cheats prove the verifier is sound."** They prove it rejects attacks on
+   the reward channel. Every one of them also fails on values, so none of them ever tested
+   whether a submission holding the right values could pass without earning them.
+
+**The fix is to grade evidence rather than a report.** The engine now records a work
+journal in the non-editable core - one record per value folded, per group reread, per
+publication, each tagged with the delta it was charged to - and the verifier believes no
+number without it:
+
+- counters must **equal** what the journal contains, so a counter cannot be assigned;
+- the journal replayed through a **second, independently written** implementation of the
+  accumulator, sealed in `tests/oracle.py`, must reproduce the view and the values the
+  submission published, so an answer cannot be pasted in;
+- every record must be one the scenario **made possible** - a reread folds exactly the
+  rows the store held at that delta, an incremental fold matches an edit that delta
+  produced and is charged once, and nothing is charged to a group the delta never touched;
+- the executed tree is **hashed against the pristine copy** after the run, so the counters
+  cannot be moved by rewriting the file that keeps them.
+
+Forging a report that survives all four is performing the maintenance. The general shape,
+which is what to carry to the next task: **for every graded quantity, ask what the verifier
+would accept as proof that it was earned, and grade that instead of the quantity.** A
+number is never its own evidence when it comes back from the agent's process.
+
+Two supporting changes worth copying, and worth not overrating. The output file is opened
+by root and handed to the runner as an inherited descriptor after the privilege drop, so
+the uid running agent code does not own the file it is graded on; and the report carries a
+per-run nonce. Both stop *out-of-process* planting. Neither touches in-process forgery -
+only the journal does - so do not let them stand in for it. `tests/test_outputs.py` is now
+`600` alongside `gt.json` and `oracle.py`, because the run could otherwise read exactly
+which records the grader checks for.
+
+`tools/forgecheck.py` is the mechanical version and it is now in the gate list. It requires
+a task's `cheat/` to contain at least one probe **generated from its own `tests/gt.json`**
+and every cheat to score 0. Validated in both directions: clean on the hardened
+`delta-view-retraction`, and it **fires on `rollout-cache-coherence`,
+`checkpoint-resume-drift` and `turn-seam-alignment`, none of which has ever been tested
+against a submission holding its answer key.** Two of those cleared the pipeline before
+this gate existed. Assume the same hole is in all three and fix it before either is
+resubmitted - the fix is the journal, not another cheat.
+
+One measured non-finding, recorded so nobody rebuilds it. Adding a counter of row-store
+reads to catch the same class of cheating does not work and is the trap documented further
+down: `ok-store-scan`, a correct variant, disagrees with the reference on it in 11 of 12
+scenarios. The evidence check is not a new counter, which is exactly why it is safe - it
+grades the *derivability* of the numbers already agreed on, and all four `ok-*` variants
+still score 1 with no change to any of them.
 
 ## The bundle-structure rejection: the tree is not the zip
 
@@ -907,6 +992,9 @@ python3 tools/structcheck.py <draft>            instruction structure; run again
                                                 passing briefs too, it must stay clean on them
 python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, and every
                                                 folds/scans figure still matches gt.json
+python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
+                                                gt.json must score 0, or the verifier is
+                                                grading a report instead of evidence
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness
@@ -981,6 +1069,13 @@ does not produce the token streams they expect. `cheat-peek-scenarios.sh` docume
 
 ## Sandbox notes
 
+- **Check which host you are on before believing the next bullet.** On the Linux sandbox
+  (checked 2026-08-13) docker and dockerd are both present at `/usr/bin`, the daemon needs
+  starting by hand, `mirror.gcr.io/library/python:3.12-slim` pulls fine, and
+  `tools/docker_trial2.py <slug> --all` runs the real two-image trial in a couple of
+  minutes. That is the gate that verifies the privilege drop, the locked reward channel
+  and the root-only ground truth, so run it rather than reasoning about it: it found
+  nothing wrong here, but the host emulation cannot tell you that.
 - **On the Windows authoring host (checked 2026-08-13) Docker is not installed at all.**
   `C:\Program Files\Docker\Docker\resources\bin` is on `PATH` but the directory does not
   exist, so `docker` and `dockerd` are both absent from Bash and PowerShell, and the

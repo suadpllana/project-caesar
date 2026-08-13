@@ -10,6 +10,12 @@ Every scenario is run in a fresh interpreter state so one scenario cannot leak s
 into the next, and a scenario that raises is recorded rather than allowed to abort the
 whole run: a submission that crashes on one case still gets graded on the others, and
 still fails, because the verifier requires every scenario to report.
+
+Two details are deliberate. The configuration comes from the sealed copy next to this
+file rather than from the tree being run, so the engine and the grader are answering the
+same question whatever the tree says. And the result is written through a descriptor the
+caller opened before dropping privilege, when it hands one over, so the file holding the
+run's report is not writable by the uid the run executes as.
 """
 
 import json
@@ -17,16 +23,30 @@ import os
 import sys
 import traceback
 
+HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.environ.get("APPDIR", "/app")
 sys.path.insert(0, APP)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, HERE)
 
 import scen
 
 
 def load_cfg():
-    with open(os.path.join(APP, "conf", "view.json")) as fh:
+    with open(os.path.join(HERE, "view.json")) as fh:
         return json.load(fh)
+
+
+def emit(target, payload):
+    payload["nonce"] = os.environ.get("RUN_NONCE", "")
+    text = json.dumps(payload, sort_keys=True)
+    if target.startswith("fd:"):
+        fd = int(target[3:])
+        os.lseek(fd, 0, os.SEEK_SET)
+        os.ftruncate(fd, 0)
+        os.write(fd, text.encode("utf-8"))
+        return
+    with open(target, "w") as fh:
+        fh.write(text)
 
 
 def drop(mods):
@@ -47,22 +67,19 @@ def run_one(sc, base):
 
 
 def main(argv):
-    out = argv[1] if len(argv) > 1 else "/work/out.json"
+    out = argv[1] if len(argv) > 1 else "/work/run/out.json"
     reports, errors = {}, {}
     try:
         base = load_cfg()
     except Exception:
-        payload = {"reports": {}, "errors": {"fatal": traceback.format_exc()}}
-        with open(out, "w") as fh:
-            json.dump(payload, fh)
+        emit(out, {"reports": {}, "errors": {"fatal": traceback.format_exc()}})
         return 0
     for sc in scen.SCENARIOS:
         try:
             reports[sc["name"]] = run_one(sc, base)
         except Exception:
             errors[sc["name"]] = traceback.format_exc()
-    with open(out, "w") as fh:
-        json.dump({"reports": reports, "errors": errors}, fh, sort_keys=True)
+    emit(out, {"reports": reports, "errors": errors})
     return 0
 
 

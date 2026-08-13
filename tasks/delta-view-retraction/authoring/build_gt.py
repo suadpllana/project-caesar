@@ -75,7 +75,31 @@ def main() -> int:
             bad.append("%s: shipped view %s != oracle %s" % (name, shp["view"], t.view()))
         if [list(x) for x in shp["log"]] != [list(x) for x in t.log]:
             bad.append("%s: shipped emit log disagrees with the oracle" % name)
-        # 4. The reference must actually be cheaper, or there is no task.
+        # 4. The evidence side has to hold for the reference before it is used to judge
+        #    anyone else. The journal must account for both counters, must reproduce the
+        #    reference's own view and emitted values when folded back through the sealed
+        #    accumulator - which is the check that catches Bag drifting away from
+        #    store/agg.py - and must survive the scenario audit.
+        jrn = [list(x) for x in rep["jrn"]]
+        malformed = oracle.shape(jrn)
+        if malformed:
+            bad.append("%s: reference journal is malformed: %s" % (name, malformed))
+        else:
+            if sum(1 for e in jrn if e[0] == "f") != rep["folds"]:
+                bad.append("%s: reference journal does not account for its folds" % name)
+            if sum(1 for e in jrn if e[0] == "s") != rep["scans"]:
+                bad.append("%s: reference journal does not account for its scans" % name)
+            view, emitted, why = oracle.replay(jrn)
+            if why:
+                bad.append("%s: reference journal does not replay: %s" % (name, why))
+            elif view != rep["view"] or emitted != [list(x) for x in rep["log"]]:
+                bad.append("%s: replaying the reference journal through the sealed "
+                           "accumulator does not reproduce its own values" % name)
+            why = oracle.audit(jrn, sc["ops"], cfg_for(sc, base))
+            if why:
+                bad.append("%s: reference journal fails the audit: %s" % (name, why))
+
+        # 5. The reference must actually be cheaper, or there is no task.
         if not (rep["folds"] < shp["folds"] and rep["scans"] < shp["scans"]):
             bad.append("%s: reference is not cheaper than the shipped tree "
                        "(folds %d vs %d, scans %d vs %d)"

@@ -25,6 +25,11 @@ class Core:
         self.scans = 0
         self.emits = 0
         self.log = []
+        self.jrn = []
+        self.tk = 0
+
+    def tick(self, seq):
+        self.tk = seq
 
     def cell(self, g, kind):
         c = self.cells.get((g, kind))
@@ -37,6 +42,7 @@ class Core:
         c = self.cell(g, kind)
         agg.fold(c.acc, v, w)
         self.folds += 1
+        self.jrn.append(("f", self.tk, g, kind, v, w))
         d = c.dep.get(rk, 0) + w
         if d == 0:
             c.dep.pop(rk, None)
@@ -46,15 +52,17 @@ class Core:
 
     def rebuild(self, g, kind, rws):
         c = Cell(g, kind)
+        self.scans += 1
+        self.jrn.append(("s", self.tk, g, kind))
         for r in rws:
             agg.fold(c.acc, r.v, r.w)
             self.folds += 1
+            self.jrn.append(("f", self.tk, g, kind, r.v, r.w))
             d = c.dep.get(r.key(), 0) + r.w
             if d == 0:
                 c.dep.pop(r.key(), None)
             else:
                 c.dep[r.key()] = d
-        self.scans += 1
         self.cells[(g, kind)] = c
         return c
 
@@ -63,6 +71,7 @@ class Core:
         val = 0 if c is None else agg.value(c.acc)
         self.emits += 1
         self.log.append((seq, g, kind, val))
+        self.jrn.append(("e", seq, g, kind, val))
         return val
 
     def groups(self):

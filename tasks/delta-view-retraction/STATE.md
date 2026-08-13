@@ -87,13 +87,20 @@ accountable for, which comes from the cell's dependency map.
 The load-bearing half also lives in the module docstring of `tests/test_outputs.py`, which
 is the file the run audit and the quality review actually read.
 
-Graded, all-or-nothing, three axes:
+Graded, all-or-nothing, four axes:
 
 1. **Values.** Final view map and every emitted `(seq, group, kind, value)`, in order.
    Re-proved in-verifier by `tests/oracle.py`, sealed, sharing no code with the tree,
    folding over the full surviving multiset with no cap.
 2. **Work.** `folds` and `scans`, counted in `view/core.py` (not editable).
-3. **Lifecycle.** The driver's trace of watermark advances, late arrivals and
+3. **Evidence** (added 2026-08-13 after the anti-cheat rejection). The work journal
+   `core.jrn`: one record per value folded, per group reread, per publication, each
+   carrying the delta it was charged to. Counters must equal what the journal contains;
+   the journal replayed through `oracle.Bag` (a second, independent implementation of the
+   bounded accumulator) must reproduce the published view and emitted values; every
+   record must be one the scenario allowed, decided by the sealed model in `oracle.audit`.
+   The executed tree is attested against `tests/pristine` after the run.
+4. **Lifecycle.** The driver's trace of watermark advances, late arrivals and
    publications, plus `emits` and `revised`.
 
 **Implementation choice, deliberately NOT graded:** any row-store read/write count; the
@@ -108,14 +115,74 @@ the dependency map and the row store gave different live sets, and `ok-count-liv
 moved into a non-editable module and now hands the router explicit `Edit` objects, so both
 readings agree. Four `ok-*` variants now score 1.
 
+## Anti-cheat rejection, 2026-08-13, and the hardening
+
+The pipeline's anti-cheat gate rejected this: an adversarial agent passed without doing
+the work. Reproduced here in ten minutes, and the reproduction is now
+`cheat/cheat-hijack-report.sh`. A `route.py` that does nothing, imports `scen` from
+`/tests` to identify which scenario is running, and reassigns `view.drv.Drv.report` to
+return the ground truth scored **reward=1 on all 62 assertions**.
+
+Nothing was broken out of. The run was already sandboxed, `gt.json` already root-only. The
+hole was that **every graded number was produced inside the process that executed the
+agent's file**: the view, the emit log, the trace, and both counters, all read off objects
+`route.py` holds a live reference to. `core.folds` is an assignable attribute. Sealing the
+answers is no defence against an adversary who has read the verifier, which is the
+adversary this gate models.
+
+Fixes, in order of how much they matter:
+
+1. **The work journal.** `view/core.py` records every fold, every scan and every emit with
+   the delta it was charged to, and `drv.report()` ships it. The verifier then refuses to
+   believe any number without it: counters must equal the journal's contents, the journal
+   replayed through a second independently written bounded accumulator (`oracle.Bag`) must
+   reproduce the values the submission published, and every record must be one the
+   scenario made possible (`oracle.audit`: a reread folds exactly the rows the row store
+   held at that delta; an incremental fold matches an edit that delta produced and is
+   charged once; nothing is charged to a group the delta never touched). Forging a report
+   that survives all three means performing the maintenance.
+2. **The executed tree is read-only and attested.** `test.sh` used to `chown -R sandbox
+   /work`, so the run could rewrite `view/core.py` - the file whose counters the whole
+   grade rests on - between scenarios, since the runner re-imports per scenario. It is now
+   root-owned and read-only to the run, and `test_executed_tree_was_the_shipped_tree`
+   hashes it against the pristine copy plus the uploaded artifact afterwards.
+   `cheat/cheat-rewrite-engine.sh` is the probe.
+3. **The output file is not agent-writable.** Root opens `/work/run/out.json` (root:root
+   600) and hands the descriptor to the runner as `fd:3` after the privilege drop, so no
+   surviving process can rewrite the graded file. A per-run nonce in the report catches a
+   planted one. Neither defeats in-process forgery - only the journal does - so do not
+   count them as more than they are.
+4. **Sealed inputs.** The runner reads its config from `/tests/view.json` rather than from
+   the tree it is running, and `/tests/test_outputs.py` is now root-only 600 like
+   `gt.json` and `oracle.py`, so the run cannot read which records the grader checks for.
+
+`build_gt.py` refuses to write a ground truth unless the reference's own journal accounts
+for its counters, replays to its own values, and passes the audit - which is also what
+keeps `oracle.Bag` from drifting away from `store/agg.py`.
+
+Counters did not move: `retract-drains-witness` is still 55 folds and 6 scans, so the
+difficulty band and every number in the instruction are untouched, and all four `ok-*`
+variants still score 1.
+
 ## Gates run, and their results
 
 - `authoring/build_gt.py`: proves reference == sealed oracle on values AND shipped ==
   oracle on values AND reference cheaper than shipped, on all 12 scenarios, before it will
   write gt.json.
 - `authoring/trial.py`: oracle 1, nop 0, 4 `ok-*` variants 1, 4 wrong-plan probes 0.
-- `authoring/cheat_report.py`: 14 cheats, all 0, distinct failure signatures.
-- `authoring/field_report.py`: every graded field separates at least one cheat.
+- `authoring/cheat_report.py`: 18 cheats, all 0, distinct failure signatures.
+- `authoring/field_report.py`: every graded field separates at least one cheat. The
+  evidence axis is not decoration: `hijack-report` is separated by **nothing else** -
+  view, log, trace, both counters, emits and revised are all exactly right.
+- `tools/forgecheck.py`: clean. Fires on the three other tasks in `tasks/`, which have
+  the same unmeasured hole.
+- **`tools/docker_trial2.py --all`: 20/20, and `--variants`: 4/4.** Docker does run on
+  this Linux sandbox (it did not on the earlier Windows host), so the two-image trial is
+  no longer an unrun gate. Measured inside the verifier container: the run is `uid=1002`,
+  and `PermissionError` on `/logs/verifier/reward.txt`, `/tests/gt.json`,
+  `/tests/oracle.py` and `/tests/test_outputs.py`; `/work/run/out.json` is `root:root`
+  `600` and still written by the unprivileged run through the inherited descriptor;
+  `/work/app` is `root:root` and read-only to the run.
 - `tools/textcheck.py`: clean against rollout-cache-coherence and checkpoint-resume-drift.
 - `tools/structcheck.py`: clean.
 - `scripts/preflight.py`: no errors.
@@ -163,11 +230,12 @@ problem rather than fitting the twelve scenarios.
 
 ## Gates NOT run
 
-- **Docker is not installed on this host.** `C:\Program Files\Docker\...` is a stale PATH
-  entry; the binary is absent and `dockerd` is not on PATH. So `tools/docker_trial2.py`
-  never ran, and the two-image trial is unproven: the privilege drop to uid 1002, the
-  root-owned 700 reward channel, the root-only gt.json/oracle.py, and `reap.py` killing
-  double-forked survivors are all **unverified in a container**. The isolation cheats were
-  graded by the host emulation, which does not enforce any of that, so they prove the
-  grader's logic rejects them, not that the sandbox contains them.
-- `harbor check` was not run (harbor not installed).
+- `harbor check` was not run (harbor not installed). `tools/docker_trial2.py` reproduces
+  the two-container trial with docker directly and is what was run instead.
+- **The easiness probe has not been re-run since the hardening.** The 2 of 3 result below
+  still stands and is still a rejection. The hardening does not address it: it changes
+  what the verifier will accept as evidence, not how hard the problem is. Nothing in it
+  moved a counter or a scenario.
+- `reap.py` killing a double-forked survivor was exercised by `cheat-reward-daemon.sh`
+  scoring 0 in the container, but that cheat fails on values as well, so the reaping
+  itself is confirmed only by the reward channel staying 0.

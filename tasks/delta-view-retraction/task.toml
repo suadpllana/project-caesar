@@ -110,6 +110,21 @@ order-sensitive cell on any retraction, using multiplicity against candidate cou
 loss test, and keeping only the sum path incremental all return every value correctly on
 every scenario and lose on the counters alone.
 
+None of those numbers is believed on its own. Every one of them is produced inside the
+process that executed the submitted file, so the report is a claim, and the evidence for
+it is the work journal view/core.py records: one entry for every value folded, every
+group reread from the row store, and every publication. The counters are required to
+equal what that journal contains, so a counter cannot be assigned; the journal folded
+back through a second implementation of the bounded accumulator, written independently
+inside the verifier, must reproduce the view and the values the submission published, so
+an answer cannot be pasted in; and every record has to be one the scenario allowed, which
+the sealed model decides - a reread folds exactly the rows the row store held at that
+delta, an incremental fold matches an edit that delta produced and is charged once, and
+neither may be charged to a group the delta never touched. The tree that did the counting
+is attested afterwards against the pristine copy, so the counters cannot be moved by
+rewriting the file that keeps them. Forging a report that survives all of this means
+performing the maintenance, which is the task.
+
 Two things are deliberately outside the graded set, because grading them would measure a
 choice the task never asked the solver to make. One is any count of reads or writes
 against the row store, since a submission may legitimately batch or reorder its own reads.
@@ -127,18 +142,28 @@ so the two agree, rather than the verifier being loosened.
 The lifecycle is checked as well: the driver's own trace of watermark advances, late
 arrivals and publications, in order.
 
-Fourteen cheats were run against it and all scored 0. Six are the reference with exactly
-one decision made the way a solver who missed one piece would make it, and their failure
-signatures are distinct and match the design: three fail on the work counters alone with
-every value correct, and three corrupt the values. Eight are reward-tamper probes, since
-the verifier executes the agent's code: a double-forked process writing the reward after
-the run, a planted run output, a planted output followed by a hard exit of the runner,
-wrong-typed junk returned from the report, forged counters, a privilege probe, an attempt
-to read the ground truth from inside the run, and a sweep of everything the run's uid can
-reach. The run happens as an unprivileged uid in its own session under a wall clock
-timeout, the reward channel is root-owned and locked before it starts, and the ground
-truth and the sealed oracle are root-only files; grading runs afterwards as root and never
-executes anything the agent wrote.
+Eighteen cheats were run against it and all scored 0, in both containers. Six are the
+reference with exactly one decision made the way a solver who missed one piece would make
+it, and their failure signatures are distinct and match the design: three fail on the work
+counters alone with every value correct, and three corrupt the values. Nine are
+reward-tamper probes, since the verifier executes the agent's code: a double-forked
+process writing the reward after the run, a planted run output, a planted output followed
+by a hard exit of the runner, wrong-typed junk returned from the report, forged counters,
+a privilege probe, an attempt to read the ground truth from inside the run, a rewrite of
+the non-editable engine in the tree being run, and a sweep of everything the run's uid can
+reach. The last three are generated from the ground truth itself and are therefore handed
+every answer: they hijack the driver's report and return the correct view, the correct
+emitted values, the correct trace and both correct counters. One offers no work journal,
+one pads a journal to the counts it claims, and one does the shipped tree's work and then
+deletes records from its journal until the counts match. All three fail, and they are the
+reason the evidence axis exists.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout,
+against a tree it cannot write; the reward channel is root-owned and locked before it
+starts; the ground truth, the sealed oracle and the grader are root-only files; and the
+file the run reports into is opened by root before privilege is dropped and handed over as
+a descriptor, so the uid that runs the agent's code does not own the output it is graded
+on. Grading runs afterwards as root and never executes anything the agent wrote.
 """
 
 category = "Software"

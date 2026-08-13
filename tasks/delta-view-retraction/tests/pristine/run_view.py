@@ -23,6 +23,7 @@ def main(argv):
         cfg[k] = v
     d = drv.Drv(cfg)
     rep = d.run(sc["ops"])
+    rep.pop("jrn", None)
     print(json.dumps(rep, indent=1, sort_keys=True))
     return 0
 

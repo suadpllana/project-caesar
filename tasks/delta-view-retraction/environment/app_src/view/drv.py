@@ -18,6 +18,7 @@ class Drv:
     def feed(self, rec):
         self.seq += 1
         d = delta.parse(rec, self.seq)
+        self.core.tick(self.seq)
         before = self.wm.cur
         self.wm.observe(d.ts)
         after = self.wm.cur
@@ -53,4 +54,5 @@ class Drv:
             "revised": self.seal.revised,
             "trace": [list(t) for t in self.trace],
             "log": [list(x) for x in self.core.log],
+            "jrn": [list(x) for x in self.core.jrn],
         }

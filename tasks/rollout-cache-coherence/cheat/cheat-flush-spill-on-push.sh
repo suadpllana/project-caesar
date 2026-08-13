@@ -1,7 +1,7 @@
 #!/bin/bash
-# Decides validity from the names in the push rather than from the values that
-# came out of it, so the module that shares storage with an earlier layer reads
-# as harmless and its blocks are kept.
+# Retires the spill tier on every push, the reflex that made the prefix index
+# safe. The chain key already carries the fingerprint, so a push cannot leave a
+# reachable stale entry there: every token is right and the work is not.
 set -euo pipefail
 
 cat > /app/model/pstore.py <<'PYEOF'
@@ -66,7 +66,6 @@ class PStore:
         self.wcache = {}
         self.fcache = {}
         self.rev = 0
-        self.dirty = 0
 
     def build(self, adapter):
         w = {}
@@ -90,9 +89,6 @@ class PStore:
                 self.seed[store_of(pid)] = sd
             else:
                 self.ad.setdefault(who, {})[pid] = sd
-        for u in ups:
-            if u[1] in KV_REL:
-                self.dirty += 1
         self.wcache = {}
         self.fcache = {}
         self.rev += 1
@@ -110,7 +106,7 @@ class PStore:
         return out
 
     def key(self, adapter):
-        return tag("dirty/" + str(self.dirty) + "/" + str(adapter))
+        return self._fp(adapter, KV_REL, "kv")
 
     def gen(self, adapter):
         return self._fp(adapter, ALL_PIDS, "gen")
@@ -168,7 +164,7 @@ class Pfx:
         return tag(str(parent) + "|" + ",".join(str(t) for t in toks) + "|" + str(fp))
 
     def on_sync(self, ps, seqs):
-        return
+        self.spl.clear()
 
     def on_wake(self, pool):
         return

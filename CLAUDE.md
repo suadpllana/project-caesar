@@ -8,7 +8,13 @@ built and gated locally but has not been through the pipeline yet.
 once, but a local three-agent probe run after a leak-hardening pass came back **3 of 3**.
 Do not treat it as a model to copy: it is the worked example of the self-confirmation
 failure mode described below, and it needs its data regenerated before it is resubmitted.
-See its `STATE.md`.
+
+The whole task, its zip and its `STATE.md` were deleted from the tree by commit `098ac3b`
+("new task") on 2026-08-13, which was collateral damage rather than a decision. The task
+itself is worth recovering if it is ever resubmitted - `git checkout 098ac3b~1 --
+tasks/reaction-network-reconstruction` brings it back. Its STATE.md is not worth
+recovering on its own; the self-confirmation post mortem it held is summarised in "The
+too-easy failure mode" below, which is the version that matters.
 
 | task | category | cheats | assertions | agent budget | expert estimate |
 |---|---|---|---|---|---|
@@ -44,9 +50,12 @@ the practice on top of them: what actually worked, with numbers.
 ## First moves in a new session
 
 1. Read the four `docs/` files, then this one.
-2. Read `tasks/rollout-cache-coherence/STATE.md` end to end. It is the worked example: the
-   difficulty argument, the frozen verifier contract, the expert path, the failure signature
-   of every cheat, and the run-audit post mortem.
+2. Read `tasks/rollout-cache-coherence/STATE.md` end to end if it is there. It is the worked
+   example: the difficulty argument, the frozen verifier contract, the expert path, the
+   failure signature of every cheat, and the run-audit post mortem. These files are
+   untracked and get lost routinely - if it is missing, skip it and read the task's
+   `task.toml`, `tests/test_outputs.py` and `solution/ref/*.py` instead, which carry the
+   same content and are the versions that actually ship. Do not reconstruct it from git.
 3. Read both `instruction.md` files. They are the only two briefs known to have passed the
    AI-text screen and they are the style reference for the new one. The third,
    `tasks/checkpoint-resume-drift/instruction.md`, clears `tools/textcheck.py` against both
@@ -117,10 +126,39 @@ tasks/<slug>/            the bundle that ships (packaged to tasks/<slug>.zip)
     pristine/            byte-identical copy of environment/app_src
   cheat/                 deliberate fake solutions, every one scores 0
   authoring/             generators and audits; never hand-edit what they emit
-  STATE.md               working notes, excluded from the zip
+  STATE.md               working notes; never ships, never committed, never a deliverable
 tools/                   trial emulation, instruction checker
 scripts/                 preflight.py and package.py from the kit, unmodified
 ```
+
+### STATE.md is not a deliverable, and losing one is not a problem
+
+`package.py` excludes it, the pipeline never sees it, and none of the nine gates read it.
+It is scratch: notes to the next session that has no memory of this one. **Nothing you
+ship depends on it.** If one is missing, absent from git, or was deleted by an unrelated
+commit, that is not damage and it does not need archaeology - do not go digging through
+history to reconstruct one, and do not let it become a finding that competes for the
+user's attention with the work they asked for. One line at the end of the reply is the
+right amount.
+
+Two consequences worth knowing before you spend time on it:
+
+- `preflight.py` is the kit's script and it *does* error on a missing STATE.md, along with
+  a handful of required lines inside it (see `STATE_REQUIRED` in that file, and the
+  `- Tactics making that true: ...` format note further down). So the file has to exist to
+  get a clean preflight, but that is a local formality, not a submission requirement. If
+  it has gone missing, write a fresh short one from `template/task-template/STATE.md` and
+  move on - a few minutes, not an investigation.
+- They are committed but nothing enforces it: `package.py` drops them from the zip and no
+  `.gitignore` rule covers them, so a commit that rewrites the task tree can delete one
+  and the loss shows up as an ordinary deletion nobody reads. That is what happened to
+  `rollout-cache-coherence` in `098ac3b`. If you notice one is gone, note it in the reply
+  and rewrite it; do not stop the work you were asked to do.
+
+What is worth carrying forward between sessions belongs in this file, not in a STATE.md:
+the verifier contract that froze, the failure modes already used, the rejections and their
+fixes. STATE.md holds the per-task working detail that only matters while that task is
+being built.
 
 ## The method in one paragraph
 
@@ -294,8 +332,14 @@ because they hand you a menu of coupled sub-bugs: `vllm-project/vllm#48310` gave
 ### 2. Verifier contract, frozen before any environment code
 
 Decide the artifact list, what is checked, which quantities are real work versus
-implementation choice, and where ground truth comes from. Write it into `STATE.md`. Do not
-touch it afterwards to make a run pass.
+implementation choice, and where ground truth comes from. Do not touch it afterwards to
+make a run pass.
+
+Write it into `STATE.md`, and write the load-bearing half of it somewhere that ships too -
+the module docstring of `tests/test_outputs.py` is the right home, next to the assertions
+it governs. STATE.md is scratch that goes missing; `test_outputs.py` is the file a future
+session, the run audit and the quality review all actually read. If the contract lives
+only in STATE.md, losing that file loses the contract.
 
 ### 3. Environment
 
@@ -523,9 +567,13 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `textcheck.py` clean against **both** passing instructions.
 - Instruction-to-verifier coverage walked line by line, both directions.
 - Built agent image inspected file by file for leaks.
-- `STATE.md` current: verifier contract, difficulty argument, expert path, estimated solves,
-  and every gate not run.
-- Handover states honestly what was run and what was not. Packaging proves nothing.
+- `STATE.md` exists and is current enough for preflight: verifier contract, difficulty
+  argument, expert path, estimated solves, every gate not run. This one is for the next
+  session and for preflight, not for the pipeline - it never ships. Do not spend real time
+  on it, and never hold up a delivery over it.
+- Handover states honestly what was run and what was not. Packaging proves nothing. The
+  gates that were not run belong in the reply to the user, which they will read, rather
+  than only in STATE.md, which nobody outside the repo ever sees.
 - **Re-run `scripts/package.py` and send the rebuilt `tasks/<slug>.zip` back to the user**
   with `SendUserFile`, in the same reply that reports the fix. This applies to every turn
   that changes a task - a verifier hardening, a recalibration, a new task - not only to

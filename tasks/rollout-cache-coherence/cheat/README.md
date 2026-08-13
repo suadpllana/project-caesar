@@ -17,7 +17,7 @@ drop or the locked reward channel):
 python3 authoring/cheat_report.py
 ```
 
-## The twelve single-mistake cheats
+## The fourteen single-mistake cheats
 
 Each is the whole reference solution with exactly one decision made the way a solver who
 missed one piece of the problem would make it. They do real work, produce a well-formed
@@ -38,10 +38,16 @@ verifier actually reported, from `authoring/cheat_report.py`.
 | `cheat-keep-stale-prefill.sh` | Only looks at requests that have emitted a token, so a request part way through its prompt finishes on top of key/value work done under superseded parameters | `prefill-relevant` tokens, work on two scenarios, rewinds on `prefill-adapter`. This is the solution shape that scored 3 of 3 on the easiness probe |
 | `cheat-drop-prefill-on-any-push.sh` | Clears a half-built prefix whenever the sampler's view moves rather than when the block's contents could have | Work accounting on `prefill-neutral` and `prefill-adapter`. Every token correct |
 | `cheat-count-prefill-as-rewind.sh` | Drops the stale prefix on exactly the right pushes, then books it as a sample thrown away and requeues the request | Rewind sets on `prefill-relevant` and `prefill-adapter` |
+| `cheat-flush-spill-on-push.sh` | Retires the second holder on every push, the reflex that made the prefix index safe | Work accounting on `spill-neutral`. Every token correct |
+| `cheat-flush-spill-on-wake.sh` | Empties the second holder whenever the pool comes back, treating both offload levels as able to reach it | Work accounting on `spill-discard`. Every token correct |
 
-The interesting ones for the difficulty argument are the four fingerprint cheats and
-`cheat-drop-prefill-on-any-push`: they are the plans a strong agent forms first, they get
-every token right, and they fail only because the amount of work is measured.
+The interesting ones for the difficulty argument are the four fingerprint cheats,
+`cheat-drop-prefill-on-any-push` and the two spill flushes: they are the plans a strong
+agent forms first, they get every token right, and they fail only because the amount of
+work is measured. The two spill flushes are the sharpest of them - the engine holds
+key/value work in a second place that survives eviction, and clearing that place on a push
+or on a pool cycle is the same overcaution the prefix index already punishes, except that
+nothing in a run the agent can drive makes the overcaution visible.
 `cheat-keep-stale-prefill` is the other kind - it is the complete solution to the task as
 it stood before the easiness probe came back 3 of 3, and it now fails on tokens.
 

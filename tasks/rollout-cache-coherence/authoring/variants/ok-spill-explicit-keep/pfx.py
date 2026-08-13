@@ -49,10 +49,16 @@ class Pfx:
         return tag(str(parent) + "|" + ",".join(str(t) for t in toks) + "|" + str(fp))
 
     def on_sync(self, ps, seqs):
-        return
+        keep = [k for k in self.spl.keys()]
+        for k in self.spl.keys():
+            if k not in keep:
+                self.spl.forget(k)
 
     def on_wake(self, pool):
-        return
+        keep = [k for k in self.spl.keys()]
+        for k in self.spl.keys():
+            if k not in keep:
+                self.spl.forget(k)
 
     def get(self, key):
         bid = self.ent.get(key)

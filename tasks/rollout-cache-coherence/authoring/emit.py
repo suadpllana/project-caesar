@@ -60,6 +60,13 @@ KEY_BLOCK = """    def key(self, adapter):
 
 SYNC_HEAD = "    def on_sync(self, ps):"
 
+HOOK_BLOCK = """    def on_sync(self, ps, seqs):
+        return
+
+    def on_wake(self, pool):
+        return
+"""
+
 USABLE_BLOCK = """    def usable(self, pid):
         return pid in self.pg and pid not in self.dead
 """
@@ -322,6 +329,32 @@ def variants() -> dict[str, tuple[str, dict[str, str]]]:
 """)},
     )
 
+    out["cheat-flush-spill-on-push"] = (
+        "# Retires the spill tier on every push, the reflex that made the prefix index\n"
+        "# safe. The chain key already carries the fingerprint, so a push cannot leave a\n"
+        "# reachable stale entry there: every token is right and the work is not.",
+        {"pstore.py": ref("pstore.py"), "sch.py": ref("sch.py"), "pool.py": ref("pool.py"),
+         "pfx.py": swap(ref("pfx.py"), HOOK_BLOCK, """    def on_sync(self, ps, seqs):
+        self.spl.clear()
+
+    def on_wake(self, pool):
+        return
+""")},
+    )
+
+    out["cheat-flush-spill-on-wake"] = (
+        "# Empties the spill tier whenever the pool comes back. The tier holds copies\n"
+        "# taken before eviction released the pages, so neither offload level can reach\n"
+        "# them, and the recompute this buys is recompute nothing asked for.",
+        {"pstore.py": ref("pstore.py"), "sch.py": ref("sch.py"), "pool.py": ref("pool.py"),
+         "pfx.py": swap(ref("pfx.py"), HOOK_BLOCK, """    def on_sync(self, ps, seqs):
+        return
+
+    def on_wake(self, pool):
+        self.spl.clear()
+""")},
+    )
+
     return out
 
 
@@ -533,7 +566,7 @@ SOLVE_HEADER = """# Reference solution.
 def main() -> int:
     solve = script(SOLVE_HEADER, {name: ref(name) for name in TARGETS})
     path = TASK / "solution" / "solve.sh"
-    path.write_text(solve)
+    path.write_text(solve, newline="\n")
     path.chmod(0o755)
     print("wrote", path.relative_to(TASK))
 
@@ -545,7 +578,7 @@ def main() -> int:
         full = {n: base(n) for n in TARGETS}
         full.update(files)
         p = cheat_dir / (name + ".sh")
-        p.write_text(script(header, full))
+        p.write_text(script(header, full), newline="\n")
         p.chmod(0o755)
         print("wrote", p.relative_to(TASK))
     return 0

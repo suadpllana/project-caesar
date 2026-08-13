@@ -2,6 +2,7 @@ import json
 import os
 
 from mem.pool import Pool
+from mem.spill import Spill
 from model.be import Backend
 from model.pstore import PStore
 from runtime.blk import Blk
@@ -26,9 +27,10 @@ def make(over=None):
     ps = PStore(cfg["seeds"], cfg["adapters"])
     pool = Pool(int(cfg["pages"]), int(cfg["block"]))
     blk = Blk(pool, int(cfg["block"]))
-    pfx = Pfx(blk)
+    spl = Spill(int(cfg["spill"]), int(cfg["block"]))
+    pfx = Pfx(blk, spl)
     blk.pfx = pfx
     sch = Sch(cfg)
-    eng = Eng(cfg, ps, pool, blk, pfx, sch, Backend())
+    eng = Eng(cfg, ps, pool, blk, pfx, sch, Backend(), spl)
     sch.eng = eng
     return eng

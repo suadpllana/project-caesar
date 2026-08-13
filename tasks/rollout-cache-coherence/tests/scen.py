@@ -17,12 +17,23 @@ A rule that only looks at requests which have emitted tokens serves the stale ha
 and fails on tokens; one that clears everything in flight recomputes work it did not have
 to and fails on the counters.
 
-Only one scenario runs the page pool dry. That is deliberate. Once eviction and preemption
-start firing, the totals depend on which block a least-recently-used sweep happens to pick
-when several are equally old, and two faithful implementations of the same policy disagree
-there. The verifier grades work counters only where nothing is evicted and nothing is
-preempted; `pressure` is graded on the tokens and the rewinds, which eviction order cannot
-move. See test_outputs.py.
+The spill-* three are the third population. They run a prompt, let a second and third
+prompt push its blocks out of the index under a pool that is tight but never exhausted,
+and then come back to the first prompt. What the engine can still lay hands on at that
+point is the thing being measured: spill-neutral puts a push that cannot move a key or
+value in between, spill-discard puts both offload levels in between, and neither of them
+may cost a recompute. spill-relevant is the fence on the other side, where the push does
+move the fingerprint and the work has to be done again. All three are graded on the
+counters and none of them changes a token either way, which is the point - a solution
+that retires too much here returns exactly the right streams and pays for them twice.
+
+Only `pressure` runs the pool dry enough to throw requests off it. That is deliberate.
+Once preemption starts firing the totals depend on which block a least-recently-used sweep
+happens to pick when several are equally old, and two faithful implementations of the same
+policy disagree there. The verifier grades work counters wherever nothing is preempted;
+`pressure` is graded on the tokens and the rewinds, which eviction order cannot move.
+Eviction without preemption is deterministic under any index container, which is what lets
+the spill-* scenarios be graded at all. See test_outputs.py.
 """
 
 P1 = [5, 9, 14, 3, 21, 7, 2, 11, 33, 41, 6, 19, 28, 8, 52, 17]
@@ -191,6 +202,39 @@ SCENARIOS = [
             step(1),
             sync([[None, "l3.wo", 5302]]),
             DRAIN,
+        ],
+    },
+    {
+        "name": "spill-neutral",
+        "over": {"pages": 9, "max_batch": 2, "spill": 2},
+        "ops": [
+            add("v0", P1, max_new=3), DRAIN,
+            add("v1", P2, max_new=3), add("v2", P3, max_new=3), DRAIN,
+            sync([[None, "l3.wo", 7401], [None, "gsc", 7402], [None, "head", 7403]]),
+            add("v3", P1, max_new=3), DRAIN,
+        ],
+    },
+    {
+        "name": "spill-relevant",
+        "over": {"pages": 9, "max_batch": 2, "spill": 2},
+        "ops": [
+            add("w0", P1, max_new=3), DRAIN,
+            add("w1", P2, max_new=3), add("w2", P3, max_new=3), DRAIN,
+            sync([[None, "l1.wk", 7301]]),
+            add("w3", P1, max_new=3), DRAIN,
+        ],
+    },
+    {
+        "name": "spill-discard",
+        "over": {"pages": 9, "max_batch": 2, "spill": 2},
+        "ops": [
+            add("y0", P1, max_new=3), DRAIN,
+            add("y1", P2, max_new=3), add("y2", P3, max_new=3), DRAIN,
+            sleep(1), WAKE,
+            add("y3", P1, max_new=3), DRAIN,
+            add("y4", P2, max_new=3), add("y5", P3, max_new=3), DRAIN,
+            sleep(2), WAKE,
+            add("y6", P1, max_new=3), DRAIN,
         ],
     },
     {

@@ -18,14 +18,34 @@ TASK = Path(__file__).resolve().parent.parent
 EDITABLE = ["model/pstore.py", "runtime/pfx.py", "runtime/sch.py", "mem/pool.py"]
 
 
+def bash() -> str:
+    """A bash that can actually run the cheat scripts.
+
+    On Windows the `bash` on PATH is usually the WSL stub, which exits without running
+    anything when no distribution is installed; every cheat then silently no-ops and each
+    one appears to trip the same assertions as the shipped tree.
+    """
+    for cand in (r"C:\Program Files\Git\bin\bash.exe",
+                 r"C:\Program Files\Git\usr\bin\bash.exe"):
+        if Path(cand).is_file():
+            return cand
+    found = shutil.which("bash")
+    if found is None:
+        raise SystemExit("no bash on PATH; cannot replay the cheat scripts")
+    return found
+
+
 def trial(script: Path | None):
-    app_live = Path("/app")
-    if app_live.exists():
-        shutil.rmtree(app_live)
-    shutil.copytree(TASK / "environment" / "app_src", app_live)
-    if script is not None:
-        subprocess.run(["bash", str(script)], capture_output=True)
     with tempfile.TemporaryDirectory() as tmp:
+        app_live = Path(tmp) / "live"
+        shutil.copytree(TASK / "environment" / "app_src", app_live)
+        if script is not None:
+            body = script.read_text().replace("/app", app_live.as_posix())
+            play = Path(tmp) / script.name
+            play.write_text(body)
+            proc = subprocess.run([bash(), str(play)], capture_output=True, cwd=tmp)
+            if proc.returncode != 0:
+                print("  ! %s exited %d" % (script.name, proc.returncode), file=sys.stderr)
         app = Path(tmp) / "app"
         shutil.copytree(TASK / "tests" / "pristine", app)
         for rel in EDITABLE:

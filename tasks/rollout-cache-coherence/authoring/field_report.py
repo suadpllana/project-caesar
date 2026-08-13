@@ -25,14 +25,44 @@ EDITABLE = ["model/pstore.py", "runtime/pfx.py", "runtime/sch.py", "mem/pool.py"
 FIELDS = ("computed", "reused", "pos", "preempt", "evict", "restart")
 
 
+def bash() -> str:
+    """A bash that can actually run the cheat scripts.
+
+    On Windows the name `bash` on PATH is usually the WSL stub, which exits 1 without
+    running anything when no distribution is installed - every cheat then silently
+    no-ops and the whole report measures the shipped tree over and over.  Prefer a real
+    Git Bash when one is present.
+    """
+    for cand in (r"C:\Program Files\Git\bin\bash.exe",
+                 r"C:\Program Files\Git\usr\bin\bash.exe"):
+        if Path(cand).is_file():
+            return cand
+    found = shutil.which("bash")
+    if found is None:
+        raise SystemExit("no bash on PATH; cannot replay the cheat scripts")
+    return found
+
+
 def run(script: Path | None) -> dict:
-    live = Path("/app")
-    if live.exists():
-        shutil.rmtree(live)
-    shutil.copytree(TASK / "environment" / "app_src", live)
-    if script is not None:
-        subprocess.run(["bash", str(script)], capture_output=True)
+    """Play one cheat against a throwaway copy of the shipped tree, then grade it.
+
+    The cheat scripts write to the absolute path /app, which is where the agent lands
+    inside the container.  Off a Linux host that path is not writable, so the script is
+    replayed against a temporary directory with /app rewritten to it.  The shipped
+    scripts are never modified; only the copy handed to bash is.
+    """
     with tempfile.TemporaryDirectory() as tmp:
+        live = Path(tmp) / "live"
+        shutil.copytree(TASK / "environment" / "app_src", live)
+        if script is not None:
+            body = script.read_text().replace("/app", live.as_posix())
+            play = Path(tmp) / script.name
+            play.write_text(body)
+            proc = subprocess.run([bash(), str(play)], capture_output=True, cwd=tmp)
+            if proc.returncode != 0:
+                print("  ! %s exited %d: %s" % (
+                    script.name, proc.returncode,
+                    proc.stderr.decode("utf-8", "replace")[-200:]), file=sys.stderr)
         app = Path(tmp) / "app"
         shutil.copytree(TASK / "tests" / "pristine", app)
         for rel in EDITABLE:

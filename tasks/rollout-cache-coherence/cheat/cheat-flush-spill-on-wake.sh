@@ -1,7 +1,7 @@
 #!/bin/bash
-# Decides validity from the names in the push rather than from the values that
-# came out of it, so the module that shares storage with an earlier layer reads
-# as harmless and its blocks are kept.
+# Empties the spill tier whenever the pool comes back. The tier holds copies
+# taken before eviction released the pages, so neither offload level can reach
+# them, and the recompute this buys is recompute nothing asked for.
 set -euo pipefail
 
 cat > /app/model/pstore.py <<'PYEOF'
@@ -66,7 +66,6 @@ class PStore:
         self.wcache = {}
         self.fcache = {}
         self.rev = 0
-        self.dirty = 0
 
     def build(self, adapter):
         w = {}
@@ -90,9 +89,6 @@ class PStore:
                 self.seed[store_of(pid)] = sd
             else:
                 self.ad.setdefault(who, {})[pid] = sd
-        for u in ups:
-            if u[1] in KV_REL:
-                self.dirty += 1
         self.wcache = {}
         self.fcache = {}
         self.rev += 1
@@ -110,7 +106,7 @@ class PStore:
         return out
 
     def key(self, adapter):
-        return tag("dirty/" + str(self.dirty) + "/" + str(adapter))
+        return self._fp(adapter, KV_REL, "kv")
 
     def gen(self, adapter):
         return self._fp(adapter, ALL_PIDS, "gen")
@@ -171,7 +167,7 @@ class Pfx:
         return
 
     def on_wake(self, pool):
-        return
+        self.spl.clear()
 
     def get(self, key):
         bid = self.ent.get(key)

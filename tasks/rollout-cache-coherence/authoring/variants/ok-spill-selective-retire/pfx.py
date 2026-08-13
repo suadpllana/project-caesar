@@ -49,10 +49,25 @@ class Pfx:
         return tag(str(parent) + "|" + ",".join(str(t) for t in toks) + "|" + str(fp))
 
     def on_sync(self, ps, seqs):
-        return
+        fps = set()
+        for s in seqs:
+            if not s.done:
+                fps.add(ps.key(s.adapter))
+        fps.add(ps.key(None))
+        for k in list(self.spl.keys()):
+            if self.unreachable(k, fps):
+                self.spl.forget(k)
+
+    def unreachable(self, k, fps):
+        return False
 
     def on_wake(self, pool):
-        return
+        for k in list(self.spl.keys()):
+            if self.lost(pool):
+                self.spl.forget(k)
+
+    def lost(self, pool):
+        return False
 
     def get(self, key):
         bid = self.ent.get(key)

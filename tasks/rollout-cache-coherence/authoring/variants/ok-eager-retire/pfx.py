@@ -21,12 +21,22 @@ from model.arch import tag
 
 
 class Pfx:
-    def __init__(self, blk):
+    def __init__(self, blk, spl):
         self.blk = blk
+        self.spl = spl
         self.ent = {}
         self.use = {}
         self.fps = {}
         self.tick = 0
+
+    def on_sync(self, ps, seqs):
+        return
+
+    def on_wake(self, pool):
+        return
+
+    def listing(self):
+        return [(k, b) for k, b in self.ent.items()]
 
     def chain(self, parent, toks, fp):
         k = tag(str(parent) + "|" + ",".join(str(t) for t in toks) + "|" + str(fp))

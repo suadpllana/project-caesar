@@ -19,6 +19,7 @@
   "chunk": 6,
   "max_batch": 4,
   "pages": 128,
+  "spill": 24,
   "seeds": {
     "emb": 3300,
     "gsc": 3708,

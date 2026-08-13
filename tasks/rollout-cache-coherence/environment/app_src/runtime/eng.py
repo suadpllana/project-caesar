@@ -8,7 +8,7 @@ class Exhausted(Exception):
 
 
 class Eng:
-    def __init__(self, cfg, ps, pool, blk, pfx, sch, be):
+    def __init__(self, cfg, ps, pool, blk, pfx, sch, be, spl):
         self.cfg = cfg
         self.ps = ps
         self.pool = pool
@@ -16,9 +16,11 @@ class Eng:
         self.pfx = pfx
         self.sch = sch
         self.be = be
+        self.spl = spl
         self.bs = cfg["block"]
         self.chunk = int(cfg["chunk"])
-        self.st = {"computed": 0, "reused": 0, "restart": 0, "preempt": 0, "evict": 0}
+        self.st = {"computed": 0, "reused": 0, "restart": 0, "preempt": 0, "evict": 0,
+                   "rehome": 0}
         self.trace = []
         self.out = {}
         self.seqs = {}
@@ -48,6 +50,7 @@ class Eng:
 
     def sync(self, ups):
         self.ps.apply(ups)
+        self.pfx.on_sync(self.ps, self.sch.all())
         self.sch.on_sync(self.ps)
 
     def sleep(self, lvl):
@@ -55,6 +58,7 @@ class Eng:
 
     def wake(self):
         self.pool.wake()
+        self.pfx.on_wake(self.pool)
         bad = self.blk.reconcile()
         if bad:
             for s in self.sch.all():
@@ -71,6 +75,8 @@ class Eng:
             k = self.pfx.chain(parent, tuple(toks[bi * self.bs:(bi + 1) * self.bs]), s.fp)
             bid = self.pfx.get(k)
             if bid is None:
+                bid = self.rehome(k)
+            if bid is None:
                 break
             self.blk.incref(bid)
             s.blocks.append(bid)
@@ -79,11 +85,35 @@ class Eng:
             self.st["reused"] += self.bs
             parent = k
 
+    def cells(self, bid):
+        return [self.blk.read(bid, i) for i in range(self.bs)]
+
+    def rehome(self, k):
+        cs = self.spl.fetch(k)
+        if cs is None:
+            return None
+        bid = self.blk.alloc()
+        if bid is None:
+            return None
+        for i, c in enumerate(cs):
+            self.blk.write(bid, i, c)
+        self.pfx.put(k, bid)
+        self.st["rehome"] += 1
+        return bid
+
     def acquire(self, cur):
         bid = self.blk.alloc()
         while bid is None:
+            before = {}
+            for k, b in self.pfx.listing():
+                if self.blk.full(b):
+                    before[k] = self.cells(b)
             if self.pfx.evict():
                 self.st["evict"] += 1
+                live = set(k for k, _ in self.pfx.listing())
+                for k, cs in before.items():
+                    if k not in live:
+                        self.spl.stash(k, cs)
             else:
                 v = self.sch.victim(cur)
                 if v is None:
@@ -179,6 +209,7 @@ class Eng:
             "restart": self.st["restart"],
             "preempt": self.st["preempt"],
             "evict": self.st["evict"],
+            "rehome": self.st["rehome"],
             "pos": self.be.n_pos,
             "trace": list(self.trace),
             "out": {k: list(v) for k, v in sorted(self.out.items())},

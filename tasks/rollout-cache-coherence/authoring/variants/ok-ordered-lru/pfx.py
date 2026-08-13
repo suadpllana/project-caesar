@@ -19,9 +19,19 @@ from model.arch import tag
 
 
 class Pfx:
-    def __init__(self, blk):
+    def __init__(self, blk, spl):
         self.blk = blk
+        self.spl = spl
         self.ent = OrderedDict()
+
+    def on_sync(self, ps, seqs):
+        return
+
+    def on_wake(self, pool):
+        return
+
+    def listing(self):
+        return list(self.ent.items())
 
     def chain(self, parent, toks, fp):
         return tag(str(parent) + "|" + ",".join(str(t) for t in toks) + "|" + str(fp))

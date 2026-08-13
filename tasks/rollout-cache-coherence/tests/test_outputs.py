@@ -26,15 +26,21 @@ Three independent things are checked, and all of them must hold:
      fingerprint is superseded and leaving it for the least-recently-used sweep are both
      correct and cost the same key/value work.
 
-     The work counters of any scenario that runs the pool dry.  Once eviction and
-     preemption fire, the totals depend on which of several equally old blocks the sweep
-     picks, and two faithful implementations of the same policy disagree there - an
+     The work counters of any scenario that runs the pool dry.  Once requests are being
+     thrown off the pool, the totals depend on which of several equally old blocks the
+     sweep picks, and two faithful implementations of the same policy disagree there - an
      ordered-dict least-recently-used index and a tick-counter one produce different
      preemption counts on identical semantics.  Grading that made a correct solution
-     reverse-engineer a hidden constant, so scenarios with evictions or preemptions in the
-     ground truth are graded on tokens and rewinds alone, both of which eviction order
-     cannot move.  ORDER_FREE below is derived from the ground truth rather than hand
-     listed, so a scenario that starts evicting drops out of counter grading by itself.
+     reverse-engineer a hidden constant, so scenarios that preempt are graded on tokens
+     and rewinds alone, neither of which eviction order can move.  ORDER_FREE below is
+     derived from the ground truth rather than hand listed, so a scenario that starts
+     preempting drops out of counter grading by itself.
+
+     Eviction on its own is not that regime and is graded.  A pool under pressure but
+     never exhausted forces the same evictions in the same order whatever the index is
+     built on, which is what lets the spill-* scenarios measure the second holder at all;
+     authoring/variant_check.py is the evidence, with two different least-recently-used
+     containers agreeing exactly on those three scenarios.
 
   3. The lifecycle.  The set of rewound samples must be exactly right - no sample left
      straddling a push, none rewound that did not need it - and the engine's own
@@ -101,6 +107,15 @@ AIM = {
     "prefill-adapter": "a push into one adapter takes down only that adapter's half-built "
                        "prefix, then a base push that moves nothing a block depends on "
                        "must leave the rebuilt one alone",
+    "spill-neutral": "a prompt whose blocks were evicted and kept, then a push that "
+                     "cannot move a key or value: what the engine still holds is still "
+                     "good and must be served rather than rebuilt",
+    "spill-relevant": "the same shape under a push upstream of a key/value projection: "
+                      "the block a later request asks for is a different block, and the "
+                      "work has to be done again",
+    "spill-discard": "both offload levels across a prompt whose blocks were evicted and "
+                     "kept: a cycle that never touched what the engine still holds must "
+                     "not cost a recompute",
     "pressure": "eviction and preemption interleaved with a push",
     "mixed": "everything at once, over a long op list",
 }
@@ -137,10 +152,19 @@ def expected(name):
 
 
 def order_free(name):
-    """True when nothing is evicted or preempted, so the counters cannot depend on which
-    block a least-recently-used sweep picked."""
-    want = expected(name)
-    return want["evict"] == 0 and want["preempt"] == 0
+    """True when the counters cannot depend on which block a sweep happened to pick.
+
+    Preemption is the hazard the run audit found: once the pool is dry enough that
+    requests are thrown off it, which of several equally old blocks goes first decides how
+    much is recomputed, and two faithful implementations of one policy disagree.  A
+    scenario that evicts without ever preempting is not in that regime - the pool is under
+    pressure but never exhausted, every eviction is forced by the same allocation in the
+    same order, and the totals are fixed by the policy rather than by the container the
+    index is built on.  authoring/variant_check.py holds the evidence: an ordered-dict
+    index and a tick-counter index produce identical computed / reused / pos on the
+    scenarios kept here, and diverge on the ones dropped.
+    """
+    return expected(name)["preempt"] == 0
 
 
 ORDER_FREE = [n for n in NAMES if GT and order_free(n)]

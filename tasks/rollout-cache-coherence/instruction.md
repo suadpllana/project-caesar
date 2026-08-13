@@ -57,6 +57,17 @@ worth a hit on the other side. Level 2 gives the pages up, and what comes back i
 whatever the allocator had in them, so nothing computed before that point may be served
 after it. No token moves at either level.
 
+Pressure is where this gets expensive. The pool is smaller than the work we would like to
+keep, so blocks go. A block that goes is not always gone. Whatever the engine can still
+lay hands on afterwards is work already paid for, and on a rollout group that comes back
+to a prompt it has served before, that is most of the prompt, so the difference between
+handing it back and building it again is the difference between a batch that costs what
+it should and one that costs several times over while every stream it returns stays
+word for word what we asked for. Be exact about what a push reaches, and about what a
+pool cycle reaches, because those two are not the same set and neither of them is
+everything. Anything that comes through untouched, we expect served. Rebuild it quietly
+and the output looks right and the cost does not.
+
 Leave the rest of the engine's behaviour where it is. What gets admitted in a step, how
 many run at once, which request is preempted when the pool runs dry, which cached block
 goes first when something has to be evicted: none of that is what we are after, and a run

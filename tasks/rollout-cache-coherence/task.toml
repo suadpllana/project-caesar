@@ -57,7 +57,22 @@ block fingerprint and the emitting sample by the sampling one, which is the same
 distinction as the first question with the populations swapped, and nothing in the tree
 says that such a state exists. It follows from one line of the engine's step loop.
 
-The engine is a working tree of sixteen modules with no comments anywhere in it, and its
+A third question sits underneath both of those, and it is the one nothing in a run the
+agent can drive will answer for it. The engine does not keep computed key/value work in
+one place. Blocks the prefix index evicts are copied into a second holder that survives
+the eviction, and a later request that misses in the index is served from there instead of
+recomputing, which is most of a rollout group that comes back to a prompt it has already
+run. Two hooks decide what that holder keeps, and the tree as shipped empties it on every
+push and on every pool cycle. Both are wrong, and wrong in the direction that costs work
+rather than correctness: the chain key already carries the fingerprint a block was built
+under, so a push cannot leave a reachable stale entry there, and the holder keeps copies
+taken before the pages were released, so neither offload level can reach them. A
+submission that fixes everything else and leaves either hook alone returns every token on
+every scenario correctly and loses on the counters, and the holder only engages when the
+pool is tight enough to evict, so nothing the agent runs makes the overcaution visible
+before the verifier does.
+
+The engine is a working tree of seventeen modules with no comments anywhere in it, and its
 identifiers are deliberately in the register of ordinary internal code rather than
 self-describing ones, so the dependency structure, the block lifecycle, the tie table and
 the two-level offload have to be recovered by reading behaviour rather than by reading
@@ -105,7 +120,7 @@ under a second.
 """
 
 verification_explanation = """
-The rebuilt engine is driven through fourteen scenarios, each aimed at one reading of the
+The rebuilt engine is driven through seventeen scenarios, each aimed at one reading of the
 rule, and every scenario is checked on three independent axes with no partial credit.
 
 The tokens have to match ground truth exactly, and the ground truth is re-proved inside
@@ -121,18 +136,23 @@ measure real key/value work whatever the submitted implementation looks like. Th
 side that fails an engine that is merely safe, and it is where the interesting cheats
 land: resetting the cache on every push, keying blocks on the adapter, using a revision
 counter, and treating a copy-out-and-back offload as destructive all produce correct
-tokens and the wrong amount of work.
+tokens and the wrong amount of work. The engine also holds computed key/value work in a
+second place that survives eviction, and retiring that second holder on a push or on a
+pool cycle - neither of which can reach what it keeps - is the same overcaution again: a
+submission that does it returns every token on every scenario correctly and pays for the
+same positions twice.
 
 Two things are deliberately outside the graded set, because grading them would measure a
 choice the task never asked the solver to make. One is how many index entries were retired
 and when: dropping a superseded entry at the push and leaving it for the least-recently-used
 sweep cost the same key/value work. The other is the work counters of any scenario that
-runs the page pool dry, because once eviction fires the totals depend on which of several
-equally old blocks the sweep picks, and two faithful implementations of one policy disagree
-there. A third is how many times a request is admitted: a rewound sample goes back on the
+runs the page pool dry enough to throw requests off it, because once preemption fires the
+totals depend on which of several equally old blocks the sweep picks, and two faithful
+implementations of one policy disagree there. Eviction short of that is deterministic under
+any index container and is graded. A third is how many times a request is admitted: a rewound sample goes back on the
 queue and is picked up again, and whether the engine books that as a fresh admission is
 bookkeeping rather than work, so repeated admissions are collapsed before the trace is
-compared. Scenarios with evictions in the ground truth are graded on tokens and rewinds,
+compared. Scenarios that preempt in the ground truth are graded on tokens and rewinds,
 which eviction order cannot move, and that boundary is derived from the ground truth rather
 than hand listed. Six alternative correct implementations - an ordered-dict index, eager
 retirement, a lazy rewind, a re-admitting rewind, a rewind used for the stale prefix as
@@ -166,9 +186,9 @@ tags = [
   "kv-cache-invalidation",
   "prefix-caching",
   "weight-synchronization",
-  "rollout-engine",
   "lora-adapters",
   "chunked-prefill",
+  "victim-cache-coherence",
 ]
 
 expert_time_estimate_hours = 8

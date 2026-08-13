@@ -1,6 +1,7 @@
 #!/bin/bash
-# Content fingerprint for rewinds, revision counter for the cache. A push that
-# lands values identical to the ones already loaded still empties the cache.
+# Both fingerprints right and the rewind right, but it only looks at requests
+# that have emitted a token. A request half way through its prompt keeps the
+# key/value work it did under the old parameters and finishes on top of it.
 set -euo pipefail
 
 cat > /app/model/pstore.py <<'PYEOF'
@@ -105,7 +106,7 @@ class PStore:
         return out
 
     def key(self, adapter):
-        return tag("kvrev/" + str(self.rev) + "/" + str(adapter))
+        return self._fp(adapter, KV_REL, "kv")
 
     def gen(self, adapter):
         return self._fp(adapter, ALL_PIDS, "gen")
@@ -249,15 +250,12 @@ class Sch:
         hit = []
         for s in list(self.run) + list(self.wait):
             s.sync_n = self.n_sync
-            if s.done:
+            if s.done or not s.gen:
                 continue
-            if s.gen:
-                was = getattr(s, "gfp", None)
-                if was is None or ps.gen(s.adapter) == was:
-                    continue
-                hit.append(s)
-            elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
-                self.eng.release(s)
+            was = getattr(s, "gfp", None)
+            if was is None or ps.gen(s.adapter) == was:
+                continue
+            hit.append(s)
         for s in hit:
             self.eng.rewind(s)
             s.gfp = None

@@ -1,6 +1,7 @@
 #!/bin/bash
-# Content fingerprint for rewinds, revision counter for the cache. A push that
-# lands values identical to the ones already loaded still empties the cache.
+# Drops the stale half-built prefix on exactly the right pushes, then books it as
+# a sample thrown away and sends the request back to the head of the queue. No
+# tokens were thrown away and the request had a place in the queue already.
 set -euo pipefail
 
 cat > /app/model/pstore.py <<'PYEOF'
@@ -105,7 +106,7 @@ class PStore:
         return out
 
     def key(self, adapter):
-        return tag("kvrev/" + str(self.rev) + "/" + str(adapter))
+        return self._fp(adapter, KV_REL, "kv")
 
     def gen(self, adapter):
         return self._fp(adapter, ALL_PIDS, "gen")
@@ -257,7 +258,8 @@ class Sch:
                     continue
                 hit.append(s)
             elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
-                self.eng.release(s)
+                self.eng.note("restart", s.rid)
+                hit.append(s)
         for s in hit:
             self.eng.rewind(s)
             s.gfp = None

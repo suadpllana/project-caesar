@@ -1,4 +1,14 @@
-"""Reference parameter store.
+"""Parameter store, value-compare variant.
+
+Not the reference: gen() hands back the effective matrices themselves instead of a hash of
+them, so the scheduler decides a rewind by comparing values rather than fingerprints.  Same
+verdict on every push, including the replayed one, at the cost of comparing more.  It is
+here to show the grade does not depend on how the two questions are fingerprinted, only on
+which parameters each of them covers.  It must score 1.
+
+Below this line the file is the reference, whose docstring follows.
+
+Reference parameter store.
 
 Two distinct fingerprints, because two distinct questions are being asked:
 
@@ -102,4 +112,5 @@ class PStore:
         return self._fp(adapter, KV_REL, "kv")
 
     def gen(self, adapter):
-        return self._fp(adapter, ALL_PIDS, "gen")
+        w = self.view(adapter)
+        return tuple((pid, w[pid]) for pid in ALL_PIDS)

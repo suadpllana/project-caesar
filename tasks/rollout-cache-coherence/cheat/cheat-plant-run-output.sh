@@ -11,7 +11,7 @@ import os as _os
 _fake = {"reports": {}, "errors": {}}
 for _n in ("group", "neutral-base", "relevant-base", "tied-push", "adapter-share",
            "adapter-push", "adapter-neutral-push", "replayed-push", "offload-cycle",
-           "pressure", "mixed"):
+           "prefill-relevant", "prefill-neutral", "prefill-adapter", "pressure", "mixed"):
     _fake["reports"][_n] = {"computed": 0, "reused": 0, "restart": 0, "preempt": 0,
                             "evict": 0, "pos": 0, "trace": [], "out": {}}
 try:

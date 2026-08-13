@@ -2,7 +2,7 @@
  "scenarios": {
   "adapter-neutral-push": {
    "report": {
-    "computed": 35,
+    "computed": 43,
     "evict": 0,
     "out": {
      "q0": [
@@ -26,17 +26,17 @@
       42
      ]
     },
-    "pos": 35,
+    "pos": 43,
     "preempt": 0,
     "restart": 0,
-    "reused": 24,
+    "reused": 16,
     "trace": [
      "start:q0",
      "start:q1",
      "finish:q1",
      "start:q2",
-     "finish:q0",
-     "finish:q2"
+     "finish:q2",
+     "finish:q0"
     ]
    },
    "snap": {
@@ -54,7 +54,7 @@
   },
   "adapter-push": {
    "report": {
-    "computed": 88,
+    "computed": 94,
     "evict": 0,
     "out": {
      "p0": [
@@ -98,20 +98,20 @@
       0
      ]
     },
-    "pos": 88,
+    "pos": 94,
     "preempt": 0,
     "restart": 1,
-    "reused": 36,
+    "reused": 28,
     "trace": [
      "start:p0",
      "start:p1",
      "start:p2",
      "restart:p2",
      "start:p3",
-     "finish:p0",
-     "finish:p1",
      "finish:p3",
+     "finish:p1",
      "start:p4",
+     "finish:p0",
      "finish:p4",
      "finish:p2"
     ]
@@ -207,7 +207,7 @@
   },
   "group": {
    "report": {
-    "computed": 49,
+    "computed": 61,
     "evict": 0,
     "out": {
      "g0": [
@@ -240,19 +240,19 @@
       40
      ]
     },
-    "pos": 49,
+    "pos": 61,
     "preempt": 0,
     "restart": 0,
-    "reused": 28,
+    "reused": 16,
     "trace": [
      "start:g0",
      "start:g1",
      "start:g2",
      "start:g3",
      "finish:g2",
-     "finish:g0",
      "finish:g1",
-     "finish:g3"
+     "finish:g3",
+     "finish:g0"
     ]
    },
    "snap": {
@@ -272,7 +272,7 @@
   },
   "mixed": {
    "report": {
-    "computed": 174,
+    "computed": 194,
     "evict": 0,
     "out": {
      "m0": [
@@ -322,10 +322,10 @@
       48
      ]
     },
-    "pos": 174,
+    "pos": 194,
     "preempt": 0,
     "restart": 7,
-    "reused": 100,
+    "reused": 72,
     "trace": [
      "start:m0",
      "start:m1",
@@ -338,9 +338,9 @@
      "restart:m2",
      "restart:m1",
      "finish:m2",
-     "finish:m0",
      "finish:m1",
      "start:m3",
+     "finish:m0",
      "start:m4",
      "finish:m3",
      "finish:m4"
@@ -371,7 +371,7 @@
   },
   "neutral-base": {
    "report": {
-    "computed": 62,
+    "computed": 67,
     "evict": 0,
     "out": {
      "n0": [
@@ -403,10 +403,10 @@
       22
      ]
     },
-    "pos": 62,
+    "pos": 67,
     "preempt": 0,
     "restart": 2,
-    "reused": 52,
+    "reused": 44,
     "trace": [
      "start:n0",
      "start:n1",
@@ -437,7 +437,7 @@
   },
   "offload-cycle": {
    "report": {
-    "computed": 86,
+    "computed": 95,
     "evict": 0,
     "out": {
      "o0": [
@@ -473,19 +473,19 @@
       44
      ]
     },
-    "pos": 86,
+    "pos": 95,
     "preempt": 0,
     "restart": 0,
-    "reused": 32,
+    "reused": 20,
     "trace": [
      "start:o0",
      "start:o1",
      "start:o2",
      "start:o3",
-     "finish:o0",
      "finish:o1",
      "finish:o2",
-     "finish:o3"
+     "finish:o3",
+     "finish:o0"
     ]
    },
    "snap": {
@@ -503,10 +503,172 @@
     ]
    }
   },
+  "prefill-adapter": {
+   "report": {
+    "computed": 80,
+    "evict": 0,
+    "out": {
+     "k0": [
+      41,
+      23,
+      42,
+      44,
+      15,
+      30
+     ],
+     "k1": [
+      10,
+      29,
+      11,
+      50,
+      55,
+      28
+     ],
+     "k2": [
+      35,
+      6,
+      54,
+      21,
+      54,
+      57
+     ]
+    },
+    "pos": 80,
+    "preempt": 0,
+    "restart": 2,
+    "reused": 28,
+    "trace": [
+     "start:k0",
+     "start:k1",
+     "start:k2",
+     "restart:k0",
+     "restart:k2",
+     "finish:k0",
+     "finish:k2",
+     "finish:k1"
+    ]
+   },
+   "snap": {
+    "k0": [
+     2
+    ],
+    "k1": [
+     2
+    ],
+    "k2": [
+     2
+    ]
+   }
+  },
+  "prefill-neutral": {
+   "report": {
+    "computed": 46,
+    "evict": 0,
+    "out": {
+     "h0": [
+      56,
+      36,
+      40,
+      40,
+      22,
+      1
+     ],
+     "h1": [
+      10,
+      17,
+      0
+     ],
+     "h2": [
+      31,
+      62,
+      17,
+      45
+     ]
+    },
+    "pos": 46,
+    "preempt": 0,
+    "restart": 1,
+    "reused": 28,
+    "trace": [
+     "start:h0",
+     "start:h1",
+     "restart:h1",
+     "start:h2",
+     "finish:h1",
+     "finish:h2",
+     "finish:h0"
+    ]
+   },
+   "snap": {
+    "h0": [
+     1
+    ],
+    "h1": [
+     1
+    ],
+    "h2": [
+     1
+    ]
+   }
+  },
+  "prefill-relevant": {
+   "report": {
+    "computed": 73,
+    "evict": 0,
+    "out": {
+     "f0": [
+      9,
+      2,
+      56,
+      36,
+      32,
+      5
+     ],
+     "f1": [
+      37,
+      30,
+      39,
+      3,
+      61,
+      34
+     ],
+     "f2": [
+      21,
+      9,
+      54,
+      60
+     ]
+    },
+    "pos": 73,
+    "preempt": 0,
+    "restart": 1,
+    "reused": 12,
+    "trace": [
+     "start:f0",
+     "start:f1",
+     "restart:f1",
+     "start:f2",
+     "finish:f2",
+     "finish:f1",
+     "finish:f0"
+    ]
+   },
+   "snap": {
+    "f0": [
+     1
+    ],
+    "f1": [
+     1
+    ],
+    "f2": [
+     1
+    ]
+   }
+  },
   "pressure": {
    "report": {
-    "computed": 265,
-    "evict": 50,
+    "computed": 149,
+    "evict": 28,
     "out": {
      "x0": [
       47,
@@ -546,8 +708,8 @@
       2
      ]
     },
-    "pos": 265,
-    "preempt": 12,
+    "pos": 149,
+    "preempt": 4,
     "restart": 3,
     "reused": 12,
     "trace": [
@@ -556,24 +718,16 @@
      "start:x2",
      "preempt:x2",
      "preempt:x1",
-     "preempt:x2",
-     "preempt:x1",
-     "preempt:x2",
-     "preempt:x1",
-     "preempt:x2",
-     "preempt:x1",
      "restart:x0",
-     "restart:x1",
      "restart:x2",
-     "preempt:x2",
+     "restart:x1",
      "preempt:x1",
      "finish:x0",
      "start:x3",
-     "preempt:x2",
-     "preempt:x3",
-     "finish:x1",
      "finish:x2",
      "start:x4",
+     "preempt:x4",
+     "finish:x1",
      "finish:x3",
      "finish:x4"
     ]
@@ -598,7 +752,7 @@
   },
   "relevant-base": {
    "report": {
-    "computed": 73,
+    "computed": 90,
     "evict": 0,
     "out": {
      "r0": [
@@ -629,18 +783,18 @@
       15
      ]
     },
-    "pos": 73,
+    "pos": 90,
     "preempt": 0,
     "restart": 2,
-    "reused": 40,
+    "reused": 20,
     "trace": [
      "start:r0",
      "start:r1",
      "restart:r0",
      "restart:r1",
-     "finish:r1",
      "start:r2",
      "start:r3",
+     "finish:r1",
      "finish:r2",
      "finish:r3",
      "finish:r0"
@@ -696,10 +850,10 @@
     "trace": [
      "start:z0",
      "start:z1",
-     "finish:z1",
      "start:z2",
-     "finish:z0",
-     "finish:z2"
+     "finish:z1",
+     "finish:z2",
+     "finish:z0"
     ]
    },
    "snap": {
@@ -719,7 +873,7 @@
   },
   "tied-push": {
    "report": {
-    "computed": 79,
+    "computed": 96,
     "evict": 0,
     "out": {
      "t0": [
@@ -756,10 +910,10 @@
       40
      ]
     },
-    "pos": 79,
+    "pos": 96,
     "preempt": 0,
     "restart": 2,
-    "reused": 40,
+    "reused": 20,
     "trace": [
      "start:t0",
      "start:t1",

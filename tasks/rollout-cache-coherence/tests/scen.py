@@ -9,6 +9,14 @@ Prompts overlap on purpose: P3 shares its first block with P1, so cross-request 
 partial rather than all-or-nothing, and a block-granularity error shows up as a counter
 difference rather than only as wrong tokens.
 
+Prompts are also longer than one prefill chunk, so a push can land on a request that has
+computed part of its prompt and emitted nothing.  That population is the second half of
+the set: prefill-relevant, prefill-neutral and prefill-adapter put a push on top of a
+half-built prefix that must go, one that must stay, and a mixture of the two in one step.
+A rule that only looks at requests which have emitted tokens serves the stale half back
+and fails on tokens; one that clears everything in flight recomputes work it did not have
+to and fails on the counters.
+
 Only one scenario runs the page pool dry. That is deliberate. Once eviction and preemption
 start firing, the totals depend on which block a least-recently-used sweep happens to pick
 when several are equally old, and two faithful implementations of the same policy disagree
@@ -148,6 +156,40 @@ SCENARIOS = [
             add("o2", P1, max_new=4),
             sleep(2), WAKE,
             add("o3", P1, max_new=4),
+            DRAIN,
+        ],
+    },
+    {
+        "name": "prefill-relevant",
+        "over": {"pages": 160},
+        "ops": [
+            add("f0", P1, max_new=6), add("f1", P1, max_new=6),
+            step(2),
+            sync([[None, "l2.wv", 5101]]),
+            add("f2", P3, max_new=4),
+            DRAIN,
+        ],
+    },
+    {
+        "name": "prefill-neutral",
+        "over": {"pages": 160},
+        "ops": [
+            add("h0", P1, max_new=6), add("h1", P1, max_new=6),
+            step(2),
+            sync([[None, "l3.wo", 5201], [None, "gsc", 5202], [None, "head", 5203]]),
+            add("h2", P1, max_new=4),
+            DRAIN,
+        ],
+    },
+    {
+        "name": "prefill-adapter",
+        "over": {"pages": 160},
+        "ops": [
+            add("k0", P1, None, 6), add("k1", P1, "b1", 6), add("k2", P1, "a1", 6),
+            step(2),
+            sync([["b1", "l2.wk", 5301]]),
+            step(1),
+            sync([[None, "l3.wo", 5302]]),
             DRAIN,
         ],
     },

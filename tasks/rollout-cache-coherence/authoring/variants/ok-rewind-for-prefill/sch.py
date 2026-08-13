@@ -1,13 +1,10 @@
-"""Scheduler, eager-retire variant.
+"""Scheduler, rewind-the-prefill variant.
 
-Not the reference: after deciding what the push does to each request it also walks the
-prefix index and drops the entries whose fingerprint is no longer live, instead of leaving
-them for the least-recently-used sweep.  Same tokens, same rewind set, same key/value
-work.
-
-This is the shape a probe agent submitted in the run the first audit flagged.  Under the
-verifier of that day it scored 0 on the eviction count alone, after getting every piece of
-the actual problem right.  It must score 1.
+Not the reference: a request whose half-built prefix went stale is handed to Eng.rewind
+rather than to Eng.release.  The engine only books a sample as thrown away when there were
+tokens to throw, so nothing is counted that should not be, and the extra resets it does are
+of state the request no longer has.  Same tokens, same rewind set, same key/value work, and
+it must score 1.
 
 Below this line the file is the reference.
 """
@@ -69,7 +66,7 @@ class Sch:
                     continue
                 hit.append(s)
             elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
-                self.eng.release(s)
+                self.eng.rewind(s)
         for s in hit:
             self.eng.rewind(s)
             s.gfp = None
@@ -78,7 +75,3 @@ class Sch:
             if s in self.wait:
                 self.wait.remove(s)
         self.wait[:0] = hit
-        live = {ps.key(None)}
-        for name in list(ps.ad):
-            live.add(ps.key(name))
-        self.eng.pfx.retire(live)

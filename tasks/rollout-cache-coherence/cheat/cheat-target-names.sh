@@ -179,17 +179,30 @@ PYEOF
 cat > /app/runtime/sch.py <<'PYEOF'
 """Reference scheduler.
 
-Only on_sync differs from the shipped file.  A sample that is already producing tokens
-belongs to exactly one policy: if the push changed anything the sampler can see - which
-is what PStore.gen covers, the whole parameter set as viewed through that request's
-adapter - the tokens emitted so far are from the old policy and cannot be kept.  The
-sample is rewound to its prompt, its sampler step counter goes back to zero so the
-regenerated sample is identical to the same request submitted fresh, its blocks are
-released, and it goes back to the head of the queue.
+Only on_sync and the fingerprint capture in pick differ from the shipped file.  A push
+lands on two populations of requests and the answer is different for each, which is the
+whole of this file.
+
+A sample that is already producing tokens belongs to exactly one policy: if the push
+changed anything the sampler can see - which is what PStore.gen covers, the whole
+parameter set as viewed through that request's adapter - the tokens emitted so far are
+from the old policy and cannot be kept.  Eng.rewind throws them away, resets the sampler
+counter so the regenerated sample is identical to the same request submitted fresh, and
+releases its blocks; the queue discipline is ours, so it goes back to the head.
+
+A request still working through its prompt has emitted nothing, so there is nothing that
+belongs to the old policy - but it is holding key/value work done under the old
+parameters, and that work is only still good if the push could not have moved it.  That
+is the other fingerprint, PStore.key over the parameters a cached block depends on, the
+same one the block table keys on.  Moved: the half-built prefix is stale and goes, and the
+request builds it again from whatever the index can now give it.  Not moved: everything it
+has computed stands, even when the sampler-visible parameters moved underneath it, because
+the tokens it has not emitted yet will come out of the new parameters anyway.  Nothing
+about its place in the queue changes either.
 
 Everything else must survive untouched: a push that leaves this request's effective
-parameters identical (a zero delta, or a delta on a different adapter), a request that
-has not emitted a token yet, and a request that already finished.
+parameters identical (a zero delta, or a delta on a different adapter), a request that has
+not been picked up yet, and a request that already finished.
 """
 
 
@@ -241,18 +254,17 @@ class Sch:
         hit = []
         for s in list(self.run) + list(self.wait):
             s.sync_n = self.n_sync
-            if s.done or not s.gen:
+            if s.done:
                 continue
-            was = getattr(s, "gfp", None)
-            if was is None or ps.gen(s.adapter) == was:
-                continue
-            hit.append(s)
+            if s.gen:
+                was = getattr(s, "gfp", None)
+                if was is None or ps.gen(s.adapter) == was:
+                    continue
+                hit.append(s)
+            elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
+                self.eng.release(s)
         for s in hit:
-            self.eng.note("restart", s.rid)
-            self.eng.release(s)
-            s.gen = []
-            s.step = 0
-            s.fp = None
+            self.eng.rewind(s)
             s.gfp = None
             if s in self.run:
                 self.run.remove(s)

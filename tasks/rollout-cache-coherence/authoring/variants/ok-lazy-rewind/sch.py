@@ -1,13 +1,10 @@
-"""Scheduler, eager-retire variant.
+"""Scheduler, lazy-rewind variant.
 
-Not the reference: after deciding what the push does to each request it also walks the
-prefix index and drops the entries whose fingerprint is no longer live, instead of leaving
-them for the least-recently-used sweep.  Same tokens, same rewind set, same key/value
-work.
-
-This is the shape a probe agent submitted in the run the first audit flagged.  Under the
-verifier of that day it scored 0 on the eviction count alone, after getting every piece of
-the actual problem right.  It must score 1.
+Not the reference: on_sync only decides which samples are down, and the release, the
+counter reset and the requeue happen at the top of the next pick.  Nothing runs between the
+push and that pick, so the queue comes out in the same order and the tokens are identical;
+what moves is where in the trace the restart events land, which is why they are compared as
+a set.  It must score 1.
 
 Below this line the file is the reference.
 """
@@ -20,6 +17,7 @@ class Sch:
         self.run = []
         self.eng = None
         self.n_sync = 0
+        self.pend = []
 
     def add(self, s):
         self.wait.append(s)
@@ -31,6 +29,17 @@ class Sch:
         return bool(self.run or self.wait)
 
     def pick(self):
+        if self.pend:
+            hit = list(self.pend)
+            self.pend = []
+            for s in hit:
+                self.eng.rewind(s)
+                s.gfp = None
+                if s in self.run:
+                    self.run.remove(s)
+                if s in self.wait:
+                    self.wait.remove(s)
+            self.wait[:0] = hit
         while self.wait and len(self.run) < self.mb:
             self.run.append(self.wait.pop(0))
         if self.eng is not None:
@@ -70,15 +79,4 @@ class Sch:
                 hit.append(s)
             elif s.filled and s.fp is not None and ps.key(s.adapter) != s.fp:
                 self.eng.release(s)
-        for s in hit:
-            self.eng.rewind(s)
-            s.gfp = None
-            if s in self.run:
-                self.run.remove(s)
-            if s in self.wait:
-                self.wait.remove(s)
-        self.wait[:0] = hit
-        live = {ps.key(None)}
-        for name in list(ps.ad):
-            live.add(ps.key(name))
-        self.eng.pfx.retire(live)
+        self.pend = hit

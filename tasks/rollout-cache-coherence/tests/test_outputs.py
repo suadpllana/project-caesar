@@ -16,8 +16,9 @@ Three independent things are checked, and all of them must hold:
   2. The work.  computed / reused / preempt, and the position count taken inside the
      backend, must equal the ground truth exactly.  This is the side that fails an engine
      which is merely safe: dropping the cache on every push, keying blocks on the adapter,
-     or treating a copy-out-and-back offload as destructive all produce correct tokens and
-     the wrong amount of work.
+     treating a copy-out-and-back offload as destructive, or clearing the half-built prefix
+     of a request that has emitted nothing when the push could not have moved what that
+     prefix holds - all produce correct tokens and the wrong amount of work.
 
      Deliberately NOT graded, in two places:
 
@@ -38,6 +39,17 @@ Three independent things are checked, and all of them must hold:
   3. The lifecycle.  The set of rewound samples must be exactly right - no sample left
      straddling a push, none rewound that did not need it - and the engine's own
      start / finish / preempt trace must match in order.
+
+     Not graded here either: how many times a request is admitted.  A rewound sample goes
+     back to the queue and is picked up again, and whether that second pickup counts as a
+     fresh admission is bookkeeping, not work.  A submission that clears the started flag
+     when it rewinds - which the instruction's "submitted fresh" invites - raises a second
+     admission event for the same request, having recomputed exactly as much as one that
+     does not.  Repeated admissions of the same request are therefore collapsed on both
+     sides before the order is compared, so what is checked is the order requests were
+     first admitted, finished and preempted in.  The recompute those rewinds cost is
+     already measured by computed / reused / pos, and the rewinds themselves by the
+     restart events below.
 
 Per-scenario notes on which mistake each case is aimed at are on the assertions below.
 """
@@ -79,6 +91,16 @@ AIM = {
                      "and rewinds nothing",
     "offload-cycle": "a copy-out-and-back offload preserves the cache; a discarding one "
                      "does not, and neither may change a single token",
+    "prefill-relevant": "a push upstream of a key/value projection lands on one request "
+                        "that has emitted tokens and one that is part way through its "
+                        "prompt: the first is rewound, the second loses the prefix it "
+                        "built and rebuilds it",
+    "prefill-neutral": "the same two requests under a push that cannot move a key or "
+                       "value: the one emitting tokens is rewound, the one part way "
+                       "through its prompt keeps every position it has computed",
+    "prefill-adapter": "a push into one adapter takes down only that adapter's half-built "
+                       "prefix, then a base push that moves nothing a block depends on "
+                       "must leave the rebuilt one alone",
     "pressure": "eviction and preemption interleaved with a push",
     "mixed": "everything at once, over a long op list",
 }
@@ -142,7 +164,7 @@ def test_run_completed():
 def test_tokens(name):
     """Every sample must be token-identical to the ground truth stream."""
     rep = report(name)
-    assert rep is not None, "no report for %s (%s)" % (name, AIM[name])
+    assert rep is not None, "no report for %s (%s)" % (name, AIM.get(name, name))
     got = rep.get("out")
     assert isinstance(got, dict), "report for %s has no output map" % name
     want = expected(name)["out"]
@@ -150,7 +172,7 @@ def test_tokens(name):
     for rid in sorted(want):
         assert list(got[rid]) == list(want[rid]), (
             "%s: request %s produced %r, expected %r (%s)"
-            % (name, rid, got[rid], want[rid], AIM[name]))
+            % (name, rid, got[rid], want[rid], AIM.get(name, name)))
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -195,7 +217,7 @@ def test_work_done(name):
     for field in ("computed", "reused", "pos", "preempt"):
         assert rep.get(field) == want[field], (
             "%s: %s was %r, expected %r (%s)"
-            % (name, field, rep.get(field), want[field], AIM[name]))
+            % (name, field, rep.get(field), want[field], AIM.get(name, name)))
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -223,11 +245,34 @@ def test_rewinds(name):
     want = expected(name)
     assert rep.get("restart") == want["restart"], (
         "%s: %r samples rewound, expected %r (%s)"
-        % (name, rep.get("restart"), want["restart"], AIM[name]))
+        % (name, rep.get("restart"), want["restart"], AIM.get(name, name)))
     got_ev = [e for e in (rep.get("trace") or []) if str(e).startswith("restart:")]
     want_ev = [e for e in want["trace"] if e.startswith("restart:")]
     assert sorted(got_ev) == sorted(want_ev), (
         "%s: rewound %r, expected %r" % (name, sorted(got_ev), sorted(want_ev)))
+
+
+def lifecycle(events):
+    """The engine's own start / finish / preempt events, with repeat admissions dropped.
+
+    A request that was rewound or preempted goes back on the queue and is picked up again.
+    Whether the engine treats that pickup as a fresh admission is an implementation choice
+    that costs no key/value work, so only the first admission of each request is kept.
+    Completions and preemptions are left alone: those the engine raises itself.
+    """
+    keep = ("start:", "finish:", "preempt:")
+    seen = set()
+    out = []
+    for ev in events:
+        ev = str(ev)
+        if not ev.startswith(keep):
+            continue
+        if ev.startswith("start:"):
+            if ev in seen:
+                continue
+            seen.add(ev)
+        out.append(ev)
+    return out
 
 
 @pytest.mark.parametrize("name", ORDER_FREE)
@@ -235,7 +280,6 @@ def test_engine_trace(name):
     """Admission, completion and preemption order, as recorded by the engine itself."""
     rep = report(name)
     assert rep is not None, "no report for %s" % name
-    keep = ("start:", "finish:", "preempt:")
-    got = [e for e in (rep.get("trace") or []) if str(e).startswith(keep)]
-    want = [e for e in expected(name)["trace"] if e.startswith(keep)]
+    got = lifecycle(rep.get("trace") or [])
+    want = lifecycle(expected(name)["trace"])
     assert got == want, "%s: engine trace diverged\n got %r\nwant %r" % (name, got, want)

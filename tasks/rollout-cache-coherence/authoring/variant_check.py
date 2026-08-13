@@ -6,6 +6,10 @@ run audit is what actually checks: that a solution which got the semantics right
 lose on an implementation choice the instruction never asked for. Every variant in
 authoring/variants/ok-* must score 1.
 
+A variant directory holds only the files it changes. Everything else is taken from
+solution/ref, so the suite cannot quietly rot into testing the shipped tree when the
+reference moves.
+
 Usage:  python3 authoring/variant_check.py
 """
 
@@ -34,8 +38,9 @@ def score(variant: Path) -> tuple[int, str]:
         shutil.copytree(TASK / "tests" / "pristine", app)
         for name, rel in EDITABLE.items():
             src = variant / name
-            if src.is_file():
-                shutil.copyfile(src, app / rel)
+            if not src.is_file():
+                src = TASK / "solution" / "ref" / name
+            shutil.copyfile(src, app / rel)
         out = Path(tmp) / "out.json"
         env = dict(os.environ)
         env.update({"APPDIR": str(app), "PYTHONDONTWRITEBYTECODE": "1"})

@@ -16,6 +16,7 @@
     }
   },
   "block": 4,
+  "chunk": 6,
   "max_batch": 4,
   "pages": 128,
   "seeds": {

@@ -1,30 +1,64 @@
 
-Everything you need to touch lives in /app/src/controller.ts. The view's totally dumb, it just renders whatever the controller pushes to it.
+The search panel shows the wrong rows. Everything you need to change is in
+/app/src/controller.ts, and the view is passive: it renders whatever state the controller
+pushes to it, so the defect is not there.
 
-Here's the actual bug: we fire an HTTP request on every keystroke (c, then ca, then car), and since shorter queries tend to take longer on the backend, the response for c can land after the response for car. The controller just paints whatever arrives last, so you end up staring at car in the box while it shows results for c. Gets worse the higher the latency.
+We issue an HTTP request on every keystroke, c then ca then car, and because short queries
+are cheaper on the backend they often come back later than long ones, so the reply for c can
+land after the reply for car and the controller paints whichever arrived last. The user reads
+results for c with car sitting in the input. Higher latency widens the window.
 
-On top of that, a couple things from the spec never got built: we're re-fetching data we already have, and the results pane blanks out every time it's waiting on a new response.
+Two other requirements from the spec were never built. We re-request data we already hold,
+and the results pane empties itself every time a new request goes out.
 
-Here is what the panel is supposed to do. QA tests against these, so treat them as the contract:
+What the panel is supposed to do is below. QA tests against it, so read it as the contract.
 
-Out-of-order responses & errors
-Only paint a response if it still matches what's in the input box. If the user's moved on, just drop it, no fuss. Aborting the fetch isn't enough on its own either, since a response can already be in flight when the query changes and the abort then loses its race, arriving as a perfectly ordinary success that no signal ever flagged, which means the decision about whether a settled reply may write anything has to be made at the moment it tries to write and on the basis of whether it is still the one being waited for, not on whether anybody remembered to cancel it. And errors (500s, network failures) should only flip us into an "error" state if they happen on the active query. A superseded request dying in the background shouldn't cause any error or flicker.
+Ordering and errors. A settled response may be painted only if it still matches the current
+contents of the input, and if the input has since changed you discard it. Cancelling the fetch
+does not settle this on its own, because a response can already be on the wire when the query
+changes, and the abort then loses the race and arrives as an ordinary success with nothing on
+it to mark it stale, which means the test of whether a settled reply may write has to be
+applied at the moment it tries to write and against the query currently being waited for,
+never against whether anything was cancelled. Errors follow the same rule. A 500 or a
+dropped connection moves us into the error state only when it belongs to the active query,
+and a superseded request failing in the background is not an error and must never reach the
+user.
 
-Dedup & caching
-Don't fire a second request for car if one's already in flight. And if someone backspaces back to a query we already have a solid answer for, pull it from memory instantly, no network call, no spinner, provisional: false, status "success". Watch what that does to the request still outstanding.
+Deduplication and caching. If a request for car is already in flight, a second search for car
+must not open another one. When someone backspaces to a query we already hold an authoritative
+answer for, serve it out of memory with no network call and no spinner, provisional false and
+status success. Consider what that has to do to the request still outstanding.
 
-Local filtering (so the pane doesn't go blank)
-While car is still resolving, if we've got results cached for a prefix like ca (say ["cat", "car", "cape"]), filter it down to ["car"] and show that immediately. That state should read status: "loading", provisional: true. Once the real response comes back, swap it over to "success" / provisional: false. Don't ever write provisional/filtered lists into the cache as if they were real answers. Also, an empty filtered list while still provisional isn't the same as "no results," since the server might still find something. Only set result: null if there's no matching prefix at all.
+Local filtering, so the pane does not go blank. While car is unresolved, if we hold results
+for a prefix such as ca, say ["cat", "car", "cape"], narrow them to ["car"] and show that at
+once as status loading with provisional true, then let the authoritative response replace it
+as success with provisional false when it arrives. Filtered lists are display values. They
+must never be written into the cache as answers, and an empty filtered list while provisional
+is not the same claim as no results, since the server may still return some. Set result to
+null only when no cached prefix matches at all.
 
-Cleanup
-Once dispose() runs, any late network responses or events should just get ignored: no state updates, no listener calls, no hanging refs to dead components. Calling dispose() more than once, or before any query's even been made, should be a total no-op, no throwing.
+Cleanup. After dispose() runs, late responses and events must change nothing: no state
+writes, no listener calls, no retained references to a dead component. dispose() called twice,
+or called before any search, is a no-op and must not throw.
 
-Subscriber lists get edited while we're walking them. Pin down what a dispatch means: the recipients of an update are whoever is subscribed at the instant that update starts going out, and every one of them gets it, including a subscriber that some earlier listener unsubscribed halfway through the dispatch, and including a listener that unsubscribed itself from inside its own callback, because the audience is settled before the first callback runs and nothing that happens during delivery revises it. An unsubscribe bites on the next update. Someone who subscribes mid-dispatch is not owed the one in flight. They start with the following one.
+Subscriber lists get edited while we are walking them, so the meaning of a dispatch needs to
+be exact. The recipients of an update are those subscribed at the instant the update begins
+and all of them receive it, including a subscriber that an earlier listener removed during
+the same dispatch, and including a listener that removes itself from inside its own callback,
+because the audience is fixed before the first callback runs and delivery does not revise it.
+An unsubscribe takes effect on the following update. A subscriber added mid-dispatch is not
+owed the update in flight; it starts with the next one.
 
-Constraints
-Only touch /app/src/controller.ts. /app/src/types.ts, /app/src/transport.ts, and /app/src/main.ts are hash-checked, hands off. Keep the createController(transport) export and the QueryState interfaces as-is, since the harness and the panel both bind to them and a run that cannot construct the controller through that export scores nothing at all. Run npx tsc --noEmit in /app. Types have to be clean.
+Constraints. Change only /app/src/controller.ts. The other three, /app/src/types.ts,
+/app/src/transport.ts and /app/src/main.ts, are hash-checked, so leave them alone, and keep
+the createController(transport) export and the QueryState interfaces exactly as they are,
+because the harness and the panel both bind to them and a run that cannot construct the
+controller through that export scores zero. Run npx tsc --noEmit in /app and keep the types
+clean.
 
-npm run dev spins up the harness on port 5173. window.__harness is in the page. Responses only settle when you say so, so you set up out-of-order arrival deliberately instead of waiting on a timer and hoping:
+npm run dev starts the harness on port 5173, and window.__harness is available in the page.
+Responses settle only when you tell them to, so you can construct out-of-order arrival
+directly instead of waiting on a timer:
 
     h.reset();                       // fresh controller, cleared transport
     h.controller.search("ca");       // issue a search
@@ -34,6 +68,9 @@ npm run dev spins up the harness on port 5173. window.__harness is in the page. 
     h.transport.callLog();           // queries sent, in order
     h.emissions;                     // every state emitted since reset
 
-One more matters. h.transport.settleIgnoringAbort(id, items) commits a response before any cancellation is observed, which models the reply that was already on the wire when the user typed the next character, and it is worth playing with early because cancellation here is lossy in exactly the way it is against a real server: calling abort buys you nothing about whether the response is already coming.
+One more is worth knowing early. h.transport.settleIgnoringAbort(id, items) commits a response
+before any cancellation is observed, which is the reply that was already travelling when the
+user typed the next character, and it is how cancellation behaves against a real server, where
+calling abort tells you nothing about whether the response is already coming.
 
 You have 5400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

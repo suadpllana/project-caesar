@@ -31,6 +31,41 @@ STOCK = [
 ]
 HEDGES = ["somewhat", "arguably", "relatively", "fairly", "quite", "rather"]
 
+# Staged informality. AGENTS.md D1 bans faking human artifacts, and the screen reads
+# performed casualness as generated text: a model told to "sound human" reaches for
+# exactly these. The three briefs that passed sit at 0 colloquial hits and <=2.6
+# contractions per 1000 words; the draft the screen rejected ran 25.3 and 21.5.
+COLLOQUIAL = [
+    r"\btotally\b", r"\bno fuss\b", r"\bhands off\b", r"\bgets worse\b",
+    r"\bstaring at\b", r"\bspins up\b", r"\bdumb\b", r"\bboom\b",
+    r"\bhere'?s the (actual|real|thing)\b", r"\bmoved on\b", r"\bworth playing with\b",
+    r"\bwatch what\b", r"\bpull it from\b", r"\bsolid answer\b", r"\ba couple things\b",
+    r"\bstuff\b", r"\bgonna\b", r"\bkinda\b", r"\bbunch of\b", r"\bmessed up\b",
+]
+
+
+def contractions(body: str) -> int:
+    return len(re.findall(r"\b\w+'(s|t|re|ve|ll|d|m)\b", body))
+
+
+def prose_only(body: str) -> str:
+    """Drop indented code samples and fenced blocks. A string literal in a transport
+    example is not the contributor's register, and counting it is a false positive."""
+    kept, fenced = [], False
+    for line in body.split("\n"):
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced or line.startswith("    ") or line.startswith("\t"):
+            continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def colloquial(body: str) -> int:
+    low = prose_only(body).lower()
+    return sum(len(re.findall(p, low)) for p in COLLOQUIAL)
+
 
 def strip_suffix(text: str) -> str:
     lines = text.rstrip().split("\n")
@@ -95,6 +130,11 @@ def report(label: str, text: str) -> dict:
         "triads": triads(body),
         "first_sing": len(re.findall(r"\bI\b", body)),
         "first_plur": len(re.findall(r"\b(we|our|us)\b", body, re.I)),
+        "contractions": contractions(body),
+        "colloquial": colloquial(body),
+        # Per 1000 words, so a short draft is not flattered by a raw count.
+        "contr_kw": 1000.0 * contractions(body) / len(words),
+        "colloq_kw": 1000.0 * colloquial(body) / len(words),
     }
     print("== %s" % label)
     print("   words %(words)d  sentences %(sentences)d  paragraphs %(paras)d" % stats)
@@ -108,6 +148,8 @@ def report(label: str, text: str) -> dict:
     print("   model tells: stock %(stock_hits)d  hedges %(hedges)d  antithesis %(antithesis)d  "
           "triads %(triads)d" % stats)
     print("   person: I %(first_sing)d  we/our %(first_plur)d" % stats)
+    print("   register: contractions %(contractions)d (%(contr_kw).1f/kw)  "
+          "colloquial %(colloquial)d (%(colloq_kw).1f/kw)" % stats)
     return stats
 
 
@@ -141,6 +183,16 @@ def compare(ref: dict, cand: dict) -> int:
     if cand["ttr"] < ref["ttr"] * 0.85:
         findings.append("vocabulary narrower than the reference (%.3f vs %.3f)"
                         % (cand["ttr"], ref["ttr"]))
+
+    # Absolute, not reference-relative: every brief that passed sits at 0 colloquial
+    # hits, so a relative test against 0 is either vacuous or infinitely strict.
+    if cand["colloq_kw"] > 2.0:
+        findings.append("staged informality: %d colloquial hits (%.1f/kw); every passing "
+                        "brief has 0. AGENTS.md D1 bans performed casualness"
+                        % (cand["colloquial"], cand["colloq_kw"]))
+    if cand["contr_kw"] > max(4.0, ref["contr_kw"] * 2):
+        findings.append("contraction density %.1f/kw vs reference %.1f/kw - the passing "
+                        "briefs stay under 3/kw" % (cand["contr_kw"], ref["contr_kw"]))
 
     print("\n== findings")
     if not findings:

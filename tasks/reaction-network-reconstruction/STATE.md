@@ -141,6 +141,132 @@ six must be right at once.
 | `preflight.py` | pass | no errors, no warnings |
 | `harbor check` rubric | not run | needs a model API key |
 
+## Hardening, after a self-attack found the isomer stage was a lookup
+
+An Opus-class self-attack (the calibration instrument `docs/DIFFICULTY.md` asks for) read
+the bundle cold and reported that its first plan was the correct plan. Three leaks, all of
+them from the "What not to ship" list, and one of them fatal on its own.
+
+1. **The isomer stage was a sorted-list comparison, not chemistry.** `species.json` and
+   `candidate_intermediates.json` stored `hydrogens` as an explicit per-atom integer, and
+   `spectroscopy.json` published `attached_hydrogens_per_signal`. Identifying the channel
+   was then
+
+       sorted(a["hydrogens"] for a in atoms if element == "C") == sorted(profile)
+
+   with no valence reasoning anywhere. Leak-audit class 3 (self-labelling data) and class 5
+   (a free join key: the H counts were the join). Confirmed by running it - it eliminates
+   P1 and leaves P2/P3 tied, so the remaining step was a coin flip a retry resolves.
+2. **`candidate_intermediates.json` carried `"note": "one of these accounts for the
+   unassigned C5H7O4- channel"`, and `spectroscopy.json` carried `"target": "unassigned
+   C5H7O4- channel"`.** Prose in JSON clothing, telling the agent what the files are for -
+   leak-audit class 2, and the documentation ban in Stage 3 by intent if not by extension.
+3. **The instruction pre-announced every trap.** It stated the rule precedence outright
+   ("balance, then the isomer identity, then the class gate, then the tracers, then the
+   flux"), said the reactor "is not at that temperature" (handing over the Gibbs-Helmholtz
+   correction), and gave the *count* of equilibrated-but-flux-carrying reactions ("two of
+   ours"). Prong A2 is "describe the concept, never name it"; this named all of them.
+
+What changed:
+
+1. **Hydrogens are no longer stored.** Both structure files ship heavy atoms and bonds
+   only. A hydrogen count is now derived: neutral valence minus the bond orders an atom
+   carries, then the ion's charge spent on an oxygen. Verified recoverable for 86/86 atoms.
+   The one arbitrary case is `S04` (bicarbonate, two equivalent singly-bonded oxygens where
+   the proton could sit on either); swapping it produces a byte-identical answer, so it is
+   implementation choice and nothing grades it. That check matters - grading an arbitrary
+   labelling is exactly what failed the run audit on `rollout-cache-coherence`.
+2. **`spectroscopy.json` now publishes `methyl_correlations`**, the shift region of the
+   carbon each methyl hangs off (carbonyl / oxygenated / aliphatic), replacing the H-count
+   profile. This separates all three isomers where the old profile tied P2 and P3, and it
+   is a real HMBC-style reading: it requires deriving bond orders and symmetry-distinct
+   carbons first. P2 alone shows one methyl on a carbonyl and one on an oxygenated carbon;
+   P3 has both methyls on the same oxygenated carbon.
+3. **The `note` and `target` strings are deleted.**
+4. **`validate_output.py` no longer counts hydrogens.** It checks heavy atoms and charge
+   only. Leaving the H derivation in the shipped validator would have handed the agent an
+   oracle for the balance stage - it could brute-force coefficients until the validator
+   stopped complaining, which is class 4 (an artifact that is a function of the correct
+   trajectory). Its message now says "heavy atoms and charge do not balance" so it does not
+   claim more than it checks.
+5. **The instruction states the observations, not the method.** The precedence sentence is
+   gone (the rules are still in order, and it says to take the first that catches); the
+   temperature paragraph names the tabulated temperature and the conditions file without
+   announcing that they differ; the "two of ours" count is gone. Because the H shortcut is
+   gone, the brief now has to say what the spectroscopy contains - stated as observations
+   and the definition of the three regions, which is the contract an analytical chemist
+   would be handed, not the plan.
+
+Not changed: the balance algebra, the atom-map convention, the tracer veto, the flux
+solve, the precedence itself, the ground truth, and the verifier contract. `ground_truth.json`
+is untouched and the reference solution still reproduces it field for field, which is the
+point - the chemistry was always sound, and only the ways to skip it were removed.
+
+### Verification of the hardening
+
+| Check | Result |
+|---|---|
+| Reference solver == `tests/ground_truth.json` after all changes | exact match, all six keys |
+| `validate_output.py` on the correct output | `structurally valid` |
+| H counts recoverable from valence + charge | 86/86 atoms |
+| `S04` proton placement affects the answer | no - byte-identical output when swapped |
+| `hydrogens` anywhere in the agent tree | none |
+| self-labelling strings in the agent tree | none |
+| `tools/textcheck.py` vs `rollout-cache-coherence` | no findings |
+
+## Easiness probe, run locally after the hardening: 3 of 3. Still too easy.
+
+Three Opus-class agents were given the hardened bundle in isolated directories, no access to
+`tests/`, `solution/` or anything outside their own copy. All three produced output identical
+to `ground_truth.json` on all six keys. Under the pipeline's rule (fail at 2 or 3 of 3) this
+is a rejection, and it says the leak fixes above were necessary but not sufficient.
+
+The three reports agree on why, and none of it is the chemistry. **The task confirms its own
+answer at every stage**, so an agent never has to commit to a reading - it guesses, checks
+global consistency, and revises. Their own words:
+
+- The dG treatment: "that produced zero equilibrated reactions, which contradicted the
+  brief's insistence that equilibrated reactions exist and belong to the network. That was
+  the signal to revise." The instruction asserts the equilibrated set is non-empty, so a
+  wrong free-energy treatment announces itself.
+- Two of the three independently: the corrected values "land on suspiciously round numbers
+  (-29.004, -34.004, -21.999, -14.998), which is what convinced me the treatment was the
+  intended one." The generator built the free energies backwards from round targets, so
+  arriving at round numbers *is* the confirmation. Leak class 4, in the data itself.
+- The hydrogen rule I introduced above: it "reproduced every stated formula except the two I
+  flagged as conflicts, which is the self-check that told me the reading was right." With
+  only 2 conflicts in 18 species, the derivation is validated for free by the data it runs on.
+- The flux solve: "an exact, unique, over-determined fit is hard to get by accident" - the
+  system closing at rank 10 with no free variables retroactively confirms every upstream
+  exclusion, including the isomer. One probe noted that picking P1 or P3 makes the system
+  fail to close, so even the stage I rebuilt is checkable downstream.
+- `label_predictions`: "re-propagating feed enrichment reproduces every measured position in
+  all three tracer runs" - a full end-to-end checksum of the finished answer.
+
+So the structural diagnosis is not "a stage was a lookup" (that was the first audit, and it
+was real). It is that the task is a constraint-satisfaction puzzle with a unique consistent
+solution and **total feedback**, which is leak-audit item 6 - no per-axis confirmation before
+commit - at global scale. Prong C is absent in practice: nothing fails late, because
+everything fails immediately and visibly. Guess-check-revise is what frontier agents are
+best at, so the real chemistry never becomes the bottleneck.
+
+### What fixing it requires
+
+This is a regeneration of the data and ground truth, not an edit, and it is the contributor's
+call because it changes what the task is:
+
+1. Break the roundness in the generated free energies, so landing on the right formula
+   produces nothing recognisable.
+2. Stop the flux system from being a global checksum - it currently closes only for the
+   correct upstream exclusion set, which validates the whole chain at once.
+3. Cut or blunt `label_predictions` as an end-to-end confirmation of the finished network.
+4. Remove the existence assertions from the instruction (that equilibrated reactions exist,
+   that the network is non-empty). Those are shape hints the agent tests against.
+5. Raise the number of `formula_conflicts`, or otherwise stop 16 of 18 species silently
+   validating the hydrogen derivation.
+
+Until that is done the task should not be resubmitted: it will come back 7-8 of 8.
+
 ## Open questions and next steps
 
 - The instruction is a draft written by the assistant. Per the authoring rules the

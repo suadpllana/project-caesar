@@ -647,6 +647,65 @@ def check_environment_docs(root: Path) -> None:
         error(f"...and {len(commented) - 8} more environment files with prose comments")
 
 
+DEF_NAME_RE = re.compile(r"^\s*(?:async\s+)?def\s+([a-zA-Z_]\w*)\s*\(", re.MULTILINE)
+DUNDER_OR_PRIVATE = re.compile(r"^_")
+# Names a framework or runtime may call without an in-tree reference.
+ENTRYPOINT_NAMES = {
+    "main", "run", "handler", "setup", "teardown", "configure", "create_app", "app",
+    "__init__", "wsgi", "asgi", "lambda_handler",
+}
+
+
+def check_leaks_by_affordance(root: Path) -> None:
+    """Two leak classes from docs/DIFFICULTY.md that a linter can see.
+
+    1. Unused public functions - a helper nothing calls is a table of contents for the trap.
+    2. Manifest-shaped config - a file whose values enumerate the other input paths turns
+       exploration into reading an index.
+    """
+    env = root / "environment"
+    if not env.is_dir():
+        return
+
+    py_files = [p for p in env.rglob("*.py") if p.is_file()]
+    if py_files:
+        sources = {p: p.read_bytes().decode("utf-8", errors="replace") for p in py_files}
+        corpus = "\n".join(sources.values())
+        for path, text in sources.items():
+            for name in set(DEF_NAME_RE.findall(text)):
+                if DUNDER_OR_PRIVATE.match(name) or name in ENTRYPOINT_NAMES:
+                    continue
+                # Count references outside the definition line itself.
+                refs = len(re.findall(rf"(?<![\w.]){re.escape(name)}\s*\(", corpus))
+                defs = len(re.findall(rf"def\s+{re.escape(name)}\s*\(", corpus))
+                if refs <= defs and f'"{name}"' not in corpus and f"'{name}'" not in corpus:
+                    rel = "/".join(path.relative_to(root).parts)
+                    warn(
+                        f"{rel}: `{name}()` is defined but nothing in the environment calls it - "
+                        "an unused public function is a table of contents for the trap it serves "
+                        "(docs/DIFFICULTY.md, leak audit 1). Delete it, or make the system reach "
+                        "it through real behaviour. Ignore this if it is a genuine entry point the "
+                        "agent or a runner calls from outside the tree"
+                    )
+
+    for path in list(env.rglob("*.json")) + list(env.rglob("*.toml")) + list(env.rglob("*.yaml")):
+        if not path.is_file():
+            continue
+        text = path.read_bytes().decode("utf-8", errors="replace")
+        # Values that name other files present in the tree = an index of the inputs.
+        pointed = {
+            m for m in re.findall(r"[\"']([\w./-]+\.(?:csv|json|txt|log|jsonl|parquet|db|ya?ml))[\"']", text)
+            if any(f.name == PurePosixPath(m).name for f in env.rglob("*") if f.is_file())
+        }
+        if len(pointed) >= 3:
+            rel = "/".join(path.relative_to(root).parts)
+            warn(
+                f"{rel}: points at {len(pointed)} other input files - a manifest converts "
+                "exploration into reading an index (docs/DIFFICULTY.md, leak audit 2). Keep only "
+                "entries the running system genuinely needs"
+            )
+
+
 def check_artifact_parents(root: Path, cfg: dict) -> None:
     """The verifier image must create the parent directory of every declared artifact.
 
@@ -942,6 +1001,7 @@ def main(argv: list[str]) -> int:
     check_instruction(root, cfg)
     check_scripts(root)
     check_environment_docs(root)
+    check_leaks_by_affordance(root)
     check_artifact_parents(root, cfg)
     check_compose(root, cfg)
     check_verifier(root)

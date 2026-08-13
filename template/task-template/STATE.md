@@ -41,6 +41,10 @@ TODO: the specific reason a frontier agent fails. Name the step, not "it is comp
 - Tactics making that true (docs/DIFFICULTY.md — prong A poison / prong B withholding / prong C late failure): TODO
 - Assistant's attack on the plan (its first plan, and where that plan is wrong): TODO
 - Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): TODO
+- Difficulty score anchor (50 at first complete submission, approved by contributor): TODO
+- Score history (date, score, what moved, and any pipeline re-anchor): TODO
+- Leak audit (docs/DIFFICULTY.md): for each mechanism, what in the bundle could let an agent
+  discover, name or verify it without reasoning? Answer must be "nothing": TODO
 - Expert path, described step by step (the harder the aim, the more this guard must hold): TODO
 - Originality check: TODO — searched for public write-ups? what was found?
 

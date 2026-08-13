@@ -29,10 +29,6 @@ def counts(rec, sid):
     out = {}
     for atom in rec[sid]["atoms"]:
         out[atom["element"]] = out.get(atom["element"], 0) + 1
-        if atom["hydrogens"]:
-            out["H"] = out.get("H", 0) + atom["hydrogens"]
-    if not rec[sid]["atoms"] and rec[sid]["charge"] == 1:
-        out["H"] = out.get("H", 0) + 1
     return out
 
 
@@ -100,7 +96,7 @@ def main(path):
                 delta["charge"] = delta.get("charge", 0) + sign * n * rec[sid]["charge"]
         off = {k: v for k, v in delta.items() if v}
         if off:
-            problems.append(f"{rid}: does not balance, off by {off}")
+            problems.append(f"{rid}: heavy atoms and charge do not balance, off by {off}")
         want = sorted(heavy_refs(rec, coefs["reactants"]))
         made = sorted(heavy_refs(rec, coefs["products"]))
         pairs = entry["atom_map"]

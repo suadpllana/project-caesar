@@ -25,6 +25,8 @@ from pathlib import Path
 DATA = Path("/app/data")
 OUT = Path("/app/network.json")
 
+VALENCE = {"C": 4, "O": 2, "N": 3, "S": 2, "H": 1}
+
 R_GAS = 8.314462618e-3          # kJ/(mol K)
 EQUILIBRIUM_BAND = 0.5          # kJ/mol
 FLUX_ZERO = 1e-9
@@ -53,8 +55,9 @@ class Structures:
         out = {}
         for atom in rec["atoms"]:
             out[atom["element"]] = out.get(atom["element"], 0) + 1
-            if atom["hydrogens"]:
-                out["H"] = out.get("H", 0) + atom["hydrogens"]
+        total_h = sum(self._implicit_h(sid).values())
+        if total_h:
+            out["H"] = out.get("H", 0) + total_h
         if not rec["atoms"] and rec["charge"] == 1:
             out["H"] = out.get("H", 0) + 1          # the bare hydron
         return out
@@ -83,8 +86,36 @@ class Structures:
     def element(self, sid, aid):
         return next(a["element"] for a in self.rec[sid]["atoms"] if a["id"] == aid)
 
+    def _implicit_h(self, sid):
+        """Hydrogens are not stored. Fill each atom to its neutral valence from the
+        bond orders it carries, then spend the ion's charge on the oxygens: an anion
+        is deprotonated at a hydroxyl, a cation protonated at a carbonyl. Which of
+        several equivalent oxygens takes the charge is arbitrary and never graded -
+        only the per-species total and the carbon pattern are."""
+        rec = self.rec[sid]
+        used = {a["id"]: 0 for a in rec["atoms"]}
+        for b in rec["bonds"]:
+            used[b["a"]] += b["order"]
+            used[b["b"]] += b["order"]
+        el = {a["id"]: a["element"] for a in rec["atoms"]}
+        h = {aid: max(VALENCE[el[aid]] - used[aid], 0) for aid in used}
+        q = rec["charge"]
+        if q < 0:
+            spend = -q
+            for aid in sorted(h):
+                while spend and el[aid] == "O" and h[aid] > 0:
+                    h[aid] -= 1
+                    spend -= 1
+        elif q > 0 and rec["atoms"]:
+            spend = q
+            for aid in sorted(h):
+                while spend and el[aid] == "O":
+                    h[aid] += 1
+                    spend -= 1
+        return h
+
     def hydrogens(self, sid, aid):
-        return next(a["hydrogens"] for a in self.rec[sid]["atoms"] if a["id"] == aid)
+        return self._implicit_h(sid)[aid]
 
     def bonds(self, sid):
         return [(b["a"], b["b"], b["order"]) for b in self.rec[sid]["bonds"]]
@@ -208,18 +239,43 @@ def equivalence_classes(struct, sid):
     return labels
 
 
+def carbon_environment(struct, sid, aid):
+    """How a carbon reads in the shift dimension: a doubly bonded oxygen puts it in
+    the carbonyl region, a single one in the oxygenated region, neither leaves it
+    aliphatic."""
+    orders = sorted(o for x, y, o in struct.bonds(sid)
+                    for other in ((y,) if x == aid else (x,) if y == aid else ())
+                    if struct.element(sid, other) == "O")
+    if 2 in orders:
+        return "carbonyl"
+    if 1 in orders:
+        return "oxygenated"
+    return "aliphatic"
+
+
 def carbon_signature(struct, sid):
+    """Signal count comes from symmetry-distinct carbons; the correlations are the
+    environment of the carbon each methyl hangs off."""
     cls = equivalence_classes(struct, sid)
+    hyd = {aid: struct.hydrogens(sid, aid) for aid in struct.atoms(sid)}
     per_class = {}
     for aid in struct.atoms(sid):
         if struct.element(sid, aid) == "C":
-            per_class.setdefault(cls[aid], struct.hydrogens(sid, aid))
-    return len(per_class), sorted(per_class.values())
+            per_class.setdefault(cls[aid], aid)
+    corr = []
+    for aid in sorted(per_class.values()):
+        if hyd[aid] != 3:
+            continue
+        for x, y, _o in struct.bonds(sid):
+            other = y if x == aid else x if y == aid else None
+            if other is not None and struct.element(sid, other) == "C":
+                corr.append(carbon_environment(struct, sid, other))
+    return len(per_class), sorted(corr)
 
 
 def identify_intermediate(struct):
     spec = load("spectroscopy.json")
-    want = (spec["carbon_signal_count"], sorted(spec["attached_hydrogens_per_signal"]))
+    want = (spec["carbon_signal_count"], sorted(spec["methyl_correlations"]))
     hits = [c["id"] for c in load("candidate_intermediates.json")["candidates"]
             if carbon_signature(struct, c["id"]) == want]
     if len(hits) != 1:

@@ -1,0 +1,150 @@
+# The verifier serves the agent's app itself, so it needs the source tree and
+# the build config alongside it. node_modules is deliberately not uploaded:
+# the verifier links its own, so the bundler cannot be swapped.
+artifacts = [
+  "/app/src",
+  "/app/public",
+  "/app/tsconfig.json",
+  "/app/vite.config.ts",
+  "/app/package.json",
+]
+
+[task]
+name = "afterquery/typeahead-query-controller"
+
+[metadata]
+author_name = "Kaneki"
+author_email = "forgeks0@gmail.com"
+difficulty_explanation = """
+The bug looks like the textbook stale-response race, so the obvious fix -- \
+tag each request with a monotonic token and drop replies whose token is no \
+longer current -- is the first thing a competent engineer or model writes. \
+That fix is necessary and it is not sufficient, which is the point of the \
+task. Three further requirements interact with it and cannot be satisfied by \
+request identity alone.
+
+First, the cancellation is genuinely lossy: the test transport can commit a \
+response before the abort is observed, modelling a reply already in flight \
+when the user types the next character. Implementations that rely on abort \
+to suppress stale work -- rather than on identity checked at write time -- \
+still corrupt the panel, and they do so intermittently, only in the window \
+where the abort loses the race.
+
+Second, the panel must not blank while a refinement is outstanding. It has \
+to keep showing rows derived from the broadest already-known prefix, \
+filtered to the current query and flagged provisional. This pulls directly \
+against the token check: identity wants to suppress every write that is not \
+the newest authoritative response, while continuity requires emitting a \
+display-valid result for a query that has no response at all. Reconciling \
+the two requires separating "authoritative" from "displayable" in the state \
+model, which is a design change rather than a patch.
+
+Third, results must be cached so that revisiting a settled query is served \
+locally and cancels any now-irrelevant refinement -- including invalidating \
+the in-flight token, which is easy to forget and produces a late overwrite \
+that only shows up when a user backspaces to a previous query.
+
+The verifier also holds the line on regressions that a naive over-correction \
+introduces: genuine transport failures must still surface, dispose must latch \
+before aborting so a late reply mutates nothing, and subscriber notification \
+must iterate a snapshot so a listener unsubscribing during delivery does not \
+cause its peers to be skipped.
+
+Measured against implementations built while designing this task: the shipped \
+code fails 7 of 12 scenarios; a strong "obvious" fix carrying request tokens, \
+AbortError suppression, in-flight coalescing and a dispose latch still fails \
+2 of 12. Only an implementation that models identity, caching and the \
+continuity invariant together passes.
+"""
+solution_explanation = """
+Rewrite src/controller.ts around three cooperating mechanisms.
+
+Request identity: every search takes a monotonically increasing token. A \
+settled request may write state only while its token is still the newest one \
+issued. Abort is still used to release transport resources, but correctness \
+never depends on the abort winning its race -- a committed reply that arrives \
+after cancellation is dropped on the token check alone.
+
+A result cache keyed by exact query, populated from authoritative responses. \
+A repeated query that is already in flight is a no-op; a query already in the \
+cache is served synchronously, which also aborts any outstanding refinement \
+and bumps the token so its eventual reply cannot overwrite the cached answer.
+
+The continuity invariant: when a new query is issued and nothing \
+authoritative is known for it, the controller derives a provisional result \
+from the longest cached prefix of the query, filtering those items to the \
+ones that still match, and emits it with provisional = true alongside status \
+= "loading". The authoritative response then replaces it with provisional = \
+false. When no cached prefix exists the result is null and the pane is \
+legitimately empty.
+
+Supporting details that the tests check: AbortError is swallowed rather than \
+written to state.error; dispose sets its latch before aborting so the abort \
+handler cannot drive a further emission, and is idempotent; emit iterates a \
+copy of the subscriber set.
+"""
+verification_explanation = """
+The verifier runs in its own container and drives the agent's real module \
+graph in a real browser -- there is no re-implementation to grade against. \
+test.sh copies the agent's src/ and public/ into a scratch tree, links the \
+node_modules baked into the verifier image so the bundler cannot be swapped, \
+serves it with Vite, and drives it with Playwright/Chromium.
+
+Twelve scenarios exercise the controller through window.__harness, using a \
+transport whose responses settle only when the driver says so, so every race \
+is reproduced deterministically rather than by timing. settleIgnoringAbort \
+commits a reply before cancellation is observed, which is what makes the \
+lossy-cancellation window testable at all. Scenarios assert on the full \
+emission history, not just final state: a stale payload that appears \
+momentarily and is later overwritten still fails.
+
+Before any scenario runs, the driver hashes src/types.ts, src/transport.ts, \
+src/main.ts, vite.config.ts, tsconfig.json and package.json against pristine \
+copies baked into the verifier image. Rewriting the contract, the transport \
+or the harness to fake the invariants fails the run outright, and the \
+required scenario ids are asserted independently so deleting or renaming \
+scenarios cannot pass either.
+
+The build config is protected as code, not just as data. Vite evaluates \
+vite.config.ts at startup, so the verifier defends the reward channel in \
+depth: test.sh serves the image's own config files rather than the agent's \
+(and strips any config-shaped files dropped into src/); the dev server, which \
+evaluates code derived from the agent's tree, runs as an unprivileged user \
+via setpriv while /logs/verifier is root-owned mode 0700; and all \
+agent-derived processes are killed with the reward re-asserted to 0 before \
+grading, so neither a config-injected plugin nor a self-daemonizing one can \
+forge or race the verdict. cheat/vite_config_rce.ts is the attack this \
+defends against.
+
+pytest turns the JSON verdict into one case per invariant and emits a CTRF \
+report; test.sh writes /logs/verifier/reward.txt on every path, initialising \
+it to 0 and only writing 1 when pytest exits clean, so crashes, build \
+failures and a dev server that never comes up all score 0.
+"""
+category = "Software"
+subcategory = "Frontend"
+tags = ["frontend", "typescript", "concurrency", "race-condition", "state-management", "playwright"]
+expert_time_estimate_hours = 4
+# NOTE: written from your real answers -- 1-2 yrs full-time, React/Vue/TS,
+# E2E testing. Nothing here is invented. Read it and put it in your own
+# words; add any concrete detail you can (the product, the actual bug), as
+# specifics are what reviewers find credible. Delete this comment when done.
+relevant_experience = """
+I work full time as a frontend developer and have done for a 3 years, shipping production UI in React, Vue and plain TypeScript. Most of what I deal with day to day is component state that has to stay correct while data is still arriving, which is where this task comes from: the search panel that shows the wrong rows for a moment is a bug I have seen in real interfaces rather than one I invented for the benchmark.
+
+I write Playwright and Cypress coverage for UI behaviour as part of my normal work, which is what shaped the verifier here. Asserting on a race by waiting and hoping is unreliable, so the transport in this task only settles when the driver tells it to, and the tests check the whole sequence of emitted states rather than just the final one -- that approach comes directly from writing browser tests for async UI and watching the naive version of them flake.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 5400.0
+
+[environment]
+build_timeout_sec = 1200.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+gpus = 0

@@ -2,7 +2,13 @@
 
 Operating manual for a session with no memory of the earlier ones. Two tasks here have been
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
-built and gated locally but has not been through the pipeline yet:
+built and gated locally but has not been through the pipeline yet.
+
+**Caveat on `reaction-network-reconstruction`, added 2026-08-13.** It cleared the pipeline
+once, but a local three-agent probe run after a leak-hardening pass came back **3 of 3**.
+Do not treat it as a model to copy: it is the worked example of the self-confirmation
+failure mode described below, and it needs its data regenerated before it is resubmitted.
+See its `STATE.md`.
 
 | task | category | cheats | assertions | agent budget | expert estimate |
 |---|---|---|---|---|---|
@@ -49,9 +55,17 @@ the practice on top of them: what actually worked, with numbers.
    minutes and it fails in ways that waste an hour if left to the end.
 5. Pick a seed, then attack your own first plan before writing any code. That step is the
    whole game; everything after it is execution.
+6. Before packaging anything, run the three-agent probe on it (see "The too-easy failure
+   mode" below) and read what the agents say about where they got *confirmation*. That is
+   the check that catches the rejection this repo keeps hitting, and it costs minutes.
 
 Aim one notch harder than `rollout-cache-coherence`. The last section says how, and what
 not to do instead.
+
+`docs/` is synced from the `caesar_v_2.0` kit; `scripts/preflight.py` and `scripts/package.py`
+are that kit's, unmodified. The newer preflight also warns on two leak classes (unused public
+functions, manifest-shaped config). Those are advisory and false-positive on methods reached
+through an instance, so read them, do not obey them blindly.
 
 ## What the pipeline rejects, in the order it bites
 
@@ -64,6 +78,15 @@ not to do instead.
 | anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0 |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
 | easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
+
+The published guideline (https://extended-terminal-bench-guideline.edgeone.dev/) lists nine
+gates and documents **only** the 8-agent difficulty probe with its 1-6 band; it describes no
+3-agent easiness probe. The 3-agent check is real anyway - `turn-seam-alignment` came back
+with an explicit "0 of 3" alongside its 0 of 8 - so treat it as a real gate that the public
+page does not describe, and trust the pipeline's own numbers over the page if they conflict.
+Checked against the live guideline on 2026-08-13; the rest of it matches `docs/RULES.md`
+(nine gates, the same caps, `pytest==9.1.1` + `pytest-json-ctrf==0.5.2`, the same category
+table and instruction suffix).
 | **run audit** | grading implementation choices | `variants/` + `field_report.py` |
 
 The run audit is the one nobody expects. It reads the probe trajectories and judges whether
@@ -137,6 +160,59 @@ Four properties made it work, and a new task needs all four:
 Plus small simultaneous contracts so a nearly-right implementation still fails: a cross-layer
 parameter tie that makes an apparently harmless target harmful, a queue discipline, a
 preemption path, an eviction path.
+
+## The too-easy failure mode: self-confirming answers
+
+The band is missed upward far more often than downward, and when it is, the cause is almost
+never "not enough complexity". Measured here on 2026-08-13, with three Opus agents given
+`reaction-network-reconstruction` in sealed directories: **3 of 3 solved it exactly**, on a
+build where the obvious lookup shortcuts had already been closed. Their own reports say why,
+and all three independently said the same thing - they knew they were right before they
+finished, because **the task confirms its own answer at every stage.**
+
+The tells, quoted from the probe trajectories, are worth memorising because each one looks
+harmless while you are building:
+
+- **Generated numbers that land on round values.** "The results land on suspiciously round
+  numbers (-29.004, -34.004, -21.999), which is what convinced me the treatment was the
+  intended one." The generator had built the quantity backwards from round targets, so
+  arriving at a round number *is* the confirmation that the formula was right. Anything
+  derived from a hand-picked constant leaks this way.
+- **An instruction that asserts the answer's shape.** "That produced zero equilibrated
+  reactions, which contradicted the brief's insistence that equilibrated reactions exist.
+  That was the signal to revise." Saying the set is non-empty, or giving its size, turns a
+  wrong reading into a self-detecting one. State requirements, never counts or existence.
+- **A final stage that only closes for the correct earlier choices.** "An exact, unique,
+  over-determined fit is hard to get by accident" - the flux solve retroactively validated
+  every upstream exclusion at once, including the stage that had just been rebuilt to be
+  hard. A global consistency check is a global answer key.
+- **A derivation rule that most of the data silently validates.** The hydrogen rule
+  "reproduced every stated formula except the two I flagged as conflicts, which is the
+  self-check that told me the reading was right." 16 of 18 species confirmed the rule for
+  free, so deriving it cost nothing.
+- **An end-to-end reproduction step.** Re-propagating the inputs through the finished answer
+  reproduced every measurement, which is a checksum over the whole submission.
+
+**The diagnosis in one line: nothing fails late, so Prong C is absent in practice.** A task
+with total feedback is a constraint-satisfaction puzzle, and guess-check-revise is exactly
+what frontier agents are best at - the domain expertise never becomes the bottleneck however
+real it is. This is leak-audit item 6 ("no per-axis confirmation before commit") at global
+scale, and it is invisible to `preflight.py` because every individual piece is legitimate.
+
+**The check to run before shipping, and it is a question, not a script:** *can a wrong
+reading of any load-bearing rule survive to the end undetected?* If every wrong turn
+announces itself within one iteration, the task is an execution task, and execution tasks
+get solved 8 of 8. Design at least one decision whose wrongness is only visible in the
+verifier.
+
+**Run the probe yourself.** Three Opus subagents in sealed copies of `environment/app_src`,
+graded all-or-nothing against `tests/ground_truth.json`, is a few minutes of work and it is
+the only gate here that measures the thing the pipeline actually rejects for. Give them the
+instruction and the data only - no `tests/`, no `solution/` - and ask each one to report how
+it solved it, what its first plan was, and where it got confirmation. The confirmation
+answers are the diagnosis; the solve count is just the verdict. Note the probe understates
+difficulty relative to the pipeline (no internet, shorter budget), so 2 of 3 locally is
+already a rejection signal.
 
 ## Grade the work, never the implementation choice
 

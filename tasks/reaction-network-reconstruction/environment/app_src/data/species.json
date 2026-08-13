@@ -10,33 +10,27 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "C3",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O3",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [
@@ -75,18 +69,15 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 1
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [
@@ -110,18 +101,15 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [
@@ -145,23 +133,19 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O3",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         }
       ],
       "bonds": [
@@ -190,23 +174,19 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 1
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         }
       ],
       "bonds": [
@@ -235,33 +215,27 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "C3",
-          "element": "C",
-          "hydrogens": 1
+          "element": "C"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         },
         {
           "id": "C4",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         }
       ],
       "bonds": [
@@ -300,33 +274,27 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 1
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         },
         {
           "id": "C3",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O3",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [
@@ -365,23 +333,19 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [
@@ -410,8 +374,7 @@
       "atoms": [
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 2
+          "element": "O"
         }
       ],
       "bonds": [],
@@ -432,33 +395,27 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "C3",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "C4",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         }
       ],
       "bonds": [
@@ -497,33 +454,27 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 2
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         },
         {
           "id": "C3",
-          "element": "C",
-          "hydrogens": 0
+          "element": "C"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O3",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [
@@ -562,18 +513,15 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 1
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [
@@ -597,8 +545,7 @@
       "atoms": [
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         }
       ],
       "bonds": [],
@@ -611,33 +558,27 @@
       "atoms": [
         {
           "id": "C1",
-          "element": "C",
-          "hydrogens": 3
+          "element": "C"
         },
         {
           "id": "C2",
-          "element": "C",
-          "hydrogens": 1
+          "element": "C"
         },
         {
           "id": "O1",
-          "element": "O",
-          "hydrogens": 1
+          "element": "O"
         },
         {
           "id": "C3",
-          "element": "C",
-          "hydrogens": 2
+          "element": "C"
         },
         {
           "id": "C4",
-          "element": "C",
-          "hydrogens": 1
+          "element": "C"
         },
         {
           "id": "O2",
-          "element": "O",
-          "hydrogens": 0
+          "element": "O"
         }
       ],
       "bonds": [

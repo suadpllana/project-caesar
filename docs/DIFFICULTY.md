@@ -102,6 +102,12 @@ gratuitous maze is rejected by the quality review as an artificial handicap. The
 stay the shape of a real project, and it must still build within the storage and build-timeout
 caps.
 
+**Distribution is relative to attention, not to file count.** Spreading facts across seven files
+withholds nothing if the whole system is 500 lines — at that size "distributed" just means
+"adjacent", and the agent reads it all in two tool calls. Before claiming B1, ask honestly whether
+the tree exceeds what a frontier agent can hold at once; if it does not, the facts are effectively
+in one place however many files they occupy, and the difficulty has to come from somewhere else.
+
 Part of the same tactic: **the environment explains itself through code alone — a strict rule,
 enforced by preflight, not a style preference.** The agent-facing tree ships with no comments, no
 docstrings, no READMEs, no docs directories — and no `.md` files at all, by extension, whatever
@@ -136,6 +142,12 @@ interacting under concurrency or asynchrony. Each is trivial; the conjunction is
 correct plan becomes larger than any remembered template, and one unplanned-for rule anywhere
 fails a case.
 
+**Conjunction only bites under one of two conditions**, and stacking rules without either produces
+a checklist, not a planning problem: the rules **interact** — getting one right changes what
+"right" means for another — or there is **no per-rule feedback**, so the agent cannot confirm them
+one at a time and must commit to all of them at once. Six independently readable, independently
+verifiable rules are six easy tasks in a trenchcoat.
+
 ## Prong C — make the wrong plan fatal, and late
 
 **C1. Fence correctness from both sides.** Specify what must fail *and* what must still work. The
@@ -167,6 +179,90 @@ is easy in practice no matter how hard it is in principle.
 One editable file; everything else hash-checked; interfaces frozen. The model must not be able to
 restructure the problem into a shape its default plan handles — a route-around converts a
 planning-stage task back into an execution task, and execution tasks get solved 8 times.
+
+## What not to ship — the leak audit
+
+The prongs above say what to *build*. This says what must not be in the bundle, and it is where
+carefully designed difficulty quietly dies: the mechanism is real, and the environment hands the
+agent a way around it.
+
+**The test, applied to every mechanism before you ship it:** *what in the bundle would let an
+agent **discover**, **name**, or **verify** this without reasoning about it?* If the answer is not
+"nothing", the mechanism is decoration. Three defeats, any one of which is fatal on its own —
+discovery (finding the trap without inferring it), naming (the environment says what the thing
+is), verification (checking the answer against something shipped).
+
+**Run it as a procedure, not as a feeling.** Prose audits pass tasks that a five-line script
+would have failed. For each stage you counted as difficulty, write down the answer that stage
+is supposed to produce, then try to reproduce it from the shipped files with no domain
+reasoning at all — a join, a sort, a field comparison. Actually write the script and run it.
+If it prints the right answer, that stage is worth zero, however hard the chemistry or the
+concurrency behind it looks. This is the single highest-yield check before a probe run,
+because it is the failure the easiness probe finds and you cannot argue with a script that
+already produced the answer.
+
+The recurring shape, worth its own name: **a stored derived quantity.** Real formats often
+carry a value that a practitioner would compute — explicit hydrogen counts on an atom record,
+a precomputed length, a cached total, a denormalised id. Ship it and the reasoning that would
+have produced it is retired, and worse, it usually joins straight onto whatever observable you
+published as the puzzle. The rule: **ship the primitives, never the derivation.** If the task
+is about deriving X, X must not appear as a field anywhere in the agent's tree — and check
+that the observable you publish in its place still needs the derivation before it discriminates.
+
+Two guards when you remove one, both of which cost minutes and save a rejection:
+
+- **The replacement must not be arbitrary.** Recomputing a value sometimes has legitimately
+  several answers (which of two chemically equivalent oxygens carries the proton, which of two
+  equally old entries a sweep evicts). Prove the choice cannot move the graded output — swap it
+  and diff — or you have traded a leak for a run-audit failure, which is the worse of the two.
+- **The shipped validator must not become the oracle.** A schema checker that also needs the
+  derivation you just removed hands it back: the agent brute-forces inputs until the checker
+  stops complaining. Cut the check down to what it can verify without deriving, and reword its
+  messages so they do not claim more than they check.
+
+**1. No unused affordances.** A public function nothing calls is a table of contents. A helper
+that exists only because the trap needs it announces both that the trap exists and where to start.
+If a capability is not reachable through the system's real behavior, delete it — the agent must
+reach the mechanism through evidence, never through a named entry point.
+
+**2. No manifests.** A config file enumerating the inputs (`void_source`, `state_store`,
+`ops_log`) converts exploration into reading an index. Real systems do have manifests, so this is
+a judgment call, but every entry has to earn its keep: if it exists to help the agent find things,
+it is a map to the solution.
+
+**3. No self-labelling data.** A column whose values read `postponed / abandoned / withdrawn`, a
+log line saying `settle fail lock_held` in plain English — an annotated anomaly is not an anomaly,
+it is a specification. The agent never has to infer that something went wrong, because the data
+asserts it. Anomalies must be visible only as *behavior that does not add up*.
+
+**4. No artifact that is a function of the correct trajectory.** Anything deterministically
+derivable from doing the work correctly is an oracle, however you frame it — and a *per-key* diff
+against it is not a checksum, it is a debugger: it converts a reasoning problem into gradient
+descent, which is exactly what frontier agents are best at. Watch the justification "fair local
+testability", which conflates two different things: letting the agent **run** its work is required;
+handing it a **scoring function for its intermediate state** is not.
+
+**5. No free join keys, and nothing callable that you counted as difficulty.** Handing over an
+identifier retires every trap that guarded its derivation — one `book=25023` can kill the session
+boundary, the time offset and window membership at once. Likewise, anything reachable by calling a
+shipped function is API surface, not difficulty: if `publish()` is callable verbatim, its window,
+cap, ranking and threshold rules are free, no matter how load-bearing they look in your notes.
+Only what the agent must *reconstruct* counts.
+
+**6. No per-axis confirmation before commit.** If the agent gets a green signal on each sub-part
+as it goes, nothing fails late and Prong C is absent in practice however it was designed. Related:
+a subtle rule implemented in one legible line — a sort key that states the whole batching story —
+is equivalent to a comment explaining it. Subtlety must live in the interaction of ordinary-looking
+parts.
+
+**And the discipline that makes it stick:** when you find one of these, fix the *class*, not the
+instance. The recurring failure is an author who removes one oracle, writes down the lesson, then
+ships three more oracles in different shapes. Re-run the whole audit after every change.
+
+One honest trade: every oracle you remove raises difficulty *and* raises the risk of zero solves.
+The answer is not to keep the oracle — an expert solves by understanding the system, not by
+diffing against a shipped answer — it is to make the reference solution prove the expert path
+harder. Removing hill-climbing is not the same as removing solvability.
 
 ## What does not create difficulty
 

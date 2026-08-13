@@ -63,6 +63,7 @@ def run_checks(root: Path) -> tuple[int, int]:
     preflight.check_instruction(root, cfg)
     preflight.check_scripts(root)
     preflight.check_environment_docs(root)
+    preflight.check_leaks_by_affordance(root)
     preflight.check_artifact_parents(root, cfg)
     preflight.check_compose(root, cfg)
     preflight.check_verifier(root)

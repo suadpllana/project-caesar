@@ -1,0 +1,8 @@
+# Shell scripts and Dockerfiles run inside Linux containers. CRLF line endings break them
+# with errors like "cannot execute: required file not found". Force LF everywhere it matters.
+* text=auto eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.md text eol=lf

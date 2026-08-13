@@ -29,6 +29,11 @@ gated locally but came back 2 of 3 on the local three-agent probe**, which is an
 rejection, so it is not submission-ready as it stands. The probe post mortem and the two
 reverted attempts to widen the band are in its `STATE.md` and summarised below.
 
+It was submitted anyway on 2026-08-13 and bounced off the **bundle structure check** before
+reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
+and the zip rebuilt; see "The bundle-structure rejection" below. The 2-of-3 easiness problem
+above is untouched by that fix and is still the reason this task is not ready.
+
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
 own `STATE.md` and the short version is in "Grade the work, never the implementation
@@ -302,6 +307,52 @@ it solved it, what its first plan was, and where it got confirmation. The confir
 answers are the diagnosis; the solve count is just the verdict. Note the probe understates
 difficulty relative to the pipeline (no internet, shorter budget), so 2 of 3 locally is
 already a rejection signal.
+
+## The bundle-structure rejection: the tree is not the zip
+
+`delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
+local gate passed. The error named the instruction suffix:
+
+> instruction.md must END with this exact sentence as its own paragraph [...]
+
+The suffix was correct. **The line endings were not.** `instruction.md` was LF on disk and
+CRLF inside the archive, so the final paragraph the checker read was `...this task.\r` and no
+exact string comparison could match it. Nothing about the sentence needed rewriting.
+
+Three separate things had to be true for this to reach the pipeline, and each is worth a gate:
+
+1. **`preflight.py` cannot catch it.** Its suffix test is
+   `SUFFIX_RE.search(lines[-1].strip())` - and `.strip()` eats the `\r` before the regex runs.
+   So a CRLF instruction passes preflight clean and fails the pipeline on the same file. This
+   is the "local gate is lying" case, and it is the kit's script, so the fix went into
+   `tools/zipcheck.py` rather than into `preflight.py`, which stays unmodified.
+2. **The zip was stale.** It was built at 18:18 against an `instruction.md` last written at
+   18:19. `package.py` uses `read_bytes()` and is faithful to the tree, so it will never
+   correct a CRLF file - and it will happily ship a build older than the sources. Check the
+   zip's mtime against the tree, which `git status` does not do: a clean `git status` on the
+   zip means it matches the last commit, never that it matches the working tree.
+3. **`build_gt.py` wrote CRLF itself.** `Path.write_text(...)` on Windows opens in text mode
+   and translates every `\n` to `\r\n`, so `tests/gt.json` shipped with 3794 CRLF pairs.
+   `emit.py` had already learned this and passes `newline="\n"` on the `.sh` writers;
+   `build_gt.py` had not. **Every text writer in `authoring/` needs `newline="\n"` explicitly.**
+   `.gitattributes` does not save you - it normalises what git stores, not what a script writes.
+
+`tools/zipcheck.py` now checks the built archive for all four: CRLF in any shipped text file,
+backslash path separators, the instruction suffix tested on **raw bytes** rather than a
+stripped line, and a zip older than any file it ships. Validated in both directions - clean on
+the fixed `delta-view-retraction.zip`, five findings on a reconstruction of the rejected one,
+including the exact `'...specific to this task.\r'` the pipeline complained about.
+
+Running it across the repo immediately found the same latent defect in three other bundles:
+`rollout-cache-coherence.zip` ships **16** CRLF files including `tests/scen.py` and three
+`tests/pristine/` modules, and `typeahead-query-controller.zip` has CRLF in `task.toml` and
+`tests/test_conformance.py`. Both were packaged before this was understood. **Repackage and
+re-run `zipcheck.py` before resubmitting either of them**, and note that CRLF inside
+`tests/pristine/` is worse than in the instruction: those files are copied into the verifier
+image and executed, which is the failure mode `.gitattributes` warns about at the top.
+
+The one-line rule: **the tree passing every gate says nothing about the archive.** Package,
+then check the package.
 
 ## The lossy-state pattern, and the three leaks that nearly killed it
 
@@ -790,7 +841,11 @@ python3 tools/structcheck.py <draft>            instruction structure; run again
                                                 passing briefs too, it must stay clean on them
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
+python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness
 ```
+
+`zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and
+the pipeline reads the archive. Those two disagree more often than anyone expects.
 
 `tools/docker_trial.py` and `tools/run_local_rollout.py` are the older, single-task versions,
 hardcoded to `rollout-cache-coherence`. Use `docker_trial2.py` for anything new.

@@ -99,7 +99,9 @@ def main() -> int:
             print("  -", b)
         return 1
 
-    (TASK / "tests" / "gt.json").write_text(json.dumps(out, indent=1, sort_keys=True))
+    (TASK / "tests" / "gt.json").write_text(
+        json.dumps(out, indent=1, sort_keys=True), encoding="utf-8", newline="\n"
+    )
     print("wrote gt.json for %d scenarios" % len(out["scenarios"]))
     for name, s in sorted(out["scenarios"].items()):
         print("  %-22s folds %4d (shipped %4d)  scans %3d (shipped %3d)"

@@ -22,6 +22,12 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
+| `delta-view-retraction` | Software / Databases | 14 | 62 | 14400 s | 8 h |
+
+`delta-view-retraction` is the fifth and the first outside ML. It is **built and fully
+gated locally but came back 2 of 3 on the local three-agent probe**, which is an easiness
+rejection, so it is not submission-ready as it stands. The probe post mortem and the two
+reverted attempts to widen the band are in its `STATE.md` and summarised below.
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
@@ -297,6 +303,95 @@ answers are the diagnosis; the solve count is just the verdict. Note the probe u
 difficulty relative to the pipeline (no internet, shorter budget), so 2 of 3 locally is
 already a rejection signal.
 
+## The lossy-state pattern, and the three leaks that nearly killed it
+
+`delta-view-retraction` (built 2026-08-13, Software / Databases, not yet through the
+pipeline) is the fifth task and the first outside ML. The shape is worth reusing because
+it produced the target signature on the first probe attempt: **a wrong plan that publishes
+every value correctly and fails only the work counters.**
+
+The mechanism in one line: ship an accumulator that is a *bounded* summary of its group -
+top `CAP` candidate values, the rest discarded - so whether an incremental repair is legal
+is a property of **that cell at that moment**, never of the aggregate kind. sum and cnt
+absorb a retraction always; min/max/top absorb one right up until retractions drain the
+candidate set, after which folding returns a value the group does not contain. The
+textbook answer ("invertible aggregates absorb, non-invertible ones rebuild") is correct
+on outputs and wrong on work in 9 of 12 scenarios.
+
+**The three leaks, each of which reduced the task to zero difficulty, and each of which
+looked harmless while writing it.** All were found by running a script that tried to
+produce the answer with no domain reasoning, which is the check `docs/DIFFICULTY.md`
+demands and the one that pays:
+
+1. **A predicate that reports the loss.** An early `agg.exact(acc)` made the whole task
+   `rebuild iff not exact()`. Free, correct, no reasoning. Deleted.
+2. **A named function that carries the distinction.** `agg.invertible(kind)` hands over
+   the entire aggregate-class split as a lookup. Deleted.
+3. **A counter that makes the loss readable off a field.** `acc.spill` reduced the rule to
+   `top empty and spill > 0`, again correct with no reasoning. Deleted - and this was the
+   important one, because after removing it two accumulators can reach **byte-identical
+   candidate maps with different true answers**. That is what forces the solver to derive
+   the condition from the fold and the cap instead of reading it.
+
+The generalisation: **when the difficulty is "some state was silently lost", the state must
+not record that it was lost.** Any counter, flag or predicate that witnesses the loss is
+the answer key. Ship `n` (total multiplicity) and the candidate map and nothing else, and
+make the cheap-looking derived test (`n > len(top)`) *wrong* - here duplicates inflate `n`
+with nothing dropped, so that reading fails 6 of 12 on work while getting every value
+right. A second-order trap under the first-order one is what stops a half-recognition from
+landing.
+
+Guard it with the mirror-image suites, both of which caught real defects here:
+`authoring/variants/` (four correct implementations, all must score 1) and `cheat/`
+(fourteen, all must score 0). Two things I had labelled as cheats turned out to be
+*equivalent* implementations and scored 1 correctly - they were promoted to `variants/`
+rather than argued with, which is the right direction of travel.
+
+### The probe measured my reference, not the agents (delta-view-retraction, 2026-08-13)
+
+The first three-agent probe came back **0 of 3** and the number was a lie. All three agents
+matched the reference on `folds` in all twelve scenarios and came in *under* it on `scans`.
+They were right and the reference was wasteful: it called `core.rebuild()` to create a cell
+that did not exist yet, paying a scan to re-read a group holding nothing, where creating the
+cell and folding reaches the same answer for free. Two of the three were **strictly better
+than the reference** and scored 0 for it. Fixing the reference moved the honest result to
+**2 of 3**, which is an easiness rejection.
+
+Two lessons, and the first one is the expensive one:
+
+- **A 0-of-N probe is a claim about your reference before it is a claim about the task.**
+  When every agent misses one counter in one direction, suspect the ground truth first. The
+  diagnostic that found it in two minutes: print the per-scenario counters for each agent
+  beside the reference and look for a *systematic* offset. Agents failing for real reasons
+  scatter; agents failing because the reference is wrong line up.
+- **CLAUDE.md already carried this rule and I still hit it.** "Before grading any
+  optimisation counter, ask whether a better solution than yours would fail it" was written
+  for `turn-seam-alignment` and it applies verbatim here. Reading the rule is not running
+  it. The mechanical version, which is cheap and would have caught this before the probe:
+  **for every graded counter, write one variant that beats the reference on it and confirm
+  the verifier accepts the variant, not just the reference.** `variant_check.py` only proves
+  alternatives that *tie* are accepted; nothing proved a cheaper correct path existed, and
+  one did.
+
+### When the counter that fixes the band is the counter you cannot grade
+
+The same task, trying to widen the band afterwards. Both winning solutions test group
+completeness by calling `ms.group()` on nearly every delta - probe1 does **360** full store
+reads against the reference's 57 - and it is free, because only `core.rebuild()` increments
+`scans`. Charging for store traffic is the obvious fix and it is a trap: `ok-store-scan`, a
+correct variant that consults the row store rather than the dependency map, disagrees with
+the reference on the new counter in **11 of 12** scenarios. Grading it fails a correct
+solution, which is the run-audit rejection this file already documents.
+
+The generalisable shape: **the work an agent can do for free is the work your counters do
+not see, and adding a counter to see it usually grades a data path rather than an amount.**
+The fix is never a new counter bolted onto the existing shape - it is to route the
+expensive operation through a **single non-editable accessor** that every correct
+implementation must call, so all readings pay the same price by construction, and only then
+count it. That is an environment redesign, so it has to be decided at Stage 2 while the
+contract is still open, not after the probe. Ask at contract time: *what can a solver do a
+thousand times without any graded number moving?*
+
 ## Grade the work, never the implementation choice
 
 `rollout-cache-coherence` cleared both probes and then failed the run audit for reward
@@ -338,6 +433,26 @@ Where a scenario needs eviction or preemption for coverage, keep it but grade it
 quantities ordering cannot move (tokens, rewinds), and derive the counter-graded subset from
 the ground truth rather than hand listing it, so a scenario that starts evicting drops out of
 counter grading by itself. `ORDER_FREE` in `tests/test_outputs.py` is that derivation.
+
+**Fix the environment, not the verifier, when two correct readings disagree.**
+`delta-view-retraction` reproduced the run-audit failure during authoring and caught it
+with `variant_check.py` before packaging. The shipped `land()` mutated the row in the row
+store *before* the editable router ran, so for the group a row was **leaving**, the cell's
+dependency map and the row store reported different live sets. Two correct implementations
+therefore disagreed on `scans` - `ok-store-scan` scored 0 with every published value
+correct, on one scenario (`update-moves-group`, 47 folds against 51).
+
+The tempting fixes are both wrong: dropping `scans` from the graded set loses the axis the
+whole task rests on, and special-casing the scenario is the tolerance-loosening the audit
+exists to catch. The fix that shipped was to move `land()` into a **non-editable** module
+and have it hand the router explicit edit records, so the row store is in one well-defined
+state when the decision is made and both readings agree by construction. After that all
+four `ok-*` variants score 1 on identical counters.
+
+The rule: **when a graded counter depends on when a shared structure is mutated, move the
+mutation out of the editable set.** A counter that two correct readings disagree on is not
+a counter that needs a looser test, it is a signal that the environment left an
+implementation choice inside a graded path.
 
 **Grade a range when the answer is a range.** `turn-seam-alignment` failed the difficulty
 probe 0 of 8 with a counter that was real work by every test above - characters handed to a
@@ -559,6 +674,18 @@ owner drafting it from their own run of the environment. Everything that draft n
 instruction. Do not spend another session tuning checker numbers on this brief; both checkers
 have been clean for two of the three rejections.
 
+##### Non-finding: the short-sentence test against `checkpoint` is an outlier threshold
+
+Recorded so nobody re-derives it. `textcheck.py` fires "too few short sentences" when the
+candidate is under `0.7 x reference`, and `checkpoint-resume-drift` sits at **44%** short
+sentences where `rollout` is 33%, `turn-seam` 28% and `reaction` 25%. So checkpoint alone
+sets a 30.8% bar that two of the four briefs that passed the screen would themselves fail.
+A draft in the high 20s that is clean against `rollout` is not carrying a real defect on
+this axis; it is being measured against the outlier. Clear it if it is cheap - two genuine
+short verdicts did it for `delta-view-retraction` - but do not restructure a brief over it,
+and never chop long sentences to chase it, which walks straight into the burstiness
+rejection documented above.
+
 ##### Fixing register flattens cadence, so the two axes must be checked together
 
 The repair, finished 2026-08-13. Removing the casual register is the easy half and it
@@ -731,6 +858,21 @@ does not produce the token streams they expect. `cheat-peek-scenarios.sh` docume
 
 ## Sandbox notes
 
+- **On the Windows authoring host (checked 2026-08-13) Docker is not installed at all.**
+  `C:\Program Files\Docker\Docker\resources\bin` is on `PATH` but the directory does not
+  exist, so `docker` and `dockerd` are both absent from Bash and PowerShell, and the
+  "start dockerd by hand" advice below applies only to the Linux sandbox. Consequence:
+  `tools/docker_trial2.py` cannot run, and **the two-image trial is unrunnable here** -
+  the privilege drop, the locked reward channel, the root-only ground truth and `reap.py`
+  stay unverified however many local gates pass. Do not discover this at the end. Check
+  `docker info` in the first five minutes and, if it is missing, build a host emulation
+  (`authoring/trial.py` in `delta-view-retraction` is the reusable one: real runner, real
+  pytest, real `gt.json`, no container) and say plainly in the handover which gates that
+  emulation does *not* cover. The isolation cheats graded that way prove the grader's
+  logic rejects them, never that the sandbox contains them.
+- Git Bash `/tmp` is not the same path the Windows Python sees, so a heredoc written to
+  `/tmp/x.json` in a Bash step is invisible to `python` in the next. Use the session
+  scratchpad directory for scenario files and intermediate JSON.
 - Docker Hub returns 429. Pull `mirror.gcr.io/library/python:3.12-slim` and
   `docker tag ... python:3.12-slim`. `dockerd` usually needs starting by hand:
   `(dockerd >/tmp/dockerd.log 2>&1 &)` then poll `docker info`.

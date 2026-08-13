@@ -1,0 +1,185 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/view/route.py",
+]
+
+[task]
+name = "afterquery/delta-view-retraction"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The task looks like one question and is two, and the two have different answers. When a
+row is retracted from a group, can the aggregate's accumulator absorb the edit, or does
+the cell have to be rebuilt from the row store? The retrieved answer is that this is a
+property of the aggregate: sums and counts are invertible, minima and maxima are not, so
+rebuild the non-invertible ones on every retraction. That plan produces every published
+value correctly on all twelve scenarios and is wrong on the work in nine of them, which is
+the whole task.
+
+It is wrong because the accumulator in store/agg.py keeps at most three distinct candidate
+values per cell and discards the rest with no record that it did. There is no spill
+counter, no flag and no predicate that reports it, which is deliberate: an earlier build
+of this environment exposed one and the rule became readable off a field with no reasoning
+at all. So whether a cell can absorb a retraction is not a property of the aggregate kind,
+it is a property of that cell at that moment - it holds right up until the candidate set
+stops being able to answer for the group, and after that point folding a retraction in
+returns a number the group does not contain. The condition has to be derived by reading
+the fold and the cap in a file the agent may not edit, and it is fenced from both sides:
+rebuilding a cell that could have absorbed the edit is correct on values and wrong on
+work, absorbing an edit the cell could not answer for corrupts the value.
+
+The cheap conservative test is the trap underneath the trap. acc.n is the multiplicity
+folded and len(acc.top) is how many candidates survived the cap, so n > len(top) looks
+like the loss detector and it is not: duplicates inflate n with nothing having been
+dropped, and a group of six rows over two distinct values trips it on every retraction.
+That reading is one of the shipped cheats; it returns every value correctly and misses the
+work on six of the twelve scenarios. What actually decides is the number of distinct live
+values the cell is accountable for, which the cell's own dependency map already carries.
+
+Three edges each kill an otherwise correct implementation. An update is two edits rather
+than one, and when it carries a new group the retracting half and the joining half land on
+different cells that are judged independently, so one side can absorb what the other must
+rebuild for. A delete for a key never inserted, or a second delete for a key already
+retracted, is not an edit and must not touch a cell at all. And a retraction of a value
+the cell never held cannot move the answer, so treating every retraction as dangerous is
+the same overcaution again, priced in scans.
+
+There is no oracle for the graded quantity. The agent can check its values against a cold
+rebuild it writes itself, and it will find them correct under every one of the wrong plans
+above, because all of them publish the right numbers. Nothing it can run tells it the work
+is wrong. The engine ships with no comments anywhere in it and its identifiers are in the
+register of ordinary internal code rather than self-describing ones, which is a design
+choice: the cap semantics, the dependency map and the two halves of an update have to be
+recovered by reading behaviour instead of by reading names.
+"""
+
+solution_explanation = """
+The reference does what someone who has debugged a materialized view under a retracting
+stream does: it separates the two questions before writing anything.
+
+It reads fold in store/agg.py and works out what the accumulator actually retains. For a
+running total the state is a scalar and every edit is reversible, so sums and counts
+absorb a negative edit exactly as they absorb a positive one, always, with no history. For
+the order-sensitive kinds the state is a bounded candidate map, and the cap silently drops
+whatever falls outside it, so the accumulator is a partial view of the group whose
+partiality is not recorded anywhere.
+
+From that the predicate falls out in two parts rather than one. A positive edit is always
+absorbable, because folding a value in either lands it inside the candidate set or gets it
+discarded by the same rule a full rebuild would have applied to it, and the two agree. A
+negative edit is absorbable only while the candidate set can still answer for the group,
+and it stops being able to exactly when the cell holds fewer distinct values than the
+group does. The count of distinct live values the cell is accountable for comes from the
+cell's dependency map, which already holds one entry per live row, so the test costs no
+extra pass over the store. Seeding the retracted values into that set is what makes the
+membership case fall out for free rather than needing its own branch: a retraction of a
+value the cell never held pushes the accountable count past the candidate count by itself.
+
+The driver hands the router the edits a delta produced rather than the delta, so the
+retracting half and the joining half are already separated and an update that moves a row
+between groups is two independent decisions on two cells. Everything else - which cells
+publish at a watermark advance, how the row store lands a delta, what counts as late -
+was already right and is left alone.
+
+The whole reference is about fifty lines in one file and runs in well under a second.
+"""
+
+verification_explanation = """
+The rebuilt engine is driven through twelve scenarios, each aimed at one reading of the
+rule, and every scenario is checked on three independent axes with no partial credit.
+
+The published values have to match exactly, and the ground truth is re-proved inside the
+verifier by a sealed oracle that shares no code with the engine tree: it keeps the full
+surviving multiset for every group and folds each aggregate over all of it, with no cap,
+no accumulator and no incremental repair. That is the definition the bounded accumulator
+is an optimisation of, so a submission whose accumulator drifted under retraction cannot
+match it. Both the final view and every value published at a watermark advance are
+compared, in order, which catches a submission that repairs lazily and settles up at the
+end.
+
+The work has to match exactly too. folds and scans are counted inside view/core.py, which
+is not an editable artifact, so they measure real work whatever the submitted
+implementation looks like: a fold is one value actually folded into an accumulator and a
+scan is one group actually re-read from the row store. This is the axis that fails an
+engine that is merely safe, and it is where the interesting cheats land. Rebuilding every
+order-sensitive cell on any retraction, using multiplicity against candidate count as the
+loss test, and keeping only the sum path incremental all return every value correctly on
+every scenario and lose on the counters alone.
+
+Two things are deliberately outside the graded set, because grading them would measure a
+choice the task never asked the solver to make. One is any count of reads or writes
+against the row store, since a submission may legitimately batch or reorder its own reads.
+The other is the order in which a submission visits the cells one delta affects; only the
+publication order, which the non-editable driver produces, is compared as a sequence. Four
+alternative correct implementations are kept in the authoring directory and all four are
+required to score 1: one that derives the accountable set from the row store instead of
+the dependency map, one that restructures the predicate as a single pass with no set
+comprehension, one that drops the redundant membership branch, and one that omits the
+group filter that the dependency map already implies. An earlier version of the
+environment failed exactly this guard - two correct readings disagreed on the counters
+because the row store was mutated before the router ran - and the environment was changed
+so the two agree, rather than the verifier being loosened.
+
+The lifecycle is checked as well: the driver's own trace of watermark advances, late
+arrivals and publications, in order.
+
+Fourteen cheats were run against it and all scored 0. Six are the reference with exactly
+one decision made the way a solver who missed one piece would make it, and their failure
+signatures are distinct and match the design: three fail on the work counters alone with
+every value correct, and three corrupt the values. Eight are reward-tamper probes, since
+the verifier executes the agent's code: a double-forked process writing the reward after
+the run, a planted run output, a planted output followed by a hard exit of the runner,
+wrong-typed junk returned from the report, forged counters, a privilege probe, an attempt
+to read the ground truth from inside the run, and a sweep of everything the run's uid can
+reach. The run happens as an unprivileged uid in its own session under a wall clock
+timeout, the reward channel is root-owned and locked before it starts, and the ground
+truth and the sealed oracle are root-only files; grading runs afterwards as root and never
+executes anything the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Databases"
+
+tags = [
+  "incremental-view-maintenance",
+  "retraction-handling",
+  "bounded-aggregate-state",
+  "change-data-capture",
+  "watermark-ordering",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on streaming data pipelines where materialized aggregates are maintained against
+change-data-capture feeds, the kind that carry retractions and arrive out of order. The
+pain this task is built from is one that costs a lot and shows up late: the obvious rule
+for repairing an aggregate after a retraction is the aggregate's algebra, and that rule is
+right about correctness and badly wrong about cost, because it ignores what the
+accumulator in front of it is actually holding. Bounded top-k state under a min or a max
+is where it bites - the state is a faithful witness most of the time and stops being one
+without saying so, and a pipeline that rebuilds every group defensively is correct and
+burns a machine. Working out that the condition is a property of the cell at that moment
+rather than of the aggregate kind is the thing I would want a new engineer on this to get
+right, and it is not what the literature hands you.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

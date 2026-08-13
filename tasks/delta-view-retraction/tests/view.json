@@ -1,0 +1,11 @@
+{
+ "lag": 2,
+ "carry": 4,
+ "view": {
+  "sum": ["ord"],
+  "cnt": ["ord"],
+  "min": ["ord"],
+  "max": ["ord"],
+  "top": ["ord"]
+ }
+}

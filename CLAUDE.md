@@ -22,12 +22,13 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
-| `delta-view-retraction` | Software / Databases | 22 | 136 | 14400 s | 8 h |
+| `delta-view-retraction` | Software / Databases | 24 | 136 | 14400 s | 8 h |
 
-`delta-view-retraction` is the fifth and the first outside ML. It is **built and fully
-gated locally but came back 2 of 3 on the local three-agent probe**, which is an easiness
-rejection, so it is not submission-ready as it stands. The probe post mortem and the two
-reverted attempts to widen the band are in its `STATE.md` and summarised below.
+`delta-view-retraction` is the fifth and the first outside ML. It came back **2 of 3 from
+the pipeline's easiness probe on 2026-08-14**, and the two leaks that caused it are now
+fixed - see "The easiness rejection" below, which is the section to read first if you are
+about to design a leak audit. It has **not been re-probed since**, so treat the difficulty
+as unmeasured rather than fixed.
 
 It was submitted anyway on 2026-08-13 and bounced off the **bundle structure check** before
 reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
@@ -520,6 +521,76 @@ the instrumentation, so none of this is a proof. What it buys is that every bypa
 explicit, separately detectable act. A determined adversary could still reach the tally
 closure through `gc.get_referrers`. If that turns up, the answer is not a fourth in-process
 layer: it is to run each scenario as a child process and instrument it from the parent.
+
+## The easiness rejection: a derived field is still a field
+
+`delta-view-retraction` came back **2 of 3** from the easiness probe on 2026-08-14, and the
+trajectory of one solve is the most useful artifact this repo has produced. It solved the
+task in **one write**, before any experiment, on this line:
+
+```
+held = sum(acc.top.values())
+return held == acc.n          # nothing was dropped, so the cell can absorb
+```
+
+The whole difficulty argument was that the accumulator discards values **with no record
+that it did** - "no spill counter, no flag, no predicate", and the leak audit in STATE.md
+records deleting `acc.spill` as "the single most important cut". That cut removed one
+field and left the same information in two: `acc.n` was total multiplicity ever folded and
+`sum(acc.top.values())` is the multiplicity still held, so **their difference is the spill
+counter**, spelled across two fields instead of one.
+
+**The rule, and it generalises past this task: a leak audit has to close derived
+quantities, not named ones.** Deleting a field named `spill` proves nothing. Ask instead
+which *pairs* of shipped fields differ exactly when the hidden thing happened, and check
+them mechanically - for every pair of numeric fields the state exposes, is `a - b`, `a ==
+b` or `len(a) == len(b)` a witness for the distinction the task is built on? Here one pair
+out of a handful was, and it collapsed an eight-hour task into a five-minute one.
+
+The fix is one line in `store/agg.py`: eviction now decrements the multiplicity it
+discards, so `n == sum(top.values())` always holds and no pair of retained fields witnesses
+anything. Two cells that accounted for entirely different rows are now byte-identical, which
+is what STATE.md always claimed. **No published value and no counter moved**, so the fix
+cost nothing in recalibration.
+
+### Publishing the target counter is a second answer key
+
+The same trajectory found a **strictly better** rule than the reference - 45 folds and 2
+scans against 55 and 6, value-identical over its own 1400-scenario differential fuzz - and
+then **reverted it**, in its own words, because the brief published 55 and 6 and matching
+the stated figure passes under both an exact-match and an at-most grader. So the published
+number did two kinds of damage: it told the solver when to stop reasoning, and it let a
+solver pick between correct rules by fitting rather than by deriving. It also proved the
+verifier was one submission away from the **run audit**, because equality grading would
+have failed the better answer.
+
+Three changes, and they belong together:
+
+1. **The brief no longer states the target.** It grounds on what the shipped engine spends
+   (which is the observed-run grounding `structcheck.py` wants) and says the work is graded
+   against a budget without naming it.
+2. **The counters are graded as a ceiling, not an equality.** A submission passes at or
+   under the budget. This cannot fail a better answer, and it cannot be bought from below,
+   because the evidence axis ties both counters to a journal that has to reproduce the
+   published values and to the interpreter's own tally.
+3. **The budget comes from the sharpest correct rule, not the most natural one.** The
+   conservative reading - rebuild whenever the cell has lost anything - is correct on every
+   value and now goes **over budget on six of the twelve scenarios**. It ships as
+   `cheat-complete-only.sh`. So does the other half on its own, as `cheat-slot-only.sh`.
+
+That last one is where the difficulty now lives: the solver has to find that completeness
+is the *easy* half, and that a cell which has lost values can still absorb a retraction
+that leaves its candidates standing. The first half publishes every number correctly, so
+nothing in the environment tells them to keep going.
+
+**Guard for the ceiling, and do not skip it.** A budget taken from your own reference is a
+claim that no correct implementation needs more. Prove it before shipping: `authoring/fuzz.py`
+runs the reference against the sealed oracle on random streams (2300 streams and 33k
+published values here, zero mismatches) and `build_gt.py` refuses to write a ground truth
+without it, and `variants/` now holds **five** readings - completeness from the dependency
+map, from the row store, and from retained multiplicity, and the two halves tested in either
+order - which reach identical counters on all twelve scenarios. Five independent readings
+converging is what makes a ceiling defensible rather than one author's taste.
 
 ## The bundle-structure rejection: the tree is not the zip
 
@@ -1057,6 +1128,9 @@ python3 tools/hintcheck.py <slug>               brief refutes no candidate rule,
 python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
                                                 gt.json must score 0, or the verifier is
                                                 grading a report instead of evidence
+python3 tasks/<slug>/authoring/fuzz.py 800      the reference against the sealed oracle on
+                                                random streams, before any budget taken
+                                                from the reference is believed
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness

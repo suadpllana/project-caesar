@@ -8,9 +8,9 @@ maintenance incremental without moving a single published number.
 `/app/run_view.py` takes a scenario file and prints what the engine did with it. Feed it
 eight deltas against one group, five rows in and three of them retracted, and the view
 comes back sum 16, cnt 2, min 7, max 9, top 16, which is right: c and e survive at 9 and
-7. It got there with 120 folds and 40 scans. The same eight deltas want 55 folds and 6
-scans. Every delta throws the whole group away and rebuilds it from the row store, for
-every aggregate, whether or not anything that cell holds could have moved.
+7. It got there with 120 folds and 40 scans. Every delta throws the whole group away and
+rebuilds it from the row store, for every aggregate, whether or not anything that cell
+holds could have moved.
 
 Some ground rules, because several of them are not what you would do elsewhere.
 
@@ -19,6 +19,12 @@ engine emits at a watermark advance and the view it ends on have to stay exactly
 they are now, and we grade the emitted values in their order as well as the final view,
 so a submission that repairs lazily and settles up at the end has still failed every
 number it published on the way there even when the last one it prints is right.
+
+The work is graded as a budget. Both counters carry one, both budgets are a fraction of
+what you see now, and coming in under either of them is a pass while going over either is
+not, so there is nothing to be gained by matching a particular number and nothing lost by
+beating one. The budget is what this engine costs when no group is reread that did not
+have to be.
 
 The accumulator in `/app/store/agg.py` does not hold everything its group holds. It keeps
 a bounded set of candidates and drops the rest on the floor, silently, with no counter and

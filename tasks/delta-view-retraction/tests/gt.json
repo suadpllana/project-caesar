@@ -1058,7 +1058,7 @@
   },
   "late-arrival": {
    "emits": 20,
-   "folds": 52,
+   "folds": 48,
    "log": [
     [
      2,
@@ -1182,7 +1182,7 @@
     ]
    ],
    "revised": 3,
-   "scans": 6,
+   "scans": 4,
    "shipped_folds": 120,
    "shipped_scans": 40,
    "trace": [
@@ -1375,7 +1375,7 @@
   },
   "retract-drains-witness": {
    "emits": 15,
-   "folds": 55,
+   "folds": 45,
    "log": [
     [
      5,
@@ -1469,7 +1469,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 2,
    "shipped_folds": 120,
    "shipped_scans": 40,
    "trace": [
@@ -1903,7 +1903,7 @@
   },
   "retract-outside-kept": {
    "emits": 15,
-   "folds": 50,
+   "folds": 45,
    "log": [
     [
      5,
@@ -1997,7 +1997,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 4,
    "shipped_folds": 110,
    "shipped_scans": 35,
    "trace": [
@@ -2132,7 +2132,7 @@
   },
   "two-groups-independent": {
    "emits": 40,
-   "folds": 70,
+   "folds": 60,
    "log": [
     [
      5,
@@ -2376,7 +2376,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 2,
    "shipped_folds": 150,
    "shipped_scans": 55,
    "trace": [
@@ -2696,7 +2696,7 @@
   },
   "update-in-place": {
    "emits": 15,
-   "folds": 63,
+   "folds": 60,
    "log": [
     [
      5,
@@ -2790,7 +2790,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 5,
    "shipped_folds": 125,
    "shipped_scans": 35,
    "trace": [
@@ -3354,7 +3354,7 @@
   },
   "wide-group-churn": {
    "emits": 30,
-   "folds": 159,
+   "folds": 123,
    "log": [
     [
      5,
@@ -3538,7 +3538,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 21,
+   "scans": 11,
    "shipped_folds": 350,
    "shipped_scans": 80,
    "trace": [

@@ -1,25 +1,10 @@
 #!/bin/bash
-# The same shadow rebuild, preceded by an attempt to switch off whatever the verifier is using to watch the engine from outside the tree.
+# Rebuilds whenever the accumulator is no longer holding everything its group holds. Correct on every value, and over the budget: a cell that has lost values can still take a retraction that leaves its candidates standing.
 set -euo pipefail
 
 mkdir -p "$(dirname /app/view/route.py)"
 cat > /app/view/route.py <<'EOF_ROUTE'
 from store import agg
-from view import core as _core
-
-import sys as _sys
-
-try:
-    _mon = _sys.monitoring
-    for _t in range(6):
-        try:
-            _mon.free_tool_id(_t)
-        except Exception:
-            pass
-except AttributeError:
-    pass
-_sys.setprofile(None)
-
 
 
 class Route:
@@ -81,9 +66,6 @@ class Route:
         for g in sorted(by_g):
             for kind in self.kinds_for(d.src):
                 self._one(d.src, g, kind, by_g[g])
-        for g in sorted(by_g):
-            for kind in self.kinds_for(d.src):
-                self._canon(d.src, g, kind)
         return sorted(by_g)
 
     def _one(self, src, g, kind, es):
@@ -97,45 +79,18 @@ class Route:
             return
         self.core.rebuild(g, kind, self.ms.group(src, g))
 
-    def _canon(self, src, g, kind):
-        c = _core.Cell(g, kind)
-        for r in self.ms.group(src, g):
-            agg.fold(c.acc, r.v, r.w)
-            c.dep[r.key()] = r.w
-        self.core.cells[(g, kind)] = c
-
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
             return True
         neg = [e for e in es if e.w < 0]
         if not neg:
             return True
-        # Nothing a retraction does can hurt a cell that is holding everything its group
-        # holds. dep names the live rows, and a row that is leaving is still one of them
-        # until this edit retires it.
-        live = set()
-        for e in es:
-            if e.w < 0:
-                live.add(e.v)
+        live = {e.v for e in neg}
         for (rsrc, rk) in cell.dep:
             if rsrc != src:
                 continue
             r = self.ms.get((rsrc, rk))
             if r is not None and r.w > 0 and r.g == g:
                 live.add(r.v)
-        if len(live) <= len(cell.acc.top):
-            return True
-        # The cell has lost values. It can still take the edit as long as the candidates
-        # it holds survive it: a value it never held is not one of them, and a value
-        # another live row still carries stays where it is. A slot that empties is the
-        # one case the discarded values could have filled.
-        held = dict(cell.acc.top)
-        for e in neg:
-            c = held.get(e.v)
-            if c is None:
-                continue
-            if c + e.w < 1:
-                return False
-            held[e.v] = c + e.w
-        return True
+        return len(live) <= len(cell.acc.top)
 EOF_ROUTE

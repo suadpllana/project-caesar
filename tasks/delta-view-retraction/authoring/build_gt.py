@@ -55,6 +55,18 @@ def main() -> int:
     out = {"scenarios": {}}
     bad = []
 
+    # The twelve scenarios are aimed at particular readings of the rule, so they are not
+    # evidence that the reference is right in general - and the verifier grades a budget
+    # taken from the reference, so a reference that is subtly wrong sets a budget nobody
+    # correct can meet. Random streams against the sealed oracle are what stands behind
+    # that number.
+    import subprocess
+    fz = subprocess.run([sys.executable, str(TASK / "authoring" / "fuzz.py"), "250", "11"],
+                        capture_output=True, text=True)
+    print((fz.stdout or "").strip().splitlines()[-1] if fz.stdout else "fuzz produced nothing")
+    if fz.returncode != 0:
+        bad.append("the reference disagrees with the sealed oracle on random streams")
+
     # The runner cannot import the sealed oracle, so it carries its own copy of the list
     # of functions to fingerprint. Two copies drift; this is what notices.
     if tuple(runner.SEALED) != tuple(oracle.SEALED):

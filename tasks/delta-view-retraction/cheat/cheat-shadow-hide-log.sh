@@ -48,14 +48,19 @@ class Route:
     #              faithful witness for the answer, and it stops being one exactly when
     #              the cell holds fewer distinct values than the group actually has.
     #
-    # acc.n is total multiplicity folded and len(acc.top) is how many distinct values
-    # survived the cap, so n > len(top) is the cheap conservative test - and it is wrong,
-    # because duplicates inflate n without anything having been lost. What decides is the
-    # count of distinct live values the cell is accountable for, and the cell's dependency
-    # map already carries one entry per live row, so that count costs no extra pass.
+    # The accumulator does not say whether it lost anything: acc.n is exactly the
+    # multiplicity it is still holding, so it agrees with the candidate counts whatever
+    # was discarded. Completeness is a statement about the cell against its group, and
+    # the cell's dependency map already carries one entry per live row, so the distinct
+    # live values it is accountable for cost no extra pass over the store.
     #
-    # Only the retraction of a value the cell is still holding can move the answer, and
-    # only while the cell is not holding everything. Everything else is a fold.
+    # Completeness alone is not the condition, only the easy half of it. A cell that has
+    # lost values can still take a retraction whenever the retraction leaves the candidate
+    # set standing: retracting a value the cell never held cannot move an answer drawn
+    # from the values it does hold, and retracting one copy of a value another live row
+    # still carries leaves the same candidates behind. What forces a reread is a
+    # retraction that empties a candidate slot in a cell that is not holding everything,
+    # because the value that should move up is exactly the one that was discarded.
     def push(self, d, edits):
         by_g = {}
         for e in edits:
@@ -94,13 +99,9 @@ class Route:
         neg = [e for e in es if e.w < 0]
         if not neg:
             return True
-        # A retraction of a value the cell is not holding cannot move the answer.
-        for e in neg:
-            if e.v not in cell.acc.top:
-                return False
-        # The cell is a faithful witness only while it holds every distinct value it is
-        # accountable for. dep names those rows, and a row that has already left the
-        # group is still one of them until this edit retires it.
+        # Nothing a retraction does can hurt a cell that is holding everything its group
+        # holds. dep names the live rows, and a row that is leaving is still one of them
+        # until this edit retires it.
         live = set()
         for e in es:
             if e.w < 0:
@@ -111,5 +112,19 @@ class Route:
             r = self.ms.get((rsrc, rk))
             if r is not None and r.w > 0 and r.g == g:
                 live.add(r.v)
-        return len(live) <= len(cell.acc.top)
+        if len(live) <= len(cell.acc.top):
+            return True
+        # The cell has lost values. It can still take the edit as long as the candidates
+        # it holds survive it: a value it never held is not one of them, and a value
+        # another live row still carries stays where it is. A slot that empties is the
+        # one case the discarded values could have filled.
+        held = dict(cell.acc.top)
+        for e in neg:
+            c = held.get(e.v)
+            if c is None:
+                continue
+            if c + e.w < 1:
+                return False
+            held[e.v] = c + e.w
+        return True
 EOF_ROUTE

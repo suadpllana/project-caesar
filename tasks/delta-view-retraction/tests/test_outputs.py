@@ -30,13 +30,23 @@ Four independent axes are checked and all of them must hold.
   2. WORK. folds and scans, counted inside view/core.py, which is NOT an editable
      artifact, so they measure real work whatever the submitted implementation looks
      like. A fold is one value actually folded into an accumulator; a scan is one group
-     actually re-read from the row store. Two correct implementations agree on both by
-     construction, which is what makes them safe to grade exactly (see the run-audit note
-     below).
+     actually re-read from the row store.
+
+     Both are graded as a BUDGET rather than as an equality, and the budget is what the
+     cheapest correct maintenance this environment allows actually spends. That direction
+     is deliberate and it is the run-audit lesson applied honestly: two correct
+     implementations of an optimisation do not have to agree on how far they took it, and
+     an earlier version of this file graded equality against a reference that a submitted
+     solution beat on six of the twelve scenarios while publishing every value correctly.
+     Grading a ceiling cannot fail a better answer, and it cannot be bought from below,
+     because axis 3 ties both counters to a journal that has to reproduce the published
+     values and to the interpreter's own tally of the work.
 
      This is the axis that fails a submission that is merely safe. Rebuilding every
      order-sensitive cell on every retraction - the answer the literature gives - returns
-     every value correctly and is wrong here on nine of the twelve scenarios.
+     every value correctly and is over the budget on nine of the twelve scenarios. So is
+     the reading that rebuilds whenever the accumulator has lost anything, which is
+     correct, is the natural place to stop, and is over the budget on six.
 
   3. EVIDENCE. The work journal. folds and scans are required to equal the number of fold
      and scan records it holds, so a counter cannot be assigned; the journal replayed
@@ -224,11 +234,20 @@ def test_emitted_values(name):
 
 @pytest.mark.parametrize("name", NAMES)
 def test_work_counters(name):
-    """Axis 2: the exact amount of real work.
+    """Axis 2: the work has to come in under the budget.
 
     folds and scans are incremented in view/core.py, outside the editable set. Correct
-    values with the wrong counters is the signature of a submission that plays safe and
-    rebuilds when it did not have to.
+    values with counters over the budget is the signature of a submission that plays safe
+    and rebuilds when it did not have to.
+
+    This is a ceiling and not an equality, deliberately. The budget is what the cheapest
+    correct maintenance this environment allows actually spends, so a submission can only
+    get under it by doing less real work than that while still publishing every value
+    exactly - which is a better answer than the reference, not a worse one, and the run
+    audit exists to stop a verifier failing those. Nothing can buy its way under the
+    ceiling by declaring less than it did: the evidence axis ties both counters to a work
+    journal that has to reproduce the published values, and to the interpreter's own
+    tally.
     """
     rep = report(name)
     assert rep is not None, "no report for %s" % name
@@ -237,8 +256,10 @@ def test_work_counters(name):
         got = rep.get(field)
         assert isinstance(got, int) and not isinstance(got, bool), (
             "%s: %s is not an integer" % (name, field))
-        assert got == exp[field], (
-            "%s: %s is %d, expected %d (the shipped tree does %d here).\n  aim: %s"
+        assert got >= 0, "%s: %s is negative" % (name, field)
+        assert got <= exp[field], (
+            "%s: %s is %d, and the budget is %d (the shipped tree spends %d here).\n"
+            "  aim: %s"
             % (name, field, got, exp[field], exp["shipped_%s" % field], AIM[name]))
 
 
@@ -367,13 +388,19 @@ def test_the_interpreter_agrees_about_how_much_work_happened(name):
             "%s: the work was tallied by %r, not by the interpreter"
             % (name, rep.get("mon_how")))
     exp = expected(name)
-    assert tally.get("fold") == exp["folds"], (
-        "%s: the accumulator was entered %r times, and %d folds were charged for.\n"
+    # Against the submission's own counters, exactly: that is what stops work happening
+    # off the counted path. Against the budget, as a ceiling, for the reason set out in
+    # test_work_counters.
+    assert tally.get("fold") == rep.get("folds"), (
+        "%s: the accumulator was entered %r times and %r folds were charged for.\n"
         "  Work done outside the counted path is still work done.\n  aim: %s"
-        % (name, tally.get("fold"), exp["folds"], AIM[name]))
-    assert tally.get("rebuild") == exp["scans"], (
-        "%s: the group was reread %r times, and %d scans were charged for.\n  aim: %s"
-        % (name, tally.get("rebuild"), exp["scans"], AIM[name]))
+        % (name, tally.get("fold"), rep.get("folds"), AIM[name]))
+    assert tally.get("rebuild") == rep.get("scans"), (
+        "%s: the group was reread %r times and %r scans were charged for.\n  aim: %s"
+        % (name, tally.get("rebuild"), rep.get("scans"), AIM[name]))
+    assert tally.get("fold") <= exp["folds"] and tally.get("rebuild") <= exp["scans"], (
+        "%s: the interpreter counted %r folds and %r rereads, over a budget of %d and %d"
+        % (name, tally.get("fold"), tally.get("rebuild"), exp["folds"], exp["scans"]))
 
 
 @pytest.mark.parametrize("name", NAMES)

@@ -61,19 +61,20 @@ def fold(acc, v, w):
         acc.n += w
         acc.s = acc.n
         return acc
-    acc.n += w
     if v in acc.top:
         c = acc.top[v] + w
+        acc.n += w
         if c <= 0:
             acc.top.pop(v, None)
         else:
             acc.top[v] = c
     elif w > 0:
         acc.top[v] = w
+        acc.n += w
         if len(acc.top) > CAP:
             order = sorted(acc.top, key=lambda x: _rank(k, x))
             for x in order[CAP:]:
-                acc.top.pop(x, None)
+                acc.n -= acc.top.pop(x, 0)
     _refresh(acc)
     return acc
 

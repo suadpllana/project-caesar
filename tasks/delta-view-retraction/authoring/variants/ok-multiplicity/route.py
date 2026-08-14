@@ -34,26 +34,28 @@ class Route:
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
             return True
-        seen = []
-        for e in es:
-            if e.w < 0 and e.v not in seen:
-                seen.append(e.v)
-        if not seen:
+        neg = [e for e in es if e.w < 0]
+        if not neg:
             return True
+        rows = 0
         for (rsrc, rk) in cell.dep:
             if rsrc != src:
                 continue
             r = self.ms.get((rsrc, rk))
-            if r is not None and r.w > 0 and r.g == g and r.v not in seen:
-                seen.append(r.v)
-        if not len(seen) > len(cell.acc.top):
+            if r is not None and r.w > 0 and r.g == g:
+                rows += 1
+        for e in neg:
+            rows += 1
+        kept = 0
+        for c in cell.acc.top.values():
+            kept += c
+        if kept >= rows:
             return True
-        left = dict(cell.acc.top)
-        for e in es:
-            if e.w >= 0:
-                continue
-            if e.v in left:
-                left[e.v] = left[e.v] + e.w
-                if left[e.v] < 1:
+        held = dict(cell.acc.top)
+        for e in neg:
+            c = held.get(e.v)
+            if c is not None:
+                if c + e.w < 1:
                     return False
+                held[e.v] = c + e.w
         return True

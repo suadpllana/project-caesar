@@ -97,6 +97,43 @@ MISTAKES = {
                 live.add(r.v)
         return len(live) <= len(c0.acc.top)
 '''),
+    "complete-only": (
+        "Rebuilds whenever the accumulator is no longer holding everything its group "
+        "holds. Correct on every value, and over the budget: a cell that has lost "
+        "values can still take a retraction that leaves its candidates standing.",
+        '''    def _absorbable(self, src, g, cell, kind, es):
+        if kind in (agg.SUM, agg.CNT):
+            return True
+        neg = [e for e in es if e.w < 0]
+        if not neg:
+            return True
+        live = {e.v for e in neg}
+        for (rsrc, rk) in cell.dep:
+            if rsrc != src:
+                continue
+            r = self.ms.get((rsrc, rk))
+            if r is not None and r.w > 0 and r.g == g:
+                live.add(r.v)
+        return len(live) <= len(cell.acc.top)
+'''),
+    "slot-only": (
+        "Takes the slot test on its own and never asks whether the cell is complete, so "
+        "it rereads a group that had lost nothing and could have absorbed the edit.",
+        '''    def _absorbable(self, src, g, cell, kind, es):
+        if kind in (agg.SUM, agg.CNT):
+            return True
+        held = dict(cell.acc.top)
+        for e in es:
+            if e.w >= 0:
+                continue
+            c = held.get(e.v)
+            if c is None:
+                continue
+            if c + e.w < 1:
+                return False
+            held[e.v] = c + e.w
+        return True
+'''),
     "sum-only-incremental": (
         "Keeps the sum path incremental and rebuilds everything else unconditionally, "
         "including the cheap positive edits.",

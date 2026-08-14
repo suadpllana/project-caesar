@@ -25,8 +25,9 @@ A materialized view engine maintains grouped aggregates (sum, cnt, min, max, top
 change stream of inserts, deletes and updates, with out-of-order arrival governed by a
 watermark. The shipped engine rebuilds every affected group from the row store on every
 delta: the published values are already correct and the work is enormous (120 folds and 40
-scans where 55 and 6 will do). The submission must maintain the view incrementally
-without moving a single published number. One editable file: `view/route.py`.
+scans on the brief's scenario, where 45 and 2 is the budget). The submission must maintain
+the view incrementally without moving a single published number, and the budget is graded
+as a ceiling rather than an equality. One editable file: `view/route.py`.
 
 ## Why it is hard
 
@@ -34,7 +35,9 @@ One question that is really two, with different answers, and the split is NOT th
 textbook one.
 
 `store/agg.py` keeps at most `CAP = 3` distinct candidate values per cell and discards the
-rest **with no record that it did** - no spill counter, no flag, no predicate. So:
+rest **with no record that it did** - no spill counter, no flag, no predicate, and no pair
+of retained fields that differ when it happens (`n == sum(top.values())` is an invariant
+since 2026-08-14; before that it was the leak that made the task 2 of 3). So:
 
 - sum/cnt are repairable by inverse delta, always.
 - min/max/top are repairable by inverse delta **only while the candidate set can still
@@ -42,9 +45,14 @@ rest **with no record that it did** - no spill counter, no flag, no predicate. S
   does not contain.
 
 Whether a cell can absorb a retraction is therefore a property of **that cell at that
-moment**, not of the aggregate kind. Two cells can reach byte-identical `top` maps with
+moment**, not of the aggregate kind. Two cells can reach byte-identical accumulators with
 different true answers; what separates them is how many distinct live values the cell is
-accountable for, which comes from the cell's dependency map.
+accountable for, which comes from the cell's dependency map and never from the accumulator.
+
+And completeness is only the **first** half. A cell that has lost values still absorbs a
+retraction that leaves its candidates standing; only a retraction that empties a candidate
+slot in an incomplete cell has to reread. Stopping at the first half is correct on every
+value and over budget on six of twelve, which is where the task now bites.
 
 - Expert time estimate: 8 hours
 - Why a frontier agent cannot one-shot the plan: the retrieved plan is the delta-lattice /
@@ -61,7 +69,9 @@ accountable for, which comes from the cell's dependency map.
   - removed `agg.exact()` - a shipped oracle; "rebuild iff not exact" was correct and free.
   - removed `agg.invertible()` - named the entire distinction.
   - removed the `spill` counter - made the loss readable off a public field with no
-    reasoning at all. This was the single most important cut.
+    reasoning at all. **This cut was not enough and cost an easiness rejection:** `acc.n`
+    minus `sum(acc.top.values())` was the same counter in two fields. Close derived
+    quantities, not named ones.
   - removed `repair.touched()` - did the membership check the solution needs, in an
     editable file.
   - removed `store/carry.py` and `store/stamp.py` - a second cache and a fingerprint that
@@ -71,13 +81,15 @@ accountable for, which comes from the cell's dependency map.
     would make the task unsolvable, so it stays.
   - preflight's 23 "unused public function" warnings are the documented false positive
     (methods reached through an instance). The proven task emits 50 of the same.
-- Expert path, step by step: read `fold` and see the cap discard silently; notice `n` is
-  kept but the discarded values are not; establish that a positive edit is always
+- Expert path, step by step: read `fold` and see the cap discard silently; establish that
+  the accumulator cannot report the loss, since its multiplicity tracks what it kept;
+  establish that a positive edit is always
   absorbable because fold and rebuild discard by the same rule; establish that a negative
   edit is absorbable only while the candidate set is a faithful witness; find the
   accountable live count in `cell.dep`; seed the retracted values into it so the
   membership case falls out; split an update into its two edits and judge each cell
-  independently.
+  independently; then find the second half, that an incomplete cell still absorbs any
+  retraction which leaves its candidate set standing.
 - Originality: the failure mode (bounded-state retraction repair) is distinct from the
   three used already - analytics mechanism reconstruction, cache coherence under weight
   pushes, checkpoint/resume state classification.
@@ -92,7 +104,8 @@ Graded, all-or-nothing, four axes:
 1. **Values.** Final view map and every emitted `(seq, group, kind, value)`, in order.
    Re-proved in-verifier by `tests/oracle.py`, sealed, sharing no code with the tree,
    folding over the full surviving multiset with no cap.
-2. **Work.** `folds` and `scans`, counted in `view/core.py` (not editable).
+2. **Work.** `folds` and `scans`, counted in `view/core.py` (not editable), graded as a
+   **ceiling** (at or under the budget) since 2026-08-14, never as an equality.
 3. **Evidence** (added 2026-08-13 after the anti-cheat rejection). The work journal
    `core.jrn`: one record per value folded, per group reread, per publication, each
    carrying the delta it was charged to. Counters must equal what the journal contains;
@@ -238,46 +251,55 @@ not a fourth in-process layer - it is to move the counting out of the process en
 - `tools/structcheck.py`: clean.
 - `scripts/preflight.py`: no errors.
 
-## Three-agent probe, 2026-08-13: 2 of 3. THIS IS AN EASINESS-PROBE REJECTION.
+## Easiness-probe rejection, 2026-08-14: 2 of 3, and why
 
-Run before packaging, three Opus agents in sealed copies of `environment/app_src` with the
-instruction and nothing else, graded through the real verifier.
+The pipeline probe solved it twice. The trajectory of one solve is the important artifact:
+it landed the whole answer in its **first write**, before running a single experiment, on
 
-**First measurement was 0 of 3, and it was wrong - my reference was the problem.** All
-three agents matched the reference on `folds` in all 12 scenarios and came in *under* it on
-`scans`. The cause: my reference called `core.rebuild()` to create a cell that did not
-exist yet, which charges a scan for re-reading a group that holds nothing. Two agents
-created the cell with `core.cell()` and folded, paying 0 scans for the identical answer.
-They were **strictly better than my reference** and were scored 0 for it. This is exactly
-the failure CLAUDE.md warns about - "before grading any optimisation counter, ask whether a
-better solution than yours would fail it" - and I hit it anyway. The reference was fixed
-(a cell that does not exist holds nothing to be stale, so create and fold, never scan),
-ground truth was regenerated, and the honest score is **2 of 3**.
+    held = sum(acc.top.values());  return held == acc.n
 
-The one failure (probe2) under-rebuilt: it absorbed edits it could not answer for, missing
-folds and scans on 8 of 12 with every published value still correct. So the fence catches
-the aggressive reading, and the two careful readings both found the real predicate.
+`acc.n` was total multiplicity ever folded and `sum(acc.top.values())` is what is still
+held, so **the difference between them was the spill counter this task was built to
+withhold**. The leak audit below records deleting `acc.spill` as "the single most important
+cut"; it removed the name and left the information in two fields. A leak audit has to close
+derived quantities, not named ones: for every pair of numeric fields the state exposes, ask
+whether `a - b` or `a == b` witnesses the distinction the task rests on.
 
-**Two attempts to widen the band were tried and both reverted, for the same reason:**
+Fixed in `store/agg.py`: eviction now decrements the multiplicity it discards, so
+`n == sum(top.values())` is an invariant and no pair of retained fields witnesses anything.
+Two cells that accounted for entirely different rows are now byte-identical. No published
+value and no counter moved. The trajectory's exact submission now scores 0, and it fails on
+values rather than on work, because its completeness test has become vacuous.
 
-1. *Second holder of retired cell state* (`store/hold.py`), the axis CLAUDE.md recommends.
-   Abandoned before completion - it adds a second mechanism and length, and there was no
-   probe budget left to validate that it moved the rate rather than just the runtime.
-2. *Charging store traffic.* The winning solutions call `ms.group()` freely to test
-   completeness - probe1 does **360** full store reads against the reference's 57 - because
-   only `core.rebuild()` increments `scans`. Counting reads at the store looked like the
-   exact fix. It is not: `ok-store-scan`, a correct variant that consults the row store
-   instead of the dependency map, disagrees with the reference on the new counter in **11
-   of 12** scenarios. Grading it would fail a correct solution, which is the run-audit
-   rejection. Reverted.
+The same trajectory found a **strictly better rule than the reference** - 45 folds and 2
+scans against 55 and 6, value-identical over its own 1400-scenario fuzz - and reverted it
+because the brief published 55 and 6. That is two separate findings: the published target
+told the solver when to stop, and equality grading was one submission away from a run-audit
+failure for punishing a better answer.
 
-The honest position: **the counter that would penalise the winning strategy is the same
-counter two correct implementations disagree on.** Anything that closes this gap has to
-make store traffic implementation-independent first - most plausibly by routing every group
-read through a non-editable accessor that the router must call, so all correct readings pay
-the same price - and that is a redesign of the environment, not a verifier tweak. Both
-solving agents also agree with the sealed oracle on 400 random streams, so they solved the
-problem rather than fitting the twelve scenarios.
+So the contract changed in three places, and they belong together:
+
+1. **The brief no longer states the target.** It grounds on the shipped engine's 120 folds
+   and 40 scans and says the work is graded against a budget without naming it.
+2. **Counters are graded as a ceiling.** At or under the budget passes. It cannot fail a
+   better answer, and it cannot be bought from below because the evidence axis ties both
+   counters to the journal and to the interpreter tally.
+3. **The budget comes from the sharpest correct rule.** The reference now also absorbs a
+   retraction that leaves the candidate set standing - a value the cell never held, or a
+   value another live row still carries - and only rereads when a retraction empties a
+   candidate slot in an incomplete cell.
+
+**Where the difficulty now lives.** Completeness is the easy half and is over budget on six
+of twelve; the slot test alone is over budget on two. Both ship as cheats
+(`cheat-complete-only.sh`, `cheat-slot-only.sh`), both publish every value correctly, and
+nothing in the environment tells a solver that the first half is not the answer.
+
+**The ceiling is a claim and it is proved, not asserted.** `authoring/fuzz.py` runs the
+reference against the sealed oracle on random streams - 2300 streams, ~33k published values,
+zero mismatches - and `build_gt.py` refuses to write a ground truth without a clean fuzz.
+Five variant readings (completeness from the dependency map, from the row store, from
+retained multiplicity; the two halves in either order) reach identical counters on all
+twelve scenarios.
 
 ## Gates NOT run
 

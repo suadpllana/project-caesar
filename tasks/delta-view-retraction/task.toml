@@ -22,23 +22,34 @@ the whole task.
 
 It is wrong because the accumulator in store/agg.py keeps at most three distinct candidate
 values per cell and discards the rest with no record that it did. There is no spill
-counter, no flag and no predicate that reports it, which is deliberate: an earlier build
-of this environment exposed one and the rule became readable off a field with no reasoning
-at all. So whether a cell can absorb a retraction is not a property of the aggregate kind,
-it is a property of that cell at that moment - it holds right up until the candidate set
-stops being able to answer for the group, and after that point folding a retraction in
-returns a number the group does not contain. The condition has to be derived by reading
-the fold and the cap in a file the agent may not edit, and it is fenced from both sides:
-rebuilding a cell that could have absorbed the edit is correct on values and wrong on
-work, absorbing an edit the cell could not answer for corrupts the value.
+counter, no flag and no predicate that reports it, and no pair of the fields it does keep
+witnesses the loss either: the multiplicity it carries is the multiplicity it is still
+holding, so it agrees with its own candidate counts whatever went over the side. Two cells
+that have accounted for entirely different rows can be byte-identical. That is deliberate
+and it has been got wrong twice here - an earlier build exposed a spill counter, and the
+build after it kept a total multiplicity that differed from the retained one, which is the
+same counter written in two fields. Completeness is therefore not a property the cell can
+report; it is a statement about the cell against its group, and reaching it means joining
+the candidates the accumulator holds to the rows the cell is accountable for, which live
+in a different structure.
 
-The cheap conservative test is the trap underneath the trap. acc.n is the multiplicity
-folded and len(acc.top) is how many candidates survived the cap, so n > len(top) looks
-like the loss detector and it is not: duplicates inflate n with nothing having been
-dropped, and a group of six rows over two distinct values trips it on every retraction.
-That reading is one of the shipped cheats; it returns every value correctly and misses the
-work on six of the twelve scenarios. What actually decides is the number of distinct live
-values the cell is accountable for, which the cell's own dependency map already carries.
+Completeness is only the easy half, and a submission that stops there is correct on every
+value and over the budget on six of the twelve scenarios, which is the second trap and the
+one that decides the task. A cell that has lost values can still absorb a retraction
+whenever the retraction leaves its candidates standing: retracting a value the cell never
+held cannot move an answer drawn from the values it does hold, and retracting one copy of
+a value another live row still carries leaves the same candidates behind. What forces a
+reread is the narrow case where a retraction empties a candidate slot in a cell that is
+not holding everything, because the value that should move up is exactly the one that was
+discarded. Both halves are shipped as cheats: the reading that rebuilds on any incomplete
+cell, and the reading that takes the slot test alone and rereads groups that had lost
+nothing.
+
+The fence closes on both sides. Rebuilding a cell that could have absorbed the edit is
+correct on values and over the budget; absorbing an edit the cell could not answer for
+corrupts the value. Neither half of the condition can be read off a field, and the second
+half is invisible to anyone who has already found a rule that publishes every number
+correctly.
 
 Three edges each kill an otherwise correct implementation. An update is two edits rather
 than one, and when it carries a new group the retracting half and the joining half land on
@@ -48,10 +59,12 @@ retracted, is not an edit and must not touch a cell at all. And a retraction of 
 the cell never held cannot move the answer, so treating every retraction as dangerous is
 the same overcaution again, priced in scans.
 
-There is no oracle for the graded quantity. The agent can check its values against a cold
-rebuild it writes itself, and it will find them correct under every one of the wrong plans
-above, because all of them publish the right numbers. Nothing it can run tells it the work
-is wrong. The engine ships with no comments anywhere in it and its identifiers are in the
+There is no oracle for the graded quantity, and no target to fit either: the brief states
+that the work is graded against a budget and does not say what the budget is. The agent
+can check its values against a cold rebuild it writes itself, and it will find them
+correct under every one of the wrong plans above, because all of them publish the right
+numbers. Nothing it can run tells it the work is wrong, and nothing tells it when it has
+done enough. The engine ships with no comments anywhere in it and its identifiers are in the
 register of ordinary internal code rather than self-describing ones, which is a design
 choice: the cap semantics, the dependency map and the two halves of an update have to be
 recovered by reading behaviour instead of by reading names.
@@ -71,13 +84,22 @@ partiality is not recorded anywhere.
 From that the predicate falls out in two parts rather than one. A positive edit is always
 absorbable, because folding a value in either lands it inside the candidate set or gets it
 discarded by the same rule a full rebuild would have applied to it, and the two agree. A
-negative edit is absorbable only while the candidate set can still answer for the group,
-and it stops being able to exactly when the cell holds fewer distinct values than the
-group does. The count of distinct live values the cell is accountable for comes from the
-cell's dependency map, which already holds one entry per live row, so the test costs no
-extra pass over the store. Seeding the retracted values into that set is what makes the
-membership case fall out for free rather than needing its own branch: a retraction of a
-value the cell never held pushes the accountable count past the candidate count by itself.
+negative edit is absorbable while the cell is still holding everything its group holds,
+which the accumulator cannot say on its own: the count of distinct live values the cell is
+accountable for comes from the cell's dependency map, which already holds one entry per
+live row, so the test costs no extra pass over the store. Seeding the retracted values
+into that set is what makes the membership case fall out for free rather than needing its
+own branch.
+
+That is where a careful solution stops, and it is over the budget. The second half is that
+a cell which has lost values can still take a retraction that leaves its candidates
+standing - a value the cell is not holding, or a value another live row still carries -
+and only a retraction that empties a candidate slot in an incomplete cell has to fall back
+to the row store. Five alternative correct implementations of the pair are kept in the
+authoring directory, deriving completeness from the dependency map, from the row store and
+from retained multiplicity, and testing the two halves in either order; all five reach the
+same counters on all twelve scenarios, which is the evidence that this is one condition
+rather than one author's taste.
 
 The driver hands the router the edits a delta produced rather than the delta, so the
 retracting half and the joining half are already separated and an update that moves a row
@@ -101,14 +123,23 @@ match it. Both the final view and every value published at a watermark advance a
 compared, in order, which catches a submission that repairs lazily and settles up at the
 end.
 
-The work has to match exactly too. folds and scans are counted inside view/core.py, which
-is not an editable artifact, so they measure real work whatever the submitted
-implementation looks like: a fold is one value actually folded into an accumulator and a
-scan is one group actually re-read from the row store. This is the axis that fails an
-engine that is merely safe, and it is where the interesting cheats land. Rebuilding every
-order-sensitive cell on any retraction, using multiplicity against candidate count as the
-loss test, and keeping only the sum path incremental all return every value correctly on
-every scenario and lose on the counters alone.
+The work is graded as a budget rather than as an equality. folds and scans are counted
+inside view/core.py, which is not an editable artifact, so they measure real work whatever
+the submitted implementation looks like: a fold is one value actually folded into an
+accumulator and a scan is one group actually re-read from the row store. Both have to come
+in at or under what the cheapest correct maintenance this environment allows spends. The
+direction is deliberate. An earlier version graded equality against a reference that a
+submitted solution beat on six of the twelve scenarios while publishing every value
+correctly, and the brief published the reference's figures, so the solution was reverted
+to match them - a verifier that makes a better answer worse is the run-audit failure this
+repo has already had once. A ceiling cannot do that, and it cannot be bought from below,
+because every counter is tied to evidence described next.
+
+This is the axis that fails an engine that is merely safe, and it is where the interesting
+cheats land. Rebuilding every order-sensitive cell on any retraction, using multiplicity
+against candidate count as the loss test, keeping only the sum path incremental, rebuilding
+whenever the cell has lost anything, and taking the slot test without asking about
+completeness all return every value correctly on every scenario and go over the budget.
 
 None of those numbers is believed on its own. Every one of them is produced inside the
 process that executed the submitted file, so the report is a claim, and the evidence for
@@ -140,12 +171,14 @@ Two things are deliberately outside the graded set, because grading them would m
 choice the task never asked the solver to make. One is any count of reads or writes
 against the row store, since a submission may legitimately batch or reorder its own reads.
 The other is the order in which a submission visits the cells one delta affects; only the
-publication order, which the non-editable driver produces, is compared as a sequence. Four
-alternative correct implementations are kept in the authoring directory and all four are
+publication order, which the non-editable driver produces, is compared as a sequence. Five
+alternative correct implementations are kept in the authoring directory and all five are
 required to score 1: one that derives the accountable set from the row store instead of
 the dependency map, one that restructures the predicate as a single pass with no set
-comprehension, one that drops the redundant membership branch, and one that omits the
-group filter that the dependency map already implies. An earlier version of the
+comprehension, one that decides completeness by retained multiplicity rather than by
+distinct values, one that tests the two halves of the condition in the opposite order, and
+one that omits the group filter that the dependency map already implies. All five reach
+identical counters on all twelve scenarios. An earlier version of the
 environment failed exactly this guard - two correct readings disagreed on the counters
 because the row store was mutated before the router ran - and the environment was changed
 so the two agree, rather than the verifier being loosened.
@@ -153,7 +186,7 @@ so the two agree, rather than the verifier being loosened.
 The lifecycle is checked as well: the driver's own trace of watermark advances, late
 arrivals and publications, in order.
 
-Twenty-two cheats were run against it and all scored 0, in both containers. Six are the
+Twenty-four cheats were run against it and all scored 0, in both containers. Eight are the
 reference with exactly one decision made the way a solver who missed one piece would make
 it, and their failure signatures are distinct and match the design: three fail on the work
 counters alone with every value correct, and three corrupt the values. Nine are

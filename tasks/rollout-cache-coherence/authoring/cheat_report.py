@@ -42,7 +42,7 @@ def trial(script: Path | None):
         if script is not None:
             body = script.read_text().replace("/app", app_live.as_posix())
             play = Path(tmp) / script.name
-            play.write_text(body)
+            play.write_text(body, newline="\n")
             proc = subprocess.run([bash(), str(play)], capture_output=True, cwd=tmp)
             if proc.returncode != 0:
                 print("  ! %s exited %d" % (script.name, proc.returncode), file=sys.stderr)

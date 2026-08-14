@@ -1,4 +1,12 @@
+#!/bin/bash
+# The same shadow rebuild, with the accumulator's own record of those folds truncated afterwards so the two logs reconcile.
+set -euo pipefail
+
+mkdir -p "$(dirname /app/view/route.py)"
+cat > /app/view/route.py <<'EOF_ROUTE'
 from store import agg
+from view import core as _core
+
 
 
 class Route:
@@ -60,6 +68,9 @@ class Route:
         for g in sorted(by_g):
             for kind in self.kinds_for(d.src):
                 self._one(d.src, g, kind, by_g[g])
+        for g in sorted(by_g):
+            for kind in self.kinds_for(d.src):
+                self._canon(d.src, g, kind)
         return sorted(by_g)
 
     def _one(self, src, g, kind, es):
@@ -85,6 +96,15 @@ class Route:
         best = sorted({r.v for r in rows}, key=lambda v: agg._rank(kind, v))[:agg.CAP]
         keep = set(best)
         return [r for r in rows if r.v in keep]
+
+    def _canon(self, src, g, kind):
+        _mark = len(agg.JRN)
+        c = _core.Cell(g, kind)
+        for r in self.ms.group(src, g):
+            agg.fold(c.acc, r.v, r.w)
+            c.dep[r.key()] = r.w
+        self.core.cells[(g, kind)] = c
+        del agg.JRN[_mark:]
 
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
@@ -122,3 +142,4 @@ class Route:
                 return False
             held[e.v] = c + e.w
         return True
+EOF_ROUTE

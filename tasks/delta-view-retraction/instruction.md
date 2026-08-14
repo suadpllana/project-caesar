@@ -8,9 +8,9 @@ maintenance incremental without moving a single published number.
 `/app/run_view.py` takes a scenario file and prints what the engine did with it. Feed it
 eight deltas against one group, five rows in and three of them retracted, and the view
 comes back sum 16, cnt 2, min 7, max 9, top 16, which is right: c and e survive at 9 and
-7. It got there with 120 folds and 40 scans. The same eight deltas want 55 folds and 6
-scans. Every delta throws the whole group away and rebuilds it from the row store, for
-every aggregate, whether or not anything that cell holds could have moved.
+7. It got there with 120 folds and 40 scans. Every delta throws the whole group away and
+rebuilds it from the row store, for every aggregate, whether or not anything that cell
+holds could have moved.
 
 Some ground rules, because several of them are not what you would do elsewhere.
 
@@ -19,6 +19,13 @@ engine emits at a watermark advance and the view it ends on have to stay exactly
 they are now, and we grade the emitted values in their order as well as the final view,
 so a submission that repairs lazily and settles up at the end has still failed every
 number it published on the way there even when the last one it prints is right.
+
+The work is graded as a budget. Both counters carry one, both budgets are a fraction of
+what you see now, and coming in under either of them is a pass while going over either is
+not, so there is nothing to be gained by matching a particular number and nothing lost by
+beating one. The budget is what this engine costs when nothing is reread that did not have
+to be reread and nothing is folded that did not have to be folded. The second costs as
+much as the first.
 
 The accumulator in `/app/store/agg.py` does not hold everything its group holds. It keeps
 a bounded set of candidates and drops the rest on the floor, silently, with no counter and
@@ -45,7 +52,11 @@ Late is a property of when we heard about a row, never of what the row does to i
 Leave the rest of the engine where it is. When the watermark advances, which cells get
 published and in what order, how the row store lands a delta, what the driver counts as
 late: none of that is what we are after. A run whose publications come out in a different
-order from the engine you were handed is a different engine.
+order from the engine you were handed is a different engine. Repairs go through the core:
+the two operations `/app/view/core.py` exposes are how a cell's accumulator gets touched,
+and we measure the aggregate work a run does wherever it happens, so a repair that folds a
+group back together by hand and drops the result into the cell map is charged for every
+value it folded.
 
 One file is yours. It is `/app/view/route.py`, and that path is the only thing we take out
 of your container, which means anything else you touch is not read, and that covers new

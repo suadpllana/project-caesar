@@ -36,6 +36,25 @@ def overlay(variant: str, dest: Path) -> None:
             shutil.copyfile(f, dest / rel)
 
 
+def stage(variant: str, dest: Path) -> None:
+    """Lay a variant's declared files out the way the harness uploads them.
+
+    The verifier attests the tree it executed against the pristine copy plus whatever was
+    uploaded at the declared paths, so the emulation has to produce that second tree too.
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    if variant == "shipped":
+        return
+    src = Path(variant)
+    if not src.is_absolute():
+        src = TASK / variant
+    for name, rel in EDITABLE.items():
+        f = src / name
+        if f.is_file():
+            (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(f, dest / rel)
+
+
 def run(variant: str) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         app = Path(tmp) / "app"

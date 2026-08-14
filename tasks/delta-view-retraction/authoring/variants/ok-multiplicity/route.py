@@ -40,23 +40,20 @@ class Route:
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
             return True
-        seen = []
-        for e in es:
-            if e.w < 0 and e.v not in seen:
-                seen.append(e.v)
-        if not seen:
+        neg = [e for e in es if e.w < 0]
+        if not neg:
             return True
-        for r in self.ms.group(src, g):
-            if r.v not in seen:
-                seen.append(r.v)
-        if not len(seen) > len(cell.acc.top):
+        rows = len(self.ms.group(src, g)) + len(neg)
+        kept = 0
+        for c in cell.acc.top.values():
+            kept += c
+        if kept >= rows:
             return True
-        left = dict(cell.acc.top)
-        for e in es:
-            if e.w >= 0:
-                continue
-            if e.v in left:
-                left[e.v] = left[e.v] + e.w
-                if left[e.v] < 1:
+        held = dict(cell.acc.top)
+        for e in neg:
+            c = held.get(e.v)
+            if c is not None:
+                if c + e.w < 1:
                     return False
+                held[e.v] = c + e.w
         return True

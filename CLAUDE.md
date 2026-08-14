@@ -4,6 +4,12 @@ Operating manual for a session with no memory of the earlier ones. Two tasks her
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
 built and gated locally but has not been through the pipeline yet.
 
+**`delta-view-retraction` failed the easiness probe twice and then passed it, on
+2026-08-14.** That is the only worked example in this repo of a rejected task being fixed
+rather than abandoned, and the procedure is written up as "The playbook" below. Read that
+before touching a task that has come back too easy - the two rounds that failed were both
+spent fixing the wrong thing.
+
 **Caveat on `reaction-network-reconstruction`, added 2026-08-13.** It cleared the pipeline
 once, but a local three-agent probe run after a leak-hardening pass came back **3 of 3**.
 Do not treat it as a model to copy: it is the worked example of the self-confirmation
@@ -22,7 +28,7 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
-| `delta-view-retraction` | Software / Databases | 14 | 62 | 14400 s | 8 h |
+| `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
 
 `typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
@@ -31,15 +37,24 @@ read "The human-review rejection" before touching it, because a wholesale instru
 was tried on 2026-08-13 and failed the AI check the original had passed. It is also the only
 bundle here whose verifier drives a real browser rather than a Python runner.
 
-`delta-view-retraction` is the fifth and the first outside ML. It is **built and fully
-gated locally but came back 2 of 3 on the local three-agent probe**, which is an easiness
-rejection, so it is not submission-ready as it stands. The probe post mortem and the two
-reverted attempts to widen the band are in its `STATE.md` and summarised below.
+`delta-view-retraction` is the fifth and the first outside ML, and it is the one that has
+been all the way round the loop: **easiness 2 of 3, then 3 of 3, then a pass**. The two
+failures and what was measured in each are in "The easiness rejection" below; the procedure
+distilled out of them is "The playbook". Short version: patching leaks on a shallow
+mechanism does not work, because the question the task asked was answerable in one line and
+then in two. What fixed it was a second graded quantity that a short rule cannot express,
+arranged so that finding it breaks the natural implementation of the first.
 
 It was submitted anyway on 2026-08-13 and bounced off the **bundle structure check** before
 reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
-and the zip rebuilt; see "The bundle-structure rejection" below. The 2-of-3 easiness problem
-above is untouched by that fix and is still the reason this task is not ready.
+and the zip rebuilt; see "The bundle-structure rejection" below. It then failed the
+**instruction concision** review and, on resubmission, the **anti-cheat gate**: an
+adversarial agent passed it without doing the work, then by the **anti-cheat gate a
+second time**, on a different mechanism: a submission whose counted path was entirely
+correct, doing the real work beside it where no counter could see. All are fixed - see "The
+anti-cheat rejection" below and its second half, which is the section to read first, because the hole it describes is in
+every other task in this repo too. The 2-of-3 easiness problem above is untouched by any of
+those fixes and is still the reason this task is not ready.
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
@@ -152,7 +167,7 @@ through an instance, so read them, do not obey them blindly.
 | AI-text screen | the instruction | `tools/textcheck.py` against both passing briefs |
 | similarity screen | reskins of earlier work | a genuinely different failure mode |
 | quality review | unfair specs, thin tests, bad tags | `docs/QUALITY-REVIEW.md` walked criterion by criterion |
-| anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0 |
+| anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0, **including one generated from the task's own ground truth** - see the anti-cheat section, a suite of wrong implementations tests the problem and not the verifier |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
 | easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
 
@@ -554,6 +569,376 @@ Backticks are house style rather than a discriminator, worth knowing before anyo
 time on it: all four briefs that cleared the AI-text screen contain **zero** backticks. The
 rewrite adds them because the reviewer asked and they cost nothing, not because their
 absence has ever failed a screen.
+
+## The anti-cheat rejection: a report is a claim, not evidence
+
+`delta-view-retraction` was rejected by the **anti-cheat gate** on 2026-08-13, after the
+concision fix, with all fourteen cheats scoring 0 and every other local gate green. An
+adversarial agent passed without doing the work. It was reproduced here in ten minutes and
+it is now `cheat/cheat-hijack-report.sh`: a `route.py` that maintains nothing, imports
+`scen` from `/tests` to identify which scenario is running, and reassigns
+`view.drv.Drv.report` to return the ground truth. **62 of 62 assertions passed, reward 1.**
+
+Nothing was broken out of. The run was sandboxed, `gt.json` was root-only, and the
+privilege drop worked. The hole is narrower and it generalises to every task in this repo:
+
+> **Everything the verifier compared was produced inside the process that executed the
+> agent's file.** The view, the emit log, the lifecycle trace and both work counters were
+> read off objects the submitted file holds a live reference to. `core.folds` is an
+> assignable integer attribute.
+
+The counters were the whole difficulty argument - "counted in `view/core.py`, which is not
+an editable artifact, so they measure real work whatever the implementation looks like" -
+and that sentence is false the moment the counting object is reachable from the editable
+file. Non-editable is not the same as out of reach.
+
+Three assumptions died with it, and each was load-bearing somewhere:
+
+1. **"They cannot forge it because they do not know the numbers."** The anti-cheat gate
+   models an adversary who has read the verifier. Sealing `gt.json` stops it being read at
+   run time; it does not stop it being known. Design as though the answer key is public,
+   because to this gate it is. (This one was hiding in plain sight: the instruction itself
+   publishes one scenario's counters, since the brief has to quote a real run.)
+2. **"The counters live in a file the agent may not edit."** `test.sh` did
+   `chown -R sandbox /work`, and the runner re-imports the tree per scenario, so the run
+   could rewrite `view/core.py` on disk between scenarios. The declared artifact set is a
+   statement about what the *harness* copies, never about what the *run* can touch.
+3. **"The isolation cheats prove the verifier is sound."** They prove it rejects attacks on
+   the reward channel. Every one of them also fails on values, so none of them ever tested
+   whether a submission holding the right values could pass without earning them.
+
+**The fix is to grade evidence rather than a report.** The engine now records a work
+journal in the non-editable core - one record per value folded, per group reread, per
+publication, each tagged with the delta it was charged to - and the verifier believes no
+number without it:
+
+- counters must **equal** what the journal contains, so a counter cannot be assigned;
+- the journal replayed through a **second, independently written** implementation of the
+  accumulator, sealed in `tests/oracle.py`, must reproduce the view and the values the
+  submission published, so an answer cannot be pasted in;
+- every record must be one the scenario **made possible** - a reread folds exactly the
+  rows the store held at that delta, an incremental fold matches an edit that delta
+  produced and is charged once, and nothing is charged to a group the delta never touched;
+- the executed tree is **hashed against the pristine copy** after the run, so the counters
+  cannot be moved by rewriting the file that keeps them.
+
+Forging a report that survives all four is performing the maintenance. The general shape,
+which is what to carry to the next task: **for every graded quantity, ask what the verifier
+would accept as proof that it was earned, and grade that instead of the quantity.** A
+number is never its own evidence when it comes back from the agent's process.
+
+Two supporting changes worth copying, and worth not overrating. The output file is opened
+by root and handed to the runner as an inherited descriptor after the privilege drop, so
+the uid running agent code does not own the file it is graded on; and the report carries a
+per-run nonce. Both stop *out-of-process* planting. Neither touches in-process forgery -
+only the journal does - so do not let them stand in for it. `tests/test_outputs.py` is now
+`600` alongside `gt.json` and `oracle.py`, because the run could otherwise read exactly
+which records the grader checks for.
+
+`tools/forgecheck.py` is the mechanical version and it is now in the gate list. It requires
+a task's `cheat/` to contain at least one probe **generated from its own `tests/gt.json`**
+and every cheat to score 0. Validated in both directions: clean on the hardened
+`delta-view-retraction`, and it **fires on `rollout-cache-coherence`,
+`checkpoint-resume-drift` and `turn-seam-alignment`, none of which has ever been tested
+against a submission holding its answer key.** Two of those cleared the pipeline before
+this gate existed. Assume the same hole is in all three and fix it before either is
+resubmitted - the fix is the journal, not another cheat.
+
+One measured non-finding, recorded so nobody rebuilds it. Adding a counter of row-store
+reads to catch the same class of cheating does not work and is the trap documented further
+down: `ok-store-scan`, a correct variant, disagrees with the reference on it in 11 of 12
+scenarios. The evidence check is not a new counter, which is exactly why it is safe - it
+grades the *derivability* of the numbers already agreed on, and all four `ok-*` variants
+still score 1 with no change to any of them.
+
+### The second rejection: the counted path can be right and not be the path
+
+The journal hardening went back to the gate and was rejected again the same day, by a
+different mechanism, and this one is worth separating in your head because "grade evidence
+instead of the report" does not cover it. **The adversary forged nothing.** Its `route.py`
+kept the reference decisions on the counted path - so the values, the counters, the journal,
+the replay and the audit were all genuinely correct - and added one extra method that, for
+every group the delta touched, called `agg.fold` **directly** and dropped a freshly built
+cell into `core.cells`. Reproduced as `cheat/cheat-shadow-rebuild.sh`: **reward 1**, on an
+engine doing a full group rebuild per delta while reporting an incremental cost.
+
+The counted path was correct and was no longer the path that did the work. That is the trap
+this file already names two sections down - *the work an agent can do for free is the work
+your counters do not see* - arriving through the accumulator rather than through the row
+store, and neither the journal nor the replay nor the audit can see it, because every record
+in all three is true.
+
+The general form, and it applies to every task here: **an instrumented API is only a
+measurement if it is the only way to reach the state it instruments.** Ask at contract time
+which objects a submission can touch directly, and count at the point the expensive thing
+happens rather than at the call you hope it goes through.
+
+Three layers, each because the one above it can be stepped around:
+
+1. **Count at the source.** `store/agg.py` records every fold where it happens, and the
+   verifier requires that list to be the same list, in order, as the folds the core charged
+   for. Kills the plain shadow rebuild.
+2. **Let the interpreter count.** `runner.py` arms `sys.monitoring` on the code objects of
+   `agg.fold` and the two core operations, keeps the tally **in a closure rather than in the
+   tree**, and requires it to equal ground truth. This is the layer that survives
+   `del agg.JRN[mark:]`, which otherwise makes layer 1 reconcile perfectly. `disarm()` also
+   reports whether the tool was still registered and armed at the end, so turning the
+   instrumentation off fails rather than passing quietly. The verifier image is 3.12 and
+   `test.sh` sets `REQUIRE_MONITORING=1`; the `sys.setprofile` fallback is for authoring
+   hosts on 3.11 and is not a path a run can fall back to.
+3. **Fingerprint the functions as they executed**, at import and at the end of each
+   scenario, against digests the grader derives by *compiling* the pristine sources (nothing
+   is executed). Catches rebinding `agg.fold` to a quiet copy, which defeats the bookkeeping
+   in layers 1 and 2 but not their existence. This is the in-process twin of hashing the
+   tree on disk, and it independently re-catches the `Drv.report` hijack.
+
+All four attacks are now generated cheats (`shadow-rebuild`, `shadow-hide-log`,
+`shadow-kill-monitor`, `patch-fold`) and all score 0 in the real container. Two notes for
+whoever does this next:
+
+- **A cheat that dies on a `NameError` has not been rejected by anything.** The first
+  generated `patch-fold` put its prologue above the import it used, scored 0, and proved
+  nothing. Check *which* assertion fired, every time - `cheat_report.py` prints it.
+- **Adding the rule to the instruction cost paragraph variance.** A new four-line paragraph
+  took paragraph-length sd to 27.2 against the 39.4 `textcheck.py` wants, which is the
+  regularising-toward-the-mean signature that got an earlier brief rejected. Folding the
+  same sentence into an existing paragraph fixed it with no content change. Re-run
+  `textcheck.py` after any content addition, not only after a style pass.
+
+**The floor, and say it out loud in the handover.** Agent code shares an interpreter with
+the instrumentation, so none of this is a proof. What it buys is that every bypass is now an
+explicit, separately detectable act. A determined adversary could still reach the tally
+closure through `gc.get_referrers`. If that turns up, the answer is not a fourth in-process
+layer: it is to run each scenario as a child process and instrument it from the parent.
+
+## The easiness rejection: a derived field is still a field
+
+`delta-view-retraction` came back **2 of 3** from the easiness probe on 2026-08-14, and the
+trajectory of one solve is the most useful artifact this repo has produced. It solved the
+task in **one write**, before any experiment, on this line:
+
+```
+held = sum(acc.top.values())
+return held == acc.n          # nothing was dropped, so the cell can absorb
+```
+
+The whole difficulty argument was that the accumulator discards values **with no record
+that it did** - "no spill counter, no flag, no predicate", and the leak audit in STATE.md
+records deleting `acc.spill` as "the single most important cut". That cut removed one
+field and left the same information in two: `acc.n` was total multiplicity ever folded and
+`sum(acc.top.values())` is the multiplicity still held, so **their difference is the spill
+counter**, spelled across two fields instead of one.
+
+**The rule, and it generalises past this task: a leak audit has to close derived
+quantities, not named ones.** Deleting a field named `spill` proves nothing. Ask instead
+which *pairs* of shipped fields differ exactly when the hidden thing happened, and check
+them mechanically - for every pair of numeric fields the state exposes, is `a - b`, `a ==
+b` or `len(a) == len(b)` a witness for the distinction the task is built on? Here one pair
+out of a handful was, and it collapsed an eight-hour task into a five-minute one.
+
+The fix is one line in `store/agg.py`: eviction now decrements the multiplicity it
+discards, so `n == sum(top.values())` always holds and no pair of retained fields witnesses
+anything. Two cells that accounted for entirely different rows are now byte-identical, which
+is what STATE.md always claimed. **No published value and no counter moved**, so the fix
+cost nothing in recalibration.
+
+### Publishing the target counter is a second answer key
+
+The same trajectory found a **strictly better** rule than the reference - 45 folds and 2
+scans against 55 and 6, value-identical over its own 1400-scenario differential fuzz - and
+then **reverted it**, in its own words, because the brief published 55 and 6 and matching
+the stated figure passes under both an exact-match and an at-most grader. So the published
+number did two kinds of damage: it told the solver when to stop reasoning, and it let a
+solver pick between correct rules by fitting rather than by deriving. It also proved the
+verifier was one submission away from the **run audit**, because equality grading would
+have failed the better answer.
+
+Three changes, and they belong together:
+
+1. **The brief no longer states the target.** It grounds on what the shipped engine spends
+   (which is the observed-run grounding `structcheck.py` wants) and says the work is graded
+   against a budget without naming it.
+2. **The counters are graded as a ceiling, not an equality.** A submission passes at or
+   under the budget. This cannot fail a better answer, and it cannot be bought from below,
+   because the evidence axis ties both counters to a journal that has to reproduce the
+   published values and to the interpreter's own tally.
+3. **The budget comes from the sharpest correct rule, not the most natural one.** The
+   conservative reading - rebuild whenever the cell has lost anything - is correct on every
+   value and now goes **over budget on six of the twelve scenarios**. It ships as
+   `cheat-complete-only.sh`. So does the other half on its own, as `cheat-slot-only.sh`.
+
+That last one is where the difficulty now lives: the solver has to find that completeness
+is the *easy* half, and that a cell which has lost values can still absorb a retraction
+that leaves its candidates standing. The first half publishes every number correctly, so
+nothing in the environment tells them to keep going.
+
+### Leak-patching has a floor, and this task hit it
+
+The fix above went back to the probe and came back **3 of 3**. The winning line, again
+written before any experiment:
+
+```
+return acc.n == len(c.dep)      # retained multiplicity vs live rows
+```
+
+I had closed `n` against `sum(top.values())`; it used `n` against `len(dep)`. That is the
+third instance of one class, and **the third one cannot be closed.** Retained multiplicity
+is inherently visible in the candidate counts, the live row count is inherently available
+from the row store, and completeness is the comparison of the two. There is no fourth patch.
+
+**The finding, and it is the one to carry to a new task: ask how many lines the answer is.**
+The absorb-or-rebuild predicate here is five, and a frontier model writes five correct lines
+cold, whatever you hide. A task whose central question has a short answer cannot be made
+hard by obscuring the inputs to it; the only thing that works is a second thing to find that
+the first answer does not reveal. Design that in at Stage 2, and if you cannot name it,
+the mechanism is too shallow and the seed is wrong.
+
+The second thing here was sitting in plain sight and both solving agents walked past it:
+**a rebuild folds more than it needs to.** `fold` keeps CAP distinct values and discards
+the rest by a rule that does not depend on arrival order, so only rows carrying a surviving
+value need folding at all. Both trajectories handed `core.rebuild` the entire group. The
+budget now comes from the minimal rebuild, which is enough to fail both of them, and it
+ships as `cheat-full-rebuild.sh` - repair decision exactly right, every value correct, over
+the fold budget.
+
+**And the two findings interact, which is the part worth copying.** Once a rebuild folds a
+subset, `cell.dep` names the rows that were folded rather than the rows the group holds, so
+the cheap completeness test - the very line the 3-of-3 agent used - starts calling an
+incomplete cell complete and corrupts values. Finding the second optimisation *breaks the
+first answer*. That is the shape to aim for: not two independent hurdles, but a second
+discovery that invalidates the natural implementation of the first.
+
+**One process lesson, cheap and general.** That combination scored **1** when first written
+as a cheat, because none of the twelve scenarios caught it. It is wrong in general - proved
+by fuzzing it against the sealed oracle, then shrinking to an eight-op counterexample, which
+is now the thirteenth scenario. **A cheat that scores 1 is either a correct implementation
+or a hole in your scenario set, and fuzzing against the oracle is what tells you which.**
+Do not promote it to `variants/` until you have asked.
+
+**Guard for the ceiling, and do not skip it.** A budget taken from your own reference is a
+claim that no correct implementation needs more. Prove it before shipping: `authoring/fuzz.py`
+runs the reference against the sealed oracle on random streams (2300 streams and 33k
+published values here, zero mismatches) and `build_gt.py` refuses to write a ground truth
+without it, and `variants/` now holds **five** readings - completeness from the dependency
+map, from the row store, and from retained multiplicity, and the two halves tested in either
+order - which reach identical counters on all twelve scenarios. Five independent readings
+converging is what makes a ceiling defensible rather than one author's taste.
+
+## The playbook: fixing a task that fails the easiness probe
+
+`delta-view-retraction` failed easiness twice and then passed. It is the only task here
+that has done that, so this is the procedure that worked, in order, with the numbers. Every
+step is cheap; the expensive thing is guessing instead of measuring.
+
+**0. Do not rewrite anything yet.** Two of the three rounds on this task were spent fixing
+the wrong thing, because the fix was chosen from the probe score rather than from the
+evidence. The score tells you the task is too easy. It does not tell you why.
+
+**1. Get the trajectory and find the line.** Ask for the solve transcript. Skip the
+narrative and look for the moment the answer appears - typically the first `Write`, before
+the agent has run any experiment. Both solves here were decided by one line:
+
+```
+held == acc.n                 the 2-of-3 solve
+acc.n == len(c.dep)           the 3-of-3 solve
+```
+
+If the answer appears before the first experiment, the task is not testing derivation, it
+is testing recall of a short expression. That is the finding, and the rest follows from it.
+
+**2. Reproduce it against your own verifier.** Paste the submission into
+`authoring/trial.py` and grade it. This takes minutes, and it does two things: it confirms
+the leak is real rather than inferred, and it gives you the regression test you will use to
+prove the fix. Both trajectories are kept in this repo for exactly that, and both are
+re-graded after every change to the task.
+
+**3. Ask how many lines the answer is, mechanically.** `tools/onelinecheck.py <slug>` reads
+`authoring/decisions.py`, which the task supplies, and searches for the shortest exact rule
+over the fields the environment already exposes. On this task it reports:
+
+```
+fold-count      49 samples   no exact rule at depth <= 2
+repair         120 samples   EXACT: accn > rows or negs != retmin
+repair-legacy  120 samples   EXACT: accn > rows
+```
+
+`repair-legacy` is the pre-fix build and it is a **one-term** rule, which is what a probe
+solves cold. `repair` is two terms, which a probe also solves cold - the 3-of-3 solve was
+exactly that. The task is defensible only because `fold-count` is neither.
+
+**4. Try to close the pair once, and only once.** A named leak is easy to delete and it is
+never the whole leak: what a solver reads is a *difference between two fields that are each
+innocent*. Deleting `acc.spill` left `acc.n - sum(top.values())`. Closing that left
+`acc.n - len(dep)`. Ask which pairs of exposed numbers differ exactly when the hidden thing
+happened, and close the cheapest one - then check whether another pair says the same thing.
+If it does and you cannot remove it either, stop patching. On this task the third pair was
+inherent: retained multiplicity is visible in the candidate counts, the live row count is
+visible from the row store, and completeness is the comparison of the two. There is no
+fourth patch and looking for one costs a day.
+
+**5. Add a second thing to find, and make it break the first answer.** This is the step
+that actually moved the probe. Two independent hurdles are worth much less than one
+discovery that invalidates the natural implementation of the other. Here the second finding
+is that a reread folds more than it needs to - the accumulator keeps CAP distinct values and
+discards the rest, so only rows carrying a surviving value need folding - and finding it
+turns `cell.dep` from the obvious source of the first answer into a trap, because after a
+partial reread it names the rows folded rather than the rows the group holds. A solver who
+finds the second optimisation and keeps the first implementation publishes wrong values.
+
+**6. Ship every stopping point as a cheat.** Every place a reasonable solver could stop, at
+which the values are all correct, becomes a generated cheat that must score 0:
+`complete-only` (the first half alone), `slot-only` (the second half alone), `full-rebuild`
+(both halves, naive reread), `dep-completeness` (the interaction, missed). Each must fail on
+the axis it is aimed at - check *which* assertion fired, because a cheat that dies on a
+`NameError` has been rejected by nothing.
+
+**7. When a cheat scores 1, do not promote it.** It is either a correct implementation or a
+hole in your scenario set, and fuzzing against the sealed oracle is what tells you which.
+`dep-completeness` scored 1 here, was proved wrong on random streams, was shrunk to an
+eight-op counterexample, and that counterexample is now a scenario. The same check caught a
+second gap later: `onelinecheck` reported `fold-count` as *"one outcome only - not a
+decision"*, because every reread in the set happened to fold exactly CAP rows, so the second
+finding collapsed to a constant. One scenario with duplicates standing on the surviving
+values fixed it, and the fold count now differs between `min` and `max` on the same group at
+the same moment.
+
+**8. Grade a ceiling and never publish the target.** The 2-of-3 solve found a rule strictly
+better than the reference, and *reverted it* because the brief published the reference's
+figures. A published number tells the solver when to stop and lets them choose between
+correct rules by fitting. An equality grader also fails the better answer, which is the run
+audit. Budget grading fixes both, and it costs nothing: the evidence axis stops anyone
+buying their way under the ceiling.
+
+**9. Prove the ceiling before you believe it.** A budget taken from your own reference is a
+claim that no correct implementation needs more work than yours. `authoring/fuzz.py` runs
+the reference against the sealed oracle on random streams and `build_gt.py` refuses to write
+a ground truth without a clean run; `variants/` holds five independent readings that all
+reach identical counters. Five readings converging is what makes the number defensible.
+
+**10. Re-grade the trajectories.** The fix is done when the submissions that beat you score
+0, every alternative correct reading still scores 1, and the container trial is clean. On
+this task: both solves 0, 5 of 5 variants 1, 26 cheats 0, 28 of 28 trials.
+
+### Applying this to the other tasks in this repo
+
+None of `rollout-cache-coherence`, `checkpoint-resume-drift` or `turn-seam-alignment` has
+been through any of it. Concretely, for each of them:
+
+- **Write `authoring/decisions.py` and run `tools/onelinecheck.py`.** This is the cheapest
+  possible read on whether a task will fail easiness, and it can be done before any probe
+  is spent. The contract is small: return the graded decisions your reference makes, as
+  rows of integer features an agent can read at that moment, plus the label you chose. If
+  every graded decision comes back as a one- or two-term rule, the probe will solve it.
+- **Run `tools/forgecheck.py`.** All three fail it today: none has ever been tested against
+  a submission holding its own answer key, and two of them cleared the pipeline before that
+  gate existed.
+- **Check the brief for a published target.** `turn-seam-alignment` states a character
+  count; `rollout-cache-coherence` and `checkpoint-resume-drift` quote counters. Anything
+  the verifier grades and the brief states is a stopping signal, and if the grader is an
+  equality it is also a run-audit exposure.
+- **Ask what the second thing to find is.** If the answer is "there isn't one", that task
+  will fail easiness however many leaks get patched, and the honest move is a redesign at
+  Stage 2 rather than another round of hardening.
 
 ## The bundle-structure rejection: the tree is not the zip
 
@@ -1098,6 +1483,17 @@ python3 tools/structcheck.py <draft>            instruction structure; run again
                                                 passing briefs too, it must stay clean on them
 python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, and every
                                                 folds/scans figure still matches gt.json
+python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
+                                                gt.json must score 0, or the verifier is
+                                                grading a report instead of evidence
+python3 tools/onelinecheck.py <slug>            how short is the answer? every graded
+                                                decision reproduced by a two-term rule over
+                                                exposed fields is an easiness rejection
+                                                waiting to happen. Needs the task to ship
+                                                authoring/decisions.py
+python3 tasks/<slug>/authoring/fuzz.py 800      the reference against the sealed oracle on
+                                                random streams, before any budget taken
+                                                from the reference is believed
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness
@@ -1172,6 +1568,13 @@ does not produce the token streams they expect. `cheat-peek-scenarios.sh` docume
 
 ## Sandbox notes
 
+- **Check which host you are on before believing the next bullet.** On the Linux sandbox
+  (checked 2026-08-13) docker and dockerd are both present at `/usr/bin`, the daemon needs
+  starting by hand, `mirror.gcr.io/library/python:3.12-slim` pulls fine, and
+  `tools/docker_trial2.py <slug> --all` runs the real two-image trial in a couple of
+  minutes. That is the gate that verifies the privilege drop, the locked reward channel
+  and the root-only ground truth, so run it rather than reasoning about it: it found
+  nothing wrong here, but the host emulation cannot tell you that.
 - **On the Windows authoring host (checked 2026-08-13) Docker is not installed at all.**
   `C:\Program Files\Docker\Docker\resources\bin` is on `PATH` but the directory does not
   exist, so `docker` and `dockerd` are both absent from Bash and PowerShell, and the

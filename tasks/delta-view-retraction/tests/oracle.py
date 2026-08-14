@@ -12,6 +12,16 @@ The emit schedule is reproduced here too, because the values the engine logs dep
 when the watermark closed and which cells existed at that moment. That schedule is a
 property of the driver the agent may not edit, so reproducing it independently is a check
 that the submission did not move it.
+
+The second half of the file is the evidence side. A report is a claim; the work journal
+view/core.py records is the evidence for it, and Bag/replay/audit below are what turn that
+evidence back into the claim. Bag is a second, independently written implementation of the
+bounded accumulator in store/agg.py: replay folds the recorded work through it and must
+land on the values the submission published, and audit checks every record against what
+the scenario makes possible - a rebuild must fold exactly the group the row store held at
+that moment, an incremental fold must correspond to an edit that delta actually produced,
+and neither may be charged to a cell the delta never touched. Counters are not trusted at
+all: they are required to equal the journal, and the journal has to survive both passes.
 """
 
 
@@ -46,6 +56,9 @@ class Truth:
         self.trace = []
         self.revised = 0
         self.seen = set()
+        self.edits_at = {}
+        self.src_at = {}
+        self.live_at = {}
 
     def kinds_for(self, src):
         return sorted(k for k, srcs in self.spec.items() if src in srcs)
@@ -78,18 +91,39 @@ class Truth:
             self.trace.append(["late", self.seq, src, k])
             self.revised += 1
 
+        # The edits a delta produces, derived here rather than read from the engine: the
+        # prior row leaves its group with weight -1, the row that lands joins its group
+        # with weight +1, and a delta that changes nothing produces neither. audit() uses
+        # this to decide which folds a submission was entitled to charge for.
         prior = self.rows.get((src, k))
+        edits = []
+        if prior is not None and prior["w"] > 0:
+            edits.append([prior["g"], prior["v"], -1])
+        landed = None
         if op == "ins":
-            self.rows[(src, k)] = {"g": rec.get("g") or "", "v": rec.get("v", 0), "w": 1}
+            landed = {"g": rec.get("g") or "", "v": rec.get("v", 0), "w": 1}
         elif op == "del":
-            if prior is not None and prior["w"] > 0:
-                self.rows[(src, k)] = {"g": prior["g"], "v": prior["v"], "w": 0}
+            if prior is None or prior["w"] <= 0:
+                edits = []
+            else:
+                landed = {"g": prior["g"], "v": prior["v"], "w": 0}
         elif op == "upd":
             if prior is None or prior["w"] <= 0:
-                self.rows[(src, k)] = {"g": rec.get("g") or "", "v": rec.get("v", 0), "w": 1}
+                landed = {"g": rec.get("g") or "", "v": rec.get("v", 0), "w": 1}
             else:
                 g = rec.get("g") if rec.get("g") is not None else prior["g"]
-                self.rows[(src, k)] = {"g": g, "v": rec.get("v", 0), "w": 1}
+                landed = {"g": g, "v": rec.get("v", 0), "w": 1}
+        else:
+            edits = []
+        if landed is not None:
+            self.rows[(src, k)] = landed
+            if landed["w"] > 0:
+                edits.append([landed["g"], landed["v"], 1])
+
+        self.edits_at[self.seq] = edits
+        self.src_at[self.seq] = src
+        for e in edits:
+            self.live_at[(self.seq, e[0])] = self.live(src, e[0])
 
         # A cell exists once anything has been routed at it, which is what decides
         # membership of the emit sweep below.
@@ -120,3 +154,287 @@ class Truth:
                     vals.extend(self.live(s, g))
                 out["%s|%s" % (g, kind)] = _fold(kind, sorted(vals))
         return out
+
+    def kinds_for(self, src):
+        return set(k for k, srcs in self.spec.items() if src in srcs)
+
+
+# ---------------------------------------------------------------------------
+# The evidence side.
+#
+# CAP is the bound store/agg.py holds its candidates under. It is restated here rather
+# than imported, because the point of this module is to be a second opinion: if the two
+# ever drift apart, build_gt.py fails before a ground truth is written.
+
+CAP = 3
+
+# The engine functions a submission must not replace. The run reports a fingerprint of
+# each one as it actually executed; the grader compiles the pristine sources and requires
+# the two to agree, which is the in-process counterpart of hashing the tree on disk.
+SEALED = (
+    ("store/agg.py", "fold"),
+    ("store/agg.py", "value"),
+    ("store/rows.py", "Mset.group"),
+    ("view/core.py", "Core.apply"),
+    ("view/core.py", "Core.rebuild"),
+    ("view/core.py", "Core.emit"),
+    ("view/core.py", "Core.tick"),
+    ("view/core.py", "Core.report"),
+    ("view/land.py", "land"),
+    ("view/drv.py", "Drv.feed"),
+    ("view/drv.py", "Drv._close"),
+    ("view/drv.py", "Drv.report"),
+)
+
+
+def fingerprint(code):
+    """A digest of a code object that does not depend on where it was loaded from."""
+    import hashlib
+    import types
+
+    h = hashlib.sha256()
+    h.update(code.co_code)
+    h.update(repr(code.co_names).encode("utf-8"))
+    h.update(repr(code.co_varnames).encode("utf-8"))
+    for k in code.co_consts:
+        if isinstance(k, types.CodeType):
+            h.update(fingerprint(k).encode("utf-8"))
+        else:
+            h.update(repr(k).encode("utf-8"))
+    return h.hexdigest()
+
+
+def expected_fingerprints(tree):
+    """Compile the pristine sources and fingerprint the same functions. Nothing runs."""
+    import os
+    import types
+
+    out = {}
+    for rel, qual in SEALED:
+        path = os.path.join(tree, rel)
+        if not os.path.isfile(path):
+            continue
+        with open(path) as fh:
+            top = compile(fh.read(), rel, "exec")
+        want = qual.split(".")[-1]
+        stack = [top]
+        while stack:
+            code = stack.pop()
+            for k in code.co_consts:
+                if isinstance(k, types.CodeType):
+                    if k.co_name == want and k.co_qualname.endswith(qual):
+                        out["%s:%s" % (rel, qual)] = fingerprint(k)
+                    stack.append(k)
+    return out
+
+
+class Bag:
+    """A second implementation of the bounded accumulator, written independently.
+
+    Same semantics as store/agg.py and none of its code: a running total for the
+    invertible kinds, and for the order-sensitive ones a candidate map that keeps the CAP
+    best distinct values and silently forgets the rest.
+    """
+
+    __slots__ = ("kind", "tot", "mult", "cand")
+
+    def __init__(self, kind):
+        self.kind = kind
+        self.tot = 0
+        self.mult = 0
+        self.cand = {}
+
+    def _best(self, vals):
+        if self.kind == "min":
+            return sorted(vals)
+        return sorted(vals, reverse=True)
+
+    def fold(self, v, w):
+        if self.kind == "sum":
+            self.tot += v * w
+            self.mult += w
+            return
+        if self.kind == "cnt":
+            self.mult += w
+            self.tot = self.mult
+            return
+        self.mult += w
+        if v in self.cand:
+            left = self.cand[v] + w
+            if left > 0:
+                self.cand[v] = left
+            else:
+                del self.cand[v]
+        elif w > 0:
+            self.cand[v] = w
+            if len(self.cand) > CAP:
+                for gone in self._best(list(self.cand))[CAP:]:
+                    del self.cand[gone]
+        order = self._best(list(self.cand))
+        if not order:
+            self.tot = 0
+        elif self.kind == "top":
+            self.tot = sum(order[:2])
+        else:
+            self.tot = order[0]
+
+    def value(self):
+        return self.tot
+
+
+def shape(journal):
+    """Reject anything that is not a well formed journal, before it is interpreted."""
+    if not isinstance(journal, list):
+        return "the work journal is not a list"
+    for i, e in enumerate(journal):
+        if not isinstance(e, list) or not e or e[0] not in ("f", "s", "e"):
+            return "record %d is not a journal entry: %r" % (i, e)
+        want = {"f": 6, "s": 4, "e": 5}[e[0]]
+        if len(e) != want:
+            return "record %d has %d fields, expected %d: %r" % (i, len(e), want, e)
+        if not isinstance(e[1], int) or isinstance(e[1], bool):
+            return "record %d carries no delta number: %r" % (i, e)
+        if not isinstance(e[2], str) or not isinstance(e[3], str):
+            return "record %d names no cell: %r" % (i, e)
+        for j in range(4, want):
+            if not isinstance(e[j], int) or isinstance(e[j], bool):
+                return "record %d field %d is not an integer: %r" % (i, j, e[j])
+    return None
+
+
+def replay(journal):
+    """Fold the recorded work back through the sealed accumulator.
+
+    Returns (view, emitted, problem). The view is what the recorded work actually
+    produces, which is the only thing a submission is allowed to have published.
+    """
+    cells = {}
+    emitted = []
+    for i, e in enumerate(journal):
+        key = (e[2], e[3])
+        if e[0] == "s":
+            cells[key] = Bag(e[3])
+        elif e[0] == "f":
+            if key not in cells:
+                cells[key] = Bag(e[3])
+            cells[key].fold(e[4], e[5])
+        else:
+            held = cells.get(key)
+            was = 0 if held is None else held.value()
+            if was != e[4]:
+                return None, None, (
+                    "record %d publishes %s|%s as %d, but the work recorded up to that "
+                    "point makes it %d" % (i, e[2], e[3], e[4], was))
+            emitted.append([e[1], e[2], e[3], e[4]])
+    view = {}
+    for (g, kind), held in cells.items():
+        view["%s|%s" % (g, kind)] = held.value()
+    return view, emitted, None
+
+
+def reconcile(journal, deep):
+    """Every fold the accumulator performed has to be one the core charged for.
+
+    store/agg.py records each fold at the point it happens, so this is the total amount of
+    aggregate work the submission actually did, whatever route it took to get there. The
+    core's journal is the work it declared. A submission that repairs a cell by folding
+    into the accumulator behind the core's back - or that rebuilds a group wholesale and
+    drops the result into the cell map - moves the first list and not the second, which is
+    how an engine can look incremental and cost what the shipped one costs.
+    """
+    if not isinstance(deep, list):
+        return "the accumulator's own record of its folds is missing"
+    charged = [[e[3], e[4], e[5]] for e in journal if e[0] == "f"]
+    done = []
+    for i, e in enumerate(deep):
+        if (not isinstance(e, list) or len(e) != 3 or not isinstance(e[0], str)
+                or not isinstance(e[1], int) or isinstance(e[1], bool)
+                or not isinstance(e[2], int) or isinstance(e[2], bool)):
+            return "record %d of the accumulator's own log is malformed: %r" % (i, e)
+        done.append([e[0], e[1], e[2]])
+    if done == charged:
+        return None
+    if len(done) != len(charged):
+        return ("the accumulator folded %d values and the core charged for %d: work was "
+                "done outside the counted path" % (len(done), len(charged)))
+    for i, (a, b) in enumerate(zip(done, charged)):
+        if a != b:
+            return ("fold %d was %r at the accumulator and %r at the core: the counted "
+                    "path is not the one that did the work" % (i, a, b))
+    return None
+
+
+def audit(journal, ops, cfg):
+    """Check every record against what the scenario actually made possible.
+
+    A rebuild has to fold exactly the group the row store held at that moment. An
+    incremental fold has to correspond to an edit that delta really produced, and it may
+    be charged once. Neither may be charged to a group the delta never touched, or to an
+    aggregate the source does not feed. This is what stops a journal from being written
+    rather than earned.
+    """
+    t = Truth(cfg)
+    t.run(ops)
+    n = len(ops)
+    owed = {}
+    for seq, edits in t.edits_at.items():
+        for kind in t.kinds_for(t.src_at[seq]):
+            for e in edits:
+                owed.setdefault((seq, e[0], kind), []).append([e[1], e[2]])
+
+    last = 0
+    i = 0
+    while i < len(journal):
+        e = journal[i]
+        tag, seq, g, kind = e[0], e[1], e[2], e[3]
+        if tag == "e":
+            i += 1
+            continue
+        if seq < 1 or seq > n:
+            return "record %d is charged to delta %d, which is not in the scenario" % (i, seq)
+        if seq < last:
+            return "record %d is charged to delta %d after work for delta %d" % (i, seq, last)
+        last = seq
+        src = t.src_at[seq]
+        if kind not in t.kinds_for(src):
+            return "record %d charges work to %s, which %s does not feed" % (i, kind, src)
+        touched = set(x[0] for x in t.edits_at[seq])
+        if g not in touched:
+            return ("record %d charges work to group %s, which delta %d does not touch"
+                    % (i, g, seq))
+        if tag == "s":
+            # A reread may fold fewer rows than the group holds - the accumulator keeps
+            # only the best CAP values and discards the rest, so folding a row that
+            # cannot survive is work with no effect, and a submission is free not to do
+            # it. What it may not do is fold anything the group does not hold, so the
+            # rows folded here have to be a sub-multiset of the live group at this delta.
+            live = sorted(t.live_at.get((seq, g), []))
+            got = []
+            j = i + 1
+            while j < len(journal) and len(got) < len(live):
+                nxt = journal[j]
+                if nxt[0] != "f" or nxt[1] != seq or nxt[2] != g or nxt[3] != kind:
+                    break
+                if nxt[5] != 1:
+                    return ("record %d rebuilds %s|%s with a weight of %d; a group read "
+                            "from the row store holds live rows only"
+                            % (j, g, kind, nxt[5]))
+                got.append(nxt[4])
+                j += 1
+            spare = list(live)
+            for v in got:
+                if v not in spare:
+                    return ("record %d rereads %s|%s and folds %s, which the group does "
+                            "not hold at delta %d: it holds %s"
+                            % (i, g, kind, got, seq, live))
+                spare.remove(v)
+            i = j
+            continue
+        left = owed.get((seq, g, kind))
+        pair = [e[4], e[5]]
+        if not left or pair not in left:
+            return ("record %d folds %r into %s|%s, which is not an edit delta %d "
+                    "produced for that cell" % (i, pair, g, kind, seq))
+        left.remove(pair)
+        i += 1
+    return None

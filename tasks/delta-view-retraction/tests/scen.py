@@ -119,6 +119,30 @@ SCENARIOS = [
                 _del("d", 2), _ins("f", "g1", 6, 9)],
     },
     {
+        "name": "rebuild-narrows-deps",
+        "aim": "A group wider than the cap is rebuilt, and afterwards the cell's "
+               "dependency map names the rows that were folded rather than the rows the "
+               "group holds. Anything that reads the accountable set off the cell now "
+               "reads a cell that has lost values as complete, and absorbs a retraction "
+               "that empties a candidate slot.",
+        "ops": [_ins("k1", "g1", 1, 2), _ins("k0", "g1", 7, 5), _ins("k2", "g1", 10, 5),
+                _ins("k3", "g1", 2, 5), _ins("k2", "g1", 11, 5), _upd("k1", 4, 5),
+                _ins("k2", "g1", 1, 5), _del("k0", 5)],
+    },
+    {
+        "name": "duplicates-at-the-cap",
+        "aim": "The surviving values carry several rows each, and the aggregates rank "
+               "them in opposite directions, so how much a reread has to fold is neither "
+               "the size of the group nor the cap: it is the number of rows standing on "
+               "the values that survive, and it differs between min and max on the same "
+               "group at the same moment.",
+        "ops": [_ins("a", "g1", 9, 1), _ins("b", "g1", 9, 1), _ins("c", "g1", 7, 2),
+                _ins("d", "g1", 7, 2), _ins("e", "g1", 5, 3), _ins("f", "g1", 5, 3),
+                _ins("g", "g1", 3, 4), _ins("h", "g1", 1, 4),
+                _del("a", 5), _del("b", 5), _del("e", 6), _del("f", 6),
+                _ins("i", "g1", 8, 7), _del("g", 7)],
+    },
+    {
         "name": "wide-group-churn",
         "aim": "A long run over a group far wider than the cap, mixing inserts, deletes "
                "and updates so the witness repeatedly completes and breaks. This is where "

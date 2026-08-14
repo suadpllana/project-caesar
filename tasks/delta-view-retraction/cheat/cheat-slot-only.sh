@@ -1,3 +1,9 @@
+#!/bin/bash
+# Takes the slot test on its own and never asks whether the cell is complete, so it rereads a group that had lost nothing and could have absorbed the edit.
+set -euo pipefail
+
+mkdir -p "$(dirname /app/view/route.py)"
+cat > /app/view/route.py <<'EOF_ROUTE'
 from store import agg
 
 
@@ -89,32 +95,10 @@ class Route:
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
             return True
-        neg = [e for e in es if e.w < 0]
-        if not neg:
-            return True
-        # Nothing a retraction does can hurt a cell that is holding everything its group
-        # holds. dep names the live rows, and a row that is leaving is still one of them
-        # until this edit retires it.
-        # The accountable values come from the row store. The cell's dependency map is
-        # the tempting place to read them and it stops being that list the moment a
-        # rebuild folds only the rows that can survive the cap: after that it names the
-        # rows the cell folded, not the rows the group holds, and a cell that has lost
-        # values reads as complete. The store is the only structure that always answers
-        # this question.
-        live = set()
-        for e in es:
-            if e.w < 0:
-                live.add(e.v)
-        for r in self.ms.group(src, g):
-            live.add(r.v)
-        if len(live) <= len(cell.acc.top):
-            return True
-        # The cell has lost values. It can still take the edit as long as the candidates
-        # it holds survive it: a value it never held is not one of them, and a value
-        # another live row still carries stays where it is. A slot that empties is the
-        # one case the discarded values could have filled.
         held = dict(cell.acc.top)
-        for e in neg:
+        for e in es:
+            if e.w >= 0:
+                continue
             c = held.get(e.v)
             if c is None:
                 continue
@@ -122,3 +106,4 @@ class Route:
                 return False
             held[e.v] = c + e.w
         return True
+EOF_ROUTE

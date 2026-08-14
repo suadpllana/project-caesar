@@ -1,3 +1,9 @@
+#!/bin/bash
+# Rebuilds whenever the accumulator is no longer holding everything its group holds. Correct on every value, and over the budget: a cell that has lost values can still take a retraction that leaves its candidates standing.
+set -euo pipefail
+
+mkdir -p "$(dirname /app/view/route.py)"
+cat > /app/view/route.py <<'EOF_ROUTE'
 from store import agg
 
 
@@ -92,33 +98,12 @@ class Route:
         neg = [e for e in es if e.w < 0]
         if not neg:
             return True
-        # Nothing a retraction does can hurt a cell that is holding everything its group
-        # holds. dep names the live rows, and a row that is leaving is still one of them
-        # until this edit retires it.
-        # The accountable values come from the row store. The cell's dependency map is
-        # the tempting place to read them and it stops being that list the moment a
-        # rebuild folds only the rows that can survive the cap: after that it names the
-        # rows the cell folded, not the rows the group holds, and a cell that has lost
-        # values reads as complete. The store is the only structure that always answers
-        # this question.
-        live = set()
-        for e in es:
-            if e.w < 0:
-                live.add(e.v)
-        for r in self.ms.group(src, g):
-            live.add(r.v)
-        if len(live) <= len(cell.acc.top):
-            return True
-        # The cell has lost values. It can still take the edit as long as the candidates
-        # it holds survive it: a value it never held is not one of them, and a value
-        # another live row still carries stays where it is. A slot that empties is the
-        # one case the discarded values could have filled.
-        held = dict(cell.acc.top)
-        for e in neg:
-            c = held.get(e.v)
-            if c is None:
+        live = {e.v for e in neg}
+        for (rsrc, rk) in cell.dep:
+            if rsrc != src:
                 continue
-            if c + e.w < 1:
-                return False
-            held[e.v] = c + e.w
-        return True
+            r = self.ms.get((rsrc, rk))
+            if r is not None and r.w > 0 and r.g == g:
+                live.add(r.v)
+        return len(live) <= len(cell.acc.top)
+EOF_ROUTE

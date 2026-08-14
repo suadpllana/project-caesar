@@ -1,3 +1,9 @@
+#!/bin/bash
+# Gets the repair decision exactly right and then hands the whole group to every rebuild, folding rows the cap discards on the way in. Correct on every value and over the fold budget.
+set -euo pipefail
+
+mkdir -p "$(dirname /app/view/route.py)"
+cat > /app/view/route.py <<'EOF_ROUTE'
 from store import agg
 
 
@@ -40,14 +46,19 @@ class Route:
     #              faithful witness for the answer, and it stops being one exactly when
     #              the cell holds fewer distinct values than the group actually has.
     #
-    # acc.n is total multiplicity folded and len(acc.top) is how many distinct values
-    # survived the cap, so n > len(top) is the cheap conservative test - and it is wrong,
-    # because duplicates inflate n without anything having been lost. What decides is the
-    # count of distinct live values the cell is accountable for, and the cell's dependency
-    # map already carries one entry per live row, so that count costs no extra pass.
+    # The accumulator does not say whether it lost anything: acc.n is exactly the
+    # multiplicity it is still holding, so it agrees with the candidate counts whatever
+    # was discarded. Completeness is a statement about the cell against its group, and
+    # the cell's dependency map already carries one entry per live row, so the distinct
+    # live values it is accountable for cost no extra pass over the store.
     #
-    # Only the retraction of a value the cell is still holding can move the answer, and
-    # only while the cell is not holding everything. Everything else is a fold.
+    # Completeness alone is not the condition, only the easy half of it. A cell that has
+    # lost values can still take a retraction whenever the retraction leaves the candidate
+    # set standing: retracting a value the cell never held cannot move an answer drawn
+    # from the values it does hold, and retracting one copy of a value another live row
+    # still carries leaves the same candidates behind. What forces a reread is a
+    # retraction that empties a candidate slot in a cell that is not holding everything,
+    # because the value that should move up is exactly the one that was discarded.
     def push(self, d, edits):
         by_g = {}
         for e in edits:
@@ -66,7 +77,10 @@ class Route:
             for e in es:
                 self.core.apply(g, kind, e.v, e.w, e.rk)
             return
-        self.core.rebuild(g, kind, self.ms.group(src, g))
+        self.core.rebuild(g, kind, self._needed(src, g, kind))
+
+    def _needed(self, src, g, kind):
+        return self.ms.group(src, g)
 
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
@@ -74,11 +88,34 @@ class Route:
         neg = [e for e in es if e.w < 0]
         if not neg:
             return True
-        live = {e.v for e in neg}
-        for (rsrc, rk) in cell.dep:
-            if rsrc != src:
+        # Nothing a retraction does can hurt a cell that is holding everything its group
+        # holds. dep names the live rows, and a row that is leaving is still one of them
+        # until this edit retires it.
+        # The accountable values come from the row store. The cell's dependency map is
+        # the tempting place to read them and it stops being that list the moment a
+        # rebuild folds only the rows that can survive the cap: after that it names the
+        # rows the cell folded, not the rows the group holds, and a cell that has lost
+        # values reads as complete. The store is the only structure that always answers
+        # this question.
+        live = set()
+        for e in es:
+            if e.w < 0:
+                live.add(e.v)
+        for r in self.ms.group(src, g):
+            live.add(r.v)
+        if len(live) <= len(cell.acc.top):
+            return True
+        # The cell has lost values. It can still take the edit as long as the candidates
+        # it holds survive it: a value it never held is not one of them, and a value
+        # another live row still carries stays where it is. A slot that empties is the
+        # one case the discarded values could have filled.
+        held = dict(cell.acc.top)
+        for e in neg:
+            c = held.get(e.v)
+            if c is None:
                 continue
-            r = self.ms.get((rsrc, rk))
-            if r is not None and r.w > 0:
-                live.add(r.v)
-        return len(live) <= len(cell.acc.top)
+            if c + e.w < 1:
+                return False
+            held[e.v] = c + e.w
+        return True
+EOF_ROUTE

@@ -164,19 +164,70 @@ Counters did not move: `retract-drains-witness` is still 55 folds and 6 scans, s
 difficulty band and every number in the instruction are untouched, and all four `ok-*`
 variants still score 1.
 
+## Second anti-cheat rejection, 2026-08-13: work done outside the counted path
+
+The journal hardening above went back and was rejected again, and the finding is a
+different mechanism worth keeping separate in your head. The adversary did not forge
+anything. Its `route.py` kept the reference decisions on the counted path - so values,
+counters, journal, replay and audit were all genuinely right - and then added a `_canon`
+method that, for every group the delta touched, called `agg.fold` **directly** and dropped
+a freshly built cell into `core.cells`. Reproduced here as `cheat/cheat-shadow-rebuild.sh`:
+**reward 1**, with the engine doing a full group rebuild on every delta while reporting the
+reference's incremental cost.
+
+The counted path was correct and was no longer the path that did the work. That is the trap
+CLAUDE.md already names - "the work an agent can do for free is the work your counters do
+not see" - arriving through the accumulator rather than through the row store.
+
+Three layers now close it, and each one is there because the layer above it can be stepped
+around:
+
+1. **`store/agg.py` records every fold where it happens** and `oracle.reconcile` requires
+   that list to be the same list, in the same order, as the folds the core charged for.
+   Kills the plain shadow rebuild.
+2. **The interpreter counts for itself.** `runner.py` arms `sys.monitoring` on the code
+   objects of `agg.fold`, `Core.apply` and `Core.rebuild`, keeps the tally in a closure
+   rather than in the tree, and the tally has to equal ground truth. This is the layer that
+   survives `del agg.JRN[mark:]`, which otherwise makes layer 1 reconcile perfectly
+   (`cheat-shadow-hide-log.sh`). `disarm()` reports whether the tool was still registered
+   and the events still armed, so switching the instrumentation off fails too
+   (`cheat-shadow-kill-monitor.sh`). The verifier image is Python 3.12 and `test.sh` sets
+   `REQUIRE_MONITORING=1`, so the weaker `sys.setprofile` fallback is available to the
+   authoring host only.
+3. **Engine functions are fingerprinted as they executed**, at import and at the end of
+   each scenario, against digests the grader derives by compiling the pristine sources.
+   Catches rebinding `agg.fold` to a quiet copy (`cheat-patch-fold.sh`), which defeats
+   layers 1 and 2's bookkeeping but not their existence.
+
+The instruction now states the rule, because the verifier enforces it: repairs go through
+the core, and aggregate work is measured wherever it happens. It went into the existing
+"leave the rest of the engine alone" paragraph rather than becoming a new one - a new
+paragraph took paragraph-length sd to 27.2 against the 39.4 `textcheck.py` wants, which is
+the regularising-toward-the-mean signature. Rejoining fixed it with no content change.
+
+Counters did not move again: still 55 folds and 6 scans on `retract-drains-witness`.
+
+**The floor, stated honestly.** Agent code shares an interpreter with the instrumentation,
+so none of this is a proof. What it does is force every bypass to be an explicit, separately
+detectable act: hiding a fold now means editing the accumulator's log *and* defeating a
+monitoring tool *and* keeping the function fingerprints intact. A determined adversary with
+`gc.get_referrers` could still reach the tally closure. If that shows up next, the answer is
+not a fourth in-process layer - it is to move the counting out of the process entirely
+(run each scenario as a child and instrument from the parent).
+
 ## Gates run, and their results
 
 - `authoring/build_gt.py`: proves reference == sealed oracle on values AND shipped ==
   oracle on values AND reference cheaper than shipped, on all 12 scenarios, before it will
   write gt.json.
 - `authoring/trial.py`: oracle 1, nop 0, 4 `ok-*` variants 1, 4 wrong-plan probes 0.
-- `authoring/cheat_report.py`: 18 cheats, all 0, distinct failure signatures.
+- `authoring/cheat_report.py`: 22 cheats, all 0, distinct failure signatures.
 - `authoring/field_report.py`: every graded field separates at least one cheat. The
   evidence axis is not decoration: `hijack-report` is separated by **nothing else** -
   view, log, trace, both counters, emits and revised are all exactly right.
 - `tools/forgecheck.py`: clean. Fires on the three other tasks in `tasks/`, which have
   the same unmeasured hole.
-- **`tools/docker_trial2.py --all`: 20/20, and `--variants`: 4/4.** Docker does run on
+- **`tools/docker_trial2.py --all`: 24/24, and `--variants`: 4/4.** Docker does run on
   this Linux sandbox (it did not on the earlier Windows host), so the two-image trial is
   no longer an unrun gate. Measured inside the verifier container: the run is `uid=1002`,
   and `PermissionError` on `/logs/verifier/reward.txt`, `/tests/gt.json`,

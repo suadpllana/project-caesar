@@ -1,5 +1,5 @@
 from ingest import delta, wm
-from store import rows
+from store import agg, rows
 from view import core, land, route, seal
 
 
@@ -55,4 +55,5 @@ class Drv:
             "trace": [list(t) for t in self.trace],
             "log": [list(x) for x in self.core.log],
             "jrn": [list(x) for x in self.core.jrn],
+            "deep": [list(x) for x in agg.JRN],
         }

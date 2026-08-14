@@ -63,6 +63,7 @@ python /tests/reap.py 1002
 set -e
 
 if RUN_OUT=/work/run/out.json APP_DIR=/work/app PRISTINE_DIR=/pristine ARTIFACT_DIR=/app \
+   REQUIRE_MONITORING=1 \
    pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA; then
   echo 1 > /logs/verifier/reward.txt
 else

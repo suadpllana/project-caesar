@@ -18,12 +18,136 @@ caller opened before dropping privilege, when it hands one over, so the file hol
 run's report is not writable by the uid the run executes as.
 """
 
+import hashlib
 import json
 import os
 import sys
 import traceback
+import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Kept in step with oracle.SEALED, which is root-only and cannot be imported from here.
+# build_gt.py fails if the two lists ever drift apart.
+SEALED = (
+    ("store/agg.py", "fold"),
+    ("store/agg.py", "value"),
+    ("store/rows.py", "Mset.group"),
+    ("view/core.py", "Core.apply"),
+    ("view/core.py", "Core.rebuild"),
+    ("view/core.py", "Core.emit"),
+    ("view/core.py", "Core.tick"),
+    ("view/core.py", "Core.report"),
+    ("view/land.py", "land"),
+    ("view/drv.py", "Drv.feed"),
+    ("view/drv.py", "Drv._close"),
+    ("view/drv.py", "Drv.report"),
+)
+
+
+def fingerprint(code):
+    h = hashlib.sha256()
+    h.update(code.co_code)
+    h.update(repr(code.co_names).encode("utf-8"))
+    h.update(repr(code.co_varnames).encode("utf-8"))
+    for k in code.co_consts:
+        if isinstance(k, types.CodeType):
+            h.update(fingerprint(k).encode("utf-8"))
+        else:
+            h.update(repr(k).encode("utf-8"))
+    return h.hexdigest()
+
+
+MON = 3
+WATCHED = ("fold", "apply", "rebuild")
+
+
+def arm(codes):
+    """Have the interpreter itself count entries into the engine's counted operations.
+
+    Everything else here is a record the engine keeps, and a record the engine keeps is a
+    record the submitted file can edit: a module level log can be truncated, an integer
+    attribute can be assigned. This counts through sys.monitoring instead, so a call is
+    seen wherever it came from - including through a reference captured at import time,
+    which is how a submission would otherwise fold values into an accumulator without the
+    counted path ever knowing. The tally lives in this function's closure, not in the tree.
+    """
+    tally = {}
+    wanted = set(codes)
+    mon = getattr(sys, "monitoring", None)
+
+    if mon is None:
+        # Python 3.11 and older, which is the authoring host rather than the verifier
+        # image. The profile hook sees the same calls; it is easier for a run to switch
+        # off, and disarm() reports that it was.
+        def entered(frame, event, arg):
+            if event == "call" and frame.f_code in wanted:
+                name = frame.f_code.co_name
+                tally[name] = tally.get(name, 0) + 1
+            return None
+
+        sys.setprofile(entered)
+
+        def disarm():
+            ok = sys.getprofile() is entered
+            sys.setprofile(None)
+            return ok, "profile", dict(tally)
+
+        return disarm
+
+    def entered(code, offset):
+        tally[code.co_name] = tally.get(code.co_name, 0) + 1
+        return None
+
+    try:
+        mon.use_tool_id(MON, "verifier")
+    except ValueError:
+        pass
+    mon.register_callback(MON, mon.events.PY_START, entered)
+    for code in codes:
+        mon.set_local_events(MON, code, mon.events.PY_START)
+
+    def disarm():
+        """Was the instrumentation still ours and still armed when the run finished?"""
+        ok = mon.get_tool(MON) == "verifier"
+        previous = mon.register_callback(MON, mon.events.PY_START, entered)
+        if previous is not entered:
+            ok = False
+        for code in codes:
+            if not mon.get_local_events(MON, code) & mon.events.PY_START:
+                ok = False
+            mon.set_local_events(MON, code, 0)
+        mon.register_callback(MON, mon.events.PY_START, None)
+        try:
+            mon.free_tool_id(MON)
+        except ValueError:
+            pass
+        return ok, "monitoring", dict(tally)
+
+    return disarm
+
+
+def live():
+    """Fingerprint the engine functions as they actually are in this interpreter.
+
+    Hashing the tree on disk catches a submission that rewrites the engine. This catches
+    one that leaves the file alone and replaces the function object instead.
+    """
+    out = {}
+    for rel, qual in SEALED:
+        key = "%s:%s" % (rel, qual)
+        mod = sys.modules.get(rel[:-3].replace("/", "."))
+        if mod is None:
+            out[key] = "unloaded"
+            continue
+        obj = mod
+        try:
+            for part in qual.split("."):
+                obj = getattr(obj, part)
+            out[key] = fingerprint(obj.__code__)
+        except AttributeError:
+            out[key] = "replaced"
+    return out
 APP = os.environ.get("APPDIR", "/app")
 sys.path.insert(0, APP)
 sys.path.insert(0, HERE)
@@ -62,8 +186,27 @@ def run_one(sc, base):
     cfg = dict(base)
     for k, v in (sc.get("cfg") or {}).items():
         cfg[k] = v
-    d = drv.Drv(cfg)
-    return d.run(sc["ops"])
+    loaded = live()
+    from store import agg, rows
+    from view import core
+    disarm = arm([agg.fold.__code__, core.Core.apply.__code__,
+                  core.Core.rebuild.__code__])
+    try:
+        d = drv.Drv(cfg)
+        rep = d.run(sc["ops"])
+    finally:
+        intact, how, tally = disarm()
+    # Written after the report is built, so whatever produced the report did not produce
+    # these: the fingerprints are taken once at import and once when the run is over, and
+    # the tally comes from the interpreter rather than from the tree.
+    if not isinstance(rep, dict):
+        rep = {"report": rep}
+    rep["fp"] = loaded
+    rep["fp_end"] = live()
+    rep["mon"] = dict((k, tally.get(k, 0)) for k in WATCHED)
+    rep["mon_intact"] = intact
+    rep["mon_how"] = how
+    return rep
 
 
 def main(argv):

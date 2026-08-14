@@ -120,10 +120,21 @@ inside the verifier, must reproduce the view and the values the submission publi
 an answer cannot be pasted in; and every record has to be one the scenario allowed, which
 the sealed model decides - a reread folds exactly the rows the row store held at that
 delta, an incremental fold matches an edit that delta produced and is charged once, and
-neither may be charged to a group the delta never touched. The tree that did the counting
-is attested afterwards against the pristine copy, so the counters cannot be moved by
-rewriting the file that keeps them. Forging a report that survives all of this means
-performing the maintenance, which is the task.
+neither may be charged to a group the delta never touched. Forging a report that survives
+all of this means performing the maintenance, which is the task.
+
+Three further checks close the gap between work declared and work done, because a
+submission that leaves the counted path correct can still do the real work somewhere the
+counters cannot see it and report an incremental cost for an engine that rebuilds every
+group. store/agg.py records each fold where it happens, and that record has to be the same
+list, in the same order, as the folds the core charged for. The interpreter itself tallies
+entries into the accumulator and into the two core operations through sys.monitoring, from
+a runner that the submission cannot edit and into a closure rather than into the tree, and
+that tally has to equal the ground truth as well; the run is required not to have disturbed
+the instrumentation. And the engine functions are fingerprinted as they actually executed,
+at import and again when the scenario ends, against digests the grader derives by compiling
+the pristine sources, so replacing a counting function is caught the way rewriting its file
+already was. The tree itself is hashed against the pristine copy after the run.
 
 Two things are deliberately outside the graded set, because grading them would measure a
 choice the task never asked the solver to make. One is any count of reads or writes
@@ -142,7 +153,7 @@ so the two agree, rather than the verifier being loosened.
 The lifecycle is checked as well: the driver's own trace of watermark advances, late
 arrivals and publications, in order.
 
-Eighteen cheats were run against it and all scored 0, in both containers. Six are the
+Twenty-two cheats were run against it and all scored 0, in both containers. Six are the
 reference with exactly one decision made the way a solver who missed one piece would make
 it, and their failure signatures are distinct and match the design: three fail on the work
 counters alone with every value correct, and three corrupt the values. Nine are
@@ -156,7 +167,12 @@ every answer: they hijack the driver's report and return the correct view, the c
 emitted values, the correct trace and both correct counters. One offers no work journal,
 one pads a journal to the counts it claims, and one does the shipped tree's work and then
 deletes records from its journal until the counts match. All three fail, and they are the
-reason the evidence axis exists.
+reason the evidence axis exists. The last four are the reference solution with a second,
+uncounted repair bolted on: each one keeps the counted path exactly right and then folds
+whole groups back together behind it, so the engine reports an incremental cost and pays a
+full rebuild on every delta. They differ in how hard they hide that work - one does not
+hide it, one truncates the accumulator's own record of it, one tries to switch off the
+verifier's instrumentation first, and one rebinds the fold itself.
 
 The run happens as an unprivileged uid in its own session under a wall clock timeout,
 against a tree it cannot write; the reward channel is root-owned and locked before it

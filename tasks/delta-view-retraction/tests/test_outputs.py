@@ -89,6 +89,10 @@ PRISTINE_DIR = os.environ.get("PRISTINE_DIR", "/pristine")
 ARTIFACT_DIR = os.environ.get("ARTIFACT_DIR", "/app")
 ARTIFACTS = ("view/route.py",)
 NONCE = os.environ.get("RUN_NONCE", "")
+# Set by test.sh. The verifier image is Python 3.12, where the tally comes from
+# sys.monitoring; the weaker profile hook exists for the authoring host only, and
+# is not something a run gets to fall back to here.
+STRICT_MON = os.environ.get("REQUIRE_MONITORING") == "1"
 
 NAMES = [s["name"] for s in scen.SCENARIOS]
 AIM = {s["name"]: s["aim"] for s in scen.SCENARIOS}
@@ -315,6 +319,86 @@ def test_work_journal_is_possible(name):
     assert oracle.shape(j) is None, "%s: malformed work journal" % name
     bad = oracle.audit(j, scen.by_name(name)["ops"], cfg_for(name))
     assert bad is None, "%s: %s\n  aim: %s" % (name, bad, AIM[name])
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_all_work_went_through_the_counted_path(name):
+    """Axis 3: the accumulator's own record of its folds must be the work that was charged.
+
+    store/agg.py logs every fold at the point it happens, so that log is the total amount
+    of aggregate work the submission did by any route. The core's journal is the work it
+    declared. Requiring the two to be the same list, in order, is what stops an engine
+    from repairing cells behind the core's back: a submission can fold a whole group back
+    together for free and report an incremental cost, and the published values and the
+    counters both come out right, because nothing in the counted path is wrong - it is
+    merely no longer the path that did the work.
+
+    Every correct implementation satisfies this by construction: a cell's accumulator is
+    reached through the core's two operations, and both of them charge for what they fold.
+    """
+    rep = report(name)
+    assert rep is not None, "no report for %s" % name
+    j = journal(name)
+    assert j is not None, "%s: no work journal in the report" % name
+    assert oracle.shape(j) is None, "%s: malformed work journal" % name
+    bad = oracle.reconcile(j, rep.get("deep"))
+    assert bad is None, "%s: %s\n  aim: %s" % (name, bad, AIM[name])
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_the_interpreter_agrees_about_how_much_work_happened(name):
+    """Axis 3: the work counted by the interpreter, which no submitted file can edit.
+
+    Every other number here is a record the engine keeps, and those can be reached from
+    the file the agent writes. This one is a tally of entries into agg.fold, Core.apply
+    and Core.rebuild taken through sys.monitoring by the runner, kept in a closure rather
+    than in the tree, and it sees a call however it was reached. It has to agree with the
+    counters and with the ground truth, which is what makes the counters a measurement of
+    cost rather than a declaration of it.
+    """
+    rep = report(name)
+    assert rep is not None, "no report for %s" % name
+    tally = rep.get("mon")
+    assert isinstance(tally, dict), "%s: the run recorded no independent tally" % name
+    assert rep.get("mon_intact") is True, (
+        "%s: the run interfered with the verifier's instrumentation" % name)
+    if STRICT_MON:
+        assert rep.get("mon_how") == "monitoring", (
+            "%s: the work was tallied by %r, not by the interpreter"
+            % (name, rep.get("mon_how")))
+    exp = expected(name)
+    assert tally.get("fold") == exp["folds"], (
+        "%s: the accumulator was entered %r times, and %d folds were charged for.\n"
+        "  Work done outside the counted path is still work done.\n  aim: %s"
+        % (name, tally.get("fold"), exp["folds"], AIM[name]))
+    assert tally.get("rebuild") == exp["scans"], (
+        "%s: the group was reread %r times, and %d scans were charged for.\n  aim: %s"
+        % (name, tally.get("rebuild"), exp["scans"], AIM[name]))
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_engine_functions_were_not_replaced(name):
+    """Axis 3: the counting code that ran is the counting code that shipped.
+
+    Hashing the tree catches a submission that rewrites view/core.py on disk. This catches
+    the one that leaves the file alone and rebinds the function, which is the cheaper
+    attack on every counter and on the driver's report. The run fingerprints the engine
+    twice, once at import and once when the scenario is over, and the grader compiles the
+    pristine sources to work out what those fingerprints have to be.
+    """
+    if not os.path.isdir(PRISTINE_DIR):
+        pytest.skip("no pristine tree to attest against")
+    want = oracle.expected_fingerprints(PRISTINE_DIR)
+    assert want, "no sealed functions could be compiled from the pristine tree"
+    rep = report(name)
+    assert rep is not None, "no report for %s" % name
+    for when in ("fp", "fp_end"):
+        got = rep.get(when)
+        assert isinstance(got, dict), "%s: the run recorded no engine fingerprints" % name
+        wrong = sorted(k for k, v in want.items() if got.get(k) != v)
+        assert not wrong, (
+            "%s: these engine functions are not the ones that shipped (%s): %s"
+            % (name, "at import" if when == "fp" else "after the run", ", ".join(wrong)))
 
 
 def _digest(path):

@@ -168,6 +168,65 @@ class Truth:
 
 CAP = 3
 
+# The engine functions a submission must not replace. The run reports a fingerprint of
+# each one as it actually executed; the grader compiles the pristine sources and requires
+# the two to agree, which is the in-process counterpart of hashing the tree on disk.
+SEALED = (
+    ("store/agg.py", "fold"),
+    ("store/agg.py", "value"),
+    ("store/rows.py", "Mset.group"),
+    ("view/core.py", "Core.apply"),
+    ("view/core.py", "Core.rebuild"),
+    ("view/core.py", "Core.emit"),
+    ("view/core.py", "Core.tick"),
+    ("view/core.py", "Core.report"),
+    ("view/land.py", "land"),
+    ("view/drv.py", "Drv.feed"),
+    ("view/drv.py", "Drv._close"),
+    ("view/drv.py", "Drv.report"),
+)
+
+
+def fingerprint(code):
+    """A digest of a code object that does not depend on where it was loaded from."""
+    import hashlib
+    import types
+
+    h = hashlib.sha256()
+    h.update(code.co_code)
+    h.update(repr(code.co_names).encode("utf-8"))
+    h.update(repr(code.co_varnames).encode("utf-8"))
+    for k in code.co_consts:
+        if isinstance(k, types.CodeType):
+            h.update(fingerprint(k).encode("utf-8"))
+        else:
+            h.update(repr(k).encode("utf-8"))
+    return h.hexdigest()
+
+
+def expected_fingerprints(tree):
+    """Compile the pristine sources and fingerprint the same functions. Nothing runs."""
+    import os
+    import types
+
+    out = {}
+    for rel, qual in SEALED:
+        path = os.path.join(tree, rel)
+        if not os.path.isfile(path):
+            continue
+        with open(path) as fh:
+            top = compile(fh.read(), rel, "exec")
+        want = qual.split(".")[-1]
+        stack = [top]
+        while stack:
+            code = stack.pop()
+            for k in code.co_consts:
+                if isinstance(k, types.CodeType):
+                    if k.co_name == want and k.co_qualname.endswith(qual):
+                        out["%s:%s" % (rel, qual)] = fingerprint(k)
+                    stack.append(k)
+    return out
+
 
 class Bag:
     """A second implementation of the bounded accumulator, written independently.
@@ -271,6 +330,38 @@ def replay(journal):
     for (g, kind), held in cells.items():
         view["%s|%s" % (g, kind)] = held.value()
     return view, emitted, None
+
+
+def reconcile(journal, deep):
+    """Every fold the accumulator performed has to be one the core charged for.
+
+    store/agg.py records each fold at the point it happens, so this is the total amount of
+    aggregate work the submission actually did, whatever route it took to get there. The
+    core's journal is the work it declared. A submission that repairs a cell by folding
+    into the accumulator behind the core's back - or that rebuilds a group wholesale and
+    drops the result into the cell map - moves the first list and not the second, which is
+    how an engine can look incremental and cost what the shipped one costs.
+    """
+    if not isinstance(deep, list):
+        return "the accumulator's own record of its folds is missing"
+    charged = [[e[3], e[4], e[5]] for e in journal if e[0] == "f"]
+    done = []
+    for i, e in enumerate(deep):
+        if (not isinstance(e, list) or len(e) != 3 or not isinstance(e[0], str)
+                or not isinstance(e[1], int) or isinstance(e[1], bool)
+                or not isinstance(e[2], int) or isinstance(e[2], bool)):
+            return "record %d of the accumulator's own log is malformed: %r" % (i, e)
+        done.append([e[0], e[1], e[2]])
+    if done == charged:
+        return None
+    if len(done) != len(charged):
+        return ("the accumulator folded %d values and the core charged for %d: work was "
+                "done outside the counted path" % (len(done), len(charged)))
+    for i, (a, b) in enumerate(zip(done, charged)):
+        if a != b:
+            return ("fold %d was %r at the accumulator and %r at the core: the counted "
+                    "path is not the one that did the work" % (i, a, b))
+    return None
 
 
 def audit(journal, ops, cfg):

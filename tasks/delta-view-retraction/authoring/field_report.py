@@ -30,14 +30,20 @@ BODY = re.compile(r"<<'EOF_ROUTE'\n(.*?)\nEOF_ROUTE", re.S)
 # when the work journal accounts for the counters, reproduces the values the submission
 # published, and contains only records the scenario made possible.
 FIELDS = ("view", "log", "folds", "scans", "trace", "emits", "revised",
-          "journal", "replay", "audit")
+          "journal", "replay", "audit", "counted", "watched")
 
 
-def evidence(got: dict, cfg: dict, ops: list) -> set:
+def evidence(got: dict, cfg: dict, ops: list, exp: dict) -> set:
     out = set()
+    tally = got.get("mon")
+    if (not isinstance(tally, dict) or got.get("mon_intact") is not True
+            or tally.get("fold") != exp["folds"] or tally.get("rebuild") != exp["scans"]):
+        out.add("watched")
+    if oracle.reconcile(got.get("jrn"), got.get("deep")) is not None:
+        out.add("counted")
     jrn = got.get("jrn")
     if oracle.shape(jrn) is not None:
-        return {"journal", "replay", "audit"}
+        return out | {"journal", "replay", "audit"}
     if (sum(1 for e in jrn if e[0] == "f") != got.get("folds")
             or sum(1 for e in jrn if e[0] == "s") != got.get("scans")
             or sum(1 for e in jrn if e[0] == "e") != got.get("emits")):
@@ -79,7 +85,7 @@ def diverging(rep: dict, gt: dict) -> set:
         cfg = dict(base)
         for k, v in (sc.get("cfg") or {}).items():
             cfg[k] = v
-        out |= evidence(got, cfg, sc["ops"])
+        out |= evidence(got, cfg, sc["ops"], exp)
         for f in FIELDS[:7]:
             a, b = got.get(f), exp.get(f)
             if f in ("log", "trace"):

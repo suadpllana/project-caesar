@@ -22,7 +22,7 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
-| `delta-view-retraction` | Software / Databases | 18 | 100 | 14400 s | 8 h |
+| `delta-view-retraction` | Software / Databases | 22 | 136 | 14400 s | 8 h |
 
 `delta-view-retraction` is the fifth and the first outside ML. It is **built and fully
 gated locally but came back 2 of 3 on the local three-agent probe**, which is an easiness
@@ -33,8 +33,10 @@ It was submitted anyway on 2026-08-13 and bounced off the **bundle structure che
 reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
 and the zip rebuilt; see "The bundle-structure rejection" below. It then failed the
 **instruction concision** review and, on resubmission, the **anti-cheat gate**: an
-adversarial agent passed it without doing the work. Both are fixed - see "The anti-cheat
-rejection" below, which is the section to read first, because the hole it describes is in
+adversarial agent passed it without doing the work, then by the **anti-cheat gate a
+second time**, on a different mechanism: a submission whose counted path was entirely
+correct, doing the real work beside it where no counter could see. All are fixed - see "The
+anti-cheat rejection" below and its second half, which is the section to read first, because the hole it describes is in
 every other task in this repo too. The 2-of-3 easiness problem above is untouched by any of
 those fixes and is still the reason this task is not ready.
 
@@ -458,6 +460,66 @@ down: `ok-store-scan`, a correct variant, disagrees with the reference on it in 
 scenarios. The evidence check is not a new counter, which is exactly why it is safe - it
 grades the *derivability* of the numbers already agreed on, and all four `ok-*` variants
 still score 1 with no change to any of them.
+
+### The second rejection: the counted path can be right and not be the path
+
+The journal hardening went back to the gate and was rejected again the same day, by a
+different mechanism, and this one is worth separating in your head because "grade evidence
+instead of the report" does not cover it. **The adversary forged nothing.** Its `route.py`
+kept the reference decisions on the counted path - so the values, the counters, the journal,
+the replay and the audit were all genuinely correct - and added one extra method that, for
+every group the delta touched, called `agg.fold` **directly** and dropped a freshly built
+cell into `core.cells`. Reproduced as `cheat/cheat-shadow-rebuild.sh`: **reward 1**, on an
+engine doing a full group rebuild per delta while reporting an incremental cost.
+
+The counted path was correct and was no longer the path that did the work. That is the trap
+this file already names two sections down - *the work an agent can do for free is the work
+your counters do not see* - arriving through the accumulator rather than through the row
+store, and neither the journal nor the replay nor the audit can see it, because every record
+in all three is true.
+
+The general form, and it applies to every task here: **an instrumented API is only a
+measurement if it is the only way to reach the state it instruments.** Ask at contract time
+which objects a submission can touch directly, and count at the point the expensive thing
+happens rather than at the call you hope it goes through.
+
+Three layers, each because the one above it can be stepped around:
+
+1. **Count at the source.** `store/agg.py` records every fold where it happens, and the
+   verifier requires that list to be the same list, in order, as the folds the core charged
+   for. Kills the plain shadow rebuild.
+2. **Let the interpreter count.** `runner.py` arms `sys.monitoring` on the code objects of
+   `agg.fold` and the two core operations, keeps the tally **in a closure rather than in the
+   tree**, and requires it to equal ground truth. This is the layer that survives
+   `del agg.JRN[mark:]`, which otherwise makes layer 1 reconcile perfectly. `disarm()` also
+   reports whether the tool was still registered and armed at the end, so turning the
+   instrumentation off fails rather than passing quietly. The verifier image is 3.12 and
+   `test.sh` sets `REQUIRE_MONITORING=1`; the `sys.setprofile` fallback is for authoring
+   hosts on 3.11 and is not a path a run can fall back to.
+3. **Fingerprint the functions as they executed**, at import and at the end of each
+   scenario, against digests the grader derives by *compiling* the pristine sources (nothing
+   is executed). Catches rebinding `agg.fold` to a quiet copy, which defeats the bookkeeping
+   in layers 1 and 2 but not their existence. This is the in-process twin of hashing the
+   tree on disk, and it independently re-catches the `Drv.report` hijack.
+
+All four attacks are now generated cheats (`shadow-rebuild`, `shadow-hide-log`,
+`shadow-kill-monitor`, `patch-fold`) and all score 0 in the real container. Two notes for
+whoever does this next:
+
+- **A cheat that dies on a `NameError` has not been rejected by anything.** The first
+  generated `patch-fold` put its prologue above the import it used, scored 0, and proved
+  nothing. Check *which* assertion fired, every time - `cheat_report.py` prints it.
+- **Adding the rule to the instruction cost paragraph variance.** A new four-line paragraph
+  took paragraph-length sd to 27.2 against the 39.4 `textcheck.py` wants, which is the
+  regularising-toward-the-mean signature that got an earlier brief rejected. Folding the
+  same sentence into an existing paragraph fixed it with no content change. Re-run
+  `textcheck.py` after any content addition, not only after a style pass.
+
+**The floor, and say it out loud in the handover.** Agent code shares an interpreter with
+the instrumentation, so none of this is a proof. What it buys is that every bypass is now an
+explicit, separately detectable act. A determined adversary could still reach the tally
+closure through `gc.get_referrers`. If that turns up, the answer is not a fourth in-process
+layer: it is to run each scenario as a child process and instrument it from the parent.
 
 ## The bundle-structure rejection: the tree is not the zip
 

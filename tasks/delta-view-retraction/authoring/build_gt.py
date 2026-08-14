@@ -29,6 +29,7 @@ sys.path.insert(0, str(TASK / "authoring"))
 
 import harness  # noqa: E402
 import oracle  # noqa: E402
+import runner  # noqa: E402
 import scen  # noqa: E402
 
 
@@ -53,6 +54,14 @@ def main() -> int:
 
     out = {"scenarios": {}}
     bad = []
+
+    # The runner cannot import the sealed oracle, so it carries its own copy of the list
+    # of functions to fingerprint. Two copies drift; this is what notices.
+    if tuple(runner.SEALED) != tuple(oracle.SEALED):
+        bad.append("runner.SEALED and oracle.SEALED have drifted apart")
+    probe = compile("def p(x):\n    return [x, 'k', 2]\n", "<probe>", "exec")
+    if runner.fingerprint(probe) != oracle.fingerprint(probe):
+        bad.append("the two copies of fingerprint() no longer compute the same digest")
     for sc in scen.SCENARIOS:
         name = sc["name"]
         rep = ref["reports"].get(name)
@@ -98,6 +107,17 @@ def main() -> int:
             why = oracle.audit(jrn, sc["ops"], cfg_for(sc, base))
             if why:
                 bad.append("%s: reference journal fails the audit: %s" % (name, why))
+            why = oracle.reconcile(jrn, rep.get("deep"))
+            if why:
+                bad.append("%s: the reference does work outside the counted path: %s"
+                           % (name, why))
+            tally = rep.get("mon") or {}
+            if tally.get("fold") != rep["folds"] or tally.get("rebuild") != rep["scans"]:
+                bad.append("%s: the independent tally disagrees with the reference's own "
+                           "counters (%r against folds %d scans %d)"
+                           % (name, tally, rep["folds"], rep["scans"]))
+            if rep.get("mon_intact") is not True:
+                bad.append("%s: the reference run disturbed the instrumentation" % name)
 
         # 5. The reference must actually be cheaper, or there is no task.
         if not (rep["folds"] < shp["folds"] and rep["scans"] < shp["scans"]):

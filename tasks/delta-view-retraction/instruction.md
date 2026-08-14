@@ -45,7 +45,11 @@ Late is a property of when we heard about a row, never of what the row does to i
 Leave the rest of the engine where it is. When the watermark advances, which cells get
 published and in what order, how the row store lands a delta, what the driver counts as
 late: none of that is what we are after. A run whose publications come out in a different
-order from the engine you were handed is a different engine.
+order from the engine you were handed is a different engine. Repairs go through the core:
+the two operations `/app/view/core.py` exposes are how a cell's accumulator gets touched,
+and we measure the aggregate work a run does wherever it happens, so a repair that folds a
+group back together by hand and drops the result into the cell map is charged for every
+value it folded.
 
 One file is yours. It is `/app/view/route.py`, and that path is the only thing we take out
 of your container, which means anything else you touch is not read, and that covers new

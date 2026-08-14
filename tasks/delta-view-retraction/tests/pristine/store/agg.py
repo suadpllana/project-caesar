@@ -8,6 +8,8 @@ KINDS = (SUM, CNT, MIN, MAX, TOP)
 
 CAP = 3
 
+JRN = []
+
 
 class Acc:
     __slots__ = ("kind", "s", "n", "top")
@@ -49,6 +51,7 @@ def _refresh(acc):
 
 
 def fold(acc, v, w):
+    JRN.append((acc.kind, v, w))
     k = acc.kind
     if k == SUM:
         acc.s += v * w

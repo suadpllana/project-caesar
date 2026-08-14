@@ -5,9 +5,15 @@
  * a real browser, and writes a JSON verdict to stdout.
  *
  * Integrity: the agent's environment is mounted read-only for this run and
- * the harness/transport/types files are compared against the pristine copies
- * baked into this image. A submission that rewrites the test transport or the
- * harness to fake the invariants is rejected before any scenario runs.
+ * the harness/transport/types files, the build configuration and the page
+ * shell are compared against the pristine copies baked into this image. A
+ * submission that rewrites the test transport or the harness to fake the
+ * invariants is rejected before any scenario runs.
+ *
+ * The scenarios do not read window.__harness. They import main.ts and take
+ * its `harness` export, so the object under test cannot be substituted by
+ * code that runs earlier in the module graph or by a script appended to the
+ * page shell -- see the PRELUDE comment in scenarios.js.
  */
 
 const { chromium } = require("playwright");
@@ -36,6 +42,7 @@ const PROTECTED = [
   "vite.config.ts",
   "tsconfig.json",
   "package.json",
+  "public/index.html",
 ];
 
 function sha(p) {
@@ -88,27 +95,31 @@ async function main() {
 
     await page.goto(BASE, { waitUntil: "load", timeout: 60000 });
 
-    // The module graph must have loaded and installed the harness.
-    await page.waitForFunction(() => !!window.__harness, null, {
-      timeout: 60000,
-    });
-
-    // A tick helper that flushes microtasks *and* a macrotask turn, so
-    // promise chains inside the controller settle before we assert.
-    await page.addInitScript(() => {});
-    await page.evaluate(() => {
-      window.tick = () =>
-        new Promise((r) => setTimeout(r, 0)).then(
-          () => new Promise((r) => setTimeout(r, 0)),
-        );
-    });
+    // The module graph must be loadable and must export a harness. This is
+    // the same import the scenarios use, so a graph that cannot produce one
+    // fails here rather than thirteen times over.
+    await page.waitForFunction(
+      () =>
+        import("/src/main.ts").then(
+          (m) => !!(m && m.harness),
+          () => false,
+        ),
+      null,
+      { timeout: 60000 },
+    );
 
     for (const sc of SCENARIOS) {
       let verdict;
       try {
         verdict = await page.evaluate(
           `(async () => {
-             const tick = window.tick;
+             // Local, so no global has to be trusted: flushes microtasks and
+             // a macrotask turn, letting promise chains inside the controller
+             // settle before we assert.
+             const tick = () =>
+               new Promise((r) => setTimeout(r, 0)).then(
+                 () => new Promise((r) => setTimeout(r, 0)),
+               );
              ${PRELUDE}
              try {
                ${sc.body}

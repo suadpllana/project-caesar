@@ -13,7 +13,8 @@ Submitted, all nine gates passed, rejected in human review. Repaired 2026-08-14.
 | 2026-08-05 | submitted; **all nine gates PASSED** (structural, AI check, similarity, reference verification, quality review, anti-cheat, easiness, difficulty, run audit) |
 | 2026-08-05 | **rejected in human review — "instruction low quality"** |
 | 2026-08-13 | instruction rewritten wholesale (formal register, no shipped README, comments stripped); resubmitted; **failed the AI check** |
-| 2026-08-14 | reverted to the Aug-5 bundle, applied the reviewer's fix only; not yet resubmitted |
+| 2026-08-14 | reverted to the Aug-5 bundle, applied the reviewer's fix only; resubmitted |
+| 2026-08-14 | **rejected on quality review, anti-cheat robustness** — the harness could be substituted through `public/index.html` |
 
 The human reviewer's words, in full:
 
@@ -50,6 +51,60 @@ neither the brief nor the shipped spec stated, so a solver had to infer it.
    against a dead port.
 
 Everything else in the bundle is byte-identical to the archive that cleared nine gates.
+
+## The anti-cheat rejection, 2026-08-14
+
+The reviewer found that `/app/public/index.html` was agent-writable, uploaded as an
+artifact, served verbatim (`test.sh` copied the agent's `public/`, and Vite's root is
+`public`), absent from `PROTECTED`, and had no pristine copy. Since every scenario opened
+with `const h = window.__harness`, an appended `<script type="module">` could reassign that
+global after `main.ts` installed it.
+
+Reproduced before fixing: `cheat/harness_override_index.html` scores **13 of 13 with
+`src/controller.ts` exactly as shipped**. A full bypass.
+
+A second route with the same root cause was found while fixing it, and it matters more,
+because it needs no file outside the declared artifact. `main.ts` imports `controller.ts`,
+so the agent's module evaluates *before* `main.ts` assigns the global;
+`Object.defineProperty(window, "__harness", { set() {} })` in `controller.ts` makes that
+assignment a no-op. `cheat/harness_preempt_controller.ts` also scored **13 of 13**. No hash
+and no overlay can reach that one, so pinning the page shell alone would have left an
+equivalent hole for the next review to find.
+
+The shared root cause: **the verifier reached the code under test through a mutable global
+in a realm the agent's own code runs in, and earlier.** The fix removes the rendezvous
+point rather than guarding it.
+
+1. `tests/scenarios.js` prelude now takes the harness from the module namespace of
+   `main.ts`: `const h = (await import("/src/main.ts")).harness;`. `main.ts` is hashed, a
+   module namespace object is sealed, and `import()` is syntax rather than a global lookup,
+   so nothing inside the graph can substitute `h`. `main.ts` gains `export const harness`
+   and still mirrors it to `window.__harness` for manual driving, so the agent-facing
+   contract is unchanged.
+2. `tests/pristine/public/index.html` added; `test.sh` serves `public/` from the image,
+   exactly as it already did for `tsconfig.json`, `vite.config.ts` and `package.json`.
+3. `public/index.html` added to `PROTECTED` in `run_conformance.js`, and to the
+   `tests/Dockerfile` build-time guard list.
+4. `/app/public` dropped from `artifacts` in `task.toml` — the page shell is not a
+   deliverable, so it is no longer uploaded.
+5. `instruction.md` names `/app/public/index.html` alongside the other pinned files, so the
+   restriction is stated rather than discovered.
+
+Measured after the fix, with the emulation mirroring `test.sh`'s copy order:
+
+| tree | scenarios | reward |
+|---|---|---|
+| reference | 13/13 | 1 |
+| shipped broken | 4/13 | 0 |
+| `harness_override_index.html` | 4/13 | 0 |
+| `harness_preempt_controller.ts` | 4/13 | 0 |
+| both combined | 4/13 | 0 |
+| `hardcode_attempt.ts` | 7/13 | 0 |
+| alternative correct implementation | 13/13 | 1 |
+
+Every attack now collapses to the agent's real controller. With layer 2 deliberately
+disabled the hash fires instead (`integrity: False ['public/index.html: modified']`, zero
+scenarios run), which is how layer 3 was confirmed to be live rather than decorative.
 
 ## Why the register was not touched
 

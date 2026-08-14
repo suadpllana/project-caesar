@@ -12,13 +12,26 @@
 /**
  * Prelude injected before every scenario body.
  *
+ * The harness is taken from the module namespace of main.ts, never from
+ * window.__harness. main.ts is hashed against the pristine copy, and a module
+ * namespace object is sealed, so no other module in the graph can substitute
+ * what `h` refers to. A global rendezvous point could be pre-empted: every
+ * scenario reaches the app through this one binding, and controller.ts is
+ * evaluated (as an import of main.ts) before main.ts assigns anything to
+ * window, so an accessor installed there would capture the whole suite.
+ * `import()` is syntax rather than a global lookup, so it cannot be patched
+ * out from inside the graph either.
+ *
  * `need(q)` returns the id of the pending request for `q`, or throws a
  * BadState carrying a readable message. The driver turns that into an
  * ordinary failing verdict rather than an opaque TypeError, so a controller
  * that simply never issues a request reports why instead of crashing.
  */
 const PRELUDE = `
-  const h = window.__harness;
+  const h = (await import("/src/main.ts")).harness;
+  if (!h || typeof h.reset !== "function") {
+    throw new Error("main.ts did not export a usable harness");
+  }
   class BadState extends Error {
     constructor(m) { super(m); this.name = "BadState"; }
   }

@@ -400,6 +400,69 @@ Two smaller things this cost, worth not repeating:
   Five files differ here and each difference is traceable to the reviewer's note or to a
   CRLF normalisation. Anything else in that list is unexplained risk.
 
+### The anti-cheat rejection: hash the file, and the suite still finds the fake
+
+Same bundle, next round. The repair above was resubmitted and **failed the quality review
+on anti-cheat robustness**. The finding, and it is exact:
+
+> `/app/public/index.html` is agent-writable, is uploaded as an artifact, and is served
+> verbatim by the verifier [...] yet it is absent from the PROTECTED list [...] Every
+> scenario drives the app exclusively through `window.__harness`, which `main.ts` assigns at
+> module evaluation. An agent can append an inline `<script type="module">` [...] which
+> makes the ordering scenarios pass with a naive controller.
+
+Confirmed by building it: `cheat/harness_override_index.html` scores **13 of 13 with the
+shipped broken `controller.ts` untouched**. The verifier's own isolation was sound - root-only
+reward channel, unprivileged dev server, pinned config, teardown before grading. The bypass
+was semantic, one layer above all of that.
+
+**The part worth carrying forward is what turned up while fixing it.** Pinning the page shell
+would have closed the reviewer's route and left an equivalent one open, inside the declared
+artifact where no hash can reach: `main.ts` imports `controller.ts`, so the agent's module is
+evaluated **before** `main.ts` assigns the global, and
+
+```
+Object.defineProperty(window, "__harness", { get: () => fake, set: () => {} })
+```
+
+makes that assignment a silent no-op. `cheat/harness_preempt_controller.ts` also scored 13 of
+13. Two routes, one root cause: **the verifier reached the code under test through a mutable
+global, in a realm the agent's code runs in, and earlier.** File hashes answer "is this file
+the one we shipped". They do not answer "is this object the one that file built".
+
+The fix is to delete the rendezvous point rather than guard it. The suite now takes the
+harness from a module namespace:
+
+```
+const h = (await import("/src/main.ts")).harness;
+```
+
+`main.ts` is hashed, a module namespace object is sealed, and `import()` is syntax rather
+than a global lookup, so nothing inside the graph can substitute `h` or patch the mechanism
+that fetches it. `main.ts` keeps `window.__harness = harness` for manual driving, so nothing
+the agent sees changed. The page shell was pinned as well, three layers deep and in the order
+that matters: served from the image, hashed against a pristine copy, and dropped from
+`artifacts` so it is never uploaded.
+
+The generalisable rule, for any task whose verifier executes agent code in a shared realm:
+**enumerate every path from the driver to the code under test, and ask of each one whether
+agent code can get there first.** A global, a registry, a callback table, a `window` property,
+a module-level singleton in an editable file - each is a rendezvous the agent can occupy
+before the verifier arrives. Sealed module namespaces and driver-held references cannot be.
+And the mechanical companion: **for every file the agent can write, ask what evaluates it and
+in what order.** The two answers here were "the document boots it" and "an import evaluates it
+before its importer", and both were invisible from the hash list.
+
+Two smaller things that generalise:
+
+- **A protected-file list is a list of entry points, not a list of source files.** `index.html`
+  was not thought of as code, so it was not on it. Vite's root is `public/`, which made it
+  the entry point of the whole module graph.
+- **Check what the artifact list gives away as write access.** `/app/public` was declared as
+  an artifact for no reason anybody could name; it was uploaded, and that upload was the
+  attack surface. Declare a wide *candidate* set inside the source tree, never a directory
+  the solution has no business in.
+
 ### Running the browser verifier without Docker
 
 This bundle's verifier needs Vite, Playwright and a real browser rather than the usual
@@ -415,9 +478,16 @@ while `--strictPort` quietly kills the new one. That produced a run where the sh
 controller scored 13 of 13, which is a lie you can waste an hour on.
 
 Measured with that harness on 2026-08-14: reference 13/13, shipped broken tree 4/13,
-`cheat/hardcode_attempt.ts` 7/13, alternative correct implementation 13/13. It does not
-cover the privilege drop, the root-owned reward channel or the process teardown - say so in
-the handover.
+`cheat/hardcode_attempt.ts` 7/13, both harness-substitution cheats 4/13, alternative correct
+implementation 13/13. It does not cover the privilege drop, the root-owned reward channel or
+the process teardown - say so in the handover.
+
+One trap specific to emulating `test.sh` by hand: **copy the files in the order the real
+script does.** `cp -r /tests/pristine/public "${WORK}/app/public"` creates the directory when
+it is absent and copies *into* it when it is present, so an emulation that pre-populates
+`public/` from the environment leaves the agent's `index.html` in place and silently tests a
+different defence than the one that ships. That produced a run where a cheat was caught by
+the hash when the layer actually under test was the overlay.
 
 ## The concision rejection: the brief must not pre-eliminate a cheat
 

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Type-ahead panel</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 2rem; }
+      #status { font-weight: 600; }
+      #results { margin-top: .5rem; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>Type-ahead panel</h1>
+    <input id="q" type="text" autocomplete="off" placeholder="search…" />
+    <div>status: <span id="status">idle</span></div>
+    <div id="results"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

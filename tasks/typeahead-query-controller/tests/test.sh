@@ -59,8 +59,13 @@ mkdir -p "${WORK}/app"
 # starting up -- the config, the tsconfig, package.json (which can carry a
 # "type" field and postcss/browserslist hooks) -- comes from this image, not
 # from the agent, so the dev server cannot be turned into an execution vector.
+#
+# public/ is on that list too. Vite's root is public/, so index.html is the
+# document that boots the module graph: a script tag appended there runs in
+# the same realm as the code under test, after it, and could stand in for it.
+# The agent's copy is never served, and public/ is not an uploaded artifact.
 cp -r "${APP_DIR}/src" "${WORK}/app/src" 2>/dev/null || true
-cp -r "${APP_DIR}/public" "${WORK}/app/public" 2>/dev/null || true
+cp -r /tests/pristine/public       "${WORK}/app/public" 2>/dev/null || true
 cp /tests/pristine/tsconfig.json   "${WORK}/app/" 2>/dev/null || true
 cp /tests/pristine/vite.config.ts  "${WORK}/app/" 2>/dev/null || true
 cp /tests/pristine/package.json    "${WORK}/app/" 2>/dev/null || true

@@ -55,7 +55,8 @@ RUN test -f /tests/pristine/src/types.ts \
     && test -f /tests/pristine/src/main.ts \
     && test -f /tests/pristine/vite.config.ts \
     && test -f /tests/pristine/tsconfig.json \
-    && test -f /tests/pristine/package.json
+    && test -f /tests/pristine/package.json \
+    && test -f /tests/pristine/public/index.html
 
 # The dev server runs as `verifier`, so the toolchain must be readable by it
 # -- but writable by nobody except root.

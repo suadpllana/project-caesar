@@ -23,7 +23,7 @@ Notifying subscribers
 This one needs saying exactly, because we edit the subscriber list while we're walking it and the loose version of the rule doesn't decide the cases QA actually files. Every subscriber present when an update begins receives that update, even if a peer unsubscribes it during that dispatch, and even if it unsubscribes itself from inside its own callback. An unsubscribe takes effect on the following update, never on the one being delivered. Someone who subscribes mid-dispatch isn't owed the update in flight and starts with the next one.
 
 Constraints
-Only touch /app/src/controller.ts. /app/src/types.ts, /app/src/transport.ts, and /app/src/main.ts are hash-checked, hands off. Keep the createController(transport) export and the QueryState interfaces as-is. Run npx tsc --noEmit in /app to make sure types are clean.
+Only touch /app/src/controller.ts. /app/src/types.ts, /app/src/transport.ts, /app/src/main.ts and /app/public/index.html are hash-checked, hands off. The page and the build config get served from our copies anyway, so edits there never reach the run. Keep the createController(transport) export and the QueryState interfaces as-is. Run npx tsc --noEmit in /app to make sure types are clean.
 
 npm run dev spins up the harness on port 5173, and window.__harness lets you manually settle pending requests out of order so you can actually verify the fix works.
 

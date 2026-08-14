@@ -403,6 +403,11 @@ def audit(journal, ops, cfg):
             return ("record %d charges work to group %s, which delta %d does not touch"
                     % (i, g, seq))
         if tag == "s":
+            # A reread may fold fewer rows than the group holds - the accumulator keeps
+            # only the best CAP values and discards the rest, so folding a row that
+            # cannot survive is work with no effect, and a submission is free not to do
+            # it. What it may not do is fold anything the group does not hold, so the
+            # rows folded here have to be a sub-multiset of the live group at this delta.
             live = sorted(t.live_at.get((seq, g), []))
             got = []
             j = i + 1
@@ -416,10 +421,13 @@ def audit(journal, ops, cfg):
                             % (j, g, kind, nxt[5]))
                 got.append(nxt[4])
                 j += 1
-            if sorted(got) != live:
-                return ("record %d rereads %s|%s from the row store but folds %s, where "
-                        "the group holds %s at delta %d"
-                        % (i, g, kind, sorted(got), live, seq))
+            spare = list(live)
+            for v in got:
+                if v not in spare:
+                    return ("record %d rereads %s|%s and folds %s, which the group does "
+                            "not hold at delta %d: it holds %s"
+                            % (i, g, kind, got, seq, live))
+                spare.remove(v)
             i = j
             continue
         left = owed.get((seq, g, kind))

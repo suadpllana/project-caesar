@@ -30,7 +30,13 @@ class Route:
             for e in es:
                 self.core.apply(g, kind, e.v, e.w, e.rk)
             return
-        self.core.rebuild(g, kind, self.ms.group(src, g))
+        self.core.rebuild(g, kind, self._needed(src, g, kind))
+
+    def _needed(self, src, g, kind):
+        rows = self.ms.group(src, g)
+        best = sorted({r.v for r in rows}, key=lambda v: agg._rank(kind, v))[:agg.CAP]
+        keep = set(best)
+        return [r for r in rows if r.v in keep]
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
             return True

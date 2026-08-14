@@ -23,8 +23,9 @@ number it published on the way there even when the last one it prints is right.
 The work is graded as a budget. Both counters carry one, both budgets are a fraction of
 what you see now, and coming in under either of them is a pass while going over either is
 not, so there is nothing to be gained by matching a particular number and nothing lost by
-beating one. The budget is what this engine costs when no group is reread that did not
-have to be.
+beating one. The budget is what this engine costs when nothing is reread that did not have
+to be reread and nothing is folded that did not have to be folded. The second costs as
+much as the first.
 
 The accumulator in `/app/store/agg.py` does not hold everything its group holds. It keeps
 a bounded set of candidates and drops the rest on the floor, silently, with no counter and

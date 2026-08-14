@@ -94,7 +94,20 @@ class Route:
             for e in es:
                 self.core.apply(g, kind, e.v, e.w, e.rk)
             return
-        self.core.rebuild(g, kind, self.ms.group(src, g))
+        self.core.rebuild(g, kind, self._needed(src, g, kind))
+
+    def _needed(self, src, g, kind):
+        # Handing the whole group to rebuild folds every row and then throws most of the
+        # work away: the accumulator keeps agg.CAP distinct values and discards the rest
+        # by the same rule whatever order they arrive in. Only the rows carrying one of
+        # those CAP values can survive, so only they need folding, and the cell this
+        # reaches is the one folding everything reaches - same candidates, same counts,
+        # same answer. Every row at a surviving value has to go in, because the counts
+        # are what decide whether a later retraction empties a slot.
+        rows = self.ms.group(src, g)
+        best = sorted({r.v for r in rows}, key=lambda v: agg._rank(kind, v))[:agg.CAP]
+        keep = set(best)
+        return [r for r in rows if r.v in keep]
 
     def _canon(self, src, g, kind):
         c = _core.Cell(g, kind)
@@ -112,16 +125,18 @@ class Route:
         # Nothing a retraction does can hurt a cell that is holding everything its group
         # holds. dep names the live rows, and a row that is leaving is still one of them
         # until this edit retires it.
+        # The accountable values come from the row store. The cell's dependency map is
+        # the tempting place to read them and it stops being that list the moment a
+        # rebuild folds only the rows that can survive the cap: after that it names the
+        # rows the cell folded, not the rows the group holds, and a cell that has lost
+        # values reads as complete. The store is the only structure that always answers
+        # this question.
         live = set()
         for e in es:
             if e.w < 0:
                 live.add(e.v)
-        for (rsrc, rk) in cell.dep:
-            if rsrc != src:
-                continue
-            r = self.ms.get((rsrc, rk))
-            if r is not None and r.w > 0 and r.g == g:
-                live.add(r.v)
+        for r in self.ms.group(src, g):
+            live.add(r.v)
         if len(live) <= len(cell.acc.top):
             return True
         # The cell has lost values. It can still take the edit as long as the candidates

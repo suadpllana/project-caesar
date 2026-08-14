@@ -97,6 +97,28 @@ MISTAKES = {
                 live.add(r.v)
         return len(live) <= len(c0.acc.top)
 '''),
+    "dep-completeness": (
+        "Reads the accountable rows off the cell's dependency map, which stops naming "
+        "the group as soon as a rebuild folds only the rows that can survive the cap. "
+        "The cell then reads as complete when it has lost values, and absorbs an edit "
+        "it cannot answer for.",
+        '''    def _absorbable(self, src, g, cell, kind, es):
+        if kind in (agg.SUM, agg.CNT):
+            return True
+        neg = [e for e in es if e.w < 0]
+        if not neg:
+            return True
+        if cell.acc.n == len(cell.dep):
+            return True
+        held = dict(cell.acc.top)
+        for e in neg:
+            c = held.get(e.v)
+            if c is not None:
+                if c + e.w < 1:
+                    return False
+                held[e.v] = c + e.w
+        return True
+'''),
     "complete-only": (
         "Rebuilds whenever the accumulator is no longer holding everything its group "
         "holds. Correct on every value, and over the budget: a cell that has lost "
@@ -141,6 +163,19 @@ MISTAKES = {
         return kind == agg.SUM
 '''),
 }
+
+# Mistakes in how much of the group a rebuild folds, rather than in when it rebuilds.
+# These swap the _needed block instead of the _absorbable one.
+REBUILDS = {
+    "full-rebuild": (
+        "Gets the repair decision exactly right and then hands the whole group to every "
+        "rebuild, folding rows the cap discards on the way in. Correct on every value "
+        "and over the fold budget.",
+        """    def _needed(self, src, g, kind):
+        return self.ms.group(src, g)
+"""),
+}
+
 
 # Reward-tamper probes, built on the shipped tree. Each is a shell script that writes a
 # route.py doing something other than the work.
@@ -582,6 +617,16 @@ def main() -> int:
         p.write_text("#!/bin/bash\n# %s\nset -euo pipefail\n\n" % why + heredoc(DEST, src),
                      newline="\n")
         made.append(p.name)
+    need = ref[ref.index("    def _needed"):ref.index("    def _absorbable")]
+    for name, (why, body) in REBUILDS.items():
+        src = ref.replace(need, body + "\n")
+        if src == ref:
+            print("WARNING: %s changed nothing" % name)
+        p = cheat / ("cheat-%s.sh" % name)
+        p.write_text("#!/bin/bash\n# %s\nset -euo pipefail\n\n" % why + heredoc(DEST, src),
+                     newline="\n")
+        made.append(p.name)
+
     for name, (why, body) in PROBES.items():
         p = cheat / ("cheat-%s.sh" % name)
         p.write_text("#!/bin/bash\n# %s\nset -euo pipefail\n\n" % why + heredoc(DEST, body),

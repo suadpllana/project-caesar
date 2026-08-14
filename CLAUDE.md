@@ -22,13 +22,15 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
-| `delta-view-retraction` | Software / Databases | 24 | 136 | 14400 s | 8 h |
+| `delta-view-retraction` | Software / Databases | 26 | 156 | 14400 s | 8 h |
 
-`delta-view-retraction` is the fifth and the first outside ML. It came back **2 of 3 from
-the pipeline's easiness probe on 2026-08-14**, and the two leaks that caused it are now
-fixed - see "The easiness rejection" below, which is the section to read first if you are
-about to design a leak audit. It has **not been re-probed since**, so treat the difficulty
-as unmeasured rather than fixed.
+`delta-view-retraction` is the fifth and the first outside ML. It has been through the
+easiness probe twice - **2 of 3, then 3 of 3 after the first fix** - and the section to
+read first is "The easiness rejection" below, in particular its last part, which is the
+one that stops the next session wasting a day. Short version: patching leaks on a shallow
+mechanism does not work, because the question the task asks was answerable in five lines.
+The current build adds a second thing to find. It has **not been re-probed**, so treat the
+difficulty as unmeasured.
 
 It was submitted anyway on 2026-08-13 and bounced off the **bundle structure check** before
 reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
@@ -582,6 +584,49 @@ That last one is where the difficulty now lives: the solver has to find that com
 is the *easy* half, and that a cell which has lost values can still absorb a retraction
 that leaves its candidates standing. The first half publishes every number correctly, so
 nothing in the environment tells them to keep going.
+
+### Leak-patching has a floor, and this task hit it
+
+The fix above went back to the probe and came back **3 of 3**. The winning line, again
+written before any experiment:
+
+```
+return acc.n == len(c.dep)      # retained multiplicity vs live rows
+```
+
+I had closed `n` against `sum(top.values())`; it used `n` against `len(dep)`. That is the
+third instance of one class, and **the third one cannot be closed.** Retained multiplicity
+is inherently visible in the candidate counts, the live row count is inherently available
+from the row store, and completeness is the comparison of the two. There is no fourth patch.
+
+**The finding, and it is the one to carry to a new task: ask how many lines the answer is.**
+The absorb-or-rebuild predicate here is five, and a frontier model writes five correct lines
+cold, whatever you hide. A task whose central question has a short answer cannot be made
+hard by obscuring the inputs to it; the only thing that works is a second thing to find that
+the first answer does not reveal. Design that in at Stage 2, and if you cannot name it,
+the mechanism is too shallow and the seed is wrong.
+
+The second thing here was sitting in plain sight and both solving agents walked past it:
+**a rebuild folds more than it needs to.** `fold` keeps CAP distinct values and discards
+the rest by a rule that does not depend on arrival order, so only rows carrying a surviving
+value need folding at all. Both trajectories handed `core.rebuild` the entire group. The
+budget now comes from the minimal rebuild, which is enough to fail both of them, and it
+ships as `cheat-full-rebuild.sh` - repair decision exactly right, every value correct, over
+the fold budget.
+
+**And the two findings interact, which is the part worth copying.** Once a rebuild folds a
+subset, `cell.dep` names the rows that were folded rather than the rows the group holds, so
+the cheap completeness test - the very line the 3-of-3 agent used - starts calling an
+incomplete cell complete and corrupts values. Finding the second optimisation *breaks the
+first answer*. That is the shape to aim for: not two independent hurdles, but a second
+discovery that invalidates the natural implementation of the first.
+
+**One process lesson, cheap and general.** That combination scored **1** when first written
+as a cheat, because none of the twelve scenarios caught it. It is wrong in general - proved
+by fuzzing it against the sealed oracle, then shrinking to an eight-op counterexample, which
+is now the thirteenth scenario. **A cheat that scores 1 is either a correct implementation
+or a hole in your scenario set, and fuzzing against the oracle is what tells you which.**
+Do not promote it to `variants/` until you have asked.
 
 **Guard for the ceiling, and do not skip it.** A budget taken from your own reference is a
 claim that no correct implementation needs more. Prove it before shipping: `authoring/fuzz.py`

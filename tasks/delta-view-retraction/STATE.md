@@ -25,7 +25,7 @@ A materialized view engine maintains grouped aggregates (sum, cnt, min, max, top
 change stream of inserts, deletes and updates, with out-of-order arrival governed by a
 watermark. The shipped engine rebuilds every affected group from the row store on every
 delta: the published values are already correct and the work is enormous (120 folds and 40
-scans on the brief's scenario, where 45 and 2 is the budget). The submission must maintain
+scans on the brief's scenario, where 44 and 2 is the budget). The submission must maintain
 the view incrementally without moving a single published number, and the budget is graded
 as a ceiling rather than an equality. One editable file: `view/route.py`.
 
@@ -47,12 +47,14 @@ since 2026-08-14; before that it was the leak that made the task 2 of 3). So:
 Whether a cell can absorb a retraction is therefore a property of **that cell at that
 moment**, not of the aggregate kind. Two cells can reach byte-identical accumulators with
 different true answers; what separates them is how many distinct live values the cell is
-accountable for, which comes from the cell's dependency map and never from the accumulator.
+accountable for, which comes from the row store listing and never from the accumulator.
+The dependency map answers the same question until a rebuild folds a subset, and then it
+does not - see the 3-of-3 section below.
 
 And completeness is only the **first** half. A cell that has lost values still absorbs a
 retraction that leaves its candidates standing; only a retraction that empties a candidate
 slot in an incomplete cell has to reread. Stopping at the first half is correct on every
-value and over budget on six of twelve, which is where the task now bites.
+value and over budget, and so is stopping before the third finding below.
 
 - Expert time estimate: 8 hours
 - Why a frontier agent cannot one-shot the plan: the retrieved plan is the delta-lattice /
@@ -86,7 +88,7 @@ value and over budget on six of twelve, which is where the task now bites.
   establish that a positive edit is always
   absorbable because fold and rebuild discard by the same rule; establish that a negative
   edit is absorbable only while the candidate set is a faithful witness; find the
-  accountable live count in `cell.dep`; seed the retracted values into it so the
+  accountable live count from the row store listing; seed the retracted values into it so the
   membership case falls out; split an update into its two edits and judge each cell
   independently; then find the second half, that an incomplete cell still absorbs any
   retraction which leaves its candidate set standing.
@@ -99,7 +101,7 @@ value and over budget on six of twelve, which is where the task now bites.
 The load-bearing half also lives in the module docstring of `tests/test_outputs.py`, which
 is the file the run audit and the quality review actually read.
 
-Graded, all-or-nothing, four axes:
+Graded, all-or-nothing, four axes, over thirteen scenarios:
 
 1. **Values.** Final view map and every emitted `(seq, group, kind, value)`, in order.
    Re-proved in-verifier by `tests/oracle.py`, sealed, sharing no code with the tree,
@@ -300,6 +302,56 @@ zero mismatches - and `build_gt.py` refuses to write a ground truth without a cl
 Five variant readings (completeness from the dependency map, from the row store, from
 retained multiplicity; the two halves in either order) reach identical counters on all
 twelve scenarios.
+
+## Easiness probe again, 2026-08-14: 3 of 3. Leak-patching is exhausted
+
+The probe after the previous fix came back **3 of 3**. The trajectory shows the winning
+line, again written before any experiment:
+
+    return acc.n == len(c.dep)          # retained multiplicity vs live rows
+
+I closed `n` against `sum(top.values())` and it used `n` against `len(dep)`. Third instance
+of one class, and **this one cannot be closed**: retained multiplicity is inherently visible
+in the candidate counts, the group's live row count is inherently available from the row
+store, and completeness is the comparison of the two. Any further leak audit on this
+mechanism is wasted work.
+
+**The finding to carry: the absorb-or-rebuild predicate is a shallow question.** It is five
+lines and frontier models write it cold. Difficulty on this environment has to come from a
+second thing to find, not from hiding the first.
+
+### The second thing: a rebuild folds more than it needs to
+
+Both trajectories - the 2-of-3 one and the 3-of-3 one - handed the entire live group to
+`core.rebuild`. `fold` keeps `agg.CAP` distinct values and discards the rest by a rule that
+does not depend on arrival order, so only the rows carrying one of those values can survive
+and the others are folded and thrown away. The reference now folds only those rows (all of
+them, since the counts decide later slot-emptying) and reaches a byte-identical cell.
+
+- The budget dropped on 5 of 12 scenarios, `update-in-place` 60 -> 50 and
+  `wide-group-churn` 123 -> 108. The budget is per scenario, so `retract-drains-witness`
+  going 45 -> 44 is enough on its own to fail a full-group rebuild.
+- Ships as `cheat-full-rebuild.sh`: the repair decision exactly right, every value correct,
+  over the fold budget.
+- **Both solving trajectories now score 0.** The 3-of-3 one on the work counters and the
+  interpreter tally, the earlier one on values.
+
+### The two interact, and that is the sharpest part
+
+Once a rebuild folds only the surviving rows, `cell.dep` names the rows that were folded
+rather than the rows the group holds, so `acc.n == len(cell.dep)` - the exact line the
+3-of-3 agent used - reports an incomplete cell as complete and absorbs an edit it cannot
+answer for. Finding the second optimisation therefore **breaks the first answer**, and the
+accountable set has to move to the row store listing.
+
+That combination scored 1 at first, because none of the twelve scenarios caught it. It is
+wrong in general - found by fuzzing it against the sealed oracle, then shrunk to an
+eight-op counterexample - and that counterexample is now the thirteenth scenario,
+`rebuild-narrows-deps`. It ships as `cheat-dep-completeness.sh` and fails on values.
+
+**The lesson worth keeping: a cheat that scores 1 is either a correct implementation or a
+hole in the scenario set. Fuzz it against the oracle before promoting it to a variant.**
+This one looked like a legitimate alternative reading and was not.
 
 ## Gates NOT run
 

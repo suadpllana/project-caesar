@@ -1,3 +1,9 @@
+#!/bin/bash
+# Gets the repair decision exactly right and then hands the whole group to every rebuild, folding rows the cap discards on the way in. Correct on every value and over the fold budget.
+set -euo pipefail
+
+mkdir -p "$(dirname /app/view/route.py)"
+cat > /app/view/route.py <<'EOF_ROUTE'
 from store import agg
 
 
@@ -74,17 +80,7 @@ class Route:
         self.core.rebuild(g, kind, self._needed(src, g, kind))
 
     def _needed(self, src, g, kind):
-        # Handing the whole group to rebuild folds every row and then throws most of the
-        # work away: the accumulator keeps agg.CAP distinct values and discards the rest
-        # by the same rule whatever order they arrive in. Only the rows carrying one of
-        # those CAP values can survive, so only they need folding, and the cell this
-        # reaches is the one folding everything reaches - same candidates, same counts,
-        # same answer. Every row at a surviving value has to go in, because the counts
-        # are what decide whether a later retraction empties a slot.
-        rows = self.ms.group(src, g)
-        best = sorted({r.v for r in rows}, key=lambda v: agg._rank(kind, v))[:agg.CAP]
-        keep = set(best)
-        return [r for r in rows if r.v in keep]
+        return self.ms.group(src, g)
 
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
@@ -122,3 +118,4 @@ class Route:
                 return False
             held[e.v] = c + e.w
         return True
+EOF_ROUTE

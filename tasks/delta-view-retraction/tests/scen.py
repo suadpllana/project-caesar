@@ -119,6 +119,17 @@ SCENARIOS = [
                 _del("d", 2), _ins("f", "g1", 6, 9)],
     },
     {
+        "name": "rebuild-narrows-deps",
+        "aim": "A group wider than the cap is rebuilt, and afterwards the cell's "
+               "dependency map names the rows that were folded rather than the rows the "
+               "group holds. Anything that reads the accountable set off the cell now "
+               "reads a cell that has lost values as complete, and absorbs a retraction "
+               "that empties a candidate slot.",
+        "ops": [_ins("k1", "g1", 1, 2), _ins("k0", "g1", 7, 5), _ins("k2", "g1", 10, 5),
+                _ins("k3", "g1", 2, 5), _ins("k2", "g1", 11, 5), _upd("k1", 4, 5),
+                _ins("k2", "g1", 1, 5), _del("k0", 5)],
+    },
+    {
         "name": "wide-group-churn",
         "aim": "A long run over a group far wider than the cap, mixing inserts, deletes "
                "and updates so the witness repeatedly completes and breaks. This is where "

@@ -5,7 +5,9 @@ This file never ships: package.py excludes it and none of the nine gates read it
 
 ## Current stage
 
-`Stage 7 - built and locally gated`. Not yet through the pipeline.
+`Stage 8 - PASSED the easiness probe on 2026-08-14`, after failing it twice (2 of 3,
+then 3 of 3). The build that passed is the one with the second graded quantity: how much
+a reread has to fold. Fourteen scenarios, 26 cheats, 158 assertions.
 
 ## Assistant's assigned role
 
@@ -101,7 +103,7 @@ value and over budget, and so is stopping before the third finding below.
 The load-bearing half also lives in the module docstring of `tests/test_outputs.py`, which
 is the file the run audit and the quality review actually read.
 
-Graded, all-or-nothing, four axes, over thirteen scenarios:
+Graded, all-or-nothing, four axes, over fourteen scenarios:
 
 1. **Values.** Final view map and every emitted `(seq, group, kind, value)`, in order.
    Re-proved in-verifier by `tests/oracle.py`, sealed, sharing no code with the tree,
@@ -352,6 +354,26 @@ eight-op counterexample - and that counterexample is now the thirteenth scenario
 **The lesson worth keeping: a cheat that scores 1 is either a correct implementation or a
 hole in the scenario set. Fuzz it against the oracle before promoting it to a variant.**
 This one looked like a legitimate alternative reading and was not.
+
+## The shape of the answer, measured
+
+`python3 tools/onelinecheck.py delta-view-retraction` reads `authoring/decisions.py` and
+searches for the shortest exact rule over the fields the environment exposes:
+
+    fold-count      49 samples   no exact rule at depth <= 2
+    repair         120 samples   EXACT: accn > rows or negs != retmin
+    repair-legacy  120 samples   EXACT: accn > rows
+
+Read that as: the repair predicate is a two-term rule and always will be, because
+completeness is inherently the comparison of retained multiplicity against the group's live
+row count. `repair-legacy` is the pre-fix build and it is one term, which is what the two
+probes solved cold. **The task rests on `fold-count`**, which no short rule reproduces.
+
+Keep that row honest. It reported `fold-count` as "one outcome only - not a decision" at
+first, because every reread in the set folded exactly CAP rows, so the second finding
+collapsed to a constant a solver could stumble on. `duplicates-at-the-cap` is the scenario
+that fixed it: several rows stand on each surviving value, and the fold count differs
+between `min` and `max` on the same group at the same moment.
 
 ## Gates NOT run
 

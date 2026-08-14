@@ -130,6 +130,19 @@ SCENARIOS = [
                 _ins("k2", "g1", 1, 5), _del("k0", 5)],
     },
     {
+        "name": "duplicates-at-the-cap",
+        "aim": "The surviving values carry several rows each, and the aggregates rank "
+               "them in opposite directions, so how much a reread has to fold is neither "
+               "the size of the group nor the cap: it is the number of rows standing on "
+               "the values that survive, and it differs between min and max on the same "
+               "group at the same moment.",
+        "ops": [_ins("a", "g1", 9, 1), _ins("b", "g1", 9, 1), _ins("c", "g1", 7, 2),
+                _ins("d", "g1", 7, 2), _ins("e", "g1", 5, 3), _ins("f", "g1", 5, 3),
+                _ins("g", "g1", 3, 4), _ins("h", "g1", 1, 4),
+                _del("a", 5), _del("b", 5), _del("e", 6), _del("f", 6),
+                _ins("i", "g1", 8, 7), _del("g", 7)],
+    },
+    {
         "name": "wide-group-churn",
         "aim": "A long run over a group far wider than the cap, mixing inserts, deletes "
                "and updates so the witness repeatedly completes and breaks. This is where "

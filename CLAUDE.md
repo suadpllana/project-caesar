@@ -4,6 +4,12 @@ Operating manual for a session with no memory of the earlier ones. Two tasks her
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
 built and gated locally but has not been through the pipeline yet.
 
+**`delta-view-retraction` failed the easiness probe twice and then passed it, on
+2026-08-14.** That is the only worked example in this repo of a rejected task being fixed
+rather than abandoned, and the procedure is written up as "The playbook" below. Read that
+before touching a task that has come back too easy - the two rounds that failed were both
+spent fixing the wrong thing.
+
 **Caveat on `reaction-network-reconstruction`, added 2026-08-13.** It cleared the pipeline
 once, but a local three-agent probe run after a leak-hardening pass came back **3 of 3**.
 Do not treat it as a model to copy: it is the worked example of the self-confirmation
@@ -22,15 +28,15 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
-| `delta-view-retraction` | Software / Databases | 26 | 156 | 14400 s | 8 h |
+| `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
 
-`delta-view-retraction` is the fifth and the first outside ML. It has been through the
-easiness probe twice - **2 of 3, then 3 of 3 after the first fix** - and the section to
-read first is "The easiness rejection" below, in particular its last part, which is the
-one that stops the next session wasting a day. Short version: patching leaks on a shallow
-mechanism does not work, because the question the task asks was answerable in five lines.
-The current build adds a second thing to find. It has **not been re-probed**, so treat the
-difficulty as unmeasured.
+`delta-view-retraction` is the fifth and the first outside ML, and it is the one that has
+been all the way round the loop: **easiness 2 of 3, then 3 of 3, then a pass**. The two
+failures and what was measured in each are in "The easiness rejection" below; the procedure
+distilled out of them is "The playbook". Short version: patching leaks on a shallow
+mechanism does not work, because the question the task asked was answerable in one line and
+then in two. What fixed it was a second graded quantity that a short rule cannot express,
+arranged so that finding it breaks the natural implementation of the first.
 
 It was submitted anyway on 2026-08-13 and bounced off the **bundle structure check** before
 reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
@@ -637,6 +643,122 @@ map, from the row store, and from retained multiplicity, and the two halves test
 order - which reach identical counters on all twelve scenarios. Five independent readings
 converging is what makes a ceiling defensible rather than one author's taste.
 
+## The playbook: fixing a task that fails the easiness probe
+
+`delta-view-retraction` failed easiness twice and then passed. It is the only task here
+that has done that, so this is the procedure that worked, in order, with the numbers. Every
+step is cheap; the expensive thing is guessing instead of measuring.
+
+**0. Do not rewrite anything yet.** Two of the three rounds on this task were spent fixing
+the wrong thing, because the fix was chosen from the probe score rather than from the
+evidence. The score tells you the task is too easy. It does not tell you why.
+
+**1. Get the trajectory and find the line.** Ask for the solve transcript. Skip the
+narrative and look for the moment the answer appears - typically the first `Write`, before
+the agent has run any experiment. Both solves here were decided by one line:
+
+```
+held == acc.n                 the 2-of-3 solve
+acc.n == len(c.dep)           the 3-of-3 solve
+```
+
+If the answer appears before the first experiment, the task is not testing derivation, it
+is testing recall of a short expression. That is the finding, and the rest follows from it.
+
+**2. Reproduce it against your own verifier.** Paste the submission into
+`authoring/trial.py` and grade it. This takes minutes, and it does two things: it confirms
+the leak is real rather than inferred, and it gives you the regression test you will use to
+prove the fix. Both trajectories are kept in this repo for exactly that, and both are
+re-graded after every change to the task.
+
+**3. Ask how many lines the answer is, mechanically.** `tools/onelinecheck.py <slug>` reads
+`authoring/decisions.py`, which the task supplies, and searches for the shortest exact rule
+over the fields the environment already exposes. On this task it reports:
+
+```
+fold-count      49 samples   no exact rule at depth <= 2
+repair         120 samples   EXACT: accn > rows or negs != retmin
+repair-legacy  120 samples   EXACT: accn > rows
+```
+
+`repair-legacy` is the pre-fix build and it is a **one-term** rule, which is what a probe
+solves cold. `repair` is two terms, which a probe also solves cold - the 3-of-3 solve was
+exactly that. The task is defensible only because `fold-count` is neither.
+
+**4. Try to close the pair once, and only once.** A named leak is easy to delete and it is
+never the whole leak: what a solver reads is a *difference between two fields that are each
+innocent*. Deleting `acc.spill` left `acc.n - sum(top.values())`. Closing that left
+`acc.n - len(dep)`. Ask which pairs of exposed numbers differ exactly when the hidden thing
+happened, and close the cheapest one - then check whether another pair says the same thing.
+If it does and you cannot remove it either, stop patching. On this task the third pair was
+inherent: retained multiplicity is visible in the candidate counts, the live row count is
+visible from the row store, and completeness is the comparison of the two. There is no
+fourth patch and looking for one costs a day.
+
+**5. Add a second thing to find, and make it break the first answer.** This is the step
+that actually moved the probe. Two independent hurdles are worth much less than one
+discovery that invalidates the natural implementation of the other. Here the second finding
+is that a reread folds more than it needs to - the accumulator keeps CAP distinct values and
+discards the rest, so only rows carrying a surviving value need folding - and finding it
+turns `cell.dep` from the obvious source of the first answer into a trap, because after a
+partial reread it names the rows folded rather than the rows the group holds. A solver who
+finds the second optimisation and keeps the first implementation publishes wrong values.
+
+**6. Ship every stopping point as a cheat.** Every place a reasonable solver could stop, at
+which the values are all correct, becomes a generated cheat that must score 0:
+`complete-only` (the first half alone), `slot-only` (the second half alone), `full-rebuild`
+(both halves, naive reread), `dep-completeness` (the interaction, missed). Each must fail on
+the axis it is aimed at - check *which* assertion fired, because a cheat that dies on a
+`NameError` has been rejected by nothing.
+
+**7. When a cheat scores 1, do not promote it.** It is either a correct implementation or a
+hole in your scenario set, and fuzzing against the sealed oracle is what tells you which.
+`dep-completeness` scored 1 here, was proved wrong on random streams, was shrunk to an
+eight-op counterexample, and that counterexample is now a scenario. The same check caught a
+second gap later: `onelinecheck` reported `fold-count` as *"one outcome only - not a
+decision"*, because every reread in the set happened to fold exactly CAP rows, so the second
+finding collapsed to a constant. One scenario with duplicates standing on the surviving
+values fixed it, and the fold count now differs between `min` and `max` on the same group at
+the same moment.
+
+**8. Grade a ceiling and never publish the target.** The 2-of-3 solve found a rule strictly
+better than the reference, and *reverted it* because the brief published the reference's
+figures. A published number tells the solver when to stop and lets them choose between
+correct rules by fitting. An equality grader also fails the better answer, which is the run
+audit. Budget grading fixes both, and it costs nothing: the evidence axis stops anyone
+buying their way under the ceiling.
+
+**9. Prove the ceiling before you believe it.** A budget taken from your own reference is a
+claim that no correct implementation needs more work than yours. `authoring/fuzz.py` runs
+the reference against the sealed oracle on random streams and `build_gt.py` refuses to write
+a ground truth without a clean run; `variants/` holds five independent readings that all
+reach identical counters. Five readings converging is what makes the number defensible.
+
+**10. Re-grade the trajectories.** The fix is done when the submissions that beat you score
+0, every alternative correct reading still scores 1, and the container trial is clean. On
+this task: both solves 0, 5 of 5 variants 1, 26 cheats 0, 28 of 28 trials.
+
+### Applying this to the other tasks in this repo
+
+None of `rollout-cache-coherence`, `checkpoint-resume-drift` or `turn-seam-alignment` has
+been through any of it. Concretely, for each of them:
+
+- **Write `authoring/decisions.py` and run `tools/onelinecheck.py`.** This is the cheapest
+  possible read on whether a task will fail easiness, and it can be done before any probe
+  is spent. The contract is small: return the graded decisions your reference makes, as
+  rows of integer features an agent can read at that moment, plus the label you chose. If
+  every graded decision comes back as a one- or two-term rule, the probe will solve it.
+- **Run `tools/forgecheck.py`.** All three fail it today: none has ever been tested against
+  a submission holding its own answer key, and two of them cleared the pipeline before that
+  gate existed.
+- **Check the brief for a published target.** `turn-seam-alignment` states a character
+  count; `rollout-cache-coherence` and `checkpoint-resume-drift` quote counters. Anything
+  the verifier grades and the brief states is a stopping signal, and if the grader is an
+  equality it is also a run-audit exposure.
+- **Ask what the second thing to find is.** If the answer is "there isn't one", that task
+  will fail easiness however many leaks get patched, and the honest move is a redesign at
+  Stage 2 rather than another round of hardening.
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
@@ -1173,6 +1295,11 @@ python3 tools/hintcheck.py <slug>               brief refutes no candidate rule,
 python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
                                                 gt.json must score 0, or the verifier is
                                                 grading a report instead of evidence
+python3 tools/onelinecheck.py <slug>            how short is the answer? every graded
+                                                decision reproduced by a two-term rule over
+                                                exposed fields is an easiness rejection
+                                                waiting to happen. Needs the task to ship
+                                                authoring/decisions.py
 python3 tasks/<slug>/authoring/fuzz.py 800      the reference against the sealed oracle on
                                                 random streams, before any budget taken
                                                 from the reference is believed

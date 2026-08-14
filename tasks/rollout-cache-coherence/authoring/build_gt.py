@@ -67,7 +67,8 @@ def main() -> int:
         gt["scenarios"][name] = {"report": rep, "snap": matches}
         print("%-22s ok  requests=%-3d snapshots=%d" % (name, len(matches), len(snaps)))
 
-    (TASK / "tests" / "gt.json").write_text(json.dumps(gt, indent=1, sort_keys=True) + "\n")
+    (TASK / "tests" / "gt.json").write_text(
+        json.dumps(gt, indent=1, sort_keys=True) + "\n", newline="\n")
     print("\nwrote tests/gt.json")
     return 0
 

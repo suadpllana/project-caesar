@@ -57,7 +57,7 @@ def run(script: Path | None) -> dict:
         if script is not None:
             body = script.read_text().replace("/app", live.as_posix())
             play = Path(tmp) / script.name
-            play.write_text(body)
+            play.write_text(body, newline="\n")
             proc = subprocess.run([bash(), str(play)], capture_output=True, cwd=tmp)
             if proc.returncode != 0:
                 print("  ! %s exited %d: %s" % (

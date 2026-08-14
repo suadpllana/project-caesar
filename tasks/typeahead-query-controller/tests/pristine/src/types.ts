@@ -1,6 +1,7 @@
 export interface QueryResult {
   query: string;
   items: string[];
+  total: number;
 }
 
 export type QueryStatus = "idle" | "loading" | "success" | "error";

@@ -174,6 +174,87 @@ and must stay that way — grading any of them fails a correct implementation:
 - all three set `result: null` on an active error; the reference leaves the rows in place
 - all three abort a superseded request rather than keeping it alive for dedup
 
+## The second easiness rejection, 2026-08-14: stripping the docs was not enough
+
+Came back **3 of 3 again** after the environment was stripped to code. The supplied
+trajectory shows the same procedural signature with the README gone: read four source files,
+`ls /app`, then a **single `Write` of a 166-line finished controller**, then `tsc`, then a
+self-built Node harness with 42 assertions, all green, done.
+
+So the leak was real but it was not the binding constraint. The binding constraint is that
+**the brief is a complete itemised specification and the agent's own harness is a perfect
+oracle for it.** Every rule was local and independently checkable, so transcribing the brief
+produced a correct controller and the agent could prove it before submitting. Nothing failed
+late, which is leak-audit item 6 at global scale.
+
+Adding stated rules cannot fix that, and grading unstated ones is the unfairness the human
+reviewer already rejected this task for. The fix is the lever CLAUDE.md names: an axis the
+brief can **require** but not **explain**.
+
+### The axis: the backend answers a page at a time
+
+`transport.ts` now caps every response at `PAGE = 5` items and reports `total`, the number of
+matches it found. `QueryResult` carries both. Neither file is editable.
+
+That makes the cache answer two questions with different answers, which is the shape that
+cleared both probes for `rollout-cache-coherence`:
+
+- **May I serve this for its own query?** Always. A page is what the backend returns for that
+  query, so re-requesting it buys nothing. (Graded by `r9c`, on `callCount` — an
+  implementation that conservatively refuses to cache partial answers pays a round trip and
+  fails on work, not on output. Overcaution fails too.)
+- **May I narrow this to answer a longer query?** Only when the answer is whole. Filtering a
+  page silently drops every match the backend withheld. (Graded by `r9`; `r9d` requires
+  walking back past a partial answer to a shorter whole one rather than giving up.)
+
+Nothing on the stored answer records that it lost rows — that is the `delta-view-retraction`
+rule applied here: *when the difficulty is "some state was silently lost", the state must not
+record that it was lost.* The condition has to be derived by comparing `items.length` against
+`total`.
+
+And the cheap derived test is wrong, which is the second-order trap under the first-order
+one: `items.length === PAGE` calls an answer partial when it exactly fills a page with
+nothing withheld. `r9b` grades that case.
+
+### Why this one is not detectable from the agent's own harness
+
+Every trajectory so far built a Node harness and settled two or three items per query. That
+never fills a page, so the fault is invisible to it. The agent has an oracle for the outputs
+and no oracle for this. It fails in the verifier or not at all.
+
+### Calibration, measured
+
+| tree | scenarios | reward |
+|---|---|---|
+| reference | 17/17 | 1 |
+| alternative correct implementation | 17/17 | 1 |
+| **the controller the last solver actually wrote** | **15/17** | **0** |
+| `cheat/narrow_partial_answer.ts` (reference minus the completeness check) | 15/17 | 0 |
+| `cheat/pagesize_heuristic.ts` (guards, but on page size) | 16/17 | 0 |
+| shipped broken tree | 4/17 | 0 |
+| `cheat/hardcode_attempt.ts` | 7/17 | 0 |
+| both harness-substitution cheats | 4/17 | 0 |
+
+The third row is the calibration that matters: the agent that solved the previous build,
+transcribed verbatim from its trajectory, now fails — and it fails *only* on the new axis,
+with all six original rules correct.
+
+The two single-mistake variants are generated from `solution/controller.ts` by an anchored
+swap, so each differs from the reference in exactly one line.
+
+### If it still comes back too easy
+
+The remaining honest levers, in order:
+
+- Make the page size non-constant, so `PAGE` cannot be read off as a literal and the
+  completeness test has to come from `total` by construction.
+- A second holder of the same answers (a session-level prefetch tier) that must be
+  invalidated in step with the cache, so an implementation that fixes one side gets every
+  output right and the wrong `callCount`.
+
+Do **not** add more stated rules, and do not grade any of the three known
+implementation-choice divergences listed below.
+
 ## Why the register was not touched
 
 The Aug-5 brief is casual (32.1 contractions/kw, 22.7 colloquial/kw) and `tools/textcheck.py`

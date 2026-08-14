@@ -23,11 +23,11 @@ too-easy failure mode" below, which is the version that matters.
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 | `delta-view-retraction` | Software / Databases | 14 | 62 | 14400 s | 8 h |
-| `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
+| `typeahead-query-controller` | Software / Frontend | 7 | 20 | 5400 s | 5 h |
 
 `typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
 It was rejected in human review afterwards, then on anti-cheat robustness, then 3 of 3 on the
-easiness probe, and was repaired for all three on 2026-08-14 - read "The human-review
+easiness probe twice, and was repaired for all of them on 2026-08-14 - read "The human-review
 rejection" and the two sub-sections after it before touching it, because a wholesale
 instruction rewrite was tried on 2026-08-13 and failed the AI check the original had passed.
 It is also the only bundle here whose verifier drives a real browser rather than a Python
@@ -535,6 +535,45 @@ Two more things the trajectories are worth reading for:
   help.** It is one more thing they will get right. And grading something the brief does not
   state is the unfairness the human-review gate rejects. The only lever left is an axis of
   discovery the instruction can require without being able to explain.
+
+### The same probe again: a complete brief is an oracle, whatever the environment says
+
+Stripping the environment was not enough. It came back **3 of 3 a second time**, and the new
+trajectory has the identical signature with the README gone: read four files, one `Write` of a
+166-line controller, `tsc`, a self-built Node harness of 42 assertions, green, done.
+
+So the shipped spec document was a real leak and *not the binding constraint*. The binding
+constraint was this: **every rule in the brief was local and independently checkable, so the
+agent's own harness was a perfect oracle.** Transcribe the brief, assert it back, prove you are
+right, submit. That is the too-easy failure mode with no leak left to blame - and it is the
+default state of any task whose brief is a complete itemised specification, which fairness
+requires it to be.
+
+The way out is the one this file already names, and it is worth stating as a rule because two
+rounds were spent not believing it: **the graded distinction must be derivable only from
+non-editable code, never from the brief, while the requirement it serves is stated plainly in
+the brief.** Fairness lives in the requirement; difficulty lives in the derivation.
+
+What that looked like here. The transport now answers a page at a time and reports how many
+matches it found, so a cached answer is sometimes whole and sometimes a slice. The cache is
+then asked two questions with different answers - serving an answer for its own query is always
+sound, narrowing it to answer a longer query is sound only when it is whole - and the brief can
+require both without being able to say which stored answer is which. Nothing on the entry
+records that it lost rows, per the lossy-state rule above, and the cheap derived test (item
+count against the page size) is wrong exactly when an answer fills a page with nothing
+withheld, which is the second-order trap.
+
+**The calibration that proves it, and this is the technique worth copying:** transcribe the
+solving agent's controller out of its own trajectory, verbatim, and run it against the new
+suite. It went from 17/17 to **15/17**, failing only on the new axis with all six original
+rules correct. A difficulty claim measured against your own near-miss is a guess; measured
+against the submission that actually beat you, it is evidence. Both near-misses now ship in
+`cheat/`, generated from the reference by anchored swap.
+
+The second half of why it bites: **the agent's harness cannot see it.** Every trajectory so far
+settled two or three items per query, which never fills a page. The fault is undetectable from
+anything the agent builds itself, so it surfaces in the verifier or not at all - Prong C,
+restored.
 
 Recorded as a non-finding so nobody rebuilds it: the three trajectories diverge from the
 reference in three places (caching a superseded authoritative reply, clearing `result` on an

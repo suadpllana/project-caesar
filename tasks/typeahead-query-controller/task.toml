@@ -45,6 +45,23 @@ locally and cancels any now-irrelevant refinement -- including invalidating \
 the in-flight token, which is easy to forget and produces a late overwrite \
 that only shows up when a user backspaces to a previous query.
 
+Fourth, and this is the part that is not reachable by reading the brief \
+carefully, the backend answers a page at a time. A cached answer is therefore \
+sometimes the whole match set and sometimes the first slice of a longer one, \
+and the two are indistinguishable from the item list alone. The cache is asked \
+two questions with different answers: serving an answer for its own query is \
+always sound, because a page is what the backend returns for that query, while \
+narrowing one to answer a longer query is sound only when the answer is whole \
+-- filtering a page silently drops every match the backend withheld. Nothing \
+on the stored answer says it lost rows; the condition has to be derived by \
+comparing what arrived against the count the transport reports, in a file the \
+agent may not edit. The cheap derived test is wrong in a way the task grades: \
+an answer that exactly fills a page with nothing withheld is whole, and \
+narrowing it is required. An implementation that gets this wrong is correct on \
+every other axis and cannot detect the fault from any harness it builds \
+itself, because a hand-written harness settles two or three items and never \
+fills a page.
+
 The verifier also holds the line on regressions that a naive over-correction \
 introduces: genuine transport failures must still surface, dispose must latch \
 before aborting so a late reply mutates nothing, and subscriber notification \
@@ -52,10 +69,13 @@ must iterate a snapshot so a listener unsubscribing during delivery does not \
 cause its peers to be skipped.
 
 Measured against implementations built while designing this task: the shipped \
-code fails 7 of 12 scenarios; a strong "obvious" fix carrying request tokens, \
-AbortError suppression, in-flight coalescing and a dispose latch still fails \
-2 of 12. Only an implementation that models identity, caching and the \
-continuity invariant together passes.
+code fails 13 of 17 scenarios. A complete, careful implementation of every \
+rule the brief states -- request tokens, AbortError suppression, in-flight \
+coalescing, a dispose latch, snapshot dispatch and prefix narrowing -- still \
+fails 2 of 17 by narrowing a partial answer, and a version that guards against \
+partial answers using the page size rather than the reported count fails 1 of \
+17. Only an implementation that separates the two questions the cache is asked \
+passes.
 """
 solution_explanation = """
 Rewrite src/controller.ts around three cooperating mechanisms.
@@ -73,11 +93,22 @@ and bumps the token so its eventual reply cannot overwrite the cached answer.
 
 The continuity invariant: when a new query is issued and nothing \
 authoritative is known for it, the controller derives a provisional result \
-from the longest cached prefix of the query, filtering those items to the \
-ones that still match, and emits it with provisional = true alongside status \
-= "loading". The authoritative response then replaces it with provisional = \
-false. When no cached prefix exists the result is null and the pane is \
-legitimately empty.
+from the longest usable cached prefix of the query, filtering those items to \
+the ones that still match, and emits it with provisional = true alongside \
+status = "loading". The authoritative response then replaces it with \
+provisional = false. When no cached prefix qualifies the result is null and \
+the pane is legitimately empty.
+
+Usable is the load-bearing word. The transport answers a page at a time and \
+reports the number of matches it found, so a stored answer is whole only when \
+the items it carries account for that number. A whole answer may be narrowed; \
+a partial one may not, because filtering it drops the matches the backend \
+withheld, so the search walks back to a shorter prefix that is whole. The same \
+partial answer is still served verbatim for its own query, from memory and \
+without a request, since a page is exactly what the backend returns for that \
+query. Testing item count against the page size instead of against the \
+reported total is wrong: an answer that fills a page with nothing withheld is \
+whole.
 
 Supporting details that the tests check: AbortError is swallowed rather than \
 written to state.error; dispose sets its latch before aborting so the abort \
@@ -87,21 +118,29 @@ copy of the subscriber set.
 verification_explanation = """
 The verifier runs in its own container and drives the agent's real module \
 graph in a real browser -- there is no re-implementation to grade against. \
-test.sh copies the agent's src/ and public/ into a scratch tree, links the \
-node_modules baked into the verifier image so the bundler cannot be swapped, \
-serves it with Vite, and drives it with Playwright/Chromium.
+test.sh copies the agent's src/ into a scratch tree, overlays the page shell \
+and build config from the image, links the node_modules baked into the \
+verifier image so the bundler cannot be swapped, serves it with Vite, and \
+drives it with Playwright/Chromium.
 
-Twelve scenarios exercise the controller through window.__harness, using a \
-transport whose responses settle only when the driver says so, so every race \
-is reproduced deterministically rather than by timing. settleIgnoringAbort \
+Seventeen scenarios exercise the controller through the harness exported by \
+src/main.ts, using a transport whose responses settle only when the driver \
+says so, so every race is reproduced deterministically rather than by timing. \
+The suite reaches the harness through that module export rather than through \
+window.__harness, because controller.ts is evaluated before main.ts assigns \
+the global and could otherwise pre-empt it; a module namespace object is \
+sealed and cannot be substituted from inside the graph. settleIgnoringAbort \
 commits a reply before cancellation is observed, which is what makes the \
 lossy-cancellation window testable at all. Scenarios assert on the full \
 emission history, not just final state: a stale payload that appears \
 momentarily and is later overwritten still fails.
 
 Before any scenario runs, the driver hashes src/types.ts, src/transport.ts, \
-src/main.ts, vite.config.ts, tsconfig.json and package.json against pristine \
-copies baked into the verifier image. Rewriting the contract, the transport \
+src/main.ts, public/index.html, vite.config.ts, tsconfig.json and \
+package.json against pristine copies baked into the verifier image. \
+public/index.html is Vite's root document and therefore the entry point of \
+the whole module graph, so it is served from the image and is not an uploaded \
+artifact at all. Rewriting the contract, the transport \
 or the harness to fake the invariants fails the run outright, and the \
 required scenario ids are asserted independently so deleting or renaming \
 scenarios cannot pass either.
@@ -125,7 +164,7 @@ failures and a dev server that never comes up all score 0.
 category = "Software"
 subcategory = "Frontend"
 tags = ["typescript", "race-condition", "abortcontroller", "observer-pattern", "prefix-caching", "playwright"]
-expert_time_estimate_hours = 4
+expert_time_estimate_hours = 5
 # NOTE: written from your real answers -- 1-2 yrs full-time, React/Vue/TS,
 # E2E testing. Nothing here is invented. Read it and put it in your own
 # words; add any concrete detail you can (the product, the actual bug), as

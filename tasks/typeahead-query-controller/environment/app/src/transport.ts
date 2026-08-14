@@ -21,10 +21,16 @@ export interface TransportHandle {
   reset(): void;
 }
 
+const PAGE = 5;
+
 export function createTransport(): TransportHandle {
   let nextId = 1;
   let pendings: Pending[] = [];
   let log: string[] = [];
+
+  function page(query: string, matches: string[]): QueryResult {
+    return { query, items: matches.slice(0, PAGE), total: matches.length };
+  }
 
   const transport: Transport = (query, signal) => {
     const id = nextId++;
@@ -81,7 +87,7 @@ export function createTransport(): TransportHandle {
       const p = take(id);
       if (p && !p.done) {
         p.done = true;
-        p.resolve({ query: p.query, items });
+        p.resolve(page(p.query, items));
       }
     },
     fail: (id, message) => {
@@ -98,7 +104,7 @@ export function createTransport(): TransportHandle {
       if (p.done) return;
       p.done = true;
       pendings = pendings.filter((x) => x.id !== id);
-      p.resolve({ query: p.query, items });
+      p.resolve(page(p.query, items));
     },
     reset: () => {
       nextId = 1;

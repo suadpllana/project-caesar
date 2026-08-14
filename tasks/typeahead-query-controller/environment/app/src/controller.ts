@@ -6,6 +6,18 @@ import type {
   Transport,
 } from "./types";
 
+/**
+ * Search controller used by the type-ahead panel.
+ *
+ * Known issue (INC-2231): under fast typing the panel intermittently shows
+ * results belonging to an earlier keystroke, and the spinner sometimes stays
+ * up after the last request has settled. Reproduces most easily when the
+ * network is slow and responses arrive out of order.
+ *
+ * The result cache and the provisional-display behaviour described in the
+ * panel spec were never implemented here: every keystroke goes to the
+ * transport, and the pane blanks while it waits.
+ */
 export function createController(transport: Transport): Controller {
   let state: QueryState = {
     query: "",

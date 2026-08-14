@@ -2,13 +2,27 @@ import { createController } from "./controller";
 import { createTransport } from "./transport";
 import type { Controller, QueryState } from "./types";
 
+/**
+ * Browser harness.
+ *
+ * Exposes the controller and the test transport on `window.__harness` so the
+ * conformance suite can drive them directly, and renders a small panel so the
+ * behaviour is observable by hand.
+ *
+ * Do not modify this file.
+ */
+
 interface Harness {
   transport: ReturnType<typeof createTransport>;
   controller: Controller;
+  /** State snapshots in emission order, since the last reset. */
   emissions: QueryState[];
+  /** Rebuild the controller and clear all recorded activity. */
   reset(): void;
+  /** Subscribe an extra listener; returns a handle for unsubscribing. */
   addListener(name: string): void;
   removeListener(name: string): void;
+  /** Names of listeners that received at least one emission. */
   listenerHits(): Record<string, number>;
 }
 

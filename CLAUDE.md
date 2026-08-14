@@ -26,10 +26,12 @@ too-easy failure mode" below, which is the version that matters.
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
 
 `typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
-It was rejected in human review afterwards, on the instruction, and repaired on 2026-08-14 -
-read "The human-review rejection" before touching it, because a wholesale instruction rewrite
-was tried on 2026-08-13 and failed the AI check the original had passed. It is also the only
-bundle here whose verifier drives a real browser rather than a Python runner.
+It was rejected in human review afterwards, then on anti-cheat robustness, then 3 of 3 on the
+easiness probe, and was repaired for all three on 2026-08-14 - read "The human-review
+rejection" and the two sub-sections after it before touching it, because a wholesale
+instruction rewrite was tried on 2026-08-13 and failed the AI check the original had passed.
+It is also the only bundle here whose verifier drives a real browser rather than a Python
+runner.
 
 `delta-view-retraction` is the fifth and the first outside ML. It is **built and fully
 gated locally but came back 2 of 3 on the local three-agent probe**, which is an easiness
@@ -488,6 +490,57 @@ it is absent and copies *into* it when it is present, so an emulation that pre-p
 `public/` from the environment leaves the agent's `index.html` in place and silently tests a
 different defence than the one that ships. That produced a run where a cheat was caught by
 the hash when the layer actually under test was the overlay.
+
+### The easiness rejection: preflight's environment bans are difficulty rules
+
+Third round on the same bundle. It came back **3 of 3** on the easiness probe, and the three
+trajectories were supplied, which makes this the best-documented easiness failure in the repo.
+All three read the same way:
+
+1. `Read(/app/README.md)` first, every time.
+2. Read the four source files.
+3. "Now I have the full picture" - then a **single `Write` of the finished controller**. No
+   design iteration and no discarded first plan, in any of the three.
+4. Compile the controller against the real transport, drive it through a self-written harness
+   (22, 30 and 37 assertions), watch it go green. Done, well inside budget.
+
+The environment stated every answer. A 97-line `environment/app/README.md` carried a numbered
+spec of exactly the six graded rules, named which of them were unimplemented ("Rules 3 and 4
+were never implemented at all"), and explained the prong-A poison in prose ("aborting does not
+guarantee the response is not already coming"). The same insight appeared twice more, in a
+comment on the transport method that carries it and in a note on the state field it governs.
+87 prose comment lines across four source files.
+
+**`preflight.py` had been erroring on all of it for three rounds.** The `.md`-files-banned rule
+and the no-comments-in-environment rule are in `docs/RULES.md`, preflight enforces both, and I
+left them standing across two submissions on the grounds that this exact bundle had cleared the
+pipeline's structural check *and* its quality review with them present. That reasoning was
+sound about those two gates and wrong about the task, because **the gate that enforces those
+rules is the easiness probe, three gates later.** A shipped spec document is not a style
+violation, it is the answer key; a comment explaining the mechanism is the difficulty, deleted.
+
+The rule to carry forward, which cuts against "the pipeline is the measurement" in a specific
+and important way: **when a local gate and an early pipeline gate disagree, the pipeline wins
+on that gate's own question - and says nothing about the later ones.** "The structural check
+passed it" is evidence about structure. It is not evidence that the environment is not leaking.
+Sort every preflight finding by which gate it predicts before deciding to leave it standing.
+
+Two more things the trajectories are worth reading for:
+
+- **The signature of a too-easy task is procedural, not semantic.** Look for the one-shot
+  write. Three agents going from "read the files" to a complete correct implementation with no
+  intermediate wrong version means the plan never had to be revised, which is the whole game
+  per the too-easy section above. You can see it without understanding the domain.
+- **When every solver satisfies every stated rule first time, adding a stated rule cannot
+  help.** It is one more thing they will get right. And grading something the brief does not
+  state is the unfairness the human-review gate rejects. The only lever left is an axis of
+  discovery the instruction can require without being able to explain.
+
+Recorded as a non-finding so nobody rebuilds it: the three trajectories diverge from the
+reference in three places (caching a superseded authoritative reply, clearing `result` on an
+active error, aborting a superseded request rather than keeping it for dedup). All three are
+implementation choice, none is graded, and grading any of them would fail a correct solution.
+A divergence between solvers and the reference is not automatically a difficulty axis.
 
 ## The concision rejection: the brief must not pre-eliminate a cheat
 

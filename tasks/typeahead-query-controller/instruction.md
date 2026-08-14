@@ -5,10 +5,10 @@ Here's the actual bug: we fire an HTTP request on every keystroke (c → ca → 
 
 On top of that, a couple things from the spec never got built: we're re-fetching data we already have, and the results pane blanks out every time it's waiting on a new response.
 
-/app/README.md is the source of truth for how this thing should behave. A few things it needs to cover:
+Here's what it's supposed to do:
 
 Out-of-order responses & errors
-Only paint a response if it still matches what's in the input box. If the user's moved on, just drop it, no fuss. Aborting the fetch isn't enough on its own either, since a response can already be in flight when the query changes, so its resolution needs to be a no-op in that case. And errors (500s, network failures) should only flip us into an "error" state if they happen on the active query. A superseded request dying in the background shouldn't cause any error or flicker.
+Only paint a response if it still matches what's in the input box. If the user's moved on, just drop it, no fuss. Aborting the fetch isn't enough on its own either, since a response can already be in flight when the query changes, so its resolution needs to be a no-op in that case. And errors (500s, network failures) should only flip us into an "error" state if they happen on the active query, carrying whatever message the transport handed back. A superseded request dying in the background shouldn't cause any error or flicker.
 
 Dedup & caching
 Don't fire a second request for car if one's already in flight. And if someone backspaces back to a query we already have a solid answer for, pull it from memory instantly, no network call, no spinner, provisional: false, status "success".

@@ -15,6 +15,7 @@ Submitted, all nine gates passed, rejected in human review. Repaired 2026-08-14.
 | 2026-08-13 | instruction rewritten wholesale (formal register, no shipped README, comments stripped); resubmitted; **failed the AI check** |
 | 2026-08-14 | reverted to the Aug-5 bundle, applied the reviewer's fix only; resubmitted |
 | 2026-08-14 | **rejected on quality review, anti-cheat robustness** — the harness could be substituted through `public/index.html` |
+| 2026-08-14 | **rejected on the easiness probe, 3 of 3** — the agent environment shipped the answer |
 
 The human reviewer's words, in full:
 
@@ -105,6 +106,73 @@ Measured after the fix, with the emulation mirroring `test.sh`'s copy order:
 Every attack now collapses to the agent's real controller. With layer 2 deliberately
 disabled the hash fires instead (`integrity: False ['public/index.html: modified']`, zero
 scenarios run), which is how layer 3 was confirmed to be live rather than decorative.
+
+## The easiness rejection, 2026-08-14: the environment was the answer key
+
+Came back **3 of 3**. All three trajectories were supplied, and they read almost identically,
+which is the diagnosis in itself:
+
+1. `Read(/app/README.md)` first, every time.
+2. Read the four source files.
+3. "Now I have the full picture" — then a **single `Write` of the finished controller**. No
+   design iteration, no discarded first plan, in any of the three.
+4. Compile `controller.ts` against the real `transport.ts`, drive it through a self-written
+   harness (22, 30 and 37 assertions), watch it go green.
+5. Done, well inside the 5400 s budget.
+
+Nothing was guessed and nothing failed late, because the environment stated every answer:
+
+- `environment/app/README.md` carried a **numbered product spec of exactly the six graded
+  rules**, naming `provisional: true` and `status: "loading"` outright.
+- It named the diagnosis: *"Rules 3 and 4 were never implemented at all: every keystroke goes
+  to the transport, and the pane blanks while it waits."*
+- It explained the load-bearing trap in prose: *"Cancellation is genuinely lossy here [...]
+  aborting does not guarantee the response is not already coming."* That is the prong-A
+  poison this task rests on, handed over as a paragraph.
+- The same insight appeared twice more, in `transport.ts`'s comment on `settleIgnoringAbort`
+  and in `types.ts`'s note that `result` must never belong to a superseded query.
+- `controller.ts`'s own docstring said which features were missing.
+
+87 prose comment lines across four source files, plus a 97-line spec document.
+`scripts/preflight.py` had been erroring on all of it for three rounds — `.md` files banned
+in the agent environment, comments and docstrings banned — and it was left standing because
+the bundle had cleared the *structural* check and the quality review with it. Those gates do
+not enforce the rule. The easiness probe does, three gates later.
+
+The repair strips the environment back to code:
+
+- `environment/app/README.md` deleted, along with its `COPY` line in the Dockerfile and the
+  brief's "source of truth" sentence.
+- All prose comments and docstrings removed from `controller.ts`, `types.ts`, `transport.ts`
+  and `main.ts`; `tests/pristine/src/*` resynced so the integrity hashes still match.
+- One requirement the README carried and the brief did not is now in the brief: an active
+  failure carries the message the transport handed back (graded by `r7b`).
+
+The brief is now the only specification, and it still states every graded behaviour — the
+assertion list was walked against it in both directions after the deletion. What the agent
+loses is the diagnosis and the mechanism, not the requirements. To learn that an abort can
+lose the race, it now has to read `settleIgnoringAbort` and the `committed` guard in the
+abort handler rather than a paragraph explaining it.
+
+Preflight is down from 6 errors to 1 (the `U+2192` in the brief, present in the version that
+passed the AI check twice, left alone deliberately).
+
+**If it still comes back too easy, do not add graded rules.** All three agents satisfied
+every stated rule on their first attempt, so a new rule is another thing they will get right;
+and grading anything the brief does not state is the unfairness the human reviewer already
+rejected this task for. The remaining lever is the one CLAUDE.md names: an axis of discovery
+the instruction can require without being able to explain. Two candidates that fit this
+environment, neither built: a second cache tier that must be invalidated in step with the
+first, and a transport whose replay of an identical query is not guaranteed to return
+identical items, so "served from memory" and "asked again" become distinguishable from
+outside.
+
+Three divergences between the reference and all three solvers are **deliberately ungraded**,
+and must stay that way — grading any of them fails a correct implementation:
+
+- all three cache a superseded-but-authoritative response; the reference does not
+- all three set `result: null` on an active error; the reference leaves the rows in place
+- all three abort a superseded request rather than keeping it alive for dedup
 
 ## Why the register was not touched
 

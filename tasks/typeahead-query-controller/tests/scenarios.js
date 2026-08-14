@@ -12,13 +12,26 @@
 /**
  * Prelude injected before every scenario body.
  *
+ * The harness is taken from the module namespace of main.ts, never from
+ * window.__harness. main.ts is hashed against the pristine copy, and a module
+ * namespace object is sealed, so no other module in the graph can substitute
+ * what `h` refers to. A global rendezvous point could be pre-empted: every
+ * scenario reaches the app through this one binding, and controller.ts is
+ * evaluated (as an import of main.ts) before main.ts assigns anything to
+ * window, so an accessor installed there would capture the whole suite.
+ * `import()` is syntax rather than a global lookup, so it cannot be patched
+ * out from inside the graph either.
+ *
  * `need(q)` returns the id of the pending request for `q`, or throws a
  * BadState carrying a readable message. The driver turns that into an
  * ordinary failing verdict rather than an opaque TypeError, so a controller
  * that simply never issues a request reports why instead of crashing.
  */
 const PRELUDE = `
-  const h = window.__harness;
+  const h = (await import("/src/main.ts")).harness;
+  if (!h || typeof h.reset !== "function") {
+    throw new Error("main.ts did not export a usable harness");
+  }
   class BadState extends Error {
     constructor(m) { super(m); this.name = "BadState"; }
   }
@@ -228,9 +241,13 @@ const SCENARIOS = [
   },
   {
     id: "r7_emit_snapshot",
-    title: "unsubscribing during delivery does not skip other subscribers",
+    title: "a subscriber removed by a peer mid-dispatch still receives that update",
     body: `
       h.reset();
+      // Peer-removal only: the first listener removes two others, and never
+      // itself. An implementation that re-reads the live subscriber set
+      // between callbacks skips them here. r7c covers self-removal, which
+      // this scenario cannot distinguish.
       const hits = [0,0,0,0];
       const offs = [];
       offs.push(h.controller.subscribe(() => {
@@ -254,27 +271,25 @@ const SCENARIOS = [
     title: "a listener that unsubscribes itself still receives that update",
     body: `
       h.reset();
-      // Distinct from r7: there no listener removed *itself*, so an
-      // implementation that re-checks membership before each call could
-      // still be read as conforming. Here the only removal is self-removal,
-      // and a listener added mid-dispatch must not be pulled into the
+      // Self-removal only, which r7 cannot separate from peer-removal: an
+      // implementation that walks a snapshot and one that removes the
+      // current listener before calling it both pass r7, and only this
+      // scenario tells them apart. It also pins the joining side: a
+      // subscriber registered from inside a callback is not owed the
       // dispatch already under way.
       const self = [0, 0];
       const late = [0];
-      let off1 = null;
       const off0 = h.controller.subscribe(() => {
         self[0]++;
-        off0();                      // remove myself, mid-delivery
-        h.controller.subscribe(() => late[0]++);   // joins from next update
+        off0();
+        h.controller.subscribe(() => late[0]++);
       });
-      off1 = h.controller.subscribe(() => self[1]++);
+      h.controller.subscribe(() => self[1]++);
       h.controller.search("a");
       await tick();
-      // Self-removal counted for this update, and took effect afterwards.
       const firstOk = self[0] === 1 && self[1] === 1 && late[0] === 0;
       h.transport.settle(need("a"), ["ant"]);
       await tick();
-      // Second update: the self-removed listener is gone, the late joiner is in.
       const secondOk = self[0] === 1 && self[1] === 2 && late[0] === 1;
       return {
         pass: firstOk && secondOk,

@@ -33,11 +33,11 @@ The most direct exploit: edit `src/transport.ts` so `settleIgnoringAbort`
 behaves like `settle`, or so aborted requests never resolve. Every ordering
 scenario then passes with the original buggy controller.
 
-**Rejected by:** the driver hashes `src/types.ts`, `src/transport.ts` and
-`src/main.ts` against pristine copies baked into the verifier image before
-any scenario runs, and `test_protected_files_unmodified` fails the whole run
-on a mismatch. The pristine copies live in the verifier image, which the
-agent never sees and cannot write to.
+**Rejected by:** the driver hashes `src/types.ts`, `src/transport.ts`,
+`src/main.ts` and `public/index.html` against pristine copies baked into the
+verifier image before any scenario runs, and `test_protected_files_unmodified`
+fails the whole run on a mismatch. The pristine copies live in the verifier
+image, which the agent never sees and cannot write to.
 
 ## 2. Fake the harness
 
@@ -45,6 +45,47 @@ Replace `src/main.ts` so `window.__harness.controller` is a stub that
 returns whatever state the scenarios want, ignoring the real controller.
 
 **Rejected by:** same integrity check -- `main.ts` is protected.
+
+## 2b. Substitute the harness without touching a protected file
+
+Attacks 1 and 2 are blocked by hashes on the files that *define* the harness.
+Neither hash decided where the suite *found* it. Every scenario opened with
+`const h = window.__harness`, and two routes reach that global ahead of the
+suite without modifying anything hashed:
+
+- `cheat/harness_override_index.html`. Vite's root is `public/`, so
+  `public/index.html` is the document that boots the module graph. Module
+  scripts run in document order, so a second `<script type="module">` after
+  the `main.ts` tag executes *after* the harness is installed and simply
+  reassigns `window.__harness` to a compliant reimplementation written inline.
+  `public/` was an uploaded artifact, was copied verbatim by `test.sh`, was
+  absent from `PROTECTED`, and had no pristine copy.
+- `cheat/harness_preempt_controller.ts`. The same payload with no file outside
+  the declared artifact. `main.ts` imports `controller.ts`, so the agent's
+  module is evaluated *before* `main.ts` assigns anything; installing an
+  accessor with `Object.defineProperty(window, "__harness", { set() {} })`
+  makes that assignment a silent no-op and the suite reads the fake.
+
+Both scored **13 of 13 with `src/controller.ts` left exactly as shipped**, so
+this was a full bypass, not a partial one. Measured on 2026-08-14.
+
+**Rejected by three independent layers**, added together because the second
+route proves that pinning the page shell alone is not enough:
+
+1. The scenarios no longer read a global. The prelude takes the harness from
+   the module namespace of `main.ts` (`(await import("/src/main.ts")).harness`).
+   A module namespace object is sealed and `main.ts` is hashed, so nothing
+   else in the graph can substitute what `h` refers to, and `import()` is
+   syntax rather than a global lookup, so it cannot be patched out either.
+   This is what kills the `defineProperty` route, which no hash can reach.
+2. `public/` is served from the verifier image, exactly like `tsconfig.json`,
+   `vite.config.ts` and `package.json`. The agent's copy is never served.
+3. `public/index.html` is in `PROTECTED` and has a pristine copy under
+   `tests/pristine/public/`, so a failure of layer 2 still fails the run
+   before any scenario executes.
+
+`/app/public` was also dropped from `artifacts` in `task.toml`: the page shell
+is not a deliverable, so it is no longer uploaded at all.
 
 ## 3. Neutralise the scenarios
 

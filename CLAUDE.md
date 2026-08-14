@@ -1067,8 +1067,8 @@ The code block both checkers dislike is the required function signature.
 
 `segment-merge-horizon` is the sixth task and the first in Software / Systems. Seed: RocksDB
 and LevelDB compaction, specifically when a deletion marker may be dropped and how that rule
-interacts with a record kind carrying a delta rather than a value. It is built and gated
-locally and has not been near the pipeline.
+interacts with a record kind carrying a delta rather than a value. It cleared the structural and AI checks on 2026-08-15 and was rejected by the
+similarity screen; see the similarity section below.
 
 **The entry worth carrying forward is one verifier primitive, and it is stronger than the work
 journal this repo has been using.** Every task here counts work in a non-editable file and
@@ -1133,6 +1133,60 @@ constraint on the present, and it cannot be routed around.
 - `preflight.py` emits 29 unused-public-function warnings on this bundle, every one of them a
   method reached through an instance. Same documented false-positive class as before.
 
+
+## The similarity rejection: the house pattern is now the liability (2026-08-15)
+
+`segment-merge-horizon` was submitted on 2026-08-15 and **failed the similarity screen** -
+"Too similar to an existing task" - after passing the structural check and the AI check. Every
+local gate was green and no local gate measures this, which makes it standing-policy item 2:
+the checkers here are blind to the axis that rejected it.
+
+**Measured, before guessing.** Instruction vocabulary is not the culprit. Jaccard over
+four-letter-plus tokens puts the new brief at **0.249** against `delta-view-retraction`, which
+is *lower* than pairs that both passed: `checkpoint-resume-drift` against
+`rollout-cache-coherence` is **0.338** and `delta-view-retraction` against
+`turn-seam-alignment` is **0.302**. `instruction.md` is 4.3% similar to delta-view's by
+sequence ratio and `task.toml` is 8.8%. The brief is not what matched.
+
+Two things are, and both need fixing before anything is resubmitted.
+
+**1. The verifier plumbing is very nearly the same bundle.** Sequence ratios against
+`delta-view-retraction`:
+
+| file | ratio |
+|---|---|
+| `tests/reap.py` | **1.000** |
+| `environment/Dockerfile` | **1.000** |
+| `tests/runner.py` | 0.871 |
+| `tests/test.sh` | 0.831 |
+| `tests/Dockerfile` | 0.760 |
+| `tests/test_outputs.py` | 0.564 |
+
+Reusing the architecture is right and this file recommends it. Shipping it as *the same bytes*
+is what makes two submissions look like one task with the nouns changed. If the skeleton is
+reused, the shipped copies have to be rewritten rather than copied - `reap.py` and the
+environment Dockerfile being byte-identical across two submissions is indefensible on its own.
+
+**2. The failure mode is the house pattern, and four submissions already use it.** Grep the
+`difficulty_explanation` of every task here: `rollout-cache-coherence`,
+`checkpoint-resume-drift`, `turn-seam-alignment` and `delta-view-retraction` all grade **work
+counters against an unpublished budget**, all ship the **correct-outputs-wrong-work** signature,
+and all hang it on **one editable decision file inside a small simulator driven by an operation
+stream**. `segment-merge-horizon` is the fifth. The domain moved from ML to databases to storage
+engines; the question did not move at all, and "reskinning a previous task is rejected" is
+exactly what `docs/RULES.md` says about that.
+
+**The rule for the next task, and it is a hard one: do not grade work counters against a
+budget.** That idiom is spent. It was the thing that made the first four tasks work, which is
+precisely why it now reads as a variant of earlier work. A new submission needs a graded
+artifact of a different kind - an execution or ordering trace, a reconstructed state, a
+schedule, a decision under a rule - and the difficulty has to come from somewhere other than
+"the safe implementation is correct and too expensive".
+
+**Ask this at Stage 1, before any code.** Not "is the domain different" - the domain has been
+different every time and it did not help. Ask: *what is graded, and has anything here graded
+that before?* If the answer to the second half is yes, the idea is a reskin however new the
+subject matter is.
 
 ## The bundle-structure rejection: the tree is not the zip
 

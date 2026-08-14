@@ -1,9 +1,10 @@
 # The verifier serves the agent's app itself, so it needs the source tree and
 # the build config alongside it. node_modules is deliberately not uploaded:
-# the verifier links its own, so the bundler cannot be swapped.
+# the verifier links its own, so the bundler cannot be swapped. public/ is not
+# uploaded either -- it holds the document that boots the module graph, and
+# the verifier serves its own copy of that.
 artifacts = [
   "/app/src",
-  "/app/public",
   "/app/tsconfig.json",
   "/app/vite.config.ts",
   "/app/package.json",

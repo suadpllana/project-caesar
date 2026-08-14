@@ -1,0 +1,26 @@
+Deliberate fake solutions. Every one of them must score 0.
+
+- cheat-drain-the-input.sh
+- cheat-stop-at-the-floor.sh
+- cheat-strict-read-point.sh
+- cheat-delete-is-absence.sh
+- cheat-never-ask-outside.sh
+- cheat-ask-about-everything.sh
+- cheat-assume-nothing-outside.sh
+- cheat-zero-adjust-is-nothing.sh
+- cheat-open-outcome-totals.sh
+- cheat-one-record-per-point.sh
+- cheat-survivor-rule.sh
+- cheat-write-without-reading.sh
+- cheat-shadow-drain.sh
+- cheat-patch-take.sh
+- cheat-hijack-report.sh
+- cheat-forge-journal.sh
+- cheat-reward-daemon.sh
+- cheat-plant-run-output.sh
+- cheat-plant-and-crash.sh
+- cheat-probe-privileges.sh
+- cheat-read-answers.sh
+- cheat-rewrite-engine.sh
+- cheat-sweep-environment.sh
+- cheat-peek-scenarios.sh

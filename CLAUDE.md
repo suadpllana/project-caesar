@@ -30,6 +30,8 @@ too-easy failure mode" below, which is the version that matters.
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 | `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
+| `earliest-change-script` | Software / Algorithms | 4 | 16 | 14400 s | 18 h |
+| `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
 
 `typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
 It was rejected in human review afterwards, on the instruction, and repaired on 2026-08-14 -
@@ -940,6 +942,198 @@ been through any of it. Concretely, for each of them:
   will fail easiness however many leaks get patched, and the honest move is a redesign at
   Stage 2 rather than another round of hardening.
 
+## The easiness repair on a task that is a pure function (2026-08-14)
+
+`earliest-change-script` came back **3 of 3** from the easiness probe. It is not in
+`tasks/` - the user carries it as a zip and it was handed over as an attachment, so
+nothing in this repo will find it unless someone puts it there. Its layout is not the
+kit's either: a parent harness, a child process that is the only thing importing the
+submitted module, cheats as `.py` rather than `.sh`, no `authoring/` and no STATE.md,
+so `tools/docker_trial2.py` does not apply to it and the host emulation had to be
+written from scratch.
+
+The task: given two lists of lines, return the shortest edit script under a stated
+tie-break. The trajectory shows the answer in the agent's **first substantive
+message, before it ran anything** - playbook step 1 for the third time in this repo:
+
+```
+The rule reduces to a clean form. With R(i,j) = LCS(before[i:], after[j:]):
+  drop at (i,j) iff R(i+1,j) == R(i,j); else add iff R(i,j+1) == R(i,j); else keep
+```
+
+**The brief published both of its discoveries, and that is the whole diagnosis.**
+
+1. The rule was written as a **decision procedure**: "Stand at a position in the walk.
+   Ask whether dropping the next line of `before` can still lead to a shortest script
+   from here. If it can, drop." There is nothing left to derive - that sentence is the
+   algorithm, and the three lines above are a transcription of it.
+2. A section headed "Speed" **enumerated the graded cost families**: "the big ones come
+   in two kinds", "they are not two sizes of the same thing", six long and barely
+   changed at 400k-1M lines, six of 40-60k sharing no order. The task's own difficulty
+   argument claimed "the second hill is only visible once the first is already built".
+   It was printed in the brief, and the same first message named both engines - Myers
+   O(ND) for one family, bit-parallel LCS for the other.
+
+### The finding that generalises: a pure function cannot have Prong C on correctness
+
+This is the new entry and it is worth more than the repair. When the task is a
+deterministic function of its inputs and the rule is stated completely, **the solver
+can brute-force the rule into a complete oracle in twenty lines and differential-test
+against it exhaustively.** This agent wrote that oracle as its *first file*, then ran
+261k exhaustive short-shape crossings through it. No amount of leak-patching closes
+that, because the thing leaking is the specification, and the specification has to be
+complete for the task to be fair.
+
+So on this task shape, stop trying to buy Prong C on correctness. The only ground left
+is **a regime the solver has to think to construct**, which makes the lever the input
+distribution rather than the rule:
+
+- **State the input space. Never state the cost taxonomy.** "They run from forty
+  thousand to a million lines a side, and how long a pair is, how much order it keeps
+  and how often a line repeats do not move together" is a requirement. "They come in
+  two kinds that cost the opposite way round" is the answer.
+- **Put the second discovery above the size the solver's own oracle can grade.** That
+  is the version of "the second finding breaks the natural implementation of the first"
+  that works when everything small is checkable.
+
+### What was built, with the numbers
+
+A third cost axis, orthogonal to the two the agent named on sight. The three costs are
+now `D^2` (frontier), `n*m/64` (bit-parallel rows) and `r`, the number of positions
+that match across the two sides; each of three families is quadratic on the two engines
+that do not answer it. Measured on the new family (a quarter to a third of a million
+lines, nearly all distinct, reordered wholesale), against a 6 s budget:
+
+| engine | new family | why it was already there |
+|---|---|---|
+| frontier `D^2` | hopeless, `D` = 457k | answers the long/barely-changed family |
+| bit-parallel `n*m/64` | **27.0 s** measured | answers the crowded 40-60k family |
+| matching pairs `r` | **0.79 s** | `r` = 500k against `n*m` = 90 billion |
+
+and `r` on the two old families runs 2.5e8 to 5e10, so the new engine is hopeless on
+both of them. The third engine is thresholds over suffixes maintained by one pass from
+the far end, with **every change journalled and undone again on the way forward**,
+because the array is built from the far end and read from the near end. That journal is
+the non-recallable part.
+
+**The interaction is the point.** The third engine is only ever dispatched above a
+quarter of a million lines, since below that one of the other two is cheaper - so it is
+unreachable from every input the solver's slow oracle can run on. Its walk has to
+re-implement the tie-break, and the reconstruction every textbook account of that
+algorithm describes gives a shortest script that is **not this one**. Shipped as
+`cheat/keep_first_in_the_third_engine.py`: all 53258 correctness cases pass, all
+eighteen timings pass, every answer carries the right number of moves, reward **0**.
+Its third engine disagrees with the rule on 22173 of 40858 cases when forced, and it
+never sees one of them.
+
+The stopping point ships too. `cheat/two_engines_only.py` is the *previous complete
+solution*: 53258 correctness cases pass, twelve of eighteen timed pairs pass, six time
+out at 6.0 s, reward **0**.
+
+Measured through the real harness and the real grader: reference solution **1** on two
+seeds (14/14 tests), four cheats **0**. Docker is unavailable on the Windows host, so
+the privilege drop, the root-owned reward channel, the unreadable `/tests` and the
+process teardown are **not** covered by that run.
+
+### Non-finding: how not to state the rule without stating the algorithm
+
+Recorded so nobody re-derives it. Restating "drop-first among shortest" as *the
+lexicographically smallest shortest script, reading a drop before an add* over the
+**move list** is wrong - 4350 of 16129 two-letter pairs disagree, because an add at
+position 0 has to beat a drop at position 1 and a global "drop before add" gets that
+backwards. The statement that holds is over the **walk trace**: write down what happens
+at each position of the walk, which is a drop, an add or a keep; every shortest script
+for a pair gives a trace of the same length; the answer is the lexicographically first
+trace with drop before add before keep. Verified against the definitional model on
+**313,802 pairs** over three alphabets. That phrasing is a property of the output, so it
+states the requirement without handing over the decision procedure.
+
+### Second independent confirmation that the local text gates are lying
+
+`typeahead-query-controller` was the only evidence for standing-policy item 5. There are
+two artifacts now. This instruction **cleared the AI-text screen** - the task reached the
+easiness probe, which is downstream of it - and on the version that passed,
+`textcheck.py` reports burstiness **0.644** against the 0.90 floor plus a first-person
+hit, and `structcheck.py` reports a fenced code block and no grounding numbers in the
+opening third. Four findings across the two checkers, on a brief the pipeline accepted.
+
+Treat the register and burstiness thresholds as unproven, exactly as the typeahead
+section says, and repair inside the existing voice. This repair did: textcheck findings
+went **2 to 1**, structcheck **2 to 2** (the same two), burstiness 0.644 to 0.588, words
+902 to 794, and stock words, hedges, antithesis and triads stayed at zero throughout.
+The code block both checkers dislike is the required function signature.
+
+## Grade the derivability of the answer, not only the amount of work (2026-08-15)
+
+`segment-merge-horizon` is the sixth task and the first in Software / Systems. Seed: RocksDB
+and LevelDB compaction, specifically when a deletion marker may be dropped and how that rule
+interacts with a record kind carrying a delta rather than a value. It is built and gated
+locally and has not been near the pipeline.
+
+**The entry worth carrying forward is one verifier primitive, and it is stronger than the work
+journal this repo has been using.** Every task here counts work in a non-editable file and
+then has to defend that counter against a submission that does the work somewhere the counter
+cannot see. `delta-view-retraction` answered that with three in-process layers (a source-side
+log, `sys.monitoring`, function fingerprints) and CLAUDE.md records the floor honestly: none of
+it is a proof, and `gc.get_referrers` is still there.
+
+This task closes the same hole from the other end, and by construction rather than by
+detection: **the verifier requires every value the submission publishes to be derivable from
+the inputs it declared it consumed.** Concretely, `tests/oracle.py:justify` computes, from the
+records a job declared it pulled for one key, the exact set of records that job is entitled to
+write, and a write outside that set fails - with every published read correct. The consequence
+is that free access to the data buys nothing. A plan can read the segment buffers directly, it
+can recognise the scenario, it can hold the whole answer key; it still cannot write a record it
+cannot account for, so the read counter measures real reads whether or not the reading was
+observable.
+
+`cheat-write-without-reading.sh` is the proof: it takes the records straight out of the
+segment buffers at zero cost, computes the correct output, publishes every read exactly right,
+and is rejected by `test_every_written_record_was_earned` on all fifteen scenarios. Contrast
+`cheat-shadow-drain.sh`, the attack that needed a dedicated layer in the older design, which is
+here caught by the ordinary log reconcile.
+
+**The rule to apply to the other tasks: for every graded quantity, ask what the submission
+would have to have consumed to be entitled to its output, and check that instead of, or as
+well as, counting the consumption.** A counter is a claim about the past. Derivability is a
+constraint on the present, and it cannot be routed around.
+
+### Three things measured here, one of them a near miss
+
+- **A one-for-one trade between two graded counters is a run-audit exposure, and it has to be
+  designed out rather than graded around.** A point read against the rest of the store saves
+  exactly one output record on the key it is spent on, so "probe more, write less" and "probe
+  less, write more" are both correct and neither dominates; with two ceilings taken from one
+  reference, whichever the reference did not choose fails. The fix was to make the skip
+  *deducible* - there is exactly one case where no answer the point read could give would
+  change a record, and the reference skips precisely that case - so the optimum is unique and
+  every correct reading lands on it. Four `ok-*` variants confirm it. Ask this at contract
+  time: for each pair of graded counters, is there a move that trades one for the other?
+- **An identity element stops being one in the presence of absence, and the fuzz is what
+  finds it.** An adjust of zero looks like a record that changes nothing, so the reference
+  dropped it. A chain of adjusts standing on an *empty* key resolves to their sum and the key
+  is **present**, so dropping a zero adjust over nothing turns a value of 0 into an absence.
+  `authoring/fuzz.py` found it on stream 400-odd of a random walk; none of the fourteen
+  hand-written scenarios did. It is now the sharpest cheat in the suite. The general form:
+  whenever the task has an algebra, check every identity and every empty case **against the
+  absence**, not against the value.
+- **A cheat that scores 1 is a hole in the scenario set, and the trial says so before the
+  probe does.** `cheat-zero-adjust-is-nothing` scored 1 on the first full run because every
+  scenario with a zero adjust happened to have a base underneath it. One added scenario
+  (`adjust-over-nothing`) fixed it. This is the third time the rule in "The playbook" step 7
+  has paid; run `authoring/trial.py --all` before believing any suite.
+
+### Non-findings, recorded so nobody re-derives them
+
+- `textcheck.py` reports "paragraph lengths too uniform" against `turn-seam-alignment` only.
+  That brief sits at sd 85.3 where `rollout-cache-coherence` is 37.5 and the reaction brief
+  38.5, so turn-seam is the outlier on that axis exactly as `checkpoint-resume-drift` is on
+  short sentences. A brief in the mid 40s that is clean against the other two is not carrying
+  a defect. Do not restructure over it.
+- `preflight.py` emits 29 unused-public-function warnings on this bundle, every one of them a
+  method reached through an instance. Same documented false-positive class as before.
+
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
@@ -985,6 +1179,63 @@ image and executed, which is the failure mode `.gitattributes` warns about at th
 
 The one-line rule: **the tree passing every gate says nothing about the archive.** Package,
 then check the package.
+
+## Rebuilding a zip by hand drops the mode bits, and the symptom looks like content
+
+Hit on 2026-08-14, on the `earliest-change-script` resubmission, after every local gate
+was green and the archive had been verified end to end by extracting it and running the
+real harness and grader out of the extracted tree.
+
+The pipeline came back:
+
+```
+Reference solution (oracle)  expected 1 on every attempt   0  0  0   verifier 0s
+No-change baseline (nop)     expected 0 on every attempt   0  0  0   verifier 0s
+```
+
+**`verifier 0s` is the whole diagnosis and it is worth memorising.** A verifier that fails
+on content takes minutes; one that reports zero seconds never started. When the reference
+scores 0 on every attempt *and* the verifier time is 0, stop reading the task and go look
+at the archive.
+
+The cause: the zip was rebuilt with `zipfile.ZipInfo` and `external_attr = mode << 16`,
+which is the obvious way and is wrong. `ZipInfo` defaults to **`create_system = 0`**
+(MS-DOS), and every extractor then ignores the high 16 bits of `external_attr` entirely
+and reads the low byte as DOS attributes. So the mode survives a round trip through
+Python's own `zipfile` - `infolist()` reports `mode 0o755` and any check written against
+it passes - and is discarded the moment the archive is extracted on Linux. `tests/test.sh`
+lands non-executable, the verifier cannot start, and **every submission scores 0,
+including the reference and including the nop.**
+
+Extracting with Git Bash `unzip` on Windows does not catch it either, because the host has
+no Unix permissions to lose, which is why the from-archive trial ran clean three times.
+
+What to set, replicated from the archive that the pipeline accepted:
+
+| | value |
+|---|---|
+| `create_system` | **3** (Unix); without this nothing else on this row matters |
+| `external_attr`, ordinary file | `0x01A40180` (`0o644`) |
+| `external_attr`, `.sh` | `0x01ED0180` (`0o755`) |
+| `compress_type` | `8` (deflate) |
+| `date_time` | `(1980, 1, 1, 0, 0, 0)` |
+
+Three rules, and the third is the one that generalises past zips:
+
+- **Prefer `scripts/package.py` to a hand-rolled writer.** The kit's script is what the
+  accepted archives were built with. A bespoke writer exists here only because this bundle
+  is not in the kit layout, and it cost a full pipeline round trip.
+- **Check `create_system` and the executable bit on every `.sh`, in the built archive.**
+  Reading back `external_attr >> 16` is not enough on its own - it is exactly the check
+  that passed while the archive was broken. `tools/zipcheck.py` checks CRLF, separators,
+  the suffix bytes and staleness, and it does **not** check this; add it before the next
+  bundle goes out.
+- **Diff the rebuilt archive's entry metadata against the last archive the pipeline
+  accepted, field by field.** Content diffing is not enough, because this fault lives
+  entirely in metadata and every byte of every file was correct. Doing that here reported
+  zero differences across `create_system`, `external_attr`, `compress_type`, `flag_bits`
+  and `date_time` on all fifteen shared entries, which is the evidence that the repaired
+  archive is right - the from-archive trial had already said "clean" while it was wrong.
 
 ## The lossy-state pattern, and the three leaks that nearly killed it
 

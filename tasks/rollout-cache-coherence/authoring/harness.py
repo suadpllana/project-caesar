@@ -59,7 +59,8 @@ def main(argv: list[str]) -> int:
         return 2
     data = run(argv[1])
     if "-o" in argv:
-        Path(argv[argv.index("-o") + 1]).write_text(json.dumps(data, indent=1, sort_keys=True))
+        Path(argv[argv.index("-o") + 1]).write_text(
+            json.dumps(data, indent=1, sort_keys=True), newline="\n")
     for name, rep in data["reports"].items():
         print("%-22s computed=%-5d reused=%-5d restart=%-3d preempt=%-3d evict=%-3d" % (
             name, rep["computed"], rep["reused"], rep["restart"], rep["preempt"], rep["evict"]))

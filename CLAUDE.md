@@ -983,6 +983,21 @@ re-run `zipcheck.py` before resubmitting either of them**, and note that CRLF in
 `tests/pristine/` is worse than in the instruction: those files are copied into the verifier
 image and executed, which is the failure mode `.gitattributes` warns about at the top.
 
+**`rollout-cache-coherence` is done, 2026-08-14.** Seventeen files normalised to LF in the
+tree, `sync.py` / `build_gt.py` / `emit.py` re-run, repackaged, and `zipcheck.py` now reports
+**none** on the archive. Two facts worth carrying. The ground truth came back byte-identical
+after regeneration once the line endings were taken out, so a CRLF `gt.json` is a packaging
+fault and never a content one - regenerate it rather than hand-editing, and expect no diff.
+And the writer at fault was `authoring/build_gt.py` line 70, the same
+`Path.write_text(...)` missing `newline="\n"` that bit `delta-view-retraction`; three more
+writers in that task's `authoring/` had it too, and `cheat_report.py` and `field_report.py`
+are the interesting pair, since they write the cheat playbook into a temp dir and then run it
+under `bash`, so CRLF there breaks the local gate rather than the bundle. All four are fixed.
+**When a task is repackaged for CRLF, grep its whole `authoring/` directory for `write_text`
+and `open(..., "w")` in the same pass**, because normalising the tree by hand leaves the
+generator that will re-dirty it on the next run. `typeahead-query-controller.zip` is still
+outstanding.
+
 The one-line rule: **the tree passing every gate says nothing about the archive.** Package,
 then check the package.
 

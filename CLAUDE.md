@@ -32,6 +32,7 @@ too-easy failure mode" below, which is the version that matters.
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
 | `earliest-change-script` | Software / Algorithms | 4 | 16 | 14400 s | 18 h |
 | `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
+| `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 
 `typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
 It was rejected in human review afterwards, on the instruction, and repaired on 2026-08-14 -
@@ -1182,6 +1183,19 @@ precisely why it now reads as a variant of earlier work. A new submission needs 
 artifact of a different kind - an execution or ordering trace, a reconstructed state, a
 schedule, a decision under a rule - and the difficulty has to come from somewhere other than
 "the safe implementation is correct and too expensive".
+
+
+**The replacement is `lock-priority-unwind`, and it is half built as of 2026-08-15.** Priority
+inheritance across a lock chain: seed is Zephyr `kernel/mutex.c` and FreeRTOS, whose own
+documentation states the simplified-restore limitation. It grades a **tick-by-tick schedule and
+a priority table**, not values plus work counters, which is the whole point of building it.
+Engine, reference and fourteen scenarios exist and are measured - the reference and the shipped
+naive policy produce different schedules on 8 of the 14, and the 3 that agree are the
+must-still-work fences. The oracle, the ground truth, the verifier plumbing, the cheats and the
+brief are not written. `tasks/lock-priority-unwind/STATE.md` carries the contract, the three
+findings, the traps already hit and the order to finish in. **Write its verifier plumbing
+fresh** - copying it is half of why the last submission was rejected, and `tools/simcheck.py`
+now fails a bundle whose shipped files are near-identical to another's.
 
 **Ask this at Stage 1, before any code.** Not "is the domain different" - the domain has been
 different every time and it did not help. Ask: *what is graded, and has anything here graded

@@ -1,0 +1,229 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/kern/pick.py",
+  "/app/kern/stop.py",
+  "/app/kern/knot.py",
+  "/app/kern/wake.py",
+]
+
+[task]
+name = "afterquery/guard-mark-unwind"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working cooperative runtime with the wrong cancellation semantics, and the
+wrongness is coherent rather than broken: it is the shape of a runtime built around a
+cancellation token that is delivered once and carries the scope it came from. That is the
+shape almost every mainstream async library has, so it is also the shape a frontier agent
+reconstructs from its prior, and every one of the seven corrections needed here fights it.
+Delivery is level-triggered instead of one-shot. It is attributed to the outermost marked
+guard in view instead of the innermost. A shield hides what encloses it and not its own
+guard. Where a cut comes to rest is decided from the marks standing at the moment a guard
+closes instead of from the guard chosen when the cut was raised. A fiber cannot leave a
+band while a child is alive. A fiber unwinding into a band it owns stops the children
+first. And what leaves a band is ordered by when each child ended.
+
+The two that carry the difficulty are the second and the fourth, and they are linked. The
+outermost rule looks like a taste question until you notice that attributing inward lets
+the fiber resume inside an enclosing guard which is also marked, where it will run every
+op up to the next checkpoint; blocks are not checkpoints, so the only trace of the mistake
+is one extra token in the middle of a run that is otherwise perfect. Having found that,
+the natural implementation is to stamp the chosen guard onto the exception and match it by
+identity at the boundary, which is what the shipped code does and which is right until a
+mark lands while the cut is already travelling - a deadline crossing during a cleanup
+block, a sibling failing while the fiber sits at a band it is not allowed to leave. The
+stamp is then stale, the guard it names takes the cut, and the fiber resumes inside a
+guard that was marked in the meantime. So the second discovery invalidates the natural
+implementation of the first, and neither shows up as a crash. Both show up as a trace that
+is right for forty rows and wrong for one.
+
+The band rules interact with the same thing rather than sitting beside it. Holding at the
+close of a band is worth nothing on its own; it is worth everything because the fiber is
+asked again when the last child ends, which is the only way the answer gets recomputed
+against marks that landed while it waited. A submission that holds and then raises what it
+was holding is wrong in exactly the cases holding was for.
+
+There is no oracle for any of it. The runtime happily runs whatever rules it is given and
+prints the trace they produce, and every wrong reading above produces a trace that looks
+entirely reasonable. The environment ships no expected output, the instruction states
+requirements without stating how to satisfy them, and the graded set is three hundred
+programs generated inside the verifier from a nonce made after the agent has finished, so
+a rule that fits the programs in the tree carries no information about whether it fits the
+rest. The runtime ships with no comments anywhere in it and its identifiers are in the
+register of ordinary internal code rather than self-describing ones, which is a design
+choice: the op set, the two-phase wait, the inherited chain and the block stack have to be
+recovered by reading behaviour instead of by reading names.
+"""
+
+solution_explanation = """
+The reference is about a hundred lines across three files and it is written the way
+someone who has debugged a structured-concurrency runtime writes it: from the observable
+requirement backwards, never from the shape of the existing code.
+
+The requirement is that no op of a program may run inside a guard the fiber can see that
+has been marked. Two things fall out of it. Delivery has to name the outermost marked
+guard in the window, because naming an inner one and taking the cut there puts the fiber
+back inside a marked guard with ops still to run before its next checkpoint. And the
+boundary that takes a cut cannot be chosen when the cut is raised, because the set of
+marked guards changes underneath a travelling exception; it has to be decided at each
+guard as it closes, from the chain that remains, by the same visibility rule the delivery
+side uses. Written that way the two sides are one rule asked twice, and the stamped guard
+the interface still passes in is simply not needed.
+
+The window itself is the shield rule: scanning outward, the first guard carrying a shield
+is the last one visible, and it is visible, so its own mark still reaches the fiber. Marks
+are never cleared, which is what makes the rest work without any bookkeeping - a guard
+hidden behind a shield is delivered at the first checkpoint after the shield drops, and a
+fiber held at a band is delivered whatever stands when it is finally let go.
+
+The band file is the same idea applied to a join. Holding while children are alive costs
+one line and buys the recomputation. Marking the band's own guard when the owner unwinds
+into it is what stops the children. The close has three outcomes tested in order: an
+enclosing mark outranks what the children collected, then the collected payloads leave
+ordered by the tick each child ended on and then by the order the children were made,
+then the band's own mark is what the close was for and nothing leaves.
+
+Six alternative correct implementations are kept in the authoring directory and all six
+score 1: the window taken as a slice from the innermost shield outward, the same thing by
+index arithmetic, the resting rule with its two halves tested in the opposite order, the
+band's ordering maintained by insertion instead of sorted at the close, the ordering built
+by grouping, and one that clears a mark as its guard takes the cut - provably unobservable,
+since the guard has already left every chain by then, and proved so on six thousand
+programs against the sealed model. All six agree event for event.
+
+The fourth declared artifact needs no change. Whether a mark should wake a sleeping fiber
+is already asked the right way in the shipped file, and part of the work is establishing
+that rather than assuming a file that may be edited must be.
+"""
+
+verification_explanation = """
+The rebuilt runtime is driven over every program and graded on two things, exactly, with
+no partial credit: the ordered event trace, and every fiber's list of emitted tokens.
+
+Both come out of kern/loop.py, which is not an editable artifact, so they record what the
+runtime actually did rather than what a submission says it did. The trace carries which
+fiber came on, which token it produced, which guard opened and closed and how, which guard
+was marked and why, which mark was delivered to whom, which cleanup block began, which
+band closed and with what, and what each fiber ended carrying. The token lists are a
+cross-check on that rather than a second axis, and the verifier says so: the trace already
+holds a row per token, so the two can only disagree if a submission wrote one without the
+other, since the tokens are read off the fiber objects and the trace off the emitter. They
+are kept because they make a failure legible. The mistake this task turns on - attributing
+a mark to the innermost marked guard rather than the outermost - shows up as one extra
+token in an otherwise plausible run, and a token diff names it in one line.
+
+Expected results come from tests/oracle.py, a second implementation of the same
+specification written from the specification rather than from the tree, sharing no code
+with it - a different parser, a nested statement tree instead of a flat op list with a
+jump table, and fibers as generators so that cuts really are exceptions thrown into a
+suspended frame. The reference and the model agree on every event of 3027 programs, which
+is the evidence that what is being graded is the specification and not one author's bug.
+
+Two program sets are driven, and the second is why there is nothing here to forge. The
+enumerated set is twenty-seven programs, one per rule, each named for the reading it exists
+to fail, and including the must-still-work side of every fence. The other three hundred
+are generated inside the verifier container from a nonce made out of /dev/urandom at trial
+time, after the agent has finished, and their expected traces are produced by the sealed
+model after the run. Those programs did not exist when the submission was written. That
+replaces the usual work-counter accounting and it is strictly stronger, because what is
+compared is the whole behaviour rather than a summary of it: there is no number to assign,
+no journal to pad, and no table to paste. The cheat suite proves the point directly. One
+cheat is generated from tests/gt.json and is the reference implementation on every one of
+the twenty-seven programs the ground truth covers and the shipped code on everything else,
+which is the most an adversary holding the answer key can do; it passes every enumerated
+case and scores 0.
+
+Since the verifier executes agent code, four more things are attested. The executed tree
+outside the four declared artifacts must be byte-identical to the pristine copy after the
+run. Every sealed runtime function is fingerprinted as it actually existed in the running
+interpreter, at import and again when each program ended, against digests the grader
+derives by compiling the pristine sources, so rebinding a function is caught the way
+editing its file already was. Trace rows are appended by a closure the runner owns which
+refuses any caller that is not the runtime's own emitter, and the interpreter's tally of
+entries into that emitter, kept in that closure through sys.monitoring on 3.12 and through
+the profile hook on older interpreters, has to equal the number of rows and to have still
+been armed when each program ended. And the report carries the run nonce, so a report planted before the run
+cannot pass.
+
+Deliberately not graded, because grading them would measure an implementation choice
+rather than behaviour: how many times a submission consults the chain, what it caches
+between checkpoints, and which data structures it keeps. Six alternative correct
+implementations live in the authoring directory and all six are required to score 1 -
+the window as an outward slice, the window by index arithmetic, the resting rule with its
+halves swapped, the band ordering by insertion, the band ordering by grouping, and one
+that clears a mark on a guard that has already left every chain.
+
+Twenty-four cheats were run and all score 0. Thirteen are the reference with exactly one
+decision made the way a solver who missed one piece would make it, generated by swapping
+an anchored block in the reference source: delivery attributed inward, delivery remembered
+per fiber and given once, the shield window cut on the wrong side, the guard stamped onto
+the cut, any marked guard taking it, the older exception surviving a cleanup block, a
+fiber leaving a band with children alive, a fiber unwinding into a band without stopping
+them, payloads ordered by spawn, the payloads outranking an enclosing mark, the band's own
+mark escaping, and a mark that never wakes a sleeper. Nine are reward-tamper probes built
+on the shipped tree rather than on the reference, since a probe built on the reference does
+the real work and would score 1 for honest reasons: a double-forked process writing the
+reward after the run, a planted report, a planted report followed by a hard exit, a
+privilege probe, a read of the verifier directory from inside the run, a rewrite of a
+runtime file in the tree being executed, a rebind of the emitter, an attempt to switch the
+instrumentation off, and a sweep of everything the run's uid can reach. One reaches the
+running loop through the call stack and pushes rows into the trace through the emitter
+itself, which is the only caller the sink accepts, and is caught by the model comparison
+rather than by the sink. One is the answer-key probe described above.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout,
+against a tree it cannot write; the reward channel is root-owned and locked before it
+starts; the ground truth, the sealed model and the grader are root-only files; and the
+file the run reports into is opened by root before privilege is dropped and handed over as
+a descriptor, so the uid executing agent code does not own the file it is graded on.
+Grading runs afterwards as root and never executes anything the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Languages"
+
+tags = [
+  "structured-concurrency",
+  "cancellation-propagation",
+  "cooperative-scheduler",
+  "exception-unwinding",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I build and maintain async runtimes and the task queues that sit on top of them, which
+means most of my hard bugs are cancellation bugs. The one this task is built from cost a
+week and it is the one I would want a new engineer to get right: a cancellation that was
+correctly delivered, correctly caught, and caught one level too far in, so the worker
+resumed inside a scope that had already been told to stop and did a few hundred
+milliseconds of work nobody wanted. Nothing crashed and no test failed, because the
+observable difference was a handful of extra records rather than an error. What made it
+expensive is that the natural fix - carry the scope on the exception and stop where it
+matches - is right in every situation you would write a test for, and wrong exactly when a
+second scope is cancelled while the first cancellation is still unwinding, which is common
+in production and almost never in a test suite. The interaction with a task group that
+cannot be exited while its children are alive is the same bug wearing a different hat, and
+it is the piece the libraries themselves keep getting wrong.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

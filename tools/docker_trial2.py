@@ -91,11 +91,18 @@ class Trial:
             shutil.rmtree(tmp, ignore_errors=True)
         return 0
 
-    def agent_run(self, script: Path | None, outdir: Path) -> None:
+    def agent_run(self, script: Path | None, outdir: Path, bundle: bool = False) -> None:
         outdir.mkdir(parents=True, exist_ok=True)
         inner = "true"
         mounts: list[str] = []
-        if script is not None:
+        if script is not None and bundle:
+            # The platform hands the oracle agent the whole solution/ directory, so a
+            # solve.sh may read files that sit beside it - which is how a reference
+            # longer than a few lines avoids being inlined as a heredoc and duplicated.
+            # Mounting only the script cannot run such a solution and silently scores 0.
+            mounts = ["-v", "%s:/solution:ro" % script.parent.resolve()]
+            inner = "bash /solution/%s >/tmp/agent.log 2>&1 || true" % script.name
+        elif script is not None:
             mounts = ["-v", "%s:/agent.sh:ro" % script.resolve()]
             inner = "bash /agent.sh >/tmp/agent.log 2>&1 || true"
         collect = " ; ".join(
@@ -130,11 +137,12 @@ class Trial:
             print("    " + tail[-1].strip())
         return reward
 
-    def run(self, name: str, script: Path | None, want: int) -> bool:
+    def run(self, name: str, script: Path | None, want: int,
+            bundle: bool = False) -> bool:
         print("[%s]" % name)
         tmp = Path(tempfile.mkdtemp())
         try:
-            self.agent_run(script, tmp / "art")
+            self.agent_run(script, tmp / "art", bundle)
             reward = self.verifier_run(tmp / "art")
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
@@ -167,7 +175,7 @@ def main(argv: list[str]) -> int:
     if t.build() != 0:
         return 1
     if what == "oracle":
-        return 0 if t.run("oracle", t.task / "solution" / "solve.sh", 1) else 1
+        return 0 if t.run("oracle", t.task / "solution" / "solve.sh", 1, bundle=True) else 1
     if what == "nop":
         return 0 if t.run("nop", None, 0) else 1
     if what == "--dir":
@@ -183,7 +191,7 @@ def main(argv: list[str]) -> int:
         print("%d/%d variants scored 1" % (sum(res), len(res)))
         return 0 if all(res) else 1
     if what == "--all":
-        res = [t.run("oracle", t.task / "solution" / "solve.sh", 1), t.run("nop", None, 0)]
+        res = [t.run("oracle", t.task / "solution" / "solve.sh", 1, bundle=True), t.run("nop", None, 0)]
         for cheat in sorted((t.task / "cheat").glob("*.sh")):
             res.append(t.run("cheat: " + cheat.name, cheat, 0))
         print("%d/%d trials behaved as required" % (sum(res), len(res)))

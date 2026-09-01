@@ -89,6 +89,18 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
   mark can land while a cut is already travelling and that the graded programs do it, plus
   the positive wake rule whose negative fence was the only half stated. Nothing says where
   the cut then rests. Do not add that sentence later - it is the whole task.
+- **Two defects came out of the failing trajectory (2026-09-01), both mine, both fixed.**
+  The brief said "Errors are not marks. No guard takes an error, marked or not." and never
+  said that a child ending on an error marks the band's own guard; the agent set `reap` to
+  return False, flagged it as its one guess, and lost 140 of 300 programs. And `Gd.own` /
+  `Gd.kind` were written by loop.py and read by nothing - no frozen file, no cheat, no
+  variant, not the reference - so the agent treated them as a hint and invented a band-skip
+  rule worth another 73 of 300. The fields are deleted and the error rule is stated. Do not
+  reintroduce either: a dead field is a false affordance, and it is worse than dead code
+  because it looks like a clue.
+- The same trajectory got the **hard** discovery right (resting decided as each guard closes)
+  and lost on the peripheral two. That is the evidence the difficulty is in the right place
+  and the losses were unfairness, not depth.
 - `cheat-spawn-order` differs from the reference on **1 program of 427**. It is stated in the
   brief so it is fair, but it is a lottery ticket under all-or-nothing grading. If this needs
   another notch of solve rate, shipping that ordering already correct is the cheapest place

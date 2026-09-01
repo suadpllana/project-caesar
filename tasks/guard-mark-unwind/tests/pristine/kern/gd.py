@@ -1,16 +1,14 @@
 class Gd:
-    __slots__ = ("lbl", "dl", "sh", "hit", "src", "own", "cl", "end", "kind")
+    __slots__ = ("lbl", "dl", "sh", "hit", "src", "cl", "end")
 
-    def __init__(self, lbl, dl, sh, own, end, kind):
+    def __init__(self, lbl, dl, sh, end):
         self.lbl = lbl
         self.dl = dl
         self.sh = sh
         self.hit = False
         self.src = None
-        self.own = own
         self.cl = None
         self.end = end
-        self.kind = kind
 
 
 class Bd:

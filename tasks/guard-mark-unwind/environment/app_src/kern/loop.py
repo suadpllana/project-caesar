@@ -160,8 +160,7 @@ class Loop:
             fr[1] += 1
             return False
         if k == "G":
-            g = Gd(op[1], None if op[2] < 0 else self.t + op[2], bool(op[3]),
-                   f.fid, op[4], "g")
+            g = Gd(op[1], None if op[2] < 0 else self.t + op[2], bool(op[3]), op[4])
             f.bl.append(("g", g))
             self.gm[op[1]] = g
             self.ev("op", f.fid, op[1])
@@ -177,7 +176,7 @@ class Loop:
             self.after(f, g)
             return False
         if k == "B":
-            g = Gd(op[1], None, False, f.fid, op[2], "b")
+            g = Gd(op[1], None, False, op[2])
             bd = Bd(op[1], f, g, op[2], None)
             f.bl.append(("b", bd))
             self.gm[op[1]] = g

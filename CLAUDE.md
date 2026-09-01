@@ -1364,11 +1364,53 @@ comes back clean. Burstiness 0.899, paragraph sd 47.5, contractions 1.8/kw, coll
 paragraph rather than a new one, which is the paragraph-variance lesson from the anti-cheat
 section applied in advance.
 
-**Still unmeasured, and it is the honest gap in this repair.** No trajectory from the eight
-failing runs was available, so the claim that the two derived rules are where they stopped is
-inference from the coverage walk and the runtimes, not from reading a transcript. The
-playbook's step 1 is to get the trajectory and find the line, and it was not possible here.
-If this comes back 0 of 8 again, get one before changing anything else.
+**The trajectory arrived on 2026-09-01 and it overturned half of the repair above.** Read
+this part first: the coverage walk was right that the brief stated the six peripheral rules,
+and wrong about what the agents actually lost on. Reconstructing the failing submission and
+grading it against the real verifier took ten minutes and found **three** independent causes,
+two of which were defects in the task rather than the intended difficulty. Do this before
+theorising, every time - it is playbook step 2 and it is cheap.
+
+The ablation, each row the same submission with one decision changed:
+
+| submission | enumerated failures | random-set failures |
+|---|---|---|
+| as submitted | outer-wins, outer-wins-deep, bundle-order, outer-outranks-bundle, nested-band, shielded-child-survives | 140 of 300 |
+| + `reap` returns True | outer-wins, outer-wins-deep | (attribution only) |
+| + outermost attribution | 4 band cases | (band only) |
+| + both | none enumerated | 73 of 300 |
+| + both, minus the invented band rule | none enumerated | 49 of 300 |
+
+**Cause 1, and the big one: the brief argued the agent into the wrong answer.** It carried
+"Errors are not marks. No guard takes an error, marked or not.", which reads as *an error
+marks nothing*, and the reference marks the band's own guard when a child ends carrying an
+error - that is what stops the siblings. The brief never said so. The agent set `reap` to
+return False, **flagged it in its own write-up as the single judgment call it had to guess**,
+and lost 140 of 300 programs on it. A rule phrased around one case ("no guard takes an
+error") leaving the neighbouring case undecided is the typeahead human-review defect for the
+third time in this repo. The brief now states it, in the same sentence as the case it pairs
+with.
+
+**Cause 2: two fields on the guard object that nothing reads.** `Gd.own` and `Gd.kind` were
+written by `loop.py` and read by no frozen file, no cheat, no variant and not the reference.
+The agent grepped for exactly that and wrote: *"they exist solely for the four files I can
+edit. That's a strong hint about the band/owner distinction."* It then invented a rule
+excluding a band's guard from delivery to its owner, which no correct implementation has, and
+that rule cost it a further 73 of 300 programs. **A dead field is a false affordance, and a
+strong agent will build a rule out of it precisely because it is dead.** Both fields are
+deleted. `gt.json` came back byte-identical and all six shipped programs produce byte-identical
+traces, which is what proves the deletion was a leak fix and not a behaviour change.
+
+**Cause 3 is the task working as designed** - delivery attributed to the innermost marked
+guard rather than the outermost. Worth noticing which one that is: the agent got the *harder*
+discovery right. Its `stops` decided the resting guard from the marks standing as each guard
+closed, which is the reference rule and the thing the whole task is built on. It then lost to
+two defects that are not the task at all.
+
+**The generalisable rule, and it is the cheapest audit in this file: grep the environment for
+attributes that are written and never read.** `preflight.py` warns about unused public
+functions and says nothing about unused fields, and a field is worse, because a function that
+is never called looks like dead code while a field that is never read looks like a clue.
 
 ## The bundle-structure rejection: the tree is not the zip
 

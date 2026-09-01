@@ -299,6 +299,375 @@
     "g1|top": 10
    }
   },
+  "duplicates-at-the-cap": {
+   "emits": 25,
+   "folds": 96,
+   "log": [
+    [
+     5,
+     "g1",
+     "cnt",
+     5
+    ],
+    [
+     5,
+     "g1",
+     "max",
+     9
+    ],
+    [
+     5,
+     "g1",
+     "min",
+     5
+    ],
+    [
+     5,
+     "g1",
+     "sum",
+     37
+    ],
+    [
+     5,
+     "g1",
+     "top",
+     16
+    ],
+    [
+     7,
+     "g1",
+     "cnt",
+     7
+    ],
+    [
+     7,
+     "g1",
+     "max",
+     9
+    ],
+    [
+     7,
+     "g1",
+     "min",
+     3
+    ],
+    [
+     7,
+     "g1",
+     "sum",
+     45
+    ],
+    [
+     7,
+     "g1",
+     "top",
+     16
+    ],
+    [
+     9,
+     "g1",
+     "cnt",
+     7
+    ],
+    [
+     9,
+     "g1",
+     "max",
+     9
+    ],
+    [
+     9,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     9,
+     "g1",
+     "sum",
+     37
+    ],
+    [
+     9,
+     "g1",
+     "top",
+     16
+    ],
+    [
+     11,
+     "g1",
+     "cnt",
+     5
+    ],
+    [
+     11,
+     "g1",
+     "max",
+     7
+    ],
+    [
+     11,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     11,
+     "g1",
+     "sum",
+     23
+    ],
+    [
+     11,
+     "g1",
+     "top",
+     12
+    ],
+    [
+     13,
+     "g1",
+     "cnt",
+     5
+    ],
+    [
+     13,
+     "g1",
+     "max",
+     8
+    ],
+    [
+     13,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     13,
+     "g1",
+     "sum",
+     26
+    ],
+    [
+     13,
+     "g1",
+     "top",
+     15
+    ]
+   ],
+   "revised": 0,
+   "scans": 8,
+   "shipped_folds": 335,
+   "shipped_scans": 70,
+   "trace": [
+    [
+     "wm",
+     5,
+     1
+    ],
+    [
+     "emit",
+     5,
+     "g1",
+     "cnt",
+     5
+    ],
+    [
+     "emit",
+     5,
+     "g1",
+     "max",
+     9
+    ],
+    [
+     "emit",
+     5,
+     "g1",
+     "min",
+     5
+    ],
+    [
+     "emit",
+     5,
+     "g1",
+     "sum",
+     37
+    ],
+    [
+     "emit",
+     5,
+     "g1",
+     "top",
+     16
+    ],
+    [
+     "wm",
+     7,
+     2
+    ],
+    [
+     "emit",
+     7,
+     "g1",
+     "cnt",
+     7
+    ],
+    [
+     "emit",
+     7,
+     "g1",
+     "max",
+     9
+    ],
+    [
+     "emit",
+     7,
+     "g1",
+     "min",
+     3
+    ],
+    [
+     "emit",
+     7,
+     "g1",
+     "sum",
+     45
+    ],
+    [
+     "emit",
+     7,
+     "g1",
+     "top",
+     16
+    ],
+    [
+     "wm",
+     9,
+     3
+    ],
+    [
+     "emit",
+     9,
+     "g1",
+     "cnt",
+     7
+    ],
+    [
+     "emit",
+     9,
+     "g1",
+     "max",
+     9
+    ],
+    [
+     "emit",
+     9,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     "emit",
+     9,
+     "g1",
+     "sum",
+     37
+    ],
+    [
+     "emit",
+     9,
+     "g1",
+     "top",
+     16
+    ],
+    [
+     "wm",
+     11,
+     4
+    ],
+    [
+     "emit",
+     11,
+     "g1",
+     "cnt",
+     5
+    ],
+    [
+     "emit",
+     11,
+     "g1",
+     "max",
+     7
+    ],
+    [
+     "emit",
+     11,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     "emit",
+     11,
+     "g1",
+     "sum",
+     23
+    ],
+    [
+     "emit",
+     11,
+     "g1",
+     "top",
+     12
+    ],
+    [
+     "wm",
+     13,
+     5
+    ],
+    [
+     "emit",
+     13,
+     "g1",
+     "cnt",
+     5
+    ],
+    [
+     "emit",
+     13,
+     "g1",
+     "max",
+     8
+    ],
+    [
+     "emit",
+     13,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     "emit",
+     13,
+     "g1",
+     "sum",
+     26
+    ],
+    [
+     "emit",
+     13,
+     "g1",
+     "top",
+     15
+    ]
+   ],
+   "view": {
+    "g1|cnt": 4,
+    "g1|max": 8,
+    "g1|min": 1,
+    "g1|sum": 23,
+    "g1|top": 15
+   }
+  },
   "duplicates-inflate-n": {
    "emits": 15,
    "folds": 45,
@@ -1058,7 +1427,7 @@
   },
   "late-arrival": {
    "emits": 20,
-   "folds": 52,
+   "folds": 48,
    "log": [
     [
      2,
@@ -1182,7 +1551,7 @@
     ]
    ],
    "revised": 3,
-   "scans": 6,
+   "scans": 4,
    "shipped_folds": 120,
    "shipped_scans": 40,
    "trace": [
@@ -1373,9 +1742,98 @@
     "g1|top": 16
    }
   },
+  "rebuild-narrows-deps": {
+   "emits": 5,
+   "folds": 64,
+   "log": [
+    [
+     2,
+     "g1",
+     "cnt",
+     2
+    ],
+    [
+     2,
+     "g1",
+     "max",
+     7
+    ],
+    [
+     2,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     2,
+     "g1",
+     "sum",
+     8
+    ],
+    [
+     2,
+     "g1",
+     "top",
+     8
+    ]
+   ],
+   "revised": 0,
+   "scans": 7,
+   "shipped_folds": 125,
+   "shipped_scans": 40,
+   "trace": [
+    [
+     "wm",
+     2,
+     3
+    ],
+    [
+     "emit",
+     2,
+     "g1",
+     "cnt",
+     2
+    ],
+    [
+     "emit",
+     2,
+     "g1",
+     "max",
+     7
+    ],
+    [
+     "emit",
+     2,
+     "g1",
+     "min",
+     1
+    ],
+    [
+     "emit",
+     2,
+     "g1",
+     "sum",
+     8
+    ],
+    [
+     "emit",
+     2,
+     "g1",
+     "top",
+     8
+    ]
+   ],
+   "view": {
+    "g1|cnt": 3,
+    "g1|max": 4,
+    "g1|min": 1,
+    "g1|sum": 7,
+    "g1|top": 6
+   }
+  },
   "retract-drains-witness": {
    "emits": 15,
-   "folds": 55,
+   "folds": 44,
    "log": [
     [
      5,
@@ -1469,7 +1927,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 2,
    "shipped_folds": 120,
    "shipped_scans": 40,
    "trace": [
@@ -1903,7 +2361,7 @@
   },
   "retract-outside-kept": {
    "emits": 15,
-   "folds": 50,
+   "folds": 43,
    "log": [
     [
      5,
@@ -1997,7 +2455,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 4,
    "shipped_folds": 110,
    "shipped_scans": 35,
    "trace": [
@@ -2132,7 +2590,7 @@
   },
   "two-groups-independent": {
    "emits": 40,
-   "folds": 70,
+   "folds": 59,
    "log": [
     [
      5,
@@ -2376,7 +2834,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 2,
    "shipped_folds": 150,
    "shipped_scans": 55,
    "trace": [
@@ -2696,7 +3154,7 @@
   },
   "update-in-place": {
    "emits": 15,
-   "folds": 63,
+   "folds": 50,
    "log": [
     [
      5,
@@ -2790,7 +3248,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 6,
+   "scans": 5,
    "shipped_folds": 125,
    "shipped_scans": 35,
    "trace": [
@@ -3354,7 +3812,7 @@
   },
   "wide-group-churn": {
    "emits": 30,
-   "folds": 159,
+   "folds": 108,
    "log": [
     [
      5,
@@ -3538,7 +3996,7 @@
     ]
    ],
    "revised": 0,
-   "scans": 21,
+   "scans": 11,
    "shipped_folds": 350,
    "shipped_scans": 80,
    "trace": [

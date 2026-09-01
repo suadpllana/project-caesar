@@ -1,0 +1,250 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/merge/plan.py",
+]
+
+[task]
+name = "afterquery/segment-merge-horizon"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The task looks like one question and is two, and the two have opposite shapes. When a merge
+job folds segments together, which records can it discard, and how far down does it have to
+read to find out? The retrieved answer to the first is the compaction rule every storage
+engine writes up: keep the newest record each snapshot can see, drop everything it shadows,
+and drop a deletion marker once you are compacting the bottom level. That plan is wrong here
+twice over, and the two failures land on different axes.
+
+It corrupts values because a record is not always self contained. Three record kinds live in
+seg/rec.py and one of them, the adjust, carries a difference against whatever resolves
+beneath it rather than a value. The survivor rule keeps the newest record a read point can
+see and drops what it shadows, so on a key whose newest record is an adjust it publishes the
+difference as the answer and throws away the set the difference was standing on. The shipped
+plan does exactly that: over a nine operation stream a key that read 98 before the job reads
+8 after it, while the two other keys in the same job come through untouched and every counter
+looks ordinary. Nothing in the engine flags it. The corruption is only visible by reading the
+resolution rules in seg/read.py and noticing that they do not terminate where a survivor rule
+assumes they do.
+
+It costs work because there is no bottom level to be at. Segments are not partitioned by key
+range, so whether the lowest surviving record of a key can go is a question about the
+segments this job does not own, answered by one point read, and a plan that never asks keeps
+records it did not have to keep. That half is graded on writes.
+
+The third thing is the one measured solutions miss, and it is where most of the read budget
+lives. Deciding what to keep is only half the cost; the other half is how far down a job has
+to read to decide. Everything below the point where the lowest read point's chain terminates
+is invisible to every read point in the job, so it never has to be pulled at all - and
+termination is a property of the records rather than of the read points, because an adjust
+does not terminate a chain and a set or a delete does. Draining each key is correct on every
+value and over the read budget on eight of the fifteen scenarios. It ships as a cheat.
+
+The two findings interact, and that is where the last of the difficulty is. The natural way
+to write the read saving is to stop as soon as every read point has a record it can see,
+which is one line and is wrong: the lowest read point's chain may still be running through
+adjusts, and stopping there publishes a difference as an answer exactly as the survivor rule
+did. So finding the read saving breaks the first answer unless the stop condition is derived
+from what terminates a chain rather than from what a read point can see. That reading ships
+as a cheat too, and it corrupts values rather than work.
+
+Under all of it sits a rule that reverses the obvious one. An adjust standing on nothing is
+not nothing: a chain of adjusts over an empty key resolves to their sum and the key is
+present, so an open outcome whose total is zero has to be written out when the rest of the
+store holds nothing for that key, and dropped when it holds something. That is the opposite
+of the intuition that a zero delta is a no-op, it is one point read away from being decidable,
+and an implementation that gets it backwards is correct on every scenario in which the key
+has a base. It ships as a cheat and one scenario exists to catch it.
+
+The fence closes on both sides. Keeping a record that could have gone is correct on every
+read and over the write budget; dropping one that could not corrupts a read. Asking the rest
+of the store about every key is correct and over the probe budget; never asking is correct
+and over the write budget. None of the three conditions can be read off a field, and the work
+counters have no oracle: a solver can check every value against a store it builds itself with
+no merging in it, and will find them correct under every one of the wrong plans above,
+because all of them answer every read exactly right.
+
+The engine ships with no comments anywhere and its identifiers are in the register of ordinary
+internal code, which is deliberate. What an adjust does, what a read point sees, which
+segments a job owns and what a probe can reach have to be recovered by reading behaviour
+instead of by reading names.
+"""
+
+solution_explanation = """
+The reference does what someone who has debugged a compaction that resurrected deleted rows
+does: it separates the two questions before writing anything.
+
+It reads seg/read.py first and works out what an answer actually is. A set terminates a
+chain and a delete terminates a chain; an adjust accumulates and keeps going, and a chain of
+adjusts that reaches the end of what the job holds is not an answer at all but a difference
+that still has to be applied to whatever the segments underneath resolve to. From that, the
+rest follows in three steps.
+
+The first is how far to read. Each read point sees the newest record at or below it, and the
+answer at that read point is that record's chain resolved downwards. The deepest requirement
+belongs to the lowest read point, so the job pulls records until every read point has a start
+and the chain under the lowest of them has terminated - and the flag has to be cleared each
+time a deeper start appears, because the record that terminates a chain must sit under the
+start of that chain rather than merely somewhere above. Everything below that is unreachable
+and is never pulled. On four generations of the same two keys with a single read point this
+is two records where a drain is six.
+
+The second is what to write. Each read point becomes one outcome: a value, an absence, or an
+open difference. The output needs one record wherever the answer changes going up, which is
+fewer records than there are read points whenever two of them resolve the same way. A
+terminated outcome goes out as an absolute record. An open one goes out as an adjust carrying
+the difference against the open outcome below it, never its own total, because in the output
+that record sits underneath and is applied first.
+
+The third is the rest of the store. One point read per key settles whether the lowest outcome
+can be dropped: an absence goes when nothing is outside, an open total of zero goes when
+something is, and an absolute answer goes when the rest of the store already says exactly
+that. The point read is skipped where no answer it could give would change a record, which is
+the case of an open outcome with a non zero total, since that outcome survives whatever is
+underneath it.
+
+Four alternative correct implementations are kept in the authoring directory - one that
+closes open outcomes with absolute records wherever it asked the store anyway, one that walks
+the read points from the top down, one that states the stop rule as a depth rather than as a
+flag, and one that resolves every read point to an effect before it thinks about records at
+all. All four reach identical counters on all fifteen scenarios, which is the evidence that
+this is one merge rather than one author's taste.
+
+The whole reference is about a hundred and thirty lines in one file and runs in well under a
+second.
+"""
+
+verification_explanation = """
+The rebuilt engine is driven through fifteen scenarios, each aimed at one reading of the
+rule, and every scenario is checked on four independent axes with no partial credit.
+
+The reads have to match exactly, and the ground truth is re-proved inside the verifier by a
+sealed model that shares no code with the engine tree: it keeps every record ever written and
+answers a read by walking that history, so it never merges anything at all. That is the
+definition a merge is an optimisation of, which is why a submission that discarded a record it
+needed, or kept an adjust without the base it stands on, cannot match it. The store is asked
+for every key at every read point after every job and again at the end, not only at the end,
+which is what catches a job that broke a pinned read and had it covered over by a later write.
+
+The work is graded as a budget rather than as an equality. reads, writes and probes are
+counted inside merge/core.py, which is not an editable artifact, so they measure real work
+whatever the submitted plan looks like: a read is one record pulled through the cursor, a
+write is one record placed in the output segment, and a probe is one point read against the
+segments the job does not own. All three have to come in at or under what the cheapest correct
+merge this environment allows spends. The direction is deliberate, and it is the run-audit
+lesson taken seriously: a ceiling cannot fail an answer better than the reference, and it
+cannot be bought from below either, because every counter is tied to evidence described next.
+
+This is the axis that fails a merge that is merely safe, and it is where the interesting
+cheats land. Draining each key rather than stopping where the answers stop, writing a record
+for every read point rather than one wherever the answer changes, and never asking the rest of
+the store about the lowest record all answer every read correctly and go over a budget.
+
+None of those numbers is believed on its own. Every one of them is produced inside the process
+that executed the submitted file, so the report is a claim, and the evidence for it is the
+work journal merge/core.py records: one entry for every record pulled, every point read and
+every record written. The counters are required to equal what that journal contains, so a
+counter cannot be assigned. Replaying the journal's writes through the sealed model - putting
+exactly the records the run says it wrote where the merged segments used to be - has to
+reproduce the reads the submission published, so an answer cannot be pasted in. And every
+written record has to be one the declared reads determine, which is the check that makes the
+read counter mean something: a plan is free to reach the records another way, but the records
+it then writes are unexplained, and a submission that pulls nothing and writes the right
+output is rejected on that ground with every value correct. That one ships as a cheat.
+
+Three further checks close the gap between work declared and work done. seg/table.py logs
+every record it materialises at the point it materialises it, and that log has to be the same
+list in the same order as the reads and point reads the core charged for, which catches a plan
+that keeps the counted path right and pulls whole keys through the segments behind it. The
+interpreter itself tallies entries into the three counted operations through sys.monitoring,
+from a runner the submission cannot edit and into a closure rather than into the tree, and
+that tally has to equal the counters; the run is required not to have disturbed the
+instrumentation. And the engine functions are fingerprinted as they actually executed, at
+import and again when the scenario ends, against digests the grader derives by compiling the
+pristine sources, so replacing a counting function is caught the way rewriting its file
+already was. The tree itself is hashed against the pristine copy after the run.
+
+Two things are deliberately outside the graded set, because grading them would measure a
+choice the task never asked the solver to make. One is the shape of the output segment - how
+many records it holds, in what order and at which sequences - since two correct plans encode
+the same answers differently and only the reads those encodings produce are the task. The
+other is the order in which a plan visits keys or interleaves its point reads with its writes;
+only the totals and the driver's own trace are order sensitive. Four alternative correct
+implementations are kept in the authoring directory and all four are required to score 1, and
+all four reach identical counters on all fifteen scenarios.
+
+The lifecycle is checked as well: which segments each job merged, at which read points, where
+the flushes fell and how many jobs ran, in order, all of it produced by a driver no submission
+can edit.
+
+Twenty-four cheats were run against it and all scored 0. Ten are the reference with exactly
+one decision made the way a solver who missed one piece would make it, and their failure
+signatures are distinct and match the design: four fail on the work counters alone with every
+read correct, and six corrupt a read. One is the compaction rule as the literature states it,
+with the read saving added. Five are evidence probes, since the verifier executes the agent's
+code: one that writes the correct output without pulling a single record, one that does the
+work and then deletes the read entries it does not want to be charged for, one that returns
+the ground truth as the driver's report, one that keeps the counted path exactly right and
+drains every key behind it, and one that rebinds the counted read to a quiet copy of itself.
+The remaining eight are reward-tamper and isolation probes built on the shipped plan rather
+than on the reference: a double-forked process writing the reward after the run, a planted run
+output, a planted output followed by a hard exit of the runner, a privilege probe, an attempt
+to read the ground truth from inside the run, a rewrite of the non-editable engine in the tree
+being run, a sweep of everything the run's uid can reach, and a read of the scenario set,
+which the run is allowed to do and which produces nothing.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout, against
+a tree it cannot write; the reward channel is root-owned and locked before it starts; the
+ground truth, the sealed model and the grader are root-only files; and the file the run
+reports into is opened by root before privilege is dropped and handed over as a descriptor, so
+the uid that runs the agent's code does not own the output it is graded on. Grading runs
+afterwards as root and never executes anything the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Systems"
+
+tags = [
+  "log-structured-storage",
+  "compaction",
+  "snapshot-visibility",
+  "tombstone-reclamation",
+  "read-amplification",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on log-structured storage, the kind where writes land in immutable segments and a
+background job folds them together later. The pain this task is built from is one that is
+expensive and shows up late: the rule for what a compaction may discard is written up
+everywhere as a property of snapshots and levels, and that write-up quietly assumes every
+record is self contained. It stops being true the moment the store carries a record kind that
+means a difference against whatever is underneath, which is the feature everybody adds for
+counters and running totals. A compaction that keeps the newest record a snapshot can see is
+then correct on most keys and silently destroys the ones that were using the feature, and it
+comes back as a corruption report weeks later with no failing test anywhere near it. The other
+half of the same job is knowing how far down to read, which nobody writes about at all,
+because it only matters once the segments get deep. Working out that both questions turn on
+the same property of the records, and that the natural way to write the second one breaks the
+first, is what I would want a new engineer on this to get right.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

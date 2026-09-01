@@ -29,6 +29,7 @@ sys.path.insert(0, str(TASK / "authoring"))
 
 import harness  # noqa: E402
 import oracle  # noqa: E402
+import runner  # noqa: E402
 import scen  # noqa: E402
 
 
@@ -53,6 +54,26 @@ def main() -> int:
 
     out = {"scenarios": {}}
     bad = []
+
+    # The twelve scenarios are aimed at particular readings of the rule, so they are not
+    # evidence that the reference is right in general - and the verifier grades a budget
+    # taken from the reference, so a reference that is subtly wrong sets a budget nobody
+    # correct can meet. Random streams against the sealed oracle are what stands behind
+    # that number.
+    import subprocess
+    fz = subprocess.run([sys.executable, str(TASK / "authoring" / "fuzz.py"), "250", "11"],
+                        capture_output=True, text=True)
+    print((fz.stdout or "").strip().splitlines()[-1] if fz.stdout else "fuzz produced nothing")
+    if fz.returncode != 0:
+        bad.append("the reference disagrees with the sealed oracle on random streams")
+
+    # The runner cannot import the sealed oracle, so it carries its own copy of the list
+    # of functions to fingerprint. Two copies drift; this is what notices.
+    if tuple(runner.SEALED) != tuple(oracle.SEALED):
+        bad.append("runner.SEALED and oracle.SEALED have drifted apart")
+    probe = compile("def p(x):\n    return [x, 'k', 2]\n", "<probe>", "exec")
+    if runner.fingerprint(probe) != oracle.fingerprint(probe):
+        bad.append("the two copies of fingerprint() no longer compute the same digest")
     for sc in scen.SCENARIOS:
         name = sc["name"]
         rep = ref["reports"].get(name)
@@ -75,7 +96,42 @@ def main() -> int:
             bad.append("%s: shipped view %s != oracle %s" % (name, shp["view"], t.view()))
         if [list(x) for x in shp["log"]] != [list(x) for x in t.log]:
             bad.append("%s: shipped emit log disagrees with the oracle" % name)
-        # 4. The reference must actually be cheaper, or there is no task.
+        # 4. The evidence side has to hold for the reference before it is used to judge
+        #    anyone else. The journal must account for both counters, must reproduce the
+        #    reference's own view and emitted values when folded back through the sealed
+        #    accumulator - which is the check that catches Bag drifting away from
+        #    store/agg.py - and must survive the scenario audit.
+        jrn = [list(x) for x in rep["jrn"]]
+        malformed = oracle.shape(jrn)
+        if malformed:
+            bad.append("%s: reference journal is malformed: %s" % (name, malformed))
+        else:
+            if sum(1 for e in jrn if e[0] == "f") != rep["folds"]:
+                bad.append("%s: reference journal does not account for its folds" % name)
+            if sum(1 for e in jrn if e[0] == "s") != rep["scans"]:
+                bad.append("%s: reference journal does not account for its scans" % name)
+            view, emitted, why = oracle.replay(jrn)
+            if why:
+                bad.append("%s: reference journal does not replay: %s" % (name, why))
+            elif view != rep["view"] or emitted != [list(x) for x in rep["log"]]:
+                bad.append("%s: replaying the reference journal through the sealed "
+                           "accumulator does not reproduce its own values" % name)
+            why = oracle.audit(jrn, sc["ops"], cfg_for(sc, base))
+            if why:
+                bad.append("%s: reference journal fails the audit: %s" % (name, why))
+            why = oracle.reconcile(jrn, rep.get("deep"))
+            if why:
+                bad.append("%s: the reference does work outside the counted path: %s"
+                           % (name, why))
+            tally = rep.get("mon") or {}
+            if tally.get("fold") != rep["folds"] or tally.get("rebuild") != rep["scans"]:
+                bad.append("%s: the independent tally disagrees with the reference's own "
+                           "counters (%r against folds %d scans %d)"
+                           % (name, tally, rep["folds"], rep["scans"]))
+            if rep.get("mon_intact") is not True:
+                bad.append("%s: the reference run disturbed the instrumentation" % name)
+
+        # 5. The reference must actually be cheaper, or there is no task.
         if not (rep["folds"] < shp["folds"] and rep["scans"] < shp["scans"]):
             bad.append("%s: reference is not cheaper than the shipped tree "
                        "(folds %d vs %d, scans %d vs %d)"

@@ -36,11 +36,17 @@ def grade(route_src: str) -> tuple[int, str]:
         app = tmp / "app"
         harness.overlay("shipped", app)
         (app / "view" / "route.py").write_text(route_src)
+        # What the harness would have uploaded, which is what the attestation compares
+        # the executed tree against.
+        art = tmp / "artifact" / "view"
+        art.mkdir(parents=True)
+        (art / "route.py").write_text(route_src)
         out = tmp / "out.json"
         subprocess.run(
             [sys.executable, str(TASK / "tests" / "runner.py"), str(out)],
             capture_output=True, text=True, timeout=900,
             env={"APPDIR": str(app), "PYTHONDONTWRITEBYTECODE": "1",
+                 "RUN_NONCE": "hostemulation", "TMPDIR": str(tmp),
                  "SYSTEMROOT": "C:\\Windows", "PATH": "/usr/bin:/bin"})
         if not out.is_file():
             out.write_text(json.dumps({"reports": {}, "errors": {"fatal": "no output"}}))
@@ -49,7 +55,10 @@ def grade(route_src: str) -> tuple[int, str]:
              str(TASK / "tests" / "test_outputs.py")],
             capture_output=True, text=True, timeout=900,
             env={"RUN_OUT": str(out),
-                 "CONF_JSON": str(TASK / "environment" / "app_src" / "conf" / "view.json"),
+                 "RUN_NONCE": "hostemulation",
+                 "APP_DIR": str(app),
+                 "PRISTINE_DIR": str(TASK / "environment" / "app_src"),
+                 "ARTIFACT_DIR": str(tmp / "artifact"),
                  "PYTHONPATH": str(TASK / "tests"), "PYTHONDONTWRITEBYTECODE": "1",
                  "SYSTEMROOT": "C:\\Windows", "PATH": "/usr/bin:/bin"})
         first = ""

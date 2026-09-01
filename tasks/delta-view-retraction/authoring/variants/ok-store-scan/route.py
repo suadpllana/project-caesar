@@ -15,39 +15,6 @@ class Route:
                 out.append(kind)
         return sorted(out)
 
-    # The whole task lives below.
-    #
-    # The driver has already applied the delta to the row store and handed us the edits it
-    # produced: the prior row leaving its group with weight -1, the new row joining its
-    # group with weight +1. Either half can be absent - a fresh insert has no prior, a
-    # delete produces no joining row - and when an update carries a new group the two
-    # halves land on different cells.
-    #
-    # For each affected cell the question is whether the accumulator can absorb the edit,
-    # or the cell has to be rebuilt from the row store. That is NOT a property of the
-    # aggregate kind alone, which is the answer the literature gives and the one that
-    # costs a fortune here.
-    #
-    #   sum, cnt   A running total. Every edit is absorbable in both directions, always:
-    #              the inverse of +v is -v and no history is needed to apply it.
-    #
-    #   min, max,  store/agg.py keeps at most agg.CAP distinct values per cell and drops
-    #   top        the rest with no record that it did, so the accumulator is a partial
-    #              view of the group. A positive edit is always absorbable: folding a
-    #              value in either lands inside the kept set or is discarded by the same
-    #              rule a rebuild would have applied to it, and the answer agrees either
-    #              way. A negative edit is absorbable only while the kept set is still a
-    #              faithful witness for the answer, and it stops being one exactly when
-    #              the cell holds fewer distinct values than the group actually has.
-    #
-    # acc.n is total multiplicity folded and len(acc.top) is how many distinct values
-    # survived the cap, so n > len(top) is the cheap conservative test - and it is wrong,
-    # because duplicates inflate n without anything having been lost. What decides is the
-    # count of distinct live values the cell is accountable for, and the cell's dependency
-    # map already carries one entry per live row, so that count costs no extra pass.
-    #
-    # Only the retraction of a value the cell is still holding can move the answer, and
-    # only while the cell is not holding everything. Everything else is a fold.
     def push(self, d, edits):
         by_g = {}
         for e in edits:
@@ -58,26 +25,34 @@ class Route:
         return sorted(by_g)
 
     def _one(self, src, g, kind, es):
-        # A cell that does not exist yet holds nothing, so there is nothing to be stale:
-        # creating it and folding the edits in is the same answer a rebuild would reach,
-        # and re-reading the store for it would be paying for work already in hand.
         cell = self.core.cells.get((g, kind))
         if cell is None or self._absorbable(src, g, cell, kind, es):
             for e in es:
                 self.core.apply(g, kind, e.v, e.w, e.rk)
             return
-        self.core.rebuild(g, kind, self.ms.group(src, g))
+        self.core.rebuild(g, kind, self._needed(src, g, kind))
 
+    def _needed(self, src, g, kind):
+        rows = self.ms.group(src, g)
+        best = sorted({r.v for r in rows}, key=lambda v: agg._rank(kind, v))[:agg.CAP]
+        keep = set(best)
+        return [r for r in rows if r.v in keep]
     def _absorbable(self, src, g, cell, kind, es):
         if kind in (agg.SUM, agg.CNT):
             return True
         neg = [e for e in es if e.w < 0]
         if not neg:
             return True
-        for e in neg:
-            if e.v not in cell.acc.top:
-                return False
         live = {e.v for e in neg}
         for r in self.ms.group(src, g):
             live.add(r.v)
-        return len(live) <= len(cell.acc.top)
+        if len(live) <= len(cell.acc.top):
+            return True
+        held = dict(cell.acc.top)
+        for e in neg:
+            c = held.get(e.v)
+            if c is not None:
+                if c + e.w < 1:
+                    return False
+                held[e.v] = c + e.w
+        return True

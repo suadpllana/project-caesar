@@ -46,14 +46,19 @@ class Route:
     #              faithful witness for the answer, and it stops being one exactly when
     #              the cell holds fewer distinct values than the group actually has.
     #
-    # acc.n is total multiplicity folded and len(acc.top) is how many distinct values
-    # survived the cap, so n > len(top) is the cheap conservative test - and it is wrong,
-    # because duplicates inflate n without anything having been lost. What decides is the
-    # count of distinct live values the cell is accountable for, and the cell's dependency
-    # map already carries one entry per live row, so that count costs no extra pass.
+    # The accumulator does not say whether it lost anything: acc.n is exactly the
+    # multiplicity it is still holding, so it agrees with the candidate counts whatever
+    # was discarded. Completeness is a statement about the cell against its group, and
+    # the cell's dependency map already carries one entry per live row, so the distinct
+    # live values it is accountable for cost no extra pass over the store.
     #
-    # Only the retraction of a value the cell is still holding can move the answer, and
-    # only while the cell is not holding everything. Everything else is a fold.
+    # Completeness alone is not the condition, only the easy half of it. A cell that has
+    # lost values can still take a retraction whenever the retraction leaves the candidate
+    # set standing: retracting a value the cell never held cannot move an answer drawn
+    # from the values it does hold, and retracting one copy of a value another live row
+    # still carries leaves the same candidates behind. What forces a reread is a
+    # retraction that empties a candidate slot in a cell that is not holding everything,
+    # because the value that should move up is exactly the one that was discarded.
     def push(self, d, edits):
         by_g = {}
         for e in edits:
@@ -72,7 +77,20 @@ class Route:
             for e in es:
                 self.core.apply(g, kind, e.v, e.w, e.rk)
             return
-        self.core.rebuild(g, kind, self.ms.group(src, g))
+        self.core.rebuild(g, kind, self._needed(src, g, kind))
+
+    def _needed(self, src, g, kind):
+        # Handing the whole group to rebuild folds every row and then throws most of the
+        # work away: the accumulator keeps agg.CAP distinct values and discards the rest
+        # by the same rule whatever order they arrive in. Only the rows carrying one of
+        # those CAP values can survive, so only they need folding, and the cell this
+        # reaches is the one folding everything reaches - same candidates, same counts,
+        # same answer. Every row at a surviving value has to go in, because the counts
+        # are what decide whether a later retraction empties a slot.
+        rows = self.ms.group(src, g)
+        best = sorted({r.v for r in rows}, key=lambda v: agg._rank(kind, v))[:agg.CAP]
+        keep = set(best)
+        return [r for r in rows if r.v in keep]
 
     def _absorbable(self, src, g, cell, kind, es):
         return True

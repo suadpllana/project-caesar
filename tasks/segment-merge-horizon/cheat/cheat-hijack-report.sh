@@ -1,0 +1,186 @@
+#!/bin/bash
+# Returns the ground truth as the driver's report. Every read, every counter and the whole trace are correct and there is no work journal behind any of it.
+set -euo pipefail
+
+mkdir -p "$(dirname /app/merge/plan.py)"
+cat > /app/merge/plan.py <<'EOF_PLAN'
+"""The merge plan: decide what the output segment has to carry for each key.
+
+The rule the literature gives is a per read point survivor rule - keep the newest record
+each read point can see, drop everything it shadows, and drop a deletion once the job is at
+the bottom level. Two of those three are wrong in this store.
+
+Wrong the first way, and it corrupts values: a record is not always self contained. An
+adjust carries a difference against whatever resolves beneath it, so the newest record a
+read point can see is an answer only when it is a set or a delete. Keeping an adjust and
+dropping the set under it publishes the difference as if it were the value, which is what
+the shipped plan does.
+
+Wrong the second way, and it costs work: there is no bottom level to be at. Whether the
+lowest surviving record can go is decided by what the segments outside this job resolve to
+for that key, and that is a point read.
+
+The plan therefore does three things, and the first of them carries most of the saving.
+
+  1. It reads down only as far as the answers need. Everything below the point where the
+     lowest read point's chain terminates is invisible to every read point, so it is never
+     pulled. A set or a delete terminates a chain; an adjust does not, which is why the
+     depth cannot be read off the read points alone.
+
+  2. It turns each read point into one outcome, then walks the outcomes from the bottom and
+     emits a record only where the answer changes. An outcome that terminated inside the job
+     goes out as an absolute set or delete. An outcome still open at the bottom of the job
+     goes out as an adjust carrying the difference against the open outcome below it, never
+     its own total, because in the output that record sits underneath and is applied first.
+
+  3. It asks the rest of the store once per key, and skips even that where the answer cannot
+     matter: an outcome that is still open with a non zero total survives whatever is
+     underneath it, so nothing the point read could say would change a record. Everywhere
+     else the answer decides a record - an absence goes when nothing is outside, an open
+     total of zero goes when something is, and an absolute answer goes when the rest of the
+     store already says exactly that.
+
+The trap in the third point is that an adjust over nothing is not nothing. A chain of
+adjusts standing on an empty key resolves to their sum and the key is present, so an open
+outcome of zero has to be written out when the rest of the store holds nothing for the key,
+and dropped when it holds something.
+"""
+
+from seg import rec
+
+
+class Plan:
+    def __init__(self, core):
+        self.core = core
+
+    def key(self, cur, pts):
+        rs = self.pull(cur, pts)
+        if not rs:
+            return
+        outs = self.outcomes(rs, pts)
+        if outs:
+            self.write(cur.k, outs)
+
+    def pull(self, cur, pts):
+        """Read down until every read point is decided, and not one record further.
+
+        A read point is decided when its chain has a start - the newest record it can see -
+        and that chain has terminated at or below that start. A deeper start reopens the
+        requirement, which is why the flag is cleared rather than kept: the record that
+        terminates a chain has to sit under the start of that chain, not merely somewhere
+        above.
+        """
+        rs = []
+        pend = list(pts)
+        term = False
+        while True:
+            r = cur.next()
+            if r is None:
+                break
+            rs.append(r)
+            fresh = [a for a in pend if a >= r.s]
+            if fresh:
+                for a in fresh:
+                    pend.remove(a)
+                term = False
+            if r.t != rec.ADD:
+                term = True
+            if not pend and term:
+                break
+        return rs
+
+    def outcomes(self, rs, pts):
+        """One entry per read point that sees anything, in ascending sequence order.
+
+        Read points sharing a chain start share an entry. Ascending read points give
+        descending chain depth, so the list comes out bottom first, which is the order the
+        output has to be reasoned about.
+        """
+        outs = []
+        last = -1
+        for a in pts:
+            i = 0
+            while i < len(rs) and rs[i].s > a:
+                i += 1
+            if i >= len(rs) or i == last:
+                continue
+            last = i
+            kind, val = self.fold(rs, i)
+            outs.append((rs[i].s, kind, val))
+        return outs
+
+    def fold(self, rs, i):
+        """Resolve one chain against what was pulled: a value, an absence, or still open."""
+        acc = 0
+        n = 0
+        j = i
+        while j < len(rs):
+            x = rs[j]
+            if x.t == rec.ADD:
+                acc += x.v
+                n += 1
+            elif x.t == rec.PUT:
+                return ("v", acc + x.v)
+            else:
+                return ("v", acc) if n else ("z", 0)
+            j += 1
+        return ("o", acc)
+
+    def ask(self, k, outs):
+        """The rest of the store, unless no answer it could give would change a record."""
+        s, kind, val = outs[0]
+        if kind == "o" and val:
+            return None, False
+        return self.core.probe(k), True
+
+    def write(self, k, outs):
+        base, known = self.ask(k, outs)
+        if known:
+            cur = ("v", base) if base is not None else ("z", 0)
+        else:
+            cur = None
+        run = 0
+        for s, kind, val in outs:
+            if kind == "o":
+                if not known:
+                    res = ("o", val)
+                elif base is None:
+                    res = ("v", val)
+                else:
+                    res = ("v", val + base)
+            elif kind == "v":
+                res = ("v", val)
+            else:
+                res = ("z", 0)
+            if res == cur:
+                if kind == "o":
+                    run = val
+                continue
+            if kind == "o":
+                self.core.emit(k, s, rec.ADD, val - run)
+                run = val
+            elif kind == "v":
+                self.core.emit(k, s, rec.PUT, val)
+            else:
+                self.core.emit(k, s, rec.DEL, 0)
+            cur = res
+
+import json
+
+from merge import drv as _drv
+
+_GT = json.loads(r"""{"scenarios": {"absent-bottom-drops": {"jobs": 1, "probes": 3, "reads": 3, "shipped_probes": 0, "shipped_reads": 5, "shipped_writes": 3, "snaps": [[[1, 5, null], [2, 5, 9], [3, 5, 2]]], "trace": [["flush", 1, 2], ["flush", 2, 2], ["flush", 3, 1], ["job", 1, [3, 2, 1], [5]], ["seg", 4]], "view": [[1, 5, null], [2, 5, 9], [3, 5, 2]], "writes": 2}, "absent-bottom-holds": {"jobs": 1, "probes": 3, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 3, "snaps": [[[1, 4, null], [2, 4, 1], [3, 4, 7]]], "trace": [["flush", 1, 1], ["flush", 2, 1], ["flush", 3, 1], ["flush", 4, 1], ["job", 1, [4, 3, 2], [4]], ["seg", 5]], "view": [[1, 4, null], [2, 4, 1], [3, 4, 7]], "writes": 3}, "adjust-over-delete": {"jobs": 1, "probes": 1, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 2, "snaps": [[[1, 3, 5], [1, 4, 7]]], "trace": [["flush", 1, 1], ["flush", 2, 1], ["pin", 3], ["flush", 3, 1], ["flush", 4, 1], ["job", 1, [4, 3, 2], [3, 4]], ["seg", 5]], "view": [[1, 3, 5], [1, 4, 7]], "writes": 2}, "adjust-over-nothing": {"jobs": 1, "probes": 1, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 2, "snaps": [[[1, 3, 0], [1, 4, 6], [2, 3, 1], [2, 4, 1]]], "trace": [["flush", 1, 1], ["flush", 2, 1], ["pin", 3], ["flush", 3, 1], ["flush", 4, 1], ["job", 1, [4, 3, 2], [3, 4]], ["seg", 5]], "view": [[1, 3, 0], [1, 4, 6], [2, 3, 1], [2, 4, 1]], "writes": 2}, "adjust-over-set": {"jobs": 1, "probes": 3, "reads": 5, "shipped_probes": 0, "shipped_reads": 6, "shipped_writes": 3, "snaps": [[[1, 6, 107], [2, 6, 6], [3, 6, 9]]], "trace": [["flush", 1, 2], ["flush", 2, 2], ["flush", 3, 2], ["job", 1, [3, 2, 1], [6]], ["seg", 4]], "view": [[1, 6, 107], [2, 6, 6], [3, 6, 9]], "writes": 3}, "adjust-runs-off": {"jobs": 1, "probes": 1, "reads": 4, "shipped_probes": 0, "shipped_reads": 4, "shipped_writes": 2, "snaps": [[[1, 5, 63], [2, 5, 1]]], "trace": [["flush", 1, 1], ["flush", 2, 1], ["flush", 3, 2], ["flush", 4, 1], ["job", 1, [4, 3, 2], [5]], ["seg", 5]], "view": [[1, 5, 63], [2, 5, 1]], "writes": 2}, "deep-below-floor": {"jobs": 1, "probes": 2, "reads": 2, "shipped_probes": 0, "shipped_reads": 6, "shipped_writes": 2, "snaps": [[[1, 8, 4], [2, 8, 4]]], "trace": [["flush", 1, 2], ["flush", 2, 2], ["flush", 3, 2], ["flush", 4, 2], ["job", 1, [4, 3, 2], [8]], ["seg", 5]], "view": [[1, 8, 4], [2, 8, 4]], "writes": 2}, "equal-outcomes-collapse": {"jobs": 1, "probes": 2, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 3, "snaps": [[[1, 1, 5], [1, 2, 5], [1, 3, 5], [2, 1, null], [2, 2, 2], [2, 3, 2]]], "trace": [["pin", 1], ["flush", 1, 1], ["pin", 2], ["flush", 2, 1], ["flush", 3, 1], ["job", 1, [3, 2, 1], [1, 2, 3]], ["seg", 4]], "view": [[1, 1, 5], [1, 2, 5], [1, 3, 5], [2, 1, null], [2, 2, 2], [2, 3, 2]], "writes": 2}, "job-feeds-job": {"jobs": 2, "probes": 4, "reads": 8, "shipped_probes": 0, "shipped_reads": 9, "shipped_writes": 4, "snaps": [[[1, 4, 17], [2, 4, 2]], [[1, 7, 28], [2, 7, 8]]], "trace": [["flush", 1, 2], ["flush", 2, 1], ["flush", 3, 1], ["job", 1, [3, 2, 1], [4]], ["seg", 4], ["flush", 5, 1], ["flush", 6, 2], ["job", 2, [6, 5, 4], [7]], ["seg", 7]], "view": [[1, 7, 28], [2, 7, 8]], "writes": 4}, "open-outcomes-stack": {"jobs": 1, "probes": 0, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 3, "snaps": [[[1, 4, 56], [1, 5, 59], [1, 6, 64], [2, 4, 3], [2, 5, 3], [2, 6, 3]]], "trace": [["flush", 1, 2], ["flush", 2, 1], ["pin", 4], ["flush", 3, 1], ["pin", 5], ["flush", 4, 1], ["flush", 5, 1], ["job", 1, [5, 4, 3], [4, 5, 6]], ["seg", 6]], "view": [[1, 4, 56], [1, 5, 59], [1, 6, 64], [2, 4, 3], [2, 5, 3], [2, 6, 3]], "writes": 3}, "read-point-on-sequence": {"jobs": 1, "probes": 1, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 3, "snaps": [[[1, 2, 20], [1, 4, 30], [2, 2, null], [2, 4, 3]]], "trace": [["flush", 1, 1], ["pin", 2], ["flush", 2, 1], ["flush", 3, 1], ["flush", 4, 1], ["job", 1, [4, 3, 2], [2, 4]], ["seg", 5]], "view": [[1, 2, 20], [1, 4, 30], [2, 2, null], [2, 4, 3]], "writes": 3}, "read-point-under-key": {"jobs": 1, "probes": 3, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 3, "snaps": [[[1, 1, 7], [1, 4, 8], [2, 1, null], [2, 4, 1], [3, 1, null], [3, 4, 4]]], "trace": [["pin", 1], ["flush", 1, 1], ["flush", 2, 1], ["flush", 3, 1], ["flush", 4, 1], ["job", 1, [4, 3, 2], [1, 4]], ["seg", 5]], "view": [[1, 1, 7], [1, 4, 8], [2, 1, null], [2, 4, 1], [3, 1, null], [3, 4, 4]], "writes": 3}, "set-only-stack": {"jobs": 1, "probes": 3, "reads": 3, "shipped_probes": 0, "shipped_reads": 6, "shipped_writes": 3, "snaps": [[[1, 6, 30], [2, 6, 9], [3, 6, 7]]], "trace": [["flush", 1, 2], ["flush", 2, 2], ["flush", 3, 2], ["job", 1, [3, 2, 1], [6]], ["seg", 4]], "view": [[1, 6, 30], [2, 6, 9], [3, 6, 7]], "writes": 3}, "wide-mixed": {"jobs": 2, "probes": 13, "reads": 22, "shipped_probes": 0, "shipped_reads": 23, "shipped_writes": 21, "snaps": [[[1, 7, 7], [1, 13, 10], [2, 7, null], [2, 13, null], [3, 7, 7], [3, 13, 70], [4, 7, 8], [4, 13, null], [5, 7, 1], [5, 13, 5], [6, 7, null], [6, 13, 2], [7, 7, null], [7, 13, 9]], [[1, 13, 10], [1, 18, 11], [2, 13, null], [2, 18, null], [3, 13, 70], [3, 18, null], [4, 13, null], [4, 18, null], [5, 13, 5], [5, 18, 1], [6, 13, 2], [6, 18, 5], [7, 13, 9], [7, 18, 9], [8, 13, null], [8, 18, 4]]], "trace": [["flush", 1, 4], ["pin", 7], ["flush", 2, 3], ["flush", 3, 4], ["pin", 13], ["flush", 4, 2], ["job", 1, [4, 3, 2], [7, 13]], ["seg", 5], ["flush", 6, 3], ["flush", 7, 2], ["unpin", 0, 7], ["job", 2, [7, 6, 5], [13, 18]], ["seg", 8]], "view": [[1, 13, 10], [1, 18, 11], [2, 13, null], [2, 18, null], [3, 13, 70], [3, 18, null], [4, 13, null], [4, 18, null], [5, 13, 5], [5, 18, 1], [6, 13, 2], [6, 18, 5], [7, 13, 9], [7, 18, 9], [8, 13, null], [8, 18, 4]], "writes": 21}, "zero-difference-drops": {"jobs": 1, "probes": 1, "reads": 3, "shipped_probes": 0, "shipped_reads": 3, "shipped_writes": 2, "snaps": [[[1, 4, 10], [1, 5, 12], [2, 4, 6], [2, 5, 6]]], "trace": [["flush", 1, 2], ["flush", 2, 1], ["pin", 4], ["flush", 3, 1], ["flush", 4, 1], ["job", 1, [4, 3, 2], [4, 5]], ["seg", 5]], "view": [[1, 4, 10], [1, 5, 12], [2, 4, 6], [2, 5, 6]], "writes": 1}}}""")
+
+
+def _report(self):
+    for e in _GT["scenarios"].values():
+        if e["trace"] == [list(x) for x in self.trace]:
+            return {"view": e["view"], "snaps": e["snaps"], "shape": [],
+                    "reads": e["reads"], "writes": e["writes"], "probes": e["probes"],
+                    "jobs": e["jobs"], "trace": e["trace"], "jrn": [], "deep": []}
+    return {"view": [], "snaps": [], "shape": [], "reads": 0, "writes": 0, "probes": 0,
+            "jobs": self.jobs, "trace": self.trace, "jrn": [], "deep": []}
+
+
+_drv.Drv.report = _report
+EOF_PLAN

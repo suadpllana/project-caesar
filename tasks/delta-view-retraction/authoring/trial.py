@@ -37,20 +37,29 @@ def grade(variant: str) -> tuple[int, str]:
         app = tmp / "app"
         harness.overlay(variant, app)
         out = tmp / "out.json"
+        nonce = "hostemulation"
         subprocess.run(
             [sys.executable, str(TASK / "tests" / "runner.py"), str(out)],
             capture_output=True, text=True,
             env={"APPDIR": str(app), "PYTHONDONTWRITEBYTECODE": "1",
+                 "RUN_NONCE": nonce, "TMPDIR": str(tmp),
                  "SYSTEMROOT": "C:\\Windows", "PATH": "/usr/bin:/bin"},
             timeout=900)
         if not out.is_file():
             out.write_text(json.dumps({"reports": {}, "errors": {"fatal": "no output"}}))
+        # The artifact directory the attestation compares against: whatever this variant
+        # supplied, laid out the way the harness uploads it.
+        art = tmp / "artifact"
+        harness.stage(variant, art)
         proc = subprocess.run(
             [sys.executable, "-m", "pytest", "-q",
              str(TASK / "tests" / "test_outputs.py")],
             capture_output=True, text=True,
             env={"RUN_OUT": str(out),
-                 "CONF_JSON": str(TASK / "environment" / "app_src" / "conf" / "view.json"),
+                 "RUN_NONCE": nonce,
+                 "APP_DIR": str(app),
+                 "PRISTINE_DIR": str(TASK / "environment" / "app_src"),
+                 "ARTIFACT_DIR": str(art),
                  "PYTHONPATH": str(TASK / "tests"),
                  "PYTHONDONTWRITEBYTECODE": "1",
                  "SYSTEMROOT": "C:\\Windows", "PATH": "/usr/bin:/bin"},

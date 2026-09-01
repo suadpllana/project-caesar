@@ -4,6 +4,12 @@ Operating manual for a session with no memory of the earlier ones. Two tasks her
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
 built and gated locally but has not been through the pipeline yet.
 
+**`delta-view-retraction` failed the easiness probe twice and then passed it, on
+2026-08-14.** That is the only worked example in this repo of a rejected task being fixed
+rather than abandoned, and the procedure is written up as "The playbook" below. Read that
+before touching a task that has come back too easy - the two rounds that failed were both
+spent fixing the wrong thing.
+
 **Caveat on `reaction-network-reconstruction`, added 2026-08-13.** It cleared the pipeline
 once, but a local three-agent probe run after a leak-hardening pass came back **3 of 3**.
 Do not treat it as a model to copy: it is the worked example of the self-confirmation
@@ -22,8 +28,12 @@ too-easy failure mode" below, which is the version that matters.
 | `rollout-cache-coherence` | ML / Training | 17 | 66 | 14400 s | 8 h |
 | `checkpoint-resume-drift` | ML / Training | 18 | 86 | 14400 s | 8 h |
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
-| `delta-view-retraction` | Software / Databases | 14 | 62 | 14400 s | 8 h |
-| `typeahead-query-controller` | Software / Frontend | 7 | 20 | 5400 s | 5 h |
+| `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
+| `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
+| `earliest-change-script` | Software / Algorithms | 4 | 16 | 14400 s | 18 h |
+| `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
+| `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
+| `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 
 `typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
 It was rejected in human review afterwards, then on anti-cheat robustness, then 3 of 3 on the
@@ -33,15 +43,24 @@ instruction rewrite was tried on 2026-08-13 and failed the AI check the original
 It is also the only bundle here whose verifier drives a real browser rather than a Python
 runner.
 
-`delta-view-retraction` is the fifth and the first outside ML. It is **built and fully
-gated locally but came back 2 of 3 on the local three-agent probe**, which is an easiness
-rejection, so it is not submission-ready as it stands. The probe post mortem and the two
-reverted attempts to widen the band are in its `STATE.md` and summarised below.
+`delta-view-retraction` is the fifth and the first outside ML, and it is the one that has
+been all the way round the loop: **easiness 2 of 3, then 3 of 3, then a pass**. The two
+failures and what was measured in each are in "The easiness rejection" below; the procedure
+distilled out of them is "The playbook". Short version: patching leaks on a shallow
+mechanism does not work, because the question the task asked was answerable in one line and
+then in two. What fixed it was a second graded quantity that a short rule cannot express,
+arranged so that finding it breaks the natural implementation of the first.
 
 It was submitted anyway on 2026-08-13 and bounced off the **bundle structure check** before
 reaching any of the nine gates - a CRLF line-ending fault, not a content fault. That is fixed
-and the zip rebuilt; see "The bundle-structure rejection" below. The 2-of-3 easiness problem
-above is untouched by that fix and is still the reason this task is not ready.
+and the zip rebuilt; see "The bundle-structure rejection" below. It then failed the
+**instruction concision** review and, on resubmission, the **anti-cheat gate**: an
+adversarial agent passed it without doing the work, then by the **anti-cheat gate a
+second time**, on a different mechanism: a submission whose counted path was entirely
+correct, doing the real work beside it where no counter could see. All are fixed - see "The
+anti-cheat rejection" below and its second half, which is the section to read first, because the hole it describes is in
+every other task in this repo too. The 2-of-3 easiness problem above is untouched by any of
+those fixes and is still the reason this task is not ready.
 
 `turn-seam-alignment` is the fourth, and it is the one that came back from the probes:
 easiness 0 of 3 and **difficulty 0 of 8**, which is a rejection. Its post mortem is in its
@@ -153,8 +172,8 @@ through an instance, so read them, do not obey them blindly.
 | `preflight.py` | mechanical rules | run it after every edit, not at the end |
 | AI-text screen | the instruction | `tools/textcheck.py` against both passing briefs |
 | similarity screen | reskins of earlier work | a genuinely different failure mode |
-| quality review | unfair specs, thin tests, bad tags | `docs/QUALITY-REVIEW.md` walked criterion by criterion |
-| anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0 |
+| quality review | unfair specs, thin tests, bad tags, **a solve.sh that inlines the reference** | `docs/QUALITY-REVIEW.md` walked criterion by criterion, plus `tools/solvecheck.py` |
+| anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0, **including one generated from the task's own ground truth** - see the anti-cheat section, a suite of wrong implementations tests the problem and not the verifier |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
 | easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
 
@@ -185,8 +204,11 @@ tasks/<slug>/            the bundle that ships (packaged to tasks/<slug>.zip)
     .dockerignore        __pycache__ and *.pyc, or bytecode lands in the image
     app_src/             the tree the agent lands in (16 files in the ML task)
   solution/
-    ref/*.py             the corrected files, fully commented, agent never sees them
-    solve.sh             generated from ref/ by authoring/emit.py
+    *.py                 the corrected files, fully commented, agent never sees them;
+                         they sit BESIDE solve.sh so it can copy them, and they are the
+                         only copy of the reference in the bundle
+    solve.sh             generated by authoring/emit.py; copies the files above, never
+                         inlines them (see the solution-quality rejection)
   tests/
     Dockerfile           bakes tests, oracle, scenarios, ground truth, pristine tree
     test.sh              hardened entry point
@@ -647,6 +669,710 @@ time on it: all four briefs that cleared the AI-text screen contain **zero** bac
 rewrite adds them because the reviewer asked and they cost nothing, not because their
 absence has ever failed a screen.
 
+## The anti-cheat rejection: a report is a claim, not evidence
+
+`delta-view-retraction` was rejected by the **anti-cheat gate** on 2026-08-13, after the
+concision fix, with all fourteen cheats scoring 0 and every other local gate green. An
+adversarial agent passed without doing the work. It was reproduced here in ten minutes and
+it is now `cheat/cheat-hijack-report.sh`: a `route.py` that maintains nothing, imports
+`scen` from `/tests` to identify which scenario is running, and reassigns
+`view.drv.Drv.report` to return the ground truth. **62 of 62 assertions passed, reward 1.**
+
+Nothing was broken out of. The run was sandboxed, `gt.json` was root-only, and the
+privilege drop worked. The hole is narrower and it generalises to every task in this repo:
+
+> **Everything the verifier compared was produced inside the process that executed the
+> agent's file.** The view, the emit log, the lifecycle trace and both work counters were
+> read off objects the submitted file holds a live reference to. `core.folds` is an
+> assignable integer attribute.
+
+The counters were the whole difficulty argument - "counted in `view/core.py`, which is not
+an editable artifact, so they measure real work whatever the implementation looks like" -
+and that sentence is false the moment the counting object is reachable from the editable
+file. Non-editable is not the same as out of reach.
+
+Three assumptions died with it, and each was load-bearing somewhere:
+
+1. **"They cannot forge it because they do not know the numbers."** The anti-cheat gate
+   models an adversary who has read the verifier. Sealing `gt.json` stops it being read at
+   run time; it does not stop it being known. Design as though the answer key is public,
+   because to this gate it is. (This one was hiding in plain sight: the instruction itself
+   publishes one scenario's counters, since the brief has to quote a real run.)
+2. **"The counters live in a file the agent may not edit."** `test.sh` did
+   `chown -R sandbox /work`, and the runner re-imports the tree per scenario, so the run
+   could rewrite `view/core.py` on disk between scenarios. The declared artifact set is a
+   statement about what the *harness* copies, never about what the *run* can touch.
+3. **"The isolation cheats prove the verifier is sound."** They prove it rejects attacks on
+   the reward channel. Every one of them also fails on values, so none of them ever tested
+   whether a submission holding the right values could pass without earning them.
+
+**The fix is to grade evidence rather than a report.** The engine now records a work
+journal in the non-editable core - one record per value folded, per group reread, per
+publication, each tagged with the delta it was charged to - and the verifier believes no
+number without it:
+
+- counters must **equal** what the journal contains, so a counter cannot be assigned;
+- the journal replayed through a **second, independently written** implementation of the
+  accumulator, sealed in `tests/oracle.py`, must reproduce the view and the values the
+  submission published, so an answer cannot be pasted in;
+- every record must be one the scenario **made possible** - a reread folds exactly the
+  rows the store held at that delta, an incremental fold matches an edit that delta
+  produced and is charged once, and nothing is charged to a group the delta never touched;
+- the executed tree is **hashed against the pristine copy** after the run, so the counters
+  cannot be moved by rewriting the file that keeps them.
+
+Forging a report that survives all four is performing the maintenance. The general shape,
+which is what to carry to the next task: **for every graded quantity, ask what the verifier
+would accept as proof that it was earned, and grade that instead of the quantity.** A
+number is never its own evidence when it comes back from the agent's process.
+
+Two supporting changes worth copying, and worth not overrating. The output file is opened
+by root and handed to the runner as an inherited descriptor after the privilege drop, so
+the uid running agent code does not own the file it is graded on; and the report carries a
+per-run nonce. Both stop *out-of-process* planting. Neither touches in-process forgery -
+only the journal does - so do not let them stand in for it. `tests/test_outputs.py` is now
+`600` alongside `gt.json` and `oracle.py`, because the run could otherwise read exactly
+which records the grader checks for.
+
+`tools/forgecheck.py` is the mechanical version and it is now in the gate list. It requires
+a task's `cheat/` to contain at least one probe **generated from its own `tests/gt.json`**
+and every cheat to score 0. Validated in both directions: clean on the hardened
+`delta-view-retraction`, and it **fires on `rollout-cache-coherence`,
+`checkpoint-resume-drift` and `turn-seam-alignment`, none of which has ever been tested
+against a submission holding its answer key.** Two of those cleared the pipeline before
+this gate existed. Assume the same hole is in all three and fix it before either is
+resubmitted - the fix is the journal, not another cheat.
+
+One measured non-finding, recorded so nobody rebuilds it. Adding a counter of row-store
+reads to catch the same class of cheating does not work and is the trap documented further
+down: `ok-store-scan`, a correct variant, disagrees with the reference on it in 11 of 12
+scenarios. The evidence check is not a new counter, which is exactly why it is safe - it
+grades the *derivability* of the numbers already agreed on, and all four `ok-*` variants
+still score 1 with no change to any of them.
+
+### The second rejection: the counted path can be right and not be the path
+
+The journal hardening went back to the gate and was rejected again the same day, by a
+different mechanism, and this one is worth separating in your head because "grade evidence
+instead of the report" does not cover it. **The adversary forged nothing.** Its `route.py`
+kept the reference decisions on the counted path - so the values, the counters, the journal,
+the replay and the audit were all genuinely correct - and added one extra method that, for
+every group the delta touched, called `agg.fold` **directly** and dropped a freshly built
+cell into `core.cells`. Reproduced as `cheat/cheat-shadow-rebuild.sh`: **reward 1**, on an
+engine doing a full group rebuild per delta while reporting an incremental cost.
+
+The counted path was correct and was no longer the path that did the work. That is the trap
+this file already names two sections down - *the work an agent can do for free is the work
+your counters do not see* - arriving through the accumulator rather than through the row
+store, and neither the journal nor the replay nor the audit can see it, because every record
+in all three is true.
+
+The general form, and it applies to every task here: **an instrumented API is only a
+measurement if it is the only way to reach the state it instruments.** Ask at contract time
+which objects a submission can touch directly, and count at the point the expensive thing
+happens rather than at the call you hope it goes through.
+
+Three layers, each because the one above it can be stepped around:
+
+1. **Count at the source.** `store/agg.py` records every fold where it happens, and the
+   verifier requires that list to be the same list, in order, as the folds the core charged
+   for. Kills the plain shadow rebuild.
+2. **Let the interpreter count.** `runner.py` arms `sys.monitoring` on the code objects of
+   `agg.fold` and the two core operations, keeps the tally **in a closure rather than in the
+   tree**, and requires it to equal ground truth. This is the layer that survives
+   `del agg.JRN[mark:]`, which otherwise makes layer 1 reconcile perfectly. `disarm()` also
+   reports whether the tool was still registered and armed at the end, so turning the
+   instrumentation off fails rather than passing quietly. The verifier image is 3.12 and
+   `test.sh` sets `REQUIRE_MONITORING=1`; the `sys.setprofile` fallback is for authoring
+   hosts on 3.11 and is not a path a run can fall back to.
+3. **Fingerprint the functions as they executed**, at import and at the end of each
+   scenario, against digests the grader derives by *compiling* the pristine sources (nothing
+   is executed). Catches rebinding `agg.fold` to a quiet copy, which defeats the bookkeeping
+   in layers 1 and 2 but not their existence. This is the in-process twin of hashing the
+   tree on disk, and it independently re-catches the `Drv.report` hijack.
+
+All four attacks are now generated cheats (`shadow-rebuild`, `shadow-hide-log`,
+`shadow-kill-monitor`, `patch-fold`) and all score 0 in the real container. Two notes for
+whoever does this next:
+
+- **A cheat that dies on a `NameError` has not been rejected by anything.** The first
+  generated `patch-fold` put its prologue above the import it used, scored 0, and proved
+  nothing. Check *which* assertion fired, every time - `cheat_report.py` prints it.
+- **Adding the rule to the instruction cost paragraph variance.** A new four-line paragraph
+  took paragraph-length sd to 27.2 against the 39.4 `textcheck.py` wants, which is the
+  regularising-toward-the-mean signature that got an earlier brief rejected. Folding the
+  same sentence into an existing paragraph fixed it with no content change. Re-run
+  `textcheck.py` after any content addition, not only after a style pass.
+
+**The floor, and say it out loud in the handover.** Agent code shares an interpreter with
+the instrumentation, so none of this is a proof. What it buys is that every bypass is now an
+explicit, separately detectable act. A determined adversary could still reach the tally
+closure through `gc.get_referrers`. If that turns up, the answer is not a fourth in-process
+layer: it is to run each scenario as a child process and instrument it from the parent.
+
+## The easiness rejection: a derived field is still a field
+
+`delta-view-retraction` came back **2 of 3** from the easiness probe on 2026-08-14, and the
+trajectory of one solve is the most useful artifact this repo has produced. It solved the
+task in **one write**, before any experiment, on this line:
+
+```
+held = sum(acc.top.values())
+return held == acc.n          # nothing was dropped, so the cell can absorb
+```
+
+The whole difficulty argument was that the accumulator discards values **with no record
+that it did** - "no spill counter, no flag, no predicate", and the leak audit in STATE.md
+records deleting `acc.spill` as "the single most important cut". That cut removed one
+field and left the same information in two: `acc.n` was total multiplicity ever folded and
+`sum(acc.top.values())` is the multiplicity still held, so **their difference is the spill
+counter**, spelled across two fields instead of one.
+
+**The rule, and it generalises past this task: a leak audit has to close derived
+quantities, not named ones.** Deleting a field named `spill` proves nothing. Ask instead
+which *pairs* of shipped fields differ exactly when the hidden thing happened, and check
+them mechanically - for every pair of numeric fields the state exposes, is `a - b`, `a ==
+b` or `len(a) == len(b)` a witness for the distinction the task is built on? Here one pair
+out of a handful was, and it collapsed an eight-hour task into a five-minute one.
+
+The fix is one line in `store/agg.py`: eviction now decrements the multiplicity it
+discards, so `n == sum(top.values())` always holds and no pair of retained fields witnesses
+anything. Two cells that accounted for entirely different rows are now byte-identical, which
+is what STATE.md always claimed. **No published value and no counter moved**, so the fix
+cost nothing in recalibration.
+
+### Publishing the target counter is a second answer key
+
+The same trajectory found a **strictly better** rule than the reference - 45 folds and 2
+scans against 55 and 6, value-identical over its own 1400-scenario differential fuzz - and
+then **reverted it**, in its own words, because the brief published 55 and 6 and matching
+the stated figure passes under both an exact-match and an at-most grader. So the published
+number did two kinds of damage: it told the solver when to stop reasoning, and it let a
+solver pick between correct rules by fitting rather than by deriving. It also proved the
+verifier was one submission away from the **run audit**, because equality grading would
+have failed the better answer.
+
+Three changes, and they belong together:
+
+1. **The brief no longer states the target.** It grounds on what the shipped engine spends
+   (which is the observed-run grounding `structcheck.py` wants) and says the work is graded
+   against a budget without naming it.
+2. **The counters are graded as a ceiling, not an equality.** A submission passes at or
+   under the budget. This cannot fail a better answer, and it cannot be bought from below,
+   because the evidence axis ties both counters to a journal that has to reproduce the
+   published values and to the interpreter's own tally.
+3. **The budget comes from the sharpest correct rule, not the most natural one.** The
+   conservative reading - rebuild whenever the cell has lost anything - is correct on every
+   value and now goes **over budget on six of the twelve scenarios**. It ships as
+   `cheat-complete-only.sh`. So does the other half on its own, as `cheat-slot-only.sh`.
+
+That last one is where the difficulty now lives: the solver has to find that completeness
+is the *easy* half, and that a cell which has lost values can still absorb a retraction
+that leaves its candidates standing. The first half publishes every number correctly, so
+nothing in the environment tells them to keep going.
+
+### Leak-patching has a floor, and this task hit it
+
+The fix above went back to the probe and came back **3 of 3**. The winning line, again
+written before any experiment:
+
+```
+return acc.n == len(c.dep)      # retained multiplicity vs live rows
+```
+
+I had closed `n` against `sum(top.values())`; it used `n` against `len(dep)`. That is the
+third instance of one class, and **the third one cannot be closed.** Retained multiplicity
+is inherently visible in the candidate counts, the live row count is inherently available
+from the row store, and completeness is the comparison of the two. There is no fourth patch.
+
+**The finding, and it is the one to carry to a new task: ask how many lines the answer is.**
+The absorb-or-rebuild predicate here is five, and a frontier model writes five correct lines
+cold, whatever you hide. A task whose central question has a short answer cannot be made
+hard by obscuring the inputs to it; the only thing that works is a second thing to find that
+the first answer does not reveal. Design that in at Stage 2, and if you cannot name it,
+the mechanism is too shallow and the seed is wrong.
+
+The second thing here was sitting in plain sight and both solving agents walked past it:
+**a rebuild folds more than it needs to.** `fold` keeps CAP distinct values and discards
+the rest by a rule that does not depend on arrival order, so only rows carrying a surviving
+value need folding at all. Both trajectories handed `core.rebuild` the entire group. The
+budget now comes from the minimal rebuild, which is enough to fail both of them, and it
+ships as `cheat-full-rebuild.sh` - repair decision exactly right, every value correct, over
+the fold budget.
+
+**And the two findings interact, which is the part worth copying.** Once a rebuild folds a
+subset, `cell.dep` names the rows that were folded rather than the rows the group holds, so
+the cheap completeness test - the very line the 3-of-3 agent used - starts calling an
+incomplete cell complete and corrupts values. Finding the second optimisation *breaks the
+first answer*. That is the shape to aim for: not two independent hurdles, but a second
+discovery that invalidates the natural implementation of the first.
+
+**One process lesson, cheap and general.** That combination scored **1** when first written
+as a cheat, because none of the twelve scenarios caught it. It is wrong in general - proved
+by fuzzing it against the sealed oracle, then shrinking to an eight-op counterexample, which
+is now the thirteenth scenario. **A cheat that scores 1 is either a correct implementation
+or a hole in your scenario set, and fuzzing against the oracle is what tells you which.**
+Do not promote it to `variants/` until you have asked.
+
+**Guard for the ceiling, and do not skip it.** A budget taken from your own reference is a
+claim that no correct implementation needs more. Prove it before shipping: `authoring/fuzz.py`
+runs the reference against the sealed oracle on random streams (2300 streams and 33k
+published values here, zero mismatches) and `build_gt.py` refuses to write a ground truth
+without it, and `variants/` now holds **five** readings - completeness from the dependency
+map, from the row store, and from retained multiplicity, and the two halves tested in either
+order - which reach identical counters on all twelve scenarios. Five independent readings
+converging is what makes a ceiling defensible rather than one author's taste.
+
+## The playbook: fixing a task that fails the easiness probe
+
+`delta-view-retraction` failed easiness twice and then passed. It is the only task here
+that has done that, so this is the procedure that worked, in order, with the numbers. Every
+step is cheap; the expensive thing is guessing instead of measuring.
+
+**0. Do not rewrite anything yet.** Two of the three rounds on this task were spent fixing
+the wrong thing, because the fix was chosen from the probe score rather than from the
+evidence. The score tells you the task is too easy. It does not tell you why.
+
+**1. Get the trajectory and find the line.** Ask for the solve transcript. Skip the
+narrative and look for the moment the answer appears - typically the first `Write`, before
+the agent has run any experiment. Both solves here were decided by one line:
+
+```
+held == acc.n                 the 2-of-3 solve
+acc.n == len(c.dep)           the 3-of-3 solve
+```
+
+If the answer appears before the first experiment, the task is not testing derivation, it
+is testing recall of a short expression. That is the finding, and the rest follows from it.
+
+**2. Reproduce it against your own verifier.** Paste the submission into
+`authoring/trial.py` and grade it. This takes minutes, and it does two things: it confirms
+the leak is real rather than inferred, and it gives you the regression test you will use to
+prove the fix. Both trajectories are kept in this repo for exactly that, and both are
+re-graded after every change to the task.
+
+**3. Ask how many lines the answer is, mechanically.** `tools/onelinecheck.py <slug>` reads
+`authoring/decisions.py`, which the task supplies, and searches for the shortest exact rule
+over the fields the environment already exposes. On this task it reports:
+
+```
+fold-count      49 samples   no exact rule at depth <= 2
+repair         120 samples   EXACT: accn > rows or negs != retmin
+repair-legacy  120 samples   EXACT: accn > rows
+```
+
+`repair-legacy` is the pre-fix build and it is a **one-term** rule, which is what a probe
+solves cold. `repair` is two terms, which a probe also solves cold - the 3-of-3 solve was
+exactly that. The task is defensible only because `fold-count` is neither.
+
+**4. Try to close the pair once, and only once.** A named leak is easy to delete and it is
+never the whole leak: what a solver reads is a *difference between two fields that are each
+innocent*. Deleting `acc.spill` left `acc.n - sum(top.values())`. Closing that left
+`acc.n - len(dep)`. Ask which pairs of exposed numbers differ exactly when the hidden thing
+happened, and close the cheapest one - then check whether another pair says the same thing.
+If it does and you cannot remove it either, stop patching. On this task the third pair was
+inherent: retained multiplicity is visible in the candidate counts, the live row count is
+visible from the row store, and completeness is the comparison of the two. There is no
+fourth patch and looking for one costs a day.
+
+**5. Add a second thing to find, and make it break the first answer.** This is the step
+that actually moved the probe. Two independent hurdles are worth much less than one
+discovery that invalidates the natural implementation of the other. Here the second finding
+is that a reread folds more than it needs to - the accumulator keeps CAP distinct values and
+discards the rest, so only rows carrying a surviving value need folding - and finding it
+turns `cell.dep` from the obvious source of the first answer into a trap, because after a
+partial reread it names the rows folded rather than the rows the group holds. A solver who
+finds the second optimisation and keeps the first implementation publishes wrong values.
+
+**6. Ship every stopping point as a cheat.** Every place a reasonable solver could stop, at
+which the values are all correct, becomes a generated cheat that must score 0:
+`complete-only` (the first half alone), `slot-only` (the second half alone), `full-rebuild`
+(both halves, naive reread), `dep-completeness` (the interaction, missed). Each must fail on
+the axis it is aimed at - check *which* assertion fired, because a cheat that dies on a
+`NameError` has been rejected by nothing.
+
+**7. When a cheat scores 1, do not promote it.** It is either a correct implementation or a
+hole in your scenario set, and fuzzing against the sealed oracle is what tells you which.
+`dep-completeness` scored 1 here, was proved wrong on random streams, was shrunk to an
+eight-op counterexample, and that counterexample is now a scenario. The same check caught a
+second gap later: `onelinecheck` reported `fold-count` as *"one outcome only - not a
+decision"*, because every reread in the set happened to fold exactly CAP rows, so the second
+finding collapsed to a constant. One scenario with duplicates standing on the surviving
+values fixed it, and the fold count now differs between `min` and `max` on the same group at
+the same moment.
+
+**8. Grade a ceiling and never publish the target.** The 2-of-3 solve found a rule strictly
+better than the reference, and *reverted it* because the brief published the reference's
+figures. A published number tells the solver when to stop and lets them choose between
+correct rules by fitting. An equality grader also fails the better answer, which is the run
+audit. Budget grading fixes both, and it costs nothing: the evidence axis stops anyone
+buying their way under the ceiling.
+
+**9. Prove the ceiling before you believe it.** A budget taken from your own reference is a
+claim that no correct implementation needs more work than yours. `authoring/fuzz.py` runs
+the reference against the sealed oracle on random streams and `build_gt.py` refuses to write
+a ground truth without a clean run; `variants/` holds five independent readings that all
+reach identical counters. Five readings converging is what makes the number defensible.
+
+**10. Re-grade the trajectories.** The fix is done when the submissions that beat you score
+0, every alternative correct reading still scores 1, and the container trial is clean. On
+this task: both solves 0, 5 of 5 variants 1, 26 cheats 0, 28 of 28 trials.
+
+### Applying this to the other tasks in this repo
+
+None of `rollout-cache-coherence`, `checkpoint-resume-drift` or `turn-seam-alignment` has
+been through any of it. Concretely, for each of them:
+
+- **Write `authoring/decisions.py` and run `tools/onelinecheck.py`.** This is the cheapest
+  possible read on whether a task will fail easiness, and it can be done before any probe
+  is spent. The contract is small: return the graded decisions your reference makes, as
+  rows of integer features an agent can read at that moment, plus the label you chose. If
+  every graded decision comes back as a one- or two-term rule, the probe will solve it.
+- **Run `tools/forgecheck.py`.** All three fail it today: none has ever been tested against
+  a submission holding its own answer key, and two of them cleared the pipeline before that
+  gate existed.
+- **Check the brief for a published target.** `turn-seam-alignment` states a character
+  count; `rollout-cache-coherence` and `checkpoint-resume-drift` quote counters. Anything
+  the verifier grades and the brief states is a stopping signal, and if the grader is an
+  equality it is also a run-audit exposure.
+- **Ask what the second thing to find is.** If the answer is "there isn't one", that task
+  will fail easiness however many leaks get patched, and the honest move is a redesign at
+  Stage 2 rather than another round of hardening.
+
+## The easiness repair on a task that is a pure function (2026-08-14)
+
+`earliest-change-script` came back **3 of 3** from the easiness probe. It is not in
+`tasks/` - the user carries it as a zip and it was handed over as an attachment, so
+nothing in this repo will find it unless someone puts it there. Its layout is not the
+kit's either: a parent harness, a child process that is the only thing importing the
+submitted module, cheats as `.py` rather than `.sh`, no `authoring/` and no STATE.md,
+so `tools/docker_trial2.py` does not apply to it and the host emulation had to be
+written from scratch.
+
+The task: given two lists of lines, return the shortest edit script under a stated
+tie-break. The trajectory shows the answer in the agent's **first substantive
+message, before it ran anything** - playbook step 1 for the third time in this repo:
+
+```
+The rule reduces to a clean form. With R(i,j) = LCS(before[i:], after[j:]):
+  drop at (i,j) iff R(i+1,j) == R(i,j); else add iff R(i,j+1) == R(i,j); else keep
+```
+
+**The brief published both of its discoveries, and that is the whole diagnosis.**
+
+1. The rule was written as a **decision procedure**: "Stand at a position in the walk.
+   Ask whether dropping the next line of `before` can still lead to a shortest script
+   from here. If it can, drop." There is nothing left to derive - that sentence is the
+   algorithm, and the three lines above are a transcription of it.
+2. A section headed "Speed" **enumerated the graded cost families**: "the big ones come
+   in two kinds", "they are not two sizes of the same thing", six long and barely
+   changed at 400k-1M lines, six of 40-60k sharing no order. The task's own difficulty
+   argument claimed "the second hill is only visible once the first is already built".
+   It was printed in the brief, and the same first message named both engines - Myers
+   O(ND) for one family, bit-parallel LCS for the other.
+
+### The finding that generalises: a pure function cannot have Prong C on correctness
+
+This is the new entry and it is worth more than the repair. When the task is a
+deterministic function of its inputs and the rule is stated completely, **the solver
+can brute-force the rule into a complete oracle in twenty lines and differential-test
+against it exhaustively.** This agent wrote that oracle as its *first file*, then ran
+261k exhaustive short-shape crossings through it. No amount of leak-patching closes
+that, because the thing leaking is the specification, and the specification has to be
+complete for the task to be fair.
+
+So on this task shape, stop trying to buy Prong C on correctness. The only ground left
+is **a regime the solver has to think to construct**, which makes the lever the input
+distribution rather than the rule:
+
+- **State the input space. Never state the cost taxonomy.** "They run from forty
+  thousand to a million lines a side, and how long a pair is, how much order it keeps
+  and how often a line repeats do not move together" is a requirement. "They come in
+  two kinds that cost the opposite way round" is the answer.
+- **Put the second discovery above the size the solver's own oracle can grade.** That
+  is the version of "the second finding breaks the natural implementation of the first"
+  that works when everything small is checkable.
+
+### What was built, with the numbers
+
+A third cost axis, orthogonal to the two the agent named on sight. The three costs are
+now `D^2` (frontier), `n*m/64` (bit-parallel rows) and `r`, the number of positions
+that match across the two sides; each of three families is quadratic on the two engines
+that do not answer it. Measured on the new family (a quarter to a third of a million
+lines, nearly all distinct, reordered wholesale), against a 6 s budget:
+
+| engine | new family | why it was already there |
+|---|---|---|
+| frontier `D^2` | hopeless, `D` = 457k | answers the long/barely-changed family |
+| bit-parallel `n*m/64` | **27.0 s** measured | answers the crowded 40-60k family |
+| matching pairs `r` | **0.79 s** | `r` = 500k against `n*m` = 90 billion |
+
+and `r` on the two old families runs 2.5e8 to 5e10, so the new engine is hopeless on
+both of them. The third engine is thresholds over suffixes maintained by one pass from
+the far end, with **every change journalled and undone again on the way forward**,
+because the array is built from the far end and read from the near end. That journal is
+the non-recallable part.
+
+**The interaction is the point.** The third engine is only ever dispatched above a
+quarter of a million lines, since below that one of the other two is cheaper - so it is
+unreachable from every input the solver's slow oracle can run on. Its walk has to
+re-implement the tie-break, and the reconstruction every textbook account of that
+algorithm describes gives a shortest script that is **not this one**. Shipped as
+`cheat/keep_first_in_the_third_engine.py`: all 53258 correctness cases pass, all
+eighteen timings pass, every answer carries the right number of moves, reward **0**.
+Its third engine disagrees with the rule on 22173 of 40858 cases when forced, and it
+never sees one of them.
+
+The stopping point ships too. `cheat/two_engines_only.py` is the *previous complete
+solution*: 53258 correctness cases pass, twelve of eighteen timed pairs pass, six time
+out at 6.0 s, reward **0**.
+
+Measured through the real harness and the real grader: reference solution **1** on two
+seeds (14/14 tests), four cheats **0**. Docker is unavailable on the Windows host, so
+the privilege drop, the root-owned reward channel, the unreadable `/tests` and the
+process teardown are **not** covered by that run.
+
+### Non-finding: how not to state the rule without stating the algorithm
+
+Recorded so nobody re-derives it. Restating "drop-first among shortest" as *the
+lexicographically smallest shortest script, reading a drop before an add* over the
+**move list** is wrong - 4350 of 16129 two-letter pairs disagree, because an add at
+position 0 has to beat a drop at position 1 and a global "drop before add" gets that
+backwards. The statement that holds is over the **walk trace**: write down what happens
+at each position of the walk, which is a drop, an add or a keep; every shortest script
+for a pair gives a trace of the same length; the answer is the lexicographically first
+trace with drop before add before keep. Verified against the definitional model on
+**313,802 pairs** over three alphabets. That phrasing is a property of the output, so it
+states the requirement without handing over the decision procedure.
+
+### Second independent confirmation that the local text gates are lying
+
+`typeahead-query-controller` was the only evidence for standing-policy item 5. There are
+two artifacts now. This instruction **cleared the AI-text screen** - the task reached the
+easiness probe, which is downstream of it - and on the version that passed,
+`textcheck.py` reports burstiness **0.644** against the 0.90 floor plus a first-person
+hit, and `structcheck.py` reports a fenced code block and no grounding numbers in the
+opening third. Four findings across the two checkers, on a brief the pipeline accepted.
+
+Treat the register and burstiness thresholds as unproven, exactly as the typeahead
+section says, and repair inside the existing voice. This repair did: textcheck findings
+went **2 to 1**, structcheck **2 to 2** (the same two), burstiness 0.644 to 0.588, words
+902 to 794, and stock words, hedges, antithesis and triads stayed at zero throughout.
+The code block both checkers dislike is the required function signature.
+
+## Grade the derivability of the answer, not only the amount of work (2026-08-15)
+
+`segment-merge-horizon` is the sixth task and the first in Software / Systems. Seed: RocksDB
+and LevelDB compaction, specifically when a deletion marker may be dropped and how that rule
+interacts with a record kind carrying a delta rather than a value. It cleared the structural and AI checks on 2026-08-15 and was rejected by the
+similarity screen; see the similarity section below.
+
+**The entry worth carrying forward is one verifier primitive, and it is stronger than the work
+journal this repo has been using.** Every task here counts work in a non-editable file and
+then has to defend that counter against a submission that does the work somewhere the counter
+cannot see. `delta-view-retraction` answered that with three in-process layers (a source-side
+log, `sys.monitoring`, function fingerprints) and CLAUDE.md records the floor honestly: none of
+it is a proof, and `gc.get_referrers` is still there.
+
+This task closes the same hole from the other end, and by construction rather than by
+detection: **the verifier requires every value the submission publishes to be derivable from
+the inputs it declared it consumed.** Concretely, `tests/oracle.py:justify` computes, from the
+records a job declared it pulled for one key, the exact set of records that job is entitled to
+write, and a write outside that set fails - with every published read correct. The consequence
+is that free access to the data buys nothing. A plan can read the segment buffers directly, it
+can recognise the scenario, it can hold the whole answer key; it still cannot write a record it
+cannot account for, so the read counter measures real reads whether or not the reading was
+observable.
+
+`cheat-write-without-reading.sh` is the proof: it takes the records straight out of the
+segment buffers at zero cost, computes the correct output, publishes every read exactly right,
+and is rejected by `test_every_written_record_was_earned` on all fifteen scenarios. Contrast
+`cheat-shadow-drain.sh`, the attack that needed a dedicated layer in the older design, which is
+here caught by the ordinary log reconcile.
+
+**The rule to apply to the other tasks: for every graded quantity, ask what the submission
+would have to have consumed to be entitled to its output, and check that instead of, or as
+well as, counting the consumption.** A counter is a claim about the past. Derivability is a
+constraint on the present, and it cannot be routed around.
+
+### Three things measured here, one of them a near miss
+
+- **A one-for-one trade between two graded counters is a run-audit exposure, and it has to be
+  designed out rather than graded around.** A point read against the rest of the store saves
+  exactly one output record on the key it is spent on, so "probe more, write less" and "probe
+  less, write more" are both correct and neither dominates; with two ceilings taken from one
+  reference, whichever the reference did not choose fails. The fix was to make the skip
+  *deducible* - there is exactly one case where no answer the point read could give would
+  change a record, and the reference skips precisely that case - so the optimum is unique and
+  every correct reading lands on it. Four `ok-*` variants confirm it. Ask this at contract
+  time: for each pair of graded counters, is there a move that trades one for the other?
+- **An identity element stops being one in the presence of absence, and the fuzz is what
+  finds it.** An adjust of zero looks like a record that changes nothing, so the reference
+  dropped it. A chain of adjusts standing on an *empty* key resolves to their sum and the key
+  is **present**, so dropping a zero adjust over nothing turns a value of 0 into an absence.
+  `authoring/fuzz.py` found it on stream 400-odd of a random walk; none of the fourteen
+  hand-written scenarios did. It is now the sharpest cheat in the suite. The general form:
+  whenever the task has an algebra, check every identity and every empty case **against the
+  absence**, not against the value.
+- **A cheat that scores 1 is a hole in the scenario set, and the trial says so before the
+  probe does.** `cheat-zero-adjust-is-nothing` scored 1 on the first full run because every
+  scenario with a zero adjust happened to have a base underneath it. One added scenario
+  (`adjust-over-nothing`) fixed it. This is the third time the rule in "The playbook" step 7
+  has paid; run `authoring/trial.py --all` before believing any suite.
+
+### Non-findings, recorded so nobody re-derives them
+
+- `textcheck.py` reports "paragraph lengths too uniform" against `turn-seam-alignment` only.
+  That brief sits at sd 85.3 where `rollout-cache-coherence` is 37.5 and the reaction brief
+  38.5, so turn-seam is the outlier on that axis exactly as `checkpoint-resume-drift` is on
+  short sentences. A brief in the mid 40s that is clean against the other two is not carrying
+  a defect. Do not restructure over it.
+- `preflight.py` emits 29 unused-public-function warnings on this bundle, every one of them a
+  method reached through an instance. Same documented false-positive class as before.
+
+
+## The similarity rejection: the house pattern is now the liability (2026-08-15)
+
+`segment-merge-horizon` was submitted on 2026-08-15 and **failed the similarity screen** -
+"Too similar to an existing task" - after passing the structural check and the AI check. Every
+local gate was green and no local gate measures this, which makes it standing-policy item 2:
+the checkers here are blind to the axis that rejected it.
+
+**Measured, before guessing.** Instruction vocabulary is not the culprit. Jaccard over
+four-letter-plus tokens puts the new brief at **0.249** against `delta-view-retraction`, which
+is *lower* than pairs that both passed: `checkpoint-resume-drift` against
+`rollout-cache-coherence` is **0.338** and `delta-view-retraction` against
+`turn-seam-alignment` is **0.302**. `instruction.md` is 4.3% similar to delta-view's by
+sequence ratio and `task.toml` is 8.8%. The brief is not what matched.
+
+Two things are, and both need fixing before anything is resubmitted.
+
+**1. The verifier plumbing is very nearly the same bundle.** Sequence ratios against
+`delta-view-retraction`:
+
+| file | ratio |
+|---|---|
+| `tests/reap.py` | **1.000** |
+| `environment/Dockerfile` | **1.000** |
+| `tests/runner.py` | 0.871 |
+| `tests/test.sh` | 0.831 |
+| `tests/Dockerfile` | 0.760 |
+| `tests/test_outputs.py` | 0.564 |
+
+Reusing the architecture is right and this file recommends it. Shipping it as *the same bytes*
+is what makes two submissions look like one task with the nouns changed. If the skeleton is
+reused, the shipped copies have to be rewritten rather than copied - `reap.py` and the
+environment Dockerfile being byte-identical across two submissions is indefensible on its own.
+
+**2. The failure mode is the house pattern, and four submissions already use it.** Grep the
+`difficulty_explanation` of every task here: `rollout-cache-coherence`,
+`checkpoint-resume-drift`, `turn-seam-alignment` and `delta-view-retraction` all grade **work
+counters against an unpublished budget**, all ship the **correct-outputs-wrong-work** signature,
+and all hang it on **one editable decision file inside a small simulator driven by an operation
+stream**. `segment-merge-horizon` is the fifth. The domain moved from ML to databases to storage
+engines; the question did not move at all, and "reskinning a previous task is rejected" is
+exactly what `docs/RULES.md` says about that.
+
+**The rule for the next task, and it is a hard one: do not grade work counters against a
+budget.** That idiom is spent. It was the thing that made the first four tasks work, which is
+precisely why it now reads as a variant of earlier work. A new submission needs a graded
+artifact of a different kind - an execution or ordering trace, a reconstructed state, a
+schedule, a decision under a rule - and the difficulty has to come from somewhere other than
+"the safe implementation is correct and too expensive".
+
+
+**The replacement is `lock-priority-unwind`, and it is half built as of 2026-08-15.** Priority
+inheritance across a lock chain: seed is Zephyr `kernel/mutex.c` and FreeRTOS, whose own
+documentation states the simplified-restore limitation. It grades a **tick-by-tick schedule and
+a priority table**, not values plus work counters, which is the whole point of building it.
+Engine, reference and fourteen scenarios exist and are measured - the reference and the shipped
+naive policy produce different schedules on 8 of the 14, and the 3 that agree are the
+must-still-work fences. The oracle, the ground truth, the verifier plumbing, the cheats and the
+brief are not written. `tasks/lock-priority-unwind/STATE.md` carries the contract, the three
+findings, the traps already hit and the order to finish in. **Write its verifier plumbing
+fresh** - copying it is half of why the last submission was rejected, and `tools/simcheck.py`
+now fails a bundle whose shipped files are near-identical to another's.
+
+**Ask this at Stage 1, before any code.** Not "is the domain different" - the domain has been
+different every time and it did not help. Ask: *what is graded, and has anything here graded
+that before?* If the answer to the second half is yes, the idea is a reskin however new the
+subject matter is.
+
+## The solution-quality rejection: the reference must exist once (2026-08-31)
+
+`guard-mark-unwind` is the seventh task and the first in Software / Languages. It was
+submitted on 2026-08-31 and **failed the quality review on one blocking criterion**,
+`solution quality`, with the other rubric rows passing and the reference genuinely scoring 1.
+The reviewer's whole note:
+
+> The solution genuinely derives the result - it writes three real source files and executes
+> the runtime to check them, and I confirmed it scores 1 - but solve.sh inlines them as three
+> heredocs of 42, 48 and 48 lines (139 of the file's 149 lines), well past the ~20-line
+> threshold for keeping files separate. Byte-identical copies of all three already exist as
+> solution/ref/pick.py, stop.py and knot.py, which solve.sh does not use, so the reference is
+> duplicated in two places and can silently drift.
+
+Two defects in one finding, and the second is the one that matters. The heredoc length is
+style. **The same source existing twice in the bundle, with nothing keeping the copies equal,
+is a correctness hazard**: `authoring/trial.py` graded `solution/ref/`, `emit.py` generated the
+cheats from `solution/ref/`, and nothing anywhere read the copy inside `solve.sh`. An edit to
+the reference would have been proved correct by every local gate while the file the platform
+actually runs kept the old text.
+
+**This is the house pattern, and it is in every task here.** `emit.py` writing `solve.sh` as
+heredocs off `ref/` is what stage 4 of the recipe prescribes, so the defect is repo-wide:
+
+| task | solve.sh | inlined | duplicates |
+|---|---|---|---|
+| `rollout-cache-coherence` | 393 | 370 | 4 files |
+| `checkpoint-resume-drift` | 208 | 186 | 4 files |
+| `turn-seam-alignment` | 198 | 175 | 4 files |
+| `segment-merge-horizon` | 167 | 160 | 1 file |
+| `delta-view-retraction` | 145 | 133 | 1 file |
+| `lock-priority-unwind` | 74 | 67 | 1 file |
+| `typeahead-query-controller` | 14 | 0 | none |
+
+`typeahead-query-controller` is the exception and it is also **the only bundle here whose
+solve.sh has cleared a quality review**. It does the thing the reviewer asked for:
+
+```
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cp "${HERE}/controller.ts" "${APP_DIR}/src/controller.ts"
+```
+
+**The fact that makes this fixable, and it is worth knowing before anyone argues the point:
+the platform hands the oracle agent the whole `solution/` directory, not just `solve.sh`.**
+That is not inferred from the docs, which say only that `solution/` never reaches the *agent*
+image; it is measured from a bundle that scored 1 on the pipeline's own oracle run with a
+`cp` from a sibling file. So a reference of any length can live in its own file.
+
+The repair on `guard-mark-unwind`: `solution/ref/*.py` moved up to `solution/*.py`, `solve.sh`
+regenerated to resolve its own directory and copy the three files in, then import them and
+drive every program in `progs/`. 149 lines to 23, no heredocs, one copy of the reference. The
+reference sources and all 24 cheats came back **byte-identical** after regeneration, which is
+what says the change was layout and not content.
+
+**`tools/solvecheck.py` is the mechanical version and it is now in the gate list.** It fails a
+bundle whose `solve.sh` carries a heredoc past 20 lines, or whose heredoc body duplicates a
+file that ships elsewhere in the bundle. Validated in both directions, which is the rule for a
+new check: it fires on the rejected bundle naming exactly the reviewer's two defects, it is
+clean on `typeahead-query-controller` and on the repaired task, and it reports the six tasks
+above. `authoring/variants/` is excluded from the duplicate search on purpose - a variant is
+the reference with one decision changed, so its other files are identical by construction and
+reporting them every run would teach the next session to ignore the check.
+
+Two things this turned up that are worth carrying:
+
+- **`tools/docker_trial2.py` could not have run typeahead's solve.sh either.** It mounted the
+  script alone at `/agent.sh`, so any `cp` from a sibling would have failed and scored 0 - a
+  local gate that would have rejected the very shape the pipeline accepts. It now mounts the
+  whole `solution/` directory for the oracle run, matching the platform. Standing-policy item
+  5, found while fixing item 1.
+- **The five other authoring scripts all pointed at `solution/ref`.** Moving the files without
+  them would have left `build_gt.py`, `decisions.py`, `field_report.py`, `fuzz.py` and
+  `trial.py` grading the shipped tree instead of the reference, silently. Grep for the path
+  before moving anything the generators read.
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
@@ -690,8 +1416,80 @@ re-run `zipcheck.py` before resubmitting either of them**, and note that CRLF in
 `tests/pristine/` is worse than in the instruction: those files are copied into the verifier
 image and executed, which is the failure mode `.gitattributes` warns about at the top.
 
+**`rollout-cache-coherence` is done, 2026-08-14.** Seventeen files normalised to LF in the
+tree, `sync.py` / `build_gt.py` / `emit.py` re-run, repackaged, and `zipcheck.py` now reports
+**none** on the archive. Two facts worth carrying. The ground truth came back byte-identical
+after regeneration once the line endings were taken out, so a CRLF `gt.json` is a packaging
+fault and never a content one - regenerate it rather than hand-editing, and expect no diff.
+And the writer at fault was `authoring/build_gt.py` line 70, the same
+`Path.write_text(...)` missing `newline="\n"` that bit `delta-view-retraction`; three more
+writers in that task's `authoring/` had it too, and `cheat_report.py` and `field_report.py`
+are the interesting pair, since they write the cheat playbook into a temp dir and then run it
+under `bash`, so CRLF there breaks the local gate rather than the bundle. All four are fixed.
+**When a task is repackaged for CRLF, grep its whole `authoring/` directory for `write_text`
+and `open(..., "w")` in the same pass**, because normalising the tree by hand leaves the
+generator that will re-dirty it on the next run. `typeahead-query-controller.zip` is still
+outstanding.
+
 The one-line rule: **the tree passing every gate says nothing about the archive.** Package,
 then check the package.
+
+## Rebuilding a zip by hand drops the mode bits, and the symptom looks like content
+
+Hit on 2026-08-14, on the `earliest-change-script` resubmission, after every local gate
+was green and the archive had been verified end to end by extracting it and running the
+real harness and grader out of the extracted tree.
+
+The pipeline came back:
+
+```
+Reference solution (oracle)  expected 1 on every attempt   0  0  0   verifier 0s
+No-change baseline (nop)     expected 0 on every attempt   0  0  0   verifier 0s
+```
+
+**`verifier 0s` is the whole diagnosis and it is worth memorising.** A verifier that fails
+on content takes minutes; one that reports zero seconds never started. When the reference
+scores 0 on every attempt *and* the verifier time is 0, stop reading the task and go look
+at the archive.
+
+The cause: the zip was rebuilt with `zipfile.ZipInfo` and `external_attr = mode << 16`,
+which is the obvious way and is wrong. `ZipInfo` defaults to **`create_system = 0`**
+(MS-DOS), and every extractor then ignores the high 16 bits of `external_attr` entirely
+and reads the low byte as DOS attributes. So the mode survives a round trip through
+Python's own `zipfile` - `infolist()` reports `mode 0o755` and any check written against
+it passes - and is discarded the moment the archive is extracted on Linux. `tests/test.sh`
+lands non-executable, the verifier cannot start, and **every submission scores 0,
+including the reference and including the nop.**
+
+Extracting with Git Bash `unzip` on Windows does not catch it either, because the host has
+no Unix permissions to lose, which is why the from-archive trial ran clean three times.
+
+What to set, replicated from the archive that the pipeline accepted:
+
+| | value |
+|---|---|
+| `create_system` | **3** (Unix); without this nothing else on this row matters |
+| `external_attr`, ordinary file | `0x01A40180` (`0o644`) |
+| `external_attr`, `.sh` | `0x01ED0180` (`0o755`) |
+| `compress_type` | `8` (deflate) |
+| `date_time` | `(1980, 1, 1, 0, 0, 0)` |
+
+Three rules, and the third is the one that generalises past zips:
+
+- **Prefer `scripts/package.py` to a hand-rolled writer.** The kit's script is what the
+  accepted archives were built with. A bespoke writer exists here only because this bundle
+  is not in the kit layout, and it cost a full pipeline round trip.
+- **Check `create_system` and the executable bit on every `.sh`, in the built archive.**
+  Reading back `external_attr >> 16` is not enough on its own - it is exactly the check
+  that passed while the archive was broken. `tools/zipcheck.py` checks CRLF, separators,
+  the suffix bytes and staleness, and it does **not** check this; add it before the next
+  bundle goes out.
+- **Diff the rebuilt archive's entry metadata against the last archive the pipeline
+  accepted, field by field.** Content diffing is not enough, because this fault lives
+  entirely in metadata and every byte of every file was correct. Doing that here reported
+  zero differences across `create_system`, `external_attr`, `compress_type`, `flag_bits`
+  and `date_time` on all fifteen shared entries, which is the evidence that the repaired
+  archive is right - the from-archive trial had already said "clean" while it was wrong.
 
 ## The lossy-state pattern, and the three leaks that nearly killed it
 
@@ -910,10 +1708,18 @@ only in STATE.md, losing that file loses the contract.
 
 ### 4. Reference solution
 
-`solution/ref/*.py` holds the corrected files, fully commented. `authoring/emit.py` generates
-`solution/solve.sh` from them as heredocs; the script writes source files, it never writes an
-answer. If the reference is doing heavy computation the difficulty is on the wrong side: here
-it is 322 lines across four files and runs in under a second.
+`solution/*.py` holds the corrected files, fully commented, beside `solve.sh`.
+`authoring/emit.py` generates `solution/solve.sh`, and what it generates is a script that
+**copies** those files into the tree and then runs the environment on them - it never inlines
+them as heredocs and never writes an answer. Inlining was the house pattern until the
+solution-quality rejection on 2026-08-31: a heredoc past twenty lines fails the quality
+review, and a heredoc holding a file that also exists as a file is the same reference in two
+places with nothing keeping them equal. The platform hands the oracle agent the whole
+`solution/` directory, so a sibling file is readable at run time - `typeahead-query-controller`
+proved that on the pipeline's own oracle run. Run `tools/solvecheck.py <slug>` after `emit.py`.
+
+If the reference is doing heavy computation the difficulty is on the wrong side: here it is
+322 lines across four files and runs in under a second.
 
 ### 5. Instruction, the part that failed three times
 
@@ -1190,6 +1996,20 @@ python3 tools/structcheck.py <draft>            instruction structure; run again
                                                 passing briefs too, it must stay clean on them
 python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, and every
                                                 folds/scans figure still matches gt.json
+python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
+                                                gt.json must score 0, or the verifier is
+                                                grading a report instead of evidence
+python3 tools/onelinecheck.py <slug>            how short is the answer? every graded
+                                                decision reproduced by a two-term rule over
+                                                exposed fields is an easiness rejection
+                                                waiting to happen. Needs the task to ship
+                                                authoring/decisions.py
+python3 tasks/<slug>/authoring/fuzz.py 800      the reference against the sealed oracle on
+                                                random streams, before any budget taken
+                                                from the reference is believed
+python3 tools/solvecheck.py <slug>              solve.sh must not inline a file that also
+                                                exists as a file, and must not carry a
+                                                heredoc past 20 lines
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness
@@ -1264,6 +2084,13 @@ does not produce the token streams they expect. `cheat-peek-scenarios.sh` docume
 
 ## Sandbox notes
 
+- **Check which host you are on before believing the next bullet.** On the Linux sandbox
+  (checked 2026-08-13) docker and dockerd are both present at `/usr/bin`, the daemon needs
+  starting by hand, `mirror.gcr.io/library/python:3.12-slim` pulls fine, and
+  `tools/docker_trial2.py <slug> --all` runs the real two-image trial in a couple of
+  minutes. That is the gate that verifies the privilege drop, the locked reward channel
+  and the root-only ground truth, so run it rather than reasoning about it: it found
+  nothing wrong here, but the host emulation cannot tell you that.
 - **On the Windows authoring host (checked 2026-08-13) Docker is not installed at all.**
   `C:\Program Files\Docker\Docker\resources\bin` is on `PATH` but the directory does not
   exist, so `docker` and `dockerd` are both absent from Bash and PowerShell, and the
@@ -1317,6 +2144,8 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `docker_trial.py --all`: oracle 1, nop 0, every cheat 0, including every isolation probe.
 - `variant_check.py`: every alternative correct implementation scores 1.
 - `field_report.py`: no graded field is dead weight, and none encodes a tie-break.
+- `solvecheck.py` clean: solve.sh copies the reference, it does not inline it, and the
+  reference exists in exactly one place in the bundle.
 - `textcheck.py` clean against **both** passing instructions.
 - Instruction-to-verifier coverage walked line by line, both directions.
 - Built agent image inspected file by file for leaks.

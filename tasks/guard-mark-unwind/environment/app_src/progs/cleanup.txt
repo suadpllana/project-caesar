@@ -1,0 +1,21 @@
+:main
+G 1 -1 0
+B 2
+N worker
+W 1
+X
+S 20
+E
+S 21
+:worker
+G 3 4 0
+A
+S 30
+P
+S 31
+Z
+S 32
+W 6
+S 33
+E
+S 34

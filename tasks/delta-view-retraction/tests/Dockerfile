@@ -20,11 +20,13 @@ RUN pip install --no-cache-dir \
 # else that matters.
 RUN useradd -u 1002 -m -s /usr/sbin/nologin sandbox
 
-# The ground truth and the sealed oracle are readable by root only. The run imports
-# scen.py, which is fine: knowing which delta sequences execute does not produce the
-# values or the work counts they end on.
+# The ground truth, the sealed oracle and the grader itself are readable by root only.
+# The run imports scen.py and reads view.json, which is fine: knowing which delta
+# sequences execute, and under which configuration, does not produce the values or the
+# work counts they end on. Knowing which records the grader checks the work journal for
+# would be a different matter, so test_outputs.py is sealed with the answers.
 RUN chmod 755 /tests \
-    && chmod 600 /tests/gt.json /tests/oracle.py \
+    && chmod 600 /tests/gt.json /tests/oracle.py /tests/test_outputs.py \
     && chmod 644 /tests/scen.py /tests/runner.py /tests/reap.py /tests/view.json
 
 ENV PYTHONPATH=/tests

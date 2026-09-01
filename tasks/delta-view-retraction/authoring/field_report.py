@@ -19,10 +19,41 @@ from pathlib import Path
 TASK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TASK / "authoring"))
 
+sys.path.insert(0, str(TASK / "tests"))
+
 import harness  # noqa: E402
+import oracle  # noqa: E402
+import scen  # noqa: E402
 
 BODY = re.compile(r"<<'EOF_ROUTE'\n(.*?)\nEOF_ROUTE", re.S)
-FIELDS = ("view", "log", "folds", "scans", "trace", "emits", "revised")
+# The last three are the evidence axis. They have no ground truth of their own: they hold
+# when the work journal accounts for the counters, reproduces the values the submission
+# published, and contains only records the scenario made possible.
+FIELDS = ("view", "log", "folds", "scans", "trace", "emits", "revised",
+          "journal", "replay", "audit", "counted", "watched")
+
+
+def evidence(got: dict, cfg: dict, ops: list, exp: dict) -> set:
+    out = set()
+    tally = got.get("mon")
+    if (not isinstance(tally, dict) or got.get("mon_intact") is not True
+            or tally.get("fold") != exp["folds"] or tally.get("rebuild") != exp["scans"]):
+        out.add("watched")
+    if oracle.reconcile(got.get("jrn"), got.get("deep")) is not None:
+        out.add("counted")
+    jrn = got.get("jrn")
+    if oracle.shape(jrn) is not None:
+        return out | {"journal", "replay", "audit"}
+    if (sum(1 for e in jrn if e[0] == "f") != got.get("folds")
+            or sum(1 for e in jrn if e[0] == "s") != got.get("scans")
+            or sum(1 for e in jrn if e[0] == "e") != got.get("emits")):
+        out.add("journal")
+    view, emitted, why = oracle.replay(jrn)
+    if why or view != got.get("view") or emitted != [list(x) for x in (got.get("log") or [])]:
+        out.add("replay")
+    if oracle.audit(jrn, ops, cfg) is not None:
+        out.add("audit")
+    return out
 
 
 def run_src(src: str) -> dict:
@@ -43,13 +74,19 @@ def run_src(src: str) -> dict:
 
 
 def diverging(rep: dict, gt: dict) -> set:
+    base = json.loads((TASK / "tests" / "view.json").read_text())
     out = set()
     for name, exp in gt["scenarios"].items():
         got = (rep.get("reports") or {}).get(name)
         if not isinstance(got, dict):
             out.update(FIELDS)
             continue
-        for f in FIELDS:
+        sc = scen.by_name(name)
+        cfg = dict(base)
+        for k, v in (sc.get("cfg") or {}).items():
+            cfg[k] = v
+        out |= evidence(got, cfg, sc["ops"], exp)
+        for f in FIELDS[:7]:
             a, b = got.get(f), exp.get(f)
             if f in ("log", "trace"):
                 a = [list(x) for x in a] if isinstance(a, list) else a

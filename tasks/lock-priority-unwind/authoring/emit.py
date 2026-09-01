@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Generate solution/solve.sh and the cheat suite from the reference.
 
-Nothing is hand written twice. solve.sh is the reference in a heredoc, and each single-mistake
-cheat is the reference with exactly one anchored block swapped for the way somebody who missed
-one piece would have written it. A hand written cheat drifts away from the reference and
-quietly stops testing the mistake it was named for.
+Nothing is hand written twice. solve.sh copies solution/prio.py into the tree and drives the
+scheduler over it; the reference is never transcribed into the script, because the same source
+in two places is two places to edit and only one of them gets read. Each single-mistake cheat is
+the reference with exactly one anchored block swapped for the way somebody who missed one piece
+would have written it. A hand written cheat drifts away from the reference and quietly stops
+testing the mistake it was named for.
 
 Three families:
 
@@ -32,7 +34,7 @@ ART = "/app/rt/prio.py"
 
 
 def ref() -> str:
-    return (TASK / "solution" / "ref" / "prio.py").read_text()
+    return (TASK / "solution" / "prio.py").read_text()
 
 
 def shipped() -> str:
@@ -317,6 +319,31 @@ except Exception:
 ]
 
 
+SOLVE = """#!/bin/bash
+# Reference solution: install the corrected policy and drive the scheduler over it, so the
+# schedule comes out of rt/core.py rather than out of this script.
+set -euo pipefail
+
+APP="${APP:-/app}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+test -f "${HERE}/prio.py" || { echo "[solve] missing ${HERE}/prio.py" >&2; exit 1; }
+cp "${HERE}/prio.py" "${APP}/rt/prio.py"
+
+cd "${APP}"
+python3 -c 'import rt.prio'
+cat > /tmp/solve_check.json <<'EOF_SCEN'
+{"tasks": [
+ {"id": 1, "base": 9, "start": 4, "prog": [["lock", 1, -1], ["run", 2], ["unlock", 1]]},
+ {"id": 2, "base": 4, "start": 5, "prog": [["run", 6]]},
+ {"id": 3, "base": 1, "start": 0, "prog": [["lock", 1, -1], ["run", 6], ["unlock", 1]]}
+]}
+EOF_SCEN
+python3 run_sched.py /tmp/solve_check.json > /dev/null
+echo "[solve] installed ${APP}/rt/prio.py and ran the scheduler on it"
+"""
+
+
 def script(note: str, body: str) -> str:
     return ("#!/bin/bash\n# %s\nset -euo pipefail\n\nmkdir -p \"$(dirname %s)\"\n"
             "cat > %s <<'EOF_PRIO'\n%sEOF_PRIO\n" % (note, ART, ART, body))
@@ -332,9 +359,7 @@ def main() -> int:
     gt_path = TASK / "tests" / "gt.json"
     gt = json.dumps(json.loads(gt_path.read_text()), sort_keys=True) if gt_path.is_file() else "{}"
 
-    put(TASK / "solution" / "solve.sh",
-        script("Reference solution. Writes the corrected policy and lets the scheduler produce "
-               "the schedule, never echoing one.", base))
+    put(TASK / "solution" / "solve.sh", SOLVE)
 
     made = []
     for name, pairs, note in MISTAKES:

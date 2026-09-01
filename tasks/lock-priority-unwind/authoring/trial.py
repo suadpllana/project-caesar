@@ -11,7 +11,7 @@ model and ground truth, and the sweep of double-forked survivors. Those need the
 and are listed as unrun in the handover.
 
 Usage:
-    python3 authoring/trial.py solution/ref
+    python3 authoring/trial.py solution
     python3 authoring/trial.py --all
 """
 
@@ -57,7 +57,7 @@ def grade(variant: str) -> tuple[int, str]:
 
 
 def targets() -> list[tuple[str, str]]:
-    out = [("oracle", "solution/ref"), ("nop", "shipped")]
+    out = [("oracle", "solution"), ("nop", "shipped")]
     for d in sorted((TASK / "authoring" / "variants").glob("ok-*")):
         out.append((d.name, "authoring/variants/" + d.name))
     for d in sorted((TASK / "authoring" / "cheatsrc").glob("*")):

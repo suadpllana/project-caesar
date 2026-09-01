@@ -76,6 +76,15 @@ def search(rows, labels):
         for a in names:
             if all(r[a] == y for r, y in zip(rows, labels)):
                 return "= %s" % a
+        # A value question is answered in one line by the larger or smaller of two fields
+        # as readily as by one of them. Added 2026-09-01 for lock-priority-unwind, whose
+        # graded priority is max(base, most urgent waiter): the single-field search came
+        # back "no exact rule" on an answer that is one expression long, which is the
+        # blind spot this checker exists to close rather than to have.
+        for a, b in itertools.combinations(names, 2):
+            for sym, fn in (("max", max), ("min", min)):
+                if all(fn(r[a], r[b]) == y for r, y in zip(rows, labels)):
+                    return "= %s(%s, %s)" % (sym, a, b)
         return None
 
     single = []

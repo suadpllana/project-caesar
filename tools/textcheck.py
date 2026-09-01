@@ -194,6 +194,18 @@ def compare(ref: dict, cand: dict) -> int:
         findings.append("contraction density %.1f/kw vs reference %.1f/kw - the passing "
                         "briefs stay under 3/kw" % (cand["contr_kw"], ref["contr_kw"]))
 
+    # Absolute, and it fires only on zero. Every brief that has cleared the AI check owns
+    # its system out loud - measured 2026-09-01, in hits per 1000 words: rollout 12.2,
+    # typeahead 14.4, checkpoint 9.1, turn-seam 8.5, guard-mark 6.8, segment 2.0, and the
+    # three typeahead drafts the screen rejected sit at 7.5 to 8.3, so presence is not a
+    # pass and only absence is a finding. lock-priority-unwind was rejected on 2026-09-01
+    # carrying 0: no owner, no "we grade", every claim in an agentless passive.
+    if cand["first_plur"] == 0:
+        findings.append("no first person plural anywhere: the brief describes a system "
+                        "nobody owns and a grader with no voice. Every brief that cleared "
+                        "the AI check says we somewhere (the references run 2.0 to 14.4 "
+                        "hits/kw); the one that had none was rejected")
+
     print("\n== findings")
     if not findings:
         print("   none: the candidate is at least as irregular as the reference on every axis")

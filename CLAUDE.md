@@ -1281,6 +1281,95 @@ Two things this turned up that are worth carrying:
   `trial.py` grading the shipped tree instead of the reference, silently. Grep for the path
   before moving anything the generators read.
 
+## The difficulty rejection: everything stated, and still 0 of 8 (2026-09-01)
+
+`guard-mark-unwind` cleared the easiness probe and came back **0 of 8** from the difficulty
+probe, which is a rejection at the other end of the band. The probe's own note: "the task
+appears unsolvable as specified."
+
+**The number that diagnoses it is not the score, it is the runtime.** The eight trials ran
+16, 31, 21, 16, 34, 28, 18 and 25 minutes against a **240-minute** budget, every one of them
+completing rather than timing out, at 1.8M to 7.5M input tokens. Nobody ran out of road.
+Eight agents worked the problem, decided they were finished, and stopped. That is a
+different failure from "too hard", and it wants a different fix - an agent that believes it
+is done will not use a hint about how to try harder.
+
+**Do the coverage walk before writing a word of the brief.** The instinct on 0 of 8 is to
+explain more, and this repo has already paid for acting on that instinct. Two measurements
+placed the fix instead, and both are cheap enough to run on any task here:
+
+1. **Which cases does the shipped tree already pass?** Diff the shipped tree against the
+   reference, per enumerated case. Here 15 of the 27 cases were already correct, so the
+   agent's real chain is the other 12, driven by **eight** distinct decisions rather than
+   the seven the difficulty explanation claims.
+2. **Which sentence decides each of the eight?** Six of them - the shield covering its own
+   guard, the newer exception surviving a cleanup block, holding at a band while a child is
+   alive, stopping the children when unwinding into an owned band, an enclosing mark
+   outranking the bundle, and the bundle ordered by end tick - are **stated outright** in
+   the brief. So under-specification was not the problem, and another paragraph explaining
+   them would have bought nothing.
+
+That leaves the two the task is built on, and they are the two that have to be *derived*
+from one 60-word sentence. The agents fixed the six stated rules, found the brief satisfied,
+and stopped. The reason they never doubted the second one is the useful part: **the case
+that exposes it does not occur in any program they can see.** `stale-stamp` needs a sibling
+to mark an enclosing guard while the fiber is parked at a band it cannot leave, with no
+checkpoint between that mark and the boundary. Nothing in `/app/progs` has that shape, so no
+experiment an agent runs contradicts the stamped-guard implementation, which is correct on
+everything else.
+
+**The fix is to state the input space, never the rule** - the same move that repaired
+`earliest-change-script`, arriving here from the opposite direction. Three sentences went
+into an existing paragraph:
+
+> Marks do not wait for a cut to finish travelling. A deadline can arrive, or another fiber
+> can mark a guard, while a cut is already on its way out, and the programs we grade do
+> that. A sleeping fiber is no different, and a mark that reaches one wakes it at the moment
+> the mark lands, before its wait has run out.
+
+The first two say the situation occurs and is graded. They do not say where the cut then
+comes to rest, so the resting rule is still derived rather than read - an expert now asks the
+question, and an agent that never knew the case existed no longer stops without asking it.
+The third closes a genuine fairness gap found by the same walk: `deadline-wakes-sleeper` and
+`cross-fiber-mark` are both graded and the brief stated only the **negative** fence ("a
+deadline belonging to a guard a fiber is not inside leaves that fiber alone, asleep or
+awake"), never the positive rule. That is the typeahead human-review defect exactly - a rule
+phrased around one participant leaves the neighbouring case undecided.
+
+Three things measured here, two of them non-findings worth not re-deriving:
+
+- **A graded decision can be invisible to every experiment and still cost the whole
+  submission.** `cheat-spawn-order`, the bundle ordered by spawn rather than by end tick,
+  differs from the reference on **1 program out of 427**. It is stated plainly in the brief,
+  so it is fair, but under all-or-nothing grading a decision that rare is a lottery ticket
+  rather than a test of expertise. Count these at contract time: `field_report.py` prints the
+  differing-program count per cheat, and anything in single digits is one.
+- **Non-finding: the wake rule is a fairness fix, not a difficulty fix.** The shipped tree is
+  already correct on both cases it decides, so an agent that leaves `wake.py` alone passes
+  regardless. It was worth stating because the brief graded an undecided case, not because it
+  moves the probe. Do not count it toward the recalibration.
+- **Non-finding: do not state how many decisions are wrong.** The obvious lever on "the
+  agents stopped early" is to tell them how many corrections the tree needs, and it is
+  forbidden by the easiness section above - "state requirements, never counts or existence" -
+  because it makes a wrong reading self-detecting, which is the confirmation signal that took
+  `reaction-network-reconstruction` to 3 of 3. The situation statement gets the same agent to
+  keep looking without handing them a stopping test.
+
+Register cost, since a content addition is where cadence rots: the brief was clean against
+all three passing references before the edit and is clean after, with one repair on the way -
+"rather than at the end of its wait" put the hedge count at 1 against the references' 0
+(`rather` is on the hedge list), and "before its wait has run out" says the same thing and
+comes back clean. Burstiness 0.899, paragraph sd 47.5, contractions 1.8/kw, colloquial 0.0/kw,
+`structcheck.py` and `hintcheck.py` both clean. The three sentences went into an **existing**
+paragraph rather than a new one, which is the paragraph-variance lesson from the anti-cheat
+section applied in advance.
+
+**Still unmeasured, and it is the honest gap in this repair.** No trajectory from the eight
+failing runs was available, so the claim that the two derived rules are where they stopped is
+inference from the coverage walk and the runtimes, not from reading a transcript. The
+playbook's step 1 is to get the trajectory and find the line, and it was not possible here.
+If this comes back 0 of 8 again, get one before changing anything else.
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every

@@ -6,7 +6,9 @@ reads it. It exists for the next session and for `preflight.py`.
 ## Current stage
 
 `Stage 7 — repairing pipeline rejections`. Submitted 2026-08-31, failed the quality review on
-one blocking criterion (solution quality). Repaired the same day; see below.
+one blocking criterion (solution quality); repaired the same day. Resubmitted and cleared the
+easiness probe, then failed the **difficulty probe 0 of 8** on 2026-09-01. Recalibrated; see
+"Decisions" below and the difficulty-rejection section in CLAUDE.md.
 
 ## Assistant's assigned role
 
@@ -39,7 +41,9 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
 - Assistant's attack on the plan (its first plan, and where that plan is wrong): the first plan stamps the chosen guard onto the exception and matches it by identity at the boundary, which passes every test anyone would write and fails whenever a second guard is marked mid-unwind.
 - Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): 1 of 8, on the hard edge.
 - Difficulty score anchor: not yet anchored.
-- Score history: 2026-08-31 submitted; quality review failed on solution quality only.
+- Score history: 2026-08-31 submitted, quality review failed on solution quality only;
+  2026-09-01 easiness passed and difficulty came back 0 of 8, recalibrated by stating the
+  input space in the brief.
 - Leak audit (docs/DIFFICULTY.md): the runtime ships no expected output, no comments and no
   self-describing names; the graded set is three hundred programs generated inside the verifier
   from a nonce made after the agent has finished, so a rule fitted to the shipped programs
@@ -76,6 +80,19 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
   Do not re-inline them: `tools/solvecheck.py` fails the bundle if anyone does.
 - `kern/wake.py` is declared as an artifact and needs no change. That is deliberate - part of
   the work is establishing that a file which may be edited does not have to be.
+- **The agent's real chain is eight decisions, not seven.** The shipped tree is already
+  correct on 15 of the 27 enumerated cases; the other 12 come from eight distinct decisions,
+  six of which the brief states outright. The two it does not state are the ones the task is
+  built on and they stay underived: delivery to the outermost marked guard in view, and the
+  resting guard decided as each guard closes rather than when the cut was raised.
+- **The 0-of-8 repair states the input space, never the rule.** Three sentences say that a
+  mark can land while a cut is already travelling and that the graded programs do it, plus
+  the positive wake rule whose negative fence was the only half stated. Nothing says where
+  the cut then rests. Do not add that sentence later - it is the whole task.
+- `cheat-spawn-order` differs from the reference on **1 program of 427**. It is stated in the
+  brief so it is fair, but it is a lottery ticket under all-or-nothing grading. If this needs
+  another notch of solve rate, shipping that ordering already correct is the cheapest place
+  to take it from, since it costs no difficulty.
 
 ## Validation status
 

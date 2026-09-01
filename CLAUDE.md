@@ -146,7 +146,10 @@ the practice on top of them: what actually worked, with numbers.
    else.** `main` is pushed to directly here, so it moves under you and nothing warns you.
    Doing this first turns a merge conflict at delivery time into a three-line merge now. See
    "Work in flight, and how main moves" for what conflicts and how to resolve it.
-1. Read the four `docs/` files, then this one.
+1. Read the four `docs/` files, then this one. If the job is **a new task from scratch**,
+   `NEW-TASK-PROMPT.md` at the repo root is the whole method as one paste-able prompt, with
+   an honest list of what it cannot do; it is a shortcut into this file, never a substitute
+   for it.
 2. Read `tasks/rollout-cache-coherence/STATE.md` end to end if it is there. It is the worked
    example: the difficulty argument, the frozen verifier contract, the expert path, the
    failure signature of every cheat, and the run-audit post mortem. These files are

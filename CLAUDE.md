@@ -35,7 +35,14 @@ too-easy failure mode" below, which is the version that matters.
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 
-`typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
+**`guard-mark-unwind` passed all nine gates on 2026-09-01**, and it is the one to copy the
+method from: it failed the quality review, then the difficulty probe 0 of 8, and came back
+from both. It is the only task here to have recovered from a 0-of-8, and how is written up in
+"Landing inside the band" above - read that before building anything new. The short version
+is that three of the four causes were rules the brief left the solver to guess, and only one
+was the difficulty the task was built on.
+
+`typeahead-query-controller` also **passed all nine gates** (2026-08-05).
 It was rejected in human review afterwards, on the instruction, and repaired on 2026-08-14 -
 read "The human-review rejection" before touching it, because a wholesale instruction rewrite
 was tried on 2026-08-13 and failed the AI check the original had passed. It is also the only
@@ -108,11 +115,113 @@ the practice on top of them: what actually worked, with numbers.
 5. Pick a seed, then attack your own first plan before writing any code. That step is the
    whole game; everything after it is execution.
 6. Before packaging anything, run the three-agent probe on it (see "The too-easy failure
-   mode" below) and read what the agents say about where they got *confirmation*. That is
-   the check that catches the rejection this repo keeps hitting, and it costs minutes.
+   mode" below), grade the submissions through the real verifier rather than believing the
+   agents' reports, and read what they say about where they got *confirmation* and what they
+   had to **guess**. The guesses are undecided rules and they are the most common reason a
+   task misses the band in either direction.
 
 Aim one notch harder than `rollout-cache-coherence`. The last section says how, and what
 not to do instead.
+
+## Landing inside the band: the method that finally worked (2026-09-01)
+
+`guard-mark-unwind` **passed all nine gates** on 2026-09-01, after failing the quality
+review once and the difficulty probe once. It is the only task here to have come back from
+a 0-of-8, and this section is the procedure that did it. Read it before building a new task
+and again before answering any probe rejection; the per-rejection post mortems further down
+are the evidence, this is the method.
+
+**The one-sentence version: nearly every probe failure in this repo was a rule the solver
+had to guess, not a problem it could not solve.** Of the four causes behind that 0 of 8,
+three were rules the brief left undecided and one was the intended difficulty. The agents
+were not stuck. They finished early, confident, and wrong.
+
+### The five questions, asked before any code
+
+Ask these at Stage 1 and again before packaging. They are ordered by how much they have cost
+when skipped.
+
+1. **For every graded decision, which sentence of the brief decides it?** Not "is the topic
+   covered" - which sentence, read by someone who has never seen the tests, returns the
+   answer the verifier wants. Walk the graded set, not the brief: a rule phrased around one
+   participant ("no guard takes an error", "its peers") leaves every neighbouring case
+   undecided. This defect has now cost a human-review rejection, a difficulty rejection and
+   a probe failure, in three different tasks. It is the single most expensive mistake here.
+2. **What can a solver read that nothing reads back?** Any field, function, config key or
+   file that the environment writes and never consumes is a false affordance, and a strong
+   agent will build a rule out of it *because* it is dead. Run `tools/deadfieldcheck.py`.
+3. **Does the enumerated set separate the wrong readings, or only cover the rules?** Write
+   the plausible-but-wrong reading down as a policy file and run it. Run
+   `tools/readingcheck.py`.
+4. **How long is the answer?** `tools/onelinecheck.py`. A graded decision a two-term rule
+   reproduces is an easiness rejection waiting to happen.
+5. **What is graded, and has anything here graded that before?** The similarity screen reads
+   the shape of the question, not the domain.
+
+### Diagnosing a probe rejection, in order
+
+**0. The score tells you the band was missed. It never tells you why.** Two of the three
+rounds on `delta-view-retraction` and the first round on `guard-mark-unwind` were spent
+fixing the wrong thing, every time because the fix was chosen from the number.
+
+**1. Read the runtimes before the transcripts.** Eight trials at 16-34 minutes against a
+240-minute budget, all completing, is not "too hard" - it is eight agents deciding they were
+finished. An agent that believes it is done cannot use a hint about trying harder, so that
+number changes which repair is even applicable.
+
+**2. Get a trajectory, reconstruct the submission, and grade it.** Ten minutes, and it beats
+any amount of reasoning about the brief. Then **ablate**: change one decision at a time and
+re-grade, so each cause gets a number.
+
+| the submission that failed 0 of 8 | enumerated failures | random-set failures |
+|---|---|---|
+| as submitted | 6 cases | 140 of 300 |
+| + one undecided rule stated | 2 cases | - |
+| + the dead fields removed | none | 49 of 300 |
+| + the second undecided rule stated | none | 0 |
+
+Three of those rows are task defects. Only the attribution row is difficulty.
+
+**3. Run the local probe, and grade it rather than believing its report.** Three Opus
+subagents in sealed copies of `environment/app_src`, given the instruction and the data
+only, then graded through the real verifier. The one that finished on this task **passed all
+27 enumerated cases** and failed 6 of 300 generated programs; one clause added to its
+`stop.py` took it to reward 1. Ask each agent where it got *confirmation* and what it had to
+**guess** - the guesses are the undecided rules, and both trajectories here flagged their own
+guesses in writing before anyone graded them.
+
+**4. Fix what is unfair, and only then argue about difficulty.** Sort every cause into "a
+rule the solver had to guess" and "the discovery the task is built on". State the first kind
+as requirements. Never touch the second.
+
+### Which repairs are safe, and which buy a rejection at the other end
+
+| repair | effect | safe? |
+|---|---|---|
+| state a requirement the verifier grades and the brief left undecided | large | **yes** - it removes a coin flip, not a discovery |
+| delete a field or function nothing reads | large | **yes** - provably behaviour-preserving; regenerate and expect a byte-identical ground truth |
+| add an enumerated case pinning a rule the set was blind to | makes failure legible | **yes** |
+| state the **input space** - that a situation occurs and is graded | moderate | **yes** - it makes an expert ask the question without answering it |
+| state the *rule* the task is built on | large | **no** - that is the task |
+| say how many decisions are wrong | large | **no** - a count is a stopping test, and self-detecting wrongness is what took `reaction-network-reconstruction` to 3 of 3 |
+| publish the target counter, or any graded number | large | **no** - it tells the solver when to stop and lets them fit rather than derive |
+
+The distinction that carries all of it: **state requirements and the input space, never the
+reasoning that satisfies them, never counts, never existence claims.**
+
+### What difficulty is actually made of
+
+A task in the band has exactly one thing that must be *derived*, plus a second discovery that
+**invalidates the natural implementation of the first**. Everything else must be stated
+outright. Peripheral rules do not add difficulty - they add lottery, and under all-or-nothing
+grading a chain of eight independent guesses is how a well-designed task scores 0 of 8.
+
+Two numbers worth keeping from this task. The shipped tree already passed **15 of 27**
+enumerated cases, so the real chain was 8 decisions rather than the 7 the difficulty
+explanation claimed - measure that, do not assume it. And `cheat-spawn-order` differs from
+the reference on **1 program of 427**: a decision that rare is a lottery ticket, not a test of
+expertise, and `field_report.py` prints the count per cheat so you can find them at contract
+time.
 
 ## Standing policy: every rejection becomes a gate
 
@@ -2078,6 +2187,15 @@ python3 tasks/<slug>/authoring/fuzz.py 800      the reference against the sealed
 python3 tools/solvecheck.py <slug>              solve.sh must not inline a file that also
                                                 exists as a file, and must not carry a
                                                 heredoc past 20 lines
+python3 tools/deadfieldcheck.py <slug>          any attribute the environment writes and
+                                                nothing reads. A dead field is a false
+                                                affordance and a strong agent builds a rule
+                                                on it precisely because it is dead
+python3 tools/readingcheck.py <slug>            does the enumerated set separate the wrong
+                                                readings, or merely cover the rules? Needs
+                                                the task to ship authoring/readings.py; it
+                                                prints a shrunk counterexample to add as a
+                                                case when the set is blind
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness
@@ -2214,6 +2332,11 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `field_report.py`: no graded field is dead weight, and none encodes a tie-break.
 - `solvecheck.py` clean: solve.sh copies the reference, it does not inline it, and the
   reference exists in exactly one place in the bundle.
+- `deadfieldcheck.py` clean: nothing in the environment is written and never read.
+- `readingcheck.py` clean: every wrong reading in `authoring/readings.py` is separated by an
+  enumerated case, so no plausible misreading survives the whole hand-written set.
+- Every graded decision walked against the sentence that decides it, and every rule a probe
+  or trajectory reported **guessing** is now stated.
 - `textcheck.py` clean against **both** passing instructions.
 - Instruction-to-verifier coverage walked line by line, both directions.
 - Built agent image inspected file by file for leaks.

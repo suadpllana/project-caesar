@@ -5,10 +5,15 @@ reads it. It exists for the next session and for `preflight.py`.
 
 ## Current stage
 
-`Stage 7 — repairing pipeline rejections`. Submitted 2026-08-31, failed the quality review on
-one blocking criterion (solution quality); repaired the same day. Resubmitted and cleared the
-easiness probe, then failed the **difficulty probe 0 of 8** on 2026-09-01. Recalibrated; see
-"Decisions" below and the difficulty-rejection section in CLAUDE.md.
+`Stage 8 — PASSED ALL NINE GATES, 2026-09-01.` The route: submitted 2026-08-31, failed the
+quality review on solution quality; repaired, cleared the easiness probe, failed the
+difficulty probe **0 of 8**; repaired again and passed everything. It is the only task in
+this repo to have come back from a 0-of-8, and the method is written up as "Landing inside
+the band" in CLAUDE.md.
+
+Three of the four causes behind that 0 of 8 were rules the brief left the solver to guess.
+Only the attribution rule was the intended difficulty. Do not re-open any of the three - see
+"Decisions" below, each one is now load-bearing for fairness rather than for difficulty.
 
 ## Assistant's assigned role
 
@@ -108,6 +113,12 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
   `unmarked-guard-passes-it`, a shrunk 21-line counterexample, inside the delivery sweep.
   The lesson for the next task: one enumerated case per rule did NOT separate this reading -
   write the wrong reading as a policy file and differential it, or the hole stays invisible.
+- **Two dead fields survive in the bundle that passed, and they are deliberately left
+  alone.** `tools/deadfieldcheck.py`, written after the fact, reports `Gd.src` and `Fib.fin`
+  as written and never read - the same class as `Gd.own` / `Gd.kind`, which cost a 0-of-8.
+  They did not bite, and the bundle is accepted, so re-cutting it buys nothing and risks a
+  regression on an artifact that has cleared nine gates. If this task is ever resubmitted for
+  another reason, delete them in the same pass and expect a byte-identical `gt.json`.
 - `cheat-spawn-order` differs from the reference on **1 program of 427**. It is stated in the
   brief so it is fair, but it is a lottery ticket under all-or-nothing grading. If this needs
   another notch of solve rate, shipping that ordering already correct is the cheapest place

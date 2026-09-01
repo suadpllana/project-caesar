@@ -115,7 +115,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ARTIFACTS = ("kern/pick.py", "kern/stop.py", "kern/knot.py", "kern/wake.py")
 
 DELIVERY = ("outer-wins", "outer-wins-deep", "shield-owns-mark", "shield-hides-outer",
-            "shield-drop")
+            "shield-drop", "unmarked-guard-passes-it")
 CLOCK = ("no-mark-no-cut", "mark-twice", "zero-wait", "deadline-at-entry",
          "deadline-wakes-sleeper", "deadline-elsewhere", "cross-fiber-mark",
          "spawn-inherits-band")
@@ -228,7 +228,8 @@ def test_the_run_completed():
 # ---------------------------------------------------------------- the rules, one by one
 
 def test_delivery_window_and_attribution():
-    """Which mark reaches a fiber: the window a shield closes, and outermost-first."""
+    """Which mark reaches a fiber, and which guard takes the cut: the window a shield
+    closes, outermost-first, and only ever a guard that is itself marked."""
     sweep(DELIVERY)
 
 

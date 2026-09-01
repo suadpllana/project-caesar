@@ -61,7 +61,7 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
 
 - Artifacts the agent produces: `/app/kern/pick.py`, `stop.py`, `knot.py`, `wake.py`.
 - What is checked: the ordered event trace and every fiber's emitted token list, exactly, with
-  no partial credit, over twenty-seven enumerated programs and three hundred generated inside
+  no partial credit, over twenty-eight enumerated programs and three hundred generated inside
   the verifier from a run-time nonce.
 - Tolerances: none. Exact equality on both axes.
 - Ground truth, and where it lives: `tests/gt.json` for the enumerated set, root-only; the
@@ -101,6 +101,13 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
 - The same trajectory got the **hard** discovery right (resting decided as each guard closes)
   and lost on the peripheral two. That is the evidence the difficulty is in the right place
   and the losses were unfairness, not depth.
+- **A fourth cause came out of the local three-agent probe.** The one agent that finished
+  passed all 27 enumerated cases and failed 6 of 300 random programs; adding `if not g.hit:
+  return False` to its `stop.py` took it to reward 1. The undecided rule was whether an
+  unmarked guard can absorb a travelling cut. It is now stated in the brief and pinned by
+  `unmarked-guard-passes-it`, a shrunk 21-line counterexample, inside the delivery sweep.
+  The lesson for the next task: one enumerated case per rule did NOT separate this reading -
+  write the wrong reading as a policy file and differential it, or the hole stays invisible.
 - `cheat-spawn-order` differs from the reference on **1 program of 427**. It is stated in the
   brief so it is fair, but it is a lottery ticket under all-or-nothing grading. If this needs
   another notch of solve rate, shipping that ordering already correct is the cheapest place

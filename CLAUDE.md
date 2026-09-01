@@ -1407,6 +1407,35 @@ discovery right. Its `stops` decided the resting guard from the marks standing a
 closed, which is the reference rule and the thing the whole task is built on. It then lost to
 two defects that are not the task at all.
 
+### The local probe found a fourth cause, and the enumerated set was blind to it
+
+Three Opus subagents were run against sealed copies of `environment/app_src` - the repo's own
+three-agent probe, run on this task for the first time. Two died on an account rate limit; the
+one that finished scored **0**, passing all 27 enumerated cases and failing **6 of 300**
+random programs. Adding one clause to its `stop.py` - `if not g.hit: return False` - took the
+same submission to **reward 1**.
+
+So the entire remaining gap was one undecided rule: **can a guard that is not itself marked
+absorb a travelling cut?** The reference says no. The brief said only that the fiber resumes
+"when nothing it can still see is marked at that moment", and both readings satisfy that. The
+agent flagged it itself as a place the frozen interface forced it to guess, exactly as the
+earlier trajectory flagged `reap`.
+
+**The part that generalises to every task here: 27 enumerated cases, one per rule, did not
+separate it.** A wrong reading passed the entire hand-written set and died on 6 of 300
+generated programs, which under all-or-nothing grading is indistinguishable from bad luck. The
+fix took two minutes: write the plausible-but-wrong reading as a policy file, differential it
+against the reference over generated programs, and greedily shrink the first disagreement. That
+produced a 21-line counterexample which now ships as `unmarked-guard-passes-it` **inside the
+delivery sweep**, so the failure names the rule instead of surfacing as "6 of 300 random
+programs wrong". The rule is stated in the brief as a requirement.
+
+**Do this for every rule you believe your enumerated set pins.** Per-rule coverage on paper is
+not coverage: the question is whether a *specific wrong reading* survives the set, and the only
+way to know is to write that reading down and run it. Three of the four causes behind this
+task's 0 of 8 were rules a competent agent had to guess, and two of them were invisible to a
+27-case set built one-case-per-rule.
+
 **The generalisable rule, and it is the cheapest audit in this file: grep the environment for
 attributes that are written and never read.** `preflight.py` warns about unused public
 functions and says nothing about unused fields, and a field is worse, because a function that

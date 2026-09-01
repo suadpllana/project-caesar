@@ -2869,6 +2869,139 @@
     ]
    ]
   },
+  "unmarked-guard-passes-it": {
+   "tk": [
+    [
+     0,
+     "main",
+     []
+    ],
+    [
+     1,
+     "p1",
+     []
+    ]
+   ],
+   "tr": [
+    [
+     0,
+     "go",
+     0,
+     "main"
+    ],
+    [
+     0,
+     "on",
+     0
+    ],
+    [
+     0,
+     "op",
+     0,
+     1
+    ],
+    [
+     0,
+     "bo",
+     0,
+     2
+    ],
+    [
+     0,
+     "go",
+     1,
+     "p1"
+    ],
+    [
+     0,
+     "sp",
+     0,
+     1
+    ],
+    [
+     0,
+     "on",
+     1
+    ],
+    [
+     0,
+     "op",
+     1,
+     3
+    ],
+    [
+     0,
+     "op",
+     1,
+     4
+    ],
+    [
+     0,
+     "cl",
+     1,
+     4,
+     "ok"
+    ],
+    [
+     0,
+     "cl",
+     1,
+     3,
+     "ok"
+    ],
+    [
+     0,
+     "cu",
+     1,
+     3
+    ],
+    [
+     0,
+     "mk",
+     2,
+     "op"
+    ],
+    [
+     0,
+     "en",
+     1,
+     "ok",
+     0
+    ],
+    [
+     0,
+     "on",
+     0
+    ],
+    [
+     0,
+     "ct",
+     0,
+     2
+    ],
+    [
+     0,
+     "bc",
+     0,
+     2,
+     "cut"
+    ],
+    [
+     0,
+     "cl",
+     0,
+     1,
+     "cut"
+    ],
+    [
+     0,
+     "en",
+     0,
+     "cut",
+     2
+    ]
+   ]
+  },
   "zero-wait": {
    "tk": [
     [
@@ -2966,6 +3099,7 @@
   "shielded-child-survives": "MUST-WORK: a child shielded from the band's mark runs to its own end and its tokens stand",
   "spawn-inherits-band": "MUST-WORK: a child answers to the chain that stood when the band was opened, not to the guards its parent opened afterwards",
   "stale-stamp": "the guard a cut was raised for is not the guard it comes to rest at: a sibling marks an enclosing guard while the fiber is parked at a band it cannot leave, and no checkpoint stands between that mark and the boundary",
+  "unmarked-guard-passes-it": "only a marked guard takes a cut: the band's own guard is marked and popped without absorbing it, so the cut reaches an unmarked enclosing guard with nothing visible marked, goes straight through, and leaves with the fiber",
   "zero-wait": "a wait of zero is still a checkpoint"
  }
 }

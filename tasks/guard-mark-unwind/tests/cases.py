@@ -473,3 +473,30 @@ S 2
 E
 S 3
 """)
+
+
+case("unmarked-guard-passes-it", "only a marked guard takes a cut: the band's own guard is "
+     "marked and popped without absorbing it, so the cut reaches an unmarked enclosing guard "
+     "with nothing visible marked, goes straight through, and leaves with the fiber", """
+:main
+G 1 -1 0
+A
+Z
+B 2
+N p1
+W 2
+X
+G 5 2 1
+G 6 -1 0
+E
+E
+E
+:p1
+G 3 3 1
+A
+M 2
+Z
+G 4 -1 0
+E
+E
+""")

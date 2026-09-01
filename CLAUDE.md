@@ -30,6 +30,34 @@ tasks/reaction-network-reconstruction` brings it back. Its STATE.md is not worth
 recovering on its own; the self-confirmation post mortem it held is summarised in "The
 too-easy failure mode" below, which is the version that matters.
 
+## Work in flight, and how main moves
+
+**`main` is pushed to directly here.** The task owner asked for that on 2026-09-01, so a
+session finishing a repair merges into `main` and pushes rather than opening a pull request.
+The consequence to keep in mind: `main` moves without anyone reviewing a branch against it,
+so a long-lived branch goes stale silently and nothing tells its author.
+
+**PR #12 (`claude/subscriber-dispatch-instructions-8p27j7`) is open and unmerged**, and it
+has been since 2026-08-14. It carries the typeahead easiness work - two more `cheat/*.ts`,
+the answer key stripped out of `environment/app/`, a page-at-a-time backend, and two new
+CLAUDE.md subsections under the typeahead heading. Measured on 2026-09-01, against `main`
+at `d87751e` and again against the reference-verification repair on top of it: **it merges
+cleanly, no conflicting files, `CLAUDE.md` auto-merges** because the two sets of edits land
+in different regions of the file. GitHub reported `mergeable_state: unknown` before it had
+recomputed and `clean` a minute later, so a conflict warning seen in the UI is worth
+re-reading before anyone acts on it.
+
+What is worth knowing anyway, because it is the shape of the next real conflict: **every
+session appends to this file, so `CLAUDE.md` is the one path two branches always both
+touch.** Append whole new sections rather than editing inside someone else's, and if a
+merge does conflict here, take both sides - two post mortems are never alternatives to each
+other. Re-run the test before believing a stale answer:
+
+```
+git fetch origin main <branch>
+git merge-tree --write-tree origin/main origin/<branch>   # exit 0 and a tree means clean
+```
+
 | task | category | cheats | assertions | agent budget | expert estimate |
 |---|---|---|---|---|---|
 | `reaction-network-reconstruction` | Science / Chemistry | 12 | 86 | 10800 s | 8 h |

@@ -1,0 +1,10 @@
+nd top -
+nd unit top
+nd desk unit
+st top ana 2 a d
+ak ana top 2
+ak ana unit 2
+ak ana desk 2
+st unit ana 2 d h
+ak ana unit 2
+ak ana desk 2

@@ -72,6 +72,15 @@ task's rejection history gets silently reverted.
 | `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
+| `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
+
+**`grant-spread-order` is the tenth task, built 2026-09-02, and it has not been through the
+pipeline.** It is the first in Security and the first here to grade a **reconstructed
+state** rather than a trace, a schedule or a work counter, which is what `tools/simcheck.py`
+now reports as conceptually clear of every earlier task. Everything it turned up is written
+up in "Packaging on Windows, and two gates that lied" below, and two of those findings are
+about **other bundles in this repo, not about it**: three shipped archives are stamped
+MS-DOS and would score 0 on everything if resubmitted as they stand.
 
 **`guard-mark-unwind` passed all nine gates on 2026-09-01**, and it is the one to copy the
 method from: it failed the quality review, then the difficulty probe 0 of 8, and came back
@@ -1691,6 +1700,106 @@ attributes that are written and never read.** `preflight.py` warns about unused 
 functions and says nothing about unused fields, and a field is worse, because a function that
 is never called looks like dead code while a field that is never read looks like a clue.
 
+## Packaging on Windows, and two gates that lied (2026-09-02)
+
+Everything in this section was found building `grant-spread-order`, and none of it is about
+that task's content. Three of the four are about tooling that reported success while doing
+nothing, which is standing-policy item 2 and the most expensive kind of entry in this file.
+
+### `scripts/package.py` on Windows produces an archive that scores 0 on everything
+
+**This is the mode-bits rejection again, from a different direction, and it is latent in
+three bundles sitting in this repo right now.** The kit's `package.py` is what built every
+archive the pipeline has accepted - on Linux. Run on the Windows authoring host it writes
+every entry with `create_system = 0` (MS-DOS), and every extractor then ignores the high
+sixteen bits of `external_attr`. `tests/test.sh` lands non-executable, the verifier never
+starts, and the reference and the nop both score 0 with `verifier 0s`.
+
+The trap is that it is invisible to every obvious check. `infolist()` reports
+`mode 0o755` because the bits are still in the field; only `create_system` says whether
+anything will read them. Measured across the repo on 2026-09-02:
+
+| archive | create_system | would survive extraction |
+|---|---|---|
+| `guard-mark-unwind`, `delta-view-retraction`, `earliest-change-script` | 3 | yes |
+| `turn-seam-alignment`, `typeahead-query-controller`, `checkpoint-resume-drift` | 3 | yes |
+| **`lock-priority-unwind`** | **0** | **no** |
+| **`rollout-cache-coherence`** | **0** | **no** |
+| **`segment-merge-horizon`** | **0** | **no** |
+
+`tools/zipfix.py <slug>` rewrites an archive in place with the metadata replicated field for
+field from the accepted ones (`create_system` 3, `0x01A40180` / `0x01ED0180` for `.sh`,
+deflate, `(1980,1,1,0,0,0)`); `--check` reports without touching it. **Run it on those three
+before either is ever resubmitted.** `tools/zipcheck.py` now fails on the fault as well, so
+it cannot rot again - CLAUDE.md asked for exactly that check after the
+`earliest-change-script` round trip and it is now there, validated in both directions
+(clean on all seven good archives, fires on a deliberately DOS-stamped copy).
+
+The verification that says an archive is right is still the one from the earlier section:
+diff its entry metadata field by field against an archive the pipeline accepted. Zero
+differences across `create_system`, `external_attr`, `compress_type`, `flag_bits` and
+`date_time` on all 32 shared entries is what "right" looks like.
+
+### A seeded generator must be deterministic ACROSS PROCESSES, not just across runs
+
+The nonce-generated program set is the strongest idea in this repo, and it has a failure
+mode nobody had hit. **The runner builds the programs in one process and the grader rebuilds
+them in another.** If those two disagree about what program `g0022` even is, a correct
+submission fails on whichever ones differ and the failure is indistinguishable from a wrong
+answer.
+
+Measured here: one generator step did `shuffle(list(some_set_of_node_names))`. Python
+randomises string hashing per process, so set iteration order differs between the runner and
+the grader, and **the reference lost one journal in thirty with nothing wrong with it.** The
+symptom is the worst kind - an intermittent failure of the reference that looks like content.
+
+The rule: **every collection a generator turns into a sequence must be sorted first.** Not
+just shuffled lists - `list(set)`, `for x in set`, `dict.keys()`, anything. And the check is
+mechanical: run the generator in several processes under different `PYTHONHASHSEED` values
+and hash the output. `tasks/grant-spread-order/authoring/determinism.py` does that with four
+seeds and is worth copying into any task with a generated set.
+
+**Checked, and a non-finding worth recording:** `guard-mark-unwind`'s generator is
+deterministic across hash seeds, so the task that passed does not carry this defect. Do not
+go looking.
+
+### `subprocess.run(["bash", ...])` on Windows is the WSL launcher, and it fails silently
+
+The whole cheat suite reported 29 of 29 scoring 0 while **not a single cheat had been
+applied**. On Windows a bare `bash` resolves to `C:\Windows\System32\bash.exe`; with no
+distribution installed it prints a notice and exits 1 having done nothing. A trial harness
+that ignores the exit code then stages the tree, fails to modify it, grades the **shipped**
+policy, sees 0, and reports that it graded a cheat.
+
+Two fixes, and the second matters more than the first: resolve Git Bash explicitly
+(`C:\Program Files\Git\bin\bash.exe`, or a `GSO_BASH` override), and **raise on a non-zero
+exit from a playbook rather than warning**. A harness that continues after the step that was
+supposed to install the thing under test is not a gate.
+
+The general form, and it applies to every local gate in this repo: **a gate that cannot
+distinguish "the thing passed" from "the thing never ran" is worse than no gate**, because
+it manufactures evidence. When a check reports a clean sweep, ask what it would have printed
+if its subject had been missing.
+
+### Two smaller ones
+
+- **A cheat prologue in a new module never reaches the executed tree.** `test.sh` overlays
+  only the declared artifacts, so a probe whose payload sat in a new file arrived as an
+  ImportError and scored 0 for a reason unrelated to the layer it was aimed at. Prologues go
+  inside a declared artifact. Same class as the "a cheat that dies on a NameError has been
+  rejected by nothing" rule, and `cheat_report.py` is what catches it.
+- **Build the integrity probes on the REFERENCE, not only on the shipped tree.** This file
+  says to build reward probes on the shipped tree, because a probe built on the reference
+  does the real work and scores 1 for honest reasons. That is right for probes aimed at the
+  reward channel and wrong for probes aimed at an attestation: a probe built on the shipped
+  policy fails on its answers, so it can never tell you whether the layer it was aimed at
+  fires at all. Two cheats here are the reference with every answer correct and one
+  attestation interfered with, and each is rejected by its own attestation and by nothing
+  else, which is the only way to know those layers work. Building them found a real gap: an
+  import-time disarm of `sys.monitoring` is a no-op, because the runner arms *after* it
+  imports the tree - the attack has to disarm from inside a decision while the run is going,
+  and only then does the `armed` flag earn its place.
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
@@ -2436,7 +2545,21 @@ python3 tools/ecs_trial.py --margins            every budget the bundle grades, 
                                                 rejection waiting to happen
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
-python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness
+python3 tasks/<slug>/authoring/determinism.py   the generated set must be identical across
+                                                processes under different PYTHONHASHSEED
+                                                values. The runner and the grader are two
+                                                processes; a generator that iterates a set
+                                                of strings builds different programs in
+                                                each and the reference fails intermittently
+python3 tasks/<slug>/authoring/normalise.py     LF on every shipped text file, and clear the
+                                                authoring scratch that package.py would
+                                                otherwise ship
+python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes,
+                                                staleness, and MS-DOS entry stamps
+python3 tools/zipfix.py <slug>                  rewrite an archive package.py stamped
+                                                MS-DOS. On Windows it always does, and an
+                                                archive that fails this scores 0 on every
+                                                submission including the reference
 ```
 
 `zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and

@@ -65,6 +65,27 @@ def check(zpath: Path) -> int:
         if "\\" in n:
             findings.append("backslash in archive path: %s" % n)
 
+    # 2b. Unix mode bits that will actually survive extraction.
+    #
+    #     `scripts/package.py` run on Windows writes entries with create_system = 0
+    #     (MS-DOS), and every extractor then ignores the high sixteen bits of
+    #     external_attr. The mode survives a round trip through Python's own zipfile, so
+    #     reading back `external_attr >> 16` reports 0o755 and passes - which is exactly
+    #     the check that passed while an archive was broken. It is discarded the moment
+    #     the archive is extracted on Linux: tests/test.sh lands non-executable, the
+    #     verifier never starts, and every submission scores 0 including the reference,
+    #     with `verifier 0s` on both rows. That cost a full pipeline round trip on
+    #     earliest-change-script. tools/zipfix.py rewrites an archive that fails this.
+    dos = [i.filename for i in zf.infolist() if i.create_system != 3]
+    if dos:
+        findings.append(
+            "%d entries are stamped MS-DOS (create_system 0) rather than Unix, so their "
+            "mode is discarded on extraction - run tools/zipfix.py; first %r"
+            % (len(dos), dos[:3]))
+    for i in zf.infolist():
+        if i.filename.endswith(".sh") and i.create_system == 3 and (i.external_attr >> 16) & 0o111 == 0:
+            findings.append("not executable in the archive: %s" % i.filename)
+
     # 3. The instruction suffix, tested on the raw bytes rather than a stripped line, so a
     #    trailing \r is a finding instead of being silently normalised away.
     instr = [n for n in names if n.endswith("instruction.md")]

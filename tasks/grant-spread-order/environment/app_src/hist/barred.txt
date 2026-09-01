@@ -1,0 +1,10 @@
+nd top -
+nd vault top
+nd shelf vault
+sl vault
+st top ana 0 a b
+ak ana vault 0
+ak ana shelf 0
+us vault
+ak ana vault 0
+ak ana shelf 0

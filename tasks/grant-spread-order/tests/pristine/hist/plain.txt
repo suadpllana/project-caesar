@@ -1,0 +1,9 @@
+nd top -
+nd docs top
+nd draft docs
+mb writers ana +
+st top writers 0 a b
+st docs ana 0 d b
+ak ana draft 0
+ak ana docs 0
+ak ana top 0

@@ -1,0 +1,229 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pol/spread.py",
+  "/app/pol/weigh.py",
+  "/app/pol/graft.py",
+  "/app/pol/crowd.py",
+]
+
+[task]
+name = "afterquery/grant-spread-order"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working policy kernel with the wrong placement and ordering semantics, and
+the wrongness is coherent rather than broken: it is the shape of a kernel built by someone
+who believes a refusal outranks a permission, that the nearest rule in the tree wins, and
+that what a node passes down is a copy of what it holds. That is the shape of every access
+control system a frontier agent has read, so it is the shape it reconstructs from its
+prior, and eight of the corrections needed here fight it.
+
+Two of those carry the difficulty and they are linked. The first is that what a node offers
+its children is a transformation of what it holds rather than a copy of it - an entry that
+governs only its own node is held and offered to nobody, an entry that governs only what is
+below it is held, governs nothing where it sits, and crosses the edge as an ordinary entry.
+So the natural implementation of the inheritance invariant, which is to hand the child the
+parent's list, is wrong on both kinds at once, and it is wrong quietly: the holdings still
+look plausible and only some verdicts move. The second is that an entry keeps the identity
+of the administrative act that made it wherever it is copied to. The third ordering key is
+the later act, which reads as "the later entry" until a structural change re-flows a
+subtree and puts entries carrying old sequence numbers in after entries carrying new ones.
+An implementation that trusts the order of the store, or that stamps re-flowed entries with
+the sequence number of the move, is correct everywhere the two happen to agree. Finding the
+second discovery invalidates the natural implementation of the first, and neither shows up
+as a crash. Both show up as a store that is right for forty entries and wrong for one.
+
+The bar rules interact with the same thing rather than sitting beside it. A node that stops
+accepting inheritance is a frozen snapshot, so it carries entries from origins that are no
+longer above it wherever it is moved to, its children go on mirroring the snapshot, and an
+entry can therefore end up being offered back to the node it was placed on - which is the
+one case where testing "was this placed here" by comparing origins stops working.
+
+There is no oracle for any of it. The kernel runs whatever rules it is given and prints
+what they produced, and every wrong reading above produces a store and a set of answers
+that look entirely reasonable. The environment ships no expected output, the instruction
+states requirements without stating how to satisfy them, and the graded set is three
+hundred journals generated inside the verifier from a nonce made after the agent has
+finished, so a rule that fits the journals in the tree carries no information about whether
+it fits the rest. The kernel ships with no comments anywhere in it and its identifiers are
+in the register of ordinary internal code rather than self-describing ones, which is a
+design choice: the record layout, the offer, the bar and the re-flow have to be recovered
+by reading behaviour instead of by reading names.
+"""
+
+solution_explanation = """
+The reference is about sixty lines across three files and it is written the way someone who
+has debugged an inheritance bug in a real directory writes it: from the invariant
+backwards, never from the shape of the existing code.
+
+The invariant is that a node accepting inheritance holds what was placed on it plus what
+its parent offers, and that what a node offers is its holdings with the here-only entries
+dropped and the down-only ones rewritten as ordinary ones. Everything else follows. Placing
+an entry writes the node and re-flows the children, which is what withdraws the copies a
+replaced entry had already spread. Clearing does the same. Making a node, moving one and
+lifting a bar are the same operation with a different first line, because each leaves one
+subtree standing under a parent it does not agree with, so all four hand that subtree to
+one routine that walks it from the top down and re-flows each node against a parent that
+has already been fixed. A node that is not accepting inheritance stops the walk and keeps
+its snapshot, and there is nothing below it to fix because its children were already
+mirroring that snapshot.
+
+Origin and sequence number travel with every copy, unchanged, at every depth and through
+every later re-flow. That is the whole of the second discovery and it costs one line to get
+right and nothing to get wrong.
+
+The decision is three keys over the entries standing on the node: the fewest membership
+hops to a subject the asker can reach, then an entry placed on that node, then the later
+act. Allow and refuse are the outcome and never a key, which is the single most likely way
+to be wrong about the task.
+
+Six alternative correct implementations are kept in the authoring directory and all six
+score 1: the re-flow as a pull with an explicit worklist instead of a recursive push, the
+subtree walked level by level, an implementation that builds an index of origins before
+writing, the decision by a single minimum instead of a sort, the same decision through a
+comparator, and the reachability walk by depth-first relaxation instead of by layers. All
+six agree event for event.
+
+The fourth declared artifact needs no change. How far the asker stands from a subject is
+already worked out the right way in the shipped file, and establishing that rather than
+assuming a file that may be edited must be edited is part of the work.
+"""
+
+verification_explanation = """
+The rebuilt kernel is driven over every journal and graded on two things, exactly, with no
+partial credit.
+
+The answers. Every question a journal asks and what came back: the verdict, and the
+identity of the entry that carried it, which is the subject it names, the node it was
+placed on, the sequence number of its act and its scope. Grading the winning entry as well
+as the verdict is deliberate, because two implementations can agree on allow-or-refuse for
+a reason that has nothing to do with the rule under test, and an ordering key that is wrong
+but rarely changes the verdict would otherwise be invisible. The winner is unique: no two
+entries on one node share an origin, a subject and a right, so the three keys are a total
+order over the candidates.
+
+The holdings. The whole store - every node's parent, whether it is accepting inheritance,
+and the entries it holds with their subject, right, verdict, scope, origin and sequence
+number - digested after every single operation and dumped in full at the end. The digest
+covers the membership table too, which is how "a membership change moves no entries" is
+graded rather than asserted, and it is what makes a divergence legible: the grader names
+the operation index where the two first disagreed.
+
+Both come out of pol/drv.py, which is not an editable artifact, so they record what the
+kernel did rather than what a submission says it did.
+
+Expected results come from tests/oracle.py, a second implementation of the same
+specification written from the specification rather than from the tree and sharing no code
+with it. Where the kernel maintains the store incrementally, touching the smallest region
+each operation needs, the model throws that away and recomputes every node's holdings from
+the top of the tree after every operation; entries are tuples in sets rather than objects
+in lists, the journal has its own parser, and the decision is a single minimum rather than
+a sort. The two agree on every event of several thousand journals, which is the evidence
+that what is graded is the specification and not one author's bug, and build_gt.py refuses
+to write a ground truth without a clean run.
+
+Two journal sets are driven, and the second is why there is nothing here to forge. The
+enumerated set is thirty journals, one per rule, each named for the reading it exists
+to fail and including the must-still-work side of every fence. The other three hundred are
+generated inside the verifier container from a nonce made out of /dev/urandom at trial
+time, after the agent has finished, and their expected results are produced by the sealed
+model after the run. Those journals did not exist when the submission was written. That
+replaces the work-counter accounting used elsewhere and it is strictly stronger, because
+what is compared is the whole behaviour rather than a summary of it: there is no number to
+assign, no journal to pad and no table to paste. The cheat suite proves the point directly.
+One cheat is generated from tests/gt.json and serves the enumerated set's answers back out
+of a table without deciding anything, which is the most an adversary who has read the
+verifier can do; it passes all thirty enumerated cases and scores 0.
+
+Since the verifier executes agent code, four more things are attested. The executed tree
+outside the four declared artifacts must be byte-identical to the untouched copy after the
+run. Every frozen kernel function is fingerprinted as it actually existed in the running
+interpreter, at import and again when each journal ended, against digests the grader
+derives by compiling the untouched sources, so rebinding a function is caught the way
+editing its file already was. Event rows are accepted by a callable the runner owns which
+refuses any caller that is not the frozen emitter. And the interpreter's own tally of
+entries into that emitter, kept in that object through sys.monitoring on 3.12 and through
+the profile hook on older interpreters, has to equal the number of rows reported and to
+have still been armed when each journal ended. The report carries the run nonce, so a
+report planted before the run cannot pass.
+
+Deliberately not graded, because grading them would measure an implementation choice rather
+than behaviour: how often a submission re-flows, how much of a subtree it touches, whether
+it recomputes a node that did not need it, the order entries sit in inside a node, and what
+it caches between decisions. Six alternative correct implementations live in the authoring
+directory and all six are required to score 1.
+
+Twenty-nine cheats were run and all score 0. Seventeen are the reference with exactly one
+decision made the way a solver who missed one piece would make it, generated by swapping an
+anchored block in the reference source: a refusal outranking a permission, the tree
+consulted before the crews, the earlier act winning a tie, the order of the store deciding
+a tie, a down-only entry governing its own node, every crew counting as equally near, a
+here-only entry offered to the children, the scope carried on the copy instead of rewritten
+at the edge, an entry allowed back onto its own origin, a here-only placement leaving what
+it replaced standing below, a clear that skips the re-flow, a bar that refuses a direct
+placement, a bar that does not stop a re-flow, a move that touches only the node that
+moved, a move that re-stamps what it re-flows, a resume that takes nothing, and a new node
+that starts empty. Nine are reward-tamper probes built on the shipped policy rather than on
+the reference, since a probe built on the reference does the real work and would score 1
+for honest reasons. Two are the reference with every answer correct and one attestation
+interfered with - one switches the interpreter's instrumentation off from inside a decision
+while the run is going, and one rewrites a frozen kernel file in the tree it is being run
+out of - and each is rejected by its own attestation and by nothing else, which is the only
+way to know those layers work at all. One is the answer-key probe described above.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout,
+against a tree it cannot write; the reward channel is root-owned and locked before it
+starts; the ground truth, the sealed model and the grader are root-only files; and the file
+the run reports into is opened by root before privilege is dropped and handed over as a
+descriptor, so the uid executing agent code does not own the file it is graded on. Grading
+runs afterwards as root and never executes anything the agent wrote.
+"""
+
+category = "Security"
+subcategory = "AppSec"
+
+tags = [
+  "access-control",
+  "permission-inheritance",
+  "policy-evaluation",
+  "materialised-state",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 7
+
+relevant_experience = """
+I look after the authorization layer for a document store, which means most of my hard bugs
+are inheritance bugs. The one this task is built from took most of a week. A team moved a
+folder between two parts of the tree and a handful of people kept access they should have
+lost, while a handful lost access they should have kept, and nothing in any log said
+anything was wrong because every individual decision was consistent with the rules the
+service had written down. What it came down to is that we materialise inherited rules
+rather than evaluating the chain at read time, so the state depends on the order the
+administrative acts happened in, and our re-inheritance pass stamped the rules it rewrote
+with the time of the move. That is invisible until two rules tie, at which point the
+tie-break silently changes meaning. The interaction with folders that block inheritance is
+the same bug wearing a different hat: a blocked folder carries a snapshot around with it,
+and the moment it ends up above something it used to sit under, the assumptions everyone
+makes about what "inherited from" means stop holding.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

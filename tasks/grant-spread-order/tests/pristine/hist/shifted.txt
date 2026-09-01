@@ -1,0 +1,11 @@
+nd top -
+nd east top
+nd west top
+nd unit east
+nd desk unit
+st east ana 0 a b
+st west ana 0 d b
+ak ana desk 0
+mv unit west
+ak ana unit 0
+ak ana desk 0

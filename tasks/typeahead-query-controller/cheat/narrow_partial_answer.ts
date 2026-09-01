@@ -1,3 +1,12 @@
+// CHEAT ATTEMPT / single-mistake variant (not executed by the pipeline).
+//
+// The whole reference with exactly one decision made the way a solver who
+// never noticed the paging makes it: the longest cached prefix is narrowed
+// whether or not the answer behind it is whole. This is what every agent that
+// has solved this task so far wrote, and it is invisible to a self-built
+// harness because a harness that settles two or three items never fills a
+// page. Fails r9 and r9d; every other scenario passes.
+
 import type {
   Controller,
   QueryResult,
@@ -112,7 +121,6 @@ export function createController(transport: Transport): Controller {
     let best: string | null = null;
     for (const [key, answer] of cache) {
       if (!query.startsWith(key)) continue;
-      if (answer.items.length !== answer.total) continue;
       if (best === null || key.length > best.length) best = key;
     }
     if (best === null) return null;

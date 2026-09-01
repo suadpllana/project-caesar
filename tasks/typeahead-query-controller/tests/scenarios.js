@@ -173,6 +173,103 @@ const SCENARIOS = [
     `,
   },
   {
+    id: "r9_partial_is_not_narrowed",
+    title: "a page of a longer answer is not filtered into a narrower one",
+    body: `
+      h.reset();
+      h.controller.search("ca");
+      await tick();
+      // Eight matches exist; the transport hands back a page of five. Filtering
+      // that page for "car" would drop whatever the backend withheld.
+      h.transport.settle(need("ca"), ["cab","cage","cake","calm","camp","cane","cap","car"]);
+      await tick();
+      h.controller.search("car");
+      await tick();
+      const s = h.controller.getState();
+      return {
+        pass: s.status === "loading" && s.result === null &&
+              s.provisional === false,
+        detail: "status=" + s.status + " provisional=" + String(s.provisional) +
+                " shown=" + (s.result ? s.result.items.join("|") : "null"),
+      };
+    `,
+  },
+  {
+    id: "r9b_whole_answer_at_page_size_is_narrowed",
+    title: "an answer that exactly fills a page, with nothing withheld, still narrows",
+    body: `
+      h.reset();
+      h.controller.search("ca");
+      await tick();
+      // Exactly a page, and it is the whole answer. A length test against the
+      // page size calls this partial; it is not.
+      h.transport.settle(need("ca"), ["cab","cage","car","cart","cape"]);
+      await tick();
+      h.controller.search("car");
+      await tick();
+      const s = h.controller.getState();
+      const items = s.result ? s.result.items.join("|") : "null";
+      return {
+        pass: s.status === "loading" && s.provisional === true &&
+              items === "car|cart",
+        detail: "status=" + s.status + " provisional=" + String(s.provisional) +
+                " shown=" + items,
+      };
+    `,
+  },
+  {
+    id: "r9c_partial_still_served_for_its_own_query",
+    title: "a partial answer is served from memory for the query it answers",
+    body: `
+      h.reset();
+      h.controller.search("ca");
+      await tick();
+      h.transport.settle(need("ca"), ["cab","cage","cake","calm","camp","cane","cap","car"]);
+      await tick();
+      h.controller.search("do");
+      await tick();
+      h.transport.settle(need("do"), ["dog"]);
+      await tick();
+      const before = h.transport.callCount();
+      h.controller.search("ca");
+      await tick();
+      const s = h.controller.getState();
+      const items = s.result ? s.result.items.join("|") : "null";
+      return {
+        pass: h.transport.callCount() === before && s.status === "success" &&
+              s.provisional === false && items === "cab|cage|cake|calm|camp",
+        detail: "callsBefore=" + before + " callsAfter=" + h.transport.callCount() +
+                " status=" + s.status + " provisional=" + String(s.provisional) +
+                " shown=" + items,
+      };
+    `,
+  },
+  {
+    id: "r9d_falls_back_to_a_shorter_whole_answer",
+    title: "narrowing walks back past a partial answer to a whole one",
+    body: `
+      h.reset();
+      h.controller.search("c");
+      await tick();
+      h.transport.settle(need("c"), ["cab","car","cart"]);
+      await tick();
+      h.controller.search("ca");
+      await tick();
+      h.transport.settle(need("ca"), ["cab","cage","cake","calm","camp","cane","cap","car"]);
+      await tick();
+      h.controller.search("car");
+      await tick();
+      const s = h.controller.getState();
+      const items = s.result ? s.result.items.join("|") : "null";
+      return {
+        pass: s.status === "loading" && s.provisional === true &&
+              items === "car|cart",
+        detail: "status=" + s.status + " provisional=" + String(s.provisional) +
+                " shown=" + items,
+      };
+    `,
+  },
+  {
     id: "r5_cache_revisit",
     title: "revisiting a settled query is served without a request",
     body: `

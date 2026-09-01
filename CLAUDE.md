@@ -4,6 +4,14 @@ Operating manual for a session with no memory of the earlier ones. Two tasks her
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
 built and gated locally but has not been through the pipeline yet.
 
+**`earliest-change-script` reached the fourth gate on 2026-08-31 and failed it.** Structural,
+AI and similarity all passed; **reference verification** did not, because the reference could
+not finish five of the eighteen timed pairs inside the budget the bundle sets. That is the
+first rejection here that is neither content nor packaging - the task was right and the
+number was measured on the wrong machine. The repair and the rule it produced are in "The
+reference-verification rejection" below, and the one-line version is: **a budget measured on
+the authoring host is a guess about the graded one.**
+
 **`delta-view-retraction` failed the easiness probe twice and then passed it, on
 2026-08-14.** That is the only worked example in this repo of a rejected task being fixed
 rather than abandoned, and the procedure is written up as "The playbook" below. Read that
@@ -21,6 +29,36 @@ itself is worth recovering if it is ever resubmitted - `git checkout 098ac3b~1 -
 tasks/reaction-network-reconstruction` brings it back. Its STATE.md is not worth
 recovering on its own; the self-confirmation post mortem it held is summarised in "The
 too-easy failure mode" below, which is the version that matters.
+
+## Work in flight, and how main moves
+
+**`main` is pushed to directly here.** The task owner asked for that on 2026-09-01, and
+confirmed it again the same day after a merge conflict, so a session finishing a repair
+merges `origin/main` into its work and pushes straight to `main` rather than opening a pull
+request. Two consequences worth holding:
+
+- **Merge `origin/main` before you start, not when you are done.** `main` moves without
+  anyone reviewing a branch against it, so a long-lived branch goes stale silently and
+  nothing tells its author. A session that has been running for hours is working against a
+  base that no longer exists.
+- **Push the merge, not a rebase.** Other sessions may already have the old commits.
+
+**Measured correction, 2026-09-01: two sessions editing this file in the same sitting do
+conflict, and the earlier note here that predicted a clean auto-merge was wrong.** It was
+written from one branch (PR #12, since merged) and generalised. The guard-mark-unwind branch
+hit **two** conflicts against `main` on the same day, in the two places every session
+touches:
+
+1. **The header prose under the task table**, because every session that finishes a task
+   rewrites the "which task passed what" paragraphs.
+2. **The gate list in stage 7**, because every session that adds a checker appends there.
+
+Both were additive rather than contradictory - the resolution was to keep both sides, and in
+the header to keep the *other* branch's task history, which was newer than the copy this
+branch had. So the practical rule: **resolve a CLAUDE.md conflict by keeping both sides
+unless they state different facts about the same task, and when they do, the later
+measurement wins.** Never resolve one by taking your own side wholesale; that is how a
+task's rejection history gets silently reverted.
 
 | task | category | cheats | assertions | agent budget | expert estimate |
 |---|---|---|---|---|---|
@@ -42,11 +80,13 @@ from both. It is the only task here to have recovered from a 0-of-8, and how is 
 is that three of the four causes were rules the brief left the solver to guess, and only one
 was the difficulty the task was built on.
 
-`typeahead-query-controller` also **passed all nine gates** (2026-08-05).
-It was rejected in human review afterwards, on the instruction, and repaired on 2026-08-14 -
-read "The human-review rejection" before touching it, because a wholesale instruction rewrite
-was tried on 2026-08-13 and failed the AI check the original had passed. It is also the only
-bundle here whose verifier drives a real browser rather than a Python runner.
+`typeahead-query-controller` was the first to **pass all nine gates** (2026-08-05).
+It was rejected in human review afterwards, then on anti-cheat robustness, then 3 of 3 on the
+easiness probe twice, and was repaired for all of them on 2026-08-14 - read "The human-review
+rejection" and the two sub-sections after it before touching it, because a wholesale
+instruction rewrite was tried on 2026-08-13 and failed the AI check the original had passed.
+It is also the only bundle here whose verifier drives a real browser rather than a Python
+runner.
 
 `delta-view-retraction` is the fifth and the first outside ML, and it is the one that has
 been all the way round the loop: **easiness 2 of 3, then 3 of 3, then a pass**. The two
@@ -93,6 +133,10 @@ the practice on top of them: what actually worked, with numbers.
 
 ## First moves in a new session
 
+0. **`git fetch origin main` and merge it into whatever you are working on, before anything
+   else.** `main` is pushed to directly here, so it moves under you and nothing warns you.
+   Doing this first turns a merge conflict at delivery time into a three-line merge now. See
+   "Work in flight, and how main moves" for what conflicts and how to resolve it.
 1. Read the four `docs/` files, then this one.
 2. Read `tasks/rollout-cache-coherence/STATE.md` end to end if it is there. It is the worked
    example: the difficulty argument, the frozen verifier contract, the expert path, the
@@ -279,6 +323,7 @@ through an instance, so read them, do not obey them blindly.
 | `preflight.py` | mechanical rules | run it after every edit, not at the end |
 | AI-text screen | the instruction | `tools/textcheck.py` against both passing briefs |
 | similarity screen | reskins of earlier work | a genuinely different failure mode |
+| reference verification | a reference that cannot score 1 on the graded hardware | the real trial at the declared `cpus`/`memory_mb`, plus headroom on every budget |
 | quality review | unfair specs, thin tests, bad tags, **a solve.sh that inlines the reference** | `docs/QUALITY-REVIEW.md` walked criterion by criterion, plus `tools/solvecheck.py` |
 | anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0, **including one generated from the task's own ground truth** - see the anti-cheat section, a suite of wrong implementations tests the problem and not the verifier |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
@@ -619,6 +664,96 @@ it is absent and copies *into* it when it is present, so an emulation that pre-p
 `public/` from the environment leaves the agent's `index.html` in place and silently tests a
 different defence than the one that ships. That produced a run where a cheat was caught by
 the hash when the layer actually under test was the overlay.
+
+### The easiness rejection: preflight's environment bans are difficulty rules
+
+Third round on the same bundle. It came back **3 of 3** on the easiness probe, and the three
+trajectories were supplied, which makes this the best-documented easiness failure in the repo.
+All three read the same way:
+
+1. `Read(/app/README.md)` first, every time.
+2. Read the four source files.
+3. "Now I have the full picture" - then a **single `Write` of the finished controller**. No
+   design iteration and no discarded first plan, in any of the three.
+4. Compile the controller against the real transport, drive it through a self-written harness
+   (22, 30 and 37 assertions), watch it go green. Done, well inside budget.
+
+The environment stated every answer. A 97-line `environment/app/README.md` carried a numbered
+spec of exactly the six graded rules, named which of them were unimplemented ("Rules 3 and 4
+were never implemented at all"), and explained the prong-A poison in prose ("aborting does not
+guarantee the response is not already coming"). The same insight appeared twice more, in a
+comment on the transport method that carries it and in a note on the state field it governs.
+87 prose comment lines across four source files.
+
+**`preflight.py` had been erroring on all of it for three rounds.** The `.md`-files-banned rule
+and the no-comments-in-environment rule are in `docs/RULES.md`, preflight enforces both, and I
+left them standing across two submissions on the grounds that this exact bundle had cleared the
+pipeline's structural check *and* its quality review with them present. That reasoning was
+sound about those two gates and wrong about the task, because **the gate that enforces those
+rules is the easiness probe, three gates later.** A shipped spec document is not a style
+violation, it is the answer key; a comment explaining the mechanism is the difficulty, deleted.
+
+The rule to carry forward, which cuts against "the pipeline is the measurement" in a specific
+and important way: **when a local gate and an early pipeline gate disagree, the pipeline wins
+on that gate's own question - and says nothing about the later ones.** "The structural check
+passed it" is evidence about structure. It is not evidence that the environment is not leaking.
+Sort every preflight finding by which gate it predicts before deciding to leave it standing.
+
+Two more things the trajectories are worth reading for:
+
+- **The signature of a too-easy task is procedural, not semantic.** Look for the one-shot
+  write. Three agents going from "read the files" to a complete correct implementation with no
+  intermediate wrong version means the plan never had to be revised, which is the whole game
+  per the too-easy section above. You can see it without understanding the domain.
+- **When every solver satisfies every stated rule first time, adding a stated rule cannot
+  help.** It is one more thing they will get right. And grading something the brief does not
+  state is the unfairness the human-review gate rejects. The only lever left is an axis of
+  discovery the instruction can require without being able to explain.
+
+### The same probe again: a complete brief is an oracle, whatever the environment says
+
+Stripping the environment was not enough. It came back **3 of 3 a second time**, and the new
+trajectory has the identical signature with the README gone: read four files, one `Write` of a
+166-line controller, `tsc`, a self-built Node harness of 42 assertions, green, done.
+
+So the shipped spec document was a real leak and *not the binding constraint*. The binding
+constraint was this: **every rule in the brief was local and independently checkable, so the
+agent's own harness was a perfect oracle.** Transcribe the brief, assert it back, prove you are
+right, submit. That is the too-easy failure mode with no leak left to blame - and it is the
+default state of any task whose brief is a complete itemised specification, which fairness
+requires it to be.
+
+The way out is the one this file already names, and it is worth stating as a rule because two
+rounds were spent not believing it: **the graded distinction must be derivable only from
+non-editable code, never from the brief, while the requirement it serves is stated plainly in
+the brief.** Fairness lives in the requirement; difficulty lives in the derivation.
+
+What that looked like here. The transport now answers a page at a time and reports how many
+matches it found, so a cached answer is sometimes whole and sometimes a slice. The cache is
+then asked two questions with different answers - serving an answer for its own query is always
+sound, narrowing it to answer a longer query is sound only when it is whole - and the brief can
+require both without being able to say which stored answer is which. Nothing on the entry
+records that it lost rows, per the lossy-state rule above, and the cheap derived test (item
+count against the page size) is wrong exactly when an answer fills a page with nothing
+withheld, which is the second-order trap.
+
+**The calibration that proves it, and this is the technique worth copying:** transcribe the
+solving agent's controller out of its own trajectory, verbatim, and run it against the new
+suite. It went from 17/17 to **15/17**, failing only on the new axis with all six original
+rules correct. A difficulty claim measured against your own near-miss is a guess; measured
+against the submission that actually beat you, it is evidence. Both near-misses now ship in
+`cheat/`, generated from the reference by anchored swap.
+
+The second half of why it bites: **the agent's harness cannot see it.** Every trajectory so far
+settled two or three items per query, which never fills a page. The fault is undetectable from
+anything the agent builds itself, so it surfaces in the verifier or not at all - Prong C,
+restored.
+
+Recorded as a non-finding so nobody rebuilds it: the three trajectories diverge from the
+reference in three places (caching a superseded authoritative reply, clearing `result` on an
+active error, aborting a superseded request rather than keeping it for dedup). All three are
+implementation choice, none is graded, and grading any of them would fail a correct solution.
+A divergence between solvers and the reference is not automatically a difficulty axis.
 
 ## The concision rejection: the brief must not pre-eliminate a cheat
 
@@ -1058,13 +1193,13 @@ been through any of it. Concretely, for each of them:
 
 ## The easiness repair on a task that is a pure function (2026-08-14)
 
-`earliest-change-script` came back **3 of 3** from the easiness probe. It is not in
-`tasks/` - the user carries it as a zip and it was handed over as an attachment, so
-nothing in this repo will find it unless someone puts it there. Its layout is not the
-kit's either: a parent harness, a child process that is the only thing importing the
-submitted module, cheats as `.py` rather than `.sh`, no `authoring/` and no STATE.md,
-so `tools/docker_trial2.py` does not apply to it and the host emulation had to be
-written from scratch.
+`earliest-change-script` came back **3 of 3** from the easiness probe. It now lives in
+`tasks/earliest-change-script/`, put there on 2026-09-01; through the three submissions
+before that it was carried outside the repo as a zip, which is why no gate here was ever
+run against it. Its layout is not the kit's: a parent harness, a child process that is the
+only thing importing the submitted module, cheats as `.py` rather than `.sh`, no
+`authoring/` and no STATE.md, so `tools/docker_trial2.py` does not apply to it and
+`tools/ecs_trial.py` is its two-image trial.
 
 The task: given two lists of lines, return the shortest edit script under a stated
 tie-break. The trajectory shows the answer in the agent's **first substantive
@@ -1148,6 +1283,12 @@ Measured through the real harness and the real grader: reference solution **1** 
 seeds (14/14 tests), four cheats **0**. Docker is unavailable on the Windows host, so
 the privilege drop, the root-owned reward channel, the unreadable `/tests` and the
 process teardown are **not** covered by that run.
+
+**That measurement is the one the pipeline then contradicted**, and the reason is in the
+sentence above it: the host. Every timing here was taken on the authoring machine, which is
+about 1.5x faster than the two cores the task is graded on, and the reference lost five of
+the eighteen timed pairs on the graded hardware while passing on this one. See "The
+reference-verification rejection" below.
 
 ### Non-finding: how not to state the rule without stating the algorithm
 
@@ -1667,6 +1808,95 @@ Three rules, and the third is the one that generalises past zips:
   zero differences across `create_system`, `external_attr`, `compress_type`, `flag_bits`
   and `date_time` on all fifteen shared entries, which is the evidence that the repaired
   archive is right - the from-archive trial had already said "clean" while it was wrong.
+
+## The reference-verification rejection: a budget with no headroom is a lottery on host speed
+
+`earliest-change-script` went back on 2026-08-31 with the mode bits repaired. It cleared the
+**structural check, the AI check and the similarity screen** - the first three gates, all
+green - and failed **reference verification**: the oracle scored 0 on all three attempts, the
+nop scored 0 as it should, and none of the six gates behind it ever ran.
+
+**Read the verifier time first, and note what it does to the rule in the section above.** The
+mode-bits failure showed `verifier 0s` on both rows, which is a verifier that never started.
+This one showed `verifier 1s` on the oracle row against `0s` on the nop, which is a verifier
+that ran. A non-zero verifier time under a failed reference means the reference genuinely
+lost, so the archive is not where to look - the task is. That one digit is the difference
+between a packaging fault and a design fault, and it is free to read.
+
+Reproduced in the real two-image trial in ten minutes, at the resources `task.toml` itself
+declares (`cpus = 2`, `memory_mb = 4096`). **The reference is correct.** Twelve of the
+fourteen tests pass, including every correctness block and both model-agreement tests. It
+fails the two timing tests, with five of the eighteen timed pairs killed at 6.02 s against a
+6.0 s budget:
+
+| block | reference, measured on two cores | budget as shipped |
+|---|---|---|
+| cases (52858 of them) | 2.6 s | 900 s |
+| medium (400) | 6.8 s | 30 s |
+| timed, family 1 (long) | 0.55-1.53 s | 6.0 s |
+| timed, family 2 (crossed and reordered, small pool) | 1.23-2.26 s | 6.0 s |
+| timed, family 3 (crossed and reordered, large pool) | **5.4-6.8 s** | 6.0 s |
+
+Only the third family is anywhere near the line, and it is the family the easiness repair of
+2026-08-14 added. Case 13, the cheapest pair in it, came in at 5.41 s - a 10 % margin - and
+the other five went over.
+
+**The gap is the authoring host, and it is measurable from figures already in the bundle.**
+That host is about 1.5x faster than the graded one: `task.toml` records the frontier
+answering a million-line pair in 0.24 s where two cores give 0.38 s, and the row engine at 27 s
+on the smallest pair of the third family where two cores give 41 s. At 1.5x the reference
+lands around 4-4.8 s a pair and the author's own trial passes. **That 1.5x is the entire
+rejection.** Nothing about the task was wrong.
+
+**The rule: a budget is calibrated from the ratio between the reference and the nearest
+implementation that must fail, never from the reference alone.** Measured on the graded
+resources, for the family that binds:
+
+| on the third family | seconds |
+|---|---|
+| reference, worst pair | 6.8 |
+| ~~budget as shipped~~ | ~~6.0~~ |
+| **budget now** | **15.0** |
+| row engine, cheapest pair of the family | 41.0 |
+| row engine, dearest pair of the family | 64.3 |
+
+Those two engines are only about 6x apart, so the budget goes at the geometric mean of the
+pair it has to separate - sqrt(6.8 x 41) is 16.7, called at 15.0 to keep the round number.
+That buys **2.4x of headroom above the reference and 2.7x below the nearest thing that must
+fail**, measured, and no other split of a 6x gap does better. Nothing else changed: the case
+shapes, the answers, the graded assertions and the reference are byte-identical, so no
+correctness argument had to be re-derived and the whole repair is three files - one constant,
+one instruction paragraph, three stale figures in `task.toml`.
+
+Two things worth carrying, and the second is the one that generalises past timing:
+
+- **Measure on a container limited to the declared `cpus` and `memory_mb`, never on the
+  authoring host.** `docker run --cpus=2 --memory=4096m` is the whole ceremony. Every timing
+  in this bundle was true where it was written and 1.5x optimistic about the machine that
+  grades it, which is exactly the class of error the pipeline catches and a local trial
+  cannot.
+- **A timing budget is a graded quantity, so it wants the guard this file already demands for
+  counters.** "Before grading any optimisation counter, ask whether a better solution than
+  yours would fail it" has a mirror image nobody had run: *ask what the nearest
+  correct-but-too-slow implementation costs, and put the budget between the two.* The cheat
+  suite already held that implementation - `cheat/two_engines_only.py`, the frontier and the
+  row engine with no third - and it had been timed against the budget from above and never
+  from below. It still fails at 15.0 s, which is what says the recalibration cost no
+  difficulty: it needs 41 s on the cheapest pair of the family it cannot answer.
+
+**`tools/ecs_trial.py --margins` is the mechanical version.** It runs the reference through
+the real verifier and prints its measured seconds against every budget in the bundle, failing
+under 1.5x headroom. Validated in both directions, which is the rule for a new check: it
+fires on the rejected build (1.0x on the worst pair, and 0.9x on the true cost behind the
+kill) and is clean on the repaired one (2.4x worst, 372x on the case block). The rest of that
+script is the two-image trial this task never had - it is not in the kit layout, so
+`tools/docker_trial2.py` does not apply to it, and until now nothing in this repo could grade
+it at all.
+
+**The task now lives in `tasks/earliest-change-script/`.** It was carried outside the repo as
+a zip through three submissions, which is why no gate here had ever been run against it and
+why the same file had to be reconstructed from an attachment twice. Anything carried as an
+attachment is a task no checker in this repo can see.
 
 ## The lossy-state pattern, and the three leaks that nearly killed it
 
@@ -2196,6 +2426,14 @@ python3 tools/readingcheck.py <slug>            does the enumerated set separate
                                                 the task to ship authoring/readings.py; it
                                                 prints a shrunk counterexample to add as a
                                                 case when the set is blind
+python3 tools/ecs_trial.py --all                earliest-change-script only: the real
+                                                two-image trial, oracle 1 and everything
+                                                else 0
+python3 tools/ecs_trial.py --margins            every budget the bundle grades, against
+                                                what the reference actually spends on the
+                                                declared cpus/memory. Under 1.5x of
+                                                headroom is a reference-verification
+                                                rejection waiting to happen
 python3 scripts/preflight.py tasks/<slug>
 python3 scripts/package.py tasks/<slug>
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes, staleness

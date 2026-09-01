@@ -1,3 +1,11 @@
+// CHEAT ATTEMPT / single-mistake variant (not executed by the pipeline).
+//
+// The second-order trap. This one does notice that answers can be partial and
+// guards against it, but reads the loss off the page size instead of comparing
+// what arrived against what the backend said it had. An answer that exactly
+// fills a page with nothing withheld is whole, and this refuses to narrow it.
+// Fails r9b alone.
+
 import type {
   Controller,
   QueryResult,
@@ -112,7 +120,7 @@ export function createController(transport: Transport): Controller {
     let best: string | null = null;
     for (const [key, answer] of cache) {
       if (!query.startsWith(key)) continue;
-      if (answer.items.length !== answer.total) continue;
+      if (answer.items.length >= 5) continue;
       if (best === null || key.length > best.length) best = key;
     }
     if (best === null) return null;

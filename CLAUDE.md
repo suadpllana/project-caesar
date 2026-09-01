@@ -1700,6 +1700,47 @@ attributes that are written and never read.** `preflight.py` warns about unused 
 functions and says nothing about unused fields, and a field is worse, because a function that
 is never called looks like dead code while a field that is never read looks like a clue.
 
+## Non-finding: policy synthesis from a partial log cannot be both fair and hard (2026-09-02)
+
+Recorded so nobody rebuilds it. After `grant-spread-order` was rejected by the similarity
+screen, the replacement form considered was **synthesis under a bound**: ship a correct
+readable evaluator, a tree, and a log of decisions produced by an unknown compact policy;
+the agent authors a policy reproducing the log; grade on the decisions NOT in the log plus
+a size bound. The attraction is a brutal and honest Prong C - enumerating one explicit rule
+per observed decision reproduces the log perfectly, so every check the agent can run
+passes, and it fails the held-out set and the bound.
+
+**It does not work, and the reason is structural rather than a matter of tuning.** Measured
+by local search from the generating policy - mutate it, keep every mutant that still fits
+the log and the bound, and ask whether any disagrees off-log:
+
+| log coverage | bound | hidden triples | policies fitting the log | of those, disagree off-log |
+|---|---|---|---|---|
+| 50% | 9 | 45 | 926 | 226 |
+| 65% | 9 | 32 | 821 | 125 |
+| 80% | 9 | 18 | 764 | 67 |
+| 90% | 9 | 9 | 731 | 34 |
+| 95% | 9 | 5 | 699 | 1 |
+| 90% | 7 | 9 | 27 | 1 |
+| 95% | 7 | 5 | 26 | 0 |
+
+Fitting a partial log does not pin the held-out answers, so at any coverage loose enough to
+leave real generalisation to do, a solver who fits the log and stays inside the bound can
+still be wrong - which is a 0-of-8 rejection rather than a hard task. The only clean corner
+is 95% coverage with a bound tight enough that almost nothing else fits, and there the
+agent can see essentially the whole truth table and self-check everything that is graded,
+so Prong C is gone. **The two requirements are in direct opposition in this form.**
+
+The general lesson, which is worth applying to any "infer the rule from examples" design:
+**generalisation from partial evidence is under-determined unless the hypothesis space is
+tiny, and shrinking the hypothesis space until the answer is unique also shrinks it until
+the answer is checkable.** Ask, before building: is there exactly one behaviour consistent
+with what is shipped? If two are, the task is a lottery; if the solver can enumerate the
+consistent ones, it is an execution task.
+
+The experiment cost twenty minutes and is the "self-attack before any code" step in stage 1
+doing its job. Write the falsifier before the bundle, not after.
+
 ## Packaging on Windows, and two gates that lied (2026-09-02)
 
 Everything in this section was found building `grant-spread-order`, and none of it is about

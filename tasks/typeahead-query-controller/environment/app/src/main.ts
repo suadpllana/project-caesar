@@ -2,28 +2,13 @@ import { createController } from "./controller";
 import { createTransport } from "./transport";
 import type { Controller, QueryState } from "./types";
 
-/**
- * Browser harness.
- *
- * Builds the controller and the test transport, exports the pair as `harness`
- * for programmatic driving, mirrors it onto `window.__harness` so it can be
- * reached from the devtools console, and renders a small panel so the
- * behaviour is observable by hand.
- *
- * Do not modify this file.
- */
-
 interface Harness {
   transport: ReturnType<typeof createTransport>;
   controller: Controller;
-  /** State snapshots in emission order, since the last reset. */
   emissions: QueryState[];
-  /** Rebuild the controller and clear all recorded activity. */
   reset(): void;
-  /** Subscribe an extra listener; returns a handle for unsubscribing. */
   addListener(name: string): void;
   removeListener(name: string): void;
-  /** Names of listeners that received at least one emission. */
   listenerHits(): Record<string, number>;
 }
 

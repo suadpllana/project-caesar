@@ -72,10 +72,12 @@ git merge-tree --write-tree origin/main origin/<branch>   # exit 0 and a tree me
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 
 `typeahead-query-controller` is the only one to have **passed all nine gates** (2026-08-05).
-It was rejected in human review afterwards, on the instruction, and repaired on 2026-08-14 -
-read "The human-review rejection" before touching it, because a wholesale instruction rewrite
-was tried on 2026-08-13 and failed the AI check the original had passed. It is also the only
-bundle here whose verifier drives a real browser rather than a Python runner.
+It was rejected in human review afterwards, then on anti-cheat robustness, then 3 of 3 on the
+easiness probe twice, and was repaired for all of them on 2026-08-14 - read "The human-review
+rejection" and the two sub-sections after it before touching it, because a wholesale
+instruction rewrite was tried on 2026-08-13 and failed the AI check the original had passed.
+It is also the only bundle here whose verifier drives a real browser rather than a Python
+runner.
 
 `delta-view-retraction` is the fifth and the first outside ML, and it is the one that has
 been all the way round the loop: **easiness 2 of 3, then 3 of 3, then a pass**. The two
@@ -547,6 +549,96 @@ it is absent and copies *into* it when it is present, so an emulation that pre-p
 `public/` from the environment leaves the agent's `index.html` in place and silently tests a
 different defence than the one that ships. That produced a run where a cheat was caught by
 the hash when the layer actually under test was the overlay.
+
+### The easiness rejection: preflight's environment bans are difficulty rules
+
+Third round on the same bundle. It came back **3 of 3** on the easiness probe, and the three
+trajectories were supplied, which makes this the best-documented easiness failure in the repo.
+All three read the same way:
+
+1. `Read(/app/README.md)` first, every time.
+2. Read the four source files.
+3. "Now I have the full picture" - then a **single `Write` of the finished controller**. No
+   design iteration and no discarded first plan, in any of the three.
+4. Compile the controller against the real transport, drive it through a self-written harness
+   (22, 30 and 37 assertions), watch it go green. Done, well inside budget.
+
+The environment stated every answer. A 97-line `environment/app/README.md` carried a numbered
+spec of exactly the six graded rules, named which of them were unimplemented ("Rules 3 and 4
+were never implemented at all"), and explained the prong-A poison in prose ("aborting does not
+guarantee the response is not already coming"). The same insight appeared twice more, in a
+comment on the transport method that carries it and in a note on the state field it governs.
+87 prose comment lines across four source files.
+
+**`preflight.py` had been erroring on all of it for three rounds.** The `.md`-files-banned rule
+and the no-comments-in-environment rule are in `docs/RULES.md`, preflight enforces both, and I
+left them standing across two submissions on the grounds that this exact bundle had cleared the
+pipeline's structural check *and* its quality review with them present. That reasoning was
+sound about those two gates and wrong about the task, because **the gate that enforces those
+rules is the easiness probe, three gates later.** A shipped spec document is not a style
+violation, it is the answer key; a comment explaining the mechanism is the difficulty, deleted.
+
+The rule to carry forward, which cuts against "the pipeline is the measurement" in a specific
+and important way: **when a local gate and an early pipeline gate disagree, the pipeline wins
+on that gate's own question - and says nothing about the later ones.** "The structural check
+passed it" is evidence about structure. It is not evidence that the environment is not leaking.
+Sort every preflight finding by which gate it predicts before deciding to leave it standing.
+
+Two more things the trajectories are worth reading for:
+
+- **The signature of a too-easy task is procedural, not semantic.** Look for the one-shot
+  write. Three agents going from "read the files" to a complete correct implementation with no
+  intermediate wrong version means the plan never had to be revised, which is the whole game
+  per the too-easy section above. You can see it without understanding the domain.
+- **When every solver satisfies every stated rule first time, adding a stated rule cannot
+  help.** It is one more thing they will get right. And grading something the brief does not
+  state is the unfairness the human-review gate rejects. The only lever left is an axis of
+  discovery the instruction can require without being able to explain.
+
+### The same probe again: a complete brief is an oracle, whatever the environment says
+
+Stripping the environment was not enough. It came back **3 of 3 a second time**, and the new
+trajectory has the identical signature with the README gone: read four files, one `Write` of a
+166-line controller, `tsc`, a self-built Node harness of 42 assertions, green, done.
+
+So the shipped spec document was a real leak and *not the binding constraint*. The binding
+constraint was this: **every rule in the brief was local and independently checkable, so the
+agent's own harness was a perfect oracle.** Transcribe the brief, assert it back, prove you are
+right, submit. That is the too-easy failure mode with no leak left to blame - and it is the
+default state of any task whose brief is a complete itemised specification, which fairness
+requires it to be.
+
+The way out is the one this file already names, and it is worth stating as a rule because two
+rounds were spent not believing it: **the graded distinction must be derivable only from
+non-editable code, never from the brief, while the requirement it serves is stated plainly in
+the brief.** Fairness lives in the requirement; difficulty lives in the derivation.
+
+What that looked like here. The transport now answers a page at a time and reports how many
+matches it found, so a cached answer is sometimes whole and sometimes a slice. The cache is
+then asked two questions with different answers - serving an answer for its own query is always
+sound, narrowing it to answer a longer query is sound only when it is whole - and the brief can
+require both without being able to say which stored answer is which. Nothing on the entry
+records that it lost rows, per the lossy-state rule above, and the cheap derived test (item
+count against the page size) is wrong exactly when an answer fills a page with nothing
+withheld, which is the second-order trap.
+
+**The calibration that proves it, and this is the technique worth copying:** transcribe the
+solving agent's controller out of its own trajectory, verbatim, and run it against the new
+suite. It went from 17/17 to **15/17**, failing only on the new axis with all six original
+rules correct. A difficulty claim measured against your own near-miss is a guess; measured
+against the submission that actually beat you, it is evidence. Both near-misses now ship in
+`cheat/`, generated from the reference by anchored swap.
+
+The second half of why it bites: **the agent's harness cannot see it.** Every trajectory so far
+settled two or three items per query, which never fills a page. The fault is undetectable from
+anything the agent builds itself, so it surfaces in the verifier or not at all - Prong C,
+restored.
+
+Recorded as a non-finding so nobody rebuilds it: the three trajectories diverge from the
+reference in three places (caching a superseded authoritative reply, clearing `result` on an
+active error, aborting a superseded request rather than keeping it for dedup). All three are
+implementation choice, none is graded, and grading any of them would fail a correct solution.
+A divergence between solvers and the reference is not automatically a difficulty axis.
 
 ## The concision rejection: the brief must not pre-eliminate a cheat
 

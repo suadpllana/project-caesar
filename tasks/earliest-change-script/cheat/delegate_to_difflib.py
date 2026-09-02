@@ -4,15 +4,16 @@ Strategy: the shortest route a cold reading of the instruction suggests. The
 standard library already ships a sequence matcher, the task is obviously a
 diff, so hand the whole thing over and reshape the opcodes into the pairs the
 instruction asks for. It costs eight lines and no thought at all, and on the
-kind of input a person types out to check — a file of distinct lines with a
-couple of edits — it returns exactly what the rule demands.
+kind of input a person types out to check -- a file of distinct lines with a
+couple of edits -- it returns exactly what the rule demands.
 
-The verifier rejects it for two separate reasons. The matcher is not obliged to
-produce a shortest script and frequently does not, and where it does, it
-resolves ties by its own longest-block-first habit rather than by the rule
-stated here: a drop is taken whenever a drop can still begin a shortest script,
-even when the line sitting there matches. Against a distribution built from two
-to six distinct lines those two disagreements are not rare, they are the norm.
+The verifier rejects it for three separate reasons. The matcher is not obliged
+to produce a shortest script and frequently does not; where it does, it makes
+no attempt to keep the moves in as few hunks as possible; and where it happens
+to do that too, it resolves what is left by its own longest-block-first habit
+rather than by the reading order stated here. Against a distribution built
+from two to six distinct lines those disagreements are not rare, they are the
+norm.
 """
 
 import difflib

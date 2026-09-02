@@ -1,58 +1,14 @@
-"""Reference solution.
+"""Alternative correct implementation. Must score 1.
 
-The rule has three tiers and the first two are two different quantities.
-Fewest moves is what every fast diff computes, and the question it asks at
-each position -- does dropping this line still leave a shortest script -- is
-answered by knowing how many moves remain from the neighbour you would land
-on. Fewest hunks is a second quantity with its own recurrence: a run of moves
-that is already open extends for nothing, a keep closes it, and a move after a
-keep opens a new one. It only has to be known on cells that lie on some
-shortest path, since nothing else can be on the answer, and that restriction
-is what makes it affordable at all.
-
-The graded pairs sit in two places and neither engine covers the other.
-
-The first is the frontier, run from the far end. Layer d holds, for every
-diagonal, the earliest position from which the end is reachable in d moves.
-Once every layer is kept, "is this neighbour still on a shortest path?" is one
-lookup. Along a diagonal that answer turns from no to yes at one row and stays
-yes, so from any position the next cell where a drop or an add becomes
-possible is a lookup too, and every cell before it can only be kept through.
-The hunk counts are computed on those decision cells alone, two to a cell --
-one for arriving inside a run of moves, one for arriving after a keep -- and
-the walk from the start reads them off. It costs the square of the number of
-moves plus the decision cells, and does not care how long the pair is: a
-million lines that differ in three hundred places is a fifth of a second, and
-fifty thousand crowded lines that differ in four thousand is a few seconds.
-Ask it for a pair that shares no order at all, where the moves run past the
-length of the file, and it is finished by nobody.
-
-The second is thresholds over suffixes: hold, for each k, the largest j from
-which the tail of the other side still shares k lines. One pass from the far
-end maintains that array and it only changes where the two sides match, so it
-costs the number of matching positions rather than the length of the pair,
-and it hands every match its rank -- how many keeps a shortest script can
-still make from it. The matches of one rank form a staircase, so the matches
-of the next rank that a given one can still reach are a contiguous stretch of
-the next staircase, and the hunk count of every match comes out of one
-sliding window over it. The walk then never leaves the staircases: each move
-it considers narrows the stretch it can still land in, and the question at
-every step is whether a keep carrying the required count is still inside.
-On a third of a million nearly-distinct lines put back in a different order
-that is a few seconds, because almost nothing in such a pair matches anything.
-
-So run the frontier and abandon it, layers and all, once the pair turns out to
-need more moves than the thresholds would have cost from the start. That
-figure has to be counted, and the pass that counts it pays for itself.
-
-Two details are load-bearing. Cutting the shared head and tail off before
-starting changes the answer, because a drop is preferred over a keep whenever
-both leave the script shortest and as cheap in hunks, so the first move is not
-always a keep even when the two sequences begin with the same line. And the
-hunk count a cell carries depends on how the walk arrived, inside a run or
-after a keep, so a single number per cell is not enough: the pair of them is
-what makes the walk's choice at every decision cell a comparison rather than
-a search.
+The reference skips along every run of keeps and computes the hunk counts on
+the cells where a choice exists. This one does the natural thing instead: it
+visits every cell that lies on some shortest path, one at a time, and fills in
+the two counts for each. Same layers, same pairs engine, same answers; the
+only difference is that the hunk recurrence is evaluated at every cell rather
+than at the decision cells, which costs the length of the pair on the long
+family and a few times more than the reference on the crowded one. It is the
+implementation a solver who has found the shortest-path restriction writes
+first, and it is inside every budget, which is what makes the budgets fair.
 """
 
 from bisect import bisect_left
@@ -171,40 +127,14 @@ def _layers_from_end(a, b, n, m, limit):
 
 
 def _frontier_engine(a, b, n, m, layers):
-    """The layers answer whether a drop or an add at a position still leaves
-    the script shortest. Along a diagonal, each of those answers turns from no
-    to yes at one row and stays yes, so from any position the next cell where
-    either move becomes possible is a lookup, and every cell before it can
-    only be kept through. The hunk counts are computed on those cells alone,
-    two to a cell -- one for arriving inside a run of moves, one for arriving
-    after a keep -- in the order the walk will need them."""
     total = len(layers) - 1
     if total == 0:
         return []
-
-    def advance(i, j, r):
-        """From (i, j) with r moves left: the first cell at or after it on the
-        same diagonal where a drop or an add still leaves the script shortest.
-        Everything between is a keep."""
-        if r == 0:
-            return n, m
-        below = layers[r - 1]
-        k = i - j
-        stop = n
-        reach = below.get(k + 1)
-        if reach is not None and reach - 1 < stop:
-            stop = reach - 1
-        reach = below.get(k - 1)
-        if reach is not None and reach < stop:
-            stop = reach
-        if stop < i:
-            stop = i
-        if stop - i > m - j:
-            stop = i + (m - j)
-        return stop, j + (stop - i)
+    width = m + 1
 
     def choices(i, j, r):
-        """Which of drop, add, keep still leave the script shortest here."""
+        if r == 0:
+            return False, False, i < n and j < m
         below = layers[r - 1]
         k = i - j
         reach = below.get(k + 1)
@@ -214,83 +144,62 @@ def _frontier_engine(a, b, n, m, layers):
         keep = i < n and j < m and a[i] == b[j]
         return drop, add, keep
 
-    # Hunks still to be opened from a decision cell, arriving after a keep
-    # (quiet) or inside a run of moves (inrun). A cell that is not a decision
-    # cell is kept through to the next one, so both of its counts are that
-    # cell's quiet count.
-    quiet = {(n, m): 0}
-    inrun = {(n, m): 0}
-
-    def after(i, j, r, open_run):
-        got = quiet.get((i, j))
-        if got is not None:
-            return inrun[(i, j)] if open_run else got
-        return quiet[advance(i, j, r)]
-
-    def settle(i0, j0, r0):
-        """Fill in the counts for every decision cell reachable from (i0, j0)
-        along shortest paths, children before parents."""
-        stack = [(i0, j0, r0, False)]
-        while stack:
-            i, j, r, ready = stack.pop()
-            if (i, j) in quiet:
-                continue
-            drop, add, keep = choices(i, j, r)
-            if not ready:
-                stack.append((i, j, r, True))
-                nexts = []
-                if drop:
-                    nexts.append((i + 1, j, r - 1))
-                if add:
-                    nexts.append((i, j + 1, r - 1))
-                if keep:
-                    nexts.append((i + 1, j + 1, r))
-                for x, y, rr in nexts:
-                    if (x, y) in quiet:
-                        continue
-                    x2, y2 = advance(x, y, rr)
-                    if (x2, y2) not in quiet:
-                        stack.append((x2, y2, rr, False))
-                continue
-            best0 = best1 = 1 << 30
-            if drop:
-                v = after(i + 1, j, r - 1, True)
-                if v < best1:
-                    best1 = v
-                if v + 1 < best0:
-                    best0 = v + 1
-            if add:
-                v = after(i, j + 1, r - 1, True)
-                if v < best1:
-                    best1 = v
-                if v + 1 < best0:
-                    best0 = v + 1
-            if keep:
-                v = after(i + 1, j + 1, r, False)
-                if v < best1:
-                    best1 = v
-                if v < best0:
-                    best0 = v
-            quiet[(i, j)] = best0
-            inrun[(i, j)] = best1
-
-    i, j, r = 0, 0, total
-    i, j = advance(i, j, r)
-    settle(i, j, r)
+    quiet = {n * width + m: 0}
+    inrun = {n * width + m: 0}
+    stack = [(0, 0, total, False)]
+    while stack:
+        i, j, r, ready = stack.pop()
+        key = i * width + j
+        if key in quiet:
+            continue
+        drop, add, keep = choices(i, j, r)
+        if not ready:
+            stack.append((i, j, r, True))
+            if drop and (i + 1) * width + j not in quiet:
+                stack.append((i + 1, j, r - 1, False))
+            if add and key + 1 not in quiet:
+                stack.append((i, j + 1, r - 1, False))
+            if keep and key + width + 1 not in quiet:
+                stack.append((i + 1, j + 1, r, False))
+            continue
+        best0 = best1 = 1 << 30
+        if drop:
+            v = inrun[key + width]
+            if v < best1:
+                best1 = v
+            if v + 1 < best0:
+                best0 = v + 1
+        if add:
+            v = inrun[key + 1]
+            if v < best1:
+                best1 = v
+            if v + 1 < best0:
+                best0 = v + 1
+        if keep:
+            v = quiet[key + width + 1]
+            if v < best1:
+                best1 = v
+            if v < best0:
+                best0 = v
+        quiet[key] = best0
+        inrun[key] = best1
 
     ops = []
     emit = ops.append
+    i = j = 0
+    r = total
     open_run = False
-    while (i, j) != (n, m):
+    while i < n or j < m:
+        key = i * width + j
         drop, add, keep = choices(i, j, r)
-        want = inrun[(i, j)] if open_run else quiet[(i, j)]
+        want = inrun[key] if open_run else quiet[key]
         cost = 0 if open_run else 1
-        if drop and after(i + 1, j, r - 1, True) + cost == want:
+        if drop and inrun[key + width] + cost == want:
             emit(["-", i])
             i += 1
             r -= 1
             open_run = True
-        elif add and after(i, j + 1, r - 1, True) + cost == want:
+        elif add and inrun[key + 1] + cost == want:
             emit(["+", j])
             j += 1
             r -= 1
@@ -299,10 +208,6 @@ def _frontier_engine(a, b, n, m, layers):
             i += 1
             j += 1
             open_run = False
-        i2, j2 = advance(i, j, r)
-        if (i2, j2) != (i, j):
-            open_run = False
-            i, j = i2, j2
     return ops
 
 

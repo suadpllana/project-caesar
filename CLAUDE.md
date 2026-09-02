@@ -4,13 +4,20 @@ Operating manual for a session with no memory of the earlier ones. Two tasks her
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
 built and gated locally but has not been through the pipeline yet.
 
-**`earliest-change-script` reached the fourth gate on 2026-08-31 and failed it.** Structural,
-AI and similarity all passed; **reference verification** did not, because the reference could
-not finish five of the eighteen timed pairs inside the budget the bundle sets. That is the
-first rejection here that is neither content nor packaging - the task was right and the
-number was measured on the wrong machine. The repair and the rule it produced are in "The
-reference-verification rejection" below, and the one-line version is: **a budget measured on
-the authoring host is a guess about the graded one.**
+**`earliest-change-script` cleared reference verification after the 2026-08-31 repair and
+then failed the easiness probe 3 of 3 on 2026-09-02, with a trajectory.** That trajectory is
+the most important artifact in `probes/`: the agent derived the greedy on sight from a fully
+stated rule, wrote a brute-force oracle first, built four engines in three hours including
+the one the difficulty argument called non-recallable, and forced each on small inputs
+against its oracle. Its module was a superset of the reference, so no budget could separate
+them. The mechanism was at its ceiling and the rule changed - a second tier, fewest hunks
+among shortest scripts - which is written up in "A pure function at its ceiling: change what
+is computed" below. **Not re-probed.** The earlier reference-verification rejection (a budget
+measured on the wrong machine) is still in "The reference-verification rejection" below, and
+its one-line version still holds: **a budget measured on the authoring host is a guess about
+the graded one** - this session measured the same code 2.7x faster on today's sandbox than
+on the one whose trial matched the pipeline, and `tools/ecs_trial.py --margins` now scales
+by that factor.
 
 **`delta-view-retraction` failed the easiness probe twice and then passed it, on
 2026-08-14.** That is the only worked example in this repo of a rejected task being fixed
@@ -68,7 +75,7 @@ task's rejection history gets silently reverted.
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 | `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
-| `earliest-change-script` | Software / Algorithms | 4 | 16 | 14400 s | 18 h |
+| `earliest-change-script` | Software / Algorithms | 7 | 15 | 14400 s | 24 h |
 | `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
@@ -317,6 +324,121 @@ explanation claimed - measure that, do not assume it. And `cheat-spawn-order` di
 the reference on **1 program of 427**: a decision that rare is a lottery ticket, not a test of
 expertise, and `field_report.py` prints the count per cheat so you can find them at contract
 time.
+
+## A pure function at its ceiling: change what is computed (2026-09-02)
+
+`earliest-change-script` came back **3 of 3** from the easiness probe on the bundle that
+had cleared reference verification, and this time the brief carried none of the leaks the
+2026-08-14 repair removed. The trajectory is at `probes/earliest-change-script/`, and it is
+the one to read before ever again trying to make an algorithms task harder by hiding
+something, because it shows an agent that hides nothing from itself.
+
+**What the trajectory shows, in the order that matters.** It ran about three hours of a
+four-hour budget, so this was not a plan available on sight. The greedy was derived from the
+stated rule in the first message, before any tool call. A brute-force oracle was the first
+file. Then four engines - bit-parallel rows with checkpointing, Myers layers, a banded
+variant with a certified band, and suffix patience thresholds with an undo journal, which is
+the reference's third engine and the one the difficulty argument called unreachable - and
+**each engine forced on small inputs and held to the oracle**, which is exactly what our own
+verifier's agreement test does. The final module was a strict superset of the reference.
+Its two reported failures (a million crowded lines with ten percent or more changed) are
+infeasible for any pure-Python exact method and were never graded.
+
+**Why no repair inside the old rule was available.** Sort the levers:
+
+| lever | why it does nothing here |
+|---|---|
+| tighter budgets | the agent's engines are as fast as the reference's on every family, and faster on one |
+| a fourth speed regime | the only regime it missed is infeasible for the reference too; exact LCS on a million crowded lines with tens of thousands of edits has no pure-Python exact algorithm inside any budget |
+| hiding the tie-break in an engine only large inputs reach | the agent forces its engines on small inputs; the dispatch threshold is the agent's, not the task's |
+| more leak patching | there was nothing left in the brief; the specification has to be complete to be fair, and a complete specification of a pure function is a brute-force oracle |
+
+That is the "What can be brute-forced" law above, measured: **for a pure function under a
+stated rule, correctness is always oracle-checkable and the speed regimes of a textbook
+problem are textbook.** The one thing left to change is what is computed.
+
+**The repair: a second tier the first tier's engines cannot carry.** The rule is now fewest
+moves, then fewest hunks (maximal runs of consecutive moves in the reading), then the
+reading order. Every fast diff technique computes how many moves remain from a position and
+nothing else, and the reading-order tier is a greedy over exactly that number - so every
+engine an expert recalls answers tiers one and three natively and is wrong on tier two. The
+hunk count has its own two-state recurrence, and it is only affordable on cells that lie on
+some shortest path. The **natural implementation of that restriction, one cell at a time, is
+correct on two of the three graded families and dies on the third**, where the shortest-path
+cells between one match and the next are whole rectangles and only a restatement over the
+matches themselves, grouped by rank into staircases, is finite. That is the "second discovery
+invalidates the natural implementation of the first" shape, and it is the third time it has
+been the thing that worked.
+
+Measured on the short blocks (fixed 61, enumerated 40804, random 12000):
+
+| submission | fixed | enumerated | random |
+|---|---|---|---|
+| the previous reference: three engines, reading order only | 9 | 9885 | 8601 |
+| plus the hunk-sliding pass every diff tool carries | 12 | 6352 | 7263 |
+| drops and adds counted as separate hunks | 7 | 10436 | 4696 |
+| difflib | 28 | 20243 | 10130 |
+| the table; the per-cell frontier; the `ok-cells` variant | 0 | 0 | 0 |
+
+So the submission that beat the task now scores 0 on a quarter of the enumerated block and
+nearly three quarters of the random one, which is the regression test the playbook asks for,
+and the per-cell implementation ships both as a cheat (without the sparse engine: passes
+twelve of eighteen timed pairs) and as a variant (with it: scores 1), which is what says the
+budgets grade the derivation and not a constant factor.
+
+**Three families became two techniques, and one family had to go.** Under a secondary
+objective the bit-parallel row engine has nothing to offer - it delivers move counts as bit
+profiles, and turning those into shortest-path cells is a per-cell popcount, which is the
+table again - so the old crowded/no-order family (sixty thousand lines over four distinct
+ones, a third of the file in moves) is infeasible for **anyone** and is gone. It is replaced
+by crowded pairs that differ in a few thousand places, which the frontier reaches at a few
+million layer entries. The brief's input-space sentence changed with it: it no longer says
+length, order and repetition move independently, because they no longer do, and it says
+instead that the pairs sharing no order are the ones whose lines hardly repeat. **When the
+rule changes, re-derive which families are feasible for the reference before deciding which
+are graded, and then say the input space as it is.** A brief that promises a regime the
+reference cannot grade is either a lie or a lottery.
+
+**The host factor, measured, and now mechanised.** The reference-verification rejection
+below was diagnosed on a sandbox where the old pairs engine took 5.41 s on timed case 13,
+and that number matched the pipeline's verdict. Today's sandbox runs the identical code on
+the identical case in **2.05 s**, inside a `--cpus=2 --memory=4096m` container as well as
+on the host. So "measured in the real two-image trial" is not one number: it is a number on
+whichever machine happened to be provisioned. `tools/ecs_trial.py --margins` now scales
+every measurement by `HOST_FACTOR = 2.7` before holding it to the 1.5x headroom and prints
+both figures. **And the factor is not a constant even within one session**: the same
+container, image and sparse pair measured 4.6 s at 19:00 and 11 to 21 s at 20:05 with
+nothing else running and the child at 472 MB peak, and the calibration case (the old pairs
+engine on timed case 13) went 2.05 s to 3.39 s on the host in the same hour. The budgets
+were set from the slow state, 60 s a pair and 40 s for the medium block, which costs no
+difficulty because nothing the timings separate is within an order of magnitude of either
+line. **Record the reference's time on one fixed case in every session, so the next one
+can measure its own machine against it in ten seconds, and measure it more than once.**
+
+Four smaller things from the same session:
+
+- **Hand-picked example cases have to be verified mechanically against the previous rule.**
+  Four pairs were written into `FIXED` as "the reading order alone would take the two; the
+  hunk count takes the one", and none of the four differed under the two rules. The
+  replacements were pulled from the enumerated block by a script that asserts the difference.
+  A worked example that does not exercise the tier it claims to is a false affordance.
+- **A `mkdir -p probes/...` run from inside `tasks/<slug>/` put a probe trajectory inside
+  the bundle**, where `package.py` would have shipped it - the agent's own solution to the
+  previous rule, in the archive. Caught by `ls tasks/<slug>` before packaging. Do that
+  before every `package.py`.
+- **The definitional model is now itself held to the rule by exhaustion**: a test enumerates
+  every script on the 15252 pairs short enough for it and asserts the table picks the same
+  one. A two-state table is a place a misreading can live undetected, and the exhaustive
+  check is under a second.
+- **The rule's third example is one where the second tier overrides the third**, verified by
+  the oracle, and the brief states all three tiers in requirement form with the precedence
+  said once. `hintcheck.py` is clean; `structcheck.py` and `textcheck.py` report the same
+  two findings the version that cleared the AI screen carried (the required code block, and
+  burstiness below the reference), and nothing new after one triad was rephrased.
+
+**Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
+the account teardown are unexercised locally, as before). Everything else in the gate list
+ran and is recorded in the task's STATE.md.
 
 ## What can be brute-forced, and what cannot (2026-09-02)
 
@@ -1367,7 +1489,7 @@ three-agent probe rather than to guess.
 | task | easiness result | mode | next action |
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
-| `earliest-change-script` | 3/3 | A, recorded | the brief published the decision procedure and the cost taxonomy; both were removed, never re-probed. Re-probe before resubmitting |
+| `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone | none of the four: real exploration, a superset of the reference in three hours | the mechanism was at its ceiling; the rule gained a second tier on 2026-09-02 (see "A pure function at its ceiling"). Re-probe before resubmitting |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
 | `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |

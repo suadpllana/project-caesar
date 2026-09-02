@@ -1,77 +1,78 @@
 """The grading side's fast implementation of the rule.
 
 The definitional model in oracle.py is the authority, and it is what the small
-blocks are graded against. It cannot be used on a sixty thousand line pair --
-the table alone would be nearly four billion entries -- so the medium and timed
-blocks are graded against this instead, and a test asserts that the two agree
-on every fixed and enumerated case before any of those answers count.
+blocks are graded against. It cannot be used on a fifty thousand line pair --
+the table alone would be several billion entries, twice over -- so the medium
+and timed blocks are graded against this instead, and a test asserts that the
+two agree on every fixed and enumerated case before any of those answers count.
 
-Three engines, because the graded pairs sit in three places and no one of them
-covers two. Their costs are independent of each other:
+Two engines, because the graded pairs sit in two places and neither covers the
+other. Their costs are independent of each other:
 
-  frontier   the square of the number of moves, untouched by the length of the
+  frontier   the square of the number of moves, plus the cells where a choice
+             between shortest scripts exists; untouched by the length of the
              pair or by how repetitive it is
-  row        the length of the pair times its width in machine words,
-             untouched by the number of moves or by how repetitive it is
-  pairs      the number of positions that match across the two sides, untouched
-             by the length of the pair and by the number of moves
+  pairs      the number of positions that match across the two sides,
+             untouched by the length of the pair and by the number of moves
 
-A long pair that differs in a few hundred places belongs to the first. A pair
-of sixty thousand lines drawn from four distinct ones belongs to the second:
-its moves run to a third of the file, and every line matches nearly half the
-other side, so the other two are both quadratic on it. A pair of a third of a
-million lines that are nearly all distinct belongs to the third: it is far too
-long for the row engine and far too shuffled for the frontier, but almost
+A pair that differs in a few hundred or a few thousand places belongs to the
+first, whether it is a million lines of a few hundred distinct ones or fifty
+thousand lines of three. A pair of a third of a million nearly-distinct lines
+put back in a different order belongs to the second: its moves run past the
+length of the file, so the frontier is out by orders of magnitude, but almost
 nothing in it matches anything, which is the only cheap thing about it.
 
-The estimate below decides between them. Lives in /tests, which the account
-that runs submitted code cannot read.
+Both engines answer the same question at every position of the walk. The
+number of moves that remain is one part of it and is what every fast diff
+computes. The other part is how many hunks a shortest completion can still be
+done in, and that is a second quantity with its own recurrence: a run of moves
+that is already open extends for nothing, a keep closes it, and a move after a
+keep opens a new one. Only cells that lie on some shortest path can be on the
+answer, so the second quantity is only ever computed there.
+
+Lives in /tests, which the account that runs submitted code cannot read.
 """
 
 from bisect import bisect_left
+from collections import deque
 
 # Microseconds, measured. Only the ratios matter: they separate engines whose
 # costs on this distribution sit orders of magnitude apart.
 _FRONTIER_ENTRY = 0.25
-_ROW_FIXED = 0.09
-_ROW_WORD = 0.0079
-_PAIRS_ELEMENT = 0.70
-_PAIRS_MATCH = 0.75
+_PAIRS_ELEMENT = 1.0
+_PAIRS_MATCH = 1.6
+
+# The frontier keeps every layer, and a layer at depth d has about d entries.
+# Above this depth the layers alone would not fit in the memory the task is
+# graded with, so the frontier is never allowed to run past it.
+_FRONTIER_CAP = 5000
 
 
 def changes(before, after, engine=None):
     n, m = len(before), len(after)
 
     # Comparing small integers is a good deal cheaper than comparing strings,
-    # and every engine spends nearly all of its time on that comparison.
+    # and both engines spend nearly all of their time on that comparison.
     ids = {}
     a = [ids.setdefault(line, len(ids)) for line in before]
     b = [ids.setdefault(line, len(ids)) for line in after]
 
-    row = _row_cost(n, m)
-    pairs = _pairs_cost(a, b, n, m)
-    second = _pairs_engine if pairs < row else _row_engine
-
-    if engine == "row":
-        return _row_engine(a, b, n, m)
     if engine == "pairs":
         return _pairs_engine(a, b, n, m)
-
-    limit = 1 << 30 if engine == "frontier" else _frontier_limit(min(row, pairs))
+    if engine == "frontier":
+        limit = 1 << 30
+    else:
+        limit = _frontier_limit(_pairs_cost(a, b, n, m))
     layers = _layers_from_end(a, b, n, m, limit)
     if layers is None:
-        return second(a, b, n, m)
-    return _walk(a, b, n, m, layers)
-
-
-def _row_cost(n, m):
-    return m * (_ROW_FIXED + _ROW_WORD * (n / 64.0))
+        return _pairs_engine(a, b, n, m)
+    return _frontier_engine(a, b, n, m, layers)
 
 
 def _pairs_cost(a, b, n, m):
     """How many positions match across the two sides, priced. Counting them
-    costs one pass and is worth it: it is the only one of the three costs that
-    cannot be read off the two lengths."""
+    costs one pass and is worth it: it is the one cost that cannot be read off
+    the two lengths."""
     left = {}
     for value in a:
         left[value] = left.get(value, 0) + 1
@@ -89,107 +90,15 @@ def _pairs_cost(a, b, n, m):
 
 
 def _frontier_limit(fallback):
-    """How many moves the frontier is allowed before whichever of the other two
-    is cheaper takes over. Stop it once the work it has already done reaches
-    the whole of what that engine would cost, and the wasted effort is bounded
-    by that same figure."""
-    limit = int((fallback / _FRONTIER_ENTRY) ** 0.5)
-    if limit < 512:
-        return 512
-    if limit > 8192:
-        return 8192
+    """How many moves the frontier is allowed before the pairs engine takes
+    over. Stop it once the work it has already done reaches a quarter of what
+    that engine would cost, and the wasted effort is bounded by that figure."""
+    limit = int((0.25 * fallback / _FRONTIER_ENTRY) ** 0.5)
+    if limit < 1024:
+        return 1024
+    if limit > _FRONTIER_CAP:
+        return _FRONTIER_CAP
     return limit
-
-
-# ------------------------------------------------------------ pairs engine --
-#
-# Thresholds over suffixes: t[k] is the largest j from which the tail of the
-# other side still shares k lines. One pass from the far end maintains it, and
-# it changes only where the two sides match, so the whole history costs the
-# number of matching positions rather than the length of the pair. The walk
-# runs the other way, so every change is journalled as it is made and undone
-# again on the way forward, which is what keeps a single array standing in for
-# all of them.
-
-
-def _pairs_engine(a, b, n, m):
-    if n == 0:
-        return [["+", j] for j in range(m)]
-    if m == 0:
-        return [["-", i] for i in range(n)]
-
-    where = {}
-    for position, value in enumerate(b):
-        seen = where.get(value)
-        if seen is None:
-            where[value] = [position]
-        else:
-            seen.append(position)
-
-    # held[k] is -t[k], so the list ascends and bisect applies directly.
-    held = [-m]
-    journal = [()] * n
-    for i in range(n - 1, -1, -1):
-        positions = where.get(a[i])
-        if not positions:
-            continue
-        marks = []
-        for position in positions:      # ascending, so the slot only moves down
-            value = -position
-            slot = bisect_left(held, value)
-            if slot == len(held):
-                marks.append((slot, None))
-                held.append(value)
-            else:
-                marks.append((slot, held[slot]))
-                held[slot] = value
-        journal[i] = marks
-
-    def undo(marks):
-        for slot, was in reversed(marks):
-            if was is None:
-                held.pop()
-            else:
-                held[slot] = was
-
-    def before_of(marks):
-        out = {}
-        for slot, was in marks:
-            if slot not in out:
-                out[slot] = was
-        return out
-
-    ops = []
-    emit = ops.append
-    remaining = len(held) - 1
-    i = j = 0
-    marks = journal[0]
-    earlier = before_of(marks)
-    while i < n or j < m:
-        if i < n:
-            if remaining in earlier:
-                was = earlier[remaining]
-                reach = None if was is None else -was
-            else:
-                reach = -held[remaining]
-            if reach is not None and reach >= j:
-                emit(["-", i])
-                undo(marks)
-                i += 1
-                marks = journal[i] if i < n else ()
-                earlier = before_of(marks)
-                continue
-        if j < m and remaining < len(held) and -held[remaining] > j:
-            emit(["+", j])
-            j += 1
-            continue
-        undo(marks)
-        i += 1
-        j += 1
-        remaining -= 1
-        marks = journal[i] if i < n else ()
-        earlier = before_of(marks)
-    return ops
 
 
 # ---------------------------------------------------------------- frontier --
@@ -199,8 +108,8 @@ def _layers_from_end(a, b, n, m, limit):
     """layers[d][k] is the smallest i for which position (i, i - k) can reach
     the end of both sequences in d moves. A position on diagonal k is within d
     moves of the end exactly when i is at least that number, which is what
-    makes the lookup in the walk a single comparison. None if the pair needs
-    more than `limit` moves, which is the row engine's cue."""
+    makes every question the walk asks a single comparison. None if the pair
+    needs more than `limit` moves, which is the pairs engine's cue."""
     end = n - m
     i, j = n, m
     while i > 0 and j > 0 and a[i - 1] == b[j - 1]:
@@ -239,139 +148,308 @@ def _layers_from_end(a, b, n, m, limit):
     return None
 
 
-def _walk(a, b, n, m, layers):
-    remaining = len(layers) - 1
-    ops = []
-    i = j = 0
-    while i < n or j < m:
-        if remaining == 0:
-            break
-        below = layers[remaining - 1]
+def _frontier_engine(a, b, n, m, layers):
+    """The layers answer whether a drop or an add at a position still leaves
+    the script shortest. Along a diagonal, each of those answers turns from no
+    to yes at one row and stays yes, so from any position the next cell where
+    either move becomes possible is a lookup, and every cell before it can
+    only be kept through. The hunk counts are computed on those cells alone,
+    two to a cell -- one for arriving inside a run of moves, one for arriving
+    after a keep -- in the order the walk will need them."""
+    total = len(layers) - 1
+    if total == 0:
+        return []
+
+    def advance(i, j, r):
+        """From (i, j) with r moves left: the first cell at or after it on the
+        same diagonal where a drop or an add still leaves the script shortest.
+        Everything between is a keep."""
+        if r == 0:
+            return n, m
+        below = layers[r - 1]
+        k = i - j
+        stop = n
+        reach = below.get(k + 1)
+        if reach is not None and reach - 1 < stop:
+            stop = reach - 1
+        reach = below.get(k - 1)
+        if reach is not None and reach < stop:
+            stop = reach
+        if stop < i:
+            stop = i
+        if stop - i > m - j:
+            stop = i + (m - j)
+        return stop, j + (stop - i)
+
+    def choices(i, j, r):
+        """Which of drop, add, keep still leave the script shortest here."""
+        below = layers[r - 1]
         k = i - j
         reach = below.get(k + 1)
-        if i < n and reach is not None and reach <= i + 1:
-            ops.append(["-", i])
-            i += 1
-            remaining -= 1
-            continue
+        drop = i < n and reach is not None and reach <= i + 1
         reach = below.get(k - 1)
-        if j < m and reach is not None and reach <= i:
-            ops.append(["+", j])
+        add = j < m and reach is not None and reach <= i
+        keep = i < n and j < m and a[i] == b[j]
+        return drop, add, keep
+
+    # Hunks still to be opened from a decision cell, arriving after a keep
+    # (quiet) or inside a run of moves (inrun). A cell that is not a decision
+    # cell is kept through to the next one, so both of its counts are that
+    # cell's quiet count.
+    quiet = {(n, m): 0}
+    inrun = {(n, m): 0}
+
+    def after(i, j, r, open_run):
+        got = quiet.get((i, j))
+        if got is not None:
+            return inrun[(i, j)] if open_run else got
+        return quiet[advance(i, j, r)]
+
+    def settle(i0, j0, r0):
+        """Fill in the counts for every decision cell reachable from (i0, j0)
+        along shortest paths, children before parents."""
+        stack = [(i0, j0, r0, False)]
+        while stack:
+            i, j, r, ready = stack.pop()
+            if (i, j) in quiet:
+                continue
+            drop, add, keep = choices(i, j, r)
+            if not ready:
+                stack.append((i, j, r, True))
+                nexts = []
+                if drop:
+                    nexts.append((i + 1, j, r - 1))
+                if add:
+                    nexts.append((i, j + 1, r - 1))
+                if keep:
+                    nexts.append((i + 1, j + 1, r))
+                for x, y, rr in nexts:
+                    if (x, y) in quiet:
+                        continue
+                    x2, y2 = advance(x, y, rr)
+                    if (x2, y2) not in quiet:
+                        stack.append((x2, y2, rr, False))
+                continue
+            best0 = best1 = 1 << 30
+            if drop:
+                v = after(i + 1, j, r - 1, True)
+                if v < best1:
+                    best1 = v
+                if v + 1 < best0:
+                    best0 = v + 1
+            if add:
+                v = after(i, j + 1, r - 1, True)
+                if v < best1:
+                    best1 = v
+                if v + 1 < best0:
+                    best0 = v + 1
+            if keep:
+                v = after(i + 1, j + 1, r, False)
+                if v < best1:
+                    best1 = v
+                if v < best0:
+                    best0 = v
+            quiet[(i, j)] = best0
+            inrun[(i, j)] = best1
+
+    i, j, r = 0, 0, total
+    i, j = advance(i, j, r)
+    settle(i, j, r)
+
+    ops = []
+    emit = ops.append
+    open_run = False
+    while (i, j) != (n, m):
+        drop, add, keep = choices(i, j, r)
+        want = inrun[(i, j)] if open_run else quiet[(i, j)]
+        cost = 0 if open_run else 1
+        if drop and after(i + 1, j, r - 1, True) + cost == want:
+            emit(["-", i])
+            i += 1
+            r -= 1
+            open_run = True
+        elif add and after(i, j + 1, r - 1, True) + cost == want:
+            emit(["+", j])
             j += 1
-            remaining -= 1
-            continue
-        i += 1
-        j += 1
+            r -= 1
+            open_run = True
+        else:
+            i += 1
+            j += 1
+            open_run = False
+        i2, j2 = advance(i, j, r)
+        if (i2, j2) != (i, j):
+            open_run = False
+            i, j = i2, j2
     return ops
 
 
-# --------------------------------------------------------------- row engine --
+# ------------------------------------------------------------ pairs engine --
 #
-# Rows of the prefix table of the reversed pair, one big integer each. Bit p-1
-# of row q is set when the two prefixes of length p and p-1 share a longest
-# subsequence of the same length, which is exactly the question the rule asks
-# about a drop. The walk reads rows q and q-1 with q falling, so the pass
-# leaves a checkpoint every so often and each block is rebuilt once on the way
-# back rather than all of them being held at once.
+# Thresholds over suffixes, one pass from the far end: it changes only where
+# the two sides match, so it costs the number of matching positions rather
+# than the length of the pair, and it hands every match its rank -- how many
+# keeps a shortest script can still make from it, counting itself. The matches
+# of one rank form a staircase, later in one side meaning earlier in the other,
+# so "the matches of the next rank that lie below and to the right of this one"
+# is a contiguous stretch of the next staircase, and the hunk counts come out
+# of a sliding window over it. The walk never leaves the staircases: each move
+# it considers narrows the stretch it may still land in, and the question is
+# whether a keep with the required count is still inside.
 
-_MASK_BUDGET = 64 << 20
-_BLOCK_BUDGET = 48 << 20
 
-
-def _row_engine(a, b, n, m):
+def _pairs_engine(a, b, n, m):
     if n == 0:
         return [["+", j] for j in range(m)]
     if m == 0:
         return [["-", i] for i in range(n)]
 
-    A = a[::-1]
-    B = b[::-1]
-    nbytes = (n + 7) >> 3
-    full = (1 << n) - 1
-
-    counts = {}
-    for c in A:
-        counts[c] = counts.get(c, 0) + 1
-    hot = sorted(counts, key=counts.__getitem__, reverse=True)
-    hot = set(hot[:max(1, _MASK_BUDGET // max(1, nbytes))])
-    buffers = {c: bytearray(nbytes) for c in hot}
-    spread = {}
-    for i, c in enumerate(A):
-        buf = buffers.get(c)
-        if buf is not None:
-            buf[i >> 3] |= 1 << (i & 7)
+    where = {}
+    for position, value in enumerate(b):
+        seen = where.get(value)
+        if seen is None:
+            where[value] = [position]
         else:
-            lst = spread.get(c)
-            if lst is None:
-                spread[c] = [i]
+            seen.append(position)
+
+    # held[k] is -t[k], so the list ascends and bisect applies directly. The
+    # slot a match lands in is its rank.
+    held = [-m]
+    rows = [None]
+    cols = [None]
+    for i in range(n - 1, -1, -1):
+        positions = where.get(a[i])
+        if not positions:
+            continue
+        for position in positions:      # ascending, so the slot only moves down
+            value = -position
+            slot = bisect_left(held, value)
+            if slot == len(held):
+                held.append(value)
+                rows.append([i])
+                cols.append([position])
             else:
-                lst.append(i)
-    masks = {c: int.from_bytes(bytes(buf), "little")
-             for c, buf in buffers.items()}
+                held[slot] = value
+                rows[slot].append(i)
+                cols[slot].append(position)
+    top = len(held) - 1
+    if top == 0:
+        return [["-", i] for i in range(n)] + [["+", j] for j in range(m)]
 
-    def mask(c):
-        got = masks.get(c)
-        if got is not None:
-            return got
-        lst = spread.get(c)
-        if not lst:
-            return 0
-        buf = bytearray(nbytes)
-        for i in lst:
-            buf[i >> 3] |= 1 << (i & 7)
-        return int.from_bytes(bytes(buf), "little")
+    # Filled with i descending and j ascending within a row; reversed, each
+    # rank runs with i ascending and j never increasing.
+    for rank in range(1, top + 1):
+        rows[rank].reverse()
+        cols[rank].reverse()
 
-    step = max(1, _BLOCK_BUDGET // max(1, nbytes))
-    marks = [full]
-    row = full
-    for q in range(1, m + 1):
-        carry = row & mask(B[q - 1])
-        row = ((row + carry) | (row - carry)) & full
-        if q % step == 0:
-            marks.append(row)
+    # fewest[rank][t]: hunks still to be opened after keeping match t of that
+    # rank. From the last keep, whatever is left is one run of moves or none.
+    fewest = [None] * (top + 1)
+    fewest[1] = [0 if (x + 1 == n and y + 1 == m) else 1
+                 for x, y in zip(rows[1], cols[1])]
+    for rank in range(2, top + 1):
+        ii, jj = rows[rank], cols[rank]
+        pi, pj, pf = rows[rank - 1], cols[rank - 1], fewest[rank - 1]
+        count = len(pi)
+        out = [0] * len(ii)
+        lo = 0                 # first lower-rank match with i' > i
+        hi = 0                 # one past the last with j' > j
+        window = deque()       # indices into the lower rank, counts ascending
+        for t in range(len(ii)):
+            x = ii[t]
+            y = jj[t]
+            while hi < count and pj[hi] > y:
+                f = pf[hi]
+                while window and pf[window[-1]] >= f:
+                    window.pop()
+                window.append(hi)
+                hi += 1
+            while lo < count and pi[lo] <= x:
+                lo += 1
+            while window and window[0] < lo:
+                window.popleft()
+            best = pf[window[0]] + 1
+            # The keep straight after this one continues the run of keeps and
+            # opens nothing.
+            s = bisect_left(pi, x + 1)
+            while s < count and pi[s] == x + 1:
+                if pj[s] == y + 1:
+                    if pf[s] < best:
+                        best = pf[s]
+                    break
+                s += 1
+            out[t] = best
+        fewest[rank] = out
 
-    block_at = -1
-    block = []
-
-    def rebuild(target):
-        start = max(0, (target - 1) // step) * step
-        stop = min(m, start + step)
-        row = marks[start // step]
-        out = [row.to_bytes(nbytes, "little")]
-        for q in range(start + 1, stop + 1):
-            carry = row & mask(B[q - 1])
-            row = ((row + carry) | (row - carry)) & full
-            out.append(row.to_bytes(nbytes, "little"))
-        return start, out
-
-    def bits(q):
-        nonlocal block_at, block
-        if q < block_at or q > block_at + len(block) - 1:
-            block_at, block = rebuild(q)
-        return block[q - block_at]
+    def last_at_least(jj, y):
+        """jj never increases: one past the last index with jj[idx] >= y."""
+        lo, hi = 0, len(jj)
+        while lo < hi:
+            mid = (lo + hi) >> 1
+            if jj[mid] >= y:
+                lo = mid + 1
+            else:
+                hi = mid
+        return lo
 
     ops = []
     emit = ops.append
-    p, q = n, m
-    here = bits(m)
-    under = bits(m - 1) if m else None
-    while p > 0 or q > 0:
-        if p > 0:
-            t = p - 1
-            if (here[t >> 3] >> (t & 7)) & 1:
-                emit(["-", n - p])
-                p -= 1
-                continue
-        if q > 0:
-            t = p - 1
-            if p > 0 and A[t] == B[q - 1] and (under[t >> 3] >> (t & 7)) & 1:
-                p -= 1
+    x = y = 0
+    rank = top
+    open_run = False
+
+    # The count the walk must realise from the start: a keep at the origin if
+    # there is one, otherwise a run opened before the first keep.
+    ff = fewest[top]
+    target = min(ff) + 1
+    ii, jj = rows[top], cols[top]
+    for t in range(len(ii)):
+        if ii[t] == 0 and jj[t] == 0:
+            if ff[t] < target:
+                target = ff[t]
+            break
+
+    while rank > 0:
+        ii, jj, ff = rows[rank], cols[rank], fewest[rank]
+        by_count = {}
+        for t, f in enumerate(ff):
+            lst = by_count.get(f)
+            if lst is None:
+                by_count[f] = [t]
             else:
-                emit(["+", m - q])
-            q -= 1
-            here = under
-            under = bits(q - 1) if q else None
-        else:
-            emit(["-", n - p])
-            p -= 1
+                lst.append(t)
+
+        def reachable(x, y, wanted):
+            """Is a keep of this rank with the wanted count at or after
+            (x, y) on both sides?"""
+            lst = by_count.get(wanted)
+            if not lst:
+                return False
+            lo = bisect_left(ii, x)
+            hi = last_at_least(jj, y)
+            p = bisect_left(lst, lo)
+            return p < len(lst) and lst[p] < hi
+
+        while True:
+            wanted = target if open_run else target - 1
+            if x < n and reachable(x + 1, y, wanted):
+                emit(["-", x])
+                x += 1
+            elif y < m and reachable(x, y + 1, wanted):
+                emit(["+", y])
+                y += 1
+            else:
+                break
+            open_run = True
+            target = wanted
+        # Nothing shortest and as cheap in hunks starts with a move here, so
+        # this is a keep, and the count it carries is the target.
+        x += 1
+        y += 1
+        open_run = False
+        rank -= 1
+    for i in range(x, n):
+        emit(["-", i])
+    for j in range(y, m):
+        emit(["+", j])
     return ops

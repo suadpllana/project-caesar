@@ -9,159 +9,137 @@ author_email = "forgeks0@gmail.com"
 category = "Software"
 subcategory = "Algorithms"
 tags = ["diff", "edit-script", "sequence-alignment", "tie-breaking", "python"]
-expert_time_estimate_hours = 18
+expert_time_estimate_hours = 24
 difficulty_explanation = """
 Two sequences usually admit several scripts of the same shortest length, and \
 they disagree about which lines survive. Every tool that exists resolves that \
 disagreement its own way, and none of them resolves it the way this task \
-specifies, so the habitual self-check is a wrong answer generator. Measured \
-against the graded distribution: handing the work to the standard library's \
-sequence matcher gets 11019 of the 12000 random pairs wrong and 26271 of the \
-40804 enumerated ones. The textbook shortest-script search, which takes every \
-match as far as it will go, gets 10914 of 12000 wrong on its own. The repair \
-that follows from noticing this -- keep the fast search and slide each run of \
-changes to the earliest position it will sit, which is what a diff tool's \
-hunk-shifting pass does -- is measured in that same 10914, because the rule \
-picks a different set of surviving lines rather than a different placement of \
-the same ones, and sliding never changes which lines survive. It is also wrong \
-on all twelve of the large cases in the two families that repeat a line every few hundred, and on twenty-seven of the thirty crossings of the remaining six with five different run seeds. What makes this hold up rather than being \
-noticed in the first ten minutes is the other half of the measurement: on \
-sequences of distinct lines with a few edits, which is what a person writes \
-out by hand to check themselves, all three of those approaches agree with the \
-rule on 100 percent of cases. The disagreement lives where lines repeat, and \
-the graded distribution is built from two to six distinct lines for exactly \
-that reason, with a further block that crosses every short shape against every \
-other short shape because a random draw of short sequences almost never lands \
-on the pair where two shortest scripts differ. Stripping the shared head and \
-tail before starting, which every diff implementation does and which is \
-unsound here because the rule will drop a line that matches, is worth 3061 \
-wrong answers out of 12000 and 10114 out of 40804 on its own.
+specifies. The rule here has three tiers -- fewest moves, then fewest hunks, \
+then a reading order -- and the second tier is the one that separates a \
+correct submission from an expert one, because it is a different quantity \
+from the one every fast diff technique computes. Measured against the graded \
+distribution: handing the work to the standard library's sequence matcher \
+gets 10130 of the 12000 random pairs wrong and 20243 of the 40804 enumerated \
+ones. A submission that solves the first and third tiers exactly -- three \
+exact engines, correct crossovers, every tie inside them derived rather than \
+recalled, which is what the previous version of this task graded and what \
+three probe agents built in three hours -- is wrong on 8601 of the 12000 \
+random pairs and 9885 of the 40804 enumerated ones, and on every large pair, \
+because putting each drop as early as it will go is exactly what splits one \
+hunk into two. The repair that follows from noticing this is the one every \
+diff tool carries: keep the fast engines and slide each run of changes \
+through the equal lines around it until it meets the next run. That moves \
+13547 of the enumerated answers and is still wrong on 6352 of them, because \
+sliding never changes which lines survive and the fewest-hunk script often \
+keeps a different set, and where it does reach the right count it leaves the \
+runs at the far end of their slack, which is where the reading order says not \
+to put them. Reading a hunk the way a diff prints one, with the minus lines \
+and the plus lines as two blocks, is wrong on 10436 of the enumerated pairs. \
+What makes this hold up rather than being noticed in the first ten minutes is \
+the other half of the measurement: on sequences of distinct lines with a few \
+edits, which is what a person writes out by hand to check themselves, all of \
+those approaches agree with the rule on 100 percent of cases. The \
+disagreement lives where lines repeat, and the graded distribution is built \
+from two to six distinct lines for exactly that reason, with a further block \
+that crosses every short shape against every other short shape because a \
+random draw of short sequences almost never lands on the pair where two \
+shortest scripts differ.
 
-The second hill is cost, it is independent of the first, and it is three \
-hills rather than one. The implementation the specification invites is the \
-table of how many moves remain from every position, walked from the start; it \
-is completely correct, it passes all 52858 short cases, and it is dead \
-everywhere else. The definitional model that grades those short cases is \
-exactly that implementation, and it cannot finish a single one of the eighteen \
-timed pairs inside fifteen seconds. Measured, that variant scores zero while \
-passing every correctness block, which is the whole point of it.
+The second hill is cost. The implementation the specification invites is a \
+table of the best (moves, hunks) pair reachable from every position in each \
+of two states, walked from the start; it is completely correct, it passes all \
+52865 short cases, and it is dead everywhere else. It is the definitional \
+model that grades those short cases, and it cannot finish the four hundred \
+medium pairs inside their budget, let alone one of the eighteen timed pairs. \
+The number of moves that remain from a position is what a frontier, a \
+bit-parallel row or a threshold array delivers, and it is not enough on its \
+own: the hunk count needs its own recurrence, and that recurrence is only \
+affordable because it need only be evaluated on cells that lie on some \
+shortest path, which the frontier can name. Finding that restriction is the \
+first derivation, and it answers two of the three timed families: six pairs \
+of four hundred thousand to a million lines that differ in a few hundred \
+places, where the shortest-path cells are about one per line, and six of \
+forty to sixty thousand lines over two to six distinct ones that differ in a \
+few thousand places, where the moves run to four thousand and the frontier is \
+millions of entries deep. A submission carrying that, and nothing else, \
+passes every correctness block and twelve of the eighteen timed pairs, and \
+scores zero.
 
-What defeats the escapes from it is that the eighteen timed pairs come from \
-three families whose costs are independent of one another, and each family is \
-hopeless for whatever answers either of the others. Six pairs run from four \
-hundred thousand to a million lines a side and differ in a few hundred places. \
-Six are forty to sixty thousand lines a side over a handful of distinct lines, \
-sharing no order worth the name, where the answer runs to between fifteen and \
-sixty-one thousand moves. Six more are a quarter to a third of a million lines \
-drawn from a pool of sixty-five to a hundred and twenty thousand, also sharing \
-no order, where the answer runs past four hundred thousand moves.
-
-The frontier that keeps every layer -- the escape the rule itself suggests, \
-since it turns the question the rule asks into a single lookup -- answers a \
-million-line pair in 0.24 seconds and needs 94 seconds for the smallest of the \
-second family and about 1550 for the largest, because it costs the square of \
-the number of moves. On the third family it is out by five orders of \
-magnitude. Packing whole rows of the table into single integers and reading \
-them back a bit at a time is the second escape and the mirror image: about a \
-second on any pair in the second family, 252 seconds on the long ones, and 41 \
-seconds measured on the smallest pair of the third family on the two cores the \
-task is graded with, because it costs the length of the pair times its width in \
-machine words. Restricting the rows to a diagonal band rescues it on the long \
-family and does nothing for either of the others, where the band is the width \
-of the file. What is left is that \
-on the third family almost nothing matches anything: half a million to one and \
-a half million positions match across the two sides, against the ninety \
-billion the length implies, where that same count runs from 250 million to 50 \
-billion on the first two families. Each of the three engines alone passes \
-every correctness block in the task, all 53258 cases of it, and each of them \
-alone scores zero.
-
-The measurement that matters most is the one for two of them together. A \
-submission carrying the frontier and the row engine, with the tie-break read \
-correctly and the crossover between them computed rather than guessed, is this \
-task solved except for one thing: it passes all 53258 correctness cases and \
-twelve of the eighteen timed pairs, and it scores zero. Nothing about either \
-engine is wrong. There is a third place to be, and no pair small enough to \
-check against a slow model is anywhere near it. That is also where the first \
-hill comes back, because the third engine has to be walked the way the rule \
-says rather than the way every account of that algorithm walks it: recovering \
-the alignment by taking a line whenever taking it still leaves the script \
-shortest is what those accounts describe, and it gives a different script of \
-exactly the right length. That error is unreachable from any pair under a \
-quarter of a million lines, since on anything smaller one of the other two \
-engines is cheaper and gets used instead. Measured as a submission, its third \
-engine disagrees with the rule on 22173 of the 40858 fixed and enumerated \
-cases, it never sees one of them, every short block passes, and it scores zero \
-on the large pairs it does see. None of the three can be skipped, there is no \
-credit for any two of them, and the third is only visible once the first two \
-are already built.
+The six it cannot answer are a quarter to a third of a million lines drawn \
+from a pool of sixty-five to a hundred and twenty thousand, put back in a \
+different order, where the answer runs past four hundred thousand moves. The \
+frontier is out by orders of magnitude on them. So is every way of listing \
+the shortest-path cells: between one kept line and the next, every monotone \
+path through the rectangle between them is a shortest path, so the cells to \
+visit are the areas of those rectangles rather than anything proportional to \
+the input. The one cheap thing about such a pair is that almost nothing in it \
+matches anything, half a million to one and a half million positions against \
+the ninety billion the length implies. Thresholds over suffixes give every \
+match the number of keeps a shortest script can still make from it; the \
+matches sharing that number form a staircase; and the hunk recurrence has to \
+be restated over the staircases alone, with the walk never leaving them. \
+That second derivation is only visible once the first is already built, and \
+no pair small enough to check against the table looks anything like the \
+pairs that need it. Each engine alone passes every correctness block in the \
+task, and each alone scores zero.
 """
 solution_explanation = """
-The awkward part is that the choice at each position depends on what is still \
-reachable from the position you would land on, which is a property of the rest \
-of the input, not of anything nearby. A table of remaining move counts answers \
-it directly and costs the product of the two lengths, which is what has to be \
-avoided.
+The awkward part is that the choice at each position depends on two things \
+that are still reachable from the position you would land on: how many moves, \
+and in how few hunks. The first is a property of the rest of the input and \
+every fast diff computes it. The second has its own recurrence -- a run of \
+moves that is already open extends for nothing, a keep closes it, and a move \
+after a keep opens a new one -- so a cell carries two counts, one for arriving \
+inside a run and one for arriving after a keep. A table of both over every \
+cell answers everything and costs the product of the two lengths, which is \
+what has to be avoided.
 
 So compute the frontier instead, and run it from the far end. Layer d records, \
 for each difference between the two indices, the earliest position from which \
 both sequences can be finished off in d moves; each layer comes from the one \
 below it by stepping to a neighbouring difference and then sliding back over \
-equal lines. Keep every layer rather than the last one, which costs the square \
-of the number of moves. Then walk forward from the start with a running count \
-of moves still allowed, and at each step read the layer one below that count: \
-a neighbour is still on a shortest path exactly when its recorded position is \
-at or before where the walk stands. Ask about the drop first, the add second, \
-take the keep otherwise, and the walk is linear.
+equal lines. Keep every layer, which costs the square of the number of moves. \
+Now a neighbour is still on a shortest path exactly when its recorded position \
+is at or before where the walk stands, and along a diagonal that answer turns \
+from no to yes at one row and stays yes. So from any position the next cell \
+where a drop or an add becomes possible is one lookup, every cell before it can \
+only be kept through, and the hunk counts need computing only at those \
+decision cells, children before parents, reached from the start along \
+shortest paths. The walk then asks about the drop first, the add second, and \
+takes the keep otherwise, comparing the count a move would leave against the \
+count the cell carries for the state the walk arrived in. That is the whole \
+answer for the long pairs and the crowded ones, and no answer at all for the \
+reordered ones, where the number of moves is past the length of the file.
 
-That is the whole answer for the long pairs and no answer at all for the \
-crossed ones, where the number of moves is a third of the file and its square \
-is half an hour of work. Those need the other shape of algorithm: rows of the \
-prefix table of the reversed pair, one row to a machine integer, advanced by \
-the five-operation bit-parallel step, in the encoding where the bit the walk \
-reads is exactly the drop question. That costs the length of the pair times \
-its width in words and does not care how many moves come out, which is why it \
-takes about a second on a pair the frontier cannot finish -- and four minutes \
-on a million-line pair the frontier does in a quarter of a second.
-
-Both are quadratic in the length once a pair is long and shuffled at the same \
-time. A third of a million nearly-distinct lines put back in a different order \
-needs around half a million moves, which is five orders of magnitude past the \
-frontier, and it is getting on for three times too long for the row engine, \
-which needs forty-one seconds on the shortest pair of that family against the \
-fifteen a pair is allowed. The one cheap thing about such a pair is that almost \
-nothing in it matches anything, so the third \
-engine is thresholds over suffixes: hold, for each k, the largest j from which \
-the tail of the other side still shares k lines. One pass from the far end \
-maintains that array and it only changes where the two sides match, so the \
-whole history costs the number of matching positions rather than the length of \
-the pair, and the drop question is one comparison against the array as it \
-stood a line earlier. The array is built from the far end and read from the \
-near end, so every change is journalled as it is made and undone again on the \
-way forward, which is what lets one array stand in for all n of them inside \
-the space of the journal. Recovering the alignment the way the standard \
-account of that algorithm recovers it gives a shortest script and the wrong \
-one, and nothing smaller than a quarter of a million lines ever reaches this \
-engine, so that error cannot be caught against the slow model.
+Those need the other shape of algorithm. Almost nothing in such a pair matches \
+anything, so hold thresholds over suffixes: for each k, the largest j from \
+which the tail of the other side still shares k lines. One pass from the far \
+end maintains that array, it only changes where the two sides match, and the \
+slot a match lands in is its rank, the number of keeps a shortest script can \
+still make from it. The matches of one rank form a staircase, later in one \
+side meaning earlier in the other, so the matches of the next rank that a \
+given one can still reach are one contiguous stretch of the next staircase, \
+and the hunk count of every match falls out of a single sliding window over \
+that stretch, plus a check for the match diagonally adjacent, which continues \
+a run of keeps and opens nothing. The walk never leaves the staircases: each \
+drop or add it considers narrows the stretch it can still land in, and the \
+question at every step is whether a keep carrying the required count is still \
+inside, which is two bisections. The whole thing costs the number of matching \
+positions.
 
 So run the frontier and abandon it, layers and all, once the pair turns out to \
-need more moves than whichever of the other two would have cost less from the \
-start. Two of the three costs are read off the two lengths; the third has to \
-be counted, and that pass pays for itself many times over. The crossovers move \
-with the length, the number of moves and the number of matching positions \
-independently, so they are worth computing rather than guessing, and the \
+need more moves than the thresholds would have cost from the start. That \
+figure has to be counted, and the pass that counts it pays for itself; the \
 wasted work is bounded by the cost of the engine that then runs.
 
-Three details are load-bearing. The layers are produced in rising order and \
-consumed in falling order, so streaming them does not work. The row engine's \
-walk reads its rows in falling order too, so the forward pass leaves a \
-checkpoint every so often and each block is rebuilt behind the walk rather \
-than every row being held at once, which is the difference between 150 \
-megabytes and several gigabytes. And the usual first optimisation, cutting the \
-shared head and tail off before starting, changes the answer here, because a \
-drop is preferred over a keep whenever both leave the script shortest -- so \
-the first move is not always a keep even when the two sequences begin with the \
-same line.
+Two details are load-bearing. The usual first optimisation, cutting the shared \
+head and tail off before starting, changes the answer here, because a drop is \
+preferred over a keep whenever both leave the script shortest and as cheap in \
+hunks -- so the first move is not always a keep even when the two sequences \
+begin with the same line. And a single hunk count per cell is not enough: the \
+count a cell can promise depends on whether the walk arrives inside a run or \
+after a keep, and it is the pair of them that makes the walk's choice at every \
+decision cell a comparison rather than a search.
 """
 verification_explanation = """
 Three processes, laid out so that whatever the submitted code can touch has no \
@@ -179,18 +157,19 @@ grader asserts that no submitted module appears in its own loaded modules, and \
 takes the number of cases and the identity of every case from the test package \
 and the run seed rather than from the report, so a figure the child could have \
 influenced is never treated as evidence. Answers for the short blocks are \
-computed from a definitional model that builds the whole table and walks it, \
-so the truth comes from the rule rather than from a second attempt at the \
-efficient algorithm. That model cannot run on a sixty thousand line pair, so \
-the larger blocks are graded against the fast implementation instead, and a \
-test asserts the two agree on all 40858 fixed and enumerated cases before any \
-of those answers count. The fast implementation carries three engines and the \
-agreement test covers all of them: each is forced on in turn and held to the \
-definitional model on all 40858 fixed and enumerated cases by itself, because \
-a hybrid that is only ever exercised on one side of its own crossover is a \
-hybrid whose other sides are untested. Two of the three are never reached by \
-any pair small enough for the definitional model to run on, so forcing them is \
-the only thing anywhere that looks at them.
+computed from a definitional model that builds the whole table of (moves, \
+hunks) pairs and walks it, so the truth comes from the rule rather than from a \
+second attempt at the efficient algorithm; and that model is itself held to \
+the rule by exhaustion, on 15252 pairs short enough to enumerate every script \
+they admit, before anything is graded against it. The model cannot run on a \
+fifty thousand line pair, so the larger blocks are graded against the fast \
+implementation instead, and a test asserts the two agree on all 40865 fixed \
+and enumerated cases before any of those answers count. The fast \
+implementation carries two engines and the agreement test covers both: each \
+is forced on in turn and held to the definitional model on all 40865 cases by \
+itself, because a hybrid that is only ever exercised on one side of its own \
+crossover is a hybrid whose other side is untested, and one of the two is \
+never reached by any pair small enough for the model to run on.
 
 Part of the distribution moves each run: the twelve thousand random pairs, the \
 four hundred medium ones and all eighteen large ones come from a seed drawn by \
@@ -211,27 +190,39 @@ it. The always-equal return died at the pipe: the child flattens whatever came \
 back to plain strings and integers and serialises it, so a comparison that \
 always agrees never reaches the comparison. Also measured, each one run \
 through the whole verifier as a submission: delegating to the standard \
-library's sequence matcher scores zero, wrong on 11019 of 12000 random pairs \
-and 26271 of 40804 enumerated ones and past its budget on the large cases; \
-the correct table implementation scores zero on time while passing every \
-short case; each of the three engines alone scores zero on the timed block \
-while passing all 53258 correctness cases, each dying on the two families it \
-does not answer; and doing nothing at all scores zero.
+library's sequence matcher scores zero, wrong on 10130 of 12000 random pairs \
+and 20243 of 40804 enumerated ones; the correct table implementation scores \
+zero on time while passing every short case; and doing nothing at all scores \
+zero.
 
-Two more submissions were built against the shape of the task rather than \
+Four more submissions were built against the shape of the task rather than \
 against the verifier, because a stopping point that passes everything a person \
 would think to test is worth more than another attack on the reward file. The \
-first carries the frontier and the row engine and nothing else, which is every \
-part of this task except one: it passes all 53258 correctness cases and twelve \
-of the eighteen timed pairs, and it scores zero on the six where a pair is \
-long and shuffled at the same time. The second carries all three engines and \
-recovers the alignment inside the third one the way the standard account of \
-that algorithm recovers it, which is a shortest script and not this one. It is \
-inside every budget, its answers carry the right number of moves, and it \
-scores zero. That second one is why the agreement test forces each engine \
-separately: the engine it gets wrong is unreachable from every input the \
-definitional model can grade, so nothing except forcing it would have caught \
-it.
+first is the complete answer to the previous version of this task, three \
+exact engines with every tie inside them derived, which solves the first and \
+third tiers of the rule and is wrong on the second: 8601 of 12000 random pairs \
+and 9885 of 40804 enumerated ones, inside every budget. The second is that \
+submission with the hunk-sliding pass every diff tool carries bolted on \
+afterwards, wrong on 7263 and 6352. The third reads a hunk the way a diff \
+prints one, minus lines and plus lines as two blocks, wrong on 4696 and 10436. \
+The fourth finds the shortest-path restriction and evaluates the hunk \
+recurrence at every such cell: it passes every correctness block and twelve of \
+the eighteen timed pairs, and never answers the six reordered ones, because \
+the cells between one match and the next are whole rectangles there. An \
+alternative correct implementation is kept beside them and must score 1: the \
+same per-cell recurrence with the thresholds engine behind it, which is what a \
+solver who has found the restriction writes first, and it clears every budget, \
+which is what makes the budgets fair.
+
+Budgets were measured in the real two-image trial at the declared two cores \
+and four gigabytes, on a sandbox whose speed was seen to drift by a factor of \
+three to four within one session, so they are set from the slowest state \
+observed rather than the fastest: the reference spends between six and \
+twenty-one seconds on the dearest pair depending on that state, against \
+sixty, and the medium block between three and fourteen against forty. \
+Nothing the timings separate is near either line: the table and the per-cell \
+submission are out by orders of magnitude, and the alternative correct \
+implementation kept beside the cheats clears both with room to spare.
 """
 relevant_experience = """
 Front-end is what I get paid for, about three years of it, React and Vue on \
@@ -243,7 +234,11 @@ is where it goes wrong. Line numbers are not stable identity. Two backends \
 that both produce a shortest script can hand you different surviving lines for \
 the same pair of files, and anything pinned to a position moves when the \
 backend does. That is why this task pins a single answer and grades the moves \
-and their order exactly, rather than grading a diff by how it looks.
+and their order exactly, rather than grading a diff by how it looks. The hunk \
+tier is the other half of the same scar: a review tool that shows one change \
+as three little runs is a tool people stop trusting, and every diff library I \
+have used papers over that with a sliding pass after the fact rather than \
+asking for the fewest hunks in the first place.
 
 The performance half comes from a scar I have written about before. \
 Virtualised lists: I had a version that recomputed row positions by walking \

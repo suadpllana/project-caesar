@@ -20,11 +20,12 @@ sys.path.insert(0, str(TASK / "tests"))
 
 import gen  # noqa: E402
 import harness  # noqa: E402
+import oracle  # noqa: E402
 import scen  # noqa: E402
 
 
 def split(a, b):
-    rows = a["log"] != b["log"]
+    rows = oracle.rounds([list(x) for x in a["log"]]) != oracle.rounds([list(x) for x in b["log"]])
     sheet = a["sheet"] != b["sheet"]
     return rows, sheet
 

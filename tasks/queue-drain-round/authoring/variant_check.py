@@ -18,7 +18,12 @@ sys.path.insert(0, str(TASK / "tests"))
 
 import gen  # noqa: E402
 import harness  # noqa: E402
+import oracle  # noqa: E402
 import scen  # noqa: E402
+
+
+def _shape(r):
+    return (r["err"], oracle.rounds([list(x) for x in r["log"]]), r["sheet"])
 
 
 def main(argv):
@@ -34,7 +39,7 @@ def main(argv):
         t = harness.stage(None, d)
         got = harness.drive(t, streams)
         shutil.rmtree(t, ignore_errors=True)
-        off = [n for n, _ in streams if got[n] != want[n]]
+        off = [n for n, _ in streams if _shape(got[n]) != _shape(want[n])]
         print("%-24s %s" % (d.name, "agrees on all %d" % len(streams) if not off
                             else "DISAGREES on %d, first %s" % (len(off), off[0])))
         bad += bool(off)

@@ -484,6 +484,28 @@ in under it without tampering, because the counted calls sit in frozen code the 
 runs. The general question to ask of any attestation: *is the number on the left of this
 comparison the same kind of thing as the number on the right?*
 
+### A record is a sequence, and how a submission chops its calls is not part of it
+
+Caught by the "which sentence decides this" walk after everything else was green, and it is the
+run-audit class in its purest form. The book writes one row per obligation it moves, in its own
+member order, and the grader compared the whole row list as a sequence. A correct submission
+that hands the book its round in several motions instead of one - same settlement, same money,
+same end state - lays those rows down in a different order. **Measured: it disagreed on 136 of
+153 streams.** Nothing in the brief says how many times you may call the book, and grading it
+fails a right answer for an arrangement of the code.
+
+The fix is to canonicalise before comparing rather than to drop the axis: the record is split
+into rounds at each close, and inside a round the obligations moved are compared as a set while
+the ones given up on stay a sequence, because oldest-first is a stated rule and the giving-up
+order is forced. `tests/oracle.py:rounds` is the single copy, used by the grader and by every
+authoring script, and `authoring/variants/ok-move-in-parts` is the reference splitting its calls
+and walking the members backwards, required to score 1. No cheat weakened: all 29 still score 0.
+
+**The question to ask of any ordered graded artifact: which parts of this order do the rules
+force, and which parts are just the order the submission happened to call in?** Grade the first,
+canonicalise the second. A verifier that compares a whole trace verbatim is asserting that every
+position in it is forced, and that is almost never true.
+
 ### Two preflight quirks that cost time and are free to avoid
 
 - **`field_value` in `scripts/preflight.py` returns the first line containing the needle**, so

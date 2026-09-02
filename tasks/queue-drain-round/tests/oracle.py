@@ -128,3 +128,29 @@ def play(text):
         for n in who:
             log.append(("hold", n, hold[n]))
     return {"log": log, "sheet": dict((i, fate[i]) for i in sorted(fate))}
+
+
+def rounds(rows):
+    """Split a record into rounds, and settle what inside one is ordered and what is not.
+
+    A round records what it moved, what it gave up on, and what every member held when it
+    closed. WHICH obligations moved is forced by the rules; the order they are written in
+    within one round is not, because a submission may hand the book its round in one motion or
+    in several and arrive at the same round either way. The giving-up is ordered, since oldest
+    first is a rule, so that sequence is kept exactly. Grading the moved rows as a sequence
+    would fail a correct implementation for choosing to split a call, which is what the
+    reward-hacking audit means by grading an arrangement of the code.
+    """
+    out = []
+    paid, gone, hold = [], [], []
+    for r in rows:
+        if r[0] == "hold":
+            hold.append(list(r))
+            continue
+        if hold:
+            out.append([sorted(paid), gone, hold])
+            paid, gone, hold = [], [], []
+        (paid if r[0] == "paid" else gone).append(list(r))
+    if paid or gone or hold:
+        out.append([sorted(paid), gone, hold])
+    return out

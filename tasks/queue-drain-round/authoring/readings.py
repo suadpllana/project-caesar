@@ -130,11 +130,16 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 import gen  # noqa: E402
 import harness  # noqa: E402
+import oracle  # noqa: E402
 import scen  # noqa: E402
 
 
 def run(policy, text):
-    return harness.run(policy, text)
+    """The canonical form the verifier compares, so a reading is only called separated when
+    the grader would actually fail it - not when it merely wrote the same round down in a
+    different order."""
+    r = harness.run(policy, text)
+    return (oracle.rounds([list(x) for x in r["log"]]), r["sheet"])
 
 
 def enumerated():

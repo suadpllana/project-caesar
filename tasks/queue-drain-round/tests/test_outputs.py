@@ -119,7 +119,7 @@ def wanted():
 
 def _norm(d):
     return {
-        "rows": [list(r) for r in d["rows"]],
+        "rows": oracle.rounds([list(r) for r in d["rows"]]),
         "sheet": {k: list(v) for k, v in d["sheet"].items()},
     }
 
@@ -127,7 +127,7 @@ def _norm(d):
 def _from_oracle(text):
     r = oracle.play(text)
     return {
-        "rows": [list(x) for x in r["log"]],
+        "rows": oracle.rounds([list(x) for x in r["log"]]),
         "sheet": {k: [v[0], v[1]] for k, v in r["sheet"].items()},
     }
 
@@ -144,7 +144,7 @@ def test_the_second_reading_reproduces_the_ground_truth(wanted):
     seen = 0
     for name, text in scen.STREAMS:
         got = _from_oracle(text)
-        assert got == gt[name], "the sealed model and gt.json disagree on %s" % name
+        assert got == _norm(gt[name]), "the sealed model and gt.json disagree on %s" % name
         seen += 1
     assert seen == len(scen.STREAMS)
 
@@ -154,7 +154,7 @@ def test_every_enumerated_stream_matches(report):
     seen = 0
     for name, _text in scen.STREAMS:
         assert name in report["runs"], "no result for %s" % name
-        assert _norm(report["runs"][name]) == gt[name], "the book disagrees on %s" % name
+        assert _norm(report["runs"][name]) == _norm(gt[name]), "the book disagrees on %s" % name
         seen += 1
     assert seen == len(scen.STREAMS) > 0
 

@@ -37,7 +37,7 @@ def main():
         got = harness.run(str(ROOT / "solution"), text)
         want = shaped(text)
         live = {"rows": [list(x) for x in got["log"]], "sheet": {k: [v[0], v[1]] for k, v in got["sheet"].items()}}
-        if live != want:
+        if oracle.rounds(live["rows"]) != oracle.rounds(want["rows"]) or live["sheet"] != want["sheet"]:
             print("the reference and the model disagree on %s; nothing written" % name)
             return 1
         out[name] = want

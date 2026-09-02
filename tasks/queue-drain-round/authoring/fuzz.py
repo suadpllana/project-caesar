@@ -73,13 +73,14 @@ def small(rounds, seed=5):
 def streams(n, seed="a17c0ffee"):
     bad = 0
     for tag, text in gen.batch(seed, n):
-        if harness.run(str(ROOT / "solution"), text) != _shape(oracle.play(text)):
+        got = harness.run(str(ROOT / "solution"), text)
+        if _shape({"log": got["log"], "sheet": got["sheet"]}) != _shape(oracle.play(text)):
             bad += 1
     return bad
 
 
 def _shape(r):
-    return {"log": [tuple(x) for x in r["log"]], "sheet": r["sheet"]}
+    return {"log": oracle.rounds([list(x) for x in r["log"]]), "sheet": r["sheet"]}
 
 
 def main():

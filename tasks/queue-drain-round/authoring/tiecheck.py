@@ -23,6 +23,7 @@ sys.path.insert(0, str(TASK / "tests"))
 
 import gen  # noqa: E402
 import harness  # noqa: E402
+import oracle  # noqa: E402
 import scen  # noqa: E402
 
 FLIP = {c: chr(ord("z") - (ord(c) - ord("a"))) for c in "abcdefghijklmnopqrstuvwxyz"}
@@ -64,8 +65,9 @@ def main(argv):
     for name, text in streams:
         plain = harness.one(ref, text)
         flipped = harness.one(ref, rename(text))
-        if mapped({"log": [list(x) for x in plain["log"]], "sheet": plain["sheet"]}) != \
-           {"log": [list(x) for x in flipped["log"]], "sheet": flipped["sheet"]}:
+        a = mapped({"log": [list(x) for x in plain["log"]], "sheet": plain["sheet"]})
+        b = {"log": [list(x) for x in flipped["log"]], "sheet": flipped["sheet"]}
+        if oracle.rounds(a["log"]) != oracle.rounds(b["log"]) or a["sheet"] != b["sheet"]:
             bad.append(name)
     shutil.rmtree(ref, ignore_errors=True)
     print("renaming every member and obligation: %d of %d streams moved" % (len(bad), len(streams)))

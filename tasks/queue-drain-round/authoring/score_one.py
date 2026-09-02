@@ -27,7 +27,9 @@ def bad(tree, streams):
     for name, text in streams:
         want = oracle.play(text)
         g = got[name]
-        if g["err"] or [list(x) for x in g["log"]] != [list(x) for x in want["log"]] or g["sheet"] != want["sheet"]:
+        if (g["err"]
+                or oracle.rounds([list(x) for x in g["log"]]) != oracle.rounds([list(x) for x in want["log"]])
+                or g["sheet"] != want["sheet"]):
             out.append(name)
     return out
 

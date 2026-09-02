@@ -37,10 +37,14 @@ payments are simultaneous.
 
 ## Contract, frozen before the environment was written
 
-Graded, exactly: the ordered rows the book records (paid, gone, and every member's holding at
-each round close) and the sheet (per obligation: paid, gone or open, plus the tick). Both are
-produced in `house/bk.py`, which is not editable. Not graded: how many times a round asks for
-a plan, how many turns its loop takes, what it caches, which data structures it holds.
+Graded, exactly: the record the book keeps, split into rounds at each close - inside a round the
+obligations moved are a set and the ones given up on are a sequence, because oldest-first is a
+stated rule and nothing decides how many times a submission calls the book - plus every member's
+holding at each close, plus the sheet (per obligation: paid, gone or open, and the tick). Both
+are produced in `house/bk.py`, which is not editable. `tests/oracle.py:rounds` is the single copy
+of that canonicalisation. Not graded: how many times a round asks for a plan, how many turns its
+loop takes, how it partitions its calls to the book, what it caches, which data structures it
+holds.
 
 Artifacts: `/app/house/drn.py`, `/app/house/gvp.py`, `/app/house/rnd.py`, `/app/house/due.py`.
 `due.py` needs no change and that is deliberate.
@@ -54,10 +58,15 @@ Artifacts: `/app/house/drn.py`, `/app/house/gvp.py`, `/app/house/rnd.py`, `/app/
 - Reference against the sealed model: 0 disagreements on 400 generated streams; both agree
   with an exhaustive search over depth vectors on 600 small rounds, which also proves the
   largest standing-up answer is unique.
-- Six alternative correct implementations agree row for row on 183 streams.
+- Seven alternative correct implementations agree on 153 streams, among them one that hands the
+  book its round in several motions and walks the members backwards. Graded as a raw row
+  sequence that one disagreed on 136 of 153, which is the run-audit exposure the per-round
+  comparison closes.
 - Renaming every member and obligation moves nothing on 233 streams.
 - Two-image trial: oracle 1, nop 0, 29 cheats 0.
 
 ## Gates not run
 
-The three-agent easiness probe has not been run on this task. Run it before submitting.
+Whatever the handover says about the three-agent probe is the truth; do not assume it ran. The
+account session limit killed all three agents mid-read on the first attempt, which is the third
+time that has happened in this repo. An absent probe result is not a result.

@@ -1,0 +1,216 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/house/drn.py",
+  "/app/house/gvp.py",
+  "/app/house/rnd.py",
+  "/app/house/due.py",
+]
+
+[task]
+name = "afterquery/queue-drain-round"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working clearing house whose rounds are wrong, and the wrongness is coherent
+rather than broken: it is the shape of a settlement written as a pipeline - work out what
+each party can afford, move that, give up on whatever is still sitting there. That is the
+shape anybody writes first, it is the shape a frontier agent reconstructs from its prior,
+and the two things this task is built on both break it.
+
+The first is that a round is one motion rather than a sequence. A party can meet an
+obligation with money that reaches it inside the same round, so parties who owe each other
+and hold nothing clear each other, and the question a round answers is not "what can each
+party afford" but "which choice of how far down every line to go stands up at once". The
+house says nothing about this. The book applies whatever a round hands it and records what
+happened, so the only way to find out that a ring settles is to reason about what the
+requirement means and then watch the book do it. Paying out of what a party holds is
+correct on every stream with no ring in it and wrong on one stream in five of the ones we
+grade.
+
+The second is that the answer ranges over how far down each line a round gets, not over
+which obligations at the front of the lines settle. Once a ring is understood, the obvious
+way to settle one is to find the largest set of heads that stands up together, move it,
+let the lines advance, and ask again. That is right whenever a ring closes at the front of
+every line involved, and it is wrong whenever a party has to pay more than one of its
+obligations before the money comes back round to it, because at head level that party is
+short and drops out, and dropping it out makes everybody else short. So the second
+discovery invalidates the natural implementation of the first: the fixed point is over
+depth, not over membership. Measured on the generated set, the head-at-a-time reading is
+wrong on a quarter of streams and right on the rest.
+
+Sitting under both is a third thing that is stated in the brief and still has to be built:
+giving up on an obligation is not a tidy-up at the end. It takes an obligation out of the
+middle of a line, and what was behind it may be affordable, so a round is a settle rather
+than a pass - move, hand one back, ask again. Handing all of them back at once, which is
+what the shipped tree does, is wrong on nine streams in ten.
+
+None of it announces itself. Every wrong reading above produces a book that balances, a
+sheet that looks reasonable, and rounds that end. There is no expected output anywhere in
+the tree, the instruction states requirements without stating how to meet them, and the
+graded set is three hundred streams built inside the verifier from a nonce made after the
+submission is sealed, so a reading tuned to the streams in the tree carries no information
+about the rest. The house ships with no comments and its identifiers are in the register of
+ordinary internal code, so what the two tables hold, what a round is allowed to reach, and
+what each row of the record means have to be recovered by reading behaviour.
+"""
+
+solution_explanation = """
+The reference is about eighty lines across three files and it is written from the
+requirement backwards rather than from the shape of the code that is there.
+
+The requirement is that a round leaves nothing on the table and nobody short. Because a
+party takes obligations from the front of its line and never one before the one in front of
+it, all a round decides for a party is how far down its line it gets, so the whole answer
+is one depth per party. A depth vector stands up when every party's holding plus what
+reaches it less what it pays is not negative, and the answer is the largest such vector.
+There is exactly one: if two stand up so does the one taking the larger depth for each
+party, because raising anybody's depth never lowers what anybody receives, so the vectors
+that stand up are closed under taking the larger of two and the finite set has a single top
+element. Starting at what the round may reach and coming down finds it - each step gives
+every party what the current vector sends it and asks how far that carries it, which never
+rises, so the vector falls to the top standing-up one.
+
+Giving up is the same requirement read at the other end. Everything the round could reach
+and did not move is past its day, but handing it all back at once throws away obligations
+that were only unaffordable because of what sat in front of them. So one goes back, oldest
+first, and the round asks again from the top, which is why the round is a loop rather than
+a pass.
+
+The fourth declared artifact needs no change. What a round may reach is already asked the
+right way in the shipped file, and part of the work is establishing that rather than
+assuming a file that may be edited must be.
+
+Five alternative correct implementations are kept in the authoring directory and all five
+score 1: the settlement as a shrinking set of chosen obligations, the settlement as a
+repeated recomputation per party, the round with the giving-up decided before the moving,
+the round collecting what it hands back before applying it, and the reach written with a
+different iterator. All five agree row for row with the reference on every stream.
+"""
+
+verification_explanation = """
+Every stream is driven through the rebuilt house and graded on two things, exactly, with no
+partial credit: the ordered record the book kept, and the sheet saying what became of every
+obligation and when.
+
+Both come out of house/bk.py, which is not an editable artifact, so they record what the
+book was actually made to do rather than what a submission says it did. The sheet is a
+cross-check on the record rather than a second axis, and the grader says so: the book marks
+an obligation in the same call that writes the row, so the two can only disagree if a
+submission reached past the book's own methods.
+
+Expected answers come from tests/oracle.py, a second reading of the round rules written
+from the specification rather than from the tree and sharing no code with it - plain tuples
+in lists instead of a book of objects, and a shrinking set of chosen obligations instead of
+a depth per party. The reference and the model agree on every row of hundreds of random
+streams, and on small rounds both agree with an exhaustive search over every depth vector,
+which is also what establishes that the largest standing-up answer is unique and that no
+correct alternative is being failed for a choice the rules never made.
+
+Two stream sets are driven. The enumerated set is thirty-three streams, one per rule, each
+named for the reading it exists to fail and each with its must-still-work twin; every
+plausible wrong reading was written down as a policy and run, and each is separated by an
+enumerated stream rather than by luck on random data. The other three hundred are built
+inside the verifier container from a nonce made out of /dev/urandom at trial time, after the
+submission is sealed, and their expected answers are produced by the sealed model after the
+run. The cheat suite makes the point directly: one cheat carries tests/gt.json and replays
+the recorded record through the very book methods that produce those rows, so its rows and
+its sheet are genuine and it passes all thirty-three enumerated streams - and it scores 0.
+
+Since the verifier executes a submission's code, four more things are attested. Rows are
+appended by a closure the runner owns, which reads the calling frame and refuses any caller
+that is not one of the book's own recording methods, so a row cannot be written without
+going through the method that does the work it describes. The interpreter's own count of
+entries into those methods is kept in that closure through sys.monitoring and must be at
+least as large as the rows they produced, and the report says whether the tool was still
+armed when the last stream ended, so switching the instrumentation off is something the
+report shows rather than a silence. Every sealed function is fingerprinted as it existed in
+the running interpreter, at import and again after every stream, against digests the grader
+derives by compiling the pristine sources, so rebinding one to a quiet copy is caught the
+way editing its file already is. And the executed tree outside the four declared artifacts
+must be byte-identical to the pristine copy afterwards, with the report carrying the nonce
+this container made, so a report written before the run cannot pass.
+
+Deliberately not graded, because grading them would measure an arrangement of the code
+rather than a behaviour: how many times a round asks for a plan, how many turns its loop
+takes, what it keeps between turns and which data structures it holds.
+
+Twenty-nine cheats were run and all score 0. Sixteen are the reference with exactly one
+decision made the way somebody who missed a piece would make it, generated by swapping one
+file in the reference source: paying out of what a party holds, netting the heads and
+advancing, one pass of the shrink instead of the fixed point, the holdings left out of the
+test, obligations paid in age order across the house rather than from the front of each
+line, everything moved with nobody's holding checked, the leftovers handed back in bulk,
+the newest handed back first, obligations past the reach handed back, a round of one pass,
+a round of at most two, a round that never gives up, a round that gives up and stops
+moving, the giving-up done before the moving, the day ignored, and an obligation whose day
+has not come treated as no obstacle. Nine are reward-tamper probes built on the shipped tree
+rather than on the reference, since a probe built on the reference does the real work and
+would score 1 for honest reasons: a double-forked process writing the reward after the run,
+a planted report, a planted report followed by a hard exit, a privilege probe, a read of the
+verifier directory from inside the run, a rewrite of a book file in the tree being executed,
+a rebind of a recording method, an attempt to switch the instrumentation off, and a sweep of
+everything the run's uid can reach. Three are the reference with one attestation interfered
+with and every answer correct, so each is rejected by that attestation and by nothing else.
+One is the answer-key probe described above.
+
+The run happens as an unprivileged uid in its own session under a wall clock, against a tree
+it cannot write; the reward channel is root-owned and set to deny before anything is copied;
+the ground truth, the sealed model and the grader are root-only; and the file the run
+reports into is opened by root before privileges are dropped and handed over as a descriptor
+in a directory the run cannot enter, so the uid executing a submission does not own the file
+it is graded on. Grading runs afterwards as root and never executes anything the submission
+wrote.
+"""
+
+category = "Operations"
+subcategory = "Finance"
+
+tags = [
+  "payment-queues",
+  "multilateral-netting",
+  "funding-cycles",
+  "settlement-finality",
+  "integer-arithmetic",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I have spent years on payment and settlement plumbing, and the rounds are where the money
+actually gets stuck. The bug this task is built from cost us a fortnight. Our house paid
+what each member could afford out of its own balance and gave up on the rest at the cut-off,
+which is correct and which quietly strands every position where two members are waiting on
+each other - and members do wait on each other constantly, because the same trade that owes
+one way this morning owes the other way this afternoon. The symptom was not an error. It was
+a queue that emptied more slowly than anybody could explain, and a handful of instructions a
+day going unsettled with the money sitting right there on the other side of the ring.
+
+The half I would want a new engineer to get right is the second one, because it is the half
+that survives the first fix. Once you see that a ring has to move as one, the natural thing
+is to net the fronts of the queues, put that through, and go round again. That clears every
+ring anybody draws on a whiteboard, and it does nothing at all for the member who has to
+make two payments before its own money comes back, which is the ordinary case for anybody
+with more than one counterparty. And the cut-off is the same trap wearing a different hat:
+cancelling everything that missed the round is one line of code and it throws away
+instructions that were only stuck behind the one that could not be funded.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

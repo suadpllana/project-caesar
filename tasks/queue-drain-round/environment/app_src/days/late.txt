@@ -1,0 +1,7 @@
+who ax bo cy
+run 5
+1 fund ax 6
+1 owe q1 ax bo 6 4
+1 owe q2 ax cy 5 2
+3 fund cy 5
+3 owe q3 cy ax 5 3

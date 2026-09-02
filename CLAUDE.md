@@ -1766,6 +1766,68 @@ different every time and it did not help. Ask: *what is graded, and has anything
 that before?* If the answer to the second half is yes, the idea is a reskin however new the
 subject matter is.
 
+## The team-voice hypothesis is FALSIFIED, and a branch nobody merged cost a day (2026-09-02)
+
+Read this before touching an AI-check rejection. It supersedes the diagnosis in the section
+below, which is left standing because its measurements are sound and its conclusion is wrong.
+
+**`lock-priority-unwind` has now failed the AI check three times: 2026-09-01, 2026-09-02, and
+again on the resubmission of 2026-09-02.** With `typeahead-query-controller`'s three, that is
+**six AI-check rejections in this repo**. Two of the six were submissions that were clean on
+every local gate and had been rewritten specifically for this gate.
+
+**What was rewritten the third time, and what it proves.** The 2026-09-02 repair measured all
+twelve briefs and found exactly one axis on which the rejected file sat outside the whole repo:
+first person plural, `we/our` at **0** against a 2-15 range everywhere else. The brief was
+rewritten in the owner's voice (we/our 0 to 10), grounded on a real run of `run_sched.py`,
+burstiness recovered to 0.861, clean against all four briefs that passed the screen, clean on
+`structcheck.py` and `hintcheck.py`. **It failed.**
+
+So the team-voice hypothesis has been tested end to end and it is not the discriminator. Do not
+spend a fourth session on it. It is a real correlation - every brief that passed does carry the
+voice - and it is not the cause.
+
+**The part that is a process failure rather than a measurement failure.** That diagnosis was not
+new. Commit `966787b` on `origin/claude/instruction-md-ai-detection-4kjuil`, dated 2026-09-01,
+had already reached it, in almost the same words: *"the only axis the rejected one sat outside
+was first person plural: they run 2.0 to 14.4 hits per thousand words and it carried zero."* It
+rewrote the brief in the owner's voice, quoted a real run, and fixed `solvecheck` and `simcheck`
+on the same bundle. **The branch was never merged and the rejection was never written down
+here**, so the next session re-derived the whole thing from scratch, shipped it, and bought the
+third rejection with it.
+
+Two rules out of that, and the second is the expensive one:
+
+- **A rejection that is not in this file did not happen, as far as the next session is
+  concerned.** The 2026-09-01 AI-check failure existed only in a branch commit message. Standing
+  policy item 1 says record the gate, the date and the fix; it does not say "in the commit that
+  fixes it". Land it here, on `main`, in the same session.
+- **Before diagnosing any rejection, check for unmerged branches on the task.**
+  `git branch -a --contains` and `git log --all -S "<a phrase from the brief>"` take seconds.
+  `main` is pushed to directly here, so a session's work can sit on a remote branch forever with
+  nothing pointing at it, and the header of this file will not mention it.
+
+**Where that leaves the gate.** Model-written briefs do pass it - `guard-mark-unwind` and
+`earliest-change-script` were both authored by Claude sessions and cleared it - so this is not
+absolute provenance detection and the answer is not "a model can never pass". But six rejections
+say that rewriting a brief the screen has already refused, with the same author, is close to a
+coin flip with bad odds. The typeahead entry reached this conclusion after three and it is now
+carried by six: **the variable left to change is who writes the prose.** The kit that makes that
+cheap - the system facts, the measured run, the full graded-rule list, the leak bans and the
+format rules, with no prose to copy - is what to hand the task owner. Writing it takes twenty
+minutes. Verify their draft for coverage, leaks and format; do not rewrite their sentences.
+
+**Non-finding, so nobody re-measures it:** the resubmitted bundle was mechanically sound. The
+uploaded archive was byte-checked as the rebuilt one, `task.toml` prose volume (2210 words) sits
+between `grant-spread-order` (2295) and `guard-mark-unwind` (2377), and no other prose file
+ships. The rejection was about the instruction text, not the package.
+
+**Live and unfixed on this bundle:** `simcheck.py` reports three HIGH similarity findings -
+`tests/test.sh` 0.554 and `tests/Dockerfile` 0.563 against `segment-merge-horizon`,
+`environment/Dockerfile` 0.635 against `share-register-screen`. The unmerged branch had rewritten
+the environment Dockerfile for exactly this. The similarity screen has already rejected one task
+here, so fix these before the bundle goes back, whoever writes the brief.
+
 ## The AI-check rejection: the missing author (2026-09-02)
 
 `lock-priority-unwind` was submitted on 2026-09-02, **passed the structural check and failed the

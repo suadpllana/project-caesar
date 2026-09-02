@@ -205,6 +205,10 @@ the practice on top of them: what actually worked, with numbers.
    minutes and it fails in ways that waste an hour if left to the end.
 5. Pick a seed, then attack your own first plan before writing any code. That step is the
    whole game; everything after it is execution.
+5b. If the job is **repairing a task the easiness probe solved**, go straight to "Fixing a
+   task the easiness probe solved: the four failure modes". Do not choose a repair from the
+   score; the mode decides it, and picking the wrong mode is what cost three probe rounds
+   across two tasks.
 6. Before packaging anything, run the three-agent probe on it (see "The too-easy failure
    mode" below), grade the submissions through the real verifier rather than believing the
    agents' reports, and read what they say about where they got *confirmation* and what they
@@ -487,7 +491,7 @@ through an instance, so read them, do not obey them blindly.
 | quality review | unfair specs, thin tests, bad tags, **a solve.sh that inlines the reference** | `docs/QUALITY-REVIEW.md` walked criterion by criterion, plus `tools/solvecheck.py` |
 | anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0, **including one generated from the task's own ground truth** - see the anti-cheat section, a suite of wrong implementations tests the problem and not the verifier |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
-| easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
+| easiness probe (3 agents) | solved 2 or 3 of 3 | same design target, and `leakcheck.py` on the trajectory if it bites |
 
 The published guideline (https://extended-terminal-bench-guideline.edgeone.dev/) lists nine
 gates and documents **only** the 8-agent difficulty probe with its 1-6 band; it describes no
@@ -1246,7 +1250,142 @@ map, from the row store, and from retained multiplicity, and the two halves test
 order - which reach identical counters on all twelve scenarios. Five independent readings
 converging is what makes a ceiling defensible rather than one author's taste.
 
+## Fixing a task the easiness probe solved: the four failure modes
+
+**Read this before the playbook below, which is one of the four repairs and not the
+common one.** `share-register-screen` went from **3 of 3 to 0 of 3 and then cleared the
+whole pipeline** on 2026-09-02, which is the only verified easiness repair in this file.
+It took one edit to the instruction and it took twenty minutes. Two earlier tasks spent
+three probe rounds between them on repairs that were correct in themselves and aimed at
+the wrong thing.
+
+So the expensive mistake is not a weak repair. It is **repairing the wrong mode**, and the
+mode is decided by one question with four answers.
+
+### The question: where did the agent's plan come from?
+
+Not "why was the task easy". Where the *plan* came from, which the trajectory answers
+directly, because a solving agent explains itself. The four answers, every one of them
+measured here:
+
+| the plan came from | signature in the trajectory | measured on |
+|---|---|---|
+| **A. the brief** | the winning line is in the first message, before any experiment, **in the brief's own vocabulary** | `share-register-screen` 3/3, `earliest-change-script` 3/3 |
+| **B. a field the environment ships** | the winning line is a short predicate over shipped fields, in the **environment's** identifiers | `delta-view-retraction` 2/3 then 3/3 |
+| **C. the specification, checked against itself** | one `Write` of the finished file, then a self-built harness that goes green. **No intermediate wrong version** | `typeahead-query-controller` 3/3 twice |
+| **D. the data confirming itself** | the agent says it knew it was right before finishing - round numbers, an existence claim, a global fit | `reaction-network-reconstruction` 3/3 |
+
+They are not exclusive and a task can carry two, but **one of them supplied the plan** and
+that is the one to fix first. Fixing the others first is what the wasted rounds were.
+
+### The procedure
+
+**0. Get a trajectory, or make one.** Without it you are choosing a repair from a score,
+which is what this file has now recorded three times as the way to waste a round. If the
+pipeline supplied one, use it. If not, run the local three-agent probe and read what the
+agents say about where they got their plan and what they had to guess.
+
+**1. Read the runtimes before the transcript.** Three trials at 2m30s to 3m58s against a
+240-minute budget is not "a bit too easy". It is "the plan was available on sight", which
+already rules out mode C, where agents spend real time building and running a harness.
+
+**2. Reproduce the solve.** Transcribe the submission out of the trajectory and grade it
+through your own verifier. Ten minutes, and it converts an opinion into a measurement:
+`share-register-screen`'s came back reward 1 on every register, so the solve was real and
+not a probe artifact.
+
+**3. Attribute the plan, mechanically.**
+
+```
+python3 tools/leakcheck.py <slug> <trajectory.md>      mode A: does the solver quote the brief back
+python3 tools/onelinecheck.py <slug>                   mode B: is a graded decision a two-term rule
+```
+
+`leakcheck.py` finds the distinctive phrases the trajectory and the instruction share and
+prints the sentence each came from. On the rejected brief it returned one phrase of four
+content words and named the sentence; on the repaired brief, against the same trajectory,
+nothing. That is the whole diagnosis, and it names the lines to delete rather than leaving
+you with a general worry that the brief is too helpful. Keep the trajectory file to the
+agent's **own words** - a file that also quotes the brief makes the check circular, which is
+why they live in `probes/` with the commentary in a `notes.md` beside them, and outside the
+task bundle so that keeping evidence never changes an archive the pipeline has accepted.
+
+For mode C, look for the one-shot write. For mode D, look for the agent saying it was
+confident before it finished.
+
+**4. Apply one repair, matched to the mode.**
+
+| mode | repair | cost | effect |
+|---|---|---|---|
+| **A** | delete the sentences. Nothing else. | twenty minutes | **3 of 3 to 0 of 3, measured** |
+| **B** | close the pair - then read "Leak-patching has a floor" below, because the third pair is usually inherent and the real fix is a second discovery | a day | 2/3 to 3/3, then a pass once the second discovery went in |
+| **C** | an axis the brief can require but whose satisfaction the agent's own harness cannot check, or one that lives above the size its oracle can run | a redesign | passed |
+| **D** | remove the confirmation, not the difficulty: no round numbers, no existence claims, no global consistency check, no end-to-end reproduction step | varies | not yet re-probed |
+
+**5. Prove the mode-A repair differently from the others, because you cannot prove it the
+usual way.** This is the part that surprised me and it is the reason `leakcheck` exists.
+When the solving submission is **correct**, no change to the verifier can fail it, and it
+must not: it is a correct alternative implementation and it belongs in `variants/` scoring
+1. So "the submission that beat me now scores 0" is not available as evidence for a mode-A
+repair. What you have instead is that **the wording is gone**: the next agent has to derive
+what this one was told. `leakcheck` going quiet against the same trajectory is the
+measurement, and on this task it was the right one.
+
+**6. Only then ask whether to add a second discovery.** On `share-register-screen` I added
+one - and recorded honestly that the agent in the trajectory had derived it unprompted, so
+it would not have stopped that agent. It raises the floor for agents that reason less
+carefully. It was not the repair. Do not let a satisfying new mechanism stand in for
+deleting the thing that leaked.
+
+### Three numbers worth keeping
+
+- **0 of 3 on the easiness probe is compatible with passing.** This file previously treated
+  a local 0 of 3 as a warning sign of the other rejection. On the one task that has been all
+  the way through, 0 of 3 on easiness came with a difficulty probe inside the band and a
+  pass. Do not repair upward from a 0-of-3 easiness result on its own.
+- **The whole repair moved 878 words by about forty.** Two sentences out, one input-space
+  sentence in. Every metric `textcheck` measures stayed inside its band and `structcheck`
+  and `hintcheck` stayed clean, which is what lets a repair of this kind go back through the
+  AI screen unchanged.
+- **A wrong reading that moves fewer than about a tenth of the graded cases is a lottery
+  ticket.** When the new axis first went in it moved 6.5% of registers; tuned, 16.4%, which
+  sits with the two weakest existing readings rather than below them. Measure every reading
+  against the generated set before believing a new axis is worth anything.
+
+### What this does not cover
+
+A task solved 3 of 3 whose trajectory shows real exploration, a wrong first version and a
+recovery is not any of these four. That is a task that is simply not hard enough, and the
+answer is at stage 2 - a different mechanism - rather than anywhere in this section.
+
+### Applied to the tasks in this repo, as of 2026-09-02
+
+What is known about each failure, and the next action. Three of the four modes cannot be
+called without a trajectory, so where one was never kept, step 0 is to run the local
+three-agent probe rather than to guess.
+
+| task | easiness result | mode | next action |
+|---|---|---|---|
+| `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
+| `earliest-change-script` | 3/3 | A, recorded | the brief published the decision procedure and the cost taxonomy; both were removed, never re-probed. Re-probe before resubmitting |
+| `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
+| `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
+| `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |
+| `turn-seam-alignment` | 0/3 **with 0/8** | none of these | that is the other rejection. Recalibrated, never re-probed |
+
+And the cheapest thing that can be done to the six tasks nobody has screened at all:
+`checkpoint-resume-drift`, `earliest-change-script`, `lock-priority-unwind`,
+`rollout-cache-coherence`, `turn-seam-alignment` and `typeahead-query-controller` ship no
+`authoring/decisions.py`, so `onelinecheck.py` has never been able to look at them. Writing
+one is an hour and it is the only mode-B screen that works **before** a probe is spent. Five
+of those six also fail `structcheck.py` on the backtick rule and are latent for the
+concision rejection.
+
 ## The playbook: fixing a task that fails the easiness probe
+
+**This is the mode B procedure** - the environment ships a field pair that answers the
+question. Check the mode first, in the section above: if the solver quoted the brief back
+at you, none of the steps here are the repair you want.
 
 `delta-view-retraction` failed easiness twice and then passed. It is the only task here
 that has done that, so this is the procedure that worked, in order, with the numbers. Every
@@ -3032,6 +3171,11 @@ python3 tools/hintcheck.py <slug>               brief refutes no candidate rule,
 python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
                                                 gt.json must score 0, or the verifier is
                                                 grading a report instead of evidence
+python3 tools/leakcheck.py <slug> <traj.md>     after an easiness rejection: does the
+                                                solving agent quote the brief back at you?
+                                                Names the sentences to delete. Needs the
+                                                trajectory, and the trajectory file must
+                                                hold the agent's own words only
 python3 tools/onelinecheck.py <slug>            how short is the answer? every graded
                                                 decision reproduced by a two-term rule over
                                                 exposed fields is an easiness rejection

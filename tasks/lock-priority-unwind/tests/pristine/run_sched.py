@@ -12,6 +12,21 @@ def load(path):
         return json.load(fh)
 
 
+def show(rep):
+    out = ["{"]
+    keys = sorted(rep)
+    for i, k in enumerate(keys):
+        v = rep[k]
+        tail = "," if i < len(keys) - 1 else ""
+        if isinstance(v, list) and v and isinstance(v[0], list):
+            body = ",\n  ".join([json.dumps(x) for x in v])
+            out.append(' "%s": [\n  %s\n ]%s' % (k, body, tail))
+        else:
+            out.append(' "%s": %s%s' % (k, json.dumps(v), tail))
+    out.append("}")
+    return "\n".join(out)
+
+
 def main(argv):
     if len(argv) < 2:
         print("usage: run_sched.py <scenario.json>")
@@ -25,7 +40,7 @@ def main(argv):
     c = boot.build(cfg, sc)
     c.bind(prio.Prio(c))
     c.run(cfg["limit"])
-    print(json.dumps(c.report(), indent=1, sort_keys=True))
+    print(show(c.report()))
     return 0
 
 

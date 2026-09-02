@@ -1,0 +1,13 @@
+pg h1
+co k1 3
+cl k1 o 1
+is k1 o 710 h1
+is k1 o 290 h2
+co k2 3
+cl k2 o 1
+is k2 o 730 k1
+is k2 o 270 h3
+co k3 5
+cl k3 o 1
+is k3 o 910 k2
+is k3 o 130 h4

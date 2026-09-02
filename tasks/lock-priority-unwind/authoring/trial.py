@@ -11,7 +11,7 @@ model and ground truth, and the sweep of double-forked survivors. Those need the
 and are listed as unrun in the handover.
 
 Usage:
-    python3 authoring/trial.py solution/ref
+    python3 authoring/trial.py solution
     python3 authoring/trial.py --all
 """
 
@@ -27,6 +27,32 @@ TASK = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TASK / "authoring"))
 
 import harness  # noqa: E402
+
+
+class HarnessFault(RuntimeError):
+    """The grader did not run. Distinct from the grader running and rejecting."""
+
+
+def preflight() -> None:
+    """Refuse to grade anything until the grader itself can start.
+
+    A reward of 0 means "the verifier ran and rejected this submission". When pytest is
+    missing, `python -m pytest` also exits non-zero, and every target in the sweep comes back
+    0 - reference, variants and cheats alike - which reads as a clean cheat sweep and is in
+    fact a harness that never graded anything. CLAUDE.md records that failure twice already;
+    this is the check that stops it happening a third time.
+
+    Only pytest is required here. The container verifier also needs pytest-json-ctrf, because
+    `tests/test.sh` passes `--ctrf`; this host emulation does not, and demanding it would fail
+    a run that is perfectly able to grade.
+    """
+    probe = subprocess.run([sys.executable, "-m", "pytest", "--version"],
+                           capture_output=True, text=True)
+    if probe.returncode != 0:
+        raise HarnessFault(
+            "cannot grade: `%s -m pytest` does not run, so every target would come back 0.\n"
+            "    pip install pytest==9.1.1\n%s"
+            % (sys.executable, (probe.stderr or probe.stdout)[-500:]))
 
 
 def grade(variant: str) -> tuple[int, str]:
@@ -53,11 +79,19 @@ def grade(variant: str) -> tuple[int, str]:
                  "PYTHONDONTWRITEBYTECODE": "1", "SYSTEMROOT": "C:/Windows",
                  "PATH": "/usr/bin:/bin"},
             timeout=900)
+        # 0 = every assertion held, 1 = the grader ran and rejected. Anything else is the
+        # grader failing to start or dying, which is not a verdict about the submission.
+        if proc.returncode not in (0, 1):
+            raise HarnessFault("pytest exited %d, so nothing was graded:\n%s\n%s"
+                               % (proc.returncode, proc.stdout[-2000:], proc.stderr[-2000:]))
+        if "passed" not in proc.stdout and "failed" not in proc.stdout:
+            raise HarnessFault("pytest collected no tests, so nothing was graded:\n%s\n%s"
+                               % (proc.stdout[-2000:], proc.stderr[-2000:]))
         return (1 if proc.returncode == 0 else 0), proc.stdout[-2500:]
 
 
 def targets() -> list[tuple[str, str]]:
-    out = [("oracle", "solution/ref"), ("nop", "shipped")]
+    out = [("oracle", "solution"), ("nop", "shipped")]
     for d in sorted((TASK / "authoring" / "variants").glob("ok-*")):
         out.append((d.name, "authoring/variants/" + d.name))
     for d in sorted((TASK / "authoring" / "cheatsrc").glob("*")):
@@ -70,6 +104,7 @@ def main(argv: list[str]) -> int:
     if len(argv) < 2:
         print(__doc__)
         return 2
+    preflight()
     if argv[1] == "--all":
         bad = 0
         for label, path in targets():

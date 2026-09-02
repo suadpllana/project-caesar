@@ -3,7 +3,7 @@
 
 Usage:
     python3 authoring/harness.py shipped
-    python3 authoring/harness.py solution/ref
+    python3 authoring/harness.py solution
 """
 
 from __future__ import annotations

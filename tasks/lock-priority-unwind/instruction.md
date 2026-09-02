@@ -19,30 +19,30 @@ at tick 29 and finishes at 33, stuck for twenty ticks behind a task it outranks 
 Rewrite `/app/rt/prio.py` so that stops happening.
 
 What a task is worth is graded directly, at every tick, alongside the schedule that falls out
-of it. A task is worth its own priority, or the highest priority among the tasks that are
-waiting, however far back, for something it is holding, whichever of those two is greater.
-Nothing else. Lifting a task higher than that fails exactly as leaving it too low does, which
-means handing out urgency you cannot account for, lifting a task nobody is waiting for, or
-leaving a task lifted after the last waiter behind it has gone are all the same failure wearing
-different clothes, and the graded set has cases aimed at each of them. Safe is not a direction
-here.
+of it. Two requirements hold at once and they pull against each other: nothing may sit waiting
+behind a task it outranks, and nothing may be worth more than the priority it started with
+unless there is a task waiting on it that accounts for the difference, which stops being true
+the moment that task is gone. Both directions are graded. Lifting a task higher than it can
+account for fails exactly as leaving it too low does, which means handing out urgency nobody is
+owed, lifting a task nobody is waiting for, or leaving a task lifted after the last waiter
+behind it has gone are all the same failure wearing different clothes, and the graded set has
+cases aimed at each of them. Safe is not a direction here.
 
 Four moments are handed to you and they are the only ones you get. A task blocks on a held
 mutex. A mutex is granted to somebody. A mutex is released. A task that was waiting gives up,
 because the timeout it asked for ran out. `/app/rt/core.py` calls those four and nothing else,
-and it reads what you set when it decides who runs next. Everything the decision needs is
-reachable from the core object you are handed: who holds what, who is queued on what, what each
-task started as, and what it is worth at this moment.
+and it reads what you set when it decides who runs next. The core object you are handed is the
+one the scheduler itself uses, and it is the same object at every one of the four.
 
 Some ground rules, because a couple of them are not what you would do elsewhere.
 
 A mutex is handed to whichever waiter has been queued longest. Urgency does not jump the queue.
-That is deliberate and it is not yours to change. It is also why the moment a mutex changes
-hands is one of the four moments you are given at all.
+That is deliberate and it is not yours to change. A task that is waiting can be holding
+something of its own, with a queue of its own behind it, and the graded set does that.
 
 A wait that times out ends there. The task stops waiting, its attempt on the mutex has failed
-and it carries on with whatever comes next in its program, while the mutex itself is untouched,
-the holder still holds it, and the queue behind it is one shorter than it was a tick ago.
+and it carries on with whatever comes next in its program, while the mutex itself is untouched
+and the holder still holds it.
 
 The schedule is not yours either. Which task runs at a tick, when tasks arrive, how long a
 critical section takes and when a job finishes are settled inside `/app/rt/core.py`, and the

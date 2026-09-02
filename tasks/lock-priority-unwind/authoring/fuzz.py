@@ -63,7 +63,7 @@ def main(argv: list[str]) -> int:
         app = tmp / "app"
         shutil.copytree(TASK / "environment" / "app_src", app,
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        shutil.copyfile(TASK / "solution" / "ref" / "prio.py", app / "rt" / "prio.py")
+        shutil.copyfile(TASK / "solution" / "prio.py", app / "rt" / "prio.py")
         sp = tmp / "sets.json"
         sp.write_text(json.dumps(sets))
         out = tmp / "out.json"

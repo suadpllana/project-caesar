@@ -1371,6 +1371,7 @@ three-agent probe rather than to guess.
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
 | `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |
+| `lock-priority-unwind` | 3/3 | A, measured | the brief printed the closed form of the answer; four sentences removed 2026-09-02, `leakcheck` 2 findings to 0. Never re-probed |
 | `turn-seam-alignment` | 0/3 **with 0/8** | none of these | that is the other rejection. Recalibrated, never re-probed |
 
 And the cheapest thing that can be done to the six tasks nobody has screened at all:
@@ -1380,6 +1381,137 @@ And the cheapest thing that can be done to the six tasks nobody has screened at 
 one is an hour and it is the only mode-B screen that works **before** a probe is spent. Five
 of those six also fail `structcheck.py` on the backtick rule and are latent for the
 concision rejection.
+
+**Corrected 2026-09-02 on two counts.** `lock-priority-unwind` does *not* fail the backtick
+rule - `structcheck.py` is clean on it and always was - so the "five of those six" claim was
+never checked per task. Run the checker rather than trusting that sentence. And it has now
+spent its probe: it came back 3 of 3, for a reason `onelinecheck.py` could never have caught,
+because the short rule was not hiding in the environment's fields, it was **printed in the
+instruction**. Mode B is the mode that screen predicts; it is blind to mode A. Writing a
+`decisions.py` is still worth an hour on the other five, but do not read a clean
+`onelinecheck` as a clean bill of health on easiness.
+
+## The easiness rejection on a task whose rule was printed in the brief (2026-09-02)
+
+`lock-priority-unwind` came back **3 of 3**. Three trajectories were supplied, all three
+solves were reconstructed and graded at reward 1 through the real verifier, and the cause is
+mode A in its purest form so far: **the brief contained the closed form of the answer, and all
+three agents transcribed it.**
+
+The signature is procedural and you can see it without reading a line of the domain. Each
+trajectory reads six source files, then does **one `Write` of the finished policy**, before
+running any experiment. No intermediate wrong version in any of the three. Then each builds
+its own fuzzer, asserts its own reading of the invariant, watches it go green, and stops.
+
+The sentence:
+
+> A task is worth its own priority, or the highest priority among the tasks that are waiting,
+> however far back, for something it is holding, whichever of those two is greater. Nothing else.
+
+STATE.md lists three findings the task is built on. That one sentence hands over two of them
+outright - "however far back" is the transitive chain, "for something it is holding" is why a
+release is a recompute rather than a restore - and makes the third fall out for free, because
+once the value is a function of the current waiter set, a timeout needs no separate thought.
+`tools/leakcheck.py` named it, and the agents' own words are the brief's: "directly or through
+a chain of holders", "through a chain of held mutexes".
+
+**The second leak is the one worth carrying, because it is not a rule and it reads as
+generosity.** The brief also said:
+
+> Everything the decision needs is reachable from the core object you are handed: who holds
+> what, who is queued on what, what each task started as, and what it is worth at this moment.
+
+That asserts the answer is a **pure function of the state it then enumerates**. It was written
+to be fair about the API. What it actually does is retire the entire four-hook problem: if the
+value is a function of live state and the route is not graded, every hook is one call to the
+same recompute, and nobody reasons about `granted` or `expired` at all. All three did exactly
+that. **A sufficiency claim about the inputs is a structural leak even when no rule is
+stated** - it tells the solver the shape of the program, which on a task this size is most of
+the answer.
+
+Two more went for the same reason, neither of them visible to `leakcheck`, both found by
+walking each graded finding back to the sentence that decides it:
+
+- the handover paragraph explained *why* the acquire hook exists ("It is also why the moment a
+  mutex changes hands is one of the four moments you are given at all"), which is the discovery
+  that a FIFO handover leaves the new holder holding somebody else's queue;
+- the timeout paragraph ended "the queue behind it is one shorter than it was a tick ago",
+  which points at the holder - and STATE.md calls the timeout "the one measured solutions
+  miss".
+
+### What replaced them, and why it is not the same thing said differently
+
+The priority table is graded exactly, in both directions, so the brief cannot simply lose the
+specification - that is the human-review unfairness rejection this repo has already paid for
+three times. The repair states the **requirement the closed form satisfies** and lets the
+closed form be derived:
+
+> Two requirements hold at once and they pull against each other: nothing may sit waiting
+> behind a task it outranks, and nothing may be worth more than the priority it started with
+> unless there is a task waiting on it that accounts for the difference, which stops being true
+> the moment that task is gone. Both directions are graded.
+
+Those two clauses squeeze the value to exactly one number, which is what keeps it fair. Take a
+holder at 1 with a waiter at 9: the first clause forces it to at least 9, the second caps it at
+9. Chains fall out the same way, one link at a time - if the far holder stays low, the middle
+task is now waiting behind something it outranks, which the first clause forbids. **The
+derivation is three steps and the brief does not take any of them.** Plus one input-space
+sentence, which is the `guard-mark-unwind` move: a task that is waiting can be holding
+something of its own, with a queue of its own behind it, and the graded set does that. It says
+the shape occurs and is graded. It does not say what follows.
+
+### The measurement, and the thing you cannot measure
+
+`leakcheck.py` against the same three trajectories: **two findings before, none after.** That
+is the whole of the available evidence and it has to be, because **all three submissions are
+correct**. Each was transcribed from its own trajectory and scored **reward 1** through the
+real verifier, drawn scenarios included. No change to the verifier can fail them and none
+should - they are alternative correct implementations, and one now ships as
+`authoring/variants/ok-probe-solve` with a README saying where it came from. It must keep
+scoring 1.
+
+**The honest limit, and it is the same one `share-register-screen` recorded.** All three
+solves are the same shape as `authoring/variants/ok-full-solve`, which was written before the
+probe ran. The route was foreseen; what was not foreseen is that the *value the route computes*
+was printed. So this repair removes what leaked and adds no new mechanism, per the mode-A row.
+Whether it is enough is not known: **it has not been re-probed.** Do not read the repair as a
+result.
+
+### Three findings about the bundle, not about the brief
+
+1. **`authoring/trial.py` reported `reward=0` for every target when pytest was not installed.**
+   The reference, the variants and all seventeen cheats came back 0, which reads as a clean
+   cheat sweep and is in fact a harness that graded nothing - `python -m pytest` exits non-zero
+   when pytest is missing, exactly as it does when a test fails, and the script only read the
+   return code. This is the hollow-gate failure CLAUDE.md already records twice, hit a third
+   time, and it cost the first twenty minutes of the session because the reference scoring 0
+   looked like a content fault. `trial.py` now refuses to grade until `python -m pytest
+   --version` runs, and raises rather than returning a verdict when pytest exits outside (0, 1)
+   or collects nothing. Validated in both directions: clean with pytest present, fires under a
+   venv without it. **The general form is worth re-reading every time a sweep comes back
+   uniformly: ask what the gate would have printed if its subject had been missing.**
+2. **`Core.cfg` was written and never read.** `deadfieldcheck.py` found it. A dead field on the
+   object the policy inspects is the false affordance that cost `guard-mark-unwind` 73 of 300
+   programs, and this one sat on the *only* object the policy is handed. Deleted; `gt.json`
+   came back byte-identical, which is what proves it was a leak fix and not a behaviour change.
+3. **`solve.sh` inlined the reference as a 67-line heredoc.** The solution-quality rejection of
+   2026-08-31, latent here exactly as the table in that section predicted. Repaired the same
+   way: `solution/ref/prio.py` moved up to `solution/prio.py`, `solve.sh` regenerated to seven
+   lines that copy it in. All seventeen cheats came back byte-identical, so the change was
+   layout. Five authoring scripts pointed at the old path and were updated in the same pass -
+   grep before moving anything the generators read, as that section says.
+
+### And the gap that was closed by accident
+
+Docker is present and working on this host, where the bundle was authored on one without it.
+**`tools/docker_trial2.py --all` ran for the first time on this task: 19/19, plus 4/4 on
+`--variants`.** STATE.md had the privilege drop, the locked reward channel, the root-only
+ground truth and `tests/sweep.py` listed as unverified since 2026-08-15; they are exercised
+for real now. The `environment/Dockerfile` also carried a **NEAR** similarity finding at 0.811
+against `guard-mark-unwind`; rewritten with explicit per-directory `COPY` lines and a
+build-time import check it sits at 0.635, below the best of the five honest rewrites the
+`share-register-screen` non-finding measured. `.dockerignore` went to the `**/` form and the
+built image was checked file by file: eight files, no bytecode.
 
 ## The playbook: fixing a task that fails the easiness probe
 
@@ -1761,6 +1893,13 @@ findings, the traps already hit and the order to finish in. **Write its verifier
 fresh** - copying it is half of why the last submission was rejected, and `tools/simcheck.py`
 now fails a bundle whose shipped files are near-identical to another's.
 
+**Stale from "half built" onward, corrected 2026-09-02.** It was finished, submitted, and came
+back **3 of 3 from the easiness probe**; the oracle, ground truth, plumbing, seventeen cheats
+and brief all exist. `simcheck` reports it conceptually clear of every other task here, which
+is the one thing that paragraph hoped for and got. The easiness post mortem is "The easiness
+rejection on a task whose rule was printed in the brief" above, and it is the cleanest mode-A
+example in this file.
+
 **Ask this at Stage 1, before any code.** Not "is the domain different" - the domain has been
 different every time and it did not help. Ask: *what is graded, and has anything here graded
 that before?* If the answer to the second half is yes, the idea is a reskin however new the
@@ -1797,7 +1936,7 @@ heredocs off `ref/` is what stage 4 of the recipe prescribes, so the defect is r
 | `turn-seam-alignment` | 198 | 175 | 4 files |
 | `segment-merge-horizon` | 167 | 160 | 1 file |
 | `delta-view-retraction` | 145 | 133 | 1 file |
-| `lock-priority-unwind` | 74 | 67 | 1 file |
+| ~~`lock-priority-unwind`~~ repaired 2026-09-02 | 7 | 0 | none |
 | `typeahead-query-controller` | 14 | 0 | none |
 
 `typeahead-query-controller` is the exception and it is also **the only bundle here whose

@@ -32,7 +32,7 @@ ART = "/app/rt/prio.py"
 
 
 def ref() -> str:
-    return (TASK / "solution" / "ref" / "prio.py").read_text()
+    return (TASK / "solution" / "prio.py").read_text()
 
 
 def shipped() -> str:
@@ -322,6 +322,20 @@ def script(note: str, body: str) -> str:
             "cat > %s <<'EOF_PRIO'\n%sEOF_PRIO\n" % (note, ART, ART, body))
 
 
+def solve_script(note: str) -> str:
+    """solve.sh copies the reference in; it never inlines it.
+
+    The reference exists once, as solution/prio.py beside this script. Inlining it as a
+    heredoc puts the same source in two places with nothing keeping them equal, which is the
+    solution-quality defect that blocked guard-mark-unwind on 2026-08-31. The platform hands
+    the oracle agent the whole solution/ directory, so the sibling file is there at run time.
+    """
+    return ("#!/bin/bash\n# %s\nset -euo pipefail\n\n"
+            "HERE=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+            "mkdir -p \"$(dirname %s)\"\n"
+            "cp \"${HERE}/prio.py\" \"%s\"\n" % (note, ART, ART))
+
+
 def put(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, newline="\n")
@@ -333,8 +347,8 @@ def main() -> int:
     gt = json.dumps(json.loads(gt_path.read_text()), sort_keys=True) if gt_path.is_file() else "{}"
 
     put(TASK / "solution" / "solve.sh",
-        script("Reference solution. Writes the corrected policy and lets the scheduler produce "
-               "the schedule, never echoing one.", base))
+        solve_script("Reference solution. Installs the corrected policy and lets the scheduler "
+                     "produce the schedule, never echoing one."))
 
     made = []
     for name, pairs, note in MISTAKES:

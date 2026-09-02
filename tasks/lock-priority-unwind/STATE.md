@@ -41,11 +41,11 @@ Three findings, and the naive policy misses all three:
    urgent. This is the one measured solutions miss, because a timeout looks like a change to
    the waiter and is in fact a change to the holder.
 
-- Tactics making that true: prong A (A1 the memorised policy is wrong here, A2 the mechanism
-  is never named), prong B (B1 the schedule, the queue discipline and the handover order live
-  in `rt/core.py` and have to be read), prong C (C1 the fence runs both ways - three scenarios
-  fail an implementation that raises when it should not, C4 the graded artifact is the exact
-  tick-by-tick schedule).
+- Tactics making that true: prong A (A1, A2), prong B (B1), prong C (C1, C4).
+  A1 the memorised policy is wrong here and A2 the mechanism is never named; B1 the schedule,
+  the queue discipline and the handover order live in `rt/core.py` and have to be read; C1 the
+  fence runs both ways - three scenarios fail an implementation that raises when it should not,
+  and C4 the graded artifact is the exact tick-by-tick schedule.
 
 - My own attack on the plan: my first plan is raise-on-block, restore-to-base-on-release, and
   it is correct on `one-mutex-one-waiter` and wrong on eight of the fourteen scenarios. I would
@@ -69,6 +69,12 @@ audit: a task is worth its own priority, or the highest effective priority among
 blocked, directly or transitively, on mutexes it holds - whichever is greater. Over-raising is
 therefore wrong, not merely wasteful, and three scenarios exist to catch it.
 
+That definition is the contract and it stays here. **It is no longer written in the brief**,
+which is the whole of the easiness repair of 2026-09-02: the probe solved this task 3 of 3 by
+transcribing that sentence out of `instruction.md`. The brief now states the two requirements
+the definition satisfies and leaves the definition to be derived. See CLAUDE.md, "The easiness
+rejection on a task whose rule was printed in the brief".
+
 Editable artifact: `/app/rt/prio.py` and nothing else.
 
 ## What exists and is proven
@@ -76,8 +82,9 @@ Editable artifact: `/app/rt/prio.py` and nothing else.
 - `environment/app_src/` - the whole engine. `rt/core.py` is the tick loop, the ready queue,
   the FIFO handover and the trace; `rt/prio.py` is the shipped naive policy; `rt/boot.py`,
   `rt/task.py`, `rt/lock.py`, `run_sched.py`, `conf/sched.json`.
-- `solution/ref/prio.py` - the reference. One recomputation walked up the chain, called from
-  all four hooks. About sixty lines.
+- `solution/prio.py` - the reference. One recomputation walked up the chain, called from all
+  four hooks. About sixty lines. It sits beside `solve.sh`, which copies it in rather than
+  inlining it; moved out of `solution/ref/` on 2026-09-02, see the solve.sh note below.
 - `tests/scen.py` - fourteen scenarios.
 - Measured: the reference and the shipped policy produce **different schedules on 8 of the 14**.
   The three that agree deliberately do so - they are the must-still-work fences. Verified with
@@ -90,7 +97,7 @@ until tick 29 and finishes at 33. The reference hands the mutex over at tick 17 
 
 ## What was run
 
-- `authoring/trial.py --all`: 22 targets, 0 unexpected. Reference 1, shipped 0, three `ok-*`
+- `authoring/trial.py --all`: 23 targets, 0 unexpected. Reference 1, shipped 0, four `ok-*`
   variants 1, seventeen cheats 0.
 - `authoring/cheat_report.py`: every cheat fails on the axis it was aimed at. The one to read is
   `hand-back-the-schedule`, which carries the recorded schedules, and fails the drawn scenarios.
@@ -98,10 +105,15 @@ until tick 29 and finishes at 33. The reference hands the mutex over at tick 17 
   zero mismatches.
 - `textcheck` clean against `rollout-cache-coherence` and `checkpoint-resume-drift`;
   `structcheck` and `hintcheck` clean; `preflight` clean; `tools/simcheck.py` clean on both axes.
-- **Not run:** Docker is absent on this host, so `tools/docker_trial2.py` never ran. The
-  privilege drop, the locked reward channel, the root-only model and ground truth, and
-  `tests/sweep.py` are unverified. The isolation cheats were graded through the host emulation,
-  which proves the grader rejects them, not that the sandbox contains them.
+- **`tools/docker_trial2.py --all`: 19/19, and `--variants`: 4/4, on 2026-09-02.** The real
+  two-image trial, run for the first time on this task. Oracle 1 (47 passed), nop 0, every
+  cheat 0, all four correct variants 1. This is what previously said "not run": the privilege
+  drop, the locked reward channel, the root-only model and ground truth and `tests/sweep.py`
+  are now exercised for real rather than emulated. The built agent image was inspected file by
+  file and carries eight files and no bytecode.
+- **Still not run:** `harbor` is not installed here, so `harbor check` has never been run
+  against this bundle. Everything above is docker directly, which is what `docker_trial2.py`
+  reproduces.
 
 ## Traps already hit here, do not re-hit them
 

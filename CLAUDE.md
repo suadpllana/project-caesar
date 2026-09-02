@@ -73,6 +73,7 @@ task's rejection history gets silently reverted.
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 | `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
+| `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 
 **`grant-spread-order` is the tenth task, built 2026-09-02, and it has not been through the
 pipeline.** It is the first in Security and the first here to grade a **reconstructed
@@ -1744,6 +1745,88 @@ consistent ones, it is an execution task.
 The experiment cost twenty minutes and is the "self-attack before any code" step in stage 1
 doing its job. Write the falsifier before the bundle, not after.
 
+## The artifact-parent rejection: preflight joins line continuations and the pipeline does not (2026-09-02)
+
+`pair-hold-reclaim` is the eleventh task and the second in Software / Systems. It was submitted
+on 2026-09-02 and bounced off the **bundle structure check** before reaching any of the nine
+gates, on one blocking error:
+
+> ERROR - ARTIFACT-PARENT-NOT-CREATED - TESTS/DOCKERFILE
+> tests/Dockerfile never creates /app/core - add "RUN mkdir -p /app/core" so harbor can upload
+> the declared artifact(s) into it.
+
+**The Dockerfile creates it.** That is the whole finding. The line was
+
+```
+RUN useradd --uid 1002 --create-home sandbox \
+ && mkdir -p /app/core /work /rep /logs/verifier
+```
+
+and `/app/core` was present in the built image, verified by `docker run ... ls -d /app/core`.
+The directory existed; the checker could not see it, because the mkdir sits on a **line
+continuation** and the pipeline reads RUN instructions line by line without joining them.
+
+**`scripts/preflight.py` reported the bundle clean, and this is standing-policy item 2.** Its
+`check_artifact_parents` searches the whole comment-stripped file for `mkdir\s[^\n]*<parent>`,
+so a continuation matches and the gate passes. The pipeline's own structural check does not, and
+it is the one that decides. The evidence is unambiguous once you look at the other bundles:
+
+| bundle | how the artifact parent is created | structural check |
+|---|---|---|
+| `guard-mark-unwind` (nine gates) | `RUN mkdir -p /app/kern` | passed |
+| `typeahead-query-controller` (nine gates) | `RUN mkdir -p /app/src /app/public /logs/verifier` | passed |
+| `delta-view-retraction`, `turn-seam-alignment`, `checkpoint-resume-drift`, `rollout-cache-coherence`, `segment-merge-horizon`, `lock-priority-unwind`, `grant-spread-order`, `earliest-change-script` | own `RUN mkdir -p ...` line | passed |
+| **`pair-hold-reclaim`** | **`&& mkdir -p /app/core` on a continuation** | **rejected** |
+
+Ten archives, one house pattern, one deviation, and the deviation is the rejection. `docs/RULES.md`
+writes the rule with the mkdir as its own instruction too (`RUN mkdir -p /app`), which nobody had
+read as load-bearing.
+
+The fix is three lines and behaviour-preserving - `mkdir -p` is idempotent and the ordering
+against `chmod 700 /rep` is unchanged:
+
+```
+RUN mkdir -p /app/core
+
+RUN useradd --uid 1002 --create-home sandbox \
+ && mkdir -p /work /rep /logs/verifier
+```
+
+`tools/zipcheck.py` now fails this and it is in the gate list. It keeps preflight's path-prefix
+semantics, since `mkdir -p /app/src` legitimately creates `/app`, and adds the one thing preflight
+lacks: the match has to land on a physical line that opens a `RUN` or `WORKDIR` instruction.
+Validated in both directions, which is the rule for a new check - it fires on the archive the
+pipeline actually rejected, naming that error, and is clean on all ten other archives in the repo,
+including the `/app/src` prefix case that would have made it a false-positive machine.
+
+**The rule to carry: a Dockerfile check that reads the joined body is testing a different file
+from the one the pipeline reads.** Preflight is the kit's script and stays unmodified, so this
+went to `tools/` alongside the CRLF checks, which is where every "preflight is lying" fix has
+gone. And the cheaper prophylactic, worth applying to any new bundle: **keep each structural
+requirement on its own instruction line.** Compressing a Dockerfile into fewer layers saves
+nothing here and costs a full round trip when a checker turns out to be line-oriented.
+
+Two smaller things from the same session, neither of them a content defect:
+
+- **The `cheat/` warning is informational and always fires.** "cheat/ directory included - the
+  pipeline never executes it" appears on every bundle here; `guard-mark-unwind` passed all nine
+  gates with it. Do not delete `cheat/` to silence it.
+- **task.toml claimed six alternative correct implementations and five directories shipped.**
+  `ok-collect` carried two independent readings at once - the release list collected before it is
+  applied, and the emptying walked over a materialised list - so neither was ever run on its own
+  and either could have masked the other. Split into `ok-collect` and `ok-live`; both score 1
+  independently. **Count the variant directories against the number the prose claims**, the same
+  way `hintcheck.py` re-reads the folds/scans figures: a variant that tests two readings at once
+  tests neither.
+
+Measured through the real two-image trial on this host, at the declared `cpus = 2` /
+`memory_mb = 4096`: oracle 1, nop 0, all 27 cheats 0 (29/29), 6 of 6 variants 1, and the same
+oracle/nop pair re-run **from the extracted archive** rather than the tree. The cheats were
+confirmed to actually apply rather than sweeping vacuously - each playbook exits 0 and leaves
+files that differ from the shipped tree - because every cheat here shows the identical
+"2 failed, 6 passed" signature as the nop, which is what an all-or-nothing two-axis grader
+produces for any wrong answer and is indistinguishable from a suite that never ran.
+
 ## Packaging on Windows, and two gates that lied (2026-09-02)
 
 Everything in this section was found building `grant-spread-order`, and none of it is about
@@ -2599,7 +2682,10 @@ python3 tasks/<slug>/authoring/normalise.py     LF on every shipped text file, a
                                                 authoring scratch that package.py would
                                                 otherwise ship
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes,
-                                                staleness, and MS-DOS entry stamps
+                                                staleness, MS-DOS entry stamps, and the
+                                                artifact-parent mkdir tested on the physical
+                                                RUN line rather than the joined Dockerfile
+                                                body, which is what preflight gets wrong
 python3 tools/zipfix.py <slug>                  rewrite an archive package.py stamped
                                                 MS-DOS. On Windows it always does, and an
                                                 archive that fails this scores 0 on every

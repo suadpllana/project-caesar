@@ -1,0 +1,13 @@
+new 1
+new 2
+new 3
+bind a 1
+edge 2 3
+arm 2 bind b 2
+watch w2 plain 2
+watch f2 firm 2
+watch w3 firm 3
+pass
+show w2
+show f2
+show w3

@@ -20,8 +20,9 @@ from __future__ import annotations
 import os
 import re
 import sys
+import tomllib
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -109,6 +110,58 @@ def check(zpath: Path) -> int:
             )
         elif len(lines) < 2 or lines[-2] != "":
             findings.append("instruction.md suffix is not preceded by a blank line")
+
+    # 3b. The artifact-parent mkdir, tested on the physical RUN line rather than on the
+    #     joined Dockerfile body.
+    #
+    #     preflight.py searches the whole file for `mkdir ... <parent>`, so it passes a
+    #     Dockerfile that creates the directory on a line-continuation:
+    #
+    #         RUN useradd --uid 1002 --create-home sandbox \
+    #          && mkdir -p /app/core /work /rep /logs/verifier
+    #
+    #     The pipeline's structural check does not join continuations. That exact file was
+    #     rejected on pair-hold-reclaim (2026-09-02) with ARTIFACT-PARENT-NOT-CREATED,
+    #     naming a directory the Dockerfile plainly creates, while preflight reported the
+    #     bundle clean. Every archive the structural check has accepted puts the mkdir on a
+    #     line that begins with RUN, so that is what this requires.
+    toml_names = [n for n in names if n.endswith("task.toml")]
+    dockerfiles = [n for n in names if n.endswith("tests/Dockerfile")]
+    if toml_names and dockerfiles:
+        try:
+            cfg = tomllib.loads(zf.read(toml_names[0]).decode("utf-8"))
+        except Exception as exc:  # a malformed task.toml is preflight's finding, not ours
+            cfg = {}
+            findings.append("task.toml does not parse: %s" % exc)
+        body = zf.read(dockerfiles[0]).decode("utf-8", "replace")
+        # Strip comments, then keep only lines that open a RUN or WORKDIR instruction. A
+        # continuation line is not one, which is the whole point of the check.
+        instr = [
+            ln.split("#", 1)[0]
+            for ln in body.replace("\r\n", "\n").split("\n")
+            if re.match(r"\s*(RUN|WORKDIR)\s", ln.split("#", 1)[0])
+        ]
+        seen = set()
+        for art in cfg.get("artifacts") or []:
+            art = str(art)
+            if not art.startswith("/"):
+                continue
+            parent = str(PurePosixPath(art).parent)
+            if parent in ("/", "") or parent in seen:
+                continue
+            seen.add(parent)
+            # `mkdir -p /app/src` creates /app too, so match the parent as a path prefix.
+            esc = re.escape(parent)
+            pat = re.compile(
+                r"(RUN\s[^\n]*mkdir\b[^\n]*%s(?=[\s/]|$))|(WORKDIR\s+%s(?=[\s/]|$))" % (esc, esc)
+            )
+            if not any(pat.search(ln) for ln in instr):
+                findings.append(
+                    "tests/Dockerfile creates %s on no RUN line of its own - give it "
+                    '"RUN mkdir -p %s" as a standalone instruction, because the structural '
+                    "check reads RUN lines without joining continuations "
+                    "(ARTIFACT-PARENT-NOT-CREATED)" % (parent, parent)
+                )
 
     # 4. Staleness. A zip older than any file it claims to contain is the previous build.
     slug = names[0].split("/")[0] if names else ""

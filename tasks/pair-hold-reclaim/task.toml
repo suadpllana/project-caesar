@@ -1,0 +1,232 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/core/rch.py",
+  "/app/core/cln.py",
+  "/app/core/pss.py",
+  "/app/core/obs.py",
+]
+
+[task]
+name = "afterquery/pair-hold-reclaim"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working object store with the wrong reclamation pass, and the wrongness is
+coherent rather than broken: it is the shape of a collector built as a pipeline of phases
+- mark once, empty the watches that marking condemned, run the cleanups it found, let go
+of what it condemned. That is the shape every account of a tracing collector is written
+in, so it is also the shape a frontier agent reconstructs from its prior, and the two
+things this task is built on both break it.
+
+The first is that reach is a least fixed point rather than a traversal. A one-key entry
+puts its value in reach only while its key is in reach, and a two-key entry only while
+both of its keys are, so the tables cannot be walked like edges: a value that has just
+been marked can lead to another entry's key, and a two-key entry can sit unfired through
+several sweeps waiting for its second key. Sweeping the tables once and closing over the
+links again is correct on most streams and wrong on any that chains them.
+
+The second is that a pass has to settle rather than run. Cleanups mutate the store the
+pass is deciding from - an action can bind a name or add a link, which puts cells back,
+and it can unbind a name or cut a link, which takes the last hold off cells that were in
+reach when the pass began. Recomputing once after the cleanups is the obvious repair and
+it is still not enough, because a cleanup that drops the last name holding another cell
+with a pending cleanup makes that second cleanup due, and the requirement is that when a
+pass is over nothing in the store is out of reach.
+
+The two are linked through the third thing, which is where the difficulty actually sits.
+Once the pass is rounds, each round has to choose which pending cleanups may run, and the
+rule is that a cleanup does not run while anything else with a cleanup still pending can
+reach its cell. The natural implementation asks that question of the pending cells alone.
+That is right on every stream a one-key entry can build, because a one-key entry whose key
+is in reach does not have a doomed value in the first place - and it is wrong for a
+two-key entry with one key held by a name and the other inside the group being cleaned up,
+where the entry does hold and the pending cell does reach the value. So the second
+discovery invalidates the natural implementation of the first, and neither shows up as a
+crash. Both show up as a ledger that is right for forty rows and wrong for one.
+
+There is no oracle for any of it. The store happily runs whatever rules it is given and
+prints the ledger they produce, and every wrong reading above produces a ledger that looks
+entirely reasonable. The environment ships no expected output, the instruction states
+requirements without stating how to satisfy them, and the graded set is three hundred
+streams generated inside the verifier from a nonce made after the agent has finished, so a
+rule that fits the streams in the tree carries no information about whether it fits the
+rest. The store ships with no comments anywhere in it and its identifiers are in the
+register of ordinary internal code rather than self-describing ones, which is a design
+choice: the op set, the two entry tables, the two kinds of watch and the meaning of each
+ledger row have to be recovered by reading behaviour instead of by reading names.
+"""
+
+solution_explanation = """
+The reference is about a hundred lines across three files and it is written the way
+someone who has debugged a reclamation pass writes it: from the observable requirement
+backwards, never from the shape of the existing code.
+
+The requirement is that when a pass is over, nothing in the store is out of reach, and
+that nothing in reach has gone. Two things fall out of it. Reach has to be taken as a
+least fixed point, because the question an entry asks - is the key in reach? - is answered
+by the very set being built, so the link closure and a full sweep of both tables alternate
+until neither moves. And the pass has to be a round: mark, empty the plain watches on
+whatever that marking put out of reach, choose the pending cleanups the round may run, run
+them, and go back to the top. The loop ends on the marking with no cleanup left to run,
+and only that marking decides what is let go, which is what puts a cell a cleanup rescued
+back in reach and a cell a cleanup cut loose out of it, in the same pass, without waiting
+for the next one.
+
+The choosing is the same reach operator asked from a different seed. A cleanup runs with
+its cell and whatever that cell can still reach in place, so it must not run after the
+cleanup of anything that can reach it: everything the rest of the pending set cannot reach
+goes now, oldest first. The seed is the part worth getting right, because the store as it
+stands still has its names bound, so the held cells belong in it alongside the other
+pending cells. A group that can all reach each other blocks completely, and the oldest of
+them goes ahead alone so the next round can ask again with one fewer cleanup pending.
+
+Emptying is split because the two kinds of watch answer different questions. A plain watch
+asks whether its cell is in reach, so it empties in the round that first finds it out of
+reach, before any cleanup of that round has had the chance to put the cell back. A firm
+watch asks whether its cell is still there, so it empties beside the letting go.
+
+Six alternative correct implementations are kept in the authoring directory and all six
+score 1: reach by naive relaxation over the whole relation, reach by a recursive closure,
+the ordering with frozensets and a while loop, the ordering with the candidate sliced out
+by index, the pass with the release list collected before it is applied, and the emptying
+walked over a materialised list instead of the live mapping. All six agree row for row.
+
+The fourth declared artifact needs no change. The two kinds of watch are already asked
+about the right way in the shipped file, and part of the work is establishing that rather
+than assuming a file that may be edited must be.
+"""
+
+verification_explanation = """
+The rebuilt store is driven over every stream and graded on two things, exactly, with no
+partial credit: the ordered ledger, and the store each stream leaves behind.
+
+Both come out of core/st.py, which is not an editable artifact, so they record what the
+store was actually made to do rather than what a submission says it did. The ledger
+carries which cleanup ran, which watch was emptied, which entry was dropped, which cell
+was let go and what each read of a watch answered. The final state is a cross-check rather
+than a second axis, and the verifier says so: the store removes a cell in the same call
+that records the row, so the two can only disagree if a submission reached past the
+store's own methods.
+
+Expected results come from tests/oracle.py, a second implementation of the same
+specification written from the specification rather than from the tree and sharing no code
+with it - plain dictionaries instead of cell objects, naive Kleene iteration over the whole
+relation instead of a worklist alternating with table sweeps, and a state machine over an
+explicit round counter instead of a loop with a break. The reference and the model agree on
+every row of 2000 random streams, which is the evidence that what is graded is the
+specification and not one author's arrangement of it.
+
+Two stream sets are driven, and the second is why there is nothing here to forge. The
+enumerated set is thirty-one streams, one per rule, each named for the reading it exists to
+fail, including the must-still-work side of every fence; every plausible wrong reading was
+written down as a policy and run, and each one is separated by an enumerated case rather
+than by luck on random data. The other three hundred are generated inside the verifier
+container from a nonce made out of /dev/urandom at trial time, after the agent has
+finished, and their expected ledgers are produced by the sealed model after the run. Those
+streams did not exist when the submission was written. The cheat suite proves the point
+directly: one cheat is generated from tests/gt.json and replays the recorded ledger through
+the very store methods that produce those rows, so its rows and the state that comes with
+them are genuine and it passes all thirty-one enumerated streams - and it scores 0.
+
+Since the verifier executes agent code, four more things are attested. Ledger rows are
+appended by a closure the runner owns, which reads the calling frame and refuses any caller
+that is not the store, so a row cannot be written without going through the method that
+does the work it describes. The interpreter's own tally of entries into the store's four
+recording methods is kept in that closure through sys.monitoring, and it must be at least
+as large as the rows those methods produced and must still have been armed when the last
+stream ended, so switching the instrumentation off is an act the report shows rather than a
+silence. Every sealed function is fingerprinted as it actually existed in the running
+interpreter, at import and again after each stream, against digests the grader derives by
+compiling the pristine sources, so rebinding one to a quiet copy is caught the way editing
+its file already is. And the executed tree outside the four declared artifacts must be
+byte-identical to the pristine copy after the run, with the report carrying the nonce this
+container made, so a report planted before the run cannot pass.
+
+Deliberately not graded, because grading them would measure an arrangement of the code
+rather than behaviour: how many times a submission marks, how many rounds it takes to
+settle, what it caches between rounds and which data structures it keeps. Six alternative
+correct implementations live in the authoring directory and all six are required to score
+1.
+
+Twenty-seven cheats were run and all score 0. Seventeen are the reference with exactly one
+decision made the way a solver who missed one piece would make it, generated by swapping an
+anchored block in the reference source: the entry tables swept once instead of to a fixed
+point, an entry walked like a link, a two-key entry firing on either key, the ordering
+question seeded without the held cells, cleanups ordered by age, the ordering walked over
+links only, a blocked group released together instead of oldest first, a single round of
+cleanups, what the pass lets go decided by the marking it started from, a cell surviving
+the pass its cleanup ran in, the plain watches emptied after that round's cleanups, cells
+let go newest first, the watches emptied after the cell rather than before, every watch
+emptied in bulk before anything goes, both kinds of watch treated alike in either
+direction, and watches emptied newest first. Nine are reward-tamper probes built on the
+shipped tree rather than on the reference, since a probe built on the reference does the
+real work and would score 1 for honest reasons: a double-forked process writing the reward
+after the run, a planted report, a planted report followed by a hard exit, a privilege
+probe, a read of the verifier directory from inside the run, a rewrite of a store file in
+the tree being executed, a rebind of the method that records emptied watches, an attempt to
+switch the instrumentation off from inside a decision while the run is going, and a sweep
+of everything the run's uid can reach. One is the answer-key probe described above.
+
+The run happens as an unprivileged uid in its own session under a wall clock, against a
+tree it cannot write; the reward channel is root-owned and locked to a default deny before
+anything is copied; the ground truth, the sealed model and the grader are root-only files;
+and the file the run reports into is opened by root before privileges are dropped and
+handed over as a descriptor in a directory the run cannot enter, so the uid executing agent
+code does not own the file it is graded on. Grading runs afterwards as root and never
+executes anything the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Systems"
+
+tags = [
+  "conditional-retention",
+  "dependent-cleanup",
+  "least-fixed-point",
+  "object-lifetime",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on runtimes and storage engines, and the lifetime bugs are the ones that cost me
+weeks rather than hours. This task is built from one of them. We had a cache whose entries
+were held only while the thing they were derived from was still held, which is an ordinary
+enough arrangement until you notice that the condition is answered by the same computation
+that is trying to use it, and our sweep answered it with one pass over the table. It was
+right for two years because nothing chained. When something finally did, the symptom was
+not a crash: it was a handful of entries disappearing a cycle early, under load, with no
+error anywhere.
+
+The part I would want a new engineer to get right is the second half, because it is the one
+the textbooks skip. Cleanup hooks run inside the sweep and they change the answer the sweep
+started with - they hand things back, and they also let things go, and a hook that releases
+the last reference to something else with a hook of its own means the sweep is not finished
+when it thinks it is. The fix that feels obvious is to recompute once at the end. That is
+correct for every test anyone writes and wrong the first time two hooks are chained in
+production. Ordering them is the same bug wearing a different hat, and the case that gets
+you is the one where a dependency runs through a conditional entry whose other key is held
+from somewhere outside the group being torn down, so the thing you are about to clean up
+can still reach something you already cleaned.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

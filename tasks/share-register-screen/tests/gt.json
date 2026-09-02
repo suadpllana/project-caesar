@@ -216,6 +216,30 @@
     ]
    ]
   ],
+  "nominee-for-a-company-elsewhere": [
+   [
+    "k1",
+    1,
+    2,
+    3,
+    [
+     "*",
+     "*",
+     "h2"
+    ]
+   ],
+   [
+    "k2",
+    0,
+    1,
+    3,
+    [
+     "h4",
+     "*",
+     "h3"
+    ]
+   ]
+  ],
   "nominee-takes-votes-away": [
    [
     "k1",
@@ -249,6 +273,45 @@
     [
      "*",
      "*",
+     "*"
+    ]
+   ]
+  ],
+  "own-shares-against-the-list": [
+   [
+    "k1",
+    1,
+    2,
+    3,
+    [
+     "*",
+     "h3",
+     "*"
+    ]
+   ]
+  ],
+  "own-shares-through-a-chain": [
+   [
+    "k1",
+    1,
+    2,
+    3,
+    [
+     "*",
+     "h2",
+     "*"
+    ]
+   ]
+  ],
+  "own-shares-through-a-nominee": [
+   [
+    "k1",
+    1,
+    2,
+    3,
+    [
+     "*",
+     "h2",
      "*"
     ]
    ]

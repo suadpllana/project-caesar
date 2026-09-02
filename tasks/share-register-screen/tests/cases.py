@@ -196,4 +196,43 @@ cl k2 o 1
 is k2 o 530 k1
 is k2 o 470 h3
 """),
+    ("own-shares-through-a-nominee", """pg h1
+co k1 3
+cl k1 o 1
+is k1 o 410 h1
+is k1 o 290 h2
+is k1 o 530 n1
+nm n1 k1
+"""),
+    ("own-shares-through-a-chain", """pg h1
+co k1 3
+cl k1 o 1
+is k1 o 410 h1
+is k1 o 290 h2
+is k1 o 530 n2
+nm n2 n3
+nm n3 k1
+"""),
+    ("own-shares-against-the-list", """pg h1
+pg h2
+co k1 3
+cl k1 o 1
+is k1 o 130 h1
+is k1 o 190 h2
+is k1 o 290 h3
+is k1 o 470 n1
+nm n1 k1
+"""),
+    ("nominee-for-a-company-elsewhere", """pg h1
+co k1 3
+cl k1 o 1
+is k1 o 730 h1
+is k1 o 270 h2
+co k2 3
+cl k2 o 1
+is k2 o 190 n1
+is k2 o 170 h3
+is k2 o 290 h4
+nm n1 k1
+"""),
 ]

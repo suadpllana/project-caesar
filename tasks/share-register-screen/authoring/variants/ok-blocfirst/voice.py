@@ -3,6 +3,7 @@ BLOC = "+"
 
 def hands(st, cid, on):
     rows = [(st.voter(who), w) for who, w in st.stakes(cid)]
+    rows = [(v, w) for v, w in rows if v != cid]
     lump = sum(w for v, w in rows if v in on)
     out = {}
     if lump:

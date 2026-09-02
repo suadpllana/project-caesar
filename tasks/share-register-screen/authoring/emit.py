@@ -186,6 +186,15 @@ MISTAKES = {
         lambda: whole({"note.py": swap("note.py",
                                        "return [cid, 1 if cid in on else 0, got, len(board), seats]",
                                        "return [cid, 1 if cid in on else 0, got, got, seats]")})),
+    "own-shares-still-vote": (
+        "A company's own stock, standing in somebody else's name, votes at its own meeting. "
+        "The site drops the holding recorded against the company itself, so the plain half "
+        "of the treasury rule looks handled and this half is left standing; where the "
+        "company is on the list its own stock joins the list's hand, which is the vote the "
+        "rule exists to remove.",
+        lambda: whole({"voice.py": swap("voice.py",
+                                        "        v = st.voter(who)\n        if v == cid:\n            continue\n",
+                                        "        v = st.voter(who)\n")})),
     "count-the-members": (
         "The hand is collapsed, and the seats are then counted by looking for members of "
         "the list among the takers, which after the collapse finds none of them.",

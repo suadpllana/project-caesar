@@ -149,7 +149,21 @@ def sweep(st):
             return on
 '''
 
+OWN_SHARES_VOICE = '''
+BLOC = "+"
+
+
+def hands(st, cid, on):
+    out = {}
+    for who, w in st.stakes(cid):
+        v = st.voter(who)
+        k = BLOC if v in on else v
+        out[k] = out.get(k, 0) + w
+    return out
+'''
+
 READINGS = {
+    "own-shares-still-vote": {"voice.py": OWN_SHARES_VOICE},
     "each-hand-alone": {"voice.py": APART_VOICE, "tally.py": APART_TALLY},
     "one-pass-only": {"screen.py": ONEPASS_SCREEN},
     "never-look-again": {"screen.py": SETTLED_SCREEN},

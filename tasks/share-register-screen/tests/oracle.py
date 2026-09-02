@@ -153,6 +153,9 @@ def determine(text):
         out = {}
         for who in sorted(votes[co]):
             key = caster(who)
+            if key == co:
+                # The company's own stock, whoever the register records it against.
+                continue
             if key in listed:
                 key = LUMP
             out[key] = out.get(key, 0) + votes[co][who]

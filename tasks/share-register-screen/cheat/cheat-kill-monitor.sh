@@ -107,6 +107,14 @@ def hush():
 # register records as holding the shares. A nominee votes what its principal tells it to
 # vote, so a nominee on the list holding for an outsider brings nothing, and an outsider
 # holding for a party on the list brings everything.
+#
+# The same resolution is what silences a company's own stock. The site drops a holding
+# recorded against the company whose meeting it is, which covers the plain case and
+# leaves this one: shares standing in some other name but held for the company are the
+# company's shares, and a company does not help decide its own affairs. Skipping them has
+# to happen after the principal is resolved rather than before, and it matters most where
+# the company is on the list, because folding its own stock into the list's hand is
+# exactly the vote the rule exists to remove.
 BLOC = "+"
 
 
@@ -115,6 +123,8 @@ def hands(st, cid, on):
     out = {}
     for who, w in st.stakes(cid):
         v = st.voter(who)
+        if v == cid:
+            continue
         k = BLOC if v in on else v
         out[k] = out.get(k, 0) + w
     return out

@@ -1,4 +1,4 @@
-BLOC = "~~"
+BLOC = "\x00list"
 
 
 def hands(st, cid, on):

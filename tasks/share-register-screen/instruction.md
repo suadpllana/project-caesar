@@ -7,8 +7,8 @@ gets one record.
 /app/screen_reg.py takes register files and prints those records. Put /app/regs/ring.txt
 through it. The first company comes back no, two seats of three, with the programme's mark
 standing against two of the three directors, so the company is off the list while the same
-row says the list picked its board. Now put /app/regs/share.txt through it, where two named
-people sit on the register of every company in the file, and the first two come back no.
+row says the list picked its board. That is one company on one file, and it is the only
+thing anywhere in the tree that tells you something is wrong.
 
 The screen answers one question about a company. It has to answer it the same way every
 time, on a register of two companies and on a register of seven. A company belongs on the
@@ -19,9 +19,8 @@ money, and a company we name wrongly is a customer we apologise to and a regulat
 answer to.
 
 More than one party of the programme's side holds shares in the same company on most of the
-registers we grade, and often several do. What those holdings come to at a meeting is the
-whole of what the screen has to get right, and the files under /app/regs are a handful of
-the shapes a register takes. They are not all of them.
+registers we grade, and often several do. The files under /app/regs are a handful of the
+shapes a register takes. They are not all of them.
 
 How a board is settled is in /app/reg/poll.py and is not in question. Seats are filled one
 at a time, and each one goes to whichever hand at the meeting has the largest holding
@@ -43,8 +42,10 @@ register knows its taker by.
 The registers we grade are ordinary ones. Companies hold shares in each other in whichever
 direction the filings happened to run, both directions at once included, and a company
 incorporated late in a register holds shares in one incorporated early. Parties hold through
-nominees, and sometimes through a nominee of a nominee. Companies buy their own shares back.
-No seat on any register we grade comes down to two hands on the same average, so nothing
+nominees, sometimes through a nominee of a nominee, and a nominee sometimes holds for a
+company, the company whose own register it stands on included. Companies buy their own
+shares back. No seat on any register we grade comes down to two hands on the same average,
+so nothing
 turns on how you would settle that.
 
 Four files are yours. They are /app/pol/screen.py, /app/pol/voice.py, /app/pol/tally.py and

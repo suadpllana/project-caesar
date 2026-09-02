@@ -70,6 +70,8 @@ def _replay(lines):
         if w <= 0:
             continue
         v = caster(who)
+        if v == co:
+            continue
         out[co][v] = out[co].get(v, 0) + w
     return seat, order, out
 
@@ -129,7 +131,10 @@ def _draft(rng):
 
     nom = {}
     for i, who in enumerate(noms):
-        nom[who] = rng.choice(folk + noms[:i])
+        pool = folk + noms[:i]
+        if rng.random() < 0.45:
+            pool = pool + cos
+        nom[who] = rng.choice(pool)
 
     named = sorted(rng.sample(folk, rng.randint(1, min(3, nh))))
     holders = sorted(folk + noms)
@@ -140,7 +145,16 @@ def _draft(rng):
         who = sorted(rng.sample(pool, min(want, len(pool))))
         if len(named) > 1 and rng.random() < 0.6:
             who = sorted(set(who) | set(named))
-        plan.append((c, [(h, rng.choice(kinds[c])[0], rng.choice(LOTS)) for h in who]))
+        # A company's own stock, standing in somebody else's name. The frozen accessor
+        # drops the holding recorded against the company itself, so this is the half of
+        # the treasury rule a submission has to see for itself.
+        mine = sorted(k for k in nom if nom[k] == c)
+        if mine and rng.random() < 0.85:
+            who = sorted(set(who) | {rng.choice(mine)})
+        own = {k for k in nom if nom[k] == c}
+        plan.append((c, [(h, rng.choice(kinds[c])[0],
+                          rng.choice(LOTS[-5:]) if h in own else rng.choice(LOTS))
+                         for h in who]))
 
     late = []
     for i, (c, who) in enumerate(plan):

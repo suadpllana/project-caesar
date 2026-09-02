@@ -73,11 +73,19 @@ task's rejection history gets silently reverted.
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 | `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
-| `share-register-screen` | Operations / Compliance | 20 | 9 | 14400 s | 7 h |
+| `share-register-screen` | Operations / Compliance | 21 | 9 | 14400 s | 7 h |
 
-**`share-register-screen` is the eleventh task, built 2026-09-02, and it has not been through
-the pipeline.** It is the first in Operations and the first here whose graded artifact is a
-**determination** - one record per company saying whether a programme reaches it, how many of
+**`share-register-screen` reached the easiness probe on 2026-09-02 and failed it, 3 of 3.**
+Structural, AI-text and similarity all passed. The cause was not the mechanism and not the
+environment: **two sentences of the brief handed the mechanism over**, and the solving
+trajectory reaches the rule in its first message, in the brief's own words. The whole entry
+is "The easiness rejection: I wrote the answer into the brief and called it the input space"
+below, and the one-line version is that **the line between stating the input space and
+stating the reasoning is one clause wide, and nothing here was checking it.** There is a
+gate for it now.
+
+It is the eleventh task, the first in Operations, and the first here whose graded artifact is
+a **determination** - one record per company saying whether a programme reaches it, how many of
 its board seats its side took, and who took each seat. There is **no work counter anywhere in
 it**, which is the point: five tasks here grade work against a budget and the similarity screen
 rejected the fifth for exactly that. What it turned up is in "Three gates that reported success
@@ -1855,6 +1863,128 @@ if its subject had been missing.
   imports the tree - the attack has to disarm from inside a decision while the run is going,
   and only then does the `armed` flag earn its place.
 
+## The easiness rejection: I wrote the answer into the brief and called it the input space
+
+`share-register-screen` cleared the structural check, the AI check and the similarity screen
+and came back **3 of 3** from the easiness probe on 2026-09-02. One trajectory was supplied
+and it is the most useful artifact this session produced, because the cause is not subtle
+once you read it and it is entirely mine.
+
+**Read the runtimes first, as always.** The three trials ran 3m52s, 3m58s and 2m30s against a
+**240-minute** budget, at 347k to 472k input tokens. Nobody explored anything. That is not
+"the task was a bit easy", it is "the plan was available on sight".
+
+**The line, from the agent's first substantive message, before it ran a single experiment:**
+
+> `pol/voice.py` gives each list party its own hand. The list's holdings then get divided
+> separately under the seat-by-seat average, which throws away exactly what those holdings
+> come to at a meeting. In `share.txt`, h1's 130 and h2's 190 lose to h3's 290 apart, and
+> beat it together.
+
+That is the whole discovery the task was built on, derived in one step. Note the words: *what
+those holdings come to at a meeting*. They are lifted from the brief. Two sentences did it.
+
+**Leak one, and it is the one I would not have found by re-reading:**
+
+> What those holdings come to at a meeting is the whole of what the screen has to get right.
+
+I wrote that believing it stated the input space. It does not. It names the quantity the task
+is built on and says that quantity is the answer. **Stating the input space is "this
+situation occurs and is graded". Stating the reasoning is "this situation is what you have to
+get right." The gap between them is one clause, and I crossed it while quoting the rule that
+forbids it.** A requirement constrains the output. A sentence like that one constrains where
+you think, which is the only thing a frontier agent was short of.
+
+**Leak two: a second worked exhibit is a second answer key.**
+
+> Now put /app/regs/share.txt through it, where two named people sit on the register of every
+> company in the file, and the first two come back no.
+
+A brief has to be grounded in a real run, so the first exhibit earns its place: it is the
+premise, the reason somebody is looking at all. The second one is different. It names a
+shipped file as exhibiting a fault *and* names the feature that makes it faulty - two named
+people on one register - which is the precondition of the mechanism. The agent did not have to
+find the case or work out what distinguishes it. **Ground the brief on one observed failure,
+the one that makes the task exist, and never annotate a second.**
+
+`tools/hintcheck.py` now carries an EMPHASIS family beside its refutation patterns: sentences
+that tell the solver which part of the problem carries the difficulty. Validated in both
+directions, which is the rule for a new check - it fires on the exact sentence above, and it
+is clean on all nine briefs in this repo that have cleared the AI screen. One narrowing was
+needed and is worth knowing: `rollout-cache-coherence`, which passed, contains "what it has
+computed is the whole of what is at stake for it", which is a statement about a request in the
+domain rather than about the solver's job, so the pattern requires the getting-it-right form.
+
+### What was repaired, and one honest limit on it
+
+Both sentences are gone. The premise stays: /app/regs/ring.txt still comes back with a
+company off the list on a row saying the list took two of its three directors, which is a real
+contradiction in the shipped output and the only thing in the tree that says anything is
+wrong. That grounding gives away the closure half, deliberately - it is the stated half.
+
+Then a third graded decision went in, chosen because it **breaks the natural implementation of
+the collapse** rather than sitting beside it. A company does not vote at its own meeting. The
+frozen accessor drops the holding recorded against the company itself, so the treasury rule
+looks handled; stock of the company standing in *somebody else's* name is not dropped, and the
+register says shares held for a party are voted by that party. The two sentences that decide
+it sit next to each other in the brief and neither states the combination. The trap is precise:
+the natural collapse keys on the party that casts the vote, a company's own stock casts as the
+company, so wherever that company is on the list the collapse folds its own shares into the
+list's hand - the one vote the treasury rule exists to remove is the vote the collapse adds.
+
+Separation, measured on 1000 generated registers, one row per single-mistake cheat:
+
+| reading | registers it moves |
+|---|---|
+| every holder stands alone (the collapse missed) | 52.2% |
+| the hand is only the named parties | 47.6% |
+| collapsed on the record holder, not the caster | 44.3% |
+| one sweep of the register | 32.9% |
+| a company that fell short is never asked again | 32.9% |
+| **a company's own stock votes at its own meeting** | **16.4%** |
+| half the board taken as enough | 16.0% |
+| more than half the votes taken as the test | 12.4% |
+
+The new axis sits with the two weakest existing ones rather than below them, which is the bar:
+a decision that moves single-digit percentages is a lottery ticket, and the first cut of this
+one was 6.5% until the generator was tuned to give the own-stock holding a lot big enough to
+move a seat.
+
+**The honest limit, and it is the reason this entry is worth reading twice.** The agent whose
+trajectory I have **derived the treasury rule correctly and unprompted**, and said so as one of
+two judgement calls it had to make. So the axis I added would not have stopped it. **The leak
+is what let it in, and the leak repair is the repair; the third decision raises the floor for
+agents that reason less carefully and is not evidence about this one.** Do not let a
+satisfying new mechanism stand in for removing the thing that actually leaked.
+
+### The submission that beat the task is now a variant, not a cheat
+
+It scores 1 against the repaired task too, because it is right. Per the playbook, a cheat that
+scores 1 is either a correct implementation or a hole in the scenario set, and this is the
+first: it differs from the reference in three places that are all implementation choice - the
+combined hand is called `\x00list` rather than `+`, the seat count looks for the hand or any
+member among the takers, and the closure collects a whole round before adding it. It ships as
+`authoring/variants/ok-probe-solve/`, unedited, with a README saying where it came from.
+
+Two reasons to keep doing this. It is the **only correct implementation in the bundle the
+task's author did not write**, which makes it the sharpest guard against grading a choice
+instead of a behaviour. And it is the regression test the playbook asks for: re-grade it after
+every change, and it must keep scoring 1.
+
+### A variant is the reference with one thing changed, so generate it
+
+Adding the treasury rule to `solution/voice.py` broke five of the six variants: each carried a
+hand-copied `voice.py` from before the change, so `variant_check` reported five correct
+implementations disagreeing with the reference on 45 registers. That is the solution-quality
+defect - the same source in two places with nothing holding the copies equal - living inside
+`authoring/variants/` where `solvecheck.py` deliberately does not look.
+
+`authoring/make_variants.py` now writes every variant from the reference plus one declared
+override, so they cannot drift again. `ok-probe-solve` is exempt and says so in the file: it
+overrides all four artifacts and it is a transcript, not a construction. **Any task here whose
+variants are hand-copied files has this defect latent; the symptom is a variant sweep that
+fails immediately after a reference change and looks like a broken reference.**
+
 ## A name a submission invents must not be able to decide a graded value (2026-09-02)
 
 Found building `share-register-screen`, and it is the entry to read first, because the defect
@@ -2675,8 +2805,10 @@ python3 tools/docker_trial2.py <slug> --variants alternative correct solutions, 
 python3 tools/textcheck.py <passed.md> <draft>  instruction cadence and register
 python3 tools/structcheck.py <draft>            instruction structure; run against the three
                                                 passing briefs too, it must stay clean on them
-python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, and every
-                                                folds/scans figure still matches gt.json
+python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, tells the
+                                                solver nowhere which part carries the
+                                                difficulty, and every folds/scans figure
+                                                still matches gt.json
 python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
                                                 gt.json must score 0, or the verifier is
                                                 grading a report instead of evidence
@@ -2728,6 +2860,11 @@ python3 tools/zipfix.py <slug>                  rewrite an archive package.py st
 python3 tasks/<slug>/authoring/tiecheck.py      no graded comparison may come down to a name
                                                 the submission chose. Ship the mirror variant
                                                 too: the reference with that name changed
+python3 tasks/<slug>/authoring/make_variants.py generate variants/ from the reference plus one
+                                                declared override each. Hand-copied variants
+                                                drift the moment the reference changes, and
+                                                the symptom is every correct implementation
+                                                disagreeing at once
 ```
 
 `zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and

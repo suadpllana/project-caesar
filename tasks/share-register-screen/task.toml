@@ -19,35 +19,45 @@ The tree is a working sanctions screen with the wrong reading of one sentence, a
 wrongness is coherent rather than broken. It walks the register once, asks of each company
 whether the parties it has on its list took more than half the seats, and adds the ones
 that did. That is the shape of every screening tool anyone has read, so it is the shape a
-frontier agent reconstructs from its prior, and it is wrong twice.
+frontier agent reconstructs from its prior, and it is wrong three times over.
 
 The first is that the list is closed under itself and the walk has to be repeated. A
 company the list can appoint the board of votes the way the list votes, so its own shares
 join the hand and can carry a further company, and a company that fell short on one pass
 can carry on the next without a share moving. Sweeping the register once misses that
-whenever a holding runs backwards through the incorporation order, which is 24 percent of
+whenever a holding runs backwards through the incorporation order, which is 33 percent of
 the registers we grade. This half announces itself: /app/regs/ring.txt comes back with a
 company off the list on a row that says the list took two of its three directors, and an
-agent that fixes the sweep makes that contradiction go away.
+agent that fixes the sweep makes that contradiction go away. It is the only thing anywhere
+in the tree that says something is wrong at all.
 
 The second does not announce itself and it is where the task lives. A board is not shared
 out in proportion, it is filled a seat at a time by running averages, and the seats a
 group of holders takes standing together are not the seats its members take standing
 apart. The screen asks what the parties on the list CAN appoint, so they have to arrive at
 the meeting as one hand. Summing what each of them won separately is short by a seat
-wherever two of them would have carried one between them, and that is 11 percent of graded
-registers on the determination alone, more once the seat list is compared. Nothing in the
-tree says so, no register in /app/regs is annotated, and the screen prints a perfectly
-plausible answer either way.
+wherever two of them would have carried one between them, and that is 52 percent of graded
+registers. Nothing in the tree says so, no register in /app/regs is annotated, and the
+screen prints a perfectly plausible answer either way.
 
-The two interact rather than sitting side by side, which is what stops a half-recognition
+The third is the half of the treasury rule the environment leaves standing. A company does
+not vote at its own meeting, and the frozen accessor drops the holding recorded against
+the company itself, which makes the rule look handled. Stock of the company standing in
+somebody else's name is not dropped, and the register says shares held for a party are
+voted by that party, so those are the company's votes and they are silent too. The two
+sentences that decide it sit next to each other in the brief and neither of them says the
+combination. Missing it moves 16 percent of graded registers.
+
+The three interact rather than sitting side by side, which is what stops a half-recognition
 from landing. The natural implementation of the first is a fixpoint that asks the shipped
 seat allocation for each company's board and counts the seats whose taker is on the list.
 The second takes that count away: after the collapse no member of the list holds a seat
 under its own name, so the field the first answer reads stops meaning what it meant, and a
 submission that finds the collapse and keeps the old count reaches an empty list on every
-register. Finding the collapse also changes which companies are on the list, which changes
-the hand, which changes boards already settled, so the sweep has to be re-run against it.
+register. The third then turns the collapse itself into a trap, because the natural way to
+write it keys on the party that casts the vote, and a company's own stock casts as the
+company, so where the company is on the list its own shares are folded into the list's
+hand: the one vote the treasury rule exists to remove is the vote the collapse adds.
 
 There is no oracle for any of it. The screen runs whatever rules it is given and prints
 records that add up under all of them, the environment ships no expected output, the brief
@@ -77,23 +87,32 @@ gives every holder on the list the same key, so the shipped allocation in reg/po
 the seats against one hand of their combined size rather than against several small ones.
 The collapse is keyed on the party that casts the vote and not on the party the register
 records, which is what makes a nominee on the list bring nothing when it holds for an
-outsider and an outsider bring everything when it holds for the list. tally.py then counts
-the seats that hand took, which is a different question from how many takers are on the
-list, and applies the majority.
+outsider and an outsider bring everything when it holds for the list.
+
+The same resolution is what silences a company's own stock. Once the principal is known, a
+holding whose principal is the company whose meeting it is drops out, whoever the register
+records it against. It has to happen after the resolution rather than before, and it
+matters most where the company is on the list, because the collapse would otherwise fold
+the company's own shares into the list's hand. tally.py then counts the seats that hand
+took, which is a different question from how many takers are on the list, and applies the
+majority.
 
 note.py needs no change at all, and establishing that is part of the work rather than an
 accident: a file being editable is not evidence that it is wrong.
 
-Five alternative correct implementations are kept in the authoring directory and all five
+Six alternative correct implementations are kept in the authoring directory and all six
 score 1 through the real verifier: the closure by a worklist instead of repeated passes,
 the sweep walking the register backwards, the combined hand assembled before the
 singletons instead of alongside them, the seat count reached from the other side of the
-board, and one that names the combined hand so that it sorts after every party id rather
-than before one. That last is not decoration. It disagreed with the reference the first
-time it ran, on registers where a seat came down to two hands on the same average, which is
-a seat decided by the name a submission chose. Registers are now generated tie free by
-construction and every one that ships is checked, so the name cannot matter and the five
-agree record for record.
+board, one that names the combined hand so that it sorts after every party id rather than
+before one, and one written by somebody else entirely. That last is a transcript of a
+submission that solved an earlier build of this task, kept unedited: it differs from the
+reference in three places that are all implementation choice, and requiring it to score 1
+is the sharpest guard here against grading a choice instead of a behaviour. The
+sorts-late one is not decoration either. It disagreed with the reference the first time it
+ran, on registers where a seat came down to two hands on the same average, which is a seat
+decided by the name a submission chose. Registers are now generated tie free by
+construction and every one that ships is checked, so the name cannot matter.
 """
 
 verification_explanation = """
@@ -102,11 +121,12 @@ the determination record for each company, in incorporation order, carrying the 
 whether the list holds it, how many of its seats the list took, how many seats it has, and
 who took each seat.
 
-Two register sets are driven. Twenty-three are enumerated, one per rule, each named for the
+Two register sets are driven. Twenty-seven are enumerated, one per rule, each named for the
 reading it exists to fail, and including the must-still-work side of every fence: a company
 the list carries alone and one it does not, a hand of two that carries and a hand of two
-that falls short, a nominee that brings votes and a nominee that takes them away, a board
-where the list takes exactly half. The other three hundred and twenty are built inside the
+that falls short, a nominee that brings votes and a nominee that takes them away, a company's
+own stock in a nominee's name and a nominee holding for a company elsewhere, a board where
+the list takes exactly half. The other three hundred and twenty are built inside the
 verifier container from a nonce made out of /dev/urandom at trial time, after the agent has
 finished, and their expected records are produced afterwards by the sealed model. Those
 registers did not exist when the submission was written. That is what stands in place of a
@@ -121,14 +141,15 @@ specification rather than from the tree and sharing no code with it: the filings
 into a flat list of movements instead of applied to a running book, the board is filled by
 comparing exact rationals instead of by integer cross multiplication, the closure is driven
 by a worklist instead of by whole passes, and nominee chains are flattened up front instead
-of walked per lookup. The two agree on every record of 4500 registers, which is the evidence
+of walked per lookup. The two agree on every record of 4000 registers, which is the evidence
 that what is graded is the specification and not one author's bug. The ground truth is
 believed only where the model reproduces it, and that check runs at verification time.
 
 Deliberately not graded, because two correct implementations differ on them: how many times
 a submission consults the register, what it caches, the order it sweeps in, and the name it
-gives a combined hand. Five alternative correct implementations are required to score 1 and
-all five do.
+gives a combined hand. Six alternative correct implementations are required to score 1 and all six do, among them a
+verbatim transcript of a submission that solved an earlier build of this task in a screening
+probe, which is the only correct implementation here that the task's author did not write.
 
 Since the run executes agent code in a shared interpreter, four more things are attested.
 The executed tree outside the four declared artifacts must be byte-identical to the pristine
@@ -141,9 +162,9 @@ seat allocation and the register reader, kept in a closure the runner owns, has 
 consistent with the register set and the instrumentation still armed at the end. And the
 report carries the run nonce, so a report planted before the run cannot pass.
 
-Twenty cheats were run in the real two-image trial and all score 0, each caught by the
-layer it was aimed at rather than by an import error. Ten are the reference with exactly one
-decision made the way a solver who missed one piece would make it, generated by swapping an
+Twenty-one cheats were run in the real two-image trial and all score 0, each caught by the
+layer it was aimed at rather than by an import error. Eleven are the reference with exactly
+one decision made the way a solver who missed one piece would make it, generated by swapping an
 anchored block in the reference source: every holder standing alone, one sweep of the
 register, a company that falls short never asked again, a hand made only of the named
 parties, a hand collapsed on the record holder instead of the caster, half the board taken

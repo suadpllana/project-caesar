@@ -68,6 +68,11 @@ child's peak RSS at 472 MB, so it is not memory. The budgets above were widened 
 per pair and 40 s for the medium block on the strength of the slow state; nothing the
 timings separate is within an order of magnitude of either line.
 
+Final `--margins` on the rebuilt image (budgets 60 s / 40 s): oracle 1, `ok-cells` 1, every
+block inside its budget with a worst headroom of **2.3x after scaling by 2.7** (timed case
+17, 9.9 s here); the sparse family otherwise 4.4-5.9 s here, crowded 1.1-3.7 s, long under
+0.7 s, medium 3.6 s.
+
 ## The two-image trial, 2026-09-02
 
 `tools/ecs_trial.py` on the sandbox, `--cpus=2 --memory=4096m`, apt layer dropped:

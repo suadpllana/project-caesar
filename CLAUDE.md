@@ -554,14 +554,16 @@ built from the brief alone gets the wrong answer and reports success.
 
 ### Measured, for calibration
 
+Streams each reading gets right, out of 33 enumerated and 60 generated:
+
 | | enumerated | generated |
 |---|---|---|
-| reference | 33/33 | 300/300 |
-| shipped tree | 13/33 | 3/80 |
-| pay out of what a member holds | 20/33 | 17% |
-| net the fronts, advance, repeat | 28/33 | 77% |
-| give up on everything at once | 25/33 | 10% |
-| an adversary holding `gt.json` | **33/33** | 3/80 |
+| reference | 33/33 | 60/60 |
+| shipped tree | 13/33 | 3/60 |
+| pay out of what a member holds | 20/33 | 10/60 |
+| net the fronts, advance, repeat | 28/33 | 45/60 |
+| give up on everything at once | 25/33 | 8/60 |
+| an adversary holding `gt.json` | **33/33** | 3/60 |
 
 The answer-key row is the one to read, and it is the same lesson `pair-hold-reclaim` records:
 the probe replays the recorded record through the book's own methods, so its rows and its

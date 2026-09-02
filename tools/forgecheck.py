@@ -35,12 +35,30 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def gt_slices(gt_text: str, n: int = 12) -> list[str]:
-    """Distinctive runs of ground truth, long enough not to occur by chance."""
+    """Distinctive runs of ground truth, long enough not to occur by chance.
+
+    Single long tokens are the usual shape - a hash, a packed token stream, a base64
+    blob. A ground truth made of short rows ("1 cn 5") has none of them, and reading only
+    single tokens made this report FAIL a task whose answer-key probe was real and did
+    score 0. That was the checker being blind rather than the task being unproven, so
+    when nothing single is long enough, consecutive tokens are joined until they are: a
+    run of ground-truth rows in order is just as specific as one long token, and a cheat
+    still has to carry the answers verbatim to match it. Measured 2026-09-02: adding the
+    fallback keeps every task that already reported carriers reporting them, and leaves
+    checkpoint-resume-drift, turn-seam-alignment and rollout-cache-coherence failing.
+    """
     data = json.loads(gt_text)
-    out = []
-    for chunk in json.dumps(data, sort_keys=True).replace("{", " ").replace("}", " ").split():
-        if len(chunk) >= 24:
-            out.append(chunk)
+    flat = json.dumps(data, sort_keys=True).replace("{", " ").replace("}", " ").split()
+    out = [chunk for chunk in flat if len(chunk) >= 24][:n]
+    if out:
+        return out
+    for i in range(len(flat)):
+        run = ""
+        for tok in flat[i:i + 8]:
+            run = tok if not run else run + " " + tok
+            if len(run) >= 24:
+                out.append(run)
+                break
         if len(out) >= n:
             break
     return out

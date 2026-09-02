@@ -1,0 +1,15 @@
+new 1
+new 2
+new 3
+new 4
+bind a 1
+edge 1 2
+edge 2 3
+edge 3 4
+arm 2 none
+arm 3 none
+arm 4 none
+unbind a
+pass
+pass
+pass

@@ -215,11 +215,14 @@ solver who has found the restriction writes first, and it clears every budget, \
 which is what makes the budgets fair.
 
 Budgets were measured in the real two-image trial at the declared two cores \
-and four gigabytes, then scaled by the factor between this sandbox and the \
-one whose trial matched the pipeline's last reference-verification verdict: \
-the reference spends under six seconds on the dearest pair here, about \
-sixteen once scaled, against forty, and the medium block under four against \
-thirty.
+and four gigabytes, on a sandbox whose speed was seen to drift by a factor of \
+three to four within one session, so they are set from the slowest state \
+observed rather than the fastest: the reference spends between six and \
+twenty-one seconds on the dearest pair depending on that state, against \
+sixty, and the medium block between three and fourteen against forty. \
+Nothing the timings separate is near either line: the table and the per-cell \
+submission are out by orders of magnitude, and the alternative correct \
+implementation kept beside the cheats clears both with room to spare.
 """
 relevant_experience = """
 Front-end is what I get paid for, about three years of it, React and Vue on \

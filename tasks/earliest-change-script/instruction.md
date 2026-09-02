@@ -70,10 +70,10 @@ distinct. The rest share no order with their partner worth the name and answer
 to a script longer than the file; those are drawn from a pool of lines about
 the size of the file, so hardly any line in them repeats.
 
-Each of them gets forty seconds of wall clock, measured from outside your
-process, from the moment it starts to the moment it answers. That forty
+Each of them gets sixty seconds of wall clock, measured from outside your
+process, from the moment it starts to the moment it answers. That sixty
 seconds covers reading the pair in as well. A separate block of four hundred
-pairs, a few hundred to fifteen hundred lines each, shares a budget of thirty
+pairs, a few hundred to fifteen hundred lines each, shares a budget of forty
 seconds for the block. Everything else is short and is not timed.
 
 Their answers are graded as well as their timings, and at that size the

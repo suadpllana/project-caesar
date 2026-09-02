@@ -113,9 +113,9 @@ def _pairs_cost(a, b, n, m):
 
 def _frontier_limit(fallback):
     """How many moves the frontier is allowed before the pairs engine takes
-    over. Stop it once the work it has already done reaches the whole of what
+    over. Stop it once the work it has already done reaches a quarter of what
     that engine would cost, and the wasted effort is bounded by that figure."""
-    limit = int((fallback / _FRONTIER_ENTRY) ** 0.5)
+    limit = int((0.25 * fallback / _FRONTIER_ENTRY) ** 0.5)
     if limit < 1024:
         return 1024
     if limit > _FRONTIER_CAP:

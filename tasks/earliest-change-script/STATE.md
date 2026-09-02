@@ -13,8 +13,8 @@ change that answers it. Not yet resubmitted.
 Given two lists of lines, return the shortest edit script under a three-tier rule: fewest
 moves; of those, fewest hunks, a hunk being a maximal run of consecutive moves in the
 reading; of those, the reading that comes first with drop ahead of add ahead of keep.
-Graded on 52865 correctness cases, 400 medium pairs sharing a 30 s budget, and 18 large
-pairs with 40 s of wall clock each, measured from outside the process.
+Graded on 52865 correctness cases, 400 medium pairs sharing a 40 s budget, and 18 large
+pairs with 60 s of wall clock each, measured from outside the process.
 
 ## Why it is hard
 
@@ -57,10 +57,33 @@ scaling by the 2.7 host factor recorded in `tools/ecs_trial.py`:
 | block | reference | budget |
 |---|---|---|
 | cases | 4.4 s | 900 s |
-| medium (400) | 3.4 s | 30 s |
-| timed, long | 0.38–0.74 s | 40 s |
-| timed, crowded | 0.76–3.12 s | 40 s |
-| timed, sparse | 4.44–5.77 s | 40 s |
+| medium (400) | 3.4 s | 60 s |
+| timed, long | 0.38–0.74 s | 60 s |
+| timed, crowded | 0.76–3.12 s | 60 s |
+| timed, sparse | 4.44–5.77 s | 60 s |
+
+**The sandbox's speed drifted by 3-4x within the session.** The same container, image and
+pair measured 4.6 s at 19:00 and 11-21 s at 20:05, with nothing else running and the
+child's peak RSS at 472 MB, so it is not memory. The budgets above were widened to 60 s
+per pair and 40 s for the medium block on the strength of the slow state; nothing the
+timings separate is within an order of magnitude of either line.
+
+## The two-image trial, 2026-09-02
+
+`tools/ecs_trial.py` on the sandbox, `--cpus=2 --memory=4096m`, apt layer dropped:
+
+| submission | reward | caught by |
+|---|---|---|
+| oracle | 1 | - |
+| nop | 0 | every correctness block and both budgets |
+| variant `ok-cells` | **1** | - |
+| `lex_first_only` | 0 | fixed, random, enumerated, medium, large answers |
+| `slide_hunks_afterwards` | 0 | fixed, random, enumerated, medium, large answers |
+| `split_hunks` | 0 | every answer block, and both budgets |
+| `delegate_to_difflib` | 0 | every answer block, and the large budget |
+| `forge_the_result` | 0 | the tamper record, and every answer block |
+| `table_walk` | 0 | medium answers and budget, large answers and budget |
+| `cells_on_shortest_paths` | 0 | large answers only: the six sparse pairs never come back |
 
 ## Gates not run here
 

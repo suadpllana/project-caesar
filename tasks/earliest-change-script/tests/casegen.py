@@ -189,8 +189,8 @@ def _reordered(rng, n, pool_size, blocks):
 
 
 MEDIUM_COUNT = 400
-MEDIUM_BUDGET = 30.0
-TIMED_BUDGET = 40.0
+MEDIUM_BUDGET = 40.0
+TIMED_BUDGET = 60.0
 
 
 def medium_cases(seed):

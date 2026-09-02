@@ -406,9 +406,14 @@ the identical case in **2.05 s**, inside a `--cpus=2 --memory=4096m` container a
 on the host. So "measured in the real two-image trial" is not one number: it is a number on
 whichever machine happened to be provisioned. `tools/ecs_trial.py --margins` now scales
 every measurement by `HOST_FACTOR = 2.7` before holding it to the 1.5x headroom and prints
-both figures, and the budget went to 40 s on the strength of the scaled one (worst pair
-5.8 s here, about 16 s scaled). **Record the reference's time on one fixed case in every
-session, so the next one can measure its own machine against it in ten seconds.**
+both figures. **And the factor is not a constant even within one session**: the same
+container, image and sparse pair measured 4.6 s at 19:00 and 11 to 21 s at 20:05 with
+nothing else running and the child at 472 MB peak, and the calibration case (the old pairs
+engine on timed case 13) went 2.05 s to 3.39 s on the host in the same hour. The budgets
+were set from the slow state, 60 s a pair and 40 s for the medium block, which costs no
+difficulty because nothing the timings separate is within an order of magnitude of either
+line. **Record the reference's time on one fixed case in every session, so the next one
+can measure its own machine against it in ten seconds, and measure it more than once.**
 
 Four smaller things from the same session:
 

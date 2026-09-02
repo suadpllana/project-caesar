@@ -73,6 +73,17 @@ task's rejection history gets silently reverted.
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 | `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
+| `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
+
+**`pair-hold-reclaim` is the eleventh task, built 2026-09-02, and it has not been through
+the pipeline.** It grades a reclamation ledger and the store a stream leaves behind, which
+`tools/simcheck.py` reports as conceptually clear of every earlier task, and it is the first
+here whose difficulty is two nested fixed points rather than a counter. The design law it was
+built on is in "What can be brute-forced, and what cannot" below, and that section is worth
+reading before the next idea is chosen, because it kills four whole families of task in a
+paragraph each. Two findings in it are about the repo rather than about this task: a shipped
+`environment/Dockerfile` was byte-identical to five other bundles, and `tools/forgecheck.py`
+was blind to a ground truth made of short rows.
 
 **`grant-spread-order` is the tenth task, built 2026-09-02, and it has not been through the
 pipeline.** It is the first in Security and the first here to grade a **reconstructed
@@ -278,6 +289,119 @@ explanation claimed - measure that, do not assume it. And `cheat-spawn-order` di
 the reference on **1 program of 427**: a decision that rare is a lottery ticket, not a test of
 expertise, and `field_report.py` prints the count per cheat so you can find them at contract
 time.
+
+## What can be brute-forced, and what cannot (2026-09-02)
+
+`pair-hold-reclaim` was chosen over eight other candidate designs, and the elimination is
+worth more than the task: three of the eight were killed by one test, applied before any
+code. **Ask what the correct answer is defined against.** If it is an external
+mathematical object, the solver writes a slow definitional model and differential-tests
+its way to the answer, and no amount of leak-patching closes that - it is the
+`earliest-change-script` finding ("a pure function cannot have Prong C on correctness")
+in its general form. If it is the machine's own behaviour under a policy the agent
+supplies, there is no definitional fallback, because the policy *is* the answer.
+
+Four families die on that test, and each looked strong until it was asked:
+
+- **Anything whose invariant is "the transform preserves behaviour".** An optimiser, a
+  rewriter, a compiler pass. The agent runs both versions and compares. Perfect oracle,
+  shipped in the environment, and the only way to force the transform to do anything is a
+  size or speed gate, which is the counter idiom the similarity screen has already
+  rejected once.
+- **Anything whose invariant is determinism or resume-equivalence.** A checkpoint that
+  must resume identically, a replay that must reproduce a live run, a sharded loader that
+  must reproduce the unsharded stream. Run it both ways and diff: the oracle is the task
+  itself.
+- **Anything with a naive-but-correct baseline in the environment.** Buffer liveness in a
+  graph executor is the worked example: run it with nothing ever freed, get the right
+  numbers, compare. Same shape as the first two.
+- **Anything whose target is a decidable property of the input** - language membership,
+  shortest edit, reachability under stated edge rules. Brute force exists at small sizes
+  and frontier agents build it as their first file.
+
+What survives is a machine with a stated invariant about its **own history**, where the
+agent supplies the policy that maintains it. The agent can still check by mechanising the
+invariant - but mechanising it requires the same insight the task is built on, which is
+why `guard-mark-unwind` survived an invariant its brief states outright.
+
+### The two fixed points, and why the second breaks the first
+
+The shape that came out of it, for anyone reusing it: **one stated end-state requirement
+whose consequences are two nested fixed points, plus a third rule whose natural
+implementation only the inner one can tell apart.** Here reach is a least fixed point
+because a conditional entry's condition is answered by the set being built; the pass is a
+loop of rounds because a cleanup mutates the store the pass is deciding from and can make
+another cleanup fall due; and the ordering rule ("a cleanup does not run while anything
+else with a cleanup still pending can reach its cell") has two seeds that agree on every
+stream a one-key entry can build and disagree only where a **two-key** entry has one key
+held from outside and the other inside the group being cleaned up. Measured: the
+natural seeding is right on 30 of 31 enumerated streams and wrong on 214 of 250 generated
+ones.
+
+The brief states the requirement and the input space ("a two-key entry can have one of its
+keys held by a name and its other key inside the group being cleaned up, and the streams
+we grade do that") and never the rule, which is the `guard-mark-unwind` repair applied in
+advance rather than after a 0-of-8.
+
+### Three findings about the repo, not about the task
+
+1. **`tools/forgecheck.py` was blind to a ground truth made of short rows.** It looked
+   only for single tokens of 24 characters or more, which a `gt.json` of rows like
+   `1 cn 5` has none of, so it reported FAIL on a bundle whose answer-key probe was real
+   and did score 0. Fixed: when nothing single is long enough it joins consecutive tokens
+   until they are. Validated in both directions on 2026-09-02 - `pair-hold-reclaim` and
+   `delta-view-retraction` still report their carriers, and `checkpoint-resume-drift`,
+   `turn-seam-alignment` and `rollout-cache-coherence` still fail, as they should until
+   each is tested against its own answer key. This is standing-policy item 5 and it cost
+   twenty minutes to find because the checker's verdict was believed for one round.
+
+2. **`environment/Dockerfile` is byte-identical across six bundles.** `simcheck.py`
+   reported 1.000 against `checkpoint-resume-drift`, `delta-view-retraction`,
+   `rollout-cache-coherence`, `segment-merge-horizon` and `turn-seam-alignment` before it
+   was rewritten. Three lines is not much room, but explicit per-directory `COPY` lines
+   and the two `PYTHON*` environment variables took every NEAR finding away and left the
+   worst ratio at 0.68. **A three-line file still has to be this task's three lines**, and
+   the fix costs a minute; leaving it is half of a similarity rejection for free.
+
+3. **`sys.monitoring` tool ids are 0 to 5 and nothing else.** `use_tool_id(6, ...)` raises
+   `ValueError`, the runner reports a fault, and the whole trial comes back as a reference
+   that scores 0 for a reason that has nothing to do with the task. Ids 0, 1, 2 and 5 are
+   spoken for by the debugger, coverage, the profiler and the optimizer; 3 and 4 are free.
+
+### The variants suite caught an undecided rule before any probe did
+
+Worth recording because it is the cheapest possible catch of the failure mode that has
+cost this repo the most. An alternative correct implementation, written to differ only in
+code shape, emptied every watch belonging to the cells going out and only then let any of
+them go, where the reference interleaves per cell. It scored 0. Both readings satisfy
+"no watch names a cell after it has gone, and the emptying is recorded before the letting
+go" - which means the sentence was a coin flip, and it would have been a lottery ticket in
+the probe rather than a defect anyone could see. The brief now says the emptying happens
+"immediately beforehand", the batch reading ships as `cheat-empty-in-bulk`, and the
+variant was rewritten to interleave.
+
+**The general move: when a variant you believe is correct scores 0, do not fix the
+variant first.** Ask which sentence of the brief separates it from the reference. If the
+honest answer is "none", the rule was never decided and the variant has just found it for
+free.
+
+### Measured, for calibration
+
+| | enumerated | generated |
+|---|---|---|
+| reference | 31/31 | 300/300 |
+| shipped tree | 15/31 | 32/250 |
+| the near-miss seeding | 30/31 | 36/250 |
+| an adversary holding `gt.json` | **31/31** | 18/150 |
+
+The answer-key row is the one to read. That probe replays the recorded ledger through the
+store methods that produce those rows, so its rows and the state that comes with them are
+genuine and every enumerated stream passes - and it still scores 0, because three hundred
+streams are built inside the verifier from a nonce made after the agent has finished.
+**Generated-after-the-fact inputs are strictly stronger than any in-process attestation**,
+and the attestations are worth keeping anyway, since each bypass they force is a separate
+detectable act.
+
 
 ## Standing policy: every rejection becomes a gate
 

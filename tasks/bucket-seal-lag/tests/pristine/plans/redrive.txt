@@ -1,0 +1,15 @@
+hz 70
+node s0 src
+node a relay
+node f lift 40
+node g gather 10
+node k sink
+wire s0 a 0
+wire a f 2
+wire f g 0
+wire g a 3
+wire g k 0
+put 1 s0 12
+put 2 s0 35
+low 4 s0 40
+shut 9 s0

@@ -1,0 +1,1 @@
+the bound computed for the whole graph in one relaxation seeded from every account at once, instead of one node at a time with the caller taking the smallest answer.

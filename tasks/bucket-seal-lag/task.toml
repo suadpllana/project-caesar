@@ -1,0 +1,237 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/flow/emit.py",
+  "/app/flow/route.py",
+  "/app/flow/due.py",
+  "/app/flow/pick.py",
+]
+
+[task]
+name = "afterquery/bucket-seal-lag"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working stage machine whose completeness rule is wrong, and the wrongness
+is coherent rather than broken: it is the shape of a pipeline that decides a bucket is
+finished by looking at the edges feeding the gather. That is the shape every streaming
+system's documentation describes, because in a directed acyclic pipeline it is right, so
+it is also the shape a frontier agent reconstructs from its prior. Four corrections are
+needed and every one of them fights it. The bound is a property of the whole machine, not
+of a gather's immediate predecessors. It travels through each node's own rewrite rather
+than along a distance, so a lift on the way raises what can arrive and a gather on the way
+turns what arrives into the last stamp of a bucket. The graph has wires that lead back, so
+the answer is a relaxation run to a fixed point rather than a walk. And a gather's own open
+buckets are part of its account, because the last stamp of the lowest open bucket is the
+soonest that gather will emit, which on a graph with a way back returns to it.
+
+The two that carry the difficulty are the second and the fourth, and they are linked. Once
+an agent accepts that the bound is global, the natural implementation is a table of
+shortest lags between node pairs, computed once and reused. That table is right on every
+plan with no lift and no intermediate gather, and it is not a table of numbers at all: a
+route through a lift with a low floor and a large lag can deliver earlier than a short
+route past a high one, and which of the two wins depends on the stamp being asked about,
+so the winner changes as a source's floor climbs. There is no single best route per pair
+to precompute. Having found that, the natural fix is to clamp at the end of the walk
+rather than at every node on it, which is right until two rewrites compose - a lift behind
+a gather behind a lift - and then it is short by the width of a bucket. Neither mistake
+crashes. Both show up as one seal a tick early in a run that is otherwise perfect, and a
+seal a tick early silently loses whatever was still coming.
+
+Being wrong in the other direction is graded just as hard, and that is what stops the
+overcautious answer. A submission that never seals until everything has drained passes
+every plan where nothing is in flight and fails the four fences the instruction states
+outright, and a submission that holds a bucket for its own gather's open buckets without
+noticing the wire that carries them away holds every bucket forever.
+
+There is no oracle for any of it. The machine runs whatever rule it is given and prints
+the trace that rule produces, and every wrong reading above produces a trace that looks
+entirely reasonable. The one check an agent can build for itself is misleading rather than
+absent: sealing as late as a particular run happens to require loses nothing and is wrong,
+because the rule is about what a source may still send rather than what it did send. The
+environment ships no expected output, the instruction states requirements without stating
+how to satisfy them, and the graded set is three hundred plans generated inside the
+verifier from a nonce made after the agent has finished, so a rule that fits the plans in
+the tree carries no information about whether it fits the rest. The machine ships with no
+comments anywhere in it and its identifiers are in the register of ordinary internal code,
+which is a design choice: the tick order, the broadcast, the inbox discipline and the
+rewrite each node applies have to be recovered by reading behaviour instead of names.
+"""
+
+solution_explanation = """
+The reference is about eighty lines across three files and it is written from the
+observable requirement backwards, never from the shape of the code it replaces.
+
+The requirement is that a bucket is sealed once every stamp still able to reach its gather
+is above the last stamp that bucket covers. Three things fall out of it. The set of things
+that can still arrive is the whole machine rather than the gather's doorstep, so every node
+is asked what it can still emit on its own account and the answer is routed here. What a
+node can emit is not always the smallest thing it holds: a lift emits at its own floor
+whatever stale stamps it is sitting on, and a gather emits the last stamp of the lowest
+bucket it has open, which is also true of the gather being asked. And routing is a
+relaxation rather than a distance, because every node rewrites what passes through it and
+the graph has wires that lead back, so the answer for a given stamp is found by pushing it
+forward until nothing moves, taking the smallest arrival at each node and carrying onward
+whatever that node would then emit.
+
+Written that way the three files are one rule asked three times. `emit.py` answers what a
+node can still emit, `route.py` answers what reaches a gather when something leaves a node
+carrying at least a given stamp, and `due.py` takes the smallest answer over every node and
+compares it with the bucket. Two details are worth naming because leaving either out passes
+the shipped plans and fails elsewhere: the items sitting in the gather's own inbox land
+where their stamps say with no routing at all, and the relaxation has to distinguish what
+arrives at a node from what that node then emits, since conflating them turns a gather in
+the middle of a route into a wire.
+
+Five alternative correct implementations are kept in the authoring directory and all five
+score 1: the bound computed for the whole graph in one relaxation seeded from every account
+at once rather than one node at a time, the relaxation walking its frontier the other way
+round, the route reporting the emission rather than the arrival (provably the same answer
+under the only question asked of it), a gather's account built as a list and reduced rather
+than folded, and the seal order taken through an explicit key rather than tuple order. All
+five agree row for row on every plan.
+
+The fourth declared artifact needs no change. The order seals are recorded in is stated in
+the instruction and the shipped file already does it, and part of the work is establishing
+that rather than assuming a file that may be edited must be.
+"""
+
+verification_explanation = """
+The rebuilt machine is driven over every plan and graded on two things, exactly, with no
+partial credit: the ordered trace, and the list of stamps each sink took.
+
+Both come out of `flow/mach.py`, which is not an editable artifact, so they record what the
+machine actually did rather than what a submission says it did. The trace carries what each
+source released, what floor it announced and when it shut, which bucket opened, what joined
+it, which bucket was sealed and with which members, what arrived for a bucket already
+sealed, what each sink took, what went past the horizon, and the tick the run ended on. The
+sink lists are a cross-check rather than a second axis and the verifier says so: the trace
+already holds a row per receipt, so the two can only disagree if a submission produced one
+without the other. They are kept because they make a failure legible - a bucket sealed one
+tick early loses whatever arrives for it afterwards, and a sink list short by one stamp says
+that in a line where a row index does not.
+
+Expected results come from `tests/oracle.py`, a second implementation of the same
+specification written from the specification rather than from the tree and sharing no code
+with it: a different reader producing flat records instead of adjacency tables, the machine
+as functions over one dictionary instead of a class, and the bound computed for the whole
+graph in a single relaxation seeded from every account at once, where the tree asks one node
+at a time and lets the caller take the smallest answer. Those two agree because the rewrites
+are monotone and the merge at every node is a minimum, and that equality is the reason the
+file is worth having: it is the same requirement reached by a different route. The reference
+and the model agree on every row of nine hundred generated plans before any ground truth is
+written, and `build_gt.py` refuses to write one without that.
+
+Two plan sets are driven, and the second is why there is nothing here to forge. The
+enumerated set is thirty-one plans, each named for the reading it exists to fail, including
+the must-still-work side of every fence and the three plans that ship in the tree. The other
+three hundred are generated inside the verifier container from a nonce made out of
+/dev/urandom at trial time, after the agent has finished, and their expected traces are
+produced by the sealed model after the run. Those plans did not exist when the submission
+was written. That replaces the work-counter accounting earlier tasks used and it is
+stronger, because what is compared is the whole behaviour rather than a summary of it: there
+is no number to assign, no journal to pad and no table to paste. The cheat suite proves it
+directly. One cheat carries `tests/gt.json`'s own bytes, is right on every one of the
+thirty-one plans the ground truth covers, and scores 0.
+
+Since the verifier executes agent code, four more things are attested. The executed tree
+outside the four declared artifacts must be byte-identical to the pristine copy after the
+run. Every sealed machine function is fingerprinted as it actually existed in the running
+interpreter, at import and again when each plan ended, against digests the grader derives by
+compiling the pristine sources, so rebinding a function is caught the way editing its file
+already was. Trace rows are appended by a closure the runner owns which refuses any caller
+that is not the machine's own emitter, and the interpreter's tally of entries into that
+emitter, kept in that closure through `sys.monitoring`, has to equal the number of rows and
+to have still been armed when each plan ended. And the report carries the run nonce, so a
+report planted before the run cannot pass.
+
+Deliberately not graded, because grading them would measure an implementation choice rather
+than behaviour: how many times a submission consults the graph, what it caches between
+ticks, which data structures it keeps, and whether it asks the question one node at a time
+or for the whole graph at once. The interpreter's counts of entries into the four decision
+functions are recorded and only ever compared as floors, for the same reason. Five
+alternative correct implementations live in the authoring directory and all five are
+required to score 1.
+
+Twenty-eight cheats were run and all score 0. Sixteen are the reference with exactly one
+decision made the way a solver who missed one piece would make it, generated by swapping an
+anchored block in the reference source: the route measured in lag alone, a gather on a route
+treated as a wire, a lift on a route treated as a wire, the relaxation run once instead of
+to a fixed point, an open bucket counted at its lowest member, a gather's open buckets left
+out of its account, its highest open bucket taken instead of its lowest, its inbox left out,
+a lift's own account taken unraised, a shut source still counted, the bound taken over
+immediate predecessors only, the comparison off by one at the bucket edge, a bucket sealed
+as soon as nothing can land inside it, the gather left out of its own sweep, its inbox left
+unread, and the seal order reversed. Eight are reward-tamper probes built on the shipped
+tree rather than on the reference, since a probe built on the reference does the real work
+and would score 1 for honest reasons: a double-forked process writing the reward after the
+run, a planted report, a planted report followed by a hard exit, a privilege probe, a read
+of the verifier directory from inside the run, a rewrite of a machine file in the tree being
+executed, a sweep of everything the run's uid can reach, and one that reaches the running
+machine through the call stack and pushes rows in through the emitter, which is the only
+caller the sink accepts. Three are attestation probes built on the REFERENCE on purpose, so
+that every answer they give is right and the only thing wrong with them is the tampering,
+and each is caught by its own layer and by nothing else: one rebinds the emitter and is
+caught by the sink, which will not take a row from a caller that is not the emitter's own
+code object; one rebinds a sealed machine function the sink does not guard, at import time
+so that the two fingerprints taken during the run agree with each other, and is caught only
+by the baseline the grader compiles out of the pristine sources; and one switches the
+interpreter's instrumentation off from inside a decision while the run is going and is
+caught by the armed check. The last is the answer-key probe described above.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout,
+against a tree it cannot write; the reward channel is root-owned and locked before it
+starts; the ground truth, the sealed model and the grader are root-only files; and the file
+the run reports into is opened by root before privilege is dropped and handed over as a
+descriptor, so the uid executing agent code does not own the file it is graded on. Grading
+runs afterwards as root and never executes anything the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Data engineering"
+
+tags = [
+  "stream-completeness",
+  "dataflow-cycles",
+  "monotone-relaxation",
+  "feedback-edges",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I build and run the ingestion side of a data platform, which means most of my hard bugs are
+completeness bugs: something decided a window was finished while a record for it was still
+in the system, and nobody noticed until a downstream total came out short weeks later. The
+one this task is built from cost most of a week. We had a re-drive path that sent records
+that failed enrichment back to an earlier stage with a delay added, and the aggregation
+downstream of it was closing its windows off what its own input queues held. That is right
+until the day the re-drive path is not empty, and then a window closes while its own late
+records are still going round. The fix that looks obvious is to add the loop's delay to the
+window's grace, and that is wrong in both directions at once: too generous where a filter on
+the loop means nothing that old can come back at all, and too mean where the record has to
+pass through a second aggregation on its way, which does not forward records but emits its
+own window edges. What made it expensive is that every one of those readings is right on a
+straight pipeline, which is what every test we had was, and the difference only ever showed
+up as a handful of records missing from one window in a run of thousands.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

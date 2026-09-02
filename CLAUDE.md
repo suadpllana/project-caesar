@@ -105,6 +105,20 @@ value" below, and the second of those is a defect class **every task in this rep
 none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
+| `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
+
+**`bucket-seal-lag` is the twelfth task, built 2026-09-02, and it has not been through the
+pipeline.** It is the first here in Data engineering and the first whose graded artifact is
+a **completeness decision over a cyclic graph** - when a windowing stage may declare a
+bucket finished - which `tools/simcheck.py` reports as conceptually clear of every earlier
+task. The difficulty is that the bound looks like a distance and is not one: every node
+rewrites what passes through it, so the precomputed table of shortest lags a solver reaches
+for first is not a table of numbers at all, and which route delivers earliest depends on the
+stamp being asked about. What it turned up is in "Four findings from a task whose reference
+had dead code" below. Two of those are about the repo rather than about this task: **the
+environment Dockerfile similarity CAN be brought down**, which corrects a non-finding
+recorded here on 2026-09-02, and a heredoc trap on this host silently corrupts every
+string-literal patch that carries an escape sequence.
 
 **`pair-hold-reclaim` is the eleventh task, built 2026-09-02, and it has not been through
 the pipeline.** It grades a reclamation ledger and the store a stream leaves behind, which
@@ -2342,6 +2356,160 @@ task's 0 of 8 were rules a competent agent had to guess, and two of them were in
 attributes that are written and never read.** `preflight.py` warns about unused public
 functions and says nothing about unused fields, and a field is worse, because a function that
 is never called looks like dead code while a field that is never read looks like a clue.
+
+## Four findings from a task whose reference had dead code (2026-09-02)
+
+Everything here came out of building `bucket-seal-lag`, and three of the four are about
+tooling and about this host rather than about that task.
+
+### A cheat that scores 1 is sometimes a branch no correct run can reach
+
+The playbook says a cheat scoring 1 is either a correct implementation or a hole in the
+scenario set. There is a third answer and it is cheaper to check than either: **the branch
+the swap toggles may be unreachable, in which case the swap is a no-op and the reference is
+carrying dead code.** Two cheats here scored 1 on 145 plans - one that stopped skipping
+already-sealed buckets when routing a stamp, one that stopped skipping them when reading a
+node's own account. Both looked like real readings. Neither is: the bound the task grades
+never falls, and a bucket only seals once nothing at or below it can arrive, so no correct
+implementation ever routes a stamp into a sealed bucket. The `while b in done: b += 1` loop
+in both places was dead.
+
+The move, and it is two minutes: before writing a case to separate a cheat that scored 1,
+**instrument the reference and count how often the branch is taken**. If the answer is
+never, delete the branch from the reference and the cheat with it. Adding a case for an
+unreachable branch is how a task grows scenarios that pin nothing, and dead code in a
+reference is the same false affordance in the solution that `deadfieldcheck.py` looks for in
+the environment.
+
+A third cheat scored 1 for the other reason and was promoted: reporting what a node would
+emit rather than what arrives at it is provably the same answer under the only question the
+caller asks, since a stamp is at or below a bucket's last stamp exactly when the stamp its
+bucket would emit is. It ships as `authoring/variants/ok-emission-edge`.
+
+### A depth-first walk that blackens nodes under-reports the lightest cycle
+
+The generator rejects a plan the machine cannot finish in a sensible number of ticks, and
+the budget is structural because `gen.py` must not be able to run the machine. It was built
+on the lightest cycle in the graph, found by a DFS that marked each node black once it was
+done. That walk misses a cycle it reaches by a second route. Measured: one plan in four
+hundred reported its lightest cycle as 10 when the real answer was 4, which let a plan
+through that ran **6213 ticks against a median of 42** and blew the engine's own tick cap
+during ground-truth generation - a failure that reads as a broken reference and is not one.
+
+The fix is the min-plus closure: shortest paths of at least one edge, then the lightest
+round trip. Three lines, exact, and the tail vanished - worst 187 ticks over 600 plans after
+it. **Any budget built on "the shortest cycle" wants the closure, never a DFS.**
+
+### A trial harness that runs agent code in-process dies silently on `os._exit`
+
+The host emulation drove the machine in the harness's own process. Two reward probes call
+`os._exit`, which kills the harness itself, and because it prints its table at the end
+rather than as it goes, the whole run produced **no output at all** and exited 0. That reads
+as a hung job, and on a second look it reads as a clean sweep. This is the hollow-gate class
+from the `grant-spread-order` entry arriving through a different door: the harness could not
+tell "every cheat scored 0" from "the harness died on cheat three".
+
+Two rules, and the second matters beyond this repo. **Run the submitted code the way the
+verifier does - in a subprocess** - which for this bundle meant driving the real
+`tests/runner.py` and grading its JSON, so the emulation now exercises the runner as well as
+the policy. And **print each row as it is decided**, so a harness that dies leaves evidence
+of how far it got.
+
+### `sys.monitoring` teardown has to be tolerant, or the wrong layer catches the probe
+
+The attestation probe that frees the verifier's tool id from inside a decision was caught -
+by `ValueError: tool 4 is not in use` raised inside the runner's own teardown, which loses
+the plan and reports "no report" rather than "the instrumentation was not armed". A probe
+rejected by an exception is rejected by the wrong layer, and if the exception had been
+caught anywhere upstream it would not have been rejected at all. Wrapping the teardown so
+any failure sets `armed = False` puts the rejection back where the design intended, and
+`cheat_report.py` now requires each attestation probe to be caught by *its own* attestation
+and by nothing else.
+
+### An import-time rebind defeats the pair of fingerprints, and only a baseline catches it
+
+The runner takes a digest of every sealed machine function when it imports the tree and
+again when the plan ends, and compares them. A submission that rebinds one of those
+functions **at import time of an artifact** is inside the tree before the first digest is
+taken, so the two agree and that comparison says nothing. Only the baseline the grader
+derives by *compiling the pristine sources* - outside the run, from files the run cannot
+write - catches it.
+
+The real grader had that baseline and the host emulation did not, so the emulation was one
+attestation short of what ships and would have reported a passing probe as caught. It now
+computes the same baseline. Two probes ship for the two layers, and each is caught by its
+own and by nothing else: `patch-emitter` rebinds the emitter and dies on the sink, which
+refuses a row from any caller that is not the emitter's own code object; `patch-machine`
+rebinds a sealed function the sink does not guard and dies on the baseline, with
+`arm=True` and the two run-time digests agreeing. **If a bundle ships a fingerprint pair,
+ship a probe that beats it, or the baseline is untested.**
+
+### A sweep probe with a POSIX depth guard runs away on Windows
+
+`cheat-sweep-environment` walked `("/", "/tmp", "/work", "/app")` and stopped descending at
+`base.count("/") > 4`. On Windows `os.walk("/")` is the whole drive and the separator is a
+backslash, so the guard never fired and the cheat sweep sat on one probe for tens of
+minutes with no output, which reads exactly like a hung gate. Count separators with
+`os.sep` and skip roots that do not exist.
+
+### The host emulation has to move `pristine` out of `tests/`, or a dead path passes
+
+The verifier image does `COPY . /tests/` and then `RUN mv /tests/pristine /pristine`, so
+`/tests/pristine` **does not exist at run time**. A `cases.py` that read three of its plans
+off `tests/pristine/plans/` therefore resolved perfectly on the authoring host and would
+have raised `FileNotFoundError` on import inside the container - taking the runner and the
+grader down together, and scoring 0 on the reference for a reason that has nothing to do
+with the task. Every local gate was green: the host emulation copied `tests/` as it stands
+on disk, where `pristine` is still a subdirectory.
+
+Two things came out of it. **The emulation must stage the tree the way the image builds
+it**, which here meant copying `tests/` without `pristine` and putting the pristine tree
+beside it, and `authoring/grade.py` now does that and then runs the real
+`tests/test_outputs.py` under pytest rather than re-implementing the comparison. And the
+data a case set needs has to be **in** the case set: the three plans are literals in
+`cases.py` now, with `authoring/sync.py` checking them against
+`environment/app_src/plans/*.txt` on every run so the two copies cannot drift.
+
+The general form is the one this file already states about zips and repeats here about
+directories: **a gate that runs against the working tree says nothing about the artifact the
+pipeline builds.** Anything the verifier reads by path should be exercised from a layout
+that matches the Dockerfile, not from the layout the author happens to have.
+
+### Correction: the environment Dockerfile similarity is not irreducible
+
+CLAUDE.md records, from `share-register-screen` on 2026-09-02, that `environment/Dockerfile`
+similarity "cannot be engineered away" and that the best of five honest rewrites reached max
+0.735. Below the NEAR threshold is achievable; **below the HIGH threshold is not**, said that
+entry, and it is right that zero is unreachable. But the number is worth another twenty
+minutes: four candidate forms measured against all eleven other bundles here gave 0.837,
+0.695, 0.653 and **0.571**, and the winner is not the one the earlier entry recommends. It
+is `COPY app_src /app` before `WORKDIR`, with the two environment variables on the `FROM`
+line's heels and a build-time smoke run of two real plans as the last layer.
+
+The same pass took the rest of the plumbing down with it. Rewriting `tests/runner.py`
+(0.738 against `guard-mark-unwind`), `tests/Dockerfile`, `tests/reap.py` and `tests/test.sh`
+- reordering the steps, renaming the helpers, turning the trace sink from a closure pair
+into a small class - took this bundle from **ten HIGH findings to four**, with no NEAR
+findings and every remaining number below what `guard-mark-unwind` itself carries. That last
+comparison is the one to keep: the bundle that cleared all nine gates sits at
+`tests/test.sh` 0.634 and `environment/Dockerfile` 0.593-0.618 against other bundles, so
+HIGH at 0.55-0.68 is this repo's baseline and did not stop it. **Compare against a bundle
+that passed before spending an afternoon on a number.**
+
+### Two traps specific to this host, both of which cost real time
+
+**A heredoc marked `<<'PY'` still eats one level of backslash on the way in.** A patch
+script written as `s.replace("...\n...", ...)` arrived in the interpreter as a real
+newline, so every string-literal patch silently failed to match and one of them wrote a
+Python file that would not parse. It failed three times before the pattern was visible,
+because a `str.replace` that matches nothing exits 0. **Use the Edit tool for any patch
+whose payload carries an escape sequence**, and when a patch script reports success, grep
+the file for the text it claimed to write.
+
+**A probe that faults for a host reason has been rejected by nothing.** `os.fork` and
+`os.getuid` do not exist on Windows, so two reward probes scored 0 by `AttributeError`
+before reaching the layer they were aimed at - the same shape as a cheat dying on a
+`NameError`. `getattr(os, "fork", lambda: 1)()` keeps them honest on both hosts.
 
 ## Non-finding: policy synthesis from a partial log cannot be both fair and hard (2026-09-02)
 

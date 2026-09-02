@@ -1,0 +1,12 @@
+hz 60
+node s0 src
+node g gather 10
+node k sink
+wire s0 g 1
+wire g k 0
+put 1 s0 4
+put 2 s0 21
+low 3 s0 20
+put 5 s0 25
+low 6 s0 40
+shut 8 s0

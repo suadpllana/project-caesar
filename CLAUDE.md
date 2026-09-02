@@ -98,6 +98,19 @@ value" below, and the second of those is a defect class **every task in this rep
 none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
+| `queue-drain-round` | Operations / Finance | 29 | 9 | 14400 s | 8 h |
+
+**`queue-drain-round` is the twelfth task, built 2026-09-02, and it has not been through the
+pipeline.** It is the first here in Operations / Finance and the first whose graded artifact
+is a **settlement**: what a clearing house moved in each round, and what became of every
+obligation. `tools/simcheck.py` reports it conceptually clear of every earlier task and
+mechanically clear of every shipped file, which is the first bundle here to be clean on both
+from the first packaging. Its difficulty is two readings of one requirement, measured rather
+than argued: the pipeline reading loses 83% of generated streams and the natural repair for it
+loses 23%. What it turned up about the repo is in "Three more gates that reported success while
+doing nothing" below, and the entry worth reading first is the monitoring floor, because the
+shape of that mistake - **an attestation compared against a quantity it does not measure** -
+is in reach of every task here that counts anything.
 
 **`pair-hold-reclaim` is the eleventh task, built 2026-09-02, and it has not been through
 the pipeline.** It grades a reclamation ledger and the store a stream leaves behind, which
@@ -430,6 +443,108 @@ streams are built inside the verifier from a nonce made after the agent has fini
 and the attestations are worth keeping anyway, since each bypass they force is a separate
 detectable act.
 
+
+## Three more gates that reported success while doing nothing (2026-09-02)
+
+All three found building `queue-drain-round`, all three standing-policy item 2, and all three
+the same shape as the entries above it: **a check that cannot tell "the thing passed" from
+"the thing never ran" manufactures evidence.** The third one is the expensive one and it is
+new.
+
+**1. A probe that calls `os._exit` takes the report down with it, silently.** The cheat sweep
+scored every staged tree in its own process, so the probe that plants a report and then hard
+exits ended the sweep at the first cheat - and the sweep had printed nothing yet, so the run
+came back with an empty file and exit 0. That reads exactly like a clean suite. Two other
+probes in the same family would have done it too: one forks, one walks the whole filesystem.
+The fix is one file, `authoring/score_one.py`, which grades one tree and prints a single
+`QDRSCORE {json}` line, with the reporter running it as a child per cheat and treating "no
+line came back" as a catch. **Copy that shape into any new task**, because a cheat suite that
+imports agent code in the reporting process cannot survive the probes it exists to run.
+
+**2. An elif chain counted the reference as an uncaught cheat.** `if name == "REFERENCE" and
+(bc or bg): ... elif ...` falls through to the next branch when the reference is clean, and
+the next branch was "nothing catches this". The suite reported `1 unexpected` on a build where
+everything was correct, and the first instinct was to go looking for a bad cheat. Twenty
+minutes. **A classification chain over report rows wants one branch per class, never a
+condition on the row's content in the first test.**
+
+**3. The monitoring floor was compared against a number it does not measure, and it cost a
+two-image trial round.** The runner counts entries into the book's recording methods with
+`sys.monitoring`; the grader asserted `tally >= rows`. One call to the method that closes a
+round writes one row per member, so a correct reference produced 27098 rows against 19476
+entries and scored **0**. The assertion was not too weak, it was measuring the wrong pair.
+
+The repair generalises past this task and is worth applying to every attestation in the repo:
+**derive the floor from the graded artifact itself, per unit of work, rather than from a
+global count.** Here each stream's rows say how many obligations were given up on (one entry
+into the giving-up method each) and how many rounds closed (one entry into the closing method
+each), so the floor is `given-up + rounds` per stream and the report carries the entries made
+while that stream ran. A correct submission clears it by a wide margin, and nothing can come
+in under it without tampering, because the counted calls sit in frozen code the driver always
+runs. The general question to ask of any attestation: *is the number on the left of this
+comparison the same kind of thing as the number on the right?*
+
+### Two preflight quirks that cost time and are free to avoid
+
+- **`field_value` in `scripts/preflight.py` returns the first line containing the needle**, so
+  a `## Why a frontier agent cannot one-shot the plan` heading swallows the field and the
+  script reports it unanswered however carefully the paragraph below it answers it. Put the
+  four required fields on `- <needle>: ...` lines and give the headings different words.
+  The same function is why every tactic has to sit on the one `- Tactics making that true:`
+  line: a tactic named on the next line is not read, and the warning then says the task is
+  carried by a single prong.
+- **It matches text, not behaviour.** `install -d -m 755 /app/house` does not satisfy the
+  `mkdir -p /app` check and `printf '1\n' >` does not satisfy the `echo 1 >` check, though
+  both do exactly the right thing. Neither is worth arguing with.
+
+### Non-finding, and it corrects an entry above: type-token ratio is not only a length artifact
+
+The `lock-priority-unwind` entry records the vocabulary finding as a length artifact and says
+to compare TTR only at equal length. That is right and it is not the whole rule. Measured at a
+matched 700 words, this brief comes in at **0.343** against `grant-spread-order` 0.359,
+`rollout-cache-coherence` 0.376, `guard-mark-unwind` 0.381 and `earliest-change-script` 0.386,
+so it really is the narrowest of the set and length explains none of it. **Compare at equal
+length, and when the gap survives that, it is real.** It was left standing here: a light pass
+moved it 0.339 to 0.343, the brief is clean on `textcheck.py` against all three of the most
+relevant passing references, and buying more distinct words means padding, which is a blocking
+criterion in the quality review. Record the number, do not chase it.
+
+### What the brute-force test killed on the way to this design
+
+The elimination in "What can be brute-forced, and what cannot" was run again on eight fresh
+candidates and it killed six, three of them for a reason that entry only implies and that is
+worth stating outright. **A task whose answer is a function of visible inputs under rules the
+brief states completely is mode-C exposed, whatever the domain**: the solver transcribes the
+brief into a slow model, brute-forces small cases against it, and confirms its own reading for
+free. That is what took `typeahead-query-controller` to 3 of 3 twice.
+
+Two of the candidates died there and could not be rescued: a composition reconstruction, where
+the discipline that decides the answer is either legible in the frozen code (free) or nowhere
+(unfair); and a policy-synthesis-from-a-log shape, which is already recorded as a non-finding
+above. What survives is the arrangement this task uses, and it is worth stating as a recipe
+because it is the only one that has beaten mode C here: **the requirement and the input space
+go in the brief; the mechanic that decides what the requirement implies lives in non-editable
+code and nowhere else.** Here the brief says a round leaves nothing on the table and nobody
+short, and says that members owe each other both ways and that a member can owe twice in one
+day with its own money behind both. It never says that payments in a round are simultaneous -
+the book's own motion says that, and a solver has to read it or watch it happen. A brute force
+built from the brief alone gets the wrong answer and reports success.
+
+### Measured, for calibration
+
+| | enumerated | generated |
+|---|---|---|
+| reference | 33/33 | 300/300 |
+| shipped tree | 13/33 | 3/80 |
+| pay out of what a member holds | 20/33 | 17% |
+| net the fronts, advance, repeat | 28/33 | 77% |
+| give up on everything at once | 25/33 | 10% |
+| an adversary holding `gt.json` | **33/33** | 3/80 |
+
+The answer-key row is the one to read, and it is the same lesson `pair-hold-reclaim` records:
+the probe replays the recorded record through the book's own methods, so its rows and its
+sheet are genuine and every enumerated stream passes - and it scores 0, because three hundred
+streams are built inside the verifier from a nonce made after the submission is sealed.
 
 ## Standing policy: every rejection becomes a gate
 

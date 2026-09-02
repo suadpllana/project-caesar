@@ -79,8 +79,10 @@ task's rejection history gets silently reverted.
 concision`, and it is the cheapest rejection in this file to have avoided: the blocking
 finding was that no path in the brief was in backticks, and this file told me that was
 optional.** The correction is in "The concision rejection" below and the stale paragraph has
-been fixed where it stood. The repair before it held - the easiness probe was cleared, and
-what follows is the entry for that round.
+been fixed where it stood. **Whether the easiness repair held is not known**: the quality
+review sits ahead of the probes, so that run may have stopped before reaching them, and
+nothing has re-measured the band. Do not read a later gate's rejection as an earlier gate's
+pass.
 
 **`share-register-screen` reached the easiness probe on 2026-09-02 and failed it, 3 of 3.**
 Structural, AI-text and similarity all passed. The cause was not the mechanism and not the
@@ -1883,10 +1885,18 @@ if its subject had been missing.
 
 ## The concision rejection, twice: backticks are a requirement, not a taste (2026-09-02)
 
-`share-register-screen` went back with the easiness repair, cleared the structural check,
-the AI check, the similarity screen and reference verification, and **failed the quality
-review on one blocking criterion**, `instruction concision`, with every other row of the
-rubric passing. The reviewer's finding, verbatim on the part that decided it:
+`share-register-screen` went back with the easiness repair and **failed the quality review
+on one blocking criterion**, `instruction concision`, with every other row of the rubric
+passing.
+
+**One thing to hold before reading the cause: the brief that failed this gate carried zero
+backticks, and so did the brief submitted three hours earlier, which got as far as the
+easiness probe.** The same defect therefore passed this reviewer once and blocked it once.
+That does not make the requirement soft - it is written, and `delta-view-retraction` lost
+the same criterion for the same class in August - but it does mean this is an agentic rubric
+with run-to-run variance, and the honest reading is that the repair removes exposure rather
+than that one sentence flipped the verdict. Treat a marginal pass here as a pass that has
+not been earned yet. The reviewer's finding, verbatim on the part that decided it:
 
 > it violates the formatting requirement wholesale: there are zero backticks in the file
 > despite roughly fifteen references to file paths [...] It also carries rhetorical padding

@@ -1,24 +1,23 @@
 """Deliberate cheating attempt. NEVER executed by the pipeline.
 
-Strategy: build all three engines, and recover the alignment in the third one
-the way every account of that algorithm recovers it. The thresholds give the
-length of the answer and a matching that realises it, and the matching you get
-by taking a line whenever taking it still leaves the script shortest is the one
-every description of the method describes. It is a shortest script. It is not
-this one.
+Strategy: solve the first and third tiers of the rule and let the second one
+go. This is the shortest script whose reading comes first under drop, add,
+keep -- the answer to the task as it stood before the hunk tier was added, and
+the answer every fast diff technique computes natively, because every one of
+them is a way of knowing how many moves remain from a position and the
+reading-order rule is a greedy walk over exactly that number. Three engines,
+correct crossovers, every tie-break inside them derived rather than recalled.
+It passes every timing budget in the task with room to spare.
 
-What makes it worth writing down is where the error is allowed to hide. The
-third engine is only ever reached by pairs of a quarter of a million lines,
-because on anything smaller one of the other two is cheaper and the dispatch
-says so. So every case a person can check by hand, every case they can check
-against a slow model, and all 53258 correctness cases in this task go through
-an engine that is right. The tie-break is wrong in exactly one place, and that
-place is unreachable from any input small enough to verify the easy way. It
-answers the six large crowded pairs in about two seconds each, well inside the
-budget, with the correct number of moves, and every one of them is a different
-script from the one the rule asks for.
+It is wrong on the hunk count, which the number of moves remaining does not
+carry. The scripts it returns are shortest and they are the first in reading
+order among all shortest scripts, which is a different set from the first in
+reading order among the shortest scripts with the fewest hunks: putting the
+drop as early as it will go is exactly what splits one hunk into two. Measured
+against the graded distribution it is wrong on about a quarter of the
+enumerated block and nearly three quarters of the random one, and on every
+large pair.
 """
-
 from bisect import bisect_left
 
 # Microseconds, measured. Only the ratios matter: they separate engines whose
@@ -144,12 +143,6 @@ def _pairs_engine(a, b, n, m):
                 out[slot] = was
         return out
 
-    def prev_at(k):
-        if k in earlier:
-            was = earlier[k]
-            return None if was is None else -was
-        return -held[k] if k < len(held) else None
-
     ops = []
     emit = ops.append
     remaining = len(held) - 1
@@ -157,19 +150,12 @@ def _pairs_engine(a, b, n, m):
     marks = journal[0]
     earlier = before_of(marks)
     while i < n or j < m:
-        # Take the line whenever taking it still leaves the script shortest.
-        if i < n and j < m and a[i] == b[j] and remaining:
-            reach = prev_at(remaining - 1)
-            if reach is not None and reach >= j + 1:
-                undo(marks)
-                i += 1
-                j += 1
-                remaining -= 1
-                marks = journal[i] if i < n else ()
-                earlier = before_of(marks)
-                continue
         if i < n:
-            reach = prev_at(remaining)
+            if remaining in earlier:
+                was = earlier[remaining]
+                reach = None if was is None else -was
+            else:
+                reach = -held[remaining]
             if reach is not None and reach >= j:
                 emit(["-", i])
                 undo(marks)

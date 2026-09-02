@@ -18,7 +18,13 @@ channel, the unreadable /tests, the per-case budgets and the real grader.
 
   python3 tools/ecs_trial.py --all
   python3 tools/ecs_trial.py --oracle --repeat 3
+  python3 tools/ecs_trial.py --variants
   python3 tools/ecs_trial.py --margins
+
+--all runs the oracle, the nop, every cheat/*.py expecting 0, and every
+authoring/variants/*/change_script.py expecting 1: an alternative correct
+implementation that scores 0 means a budget or a comparison is grading an
+implementation choice, which is the run-audit rejection.
 """
 
 import argparse
@@ -67,6 +73,13 @@ def build_tests_image():
 
 HEADROOM = 1.5
 
+# The sandbox this runs on is not the machine that grades. The 2026-08-31
+# rejection reproduced exactly in a sandbox where the pairs engine took 5.41 s
+# on timed case 13; the sandbox of 2026-09-02 ran the identical code on the
+# identical case in 2.05 s. Every measurement here is therefore scaled by this
+# before it is held to the headroom, and the raw figure is printed beside it.
+HOST_FACTOR = 2.7
+
 
 def margins():
     """What the reference has left over on the machine that grades it.
@@ -75,7 +88,7 @@ def margins():
     headroom: the reference sat at 90-113% of a 6 s per-case budget on two
     cores, so which pairs it lost changed with the speed of the host. A budget
     is only calibrated if the reference clears it by a margin no plausible
-    machine eats."""
+    machine eats, and the machine is assumed HOST_FACTOR slower than here."""
     with tempfile.TemporaryDirectory() as tmp:
         logs = pathlib.Path(tmp) / "logs"
         logs.mkdir()
@@ -102,12 +115,14 @@ def margins():
             print("BAD %-26s no timing" % label)
             worst = 0.0
             continue
-        room = budget / secs if secs else float("inf")
+        scaled = secs * HOST_FACTOR
+        room = budget / scaled if scaled else float("inf")
         mark = "ok " if room >= HEADROOM else "BAD"
-        print("%s %-26s %7.2f s of %5.1f  %5.0f%%  %.1fx headroom"
-              % (mark, label, secs, budget, 100.0 * secs / budget, room))
+        print("%s %-26s %7.2f s here, %6.2f s scaled, of %5.1f  %.1fx headroom"
+              % (mark, label, secs, scaled, budget, room))
         worst = room if worst is None else min(worst, room)
-    print("\nworst headroom %.1fx, wanted %.1fx" % (worst or 0.0, HEADROOM))
+    print("\nworst headroom %.1fx after scaling by %.1f, wanted %.1fx"
+          % (worst or 0.0, HOST_FACTOR, HEADROOM))
     return 0 if (worst or 0.0) >= HEADROOM else 1
 
 
@@ -142,6 +157,8 @@ def main():
     ap.add_argument("--oracle", action="store_true")
     ap.add_argument("--nop", action="store_true")
     ap.add_argument("--cheats", action="store_true")
+    ap.add_argument("--variants", action="store_true",
+                    help="alternative correct implementations, expecting 1")
     ap.add_argument("--repeat", type=int, default=1,
                     help="graded runs per submission; each draws a fresh seed")
     ap.add_argument("--margins", action="store_true",
@@ -152,7 +169,8 @@ def main():
         if not args.no_build:
             build_tests_image()
         return margins()
-    if not (args.all or args.oracle or args.nop or args.cheats):
+    if not (args.all or args.oracle or args.nop or args.cheats
+            or args.variants):
         args.all = True
 
     if not args.no_build:
@@ -166,6 +184,10 @@ def main():
     if args.all or args.cheats:
         for path in sorted((TASK / "cheat").glob("*.py")):
             plan.append(("cheat/" + path.name, path, "0"))
+    if args.all or args.variants:
+        for path in sorted((TASK / "authoring" / "variants").glob(
+                "*/change_script.py")):
+            plan.append(("variant/" + path.parent.name, path, "1"))
 
     bad = 0
     for label, path, want in plan:

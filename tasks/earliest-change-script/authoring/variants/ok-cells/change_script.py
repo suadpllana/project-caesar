@@ -1,36 +1,14 @@
-"""The grading side's fast implementation of the rule.
+"""Alternative correct implementation. Must score 1.
 
-The definitional model in oracle.py is the authority, and it is what the small
-blocks are graded against. It cannot be used on a fifty thousand line pair --
-the table alone would be several billion entries, twice over -- so the medium
-and timed blocks are graded against this instead, and a test asserts that the
-two agree on every fixed and enumerated case before any of those answers count.
-
-Two engines, because the graded pairs sit in two places and neither covers the
-other. Their costs are independent of each other:
-
-  frontier   the square of the number of moves, plus the cells where a choice
-             between shortest scripts exists; untouched by the length of the
-             pair or by how repetitive it is
-  pairs      the number of positions that match across the two sides,
-             untouched by the length of the pair and by the number of moves
-
-A pair that differs in a few hundred or a few thousand places belongs to the
-first, whether it is a million lines of a few hundred distinct ones or fifty
-thousand lines of three. A pair of a third of a million nearly-distinct lines
-put back in a different order belongs to the second: its moves run past the
-length of the file, so the frontier is out by orders of magnitude, but almost
-nothing in it matches anything, which is the only cheap thing about it.
-
-Both engines answer the same question at every position of the walk. The
-number of moves that remain is one part of it and is what every fast diff
-computes. The other part is how many hunks a shortest completion can still be
-done in, and that is a second quantity with its own recurrence: a run of moves
-that is already open extends for nothing, a keep closes it, and a move after a
-keep opens a new one. Only cells that lie on some shortest path can be on the
-answer, so the second quantity is only ever computed there.
-
-Lives in /tests, which the account that runs submitted code cannot read.
+The reference skips along every run of keeps and computes the hunk counts on
+the cells where a choice exists. This one does the natural thing instead: it
+visits every cell that lies on some shortest path, one at a time, and fills in
+the two counts for each. Same layers, same pairs engine, same answers; the
+only difference is that the hunk recurrence is evaluated at every cell rather
+than at the decision cells, which costs the length of the pair on the long
+family and a few times more than the reference on the crowded one. It is the
+implementation a solver who has found the shortest-path restriction writes
+first, and it is inside every budget, which is what makes the budgets fair.
 """
 
 from bisect import bisect_left
@@ -149,40 +127,14 @@ def _layers_from_end(a, b, n, m, limit):
 
 
 def _frontier_engine(a, b, n, m, layers):
-    """The layers answer whether a drop or an add at a position still leaves
-    the script shortest. Along a diagonal, each of those answers turns from no
-    to yes at one row and stays yes, so from any position the next cell where
-    either move becomes possible is a lookup, and every cell before it can
-    only be kept through. The hunk counts are computed on those cells alone,
-    two to a cell -- one for arriving inside a run of moves, one for arriving
-    after a keep -- in the order the walk will need them."""
     total = len(layers) - 1
     if total == 0:
         return []
-
-    def advance(i, j, r):
-        """From (i, j) with r moves left: the first cell at or after it on the
-        same diagonal where a drop or an add still leaves the script shortest.
-        Everything between is a keep."""
-        if r == 0:
-            return n, m
-        below = layers[r - 1]
-        k = i - j
-        stop = n
-        reach = below.get(k + 1)
-        if reach is not None and reach - 1 < stop:
-            stop = reach - 1
-        reach = below.get(k - 1)
-        if reach is not None and reach < stop:
-            stop = reach
-        if stop < i:
-            stop = i
-        if stop - i > m - j:
-            stop = i + (m - j)
-        return stop, j + (stop - i)
+    width = m + 1
 
     def choices(i, j, r):
-        """Which of drop, add, keep still leave the script shortest here."""
+        if r == 0:
+            return False, False, i < n and j < m
         below = layers[r - 1]
         k = i - j
         reach = below.get(k + 1)
@@ -192,83 +144,62 @@ def _frontier_engine(a, b, n, m, layers):
         keep = i < n and j < m and a[i] == b[j]
         return drop, add, keep
 
-    # Hunks still to be opened from a decision cell, arriving after a keep
-    # (quiet) or inside a run of moves (inrun). A cell that is not a decision
-    # cell is kept through to the next one, so both of its counts are that
-    # cell's quiet count.
-    quiet = {(n, m): 0}
-    inrun = {(n, m): 0}
-
-    def after(i, j, r, open_run):
-        got = quiet.get((i, j))
-        if got is not None:
-            return inrun[(i, j)] if open_run else got
-        return quiet[advance(i, j, r)]
-
-    def settle(i0, j0, r0):
-        """Fill in the counts for every decision cell reachable from (i0, j0)
-        along shortest paths, children before parents."""
-        stack = [(i0, j0, r0, False)]
-        while stack:
-            i, j, r, ready = stack.pop()
-            if (i, j) in quiet:
-                continue
-            drop, add, keep = choices(i, j, r)
-            if not ready:
-                stack.append((i, j, r, True))
-                nexts = []
-                if drop:
-                    nexts.append((i + 1, j, r - 1))
-                if add:
-                    nexts.append((i, j + 1, r - 1))
-                if keep:
-                    nexts.append((i + 1, j + 1, r))
-                for x, y, rr in nexts:
-                    if (x, y) in quiet:
-                        continue
-                    x2, y2 = advance(x, y, rr)
-                    if (x2, y2) not in quiet:
-                        stack.append((x2, y2, rr, False))
-                continue
-            best0 = best1 = 1 << 30
-            if drop:
-                v = after(i + 1, j, r - 1, True)
-                if v < best1:
-                    best1 = v
-                if v + 1 < best0:
-                    best0 = v + 1
-            if add:
-                v = after(i, j + 1, r - 1, True)
-                if v < best1:
-                    best1 = v
-                if v + 1 < best0:
-                    best0 = v + 1
-            if keep:
-                v = after(i + 1, j + 1, r, False)
-                if v < best1:
-                    best1 = v
-                if v < best0:
-                    best0 = v
-            quiet[(i, j)] = best0
-            inrun[(i, j)] = best1
-
-    i, j, r = 0, 0, total
-    i, j = advance(i, j, r)
-    settle(i, j, r)
+    quiet = {n * width + m: 0}
+    inrun = {n * width + m: 0}
+    stack = [(0, 0, total, False)]
+    while stack:
+        i, j, r, ready = stack.pop()
+        key = i * width + j
+        if key in quiet:
+            continue
+        drop, add, keep = choices(i, j, r)
+        if not ready:
+            stack.append((i, j, r, True))
+            if drop and (i + 1) * width + j not in quiet:
+                stack.append((i + 1, j, r - 1, False))
+            if add and key + 1 not in quiet:
+                stack.append((i, j + 1, r - 1, False))
+            if keep and key + width + 1 not in quiet:
+                stack.append((i + 1, j + 1, r, False))
+            continue
+        best0 = best1 = 1 << 30
+        if drop:
+            v = inrun[key + width]
+            if v < best1:
+                best1 = v
+            if v + 1 < best0:
+                best0 = v + 1
+        if add:
+            v = inrun[key + 1]
+            if v < best1:
+                best1 = v
+            if v + 1 < best0:
+                best0 = v + 1
+        if keep:
+            v = quiet[key + width + 1]
+            if v < best1:
+                best1 = v
+            if v < best0:
+                best0 = v
+        quiet[key] = best0
+        inrun[key] = best1
 
     ops = []
     emit = ops.append
+    i = j = 0
+    r = total
     open_run = False
-    while (i, j) != (n, m):
+    while i < n or j < m:
+        key = i * width + j
         drop, add, keep = choices(i, j, r)
-        want = inrun[(i, j)] if open_run else quiet[(i, j)]
+        want = inrun[key] if open_run else quiet[key]
         cost = 0 if open_run else 1
-        if drop and after(i + 1, j, r - 1, True) + cost == want:
+        if drop and inrun[key + width] + cost == want:
             emit(["-", i])
             i += 1
             r -= 1
             open_run = True
-        elif add and after(i, j + 1, r - 1, True) + cost == want:
+        elif add and inrun[key + 1] + cost == want:
             emit(["+", j])
             j += 1
             r -= 1
@@ -277,10 +208,6 @@ def _frontier_engine(a, b, n, m, layers):
             i += 1
             j += 1
             open_run = False
-        i2, j2 = advance(i, j, r)
-        if (i2, j2) != (i, j):
-            open_run = False
-            i, j = i2, j2
     return ops
 
 

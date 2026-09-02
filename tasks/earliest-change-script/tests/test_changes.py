@@ -87,6 +87,20 @@ def test_no_submitted_module_reached_this_process():
     assert "change_script" not in sys.modules
 
 
+def test_the_definitional_model_is_the_rule_by_exhaustion():
+    """The definitional model is a table. The rule is a sentence about every
+    script a pair admits. On pairs short enough to enumerate every script,
+    the two have to pick the same one, or the table is not the rule."""
+    short = [(before, after) for before, after in FIXED + STRUCTURED
+             if len(before) + len(after) <= 7]
+    disagree = [(before, after) for before, after in short
+                if oracle.script(before, after)
+                != oracle.every_script(before, after)]
+    assert len(short) > 10000, "the exhaustive check covered too little"
+    assert not disagree, "%d pairs split the table from the rule" % (
+        len(disagree))
+
+
 def test_the_two_models_agree_before_anything_larger_is_graded():
     """The medium and timed blocks are graded against the fast implementation
     because the definitional one cannot run at that size. This is the check
@@ -97,14 +111,13 @@ def test_the_two_models_agree_before_anything_larger_is_graded():
     assert not disagree, "%d cases split the two models" % len(disagree)
 
 
-@pytest.mark.parametrize("engine", ["frontier", "row", "pairs"])
+@pytest.mark.parametrize("engine", ["frontier", "pairs"])
 def test_every_engine_of_the_fast_model_is_checked(engine):
-    """The fast implementation dispatches between three engines and the short
-    cases all land on the same one, so the test above never exercises the other
-    two. Between them they produce the expected answers for two thirds of the
-    timed block, so each is forced on here and held to the definitional model
-    on its own. A hybrid only ever exercised on one side of its own crossover
-    is a hybrid whose other sides are untested."""
+    """The fast implementation dispatches between two engines and the short
+    cases all land on the same one, so the test above never exercises the
+    other. Each is forced on here and held to the definitional model on its
+    own. A hybrid only ever exercised on one side of its own crossover is a
+    hybrid whose other side is untested."""
     disagree = [(before, after) for before, after in FIXED + STRUCTURED
                 if [tuple(op) for op in reference.changes(before, after, engine)]
                 != [tuple(op) for op in oracle.script(before, after)]]
@@ -162,9 +175,9 @@ def test_large_cases_are_answered_correctly():
     wrong = []
     for index, entry in enumerate(entries):
         before, after = casegen.timed_case(index, SEED)
-        kind = casegen.TIMED_SHAPES[index][0]
+        family = casegen.TIMED_SHAPES[index][0]
         if "error" in entry:
-            wrong.append("case %d (%s): %s" % (index, kind, entry["error"]))
+            wrong.append("case %d (%s): %s" % (index, family, entry["error"]))
             continue
         got = as_pairs(entry.get("answer"))
         want = [tuple(op) for op in reference.changes(before, after)]
@@ -177,7 +190,7 @@ def test_large_cases_are_answered_correctly():
             wrong.append(
                 "case %d (%s, %d lines against %d): %d moves expected, %s "
                 "given, first difference at move %s"
-                % (index, kind, len(before), len(after), len(want),
+                % (index, family, len(before), len(after), len(want),
                    "none" if got is None else str(len(got)), first))
     assert not wrong, "\n".join(wrong)
 

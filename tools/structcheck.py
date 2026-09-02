@@ -36,6 +36,34 @@ ALIGNED_COMMENT = re.compile(r"\S\s{2,}//")
 # identifier-shaped literals from an actual run.
 NUMERIC = re.compile(r"\b\d{2,}\b")
 
+# Every path and filename goes in backticks. This is a formatting requirement of the
+# quality review, not a matter of taste, and it has now blocked two submissions:
+# delta-view-retraction on 2026-08-13 ("no backticks on any path or filename") and
+# share-register-screen on 2026-09-02, where the reviewer called it a wholesale
+# violation and it was the single blocking criterion in an otherwise passing rubric.
+#
+# CLAUDE.md previously recorded backticks as house style on the grounds that the four
+# briefs which cleared the AI-TEXT screen carry none. That was evidence about a
+# different gate. The brief that has cleared the quality review most recently,
+# guard-mark-unwind, carries thirty-eight.
+PATHISH = re.compile(r"(?<![`\w/])(/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.*-]+)+)")
+FILEISH = re.compile(r"(?<![`\w/])\b([A-Za-z0-9_]+\.(?:py|sh|txt|json|md|ts|toml))\b")
+
+
+def unticked(text: str) -> list:
+    """Path and filename references sitting outside backticks."""
+    spans = [m.span() for m in re.finditer(r"`[^`]*`", text)]
+
+    def inside(i):
+        return any(a <= i < b for a, b in spans)
+
+    out = []
+    for pat in (PATHISH, FILEISH):
+        for m in pat.finditer(text):
+            if not inside(m.start()):
+                out.append(m.group(1))
+    return sorted(set(out))
+
 
 def paragraphs(text: str) -> list:
     return [p for p in text.split("\n\n") if p.strip()]
@@ -83,6 +111,7 @@ def analyse(path: str) -> dict:
         "leading_blank": raw.startswith("\n"),
         "head_numbers": len(NUMERIC.findall(head)),
         "head_paths": len(re.findall(r"/app\S*", head)),
+        "unticked": unticked(body),
         "nonascii": sorted({c for c in body if ord(c) > 127}),
         "crlf": "\r\n" in raw,
     }
@@ -114,6 +143,11 @@ def report(a: dict) -> int:
                         % (a["head_numbers"], a["head_paths"]))
     if a["leading_blank"]:
         findings.append("file starts with a blank line; the passing briefs do not")
+    bare = a["unticked"]
+    if bare:
+        findings.append("%d path or filename reference(s) outside backticks: %s - the "
+                        "quality review has blocked two submissions on exactly this"
+                        % (len(bare), ", ".join(bare[:6])))
     if a["nonascii"]:
         findings.append("non-ascii characters present: %r" % a["nonascii"])
     if a["crlf"]:

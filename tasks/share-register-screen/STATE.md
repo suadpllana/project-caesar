@@ -5,7 +5,7 @@ between sessions belongs in CLAUDE.md; this is the per-task detail while the tas
 
 ## Current stage
 
-`Stage 7 - gates` (built 2026-09-02; failed the easiness probe 3 of 3 the same day and was repaired)
+`Stage 7 - gates` (built 2026-09-02; failed the easiness probe 3 of 3, repaired, then failed the quality review on instruction concision, repaired again)
 
 ## Assistant's assigned role
 
@@ -100,6 +100,7 @@ holding rather than against each of them separately.
 | Variants all score 1 | pass | 6 of 6, real verifier, incl. the probe's own solve |
 | `preflight.py` | pass | 13 unused-public-function warnings, the documented false positive |
 | `harbor check` rubric | not run | harbor is not installed here |
+| Quality review | failed 2026-09-02 | instruction concision: no backticks on any path, plus padded sentences; both repaired |
 
 ## Open questions and next steps
 

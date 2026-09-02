@@ -75,6 +75,13 @@ task's rejection history gets silently reverted.
 | `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
 | `share-register-screen` | Operations / Compliance | 21 | 9 | 14400 s | 7 h |
 
+**`share-register-screen` failed the quality review on 2026-09-02, on `instruction
+concision`, and it is the cheapest rejection in this file to have avoided: the blocking
+finding was that no path in the brief was in backticks, and this file told me that was
+optional.** The correction is in "The concision rejection" below and the stale paragraph has
+been fixed where it stood. The repair before it held - the easiness probe was cleared, and
+what follows is the entry for that round.
+
 **`share-register-screen` reached the easiness probe on 2026-09-02 and failed it, 3 of 3.**
 Structural, AI-text and similarity all passed. The cause was not the mechanism and not the
 environment: **two sentences of the brief handed the mechanism over**, and the solving
@@ -847,10 +854,21 @@ its text is not published anywhere this repo can see. **Ask the task owner for t
 canary string before the next submission**; do not invent one, since a wrong marker is
 worse than a missing one.
 
-Backticks are house style rather than a discriminator, worth knowing before anyone spends
-time on it: all four briefs that cleared the AI-text screen contain **zero** backticks. The
-rewrite adds them because the reviewer asked and they cost nothing, not because their
-absence has ever failed a screen.
+**Corrected 2026-09-02, and this paragraph is the reason a submission was rejected, so read
+the correction rather than the claim it replaces.** This entry used to say backticks were
+house style rather than a discriminator, on the grounds that all four briefs which cleared
+the **AI-text screen** carry zero. That is true and it is evidence about the wrong gate.
+The **quality review** has now blocked two submissions on their absence: this one on
+2026-08-13 ("no backticks on any path or filename") and `share-register-screen` on
+2026-09-02, where it was the single blocking criterion in an otherwise clean rubric and the
+reviewer called it a wholesale violation of the formatting requirement. **Every path and
+filename goes in backticks.** The brief that has most recently cleared the quality review,
+`guard-mark-unwind`, carries thirty-eight of them; `grant-spread-order` 32,
+`segment-merge-horizon` 18, `delta-view-retraction` 14 after its repair.
+`structcheck.py` now fails a brief that leaves one outside, validated in both directions -
+clean on all six briefs written since the first finding, firing on the four written before
+it (`rollout-cache-coherence`, `checkpoint-resume-drift`, `turn-seam-alignment`,
+`typeahead-query-controller`), which are all latent for this rejection if resubmitted.
 
 ## The anti-cheat rejection: a report is a claim, not evidence
 
@@ -1863,6 +1881,76 @@ if its subject had been missing.
   imports the tree - the attack has to disarm from inside a decision while the run is going,
   and only then does the `armed` flag earn its place.
 
+## The concision rejection, twice: backticks are a requirement, not a taste (2026-09-02)
+
+`share-register-screen` went back with the easiness repair, cleared the structural check,
+the AI check, the similarity screen and reference verification, and **failed the quality
+review on one blocking criterion**, `instruction concision`, with every other row of the
+rubric passing. The reviewer's finding, verbatim on the part that decided it:
+
+> it violates the formatting requirement wholesale: there are zero backticks in the file
+> despite roughly fifteen references to file paths [...] It also carries rhetorical padding
+> that adds no requirement ("Both cost us. A company we miss keeps moving money, and a
+> company we name wrongly is a customer we apologise to and a regulator we answer to"), and
+> its deliberately oblique 880-word style makes a one-sentence specification hard for a
+> non-specialist reviewer to audit.
+
+**The expensive part is that this file caused it.** The backtick paragraph in the concision
+section said they were house style and that their absence had never failed a screen. I read
+it, checked that the briefs which cleared the AI-text screen carry none, and shipped zero
+backticks deliberately. Both halves of that reasoning were sound about the AI screen and
+neither was evidence about the quality review, which is a different gate with a written
+formatting requirement. That paragraph is corrected where it stands.
+
+**The rule, now measured twice: every path and filename goes in backticks.** It costs
+nothing, it is checked by `structcheck.py`, and the check is validated in both directions -
+clean on the six briefs written since the first finding, firing on the four written before
+it. Sorting a finding by which gate it predicts is the discipline this file already
+demands; applying evidence from one gate to another is how it fails.
+
+Two smaller findings, both real and both cheap:
+
+- **Rhetorical padding is a blocking-criterion contributor, and this is its second
+  instance.** The quoted sentences restate a cost the two sentences before them already
+  fenced ("Nothing the list can appoint the board of may be left off it. Nothing the list
+  cannot may be put on it."), so they carry no requirement at all. `delta-view-retraction`
+  lost the same criterion for the same class in August. The replacement is a verdict that
+  is a requirement: "We grade both directions." Note the shape that is *not* padding -
+  `rollout-cache-coherence` passed carrying "Both directions cost us.", because that
+  sentence says both are measured. The elaboration is the padding, never the claim.
+- **Oblique phrasing of a requirement is a cost with no benefit.** "Shares a company holds
+  in itself are silent" became "cast no votes"; "A hand holding nothing takes nothing. An
+  empty seat stays empty" became "A holder with no votes takes no seat. A seat no holder
+  can take is left empty." Same rules, same cadence, auditable by someone who does not
+  already know the answer. Obliqueness protects nothing: the difficulty lives in what the
+  brief does not say, never in how hard the stated part is to read.
+
+The repair was surgical on purpose - backticks, the padded sentences, four oblique
+requirement sentences, and a clean reflow - because a rejection note names an example and
+not a scope, and rewriting a brief wholesale on a concision note is what failed the AI check
+three times on `typeahead-query-controller`. Everything else is byte-identical. `textcheck`
+is clean against four references afterwards (only the documented turn-seam paragraph-sd
+outlier remains), and `structcheck` and `hintcheck` are clean.
+
+### The canary marker, still undefined here
+
+The reviewer noted, explicitly **not** as the basis for the outcome, that "the required
+harbor-canary GUID marker is absent from instruction.md". That is the second sighting of
+this requirement and it is now better described - a **GUID**, emitted by harbor - but
+nothing in `docs/`, `scripts/preflight.py`, the kit template or this repo defines the string
+or its format, and `grep -ri canary` over the whole tree returns nothing outside this file.
+**Ask the task owner for the exact marker before the next submission and do not invent
+one**, since a wrong GUID is worse than a missing one and it has not yet blocked anything.
+
+### Non-finding, recorded because it is embarrassing and cheap to repeat
+
+The first version of the backtick check crashed with a `NameError`, and the loop validating
+it across eleven briefs reported "0 findings" for every one of them, because the loop
+grepped the output and never read the exit code. That is the hollow-gate failure written up
+two sections below, committed inside the harness built to validate a fix for it, in the same
+session. **A validation loop that greps output must read the exit code, or it cannot tell a
+clean brief from a checker that died.**
+
 ## The easiness rejection: I wrote the answer into the brief and called it the input space
 
 `share-register-screen` cleared the structural check, the AI check and the similarity screen
@@ -2803,8 +2891,10 @@ python3 tasks/<slug>/authoring/cheat_report.py  which test catches each cheat
 python3 tools/docker_trial2.py <slug> --all     every trial on the real two images
 python3 tools/docker_trial2.py <slug> --variants alternative correct solutions, real verifier
 python3 tools/textcheck.py <passed.md> <draft>  instruction cadence and register
-python3 tools/structcheck.py <draft>            instruction structure; run against the three
-                                                passing briefs too, it must stay clean on them
+python3 tools/structcheck.py <draft>            instruction structure, and every path and
+                                                filename in backticks. Run it against the
+                                                passing briefs too, it must stay clean on
+                                                them
 python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, tells the
                                                 solver nowhere which part carries the
                                                 difficulty, and every folds/scans figure

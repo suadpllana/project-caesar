@@ -170,7 +170,11 @@ def test_the_frozen_entry_points_were_the_ones_we_shipped(report):
 def test_the_interpreter_saw_the_work_happen(report, wanted):
     tally = report["tally"]
     assert report["armed"], "the instrumentation was not still armed when the run ended"
-    assert tally["load"] == len(wanted), \
+    # Both of these are floors, never equalities. The runner reads every register and the
+    # frozen driver settles every company's board, so no submission can come in under
+    # them; a submission that reads a register for itself comes in over, and grading an
+    # equality would fail it for an implementation choice.
+    assert tally["load"] >= len(wanted), \
         "the register reader ran %d times for %d registers" % (tally["load"], len(wanted))
     seats = 0
     for _, text, _ in wanted:

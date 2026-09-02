@@ -73,6 +73,17 @@ task's rejection history gets silently reverted.
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 | `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
+| `share-register-screen` | Operations / Compliance | 20 | 9 | 14400 s | 7 h |
+
+**`share-register-screen` is the eleventh task, built 2026-09-02, and it has not been through
+the pipeline.** It is the first in Operations and the first here whose graded artifact is a
+**determination** - one record per company saying whether a programme reaches it, how many of
+its board seats its side took, and who took each seat. There is **no work counter anywhere in
+it**, which is the point: five tasks here grade work against a budget and the similarity screen
+rejected the fifth for exactly that. What it turned up is in "Three gates that reported success
+while doing nothing" and "A name a submission invents must not be able to decide a graded
+value" below, and the second of those is a defect class **every task in this repo can have** and
+none has ever been checked for.
 
 **`grant-spread-order` is the tenth task, built 2026-09-02, and it has not been through the
 pipeline.** It is the first in Security and the first here to grade a **reconstructed
@@ -1844,6 +1855,116 @@ if its subject had been missing.
   imports the tree - the attack has to disarm from inside a decision while the run is going,
   and only then does the `armed` flag earn its place.
 
+## A name a submission invents must not be able to decide a graded value (2026-09-02)
+
+Found building `share-register-screen`, and it is the entry to read first, because the defect
+class is in **every task in this repo** and no gate here has ever looked for it.
+
+The task grades a board filled one seat at a time, and the correct implementation presents the
+parties on its list to the election as a single hand. That hand needs a key, and the key is the
+submission's own invention. The reference calls it `+`. The mirror variant `ok-latekey` is the
+reference with one letter changed - the hand is called `~~` instead - and it **disagreed with
+the reference on 3 of 1206 registers** the first time it ran. Every one of the three was a seat
+where two hands came to the same running average, which the shipped allocation settles by taking
+the lexicographically smallest key. `+` sorts before every party id and `~~` sorts after, so the
+tie went the other way, and the whole determination downstream moved with it.
+
+Two correct implementations, different answers, decided by a symbol neither the brief nor the
+verifier ever mentions. **That is a run-audit rejection in waiting** and no amount of reasoning
+about the specification would have found it.
+
+**The rule: for every internal symbol a submission has to invent that can reach a comparison,
+ship a variant that invents a different one, and require it to score 1.** A key in a mapping, a
+sentinel, a placeholder id, a sort tag, a name for a synthetic row - each is a free choice the
+author made once and never questioned. The variant costs five minutes.
+
+The repair is worth copying because it removes the dependence rather than legislating it. Ties
+are now impossible by construction: `tests/gen.py` checks every way the holders of a company
+could be split into one combined hand and singletons - `2^n` groupings, `n <= 8`, which covers
+every grouping any determination can produce - and perturbs the lot sizes until no seat in any
+of them is taken on a tied average. `authoring/tiecheck.py` does the same for the registers
+written by hand, which the generator does not cover, and it is in the gate list. The brief then
+says the situation does not occur, which is a fair statement of the input space and costs no
+difficulty: **it removes a coin flip, not a discovery.**
+
+The alternative repairs are both worse and both were considered. Legislating the tie-break in
+the brief means naming the hand, which hands over the discovery the task is built on. Grading
+around it means dropping the seat list, which is most of what makes a failure legible.
+
+## Three gates that reported success while doing nothing (2026-09-02)
+
+All three found in one session on `share-register-screen`, all three standing-policy item 2, and
+the shape is the same every time: **a check that cannot distinguish "the thing passed" from "the
+thing never ran" manufactures evidence.**
+
+**1. A tree comparison against a directory that is not there passes every file it never looked
+at.** `test_the_executed_tree_was_the_one_we_shipped` walked `/tests/pristine`, which the
+verifier Dockerfile moves to `/pristine` at build time. `Path.rglob` on a missing directory
+yields nothing, so the test passed while comparing zero files, and it kept passing until an
+unrelated test failed on the same wrong path. The fix is one line and it generalises to every
+comparison loop in a verifier: **count what you found, assert the count, and only then compare.**
+
+**2. Nine reward probes never reached the executed tree, and the suite reported them all at 0.**
+Every one put its payload in `pol/__init__.py`. That file is not a declared artifact, so
+`test.sh` never overlaid it: what got graded was the shipped policy, which is wrong on values,
+so every probe scored 0 for a reason unrelated to the layer it was aimed at. CLAUDE.md already
+carried the one-line version of this from `grant-spread-order` ("a cheat prologue in a new
+module never reaches the executed tree") and it was still repeated here from scratch, which says
+the paragraph was not enough. The mechanised version is item 3.
+
+**3. `cheat_report.py` has to assert WHICH test fired, per cheat, with an expectation.** A sweep
+that only reads the reward cannot tell a probe that was rejected from a probe that never ran.
+The report now classifies: an ordinary cheat has to be caught by a test that reads the
+determination, and the two **attestation** probes - the reference with every answer correct and
+one attestation interfered with - have to be caught by *that* attestation and by nothing else.
+Both halves matter. Without the second, a probe built on the reference looks like a failure and
+the next session deletes it; without the first, a probe that never ran looks like a success.
+
+Two smaller ones from the same session, both cheap to re-derive and expensive to diagnose:
+
+- **`sys.monitoring` tool ids are 0 to 5.** `use_tool_id(7, ...)` raises `ValueError` at arm
+  time, the runner dies before it writes anything, and the symptom the grader reports is "the
+  run produced an empty report" - which reads as a sandbox problem, not an instrumentation one.
+- **`.dockerignore` patterns match the whole path, so `__pycache__` does not exclude a nested
+  one.** The built agent image shipped eleven `.pyc` files compiled by the authoring host.
+  `**/__pycache__` and `**/*.pyc` are what work. **Every `.dockerignore` in this repo uses the
+  top-level form**, so every built agent image here probably carries the same clutter; check
+  `docker run --rm <img> sh -c 'find /app -type f'` rather than reading the file.
+
+### Two more measurements from the same build
+
+- **A tally graded as an equality is a run-audit exposure whenever a correct implementation can
+  reach the counted call.** The interpreter's count of entries into the register reader was
+  asserted equal to the number of registers, which is true of the reference and false of any
+  submission that reads a register for itself. Both tallies are floors now. A floor still catches
+  the thing they exist for, because the counted calls sit in frozen code the driver always runs,
+  so nothing can come in *under* one without tampering.
+- **`tools/forgecheck.py` only recognises a probe that carries `gt.json`'s own bytes.** The first
+  answer-key probe held the same answers re-keyed by a fingerprint of the register, which is a
+  paraphrase, and forgecheck reported "no cheat is generated from tests/gt.json". Embedding
+  `json.dumps(truth, sort_keys=True, separators=(",", ":"))` fixes it and is the more honest
+  probe anyway: an adversary who has read the verifier has the file, not a summary of it. That
+  probe now passes all 23 enumerated registers and is wrong on 25 of 40 generated ones.
+
+### Non-finding: `environment/Dockerfile` similarity cannot be engineered away
+
+Recorded so nobody spends an hour on it. `simcheck.py` flags it against every other bundle
+whatever you do, because the file is five lines whose content the platform dictates. Measured
+across all ten existing bundles, the best of five honest rewrites reaches **max 0.735, mean
+0.371** (`WORKDIR` then `COPY app_src .` then one combined `ENV` then a build-time
+`RUN python -c "import ..."` smoke check, which is worth having on its own). The obvious
+orderings sit at 0.75 to 0.80. Below the NEAR threshold is achievable; low is not. Spend the
+effort on `tests/Dockerfile`, `tests/test.sh` and `tests/runner.py`, where rewriting the comments
+and reordering the steps took this bundle from a HIGH finding to none.
+
+### Non-finding: the three-agent probe could not be run this session
+
+The account hit its session limit and all three subagents died before writing a line, which is
+the same failure that cost `guard-mark-unwind` two of its three probe agents. The probe is still
+the only local gate that measures what the easiness gate rejects for, so it is the first thing
+to run in the next session on this task. **Do not read the absence of a probe result as a
+result.**
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
@@ -2604,6 +2725,9 @@ python3 tools/zipfix.py <slug>                  rewrite an archive package.py st
                                                 MS-DOS. On Windows it always does, and an
                                                 archive that fails this scores 0 on every
                                                 submission including the reference
+python3 tasks/<slug>/authoring/tiecheck.py      no graded comparison may come down to a name
+                                                the submission chose. Ship the mirror variant
+                                                too: the reference with that name changed
 ```
 
 `zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and

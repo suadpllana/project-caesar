@@ -73,6 +73,30 @@ task's rejection history gets silently reverted.
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 | `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
+| `share-register-screen` | Operations / Compliance | 21 | 9 | 14400 s | 7 h |
+
+**`share-register-screen` PASSED THE WHOLE PIPELINE on 2026-09-02, and it is the first task
+here to clear it after an easiness rejection.** The easiness probe went from **3 of 3 to 0 of
+3** across one repair, which is the only verified easiness fix in this repo and the only
+number anywhere in this file that says a repair of that kind works. How it was done is
+"Fixing a task that the easiness probe solved: the three failure modes" below - read the
+diagnosis section first, because the repair that worked here is not the repair that worked on
+`delta-view-retraction`, and applying the wrong one costs a round trip.
+
+It got there through two rejections. The easiness probe solved it 3 of 3 because **two
+sentences of the brief handed the mechanism over**; the quality review then blocked it on
+`instruction concision` because the brief carried no backticks, which **this file had told me
+was optional**. Both entries are below and both stale claims are corrected where they stood.
+
+It is the first task here in Operations and the first whose graded artifact is a
+**determination** - one record per company saying whether a programme reaches it, how many of
+its board seats its side took, and who took each seat. There is **no work counter anywhere in
+it**, which is the point: five tasks here grade work against a budget and the similarity screen
+rejected the fifth for exactly that. What it turned up is in "Three gates that reported success
+while doing nothing" and "A name a submission invents must not be able to decide a graded
+value" below, and the second of those is a defect class **every task in this repo can have** and
+none has ever been checked for.
+
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 
 **`pair-hold-reclaim` is the eleventh task, built 2026-09-02, and it has not been through
@@ -181,6 +205,10 @@ the practice on top of them: what actually worked, with numbers.
    minutes and it fails in ways that waste an hour if left to the end.
 5. Pick a seed, then attack your own first plan before writing any code. That step is the
    whole game; everything after it is execution.
+5b. If the job is **repairing a task the easiness probe solved**, go straight to "Fixing a
+   task the easiness probe solved: the four failure modes". Do not choose a repair from the
+   score; the mode decides it, and picking the wrong mode is what cost three probe rounds
+   across two tasks.
 6. Before packaging anything, run the three-agent probe on it (see "The too-easy failure
    mode" below), grade the submissions through the real verifier rather than believing the
    agents' reports, and read what they say about where they got *confirmation* and what they
@@ -463,7 +491,7 @@ through an instance, so read them, do not obey them blindly.
 | quality review | unfair specs, thin tests, bad tags, **a solve.sh that inlines the reference** | `docs/QUALITY-REVIEW.md` walked criterion by criterion, plus `tools/solvecheck.py` |
 | anti-cheat probe | weak verifiers | the `cheat/` suite, all scoring 0, **including one generated from the task's own ground truth** - see the anti-cheat section, a suite of wrong implementations tests the problem and not the verifier |
 | difficulty probe (8 agents) | solved 0 or 7+ times | design for 1 of 8 |
-| easiness probe (3 agents) | solved 2 or 3 of 3 | same design target |
+| easiness probe (3 agents) | solved 2 or 3 of 3 | same design target, and `leakcheck.py` on the trajectory if it bites |
 
 The published guideline (https://extended-terminal-bench-guideline.edgeone.dev/) lists nine
 gates and documents **only** the 8-agent difficulty probe with its 1-6 band; it describes no
@@ -952,10 +980,21 @@ its text is not published anywhere this repo can see. **Ask the task owner for t
 canary string before the next submission**; do not invent one, since a wrong marker is
 worse than a missing one.
 
-Backticks are house style rather than a discriminator, worth knowing before anyone spends
-time on it: all four briefs that cleared the AI-text screen contain **zero** backticks. The
-rewrite adds them because the reviewer asked and they cost nothing, not because their
-absence has ever failed a screen.
+**Corrected 2026-09-02, and this paragraph is the reason a submission was rejected, so read
+the correction rather than the claim it replaces.** This entry used to say backticks were
+house style rather than a discriminator, on the grounds that all four briefs which cleared
+the **AI-text screen** carry zero. That is true and it is evidence about the wrong gate.
+The **quality review** has now blocked two submissions on their absence: this one on
+2026-08-13 ("no backticks on any path or filename") and `share-register-screen` on
+2026-09-02, where it was the single blocking criterion in an otherwise clean rubric and the
+reviewer called it a wholesale violation of the formatting requirement. **Every path and
+filename goes in backticks.** The brief that has most recently cleared the quality review,
+`guard-mark-unwind`, carries thirty-eight of them; `grant-spread-order` 32,
+`segment-merge-horizon` 18, `delta-view-retraction` 14 after its repair.
+`structcheck.py` now fails a brief that leaves one outside, validated in both directions -
+clean on all six briefs written since the first finding, firing on the four written before
+it (`rollout-cache-coherence`, `checkpoint-resume-drift`, `turn-seam-alignment`,
+`typeahead-query-controller`), which are all latent for this rejection if resubmitted.
 
 ## The anti-cheat rejection: a report is a claim, not evidence
 
@@ -1211,7 +1250,142 @@ map, from the row store, and from retained multiplicity, and the two halves test
 order - which reach identical counters on all twelve scenarios. Five independent readings
 converging is what makes a ceiling defensible rather than one author's taste.
 
+## Fixing a task the easiness probe solved: the four failure modes
+
+**Read this before the playbook below, which is one of the four repairs and not the
+common one.** `share-register-screen` went from **3 of 3 to 0 of 3 and then cleared the
+whole pipeline** on 2026-09-02, which is the only verified easiness repair in this file.
+It took one edit to the instruction and it took twenty minutes. Two earlier tasks spent
+three probe rounds between them on repairs that were correct in themselves and aimed at
+the wrong thing.
+
+So the expensive mistake is not a weak repair. It is **repairing the wrong mode**, and the
+mode is decided by one question with four answers.
+
+### The question: where did the agent's plan come from?
+
+Not "why was the task easy". Where the *plan* came from, which the trajectory answers
+directly, because a solving agent explains itself. The four answers, every one of them
+measured here:
+
+| the plan came from | signature in the trajectory | measured on |
+|---|---|---|
+| **A. the brief** | the winning line is in the first message, before any experiment, **in the brief's own vocabulary** | `share-register-screen` 3/3, `earliest-change-script` 3/3 |
+| **B. a field the environment ships** | the winning line is a short predicate over shipped fields, in the **environment's** identifiers | `delta-view-retraction` 2/3 then 3/3 |
+| **C. the specification, checked against itself** | one `Write` of the finished file, then a self-built harness that goes green. **No intermediate wrong version** | `typeahead-query-controller` 3/3 twice |
+| **D. the data confirming itself** | the agent says it knew it was right before finishing - round numbers, an existence claim, a global fit | `reaction-network-reconstruction` 3/3 |
+
+They are not exclusive and a task can carry two, but **one of them supplied the plan** and
+that is the one to fix first. Fixing the others first is what the wasted rounds were.
+
+### The procedure
+
+**0. Get a trajectory, or make one.** Without it you are choosing a repair from a score,
+which is what this file has now recorded three times as the way to waste a round. If the
+pipeline supplied one, use it. If not, run the local three-agent probe and read what the
+agents say about where they got their plan and what they had to guess.
+
+**1. Read the runtimes before the transcript.** Three trials at 2m30s to 3m58s against a
+240-minute budget is not "a bit too easy". It is "the plan was available on sight", which
+already rules out mode C, where agents spend real time building and running a harness.
+
+**2. Reproduce the solve.** Transcribe the submission out of the trajectory and grade it
+through your own verifier. Ten minutes, and it converts an opinion into a measurement:
+`share-register-screen`'s came back reward 1 on every register, so the solve was real and
+not a probe artifact.
+
+**3. Attribute the plan, mechanically.**
+
+```
+python3 tools/leakcheck.py <slug> <trajectory.md>      mode A: does the solver quote the brief back
+python3 tools/onelinecheck.py <slug>                   mode B: is a graded decision a two-term rule
+```
+
+`leakcheck.py` finds the distinctive phrases the trajectory and the instruction share and
+prints the sentence each came from. On the rejected brief it returned one phrase of four
+content words and named the sentence; on the repaired brief, against the same trajectory,
+nothing. That is the whole diagnosis, and it names the lines to delete rather than leaving
+you with a general worry that the brief is too helpful. Keep the trajectory file to the
+agent's **own words** - a file that also quotes the brief makes the check circular, which is
+why they live in `probes/` with the commentary in a `notes.md` beside them, and outside the
+task bundle so that keeping evidence never changes an archive the pipeline has accepted.
+
+For mode C, look for the one-shot write. For mode D, look for the agent saying it was
+confident before it finished.
+
+**4. Apply one repair, matched to the mode.**
+
+| mode | repair | cost | effect |
+|---|---|---|---|
+| **A** | delete the sentences. Nothing else. | twenty minutes | **3 of 3 to 0 of 3, measured** |
+| **B** | close the pair - then read "Leak-patching has a floor" below, because the third pair is usually inherent and the real fix is a second discovery | a day | 2/3 to 3/3, then a pass once the second discovery went in |
+| **C** | an axis the brief can require but whose satisfaction the agent's own harness cannot check, or one that lives above the size its oracle can run | a redesign | passed |
+| **D** | remove the confirmation, not the difficulty: no round numbers, no existence claims, no global consistency check, no end-to-end reproduction step | varies | not yet re-probed |
+
+**5. Prove the mode-A repair differently from the others, because you cannot prove it the
+usual way.** This is the part that surprised me and it is the reason `leakcheck` exists.
+When the solving submission is **correct**, no change to the verifier can fail it, and it
+must not: it is a correct alternative implementation and it belongs in `variants/` scoring
+1. So "the submission that beat me now scores 0" is not available as evidence for a mode-A
+repair. What you have instead is that **the wording is gone**: the next agent has to derive
+what this one was told. `leakcheck` going quiet against the same trajectory is the
+measurement, and on this task it was the right one.
+
+**6. Only then ask whether to add a second discovery.** On `share-register-screen` I added
+one - and recorded honestly that the agent in the trajectory had derived it unprompted, so
+it would not have stopped that agent. It raises the floor for agents that reason less
+carefully. It was not the repair. Do not let a satisfying new mechanism stand in for
+deleting the thing that leaked.
+
+### Three numbers worth keeping
+
+- **0 of 3 on the easiness probe is compatible with passing.** This file previously treated
+  a local 0 of 3 as a warning sign of the other rejection. On the one task that has been all
+  the way through, 0 of 3 on easiness came with a difficulty probe inside the band and a
+  pass. Do not repair upward from a 0-of-3 easiness result on its own.
+- **The whole repair moved 878 words by about forty.** Two sentences out, one input-space
+  sentence in. Every metric `textcheck` measures stayed inside its band and `structcheck`
+  and `hintcheck` stayed clean, which is what lets a repair of this kind go back through the
+  AI screen unchanged.
+- **A wrong reading that moves fewer than about a tenth of the graded cases is a lottery
+  ticket.** When the new axis first went in it moved 6.5% of registers; tuned, 16.4%, which
+  sits with the two weakest existing readings rather than below them. Measure every reading
+  against the generated set before believing a new axis is worth anything.
+
+### What this does not cover
+
+A task solved 3 of 3 whose trajectory shows real exploration, a wrong first version and a
+recovery is not any of these four. That is a task that is simply not hard enough, and the
+answer is at stage 2 - a different mechanism - rather than anywhere in this section.
+
+### Applied to the tasks in this repo, as of 2026-09-02
+
+What is known about each failure, and the next action. Three of the four modes cannot be
+called without a trajectory, so where one was never kept, step 0 is to run the local
+three-agent probe rather than to guess.
+
+| task | easiness result | mode | next action |
+|---|---|---|---|
+| `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
+| `earliest-change-script` | 3/3 | A, recorded | the brief published the decision procedure and the cost taxonomy; both were removed, never re-probed. Re-probe before resubmitting |
+| `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
+| `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
+| `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |
+| `turn-seam-alignment` | 0/3 **with 0/8** | none of these | that is the other rejection. Recalibrated, never re-probed |
+
+And the cheapest thing that can be done to the six tasks nobody has screened at all:
+`checkpoint-resume-drift`, `earliest-change-script`, `lock-priority-unwind`,
+`rollout-cache-coherence`, `turn-seam-alignment` and `typeahead-query-controller` ship no
+`authoring/decisions.py`, so `onelinecheck.py` has never been able to look at them. Writing
+one is an hour and it is the only mode-B screen that works **before** a probe is spent. Five
+of those six also fail `structcheck.py` on the backtick rule and are latent for the
+concision rejection.
+
 ## The playbook: fixing a task that fails the easiness probe
+
+**This is the mode B procedure** - the environment ships a field pair that answers the
+question. Check the mode first, in the section above: if the solver quoted the brief back
+at you, none of the steps here are the repair you want.
 
 `delta-view-retraction` failed easiness twice and then passed. It is the only task here
 that has done that, so this is the procedure that worked, in order, with the numbers. Every
@@ -1968,6 +2142,316 @@ if its subject had been missing.
   imports the tree - the attack has to disarm from inside a decision while the run is going,
   and only then does the `armed` flag earn its place.
 
+## The concision rejection, twice: backticks are a requirement, not a taste (2026-09-02)
+
+`share-register-screen` went back with the easiness repair and **failed the quality review
+on one blocking criterion**, `instruction concision`, with every other row of the rubric
+passing.
+
+**One thing to hold before reading the cause: the brief that failed this gate carried zero
+backticks, and so did the brief submitted three hours earlier, which got as far as the
+easiness probe.** The same defect therefore passed this reviewer once and blocked it once.
+That does not make the requirement soft - it is written, and `delta-view-retraction` lost
+the same criterion for the same class in August - but it does mean this is an agentic rubric
+with run-to-run variance, and the honest reading is that the repair removes exposure rather
+than that one sentence flipped the verdict. Treat a marginal pass here as a pass that has
+not been earned yet. The reviewer's finding, verbatim on the part that decided it:
+
+> it violates the formatting requirement wholesale: there are zero backticks in the file
+> despite roughly fifteen references to file paths [...] It also carries rhetorical padding
+> that adds no requirement ("Both cost us. A company we miss keeps moving money, and a
+> company we name wrongly is a customer we apologise to and a regulator we answer to"), and
+> its deliberately oblique 880-word style makes a one-sentence specification hard for a
+> non-specialist reviewer to audit.
+
+**The expensive part is that this file caused it.** The backtick paragraph in the concision
+section said they were house style and that their absence had never failed a screen. I read
+it, checked that the briefs which cleared the AI-text screen carry none, and shipped zero
+backticks deliberately. Both halves of that reasoning were sound about the AI screen and
+neither was evidence about the quality review, which is a different gate with a written
+formatting requirement. That paragraph is corrected where it stands.
+
+**The rule, now measured twice: every path and filename goes in backticks.** It costs
+nothing, it is checked by `structcheck.py`, and the check is validated in both directions -
+clean on the six briefs written since the first finding, firing on the four written before
+it. Sorting a finding by which gate it predicts is the discipline this file already
+demands; applying evidence from one gate to another is how it fails.
+
+Two smaller findings, both real and both cheap:
+
+- **Rhetorical padding is a blocking-criterion contributor, and this is its second
+  instance.** The quoted sentences restate a cost the two sentences before them already
+  fenced ("Nothing the list can appoint the board of may be left off it. Nothing the list
+  cannot may be put on it."), so they carry no requirement at all. `delta-view-retraction`
+  lost the same criterion for the same class in August. The replacement is a verdict that
+  is a requirement: "We grade both directions." Note the shape that is *not* padding -
+  `rollout-cache-coherence` passed carrying "Both directions cost us.", because that
+  sentence says both are measured. The elaboration is the padding, never the claim.
+- **Oblique phrasing of a requirement is a cost with no benefit.** "Shares a company holds
+  in itself are silent" became "cast no votes"; "A hand holding nothing takes nothing. An
+  empty seat stays empty" became "A holder with no votes takes no seat. A seat no holder
+  can take is left empty." Same rules, same cadence, auditable by someone who does not
+  already know the answer. Obliqueness protects nothing: the difficulty lives in what the
+  brief does not say, never in how hard the stated part is to read.
+
+The repair was surgical on purpose - backticks, the padded sentences, four oblique
+requirement sentences, and a clean reflow - because a rejection note names an example and
+not a scope, and rewriting a brief wholesale on a concision note is what failed the AI check
+three times on `typeahead-query-controller`. Everything else is byte-identical. `textcheck`
+is clean against four references afterwards (only the documented turn-seam paragraph-sd
+outlier remains), and `structcheck` and `hintcheck` are clean.
+
+### The canary marker, still undefined here
+
+The reviewer noted, explicitly **not** as the basis for the outcome, that "the required
+harbor-canary GUID marker is absent from instruction.md". That is the second sighting of
+this requirement and it is now better described - a **GUID**, emitted by harbor - but
+nothing in `docs/`, `scripts/preflight.py`, the kit template or this repo defines the string
+or its format, and `grep -ri canary` over the whole tree returns nothing outside this file.
+**Ask the task owner for the exact marker before the next submission and do not invent
+one**, since a wrong GUID is worse than a missing one and it has not yet blocked anything.
+
+### Non-finding, recorded because it is embarrassing and cheap to repeat
+
+The first version of the backtick check crashed with a `NameError`, and the loop validating
+it across eleven briefs reported "0 findings" for every one of them, because the loop
+grepped the output and never read the exit code. That is the hollow-gate failure written up
+two sections below, committed inside the harness built to validate a fix for it, in the same
+session. **A validation loop that greps output must read the exit code, or it cannot tell a
+clean brief from a checker that died.**
+
+## The easiness rejection: I wrote the answer into the brief and called it the input space
+
+`share-register-screen` cleared the structural check, the AI check and the similarity screen
+and came back **3 of 3** from the easiness probe on 2026-09-02. One trajectory was supplied
+and it is the most useful artifact this session produced, because the cause is not subtle
+once you read it and it is entirely mine.
+
+**Read the runtimes first, as always.** The three trials ran 3m52s, 3m58s and 2m30s against a
+**240-minute** budget, at 347k to 472k input tokens. Nobody explored anything. That is not
+"the task was a bit easy", it is "the plan was available on sight".
+
+**The line, from the agent's first substantive message, before it ran a single experiment:**
+
+> `pol/voice.py` gives each list party its own hand. The list's holdings then get divided
+> separately under the seat-by-seat average, which throws away exactly what those holdings
+> come to at a meeting. In `share.txt`, h1's 130 and h2's 190 lose to h3's 290 apart, and
+> beat it together.
+
+That is the whole discovery the task was built on, derived in one step. Note the words: *what
+those holdings come to at a meeting*. They are lifted from the brief. Two sentences did it.
+
+**Leak one, and it is the one I would not have found by re-reading:**
+
+> What those holdings come to at a meeting is the whole of what the screen has to get right.
+
+I wrote that believing it stated the input space. It does not. It names the quantity the task
+is built on and says that quantity is the answer. **Stating the input space is "this
+situation occurs and is graded". Stating the reasoning is "this situation is what you have to
+get right." The gap between them is one clause, and I crossed it while quoting the rule that
+forbids it.** A requirement constrains the output. A sentence like that one constrains where
+you think, which is the only thing a frontier agent was short of.
+
+**Leak two: a second worked exhibit is a second answer key.**
+
+> Now put /app/regs/share.txt through it, where two named people sit on the register of every
+> company in the file, and the first two come back no.
+
+A brief has to be grounded in a real run, so the first exhibit earns its place: it is the
+premise, the reason somebody is looking at all. The second one is different. It names a
+shipped file as exhibiting a fault *and* names the feature that makes it faulty - two named
+people on one register - which is the precondition of the mechanism. The agent did not have to
+find the case or work out what distinguishes it. **Ground the brief on one observed failure,
+the one that makes the task exist, and never annotate a second.**
+
+`tools/hintcheck.py` now carries an EMPHASIS family beside its refutation patterns: sentences
+that tell the solver which part of the problem carries the difficulty. Validated in both
+directions, which is the rule for a new check - it fires on the exact sentence above, and it
+is clean on all nine briefs in this repo that have cleared the AI screen. One narrowing was
+needed and is worth knowing: `rollout-cache-coherence`, which passed, contains "what it has
+computed is the whole of what is at stake for it", which is a statement about a request in the
+domain rather than about the solver's job, so the pattern requires the getting-it-right form.
+
+### What was repaired, and one honest limit on it
+
+Both sentences are gone. The premise stays: /app/regs/ring.txt still comes back with a
+company off the list on a row saying the list took two of its three directors, which is a real
+contradiction in the shipped output and the only thing in the tree that says anything is
+wrong. That grounding gives away the closure half, deliberately - it is the stated half.
+
+Then a third graded decision went in, chosen because it **breaks the natural implementation of
+the collapse** rather than sitting beside it. A company does not vote at its own meeting. The
+frozen accessor drops the holding recorded against the company itself, so the treasury rule
+looks handled; stock of the company standing in *somebody else's* name is not dropped, and the
+register says shares held for a party are voted by that party. The two sentences that decide
+it sit next to each other in the brief and neither states the combination. The trap is precise:
+the natural collapse keys on the party that casts the vote, a company's own stock casts as the
+company, so wherever that company is on the list the collapse folds its own shares into the
+list's hand - the one vote the treasury rule exists to remove is the vote the collapse adds.
+
+Separation, measured on 1000 generated registers, one row per single-mistake cheat:
+
+| reading | registers it moves |
+|---|---|
+| every holder stands alone (the collapse missed) | 52.2% |
+| the hand is only the named parties | 47.6% |
+| collapsed on the record holder, not the caster | 44.3% |
+| one sweep of the register | 32.9% |
+| a company that fell short is never asked again | 32.9% |
+| **a company's own stock votes at its own meeting** | **16.4%** |
+| half the board taken as enough | 16.0% |
+| more than half the votes taken as the test | 12.4% |
+
+The new axis sits with the two weakest existing ones rather than below them, which is the bar:
+a decision that moves single-digit percentages is a lottery ticket, and the first cut of this
+one was 6.5% until the generator was tuned to give the own-stock holding a lot big enough to
+move a seat.
+
+**The honest limit, and it is the reason this entry is worth reading twice.** The agent whose
+trajectory I have **derived the treasury rule correctly and unprompted**, and said so as one of
+two judgement calls it had to make. So the axis I added would not have stopped it. **The leak
+is what let it in, and the leak repair is the repair; the third decision raises the floor for
+agents that reason less carefully and is not evidence about this one.** Do not let a
+satisfying new mechanism stand in for removing the thing that actually leaked.
+
+### The submission that beat the task is now a variant, not a cheat
+
+It scores 1 against the repaired task too, because it is right. Per the playbook, a cheat that
+scores 1 is either a correct implementation or a hole in the scenario set, and this is the
+first: it differs from the reference in three places that are all implementation choice - the
+combined hand is called `\x00list` rather than `+`, the seat count looks for the hand or any
+member among the takers, and the closure collects a whole round before adding it. It ships as
+`authoring/variants/ok-probe-solve/`, unedited, with a README saying where it came from.
+
+Two reasons to keep doing this. It is the **only correct implementation in the bundle the
+task's author did not write**, which makes it the sharpest guard against grading a choice
+instead of a behaviour. And it is the regression test the playbook asks for: re-grade it after
+every change, and it must keep scoring 1.
+
+### A variant is the reference with one thing changed, so generate it
+
+Adding the treasury rule to `solution/voice.py` broke five of the six variants: each carried a
+hand-copied `voice.py` from before the change, so `variant_check` reported five correct
+implementations disagreeing with the reference on 45 registers. That is the solution-quality
+defect - the same source in two places with nothing holding the copies equal - living inside
+`authoring/variants/` where `solvecheck.py` deliberately does not look.
+
+`authoring/make_variants.py` now writes every variant from the reference plus one declared
+override, so they cannot drift again. `ok-probe-solve` is exempt and says so in the file: it
+overrides all four artifacts and it is a transcript, not a construction. **Any task here whose
+variants are hand-copied files has this defect latent; the symptom is a variant sweep that
+fails immediately after a reference change and looks like a broken reference.**
+
+## A name a submission invents must not be able to decide a graded value (2026-09-02)
+
+Found building `share-register-screen`, and it is the entry to read first, because the defect
+class is in **every task in this repo** and no gate here has ever looked for it.
+
+The task grades a board filled one seat at a time, and the correct implementation presents the
+parties on its list to the election as a single hand. That hand needs a key, and the key is the
+submission's own invention. The reference calls it `+`. The mirror variant `ok-latekey` is the
+reference with one letter changed - the hand is called `~~` instead - and it **disagreed with
+the reference on 3 of 1206 registers** the first time it ran. Every one of the three was a seat
+where two hands came to the same running average, which the shipped allocation settles by taking
+the lexicographically smallest key. `+` sorts before every party id and `~~` sorts after, so the
+tie went the other way, and the whole determination downstream moved with it.
+
+Two correct implementations, different answers, decided by a symbol neither the brief nor the
+verifier ever mentions. **That is a run-audit rejection in waiting** and no amount of reasoning
+about the specification would have found it.
+
+**The rule: for every internal symbol a submission has to invent that can reach a comparison,
+ship a variant that invents a different one, and require it to score 1.** A key in a mapping, a
+sentinel, a placeholder id, a sort tag, a name for a synthetic row - each is a free choice the
+author made once and never questioned. The variant costs five minutes.
+
+The repair is worth copying because it removes the dependence rather than legislating it. Ties
+are now impossible by construction: `tests/gen.py` checks every way the holders of a company
+could be split into one combined hand and singletons - `2^n` groupings, `n <= 8`, which covers
+every grouping any determination can produce - and perturbs the lot sizes until no seat in any
+of them is taken on a tied average. `authoring/tiecheck.py` does the same for the registers
+written by hand, which the generator does not cover, and it is in the gate list. The brief then
+says the situation does not occur, which is a fair statement of the input space and costs no
+difficulty: **it removes a coin flip, not a discovery.**
+
+The alternative repairs are both worse and both were considered. Legislating the tie-break in
+the brief means naming the hand, which hands over the discovery the task is built on. Grading
+around it means dropping the seat list, which is most of what makes a failure legible.
+
+## Three gates that reported success while doing nothing (2026-09-02)
+
+All three found in one session on `share-register-screen`, all three standing-policy item 2, and
+the shape is the same every time: **a check that cannot distinguish "the thing passed" from "the
+thing never ran" manufactures evidence.**
+
+**1. A tree comparison against a directory that is not there passes every file it never looked
+at.** `test_the_executed_tree_was_the_one_we_shipped` walked `/tests/pristine`, which the
+verifier Dockerfile moves to `/pristine` at build time. `Path.rglob` on a missing directory
+yields nothing, so the test passed while comparing zero files, and it kept passing until an
+unrelated test failed on the same wrong path. The fix is one line and it generalises to every
+comparison loop in a verifier: **count what you found, assert the count, and only then compare.**
+
+**2. Nine reward probes never reached the executed tree, and the suite reported them all at 0.**
+Every one put its payload in `pol/__init__.py`. That file is not a declared artifact, so
+`test.sh` never overlaid it: what got graded was the shipped policy, which is wrong on values,
+so every probe scored 0 for a reason unrelated to the layer it was aimed at. CLAUDE.md already
+carried the one-line version of this from `grant-spread-order` ("a cheat prologue in a new
+module never reaches the executed tree") and it was still repeated here from scratch, which says
+the paragraph was not enough. The mechanised version is item 3.
+
+**3. `cheat_report.py` has to assert WHICH test fired, per cheat, with an expectation.** A sweep
+that only reads the reward cannot tell a probe that was rejected from a probe that never ran.
+The report now classifies: an ordinary cheat has to be caught by a test that reads the
+determination, and the two **attestation** probes - the reference with every answer correct and
+one attestation interfered with - have to be caught by *that* attestation and by nothing else.
+Both halves matter. Without the second, a probe built on the reference looks like a failure and
+the next session deletes it; without the first, a probe that never ran looks like a success.
+
+Two smaller ones from the same session, both cheap to re-derive and expensive to diagnose:
+
+- **`sys.monitoring` tool ids are 0 to 5.** `use_tool_id(7, ...)` raises `ValueError` at arm
+  time, the runner dies before it writes anything, and the symptom the grader reports is "the
+  run produced an empty report" - which reads as a sandbox problem, not an instrumentation one.
+- **`.dockerignore` patterns match the whole path, so `__pycache__` does not exclude a nested
+  one.** The built agent image shipped eleven `.pyc` files compiled by the authoring host.
+  `**/__pycache__` and `**/*.pyc` are what work. **Every `.dockerignore` in this repo uses the
+  top-level form**, so every built agent image here probably carries the same clutter; check
+  `docker run --rm <img> sh -c 'find /app -type f'` rather than reading the file.
+
+### Two more measurements from the same build
+
+- **A tally graded as an equality is a run-audit exposure whenever a correct implementation can
+  reach the counted call.** The interpreter's count of entries into the register reader was
+  asserted equal to the number of registers, which is true of the reference and false of any
+  submission that reads a register for itself. Both tallies are floors now. A floor still catches
+  the thing they exist for, because the counted calls sit in frozen code the driver always runs,
+  so nothing can come in *under* one without tampering.
+- **`tools/forgecheck.py` only recognises a probe that carries `gt.json`'s own bytes.** The first
+  answer-key probe held the same answers re-keyed by a fingerprint of the register, which is a
+  paraphrase, and forgecheck reported "no cheat is generated from tests/gt.json". Embedding
+  `json.dumps(truth, sort_keys=True, separators=(",", ":"))` fixes it and is the more honest
+  probe anyway: an adversary who has read the verifier has the file, not a summary of it. That
+  probe now passes all 23 enumerated registers and is wrong on 25 of 40 generated ones.
+
+### Non-finding: `environment/Dockerfile` similarity cannot be engineered away
+
+Recorded so nobody spends an hour on it. `simcheck.py` flags it against every other bundle
+whatever you do, because the file is five lines whose content the platform dictates. Measured
+across all ten existing bundles, the best of five honest rewrites reaches **max 0.735, mean
+0.371** (`WORKDIR` then `COPY app_src .` then one combined `ENV` then a build-time
+`RUN python -c "import ..."` smoke check, which is worth having on its own). The obvious
+orderings sit at 0.75 to 0.80. Below the NEAR threshold is achievable; low is not. Spend the
+effort on `tests/Dockerfile`, `tests/test.sh` and `tests/runner.py`, where rewriting the comments
+and reordering the steps took this bundle from a HIGH finding to none.
+
+### Non-finding: the three-agent probe could not be run this session
+
+The account hit its session limit and all three subagents died before writing a line, which is
+the same failure that cost `guard-mark-unwind` two of its three probe agents. The probe is still
+the only local gate that measures what the easiness gate rejects for, so it is the first thing
+to run in the next session on this task. **Do not read the absence of a probe result as a
+result.**
+
 ## The bundle-structure rejection: the tree is not the zip
 
 `delta-view-retraction` was rejected by the bundle structure check on 2026-08-13, after every
@@ -2676,13 +3160,22 @@ python3 tasks/<slug>/authoring/cheat_report.py  which test catches each cheat
 python3 tools/docker_trial2.py <slug> --all     every trial on the real two images
 python3 tools/docker_trial2.py <slug> --variants alternative correct solutions, real verifier
 python3 tools/textcheck.py <passed.md> <draft>  instruction cadence and register
-python3 tools/structcheck.py <draft>            instruction structure; run against the three
-                                                passing briefs too, it must stay clean on them
-python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, and every
-                                                folds/scans figure still matches gt.json
+python3 tools/structcheck.py <draft>            instruction structure, and every path and
+                                                filename in backticks. Run it against the
+                                                passing briefs too, it must stay clean on
+                                                them
+python3 tools/hintcheck.py <slug>               brief refutes no candidate rule, tells the
+                                                solver nowhere which part carries the
+                                                difficulty, and every folds/scans figure
+                                                still matches gt.json
 python3 tools/forgecheck.py <slug>              a cheat generated from the task's own
                                                 gt.json must score 0, or the verifier is
                                                 grading a report instead of evidence
+python3 tools/leakcheck.py <slug> <traj.md>     after an easiness rejection: does the
+                                                solving agent quote the brief back at you?
+                                                Names the sentences to delete. Needs the
+                                                trajectory, and the trajectory file must
+                                                hold the agent's own words only
 python3 tools/onelinecheck.py <slug>            how short is the answer? every graded
                                                 decision reproduced by a two-term rule over
                                                 exposed fields is an easiness rejection
@@ -2728,6 +3221,14 @@ python3 tools/zipfix.py <slug>                  rewrite an archive package.py st
                                                 MS-DOS. On Windows it always does, and an
                                                 archive that fails this scores 0 on every
                                                 submission including the reference
+python3 tasks/<slug>/authoring/tiecheck.py      no graded comparison may come down to a name
+                                                the submission chose. Ship the mirror variant
+                                                too: the reference with that name changed
+python3 tasks/<slug>/authoring/make_variants.py generate variants/ from the reference plus one
+                                                declared override each. Hand-copied variants
+                                                drift the moment the reference changes, and
+                                                the symptom is every correct implementation
+                                                disagreeing at once
 ```
 
 `zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and

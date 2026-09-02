@@ -1,0 +1,17 @@
+pg h1
+co k1 3
+cl k1 o 1
+is k1 o 610 n1
+is k1 o 390 h2
+nm n1 h1
+co k2 3
+cl k2 o 1
+is k2 o 590 h3
+is k2 o 410 h4
+nm h3 h9
+co k3 3
+cl k3 o 1
+is k3 o 530 n2
+is k3 o 470 h4
+nm n2 n3
+nm n3 h1

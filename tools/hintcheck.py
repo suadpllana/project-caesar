@@ -52,6 +52,47 @@ REFUTATION = (
 )
 
 
+# A brief that tells the solver where the difficulty is has handed over the plan, however
+# carefully it avoids naming the rule. `share-register-screen` failed the easiness probe
+# 3 of 3 on 2026-09-02 carrying "What those holdings come to at a meeting is the whole of
+# what the screen has to get right", written in the belief that it stated the input space.
+# It does not: it names the quantity the task is built on and says that quantity is the
+# answer. The solving trajectory reached the rule in its first message, in those words.
+#
+# These are thesis sentences about the work rather than requirements on the output. A
+# requirement says what must be true of the answer; one of these says which part of the
+# problem to think about.
+EMPHASIS = (
+    # Narrowed deliberately. rollout-cache-coherence, which passed the screen, carries
+    # "what it has computed is the whole of what is at stake for it" - a statement about a
+    # request in the domain, not about the solver's job. The leak is the form that names
+    # the solver or its program as the thing that must get the quantity right.
+    re.compile(r"\bis the whole of what\b[^.]{0,60}\b(get|getting) (it )?right\b"),
+    re.compile(r"\bthe whole of (the|what) (work|task|difficulty|problem|thing)\b"),
+    re.compile(r"\bwhat (you|we|the \w+) (have|has) to get right\b"),
+    re.compile(r"\bis where the (task|difficulty|work|problem) (lives|is)\b"),
+    re.compile(r"\bthe (key|crux|heart|nub) of (it|this|the \w+) is\b"),
+    re.compile(r"\bthat is the whole (task|point|game|of it)\b"),
+    re.compile(r"\ball (that|of) (this|it) turns on\b"),
+)
+
+
+def check_emphasis(text):
+    """Flag sentences that point at the part of the problem that carries the difficulty."""
+    findings = []
+    for sentence in re.split(r"(?<=[.!?])\s+", prose(text)):
+        s = " ".join(sentence.split())
+        for pat in EMPHASIS:
+            if pat.search(s):
+                findings.append(
+                    "emphasis: %r - naming the quantity the task is built on and saying it "
+                    "is what must be got right hands over the plan, whatever else the "
+                    "sentence withholds" % s[:110]
+                )
+                break
+    return findings
+
+
 def check_hints(text):
     """Flag sentences that name a candidate rule and refute it.
 
@@ -115,7 +156,7 @@ def main():
     text = ip.read_text(encoding="utf-8")
 
     print("== %s" % ip)
-    findings = check_hints(text) + check_numbers(slug, text)
+    findings = check_hints(text) + check_emphasis(text) + check_numbers(slug, text)
     if not findings:
         print("   none")
         return 0

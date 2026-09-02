@@ -1,0 +1,84 @@
+#!/bin/bash
+# Every holder stands alone at the meeting, and the seats the list took are the seats its members took under their own names. Right on every register where the list has one holder, short by a seat wherever two of its holders would have carried one between them.
+set -euo pipefail
+
+cat > /app/pol/note.py <<'SRSEOF'
+# One record per company, in the order the register incorporated them.
+#
+# A seat is written out under the name of whoever took it, except that every seat the
+# list took is written with the marker, whether it was taken by the collapsed hand or by
+# a member standing alone. Seats nobody could take are gaps.
+from reg import poll
+
+MARK = "*"
+
+
+def line(st, cid, on, board, got):
+    seats = []
+    for k in board:
+        if k == poll.GAP:
+            seats.append(poll.GAP)
+        elif k in on or not st.known(k):
+            seats.append(MARK)
+        else:
+            seats.append(k)
+    return [cid, 1 if cid in on else 0, got, len(board), seats]
+SRSEOF
+
+cat > /app/pol/screen.py <<'SRSEOF'
+# The determination.
+#
+# The list is closed under itself. A company the list can direct is a company that votes
+# the way the list votes, so it joins the list and its shares join the hand -- which can
+# carry a further company, and so on. Nothing on the register may be left out while it is
+# still reachable that way, so the sweep repeats until a whole pass adds nobody.
+#
+# One pass in register order is not enough and no ordering of the companies rescues it,
+# because a company can be carried by a company that is carried by it: the two only fall
+# out together, on a later pass, once both are standing.
+#
+# Re-testing companies already rejected is not optional either. The hand grows every time
+# the list grows, and the seats it takes are recomputed against the whole meeting, so a
+# company that fell short on one pass can carry on the next without anything about its own
+# register having changed.
+from reg import poll
+
+from . import tally, voice
+
+
+def sweep(st):
+    on = set(st.named())
+    while True:
+        grew = False
+        for cid in st.cos():
+            if cid in on:
+                continue
+            seats = st.seats(cid)
+            board = poll.elect(voice.hands(st, cid, on), seats)
+            if tally.carries(tally.held(board, on), seats):
+                on.add(cid)
+                grew = True
+        if not grew:
+            return on
+SRSEOF
+
+cat > /app/pol/tally.py <<'SRSEOF'
+def held(board, on):
+    return sum(1 for k in board if k in on)
+
+
+def carries(got, seats):
+    return 2 * got > seats
+SRSEOF
+
+cat > /app/pol/voice.py <<'SRSEOF'
+def hands(st, cid, on):
+    out = {}
+    for who, w in st.stakes(cid):
+        v = st.voter(who)
+        out[v] = out.get(v, 0) + w
+    return out
+
+
+BLOC = "+"
+SRSEOF

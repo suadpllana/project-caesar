@@ -10,7 +10,6 @@ DONE = 5
 
 class Core:
     def __init__(self, cfg, ts, ms):
-        self.cfg = cfg
         self.ts = ts
         self.ms = ms
         self.base = {}

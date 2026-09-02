@@ -1766,6 +1766,108 @@ different every time and it did not help. Ask: *what is graded, and has anything
 that before?* If the answer to the second half is yes, the idea is a reskin however new the
 subject matter is.
 
+## The AI-check rejection: the missing author (2026-09-02)
+
+`lock-priority-unwind` was submitted on 2026-09-02, **passed the structural check and failed the
+AI check** - "The instruction file appears to be AI-generated." Nothing behind it ran. Every local
+text gate was green on the rejected file, which makes this standing-policy item 2 for the third
+time: `textcheck.py` reports **no findings against all four briefs that passed the screen** on the
+brief the screen then rejected. Do not read a clean textcheck as evidence about this gate.
+
+**The axis that separates it is team voice, and it is the only axis on which the rejected brief
+sits outside the entire repo.** Measured across all twelve briefs here:
+
+| brief | we/our | AI check |
+|---|---|---|
+| `typeahead-query-controller` | 15 | passed |
+| `rollout-cache-coherence` | 14 | passed |
+| `share-register-screen` | 10 | - |
+| `pair-hold-reclaim` | 9 | - |
+| `turn-seam-alignment` | 9 | passed |
+| `checkpoint-resume-drift`, `delta-view-retraction`, `guard-mark-unwind` | 8 | guard passed |
+| `grant-spread-order` | 6 | passed |
+| `earliest-change-script` | 4 | passed |
+| `segment-merge-horizon` | 2 | passed |
+| **`lock-priority-unwind`** | **0** | **failed** |
+
+Everything else was inside the distribution and measured as a non-finding first: paragraph-final
+short closers (4, against 0-11 elsewhere), five-word fragments (7, the modal value), `is not`
+negation (5, the modal value), backticks (16, against 0-48 among briefs that passed the screen, so
+not a discriminator for **this** gate - they are a hard requirement of the quality review, which is
+a different gate again: see the concision entry below and do not read this as licence to drop one).
+
+**The finding is not a pronoun count.** What every passing brief has and this one lacked is an
+author with a stake: a team that owns the tree, changed it, and grades the result.
+`guard-mark-unwind` opens "a small cooperative runtime we use to try scheduling ideas out", then
+"We rewrote the delivery and unwinding decisions last cycle and the runtime has been wrong since",
+then "We grade both halves." The rejected brief stated every one of those as a property of the
+world with nobody behind it - "The scheduler is fixed priority and preemptive", "Both directions
+are graded" - which is the register of a generated specification. Sprinkling `we` over a finished
+draft does not fix it; situating the document does.
+
+The second gap, and it is the fifth-rejection finding from the typeahead section arriving again:
+**the brief described a run nobody had run.** It narrated a four-task scenario in prose and
+asserted tick numbers. The repair drove the shipped tree on `release-with-queue-behind`, the
+graded scenario of exactly that shape, and rewrote the paragraph from the real event log - the
+pair blocking at ticks 5 and 7, the holder dropped back at tick 10, the priority-4 task holding
+the processor from 14 for twelve ticks, the grant at 29, `done` reading 33. Two of those numbers
+were not in the rejected brief and one that was ("stuck for twenty ticks") was **unsupported by
+any run** and is gone. Quote the broken tree, never the correct one: `done 33` is the symptom,
+and publishing what a correct policy reaches would hand over a graded value.
+
+One mechanical trap worth keeping. `run_sched.py` prints `json.dumps(..., indent=1)`, so every
+record is exploded across six lines and there is no one-line `blk 5 2 2` to quote. A first draft
+quoted records in that compact shape and it would have been a fabricated rendering of real data.
+**If you quote output, print it first and copy what actually appears.**
+
+Register cost of the repair, since this is where cadence rots: restoring the voice took burstiness
+0.905 to **0.790** on the first pass - the documented flatten-while-fixing-register signature, with
+words up and sentences down. Rejoining two clauses the material already had (a semicolon in the run
+paragraph, one long chain in the opening) recovered it to **0.861**, clean against all four passing
+references, with `structcheck.py` and `hintcheck.py` clean and stock words, hedges, antithesis and
+triads at zero throughout. Grounding numbers in the opening third went 3 to 4.
+
+**Non-finding, recorded so nobody restructures over it: `checkpoint-resume-drift` is an outlier
+reference on burstiness (0.979) and vocabulary (0.369), and four of the five briefs that passed the
+AI screen fail against it** - `earliest-change-script` on short sentences, `guard-mark-unwind` and
+`grant-spread-order` on vocabulary, `typeahead-query-controller` on contractions. It has never faced
+the screen itself. Treat a finding that only appears against checkpoint the way this file already
+treats its short-sentence threshold: clear it if it is free, never restructure for it.
+
+### The bundle in the repo was three repairs behind the bundle that was submitted
+
+Found while packaging, and it is the more dangerous half of this session. The zip the pipeline
+rejected had **78 entries**; `tasks/lock-priority-unwind/` built **76**, and the tree differed in
+nine files. The repo still carried the **74-line `solve.sh` with a 67-line heredoc** - the exact
+defect that failed the quality review on `guard-mark-unwind`, which `tools/solvecheck.py` was
+written to catch and which it duly reported. The submitted bundle had the repaired 7-line script
+copying `solution/prio.py`, an extra correct variant (`ok-probe-solve`), and newer `core.py`,
+`Dockerfile` and `tests/pristine/`.
+
+**Packaging from the repo would have silently regressed the bundle and reintroduced a defect the
+pipeline has already rejected once.** The tree was synced up from the submitted archive before the
+instruction fix landed, and the whole suite re-run: oracle 1, nop 0, four `ok-*` variants 1,
+seventeen cheats 0, `0 unexpected`.
+
+The rule, and it is the attachment lesson from `earliest-change-script` in a worse form: **the
+repo is not necessarily ahead of the zip.** Before editing any bundle that has been submitted,
+diff the tree against the archive that was actually sent and reconcile in the direction of the
+newer artifact. `diff -rq <extracted> tasks/<slug>` takes ten seconds. A clean `git status` says
+nothing about whether the tree matches what the pipeline saw.
+
+**And package.py stamped all 78 entries MS-DOS again**, on a bundle whose previous archive was
+already repaired by commit `3b9c281`. That repair does not stick: it is a property of the archive,
+and every rebuild on Windows re-breaks it. `tools/zipfix.py` after every `package.py` on this host,
+then `zipcheck.py`, with no exceptions - shipped as-is it scores 0 on everything including the
+reference. Final verification of the rebuilt archive: **zero metadata differences from the archive
+that cleared the structural check** across `create_system`, `external_attr`, `compress_type`,
+`flag_bits` and `date_time` on all 78 entries, identical entry set, and content differing in
+exactly one file.
+
+**Gates not run:** Docker is absent on this host, so the two-image trial, the privilege drop, the
+root-owned reward channel and process teardown are unverified. The suite above is the host
+emulation.
+
 ## The solution-quality rejection: the reference must exist once (2026-08-31)
 
 `guard-mark-unwind` is the seventh task and the first in Software / Languages. It was

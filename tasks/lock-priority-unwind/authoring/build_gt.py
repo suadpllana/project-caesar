@@ -59,7 +59,7 @@ def main(argv: list[str]) -> int:
         print("the reference disagrees with the model on drawn task sets, refusing to write")
         return 1
 
-    ref = harness.run("solution/ref")
+    ref = harness.run("solution")
     ship = harness.run("shipped")
     if ref.get("broke"):
         print("the reference raised:", ref["broke"])

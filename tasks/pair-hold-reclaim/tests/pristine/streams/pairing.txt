@@ -1,0 +1,13 @@
+new 1
+new 2
+new 3
+new 4
+bind a 1
+edge 1 2
+pair 2 3
+pair 4 3
+watch p3 plain 3
+pass
+show p3
+unbind a
+pass

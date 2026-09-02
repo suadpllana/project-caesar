@@ -1,0 +1,460 @@
+{
+ "clean-adds-entry": {
+  "digest": "18781cafdda5311fc40873aafa17c5c45a561a19d1790ae104518bc7316f3dcb",
+  "log": [
+   "1 cn 2",
+   "1 rl 2",
+   "1 sh f3 3"
+  ],
+  "state": [
+   "c 1 ",
+   "c 3 ",
+   "p 1 3",
+   "w f3 firm 3",
+   "r a 1"
+  ]
+ },
+ "clean-cascade": {
+  "digest": "4f2672ad00cc432149a1c85afd8fc2a9d9b40216f6ab1f0b248d3fb2348ee755",
+  "log": [
+   "1 cn 2",
+   "1 cn 3",
+   "1 cn 4",
+   "1 rl 1",
+   "1 rl 2",
+   "1 rl 3",
+   "1 rl 4"
+  ],
+  "state": []
+ },
+ "clean-cuts-loose": {
+  "digest": "7ab0ce945d4e0deec3db197c4b9bf81dd2ff05cd3392e00d0cd864d1e4649a35",
+  "log": [
+   "1 cn 2",
+   "1 em p3",
+   "1 rl 1",
+   "1 rl 2",
+   "1 em f3",
+   "1 rl 3",
+   "1 sh p3 -",
+   "1 sh f3 -"
+  ],
+  "state": [
+   "w p3 plain -",
+   "w f3 firm -"
+  ]
+ },
+ "clean-once": {
+  "digest": "adfc629a5961c53afb79ae74c5783b091c79f3b9459710d9267640d9d6477eee",
+  "log": [
+   "1 cn 2",
+   "2 rl 2"
+  ],
+  "state": [
+   "c 1 ",
+   "r a 1"
+  ]
+ },
+ "clean-puts-back": {
+  "digest": "3f8fd66789a5e1a63c149e73f55a8bbb13f91517f42555d94b4cdf7ab1c4cd84",
+  "log": [
+   "1 em p2",
+   "1 cn 2",
+   "1 sh p2 -",
+   "1 sh f2 2",
+   "1 sh f3 3"
+  ],
+  "state": [
+   "c 1 ",
+   "c 2 3",
+   "c 3 ",
+   "w p2 plain -",
+   "w f2 firm 2",
+   "w f3 firm 3",
+   "r a 1",
+   "r b 2"
+  ]
+ },
+ "clean-runs": {
+  "digest": "09ca9a17119926f604a9b825bef261287cd9ca4df07a72004489fe9d6cd652cb",
+  "log": [
+   "1 cn 2",
+   "1 em w2",
+   "1 rl 2",
+   "1 sh w2 -"
+  ],
+  "state": [
+   "c 1 ",
+   "w w2 firm -",
+   "r a 1"
+  ]
+ },
+ "clean-wakes-clean": {
+  "digest": "c356683f37f1382cac3af84ff94d5e81d401e604fd70400a30a11745d14ba9d7",
+  "log": [
+   "1 cn 2",
+   "1 cn 3",
+   "1 rl 1",
+   "1 rl 2",
+   "1 rl 3"
+  ],
+  "state": []
+ },
+ "cycle-puts-back": {
+  "digest": "0034dc09f594d3edd2bf9d6980112e4e6415db936fb9ee7f8910228bd6a10918",
+  "log": [
+   "1 cn 2"
+  ],
+  "state": [
+   "c 1 ",
+   "c 2 3",
+   "c 3 2",
+   "r a 1",
+   "r b 3"
+  ]
+ },
+ "entries-dropped": {
+  "digest": "58ac39cdff8568b0c3cfde48a1998be639140d7d12b5b9ad9fbcebd01087ac3f",
+  "log": [
+   "1 dp 2 3",
+   "1 db 2 3 4",
+   "1 rl 2",
+   "1 rl 3",
+   "1 rl 4"
+  ],
+  "state": [
+   "c 1 ",
+   "r a 1"
+  ]
+ },
+ "entry-chain": {
+  "digest": "753dd352e45aa778576a5036fce2157404cd2358715a7df10cdc813cf6db0abe",
+  "log": [
+   "1 sh w4 4"
+  ],
+  "state": [
+   "c 1 ",
+   "c 2 3",
+   "c 3 ",
+   "c 4 ",
+   "p 1 2",
+   "p 3 4",
+   "w w4 firm 4",
+   "r a 1"
+  ]
+ },
+ "entry-chain-back": {
+  "digest": "72e36e78978037f22e451c261d04cfc06dc9ba50781ef617983e253ccb4dd3fc",
+  "log": [
+   "1 sh w4 4",
+   "1 sh w5 5"
+  ],
+  "state": [
+   "c 1 ",
+   "c 2 3",
+   "c 3 ",
+   "c 4 5",
+   "c 5 ",
+   "p 3 4",
+   "p 1 2",
+   "w w4 firm 4",
+   "w w5 firm 5",
+   "r a 1"
+  ]
+ },
+ "held-through-clean": {
+  "digest": "cbe82fd5d954e5ea28ca052bb973819792b80cfb03185ec9b4283e97a4e1ba28",
+  "log": [
+   "1 cn 2",
+   "1 rl 2",
+   "1 sh f3 3"
+  ],
+  "state": [
+   "c 1 3",
+   "c 3 ",
+   "w f3 firm 3",
+   "r a 1"
+  ]
+ },
+ "links-only": {
+  "digest": "69a01cd5c4f37e4864d9ee8c51fee90e87c7c63361e282d7da8b888817ca6c7b",
+  "log": [
+   "1 em w1",
+   "1 rl 3",
+   "1 sh w1 -"
+  ],
+  "state": [
+   "c 1 2",
+   "c 2 ",
+   "w w1 firm -",
+   "r a 1"
+  ]
+ },
+ "look-mid-pass": {
+  "digest": "7e9085f18cac9f176c742c1d328f5559aaef3f3b3178ae90cc5b2d93931bc476",
+  "log": [
+   "1 em p3",
+   "1 cn 2",
+   "1 sh p3 -",
+   "1 cn 3",
+   "1 rl 2",
+   "1 em f3",
+   "1 rl 3",
+   "1 sh f3 -"
+  ],
+  "state": [
+   "c 1 ",
+   "w p3 plain -",
+   "w f3 firm -",
+   "r a 1"
+  ]
+ },
+ "nothing-doomed": {
+  "digest": "b13d806b978e908f6084140cf19abec08ae6e9917dea6c9bd9bca24e17131b6f",
+  "log": [
+   "1 sh f3 3"
+  ],
+  "state": [
+   "c 1 2",
+   "c 2 3",
+   "c 3 ",
+   "w f3 firm 3",
+   "r a 1"
+  ]
+ },
+ "one-key-drops": {
+  "digest": "a1e022606904adae2476a92bc51cecefb1e660d7373155417d984549fe6f6a2a",
+  "log": [
+   "1 dp 2 3",
+   "1 rl 2",
+   "1 em w3",
+   "1 rl 3",
+   "1 sh w3 -"
+  ],
+  "state": [
+   "c 1 ",
+   "w w3 firm -",
+   "r a 1"
+  ]
+ },
+ "one-key-holds": {
+  "digest": "f74000f6e04ab89b9e6ab5b2279fd6a82d8cde97dd064f0bcbbc867d80d322c4",
+  "log": [
+   "1 sh w3 3"
+  ],
+  "state": [
+   "c 1 2",
+   "c 2 ",
+   "c 3 ",
+   "p 2 3",
+   "w w3 firm 3",
+   "r a 1"
+  ]
+ },
+ "order-by-reach": {
+  "digest": "8bebfe694857548208c3e9994cd129a6257e9f13c68919f28521d870e07b5a7a",
+  "log": [
+   "1 cn 3",
+   "1 cn 2",
+   "1 rl 2",
+   "1 rl 3"
+  ],
+  "state": [
+   "c 1 ",
+   "r a 1"
+  ]
+ },
+ "order-chain": {
+  "digest": "2fe937269e9b07c168619f5e270080921e77247615484ee546e7ede0b8c06a51",
+  "log": [
+   "1 cn 4",
+   "1 cn 3",
+   "1 cn 2",
+   "1 rl 2",
+   "1 rl 3",
+   "1 rl 4"
+  ],
+  "state": [
+   "c 1 ",
+   "r a 1"
+  ]
+ },
+ "order-cycle": {
+  "digest": "fa7574200cf672d4988b2bb32caa73785bc72ba957f5e68d9d18e448b6e12c79",
+  "log": [
+   "1 cn 2",
+   "1 cn 3",
+   "1 rl 2",
+   "1 rl 3"
+  ],
+  "state": [
+   "c 1 ",
+   "r a 1"
+  ]
+ },
+ "order-entry": {
+  "digest": "e781c92681f86d446119455e11b9b3f005bf615dd6513ed8e5de191de280ceb9",
+  "log": [
+   "1 cn 3",
+   "1 cn 2",
+   "1 dp 3 2",
+   "1 rl 2",
+   "1 rl 3"
+  ],
+  "state": [
+   "c 1 ",
+   "r a 1"
+  ]
+ },
+ "order-two-key": {
+  "digest": "f319ff12a4c34b480e2ee3e5fac7b37292a628f3a1357238a849d8831073a03b",
+  "log": [
+   "1 cn 3",
+   "1 cn 2",
+   "1 db 3 1 2",
+   "1 rl 2",
+   "1 rl 3"
+  ],
+  "state": [
+   "c 1 ",
+   "r h 1"
+  ]
+ },
+ "plain-empties": {
+  "digest": "b934407d311bba2e7200233cd92215187013a1b39ca4991485604f112dd2d1fb",
+  "log": [
+   "1 em p2",
+   "1 em f2",
+   "1 rl 2",
+   "1 sh p2 -",
+   "1 sh f2 -"
+  ],
+  "state": [
+   "c 1 ",
+   "w p2 plain -",
+   "w f2 firm -",
+   "r a 1"
+  ]
+ },
+ "plain-late-round": {
+  "digest": "ab802989e6962517cb69246466fc77a3e3377d071c337026580821be6d6c365a",
+  "log": [
+   "1 cn 2",
+   "1 em p3",
+   "1 cn 3",
+   "1 rl 1",
+   "1 rl 2",
+   "1 rl 3"
+  ],
+  "state": [
+   "w p3 plain -"
+  ]
+ },
+ "release-order": {
+  "digest": "d0ca15762e56ee8db662913263aab56ca9a5620f0e66e386084bdad77fe7c988",
+  "log": [
+   "1 rl 1",
+   "1 rl 2",
+   "1 rl 4",
+   "1 rl 5"
+  ],
+  "state": [
+   "c 3 ",
+   "r a 3"
+  ]
+ },
+ "self-holding": {
+  "digest": "8dbc4f00482843413343531444175d9e070c9a1714d4562546dbca4f9fda9d34",
+  "log": [
+   "1 em w2",
+   "1 dp 2 3",
+   "1 rl 2",
+   "1 rl 3",
+   "1 sh w2 -"
+  ],
+  "state": [
+   "c 1 ",
+   "w w2 firm -",
+   "r a 1"
+  ]
+ },
+ "two-key-both": {
+  "digest": "93044d9da869bd5f2fa862e393154496c9431d6e95824717ee8e86be25833193",
+  "log": [
+   "1 sh w3 3"
+  ],
+  "state": [
+   "c 1 ",
+   "c 2 ",
+   "c 3 ",
+   "b 1 2 3",
+   "w w3 firm 3",
+   "r a 1",
+   "r b 2"
+  ]
+ },
+ "two-key-late": {
+  "digest": "4cc33376b71eee200d6194e9ea2480a514b3fbbdb466f4fa13a9aaf7fb9de147",
+  "log": [
+   "1 sh w5 5"
+  ],
+  "state": [
+   "c 1 ",
+   "c 2 ",
+   "c 3 4",
+   "c 4 ",
+   "c 5 ",
+   "p 1 2",
+   "b 2 1 3",
+   "b 4 1 5",
+   "w w5 firm 5",
+   "r a 1"
+  ]
+ },
+ "two-key-one": {
+  "digest": "efd9a09615a4b9661f34f698a850e2c9e911c1075b20f04ca41999731db4a402",
+  "log": [
+   "1 db 1 2 3",
+   "1 rl 2",
+   "1 em w3",
+   "1 rl 3",
+   "1 sh w3 -"
+  ],
+  "state": [
+   "c 1 ",
+   "w w3 firm -",
+   "r a 1"
+  ]
+ },
+ "watch-never-refills": {
+  "digest": "90636529cf0f6f13df7bdca1a16c78eed9df9f436a5614ddcecd0d1b46e99541",
+  "log": [
+   "1 em p2",
+   "1 cn 2",
+   "1 sh p2 -"
+  ],
+  "state": [
+   "c 1 ",
+   "c 2 ",
+   "w p2 plain -",
+   "r a 1",
+   "r b 2"
+  ]
+ },
+ "watch-order": {
+  "digest": "32c60967342a5fc98d5b6452d3ee439c52bc33932cae7d42b26e832accb58024",
+  "log": [
+   "1 em p2",
+   "1 em q2",
+   "1 em f2",
+   "1 rl 2"
+  ],
+  "state": [
+   "c 1 ",
+   "w p2 plain -",
+   "w q2 plain -",
+   "w f2 firm -",
+   "r a 1"
+  ]
+ }
+}

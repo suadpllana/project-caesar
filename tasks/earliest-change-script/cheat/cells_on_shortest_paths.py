@@ -3,22 +3,20 @@
 Strategy: find the shortest-path restriction and stop there. The frontier
 says which cells lie on some shortest script, the hunk recurrence is
 evaluated at every one of them, and the walk reads the counts off. That is
-the whole task solved for two of the three families: a million lines that
-differ in a few hundred places are a million cells and a couple of seconds,
-and fifty thousand crowded lines that differ in a few thousand are a few
-seconds more. Every correctness block passes.
+the whole task solved for the long family: a million lines that differ in a
+few hundred places are a million cells and a couple of seconds, and every
+correctness block passes.
 
-It has nothing for the third family. A third of a million nearly-distinct
-lines put back in a different order need half a million moves, so the
-frontier is out by orders of magnitude and is abandoned, and what is left
-is the table, which is out by more. Nor would a cheaper way of listing the
-shortest-path cells save it: between one keep and the next, every monotone
-path through the rectangle between them is a shortest path, so the cells to
-visit are the areas of those rectangles rather than the number of matches.
-The pairs those rectangles belong to are the ones no pair small enough to
-check by hand ever looks like. Six of the eighteen timed pairs are never
-answered, and it scores zero.
+It has nothing for the other two. A pair that shares no order needs tens or
+hundreds of thousands of moves, so the frontier is out by orders of magnitude
+and is abandoned, and what is left is the table, which is out by more. Nor
+would a cheaper way of listing the shortest-path cells save it on the sparse
+family: between one keep and the next, every monotone path through the
+rectangle between them is a shortest path, so the cells to visit are the
+areas of those rectangles rather than the number of matches. Twelve of the
+eighteen timed pairs are never answered, and it scores zero.
 """
+
 
 
 

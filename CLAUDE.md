@@ -12,7 +12,11 @@ the one the difficulty argument called non-recallable, and forced each on small 
 against its oracle. Its module was a superset of the reference, so no budget could separate
 them. The mechanism was at its ceiling and the rule changed - a second tier, fewest hunks
 among shortest scripts - which is written up in "A pure function at its ceiling: change what
-is computed" below. **Not re-probed.** The earlier reference-verification rejection (a budget
+is computed" below. **That failed the easiness probe 3 of 3 again on 2026-09-03**, with three
+trajectories, and the finding is in "Decomposition is the attack on every diff task" below:
+all three agents built the staircase engine as their core and cut the pair at long common
+runs for everything else, and the one family none could do was the one I had dropped. It is
+back, with a new engine for it. **Not re-probed.** The earlier reference-verification rejection (a budget
 measured on the wrong machine) is still in "The reference-verification rejection" below, and
 its one-line version still holds: **a budget measured on the authoring host is a guess about
 the graded one** - this session measured the same code 2.7x faster on today's sandbox than
@@ -75,7 +79,7 @@ task's rejection history gets silently reverted.
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 | `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
-| `earliest-change-script` | Software / Algorithms | 7 | 15 | 14400 s | 24 h |
+| `earliest-change-script` | Software / Algorithms | 8 | 16 | 14400 s | 28 h |
 | `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
@@ -324,6 +328,75 @@ explanation claimed - measure that, do not assume it. And `cheat-spawn-order` di
 the reference on **1 program of 427**: a decision that rare is a lottery ticket, not a test of
 expertise, and `field_report.py` prints the count per cheat so you can find them at contract
 time.
+
+## Decomposition is the attack on every diff task, and the family that resists it (2026-09-03)
+
+The three-tier rule went back to the easiness probe and came back **3 of 3**, with all three
+trajectories (in `probes/earliest-change-script/`). Read them before the design law below,
+because they falsify the shape the 2026-09-02 repair was built on.
+
+**What the three agents did, and it is the same thing three times.**
+
+1. **Match-first, not cell-first.** Each reduced the rule to "longest chain of matched pairs,
+   then the most diagonal-adjacent pairs, then the latest legal pair", and built the staircase
+   engine over matches as its *core* within the first hour. The per-cell formulation the repair
+   assumed would be the natural first implementation never appeared. **The "natural
+   implementation" is whatever the reduction the agent writes first makes natural, and the
+   match-chain reduction is the one a strong model reaches for on a diff.**
+2. **Everything else by decomposition.** The long family and the crowded-but-ordered family
+   were both handled by cutting the pair at long common runs and solving the pieces with an
+   exact table - rigorously in one trajectory (forced cuts: a row whose shortest-path column
+   set is a singleton, found from bit-parallel rows), heuristically in the other two. A pair
+   that differs in a few thousand places is still mostly long identical stretches, so both
+   families decomposed into pieces a table can afford.
+3. **None could do a crowded pair with no order**, and one said so in writing ("binary-alphabet
+   pairs above ~2.5M cells can't be decomposed"; the fallback "returns a valid but non-minimal
+   script"). That is the family the 2026-09-02 repair had dropped, because the reference had no
+   algorithm for it under the hunk tier.
+
+**The design law this adds.** For any task graded on an alignment of two sequences, **the
+solver's escape is decomposition**: find a point every optimal path must pass through, cut,
+and solve the pieces with the slow model. Any family whose pairs are mostly identical
+decomposes, however long they are, and so grades nothing but the cut-finder. The family that
+resists is the one with **no long common run anywhere** - crowded alphabet, no shared order -
+and it resists because the cut-finder needs the per-row set of shortest-path cells, which is
+the same object the whole difficulty is made of. Measured on 3000-line crossed pairs over
+2 to 12 lines: forced cuts exist every 6 to 90 rows, so the pair *would* decompose if the
+cells could be found, and finding them one popcount at a time is the table again.
+
+**The engine that grades it.** Prefix-table rows as big integers (the textbook bit-parallel
+step), then a backward sweep that derives each row's shortest-path cells from the row above
+with a handful of integer operations per row: a cell is on a shortest path when a drop, an
+add or a keep from it lands on one; the add is a bit of the row, the keep a bit of the line's
+occurrence mask, and the drop needs "the prefix table is equal in rows i and i+1 at column
+j", which fails exactly on the stretches between a column where a step appears in the lower
+row and the column where one disappears - those alternate, so **one subtraction of the two
+mark sets fills every stretch at once** (`(v - u) << 1`, with a virtual mark at the top when
+the counts differ). Tight adds fill leftward through the row from each seed. The cells that
+come out are **3 to 10 per row** on every crowded pair measured, so the hunk recurrence over
+them is cheap. Timings on this host: 2.8-5.1 s on the six crowded pairs of 40-60k lines,
+under 220 MB; the crossed medium pairs grew to 2000-4000 lines (a table of their size four
+hundred times over is not affordable) and the block is 4.2 s. Correctness: all 40865 fixed
+and enumerated cases with the engine forced, 6333 fuzz pairs across all four dispatch
+settings, zero disagreements.
+
+**Three things worth keeping from the measurement.**
+
+- **Ask "what would the solver cut at" of every graded family before shipping it.** A family
+  built to be hard by size is only hard if its pairs do not decompose; count the long common
+  runs. The crowded-but-ordered family added on 2026-09-02 (a few thousand edits over fifty
+  thousand lines) decomposed trivially and graded nothing. It is gone.
+- **A stopping point three agents all reached is the cheat to ship.** `two_engines_only.py`
+  is the frontier plus the staircases with nothing for the crowded family: every correctness
+  block, twelve of eighteen timed pairs, reward 0. It replaces the per-cell stopping point,
+  which no agent reached, as the load-bearing near miss.
+- **The dispatch floor is a budget decision.** A frontier floor of 1024 layers, harmless when
+  the alternative engine cost seconds, let the frontier run to completion on crossed 3000-line
+  medium pairs where the row engine takes 30 ms, and put the medium block at 21 s against a
+  40 s budget. Floors on a cheap engine's competitor need re-measuring whenever the cheap
+  engine changes.
+
+**Gates not run:** the three-agent probe on the new families, and the apt layer, as before.
 
 ## A pure function at its ceiling: change what is computed (2026-09-02)
 
@@ -1489,7 +1562,7 @@ three-agent probe rather than to guess.
 | task | easiness result | mode | next action |
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
-| `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone | none of the four: real exploration, a superset of the reference in three hours | the mechanism was at its ceiling; the rule gained a second tier on 2026-09-02 (see "A pure function at its ceiling"). Re-probe before resubmitting |
+| `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone, then **3/3 on the three-tier rule** | none of the four: real exploration, a superset of the reference in three hours | the rule gained a second tier on 2026-09-02; the crowded no-order family came back with a row engine on 2026-09-03 (see "Decomposition is the attack on every diff task"). Re-probe before resubmitting |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
 | `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |

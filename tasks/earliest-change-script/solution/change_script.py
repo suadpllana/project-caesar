@@ -10,7 +10,7 @@ keep opens a new one. It only has to be known on cells that lie on some
 shortest path, since nothing else can be on the answer, and that restriction
 is what makes it affordable at all.
 
-The graded pairs sit in two places and neither engine covers the other.
+The graded pairs sit in three places and no engine covers two of them.
 
 The first is the frontier, run from the far end. Layer d holds, for every
 diagonal, the earliest position from which the end is reachable in d moves.
@@ -22,12 +22,27 @@ The hunk counts are computed on those decision cells alone, two to a cell --
 one for arriving inside a run of moves, one for arriving after a keep -- and
 the walk from the start reads them off. It costs the square of the number of
 moves plus the decision cells, and does not care how long the pair is: a
-million lines that differ in three hundred places is a fifth of a second, and
-fifty thousand crowded lines that differ in four thousand is a few seconds.
-Ask it for a pair that shares no order at all, where the moves run past the
-length of the file, and it is finished by nobody.
+million lines that differ in three hundred places is a fifth of a second. Ask
+it for a pair that shares no order at all, where the moves run to a third of
+the file, and it is finished by nobody.
 
-The second is thresholds over suffixes: hold, for each k, the largest j from
+The second is rows of the prefix table, one big integer each, advanced by the
+five-operation bit-parallel step. That gives how many moves remain from every
+position and nothing else, so it is where the previous version of this task
+stopped; the hunk count still has to be found, and it is only affordable on the
+cells that lie on some shortest path. Those are read off row by row from the
+bottom up with a handful of integer operations per row. A cell is on a shortest
+path when a drop, an add or a keep from it lands on one: the add is a bit of
+the row, the keep is a bit of the line's occurrence mask, and the drop asks
+whether the table is equal in two consecutive rows at that column, which fails
+exactly on the stretches between a column where a step appears in the lower
+row and the column where one disappears. Those alternate, so one subtraction
+fills every stretch at once. The cells that come out are a few per row on any
+pair we have seen, and the hunk recurrence runs on those alone. Sixty thousand
+crowded lines that share no order are a few seconds; a million lines are four
+minutes, which is why the frontier exists.
+
+The third is thresholds over suffixes: hold, for each k, the largest j from
 which the tail of the other side still shares k lines. One pass from the far
 end maintains that array and it only changes where the two sides match, so it
 costs the number of matching positions rather than the length of the pair,
@@ -42,8 +57,9 @@ On a third of a million nearly-distinct lines put back in a different order
 that is a few seconds, because almost nothing in such a pair matches anything.
 
 So run the frontier and abandon it, layers and all, once the pair turns out to
-need more moves than the thresholds would have cost from the start. That
-figure has to be counted, and the pass that counts it pays for itself.
+need more moves than whichever of the other two would have cost from the
+start. Two of the three costs are read off the two lengths; the third has to
+be counted, and the pass that counts it pays for itself.
 
 Two details are load-bearing. Cutting the shared head and tail off before
 starting changes the answer, because a drop is preferred over a keep whenever
@@ -61,8 +77,15 @@ from collections import deque
 # Microseconds, measured. Only the ratios matter: they separate engines whose
 # costs on this distribution sit orders of magnitude apart.
 _FRONTIER_ENTRY = 0.25
+_ROW_FIXED = 0.9
+_ROW_WORD = 0.079
 _PAIRS_ELEMENT = 1.0
 _PAIRS_MATCH = 1.6
+
+# Bytes of occurrence masks the row engine materialises up front, and bytes of
+# rebuilt rows it holds while the sweep runs.
+_MASK_BUDGET = 64 << 20
+_BLOCK_BUDGET = 48 << 20
 
 # The frontier keeps every layer, and a layer at depth d has about d entries.
 # Above this depth the layers alone would not fit in the memory the task is
@@ -81,14 +104,22 @@ def changes(before, after, engine=None):
 
     if engine == "pairs":
         return _pairs_engine(a, b, n, m)
-    if engine == "frontier":
-        limit = 1 << 30
-    else:
-        limit = _frontier_limit(_pairs_cost(a, b, n, m))
+    if engine == "rows":
+        return _rows_engine(a, b, n, m)
+
+    rows = _rows_cost(n, m)
+    pairs = _pairs_cost(a, b, n, m)
+    second = _pairs_engine if pairs < rows else _rows_engine
+
+    limit = 1 << 30 if engine == "frontier" else _frontier_limit(min(rows, pairs))
     layers = _layers_from_end(a, b, n, m, limit)
     if layers is None:
-        return _pairs_engine(a, b, n, m)
+        return second(a, b, n, m)
     return _frontier_engine(a, b, n, m, layers)
+
+
+def _rows_cost(n, m):
+    return n * (_ROW_FIXED + _ROW_WORD * (m / 64.0))
 
 
 def _pairs_cost(a, b, n, m):
@@ -112,12 +143,13 @@ def _pairs_cost(a, b, n, m):
 
 
 def _frontier_limit(fallback):
-    """How many moves the frontier is allowed before the pairs engine takes
-    over. Stop it once the work it has already done reaches a quarter of what
-    that engine would cost, and the wasted effort is bounded by that figure."""
+    """How many moves the frontier is allowed before whichever of the other
+    two is cheaper takes over. Stop it once the work it has already done
+    reaches a quarter of what that engine would cost, and the wasted effort is
+    bounded by that figure."""
     limit = int((0.25 * fallback / _FRONTIER_ENTRY) ** 0.5)
-    if limit < 1024:
-        return 1024
+    if limit < 32:
+        return 32
     if limit > _FRONTIER_CAP:
         return _FRONTIER_CAP
     return limit
@@ -131,7 +163,7 @@ def _layers_from_end(a, b, n, m, limit):
     the end of both sequences in d moves. A position on diagonal k is within d
     moves of the end exactly when i is at least that number, which is what
     makes every question the walk asks a single comparison. None if the pair
-    needs more than `limit` moves, which is the pairs engine's cue."""
+    needs more than `limit` moves, which is the other engines' cue."""
     end = n - m
     i, j = n, m
     while i > 0 and j > 0 and a[i - 1] == b[j - 1]:
@@ -303,6 +335,192 @@ def _frontier_engine(a, b, n, m, layers):
         if (i2, j2) != (i, j):
             open_run = False
             i, j = i2, j2
+    return ops
+
+
+# --------------------------------------------------------------- row engine --
+#
+# Rows of the prefix table, one big integer each, advanced by the five-operation
+# bit-parallel step; bit j of row i is set when the two prefixes of after of
+# length j and j+1 share a longest subsequence of the same length. That answers
+# how many moves remain, and nothing else. The cells that lie on some shortest
+# path are then read off row by row, from the bottom up, with a handful of
+# integer operations per row: a cell is on a shortest path when a drop, an add
+# or a keep from it lands on one. The add is a bit of the row; the keep is a bit
+# of the line's occurrence mask; and the drop asks whether the prefix table is
+# equal in two consecutive rows at that column, which is true everywhere except
+# on the stretches between the columns where a step appears in the lower row
+# and the columns where one disappears - those alternate, so one subtraction
+# fills every stretch at once. The cells that come out are a few per row on any
+# pair, and the hunk counts are computed on those alone.
+
+def _rows_engine(a, b, n, m):
+    if n == 0:
+        return [["+", j] for j in range(m)]
+    if m == 0:
+        return [["-", i] for i in range(n)]
+    nbytes = (m + 7) >> 3
+    full = (1 << m) - 1
+
+    counts = {}
+    for c in b:
+        counts[c] = counts.get(c, 0) + 1
+    hot = sorted(counts, key=counts.__getitem__, reverse=True)
+    hot = set(hot[:max(1, _MASK_BUDGET // max(1, nbytes))])
+    buffers = {c: bytearray(nbytes) for c in hot}
+    spread = {}
+    for j, c in enumerate(b):
+        buf = buffers.get(c)
+        if buf is not None:
+            buf[j >> 3] |= 1 << (j & 7)
+        else:
+            lst = spread.get(c)
+            if lst is None:
+                spread[c] = [j]
+            else:
+                lst.append(j)
+    masks = {c: int.from_bytes(bytes(buf), "little") for c, buf in buffers.items()}
+
+    def mask(c):
+        got = masks.get(c)
+        if got is not None:
+            return got
+        lst = spread.get(c)
+        if not lst:
+            return 0
+        buf = bytearray(nbytes)
+        for j in lst:
+            buf[j >> 3] |= 1 << (j & 7)
+        return int.from_bytes(bytes(buf), "little")
+
+    # Forward rows. V_i bit j set <=> P(i, j+1) == P(i, j): no step at j.
+    step = max(1, _BLOCK_BUDGET // max(1, nbytes))
+    marks = [full]
+    row = full
+    for i in range(1, n + 1):
+        carry = row & mask(a[i - 1])
+        row = ((row + carry) | (row - carry)) & full
+        if i % step == 0:
+            marks.append(row)
+
+    block_at = -1
+    block = []
+
+    def rebuild(target):
+        start = (target // step) * step
+        if start == target and start > 0:
+            start -= step
+        stop = min(n, start + step)
+        row = marks[start // step]
+        out = [row]
+        for i in range(start + 1, stop + 1):
+            carry = row & mask(a[i - 1])
+            row = ((row + carry) | (row - carry)) & full
+            out.append(row)
+        return start, out
+
+    def V(i):
+        nonlocal block_at, block
+        if i < block_at or i > block_at + len(block) - 1:
+            block_at, block = rebuild(i)
+        return block[i - block_at]
+
+    BIG = 1 << 30
+    info = [None] * (n + 1)          # info[i] = {j: (h0, h1, dropT, addT, keepT)}
+    onext = 0
+    vnext = None
+    topbit = 1 << m
+    for i in range(n, -1, -1):
+        vi = V(i)
+        if i == n:
+            drop_src = keep_src = 0
+            seeds = topbit
+            hnext = None
+        else:
+            # between-row difference d(j) = P(i+1, j) - P(i, j): 1 on bits u_k+1 .. v_k
+            u = vi & ~vnext & full         # step appears in row i+1
+            v = vnext & ~vi & full         # step disappears
+            if u.bit_count() > v.bit_count():
+                v |= topbit
+            diff = (v - u) << 1
+            drop_src = onext & ~diff
+            keep_src = (onext >> 1) & mask(a[i])
+            seeds = drop_src | keep_src
+            hnext = info[i + 1]
+        # leftward fill through tight adds: (i, j+1) in O and V_i[j] set => (i, j) in O
+        oi = seeds
+        x = seeds
+        zi = vi
+        while x:
+            low = x & -x
+            s = low.bit_length() - 1
+            x ^= low
+            if s == 0:
+                continue
+            below = (1 << s) - 1
+            t = zi & below
+            if not (t >> (s - 1)) & 1:
+                continue
+            r0 = (t ^ below).bit_length()
+            oi |= below ^ ((1 << r0) - 1)
+        # hunk counts, j descending
+        cells = {}
+        x = oi
+        js = []
+        while x:
+            low = x & -x
+            js.append(low.bit_length() - 1)
+            x ^= low
+        for j in reversed(js):
+            best0 = best1 = BIG
+            dropT = bool((drop_src >> j) & 1)
+            keepT = bool((keep_src >> j) & 1)
+            addT = j < m and bool((zi >> j) & 1) and (j + 1) in cells
+            if dropT:
+                h = hnext[j][1]
+                if h < best1:
+                    best1 = h
+                if h + 1 < best0:
+                    best0 = h + 1
+            if addT:
+                h = cells[j + 1][1]
+                if h < best1:
+                    best1 = h
+                if h + 1 < best0:
+                    best0 = h + 1
+            if keepT:
+                h = hnext[j + 1][0]
+                if h < best1:
+                    best1 = h
+                if h < best0:
+                    best0 = h
+            if i == n and j == m:
+                best0 = best1 = 0
+            cells[j] = (best0, best1, dropT, addT, keepT)
+        info[i] = cells
+        onext = oi
+        vnext = vi
+
+    ops = []
+    emit = ops.append
+    i = j = 0
+    open_run = False
+    while i < n or j < m:
+        h0, h1, dropT, addT, keepT = info[i][j]
+        want = h1 if open_run else h0
+        cost = 0 if open_run else 1
+        if dropT and info[i + 1][j][1] + cost == want:
+            emit(["-", i])
+            i += 1
+            open_run = True
+        elif addT and info[i][j + 1][1] + cost == want:
+            emit(["+", j])
+            j += 1
+            open_run = True
+        else:
+            i += 1
+            j += 1
+            open_run = False
     return ops
 
 

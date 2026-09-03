@@ -27,7 +27,7 @@ keep opens a new one. It only has to be known on cells that lie on some
 shortest path, since nothing else can be on the answer, and that restriction
 is what makes it affordable at all.
 
-The graded pairs sit in two places and neither engine covers the other.
+The graded pairs sit in three places and no engine covers two of them.
 
 The first is the frontier, run from the far end. Layer d holds, for every
 diagonal, the earliest position from which the end is reachable in d moves.
@@ -39,12 +39,27 @@ The hunk counts are computed on those decision cells alone, two to a cell --
 one for arriving inside a run of moves, one for arriving after a keep -- and
 the walk from the start reads them off. It costs the square of the number of
 moves plus the decision cells, and does not care how long the pair is: a
-million lines that differ in three hundred places is a fifth of a second, and
-fifty thousand crowded lines that differ in four thousand is a few seconds.
-Ask it for a pair that shares no order at all, where the moves run past the
-length of the file, and it is finished by nobody.
+million lines that differ in three hundred places is a fifth of a second. Ask
+it for a pair that shares no order at all, where the moves run to a third of
+the file, and it is finished by nobody.
 
-The second is thresholds over suffixes: hold, for each k, the largest j from
+The second is rows of the prefix table, one big integer each, advanced by the
+five-operation bit-parallel step. That gives how many moves remain from every
+position and nothing else, so it is where the previous version of this task
+stopped; the hunk count still has to be found, and it is only affordable on the
+cells that lie on some shortest path. Those are read off row by row from the
+bottom up with a handful of integer operations per row. A cell is on a shortest
+path when a drop, an add or a keep from it lands on one: the add is a bit of
+the row, the keep is a bit of the line's occurrence mask, and the drop asks
+whether the table is equal in two consecutive rows at that column, which fails
+exactly on the stretches between a column where a step appears in the lower
+row and the column where one disappears. Those alternate, so one subtraction
+fills every stretch at once. The cells that come out are a few per row on any
+pair we have seen, and the hunk recurrence runs on those alone. Sixty thousand
+crowded lines that share no order are a few seconds; a million lines are four
+minutes, which is why the frontier exists.
+
+The third is thresholds over suffixes: hold, for each k, the largest j from
 which the tail of the other side still shares k lines. One pass from the far
 end maintains that array and it only changes where the two sides match, so it
 costs the number of matching positions rather than the length of the pair,
@@ -59,8 +74,9 @@ On a third of a million nearly-distinct lines put back in a different order
 that is a few seconds, because almost nothing in such a pair matches anything.
 
 So run the frontier and abandon it, layers and all, once the pair turns out to
-need more moves than the thresholds would have cost from the start. That
-figure has to be counted, and the pass that counts it pays for itself.
+need more moves than whichever of the other two would have cost from the
+start. Two of the three costs are read off the two lengths; the third has to
+be counted, and the pass that counts it pays for itself.
 
 Two details are load-bearing. Cutting the shared head and tail off before
 starting changes the answer, because a drop is preferred over a keep whenever

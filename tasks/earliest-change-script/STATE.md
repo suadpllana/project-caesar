@@ -5,24 +5,26 @@ reads it. The durable lessons live in the repo's CLAUDE.md.
 
 ## Current stage
 
-`Stage 7 — gates`, after an **easiness rejection (3 of 3)** on 2026-09-02 and the rule
-change that answers it. Not yet resubmitted.
+`Stage 7 — gates`, after a **second easiness rejection (3 of 3)** on 2026-09-03 against the
+three-tier rule, answered by restoring the crowded no-order family with a new engine for it.
+Not yet resubmitted.
 
 ## Task summary
 
 Given two lists of lines, return the shortest edit script under a three-tier rule: fewest
 moves; of those, fewest hunks, a hunk being a maximal run of consecutive moves in the
 reading; of those, the reading that comes first with drop ahead of add ahead of keep.
-Graded on 52865 correctness cases, 400 medium pairs sharing a 40 s budget, and 18 large
-pairs with 60 s of wall clock each, measured from outside the process.
+Graded on 52865 correctness cases, 400 medium pairs sharing a 40 s budget (a quarter of
+them crossed pairs of two to four thousand crowded lines), and 18 large pairs with 60 s of
+wall clock each, measured from outside the process.
 
 ## Why it is hard
 
 - Expert time estimate: 24 hours
-- Why a frontier agent cannot one-shot the plan (the strategic answer — required): every fast diff technique computes how many moves remain from a position and nothing else, and the reading-order tier is a greedy walk over exactly that number, so the engines an expert recalls answer the first and third tiers natively and are wrong on the second on a quarter of the enumerated block; the hunk count is a second quantity with its own recurrence that is only affordable on the cells that lie on some shortest path, and the natural implementation of that restriction, one cell at a time, is correct on the two families a solver can reach with a frontier and dies on the third, where the shortest-path cells between one match and the next are whole rectangles and only a formulation over the matches themselves, by rank, is finite.
-- Tactics making that true: prong A, since every existing diff answers the first tier and slides hunks afterwards by a heuristic that neither minimises them nor respects the reading order, and prong C, since the third family is the only place the per-cell formulation fails and no pair small enough to check against the table looks like it.
-- Assistant's attack on the plan (its first plan, and where that plan is wrong): the first plan is the table of (moves, hunks) pairs walked from the start, which is completely correct, passes all 52865 short cases and cannot finish the medium block; the second plan is the shortest-script engines from the previous version of this task with the hunk count repaired afterwards by sliding, which is wrong on 6352 of the enumerated cases; the third plan is the frontier with the hunk recurrence on every shortest-path cell, which is correct everywhere and answers twelve of the eighteen timed pairs.
-- Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): 2 of 8. The easiness probe solved the previous version 3 of 3 with a strict superset of the reference built in three hours; the added tier removes every recalled engine's sufficiency and adds two derivations, and the honest estimate is that one such agent in four finishes both inside four hours.
+- Why a frontier agent cannot one-shot the plan (the strategic answer — required): every fast diff technique computes how many moves remain from a position and nothing else, and the reading-order tier is a greedy walk over exactly that number, so the engines an expert recalls answer the first and third tiers natively and are wrong on the second on a quarter of the enumerated block; the hunk count is a second quantity with its own recurrence that is only affordable on the cells that lie on some shortest path. The long family yields to cutting at long common runs and the sparse family to a staircase over matches, and three probe agents built both; the crowded no-order family has no long run to cut at, a billion matches, and moves a third of the file deep, and the only way in is to read the shortest-path cells off bit-parallel rows, which needs the between-row equality of the prefix table as a mask, and that is one subtraction over alternating marks that nobody recalls.
+- Tactics making that true: prong A, since every existing diff answers the first tier and slides hunks afterwards by a heuristic that neither minimises them nor respects the reading order, and prong C, since the crowded family is the only place decomposition and the staircases both fail, and a heuristic band there returns a valid script that is simply the wrong one.
+- Assistant's attack on the plan (its first plan, and where that plan is wrong): the first plan is the table of (moves, hunks) pairs walked from the start, which is completely correct, passes all 52865 short cases and cannot finish the medium block; the second plan is the shortest-script engines from the previous version of this task with the hunk count repaired afterwards by sliding, which is wrong on 6352 of the enumerated cases; the third plan is decomposition at long common runs plus the staircases over matches, which is what all three probe agents built, is correct everywhere it finishes, and answers twelve of the eighteen timed pairs.
+- Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): 1 of 8. The easiness probe solved the previous version 3 of 3 with a strict superset of the reference built in three hours; the added tier removes every recalled engine's sufficiency and adds two derivations, and the honest estimate is that one such agent in four finishes both inside four hours.
 
 ## Verifier contract (frozen)
 
@@ -32,7 +34,7 @@ account grades with pytest and asserts no submitted module reached its own `sys.
 Graded all-or-nothing on exact move sequences plus per-case wall clock. The definitional
 model is a two-state table over (moves, hunks) pairs, held to an exhaustive enumeration of
 every script on 15252 short pairs; the fast implementation is held to the model on all
-40865 fixed and enumerated cases with each of its two engines forced in turn.
+40865 fixed and enumerated cases with each of its three engines forced in turn.
 
 ## The 2026-09-02 easiness rejection, and the fix
 
@@ -72,6 +74,24 @@ Final `--margins` on the rebuilt image (budgets 60 s / 40 s): oracle 1, `ok-cell
 block inside its budget with a worst headroom of **2.3x after scaling by 2.7** (timed case
 17, 9.9 s here); the sparse family otherwise 4.4-5.9 s here, crowded 1.1-3.7 s, long under
 0.7 s, medium 3.6 s.
+
+## The 2026-09-03 easiness rejection, and the fix
+
+3 of 3 again, on the three-tier rule. The three trajectories are in `probes/` with notes.
+All three went match-first (the staircase engine as the core), decomposed the long and the
+crowded-but-ordered families at long common runs, and had nothing for a crowded pair with
+no order. That family is back: 40-60k lines over 2-12 distinct ones, crossed or reordered,
+15-61k moves, no long run anywhere. The reference gained a row engine for it: bit-parallel
+prefix rows, then a backward sweep that reads each row's shortest-path cells off the row
+above with a handful of integer operations (the between-row equality of the table is an
+alternating mark pattern, filled by one subtraction; tight adds fill leftward through the
+row), then the hunk recurrence on those cells, which number 3-10 per row. Host timings:
+2.8-5.1 s on the six crowded pairs; the crossed medium pairs grew to 2000-4000 lines and
+the medium block is 4.2 s.
+
+`two_engines_only.py` is the new cheat: frontier and staircases, nothing for crowded pairs,
+which is exactly where the three agents stopped. Every correctness block passes, twelve of
+eighteen timed pairs pass, reward 0.
 
 ## The two-image trial, 2026-09-02
 

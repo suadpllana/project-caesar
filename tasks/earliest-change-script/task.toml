@@ -45,43 +45,58 @@ that crosses every short shape against every other short shape because a \
 random draw of short sequences almost never lands on the pair where two \
 shortest scripts differ.
 
-The second hill is cost. The implementation the specification invites is a \
-table of the best (moves, hunks) pair reachable from every position in each \
-of two states, walked from the start; it is completely correct, it passes all \
-52865 short cases, and it is dead everywhere else. It is the definitional \
-model that grades those short cases, and it cannot finish the four hundred \
-medium pairs inside their budget, let alone one of the eighteen timed pairs. \
-The number of moves that remain from a position is what a frontier, a \
-bit-parallel row or a threshold array delivers, and it is not enough on its \
-own: the hunk count needs its own recurrence, and that recurrence is only \
-affordable because it need only be evaluated on cells that lie on some \
-shortest path, which the frontier can name. Finding that restriction is the \
-first derivation, and it answers two of the three timed families: six pairs \
-of four hundred thousand to a million lines that differ in a few hundred \
-places, where the shortest-path cells are about one per line, and six of \
-forty to sixty thousand lines over two to six distinct ones that differ in a \
-few thousand places, where the moves run to four thousand and the frontier is \
-millions of entries deep. A submission carrying that, and nothing else, \
-passes every correctness block and twelve of the eighteen timed pairs, and \
-scores zero.
+The second hill is cost, and it is three hills rather than one. The \
+implementation the specification invites is a table of the best (moves, \
+hunks) pair reachable from every position in each of two states, walked from \
+the start; it is completely correct, it passes all 52865 short cases, and it \
+is dead everywhere else. It is the definitional model that grades those short \
+cases, and it cannot finish the four hundred medium pairs inside their budget, \
+let alone one of the eighteen timed pairs. The number of moves that remain \
+from a position is what a frontier, a bit-parallel row or a threshold array \
+delivers, and it is not enough on its own: the hunk count needs its own \
+recurrence, and that recurrence is only affordable because it need only be \
+evaluated on cells that lie on some shortest path. What defeats the escapes \
+from the table is that the eighteen timed pairs come from three families whose \
+costs are independent of one another, and each family is hopeless for whatever \
+answers either of the others. Six pairs run from four hundred thousand to a \
+million lines a side and differ in a few hundred places. Six are forty to \
+sixty thousand lines a side over two to twelve distinct lines, sharing no \
+order worth the name, where the answer runs to between fifteen and \
+sixty-one thousand moves. Six more are a quarter to a third of a million \
+lines drawn from a pool of sixty-five to a hundred and twenty thousand, also \
+sharing no order, where the answer runs past four hundred thousand moves.
 
-The six it cannot answer are a quarter to a third of a million lines drawn \
-from a pool of sixty-five to a hundred and twenty thousand, put back in a \
-different order, where the answer runs past four hundred thousand moves. The \
-frontier is out by orders of magnitude on them. So is every way of listing \
-the shortest-path cells: between one kept line and the next, every monotone \
-path through the rectangle between them is a shortest path, so the cells to \
-visit are the areas of those rectangles rather than anything proportional to \
-the input. The one cheap thing about such a pair is that almost nothing in it \
-matches anything, half a million to one and a half million positions against \
-the ninety billion the length implies. Thresholds over suffixes give every \
-match the number of keeps a shortest script can still make from it; the \
-matches sharing that number form a staircase; and the hunk recurrence has to \
-be restated over the staircases alone, with the walk never leaving them. \
-That second derivation is only visible once the first is already built, and \
-no pair small enough to check against the table looks anything like the \
-pairs that need it. Each engine alone passes every correctness block in the \
-task, and each alone scores zero.
+The long family answers to the frontier, which names the shortest-path cells \
+and costs the square of the number of moves; or, equivalently, to cutting the \
+pair at its long common runs and solving the pieces with a table, which is \
+what all three agents the easiness probe sent at the previous version did. \
+The sparse family answers to thresholds over suffixes, which give every match \
+the number of keeps a shortest script can still make from it; the matches \
+sharing that number form a staircase, and the hunk recurrence restated over \
+the staircases alone costs the number of matching positions. All three of \
+those agents built that too. Neither reaches the crowded family: the moves \
+run to a third of the file, so the frontier is out by orders of magnitude; \
+every line matches a third or a half of the other side, so the staircases hold \
+a billion matches; and there is no long common run anywhere in such a pair to \
+cut it at, which one of the three agents said in as many words and the other \
+two answered with a heuristic band that returns a valid script and the wrong \
+one. The one cheap thing about a crowded pair is that rows of the prefix \
+table fit in machine words, and rows give the number of moves and nothing \
+else. Reading the shortest-path cells off them is the derivation the family is \
+built on: a cell is on a shortest path when a drop, an add or a keep from it \
+lands on one, the add and the keep are single bits, and the drop asks whether \
+the table is equal in two consecutive rows at that column, which fails exactly \
+on the stretches between the columns where a step appears in the lower row and \
+the columns where one disappears -- and those alternate, so one subtraction \
+fills every stretch at once. Measured, the cells that come out are three to \
+ten per row on every crowded pair, so the hunk recurrence over them is cheap; \
+listing them any other way is a popcount per cell, which is the table again. \
+A submission carrying the other two engines and nothing for this family \
+passes every correctness block and twelve of the eighteen timed pairs, and \
+scores zero; the same is true of the frontier with the recurrence on every \
+cell, which is the natural first implementation and dies on both no-order \
+families. None of the three can be skipped, and there is no credit for any \
+two of them.
 """
 solution_explanation = """
 The awkward part is that the choice at each position depends on two things \
@@ -165,11 +180,12 @@ they admit, before anything is graded against it. The model cannot run on a \
 fifty thousand line pair, so the larger blocks are graded against the fast \
 implementation instead, and a test asserts the two agree on all 40865 fixed \
 and enumerated cases before any of those answers count. The fast \
-implementation carries two engines and the agreement test covers both: each \
-is forced on in turn and held to the definitional model on all 40865 cases by \
-itself, because a hybrid that is only ever exercised on one side of its own \
-crossover is a hybrid whose other side is untested, and one of the two is \
-never reached by any pair small enough for the model to run on.
+implementation carries three engines and the agreement test covers all of \
+them: each is forced on in turn and held to the definitional model on all \
+40865 cases by itself, because a hybrid that is only ever exercised on one \
+side of its own crossover is a hybrid whose other sides are untested, and two \
+of the three are never reached by any pair small enough for the model to run \
+on.
 
 Part of the distribution moves each run: the twelve thousand random pairs, the \
 four hundred medium ones and all eighteen large ones come from a seed drawn by \
@@ -195,7 +211,7 @@ and 20243 of 40804 enumerated ones; the correct table implementation scores \
 zero on time while passing every short case; and doing nothing at all scores \
 zero.
 
-Four more submissions were built against the shape of the task rather than \
+Five more submissions were built against the shape of the task rather than \
 against the verifier, because a stopping point that passes everything a person \
 would think to test is worth more than another attack on the reward file. The \
 first is the complete answer to the previous version of this task, three \
@@ -206,20 +222,21 @@ submission with the hunk-sliding pass every diff tool carries bolted on \
 afterwards, wrong on 7263 and 6352. The third reads a hunk the way a diff \
 prints one, minus lines and plus lines as two blocks, wrong on 4696 and 10436. \
 The fourth finds the shortest-path restriction and evaluates the hunk \
-recurrence at every such cell: it passes every correctness block and twelve of \
-the eighteen timed pairs, and never answers the six reordered ones, because \
-the cells between one match and the next are whole rectangles there. An \
-alternative correct implementation is kept beside them and must score 1: the \
-same per-cell recurrence with the thresholds engine behind it, which is what a \
-solver who has found the restriction writes first, and it clears every budget, \
-which is what makes the budgets fair.
+recurrence at every such cell: it passes every correctness block and the six \
+long pairs, and never answers the twelve that share no order. The fifth is \
+the frontier and the staircases with nothing for the crowded family, which is \
+where all three agents of the last easiness probe stopped: every correctness \
+block, twelve of the eighteen timed pairs, and zero. An alternative correct \
+implementation is kept beside them and must score 1: the per-cell recurrence \
+on the frontier's side with the row and staircase engines behind it, which \
+clears every budget, and that is what makes the budgets fair.
 
 Budgets were measured in the real two-image trial at the declared two cores \
 and four gigabytes, on a sandbox whose speed was seen to drift by a factor of \
 three to four within one session, so they are set from the slowest state \
-observed rather than the fastest: the reference spends between six and \
-twenty-one seconds on the dearest pair depending on that state, against \
-sixty, and the medium block between three and fourteen against forty. \
+observed rather than the fastest: the reference spends between five and \
+fourteen seconds on the dearest pair depending on that state, against \
+sixty, and the medium block between four and twelve against forty. \
 Nothing the timings separate is near either line: the table and the per-cell \
 submission are out by orders of magnitude, and the alternative correct \
 implementation kept beside the cheats clears both with room to spare.

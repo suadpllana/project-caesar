@@ -63,17 +63,17 @@ is `[("-", 0), ("+", 2)]`.
 
 Eighteen of the graded pairs are large, and they are drawn across the whole
 spread of what we get in production. They run from forty thousand to a million
-lines a side. Some differ from their partner in a few hundred places and some
-in a few thousand, and those are built from anything between a handful of
-distinct lines repeated the whole way down and lines that are very nearly all
-distinct. The rest share no order with their partner worth the name and answer
-to a script longer than the file; those are drawn from a pool of lines about
-the size of the file, so hardly any line in them repeats.
+lines a side. Some differ from their partner in a few hundred places, some
+share no order with it worth the name and answer to a script longer than a
+third of the file, and the rest are somewhere in between. Some are built from
+a handful of distinct lines repeated the whole way down, some are very nearly
+all distinct. How long a pair is, how much order it keeps and how often a line
+repeats do not move together across the eighteen.
 
 Each of them gets sixty seconds of wall clock, measured from outside your
 process, from the moment it starts to the moment it answers. That sixty
 seconds covers reading the pair in as well. A separate block of four hundred
-pairs, a few hundred to fifteen hundred lines each, shares a budget of forty
+pairs, a few hundred to four thousand lines each, shares a budget of forty
 seconds for the block. Everything else is short and is not timed.
 
 Their answers are graded as well as their timings, and at that size the

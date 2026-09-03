@@ -4,6 +4,17 @@ Operating manual for a session with no memory of the earlier ones. Two tasks her
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
 built and gated locally but has not been through the pipeline yet.
 
+**`lock-priority-unwind` cleared the AI check at last on 2026-09-03 and failed the quality
+review on one Dockerfile line.** Both blocking criteria named the same defect: the brief's
+central reproduction step pointed at `/app/cases/inversion.json`, which `environment/Dockerfile`
+never copied into the agent image, so the agent's first action was a `FileNotFoundError`. Fixed,
+re-gated, and the two-image trial run against this bundle for the first time. Two things in it
+matter beyond the task: the AI screen finally moved, and what moved it was **quoting real
+machine output** rather than the team voice this file spent three sessions on; and a file added
+under `environment/` reaches the verifier automatically through `sync.py` while reaching the
+agent through nothing at all, which is now `tools/imagecheck.py`. Read "The quality-review
+rejection: the agent's container is not the repo's tree" below.
+
 **`earliest-change-script` cleared reference verification after the 2026-08-31 repair and
 then failed the easiness probe 3 of 3 on 2026-09-02, with a trajectory.** That trajectory is
 the most important artifact in `probes/`: the agent derived the greedy on sight from a fully
@@ -1953,10 +1964,105 @@ Coverage walked against all 23 graded rules, both directions, none missing. Suit
 four `ok-*` variants 1, seventeen cheats 0, 0 unexpected. preflight no errors; solvecheck,
 deadfieldcheck, hintcheck, structcheck, zipcheck clean.
 
-**Still true and still unfixed:** `simcheck.py` reports `tests/test.sh` 0.554 and `tests/Dockerfile`
-0.563 against `segment-merge-horizon` and `environment/Dockerfile` 0.635 against
-`share-register-screen`. The similarity screen is the gate immediately after the AI check and it
-has already rejected one task here.
+**Corrected 2026-09-03:** the `environment/Dockerfile` finding is fixed - rewriting it for the
+quality-review repair took it from 0.635 to **0.474** against `share-register-screen`, below the
+HIGH threshold. `tests/test.sh` 0.554 and `tests/Dockerfile` 0.563 against `segment-merge-horizon`
+remain, and the archive carrying them has since **cleared the similarity screen**, so they are
+this repo's baseline rather than a defect.
+
+## The quality-review rejection: the agent's container is not the repo's tree (2026-09-03)
+
+`lock-priority-unwind` went back with the verbatim-output brief and **failed the quality review
+on two blocking criteria**, `separate verifier configured` and `typos`, with every other row of
+the rubric passing. Both name one defect and it is one line of Dockerfile:
+
+> `environment/Dockerfile` omits `COPY app_src/cases/ /app/cases/`, so `/app/cases/inversion.json`
+> and `/app/cases/handover.json` do not exist in the agent container, yet `instruction.md`
+> references them three times - including the primary reproduction command [...] The agent's
+> first action fails with a missing file and it cannot reproduce any of the concrete numbers
+> quoted in the brief.
+
+**Read what got through first, because it changes what this repo believes about the AI check.**
+The quality review is gate five, and this file records that when the AI check fails "nothing
+behind it ran". A quality review that ran therefore means the brief cleared the structural
+check, **the AI check**, the similarity screen and reference verification. The fourth attempt -
+the verbatim-output rewrite of 2026-09-02, written up two sections below before its verdict was
+known - is the one that worked, after three straight AI-check rejections on this bundle. What
+changed was quoting real machine output rather than narrating numbers in prose; the team-voice
+hypothesis stays falsified. That is one measurement and not a law, but it is the only evidence
+in this file that anything moves that gate, so weight it accordingly.
+
+**The cause is a repair that landed in one tree and not the other.** The same 2026-09-02 pass
+that fixed the AI check added `environment/app_src/cases/` precisely so the brief would have
+real output to quote. `authoring/sync.py` copies `environment/app_src` wholesale into
+`tests/pristine`, so the verifier got the two case files for free and every local gate stayed
+green: preflight reads the tree, the trial reads `/pristine`, and the executed-tree attestation
+compares `/work/app` against `/pristine`. All three agreed with each other. **The one tree
+nothing here reads is the agent's.** `environment/Dockerfile` names its sources one at a time -
+`rt/`, `conf/`, `run_sched.py` - and nobody added the fourth line.
+
+Measured in the image the submitted archive actually builds:
+
+| | agent container, as submitted | after the fix |
+|---|---|---|
+| files under `/app` | 8 | 10 |
+| `/app/cases/inversion.json` | absent | present |
+| the brief's first instruction | `FileNotFoundError` | `chg` = `[5, 4, 5]`, `[7, 4, 9]`, `[10, 4, 1]` |
+
+Every figure the brief quotes was then re-read off a real run in the repaired container, and all
+of them hold: the three `chg` rows, `["rel", 10, 4, 1]`, task 3 holding the processor from tick
+14 to 25, `["acq", 29, 2, 2]` twenty-four ticks after the block at tick 5, `["done", 33, 2, 0]`,
+and handover's `[4, 3, 9]` and `[8, 3, 1]`. **The brief was right and the container was wrong**,
+so the repair is one `COPY` line and not a word of prose. Content differs from the rejected
+archive in exactly one file, with zero metadata differences across all 82 entries.
+
+**The fix is built so the defect cannot come back.** The Dockerfile's last layer already ran an
+import smoke check; it now runs both case files through `run_sched.py` as well, so an image that
+cannot serve the brief's own reproduction step fails to build. Validated in both directions:
+remove `app_src/cases/` and the build dies at the `COPY`; remove only the `COPY` line - which is
+the bundle exactly as the pipeline rejected it - and the build dies at the smoke layer. This is
+the bucket-seal-lag advice about a build-time smoke run earning its place, arriving as a gate
+rather than as a similarity tweak.
+
+**`tools/imagecheck.py` is the general version and it is now in the gate list.** It reads
+`environment/Dockerfile` the way docker does and answers the reviewer's two questions: which
+files under `environment/` never reach the image, and whether every `/app` path `instruction.md`
+names exists there once it is built. It is static on purpose - the Windows authoring host has no
+docker, and a gate that cannot run where the task is written is a gate nobody runs - and its
+emulation was checked against the real built image, reproducing the file list exactly.
+Validated in both directions: on the rejected bundle it prints the reviewer's two findings and
+nothing else, and it is clean on all thirteen bundles after the fix. Declared artifacts are
+exempt from the second question, because the agent writes those: `earliest-change-script` names
+`/app/change_script.py` and correctly never ships it.
+
+**Only three bundles here can carry this defect at all.** Everything else copies `app_src/`
+wholesale, which cannot drift. `lock-priority-unwind`, `pair-hold-reclaim` and
+`typeahead-query-controller` name their sources one at a time; the other two are clean, checked.
+
+The rule is the tree-versus-zip rule one level down: **`environment/app_src` is what the agent
+has only if the Dockerfile says so.** A file added under `environment/` reaches the verifier
+through `sync.py` automatically and reaches the agent through nothing at all. Open the Dockerfile
+in the same edit, or run `imagecheck.py`, which is cheaper.
+
+**The similarity finding this file lists as live went away with it.** Rewriting that Dockerfile
+took `environment/Dockerfile` from **0.635 to 0.474** against `share-register-screen` - below
+the HIGH threshold - and every one of the twelve pairwise ratios fell. Two HIGH findings remain
+(`tests/test.sh` 0.554 and `tests/Dockerfile` 0.563, both against `segment-merge-horizon`) and
+both were carried by the archive that has now cleared the similarity screen, so they are this
+repo's baseline rather than a defect. Corrected where it stood, two sections down.
+
+**Gates run this session, on the Linux sandbox where docker works.** The two-image trial had
+never been run against this bundle at all, and it is now clean: oracle 1 (47 tests), nop 0,
+**4 of 4 `ok-*` variants 1, all 17 cheats 0**, plus the isolation the host emulation cannot
+reach - the privilege probe reports `uid=1002` and `PermissionError` on the reward channel, the
+ground truth, the sealed oracle and the grader. The agent image was rebuilt **from the shipped
+archive** and serves the brief's reproduction step with the quoted numbers. Host suite 0
+unexpected; preflight no errors; `solvecheck`, `deadfieldcheck`, `hintcheck`, `structcheck`,
+`forgecheck`, `zipcheck` and `imagecheck` clean; `textcheck` clean against
+`rollout-cache-coherence`, `guard-mark-unwind` and `grant-spread-order`.
+
+**Gates not run:** the three-agent easiness probe and the difficulty probe. The brief is
+unchanged by this repair, so nothing here is evidence about either.
 
 ## The team-voice hypothesis is FALSIFIED, and a branch nobody merged cost a day (2026-09-02)
 
@@ -2014,11 +2120,11 @@ uploaded archive was byte-checked as the rebuilt one, `task.toml` prose volume (
 between `grant-spread-order` (2295) and `guard-mark-unwind` (2377), and no other prose file
 ships. The rejection was about the instruction text, not the package.
 
-**Live and unfixed on this bundle:** `simcheck.py` reports three HIGH similarity findings -
-`tests/test.sh` 0.554 and `tests/Dockerfile` 0.563 against `segment-merge-horizon`,
-`environment/Dockerfile` 0.635 against `share-register-screen`. The unmerged branch had rewritten
-the environment Dockerfile for exactly this. The similarity screen has already rejected one task
-here, so fix these before the bundle goes back, whoever writes the brief.
+**Superseded 2026-09-03, and the bundle has since cleared the similarity screen.** The
+`environment/Dockerfile` finding is fixed (0.635 to **0.474** against `share-register-screen`),
+as a side effect of the quality-review repair that rewrote that file. `tests/test.sh` 0.554 and
+`tests/Dockerfile` 0.563 against `segment-merge-horizon` remain and were carried by the archive
+that passed, so they are the baseline here, not a blocker.
 
 ## The AI-check rejection: the missing author (2026-09-02)
 
@@ -2118,9 +2224,10 @@ that cleared the structural check** across `create_system`, `external_attr`, `co
 `flag_bits` and `date_time` on all 78 entries, identical entry set, and content differing in
 exactly one file.
 
-**Gates not run:** Docker is absent on this host, so the two-image trial, the privilege drop, the
-root-owned reward channel and process teardown are unverified. The suite above is the host
-emulation.
+**Gates not run at the time:** Docker was absent on that host, so the two-image trial, the
+privilege drop, the root-owned reward channel and process teardown were unverified there.
+**All of them were run on 2026-09-03 and are clean** - see the quality-review section above for
+the numbers.
 
 ## The solution-quality rejection: the reference must exist once (2026-08-31)
 
@@ -3701,6 +3808,12 @@ python3 tools/deadfieldcheck.py <slug>          any attribute the environment wr
                                                 nothing reads. A dead field is a false
                                                 affordance and a strong agent builds a rule
                                                 on it precisely because it is dead
+python3 tools/imagecheck.py <slug>              does the agent's container actually hold the
+                                                files the brief tells it to use? Reads
+                                                environment/Dockerfile the way docker does.
+                                                A file added under environment/ reaches the
+                                                verifier through sync.py automatically and
+                                                reaches the agent through nothing at all
 python3 tools/readingcheck.py <slug>            does the enumerated set separate the wrong
                                                 readings, or merely cover the rules? Needs
                                                 the task to ship authoring/readings.py; it
@@ -3873,6 +3986,8 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `solvecheck.py` clean: solve.sh copies the reference, it does not inline it, and the
   reference exists in exactly one place in the bundle.
 - `deadfieldcheck.py` clean: nothing in the environment is written and never read.
+- `imagecheck.py` clean: every `/app` path the brief names exists in the built agent image, and
+  nothing under `environment/` is stranded outside it.
 - `readingcheck.py` clean: every wrong reading in `authoring/readings.py` is separated by an
   enumerated case, so no plausible misreading survives the whole hand-written set.
 - Every graded decision walked against the sentence that decides it, and every rule a probe

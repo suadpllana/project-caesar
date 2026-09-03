@@ -98,10 +98,18 @@ until tick 29 and finishes at 33. The reference hands the mutex over at tick 17 
   zero mismatches.
 - `textcheck` clean against `rollout-cache-coherence` and `checkpoint-resume-drift`;
   `structcheck` and `hintcheck` clean; `preflight` clean; `tools/simcheck.py` clean on both axes.
-- **Not run:** Docker is absent on this host, so `tools/docker_trial2.py` never ran. The
-  privilege drop, the locked reward channel, the root-only model and ground truth, and
-  `tests/sweep.py` are unverified. The isolation cheats were graded through the host emulation,
-  which proves the grader rejects them, not that the sandbox contains them.
+- **2026-09-03, the two-image trial finally ran** on a Linux sandbox where docker works, and it
+  is clean: oracle 1 (47 tests), nop 0, **4 of 4 `ok-*` variants 1, all 17 cheats 0**. The
+  privilege probe reports `uid=1002` with `PermissionError` on the reward channel, `gt.json`,
+  the sealed model and the grader, so the isolation is verified rather than argued. The agent
+  image was also rebuilt from the shipped archive and serves the brief's reproduction step.
+- **2026-09-03, quality-review repair.** The review failed on `separate verifier configured` and
+  `typos`, both naming one defect: `environment/Dockerfile` never copied `app_src/cases/`, so
+  `/app/cases/inversion.json` - the brief's central reproduction step - did not exist in the
+  agent container. Fixed with the missing `COPY`, and the Dockerfile's smoke layer now runs both
+  case files so the image cannot build without them. `tools/imagecheck.py` is the general gate.
+- **Not run:** the three-agent easiness probe and the difficulty probe. The brief is unchanged by
+  the 2026-09-03 repair, so nothing there is evidence about either.
 
 ## Traps already hit here, do not re-hit them
 

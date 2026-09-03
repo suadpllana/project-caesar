@@ -106,6 +106,19 @@ none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
+| `aside-hold-commit` | ML / Inference | 20 | 9 | 14400 s | 8 h |
+
+**`aside-hold-commit` is the thirteenth task, built 2026-09-03, and it has not been through the
+pipeline.** It is the first here in **ML** at all after three ML/Training tasks that all graded
+work counters, and the first in **ML / Inference**, which `tools/simcheck.py` reports as
+conceptually clear of every earlier task with **no mechanical finding against any bundle either** -
+the first time that column has come back empty, which corrects the recorded belief that HIGH at
+0.55-0.68 is this repo's floor. Its graded artifact is a **release trace**: which bytes of a
+streamed response went to the client at which step. The one finding in it that is worth more than
+the task is in "The oracle test, sharpened" below, and it applies to every idea this repo will
+consider next: **a graded quantity that is a pure function of the input is brute-forceable, and the
+fix is not to hide anything, it is to make the policy's own decisions change what the machine does
+next.**
 
 **`bucket-seal-lag` is the twelfth task, built 2026-09-02, and it has not been through the
 pipeline.** It is the first here in Data engineering and the first whose graded artifact is
@@ -453,6 +466,112 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## The oracle test, sharpened: feedback is what kills brute force (2026-09-03)
+
+`aside-hold-commit` was built against the law in the next section, and building it sharpened that
+law into something more usable. "What is the correct answer defined against?" is the right
+question and it has a sharper form: **is the graded quantity a pure function of the input?** If it
+is, a complete specification is a brute-force oracle, whatever the domain - that is the
+`earliest-change-script` finding, and it survives every amount of leak patching because fairness
+requires the specification to be complete.
+
+Four candidate designs died on that during Stage 1 here, and each looked strong until it was
+asked. A streaming server deciding how much output is safe to release is a pure function of the
+token prefix, so an agent writes "render every continuation and take the common prefix" in ten
+lines and differential-tests its fast version against it. An admission controller that must never
+abort an admitted request is a pure function of the admitted set, so "simulate forward and see"
+is correct and easy. A tree rollup with voids is arithmetic. A rubric with prerequisites and
+disqualifiers is a fixed point an agent can enumerate.
+
+**What saves a design is feedback: the policy's decisions have to change the machine's future
+inputs.** Here a tool call found in the released text is dispatched, and the answer moves the model
+onto a different script, so the bytes the server sees next depend on when it dispatched. There is
+then no closed-form target to compute and nothing to compare against, because a different timing
+produces a different transcript. Note what this is not: it is not secrecy, and nothing is hidden.
+The specification is complete and stated. The run is simply not a function of the job.
+
+Ask it as one question at Stage 1, before any code: **if the agent implemented the specification
+exactly and slowly, would that give them the graded answer?** If yes, the task is an execution
+task however deep the specification looks. If the honest answer is "no, because the answer depends
+on what my own policy did", the design has a floor under it.
+
+### The sealed model earned its place twice, on the reference rather than on a cheat
+
+Both times the reference was wrong and the model was right, and neither would have been found by
+reasoning about the brief.
+
+The first: the reference bounded certainty at the point where two renderings **structurally**
+diverge. That is sound and it is not maximal - a rendering that hides an aside moves a later byte
+up into the slot where a rendering that shows it has the opener, and those two bytes can be equal.
+Under a requirement of the form "send it as soon as it is certain", being conservative is being
+wrong, so the honest answer is a comparison of renderings rather than a structural mark.
+
+The second is the one worth carrying. The natural implementation of "which futures are still open"
+is a per-byte state - live, inert, or undecided - plus a bound, with the stop search run over that.
+It is wrong, because **whether a byte is inert and what follows it are the same question asked
+twice**: the byte in front of an open quote is live only in the future where that quote never
+closes, and in exactly that future the bytes after it are already fixed. Merging the futures into
+one flag array throws the pairing away. The general form, and it is a defect class rather than a
+detail: **when several branches of an ambiguity are summarised per-element, any check that reads
+two elements at once can combine readings that belong to different branches.** It ships as
+`cheat-flag-merge.sh`.
+
+**So write the second implementation even when the first one feels finished.** Neither of these
+was visible in the brief, in the cheat suite, or in the enumerated cases. Both surfaced the moment
+a differently-shaped implementation of the same specification disagreed.
+
+### Three-way agreement is the standard worth holding a reference to
+
+Two implementations by one author can share a blind spot. Three cannot easily: the reference
+(a justified small set of futures), `tests/oracle.py` (a blind superset, rendered by a different
+mechanism), and exhaustive brute force over every continuation up to six bytes. That third check
+is cheap to write and slow to run - 295 states took 387 s - so run it in the background while the
+bundle is built, and note that **depth matters and the required depth is not obvious**: at depth 4
+the brute force was itself wrong and agreed with a wrong implementation, because closing a marker
+that is one byte short of an opener needs three future bytes rather than two. A brute-force oracle
+run at too shallow a depth is a confirming oracle, which is worse than none.
+
+### A cheat that scored 1 found dead code in the reference, again
+
+`only-one-closer` dropped two of the seven futures and scored 1. Per the playbook that is either a
+correct implementation or a hole in the case set, and it was the third answer the `bucket-seal-lag`
+entry names: the branch was unreachable. Closing both open markers is not a case, because whichever
+closes first decides what the bytes after it are. Measured over 86,133 states before believing it,
+the two futures came out of the reference, and **`gt.json` was byte-identical afterwards**, which is
+what says the cut was layout rather than behaviour. The dropped cheat became `quote-never-closes`
+and the superset lives on as `ok-generous-futures`. `preflight.py` found a second piece of dead
+code the same day - a `report()` in the sealed engine that nothing called - so run it before
+believing an engine is tight.
+
+### Three more gates that reported success while doing nothing
+
+All three are the hollow-gate class and all three are now mechanised.
+
+1. **The host trial reported the reference at reward 0 because pytest was not installed.** Every
+   row would have read 0, including the reference, for a reason with nothing to do with the task.
+   `authoring/trial.py` now refuses to print a single row until `python -m pytest --version`
+   succeeds. Any harness that cannot tell "it failed" from "the grader never ran" manufactures
+   evidence.
+2. **The grader read `/tests/gt.json` by absolute path**, which is right in the container and made
+   the host emulation useless. Resolve everything the grader reads relative to the grader's own
+   directory - it lands on `/tests` in the image and on the staged copy on the host, with no
+   environment variable to forget.
+3. **`preflight.py` requires the literal string `/logs/verifier/reward.txt` in `test.sh`.** Writing
+   it through a shell variable is a blocking structural error, and the message names the file
+   rather than the cause. Keep the reward and ctrf paths literal even when everything around them
+   is a variable.
+
+### Non-findings, recorded so nobody re-derives them
+
+- **The `environment/Dockerfile` similarity is fully avoidable, and so is the rest of the
+  plumbing.** `simcheck.py` came back with no mechanical finding at all on this bundle. Per-directory
+  `COPY` lines with a build-time smoke run for the environment, and for `tests/` a genuinely
+  different ordering - env before pip, a shell function for the artifact overlay, combined `RUN`
+  layers - was enough. The recorded claim that HIGH at 0.55-0.68 is this repo's baseline is true of
+  the bundles that have it and is not a floor.
+- **This host is Python 3.11**, so `sys.monitoring` does not exist and the profile-hook fallback is
+  what every local run exercised. The 3.12 path in `tests/runner.py` is unrun outside the container.
 
 ## What can be brute-forced, and what cannot (2026-09-02)
 
@@ -3739,6 +3858,10 @@ python3 tasks/<slug>/authoring/make_variants.py generate variants/ from the refe
                                                 drift the moment the reference changes, and
                                                 the symptom is every correct implementation
                                                 disagreeing at once
+python3 tasks/<slug>/authoring/trial.py --all  the host emulation, and it must refuse to run at
+                                                all when pytest is missing. A sweep that cannot
+                                                tell a failure from a grader that never started
+                                                manufactures evidence
 ```
 
 `zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and

@@ -1,0 +1,2 @@
+stop ef
+say s0 ab|<#|ef|gh|#>|ij|ef|kl

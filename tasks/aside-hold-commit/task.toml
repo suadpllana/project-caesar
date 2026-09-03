@@ -1,0 +1,244 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/srv/look.py",
+  "/app/srv/bite.py",
+  "/app/srv/hold.py",
+  "/app/srv/pick.py",
+]
+
+[task]
+name = "afterquery/aside-hold-commit"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working streaming server with the wrong release decision, and the wrongness is
+coherent rather than broken: it renders the bytes it has, cuts them at the first stop it can
+see, holds back the longest stop minus one against a match that might still finish, and sends
+the rest. That is the shape every serving stack has, so it is also the shape a frontier agent
+reconstructs from its prior, and everything this task is built on fights it.
+
+The requirement is that no byte may go to the client that the finished response would not
+contain, and that every byte it does contain has to go the moment nothing else could take its
+place. Both halves are graded, which is what stops the overcautious answer: a server that sits
+on everything until the model stops satisfies the first half completely and fails the second on
+every job, and the trace carries the step each byte went out on, so being one token late is as
+visible as being one token early.
+
+The first thing that has to be derived is that certainty is agreement across the futures still
+open rather than a reading of the stream as it stands. An aside that has opened and not closed
+is hidden if a closer ever arrives and ordinary text if the model stops first, so both readings
+are live at once and neither may be sent; a quote that has opened and not closed is shown either
+way, so its bytes are settled while a stop inside it is not, because that stop counts only in the
+future where the quote never closes. The two look like the same case and behave oppositely. A
+submission that treats an open opener as hiding what follows is right about asides and holds a
+quote's bytes for no reason; one that treats it as ordinary text is right about quotes and
+streams an aside it will have to take back.
+
+Having found that, the natural implementation is to carry the disagreement as a per-byte state -
+live, inert, or not yet decided - together with a bound on how far the rendering is settled, and
+to run the stop search over that. It is what the shipped file is one step away from and it is
+wrong, because whether a byte is inert and what follows it are the same question asked twice.
+The byte in front of an open quote is live only in the future where that quote never closes, and
+in exactly that future the bytes after it are already fixed; merging the futures into one flag
+array throws the pairing away, and a stop then looks reachable by taking a live reading of one
+byte together with a continuation that exists only in the world where the reading is inert. The
+futures have to be kept whole. So the second discovery invalidates the natural implementation of
+the first, and neither mistake crashes: both show up as a response that is right for forty bytes
+and wrong about which step one of them went out on.
+
+Two smaller things sit under those and neither is stated. The place the futures part company is
+not the place they disagree - a rendering that hides an aside moves a later byte up into the slot
+where a rendering that shows it has the opener, and those two bytes can be equal, so the bound is
+a comparison of renderings rather than a structural mark. And a trailing byte that is one short of
+either opener can be taken out of the rendering entirely by a future that spells the rest of an
+opener and then closes it, which needs three bytes rather than two because a closer may not
+overlap the opener it shuts.
+
+There is no oracle for any of it, and that is by construction rather than by hiding. A dispatched
+tool call moves the model onto a different script, so the bytes the server sees next depend on
+when it dispatched, and the run is not a function of the job at all - it is a function of the
+policy's own timing. There is nothing to compute the right answer against and nothing to compare
+to, because a different timing produces a different transcript, correct or not. The server runs
+whatever rules it is given and prints the trace they produce, every wrong reading above produces a
+trace that looks entirely reasonable, and the graded set is three hundred jobs generated inside
+the verifier from a nonce made after the agent has finished, so a rule that fits the four jobs in
+the tree carries no information about whether it fits the rest.
+"""
+
+solution_explanation = """
+The reference is about ninety lines across two files and it is written from the requirement
+backwards. Nothing may be sent that some continuation would not have sent, and everything every
+continuation sends has to go now, so the answer is the intersection of the finished responses the
+still-open futures would produce, and the work is deciding which futures those are.
+
+Only two things about the past are still open: whether the aside opener waiting for a closer ever
+gets one, and whether the quote opener waiting for its own does. Each is settled by its own
+closer. A trailing byte that is one short of an opener needs the rest of that opener spelled out
+before a closer can follow, because a closer may not overlap the opener it shuts. On top of each
+of those goes whatever would finish a stop the text has already begun, and one byte that finishes
+nothing, which is what says the response is not over yet. That is five continuations and a handful
+of tails; each is rendered to the end with the two shipped helpers, cut at the first stop no byte
+of which is inert, and what they all agree on is what goes on the wire. The response is declared
+over when no continuation extends it, which is a stronger statement than finding a stop.
+
+Closing both openers is not a sixth case, and that was measured over eighty-six thousand states
+rather than assumed: whichever of the two closes first decides what the bytes after it are, and
+closing the other afterwards moves none of them. The two futures were in the reference until then
+and came out, and the ground truth was byte-identical afterwards, which is what says the cut was
+layout and not behaviour.
+
+The calls are the same idea asked about a different quantity, and they need their own
+intersection rather than a reading off the text that was sent. The bytes of a call inside a quote
+that has not closed are certain while the call is not, so the text can go while the call still
+waits. hold.ready leaves the futures it rendered where pick.take can read them, because rendering
+them twice is the same work for the same answer, and an alternative correct implementation that
+does render them twice is kept in the authoring directory and scores 1.
+
+Two of the four declared artifacts need no change. Rendering a stream that has stopped, and
+cutting it at the first stop no byte of which is inert, are both already right in the shipped
+files; what is wrong is when the server is willing to say so. Establishing that, rather than
+assuming an editable file must be edited, is part of the work.
+
+Six alternative correct implementations live in the authoring directory and all six score 1: a
+wider set of futures than the reference needs, the same set with duplicates dropped, the stop
+tails built as a list rather than as a sorted set, the shared prefix walked pairwise rather than
+by index, the calls intersected from futures rendered a second time inside pick, and one with the
+name the server hangs its own working state on changed. The last is the mirror that proves no
+graded value turns on a name the submission invented.
+"""
+
+verification_explanation = """
+The rebuilt server is driven over every job and graded on one thing, exactly, with no partial
+credit: the ordered trace the sealed driver appended. It carries the token the model produced at
+each step, the bytes that went to the client at that step, every dispatch with the answer it got,
+every branch that answer caused, whether the response was declared over, and the whole client text
+at the end.
+
+The trace comes out of srv/wire.py, which is not an editable artifact, so it records what the
+server did rather than what a submission says it did. Grading the trace rather than a work counter
+is deliberate and it is what the whole task needs: release timing is the question, a count of
+releases says nothing about whether a byte went out at the right step, and the step is in the row.
+It also fences both directions with one comparison, since a server that holds everything until the
+model stops differs from the reference on the step of nearly every byte.
+
+Expected results come from tests/oracle.py, a second implementation of the same specification
+written from the specification rather than from the tree, sharing no code with it. Where the
+reference decides which futures are worth rendering and argues that the set is complete, the model
+renders a blind superset - every closer against every stop tail - and intersects those, and it
+renders with a state machine driven by two lookahead tables where the reference walks the string
+with find(). The reference and the model agree on every row of 435 jobs, and both were held to an
+exhaustive check as well: for 295 states drawn from the generated jobs, every continuation up to
+six bytes over the alphabet in play was rendered and intersected by brute force, and neither the
+reference nor the model differed from it once. That third check is what says a shared blind spot
+is not what is being graded. It also found the reference genuinely wrong twice during authoring,
+which is why it is written down here.
+
+Two job sets are driven and the second is why there is nothing here to forge. The enumerated set
+is thirty-five jobs, each named for the reading it exists to fail and including the must-still-work
+side of every fence, with the token boundaries chosen so that every marker in the file straddles
+one somewhere. The other three hundred are generated inside the verifier container from a nonce
+made out of /dev/urandom at trial time, after the agent has finished, and their expected traces are
+produced by the sealed model after the run. Those jobs did not exist when the submission was
+written. The generator is checked for determinism across processes under four PYTHONHASHSEED
+values, because the runner builds the jobs in one process and the grader rebuilds them in another,
+and a generator that iterates a set of strings would build different jobs in each and fail a
+correct submission intermittently.
+
+Since the verifier executes agent code, four more things are attested. The executed tree outside
+the four declared artifacts must be byte-identical to the pristine copy after the run. Each sealed
+function is fingerprinted as it existed in the running interpreter, at import and again when the
+last job ended, against digests the grader derives by compiling the pristine sources - which is the
+layer an import-time rebind cannot get in front of, since it is inside the tree before the first
+in-process fingerprint is taken. The interpreter's own tally of entries into the sealed driver and
+the sealed tool, kept in a closure the runner owns rather than in the tree through sys.monitoring
+on 3.12 and the profile hook on older interpreters, has to match the number of jobs and the number
+of dispatch rows. And the report carries the run nonce, so a report planted before the run cannot
+pass.
+
+Deliberately not graded, because grading them would measure an implementation choice rather than
+behaviour: how many futures a submission renders, what it caches between steps, which data
+structures it keeps, and what it calls its own working state. Six alternative correct
+implementations live in the authoring directory and all six are required to score 1, one of them
+being the reference with that last name changed.
+
+Twenty cheats were run and all score 0. Ten are the reference with exactly one decision made the
+way a solver who missed one piece would make it, generated by swapping an anchored block in the
+reference source: only the stream as it stands considered, the futures built without the bytes
+that would finish a stop, a trailing partial opener taken for ordinary text, a quote opener taken
+to be ordinary text for good, the response never declared over, the calls read off the text that
+was sent, the calls taken from one future, the whole answer computed as a per-byte state plus a
+stop window, and the futures taken to part company where they structurally diverge. Six are
+reward-tamper probes built on the shipped server rather than on the reference, since a probe built
+on the reference does the real work and would score 1 for honest reasons: a planted report, a
+double-forked process writing the reward after the run, a planted reward followed by an immediate
+exit, a privilege probe, a read of the answer key, and a sweep of everything the run's uid can
+reach. Four are built on the reference instead, so every answer they give is correct and the only
+thing that can reject them is the layer they are aimed at: one rebinds the sealed driver by
+replacing the module's class while the tree is still importing, which is before the first
+in-process fingerprint and is caught only by the digest derived from the pristine source; one
+switches the instrumentation off from inside a decision once the run is going; one reaches the
+driver through the call stack and pushes well-formed dispatch rows into the trace that the tool was
+never called for; and one rewrites a file of the executed tree that is not a declared artifact.
+Each of those four is caught by its own attestation and by nothing else. One more carries
+tests/gt.json verbatim, keyed by the stream that produced each answer, and replays the dispatches
+the ground truth recorded so its branches are right; it is the shipped server on everything else
+and it scores 0.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout, against a
+tree it cannot write; the reward channel is root-owned and locked before it starts; the ground
+truth, the sealed model and the grader are root-only files; and the file the run reports into is
+opened by root before privilege is dropped and handed over as a descriptor, so the uid executing
+agent code does not own the file it is graded on. Grading runs afterwards as root and never
+executes anything the agent wrote.
+"""
+
+category = "ML"
+subcategory = "Inference"
+
+tags = [
+  "incremental-release",
+  "stop-sequences",
+  "tool-call-dispatch",
+  "output-commitment",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I run the serving layer for our own models, which means most of my hard bugs are streaming bugs,
+and the one this task is built from cost a week. We had started stripping the model's reasoning
+out of the client stream, and the stripping was correct: the blocks came out, the text was right
+at the end of every response, and every test we had passed. What was wrong was when the bytes
+went out. A block that never closed was ordinary text by our own rule, so the server that had
+been holding it as hidden had to hand it over late, and a stop string sitting inside a verbatim
+block was cutting responses short because the block had not closed yet at the moment the server
+looked. Both were invisible in a finished response and both showed up as a stream that stuttered
+or ended early, which is the kind of thing a customer reports and a test suite does not. What
+made it expensive is that the natural fix, carrying a per-byte flag for whether a byte is going
+to be hidden, is right in every situation you would write a test for and wrong exactly when the
+liveness of a byte and the bytes after it come from the same unresolved question, which is
+common in production and almost never in a test. Tool calls made it worse, because a call
+dispatched off a reading that later turned out to be quoted text is a side effect you cannot
+take back.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

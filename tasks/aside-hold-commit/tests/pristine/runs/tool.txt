@@ -1,0 +1,6 @@
+stop zz
+say s0 no|w {|sum|} th|en
+say s1 ->|hi |bra|nch
+say s2 ->|lo |bra|nch
+turn s0 hi s1
+turn s0 lo s2

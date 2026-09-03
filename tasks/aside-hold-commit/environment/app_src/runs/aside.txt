@@ -1,0 +1,2 @@
+stop qq
+say s0 ab|<~|thi|nk~|>cd|ef

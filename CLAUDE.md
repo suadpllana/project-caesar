@@ -243,10 +243,12 @@ the practice on top of them: what actually worked, with numbers.
    task the easiness probe solved: the four failure modes". Do not choose a repair from the
    score; the mode decides it, and picking the wrong mode is what cost three probe rounds
    across two tasks.
-6. Before packaging anything, run the three-agent probe on it (see "The too-easy failure
-   mode" below), grade the submissions through the real verifier rather than believing the
-   agents' reports, and read what they say about where they got *confirmation* and what they
-   had to **guess**. The guesses are undecided rules and they are the most common reason a
+6. Before packaging anything, **ask the task owner** whether to run the three-agent probe
+   (see "The too-easy failure mode" below). On 2026-09-03 the owner said not to spawn agents
+   because of the tokens they cost, after the probe had died on the account session limit for
+   the third time; it is never to be launched on a session's own initiative. When it is run,
+   grade the submissions through the real verifier rather than believing the agents' reports,
+   and read what they say about where they got *confirmation* and what they had to **guess**. The guesses are undecided rules and they are the most common reason a
    task misses the band in either direction.
 
 Aim one notch harder than `rollout-cache-coherence`. The last section says how, and what
@@ -803,7 +805,9 @@ announces itself within one iteration, the task is an execution task, and execut
 get solved 8 of 8. Design at least one decision whose wrongness is only visible in the
 verifier.
 
-**Run the probe yourself.** Three Opus subagents in sealed copies of `environment/app_src`,
+**Run the probe only when the task owner has asked for it.** Spawning agents is the most
+expensive thing a session here can do, and the owner said on 2026-09-03 not to do it unasked.
+When it is wanted: three Opus subagents in sealed copies of `environment/app_src`,
 graded all-or-nothing against `tests/ground_truth.json`, is a few minutes of work and it is
 the only gate here that measures the thing the pipeline actually rejects for. Give them the
 instruction and the data only - no `tests/`, no `solution/` - and ask each one to report how

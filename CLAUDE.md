@@ -106,11 +106,14 @@ none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
-| `alias-settle-report` | ML / Evaluation | 26 | 13 | 14400 s | 8 h |
+| `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
 
-**`alias-settle-report` is the thirteenth task, built 2026-09-03, and it has not been through
-the pipeline.** It is the first here in ML / Evaluation - `Inference` and `Kernels` are still
-free, and every `Software` label is now spoken for - and the first whose graded artifact is a
+**`alias-settle-report` is the thirteenth task, built 2026-09-03. It cleared the structural
+check, the AI check, the similarity screen and reference verification, and failed the quality
+review on 2026-09-04 on one blocking criterion, `category and tags`** - it was filed under
+ML / Evaluation and nothing in it needs ML knowledge. Repaired to Software / Algorithms the
+same day; the reasoning is in "The category rejection: file the skill, not the story" below,
+and it applies to more than one bundle here. Its graded artifact is a
 **delivery obligation**: which line each watched key is handed, and the tick it may be handed
 on. `tools/simcheck.py` reports it conceptually clear of every earlier task and, for the first
 time in this repo, **mechanically clear too**: no shipped file is close to another bundle's.
@@ -470,6 +473,58 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## The category rejection: file the skill, not the story (2026-09-04)
+
+`alias-settle-report` cleared the structural check, the AI check, the similarity screen and
+**reference verification** - the first four gates - and failed the quality review on one
+blocking criterion. Every other row of the rubric passed, the reviewer confirmed the
+difficulty and the anti-cheat work, and the whole finding was the metadata:
+
+> The primary skill exercised is algorithmic reasoning and debugging in a Python codebase
+> (union-find reachability under disequality constraints); nothing about the work requires ML
+> knowledge, and the 'evaluation harness' framing is narrative. category = "ML", subcategory =
+> "Evaluation" is a poor fit; "Software" with a subcategory such as "Algorithms" or
+> "Debugging" would describe it. Tags are specific and good (record-linkage, union-find,
+> differential-testing).
+
+**The rule, and it is one sentence: the category names the skill the solver has to bring, not
+the domain the story is set in.** I picked ML / Evaluation because the author's own bug came
+out of an evaluation harness and because `Evaluation` was an unused label - CLAUDE.md's own
+header said `Inference` and `Kernels` were still free and every `Software` label was spoken
+for, which is a reason to want a category and never a reason to have one. Ask instead: strike
+out every noun from the story and describe what remains. Here it is a union-find, a
+reachability closure and a search over difference-free groups, which is Software / Algorithms
+whatever the rows are called.
+
+The repair is two lines of `task.toml` and nothing else. The tags were praised, so they stayed;
+`instruction.md` is byte-identical, because a rejection note names an example and not a scope,
+and rewriting a brief that has already cleared the AI-text screen is how this repo bought three
+rejections on `typeahead-query-controller` and three on `lock-priority-unwind`. Verified: the
+rebuilt archive differs from the one the reviewer read in exactly one file, with zero metadata
+differences across `create_system`, `external_attr`, `compress_type`, `flag_bits` and
+`date_time` on all 102 entries.
+
+Two things worth carrying:
+
+- **`Debugging` is not a label of `Software`.** The reviewer suggested it; `scripts/preflight.py`
+  only accepts `Algorithms`, `Systems`, `Databases`, `Data engineering`, `Frontend`, `Languages`.
+  A reviewer's suggested value still has to be checked against `SUBCATEGORIES` in that file - a
+  rejection note is evidence about the fault, not a validated fix.
+- **Reference verification is now cleared for this bundle**, which is the first independent
+  confirmation that the runner rewrite described in the section below (the bound-method identity
+  bug, the armed check, the `sys.monitoring` tally) survives the graded hardware. The gates still
+  unrun on it are the anti-cheat probe, both agent probes and the run audit.
+
+**Non-finding, measured, so nobody ships it as a gate.** The obvious mechanisation is to require
+a bundle filed under ML to carry ML vocabulary in `environment/app_src` - grep for `logit`,
+`tensor`, `gradient`, `checkpoint`, `adapter`, `kv`, `train` and so on. It separates the rejected
+bundle (0 hits) from `rollout-cache-coherence` (23 `adapter`, 10 `kv`) and `checkpoint-resume-drift`
+(10 `train`, 5 `checkpoint`) - and it **also fires on `turn-seam-alignment`, which is filed under
+ML / Training and whose category the quality review passed**. That is standing-policy item 5: a
+check that fails work the pipeline accepted sends the next session rewriting something that was
+already good. The question stays a question, asked at Stage 1: *what skill does the graded work
+demand, with every noun of the story struck out?*
 
 ## Five findings from a task whose verifier lied about its own instrumentation (2026-09-03)
 
@@ -3473,7 +3528,11 @@ because they hand you a menu of coupled sub-bugs: `vllm-project/vllm#48310` gave
   design has already failed. Iterate until the honest answer is "I can see where to start but
   my first plan would probably be wrong somewhere that matters."
 - Design for **1 solve of 8**. The realized rate drifts up.
-- Category and subcategory come from the table in `docs/RULES.md`. Tags name the specific
+- Category and subcategory come from the table in `docs/RULES.md`, and they name **the skill
+  the solver has to bring**, never the domain the story is set in - striking out every noun of
+  the narrative and describing what is left is the test, and getting it wrong is a blocking
+  quality-review failure on its own (see "The category rejection", 2026-09-04). An unused label
+  is a reason to want a category, never a reason to have one. Tags name the specific
   techniques, never the taxonomy; repeating the subcategory is a blocking failure.
 
 ### 2. Verifier contract, frozen before any environment code

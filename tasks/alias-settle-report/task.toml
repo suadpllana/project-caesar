@@ -196,8 +196,8 @@ so the uid executing agent code does not own the file it is graded on. Grading r
 as root and never executes anything the agent wrote.
 """
 
-category = "ML"
-subcategory = "Evaluation"
+category = "Software"
+subcategory = "Algorithms"
 
 tags = [
   "record-linkage",

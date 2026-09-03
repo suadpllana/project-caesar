@@ -5,11 +5,15 @@ gate reads it. It exists for the next session and for `preflight.py`.
 
 ## Current stage
 
-`Stage 7 - gates`. Built end to end on 2026-09-03. Not yet through the pipeline.
+`Stage 7 - gates`. Built end to end on 2026-09-03. Cleared the structural check, the AI check,
+the similarity screen and reference verification; failed the quality review on 2026-09-04 on
+`category and tags` (filed under ML / Evaluation, refiled as Software / Algorithms on 2026-09-04
+- see "The category rejection" in CLAUDE.md). Anti-cheat probe, both agent probes and the run
+audit are still unrun.
 
 ## Task summary
 
-`ML / Evaluation`. The tree under `/app` is the filing end of an evaluation harness. Runs post
+`Software / Algorithms`. The tree under `/app` is the filing end of an evaluation harness. Runs post
 scores for items under keys; matchers declare that two keys are one item, or that two keys are
 not; a board must be handed exactly one line per key it watches, carrying the smallest key in
 that key's item and the score of the first post the item holds. The graded decision is WHEN

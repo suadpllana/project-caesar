@@ -40,9 +40,9 @@ by a test, since neither file may import the other.
 ## The 2026-09-03 easiness rejection, and the fix
 
 2 of 3, with all three trajectories supplied. Both solvers rebuilt the reference's three
-engines from scratch and finished in roughly 50 to 85 minutes of a four-hour budget; the
-one that failed built the same four engines and lost on speed, most likely the medium
-block. So the binding constraint was engineering stamina rather than any derivation, and
+engines from scratch; all three runs started at 12:26 and the two transcripts carrying an
+end stamp finished at 54 and 83 minutes of a four-hour budget, the 83 being a solver. The
+one that failed built the same engines and lost on speed, most likely the medium block. So the binding constraint was engineering stamina rather than any derivation, and
 neither a tighter budget nor more of the same work would have moved it: the solvers had
 two and a half hours spare.
 

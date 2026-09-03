@@ -15,10 +15,11 @@ among shortest scripts - which is written up in "A pure function at its ceiling:
 is computed" below.
 
 **That fewest-hunks build was re-probed on 2026-09-03 and came back 2 of 3**, which is
-progress and still a rejection. Its three trajectories kill the obvious next move: **both
-solvers finished in roughly 50 to 85 minutes of a four-hour budget**, so they had two and a
-half hours spare and piling on work would not have stopped them. The one that failed built
-the same engines and lost on speed. What was done instead, and what it cost, is in "When the
+progress and still a rejection. Its three trajectories kill the obvious next move: all
+three started at 12:26, and the two whose transcripts carry an end stamp finished at **54
+and 83 minutes of a four-hour budget** - the 83 being a solver. They had well over two hours
+spare, so piling on work would not have stopped them. The one that failed built the same
+engines and lost on speed. What was done instead, and what it cost, is in "When the
 solvers finish early, more work is not the lever" below. **Not re-probed** - the account hit
 its session limit before the three-agent probe could run.
 
@@ -484,9 +485,9 @@ where the agents *finished*, because the diagnosis inverts the instinct.
 
 **The number that decides the repair is the runtime, again, and this time it points the
 other way.** The 0-of-8 section above says eight agents completing at 16-34 minutes against
-240 means they stopped early and a hint about trying harder cannot reach them. Here two
-agents *solved* it in 50 and 85 minutes of the same 240. The failing one also finished, and
-lost on speed. So the binding constraint was engineering stamina, and **every lever that
+240 means they stopped early and a hint about trying harder cannot reach them. Here a solver
+finished at 83 minutes of the same 240, and the agent that *failed* finished at 54, both
+measured from the transcripts' own stamps against a common 12:26 start. So the binding constraint was engineering stamina, and **every lever that
 adds work is spent against two and a half spare hours**. A bigger state, a fourth family,
 a tighter budget: all of them are absorbed by an agent that still has most of its budget.
 

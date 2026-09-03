@@ -117,6 +117,9 @@ until tick 29 and finishes at 33. The reference hands the mutex over at tick 17 
   byte-identical afterwards; the brief cut 1064 to 675 words by deletion, burstiness recovered
   0.733 to 0.898 with content-free moves; `task.toml` says where the difficulty is and is not.
   Every gate above re-run and clean, including the two-image trial.
+- **2026-09-03, the round-two brief failed the AI check.** The 675-word cut was restored to the
+  1064-word brief that had passed twice, minus only the sentences the concision reviewer quoted:
+  816 words, no added words, grounding paragraph byte-identical, burstiness 0.729 left as it is.
 - **Not run:** the three-agent easiness probe (three Opus agents died on the session limit,
   three relaunched agents were stopped by the task owner before writing a line) and the
   difficulty probe. The last probe on this task is the 3 of 3 below, against the brief that

@@ -10,9 +10,11 @@ Dockerfile line: the brief's reproduction step pointed at `/app/cases/inversion.
 agent image never received. The second, on the repaired bundle, was `difficult`, `instruction
 concision` and `no extraneous files` - and the reviewer's evidence for the first of those was a
 probe note we had shipped inside `authoring/`, recording a local 3 of 3 that this file had never
-been told about. Both rounds are written up below, newest first: "The quality review, second
-round" and "The quality-review rejection: the agent's container is not the repo's tree". Three
-things from them reach past this task: the AI screen finally moved, and what moved it was
+been told about. The round-two brief, cut by a third for the concision criterion, then **failed
+the AI check** the same day; the brief that passed is back with only the reviewer's named
+sentences deleted. All three rounds are written up below, newest first: "The AI-check rejection,
+fourth time", "The quality review, second round" and "The quality-review rejection: the agent's
+container is not the repo's tree". Three things from them reach past this task: the AI screen finally moved, and what moved it was
 **quoting real machine output**; `tools/imagecheck.py` now catches a file that reaches the
 verifier through `sync.py` and the agent through nothing; and **anything under `authoring/`
 that says how easy a task is ships with it** - grep for it before every `package.py`.
@@ -1976,6 +1978,63 @@ quality-review repair took it from 0.635 to **0.474** against `share-register-sc
 HIGH threshold. `tests/test.sh` 0.554 and `tests/Dockerfile` 0.563 against `segment-merge-horizon`
 remain, and the archive carrying them has since **cleared the similarity screen**, so they are
 this repo's baseline rather than a defect.
+
+## The AI-check rejection, fourth time: a concision cut is a rewrite (2026-09-03)
+
+`lock-priority-unwind` went back with the round-two repair and **failed the AI check** - "the
+instruction seems AI generated" - on a brief that was the one that had cleared the screen
+twice, cut from 1064 words to 675 for the concision criterion. Same author, same voice, the same
+eight verbatim quotes; nothing behind the screen ran.
+
+**The A/B pair this gives is the cleanest measurement of that gate this repo has.** Three
+versions of one brief, one day:
+
+| version | words | burstiness | short closers added | AI check |
+|---|---|---|---|---|
+| the verbatim-output brief of 2026-09-02 | 1064 | 0.843 | 0 | **passed, twice** |
+| the concision cut of 2026-09-03 | 675 | 0.898 | 3 | **failed** |
+| the passing brief minus the named sentences | 816 | 0.729 | 0 | - |
+
+Two things separate the failed version from the one that passed, and neither is anything
+`textcheck.py` measures. The cut removed the setup narration around the quoted output - which
+task starts where and wants what, "Task 3 has the processor from tick 14 to tick 25" - and kept
+every requirement sentence, so the share of prose written *from* a run against prose written
+*about* the task went the wrong way; that is the fifth-rejection finding from
+`typeahead-query-controller` arriving through deletion rather than through writing. And three
+short paragraph closers were added to recover the burstiness number the deletions had cost:
+"We have cases aimed at each.", "The sets we grade do both.", "Some ground rules." That is
+staged cadence, which stage 5 already bans, done to satisfy a checker this file already says is
+not evidence about this gate. The cut brief was clean against all three passing references with
+burstiness **higher** than the brief that passed, and it failed. So the burstiness floor is now
+anti-correlated with the screen for the third time (`typeahead-query-controller`,
+`earliest-change-script`, this), and it is left standing at 0.729 on the repair rather than
+recovered.
+
+**The repair is the `share-register-screen` repair and nothing else: restore the brief that
+passed byte-for-byte and delete the sentences the reviewer quoted.** Out: "without flashing a
+board", "which we rewrote last cycle", the *because* clause explaining why inheritance exists,
+"Being generous is not the safe way out.", "Build as many cases as you like.", the four-hooks
+paragraph, the three FIFO-handover sentences, the timeout-semantics sentence, and the paragraph
+saying what the value you set does. In: nothing. `git diff --word-diff` against the brief that
+passed shows no added words beyond the sentence tails the deletions left, and the grounding
+paragraph is byte-identical to the one the screen accepted. 816 words, inside the 794-880 band
+of the briefs that have cleared the screen here. The tick narration the concision reviewer also
+named **stays**, because it is the observed-run grounding that got this brief through the
+screen, and the screen is the earlier gate. The `task.toml` claim that the brief states none of
+the engine's behaviour still holds against the restored text, checked by grep.
+
+**The rule, and it is the precedent restated with a number on it:** a concision repair deletes
+the named sentences from the brief that passed and stops. Two such repairs moved about 5% of
+their briefs and went back through the screen; this one moved 37% and did not. Never re-cut,
+never rephrase what remains, and never recover the cadence afterwards - the recovery is the
+thing the screen is trained to find.
+
+**Gates:** `textcheck` reports the one burstiness finding above and nothing else against all
+three references; `structcheck` and `hintcheck` clean; preflight no errors; `imagecheck` clean;
+the archive rebuilt with content differing from the round-two archive in `instruction.md` only
+and zero metadata differences on all 64 entries. The environment, the tests and the cheats are
+unchanged from round two, so the trials recorded there stand. **Not run:** the probes, as
+before.
 
 ## The quality review, second round: the bundle shipped its own easiness verdict (2026-09-03)
 

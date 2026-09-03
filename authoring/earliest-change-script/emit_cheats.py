@@ -14,7 +14,8 @@ touched here.
 
 import pathlib
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+TASK = ROOT / "tasks" / "earliest-change-script"
 ORACLE = TASK / "tests" / "oracle.py"
 REFERENCE = TASK / "tests" / "reference.py"
 CHEATS = TASK / "cheat"
@@ -39,24 +40,23 @@ clock on it fails.
 """
 '''
 
-TWO_ENGINES_DOC = '''"""Deliberate cheating attempt. NEVER executed by the pipeline.
+FRONTIER_ONLY_DOC = '''"""Deliberate cheating attempt. NEVER executed by the pipeline.
 
 Strategy: stop one engine short. The rule is computed exactly -- keeps since
 the last move carried through the walk, comments merged across a kept line or
-two, the recurrence evaluated only where a shortest path can reach -- and two
-of the three families are answered comfortably. A long pair that differs in a
-few hundred places belongs to the frontier. A pair of a third of a million
-nearly-distinct lines put back in a different order belongs to the thresholds
-over suffixes, because almost nothing in it matches anything.
+two, the recurrence evaluated only where a shortest path can reach -- and the
+frontier answers twelve of the eighteen timed pairs comfortably, which is
+every pair whose two sides still resemble each other. A million lines that
+differ in a few hundred places take a fifth of a second, and fifty thousand
+crowded lines that differ in a few thousand take a few seconds more. Having
+built that, there is nothing in the task's own worked examples to say a second
+engine is needed at all.
 
-The third family has nothing left to answer it. Forty to sixty thousand lines
-drawn from a handful of distinct ones share no order at all, so the frontier
-is out by orders of magnitude; and every line in them matches a large fraction
-of the other side, so the number of matching positions is the square of the
-length over the alphabet and the thresholds are out by more. Rows of the
-prefix table are the only affordable thing there, and this does not have them.
-Every correctness block passes, six of the eighteen timed pairs never come
-back, and it scores zero.
+The six that share no order have nothing left to answer them. Their scripts
+run past the length of the file, so the number of moves is in the hundreds of
+thousands and the frontier is out by orders of magnitude; what it falls back
+on is the table, which is out by more. Every correctness block passes, six of
+the eighteen timed pairs never come back, and it scores zero.
 """
 '''
 
@@ -72,30 +72,34 @@ def emit_table_walk():
     return path
 
 
-def emit_two_engines():
+def emit_frontier_only():
     text = REFERENCE.read_text()
     body = text[text.index("from bisect import bisect_left"):]
     swaps = [
-        ('    if engine == "rows":\n        return _rows_engine(a, b, n, m)\n', ""),
-        ("    rows = _rows_cost(n, m)\n    pairs = _pairs_cost(a, b, n, m)\n"
-         "    second = _pairs_engine if pairs < rows else _rows_engine\n",
-         "    pairs = _pairs_cost(a, b, n, m)\n    second = _pairs_engine\n"),
-        ('    limit = 1 << 30 if engine == "frontier" else _frontier_limit(min(rows, pairs))\n',
-         '    limit = 1 << 30 if engine == "frontier" else _frontier_limit(pairs)\n'),
+        ('    if engine == "pairs":\n        return _pairs_engine(a, b, n, m)\n\n', ""),
+        ('    limit = 1 << 30 if engine == "frontier" else _frontier_limit(\n'
+         "        _pairs_cost(a, b, n, m))\n",
+         "    limit = _FRONTIER_CAP\n"),
+        ("    if layers is None:\n        return _pairs_engine(a, b, n, m)\n",
+         "    if layers is None:\n        return _table(before, after)\n"),
     ]
     for old, new in swaps:
         if old not in body:
             raise SystemExit("anchor missing, the reference moved:\n%r" % old[:70])
         body = body.replace(old, new, 1)
-    # the row engine is now unreachable; cut it out so the file is what it says
-    start = body.index("# --------------------------------------------------------------- row engine --")
-    stop = body.index("# ------------------------------------------------------------ pairs engine --")
-    body = body[:start] + body[stop:]
-    path = CHEATS / "two_engines_only.py"
-    path.write_text(TWO_ENGINES_DOC + "\n" + body, newline="\n")
+    # the pairs engine is now unreachable; cut it out so the file is what it says
+    start = body.index("# ------------------------------------------------------------ pairs engine --")
+    body = body[:start]
+    oracle = ORACLE.read_text()
+    table = oracle[oracle.index("INF = (1 << 30"):oracle.index("def comments_in(")].rstrip()
+    table = table.replace("def table(before, after):", "def _table_of(before, after):")
+    table = table.replace("def script(before, after):", "def _table(before, after):")
+    table = table.replace("    rest = table(before, after)", "    rest = _table_of(before, after)")
+    path = CHEATS / "frontier_only.py"
+    path.write_text(FRONTIER_ONLY_DOC + "\n" + body + table + "\n", newline="\n")
     return path
 
 
 if __name__ == "__main__":
-    for path in (emit_table_walk(), emit_two_engines()):
+    for path in (emit_table_walk(), emit_frontier_only()):
         print("wrote %s (%d lines)" % (path, len(path.read_text().split("\n"))))

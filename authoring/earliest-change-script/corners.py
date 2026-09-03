@@ -13,7 +13,8 @@ by anything the grader runs.
 import pathlib
 import sys
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+TASK = ROOT / "tasks" / "earliest-change-script"
 sys.path.insert(0, str(TASK / "tests"))
 
 import altrules

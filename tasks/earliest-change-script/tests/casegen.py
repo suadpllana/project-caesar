@@ -10,13 +10,14 @@ Five blocks, each aimed somewhere different:
   medium      several hundred sequences of a few hundred lines, sharing one
               budget, so a table cannot be used on everything small
   timed       eighteen long pairs, each with its own wall clock, in three
-              families whose costs are independent of one another: six that
-              run to a million lines and differ in a few hundred places, six
-              of forty to sixty thousand lines built from a handful of
-              distinct lines and sharing no order at all, and six of a quarter
-              to a third of a million lines that are nearly all distinct and
-              also share no order. Every technique that answers one family is
-              quadratic on at least one of the others.
+              families: six that run to a million lines and differ in a few
+              hundred places, six of forty to sixty thousand lines built from
+              a handful of distinct lines that differ in a few thousand, and
+              six of a quarter to a third of a million lines that are nearly
+              all distinct and share no order at all. The first two answer to
+              the same technique at two very different depths; the third is
+              out of reach of it by orders of magnitude and answers to
+              something else entirely.
 """
 
 import random
@@ -209,16 +210,14 @@ TIMED_BUDGET = 60.0
 
 
 def medium_cases(seed):
-    """Three quarters of them differ in a few places; the rest are a few
-    thousand lines over a handful of distinct ones and share nothing but that
-    vocabulary, which is a different cost entirely and a table of their size
-    four hundred times over is not affordable."""
+    """Three quarters of them differ in a few places; the rest share nothing
+    but their vocabulary, which is a different cost entirely."""
     rng = random.Random(seed * 104729 + 5)
     out = []
     for index in range(MEDIUM_COUNT):
         if index % 4 == 3:
-            out.append(_crossed(rng, rng.randrange(2000, 4000),
-                                rng.randrange(2000, 4000), rng.randrange(2, 8)))
+            out.append(_crossed(rng, rng.randrange(300, 700),
+                                rng.randrange(300, 700), rng.randrange(2, 8)))
         else:
             n = rng.randrange(300, 1500)
             out.append(_ambiguous(rng, n, rng.randrange(8, 60),
@@ -232,12 +231,14 @@ def medium_cases(seed):
 # three lines and over a pool of three hundred thousand costs nothing alike.
 # "long" pairs differ in a few hundred places over hundreds of thousands of
 # lines, so the number of moves is tiny and everything else about them is
-# enormous. The "crowded" pairs stay under sixty thousand lines, but every line
-# matches a large fraction of the other side and the moves run to a third of
-# the file, so there is no long common run anywhere to cut them at. The
-# "sparse" ones are four to six times longer with hardly anything matching
-# anything, which is the only cheap thing about them. A technique that answers
-# any one family is quadratic on at least one of the other two.
+# enormous. The "crowded" pairs stay under sixty thousand lines and differ in a
+# few thousand places over two to six distinct lines, so every line matches a
+# large fraction of the other side: the number of matching positions is the
+# square of the length over the alphabet, and only the number of moves is
+# small. The "sparse" ones are four to six times longer with hardly anything
+# matching anything, and their moves run past the length of the file. The first
+# two answer to the same technique at depths three orders of magnitude apart;
+# the third is out of its reach entirely.
 TIMED_SHAPES = [
     ("long", "ambiguous", (400000, 40, 80, 10, 15)),
     ("long", "ambiguous", (550000, 6, 60, 8, 15)),
@@ -245,12 +246,12 @@ TIMED_SHAPES = [
     ("long", "ambiguous", (850000, 400, 140, 14, 30)),
     ("long", "ambiguous", (1000000, 200, 100, 12, 18)),
     ("long", "ambiguous", (1000000, 25, 90, 10, 22)),
-    ("crowded", "crossed", (40000, 40000, 2)),
-    ("crowded", "crossed", (48000, 48000, 4)),
-    ("crowded", "crossed", (55000, 46000, 3)),
-    ("crowded", "crossed", (55000, 55000, 12)),
-    ("crowded", "reordered", (50000, 6, 500)),
-    ("crowded", "reordered", (58000, 3, 40)),
+    ("crowded", "ambiguous", (40000, 3, 800, 20, 40)),
+    ("crowded", "ambiguous", (45000, 4, 1200, 25, 50)),
+    ("crowded", "ambiguous", (55000, 3, 2500, 20, 30)),
+    ("crowded", "ambiguous", (50000, 6, 2000, 30, 40)),
+    ("crowded", "ambiguous", (48000, 2, 700, 30, 50)),
+    ("crowded", "ambiguous", (42000, 5, 1600, 15, 25)),
     ("sparse", "crossed", (300000, 300000, 90000)),
     ("sparse", "crossed", (250000, 250000, 70000)),
     ("sparse", "crossed", (330000, 300000, 110000)),

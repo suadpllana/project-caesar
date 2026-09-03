@@ -1,21 +1,39 @@
-"""Deliberate cheating attempt. NEVER executed by the pipeline.
+"""The grading side's fast implementation of the rule.
 
-Strategy: stop one engine short. The rule is computed exactly -- keeps since
-the last move carried through the walk, comments merged across a kept line or
-two, the recurrence evaluated only where a shortest path can reach -- and two
-of the three families are answered comfortably. A long pair that differs in a
-few hundred places belongs to the frontier. A pair of a third of a million
-nearly-distinct lines put back in a different order belongs to the thresholds
-over suffixes, because almost nothing in it matches anything.
+The definitional model in oracle.py is the authority, and it is what the small
+blocks are graded against. It cannot be used on a fifty thousand line pair --
+the table alone would be several billion entries, twice over -- so the medium
+and timed blocks are graded against this instead, and a test asserts that the
+two agree on every fixed and enumerated case before any of those answers count.
 
-The third family has nothing left to answer it. Forty to sixty thousand lines
-drawn from a handful of distinct ones share no order at all, so the frontier
-is out by orders of magnitude; and every line in them matches a large fraction
-of the other side, so the number of matching positions is the square of the
-length over the alphabet and the thresholds are out by more. Rows of the
-prefix table are the only affordable thing there, and this does not have them.
-Every correctness block passes, six of the eighteen timed pairs never come
-back, and it scores zero.
+Two engines, because the graded pairs sit in two places and neither covers the
+other. Their costs are independent of each other:
+
+  frontier   the square of the number of moves, plus the cells where a choice
+             between shortest scripts exists; untouched by the length of the
+             pair or by how repetitive it is
+  pairs      the number of positions that match across the two sides,
+             untouched by the length of the pair and by the number of moves
+
+A pair that differs in a few hundred or a few thousand places belongs to the
+first, whether it is a million lines of a few hundred distinct ones or fifty
+thousand lines of three. A pair of a third of a million nearly-distinct lines
+put back in a different order belongs to the second: its moves run past the
+length of the file, so the frontier is out by orders of magnitude, but almost
+nothing in it matches anything, which is the only cheap thing about it.
+
+Both engines answer the same question at every position of the walk. The
+number of moves that remain is one part of it and is what every fast diff
+computes. The other part is how many comments a shortest completion can still
+be done in, and that is a second quantity with its own recurrence: a run of
+moves that is already open extends for nothing, and a later run opens a comment
+of its own only once CONTEXT keeps have gone by. So the state is not a flag but
+a count of keeps since the last move, held at CONTEXT once it gets there, and
+both engines carry CONTEXT + 1 numbers where a shortest-script engine carries
+none. Only cells that lie on some shortest path can be on the answer, so the
+second quantity is only ever computed there.
+
+Lives in /tests, which the account that runs submitted code cannot read.
 """
 
 from bisect import bisect_left
@@ -30,15 +48,8 @@ _ZERO = (0,) * (CONTEXT + 1)
 # Microseconds, measured. Only the ratios matter: they separate engines whose
 # costs on this distribution sit orders of magnitude apart.
 _FRONTIER_ENTRY = 0.25
-_ROW_FIXED = 0.9
-_ROW_WORD = 0.079
 _PAIRS_ELEMENT = 1.0
 _PAIRS_MATCH = 1.6
-
-# Bytes of occurrence masks the row engine materialises up front, and bytes of
-# rebuilt rows it holds while the sweep runs.
-_MASK_BUDGET = 64 << 20
-_BLOCK_BUDGET = 48 << 20
 
 # The frontier keeps every layer, and a layer at depth d has about d entries.
 # Above this depth the layers alone would not fit in the memory the task is
@@ -58,18 +69,12 @@ def changes(before, after, engine=None):
     if engine == "pairs":
         return _pairs_engine(a, b, n, m)
 
-    pairs = _pairs_cost(a, b, n, m)
-    second = _pairs_engine
-
-    limit = 1 << 30 if engine == "frontier" else _frontier_limit(pairs)
+    limit = 1 << 30 if engine == "frontier" else _frontier_limit(
+        _pairs_cost(a, b, n, m))
     layers = _layers_from_end(a, b, n, m, limit)
     if layers is None:
-        return second(a, b, n, m)
+        return _pairs_engine(a, b, n, m)
     return _frontier_engine(a, b, n, m, layers)
-
-
-def _rows_cost(n, m):
-    return n * (_ROW_FIXED + _ROW_WORD * (m / 64.0))
 
 
 def _pairs_cost(a, b, n, m):
@@ -94,7 +99,7 @@ def _pairs_cost(a, b, n, m):
 
 def _frontier_limit(fallback):
     """How many moves the frontier is allowed before whichever of the other
-    two is cheaper takes over. Stop it once the work it has already done
+    is cheaper takes over. Stop it once the work it has already done
     reaches a quarter of what that engine would cost, and the wasted effort is
     bounded by that figure."""
     limit = int((0.25 * fallback / _FRONTIER_ENTRY) ** 0.5)
@@ -113,7 +118,7 @@ def _layers_from_end(a, b, n, m, limit):
     the end of both sequences in d moves. A position on diagonal k is within d
     moves of the end exactly when i is at least that number, which is what
     makes every question the walk asks a single comparison. None if the pair
-    needs more than `limit` moves, which is the other engines' cue."""
+    needs more than `limit` moves, which is the pairs engine's cue."""
     end = n - m
     i, j = n, m
     while i > 0 and j > 0 and a[i - 1] == b[j - 1]:
@@ -153,42 +158,14 @@ def _layers_from_end(a, b, n, m, limit):
 
 
 def _frontier_engine(a, b, n, m, layers):
-    """The layers answer whether a drop or an add at a position still leaves
-    the script shortest. Along a diagonal, each of those answers turns from no
-    to yes at one row and stays yes, so from any position the next cell where
-    either move becomes possible is a lookup, and every cell before it can
-    only be kept through. The comment counts are computed on those cells
-    alone, CONTEXT + 1 to a cell -- one for each number of keeps the walk can
-    arrive with -- in the order the walk will need them. Keeping through a
-    stretch is what makes that count move, so the stretch has to be measured
-    rather than merely skipped."""
     total = len(layers) - 1
     if total == 0:
         return []
-
-    def advance(i, j, r):
-        """From (i, j) with r moves left: the first cell at or after it on the
-        same diagonal where a drop or an add still leaves the script shortest.
-        Everything between is a keep."""
-        if r == 0:
-            return n, m
-        below = layers[r - 1]
-        k = i - j
-        stop = n
-        reach = below.get(k + 1)
-        if reach is not None and reach - 1 < stop:
-            stop = reach - 1
-        reach = below.get(k - 1)
-        if reach is not None and reach < stop:
-            stop = reach
-        if stop < i:
-            stop = i
-        if stop - i > m - j:
-            stop = i + (m - j)
-        return stop, j + (stop - i)
+    width = m + 1
 
     def choices(i, j, r):
-        """Which of drop, add, keep still leave the script shortest here."""
+        if r == 0:
+            return False, False, i < n and j < m
         below = layers[r - 1]
         k = i - j
         reach = below.get(k + 1)
@@ -198,83 +175,60 @@ def _frontier_engine(a, b, n, m, layers):
         keep = i < n and j < m and a[i] == b[j]
         return drop, add, keep
 
-    # Comments still to be opened from a decision cell, one for each number of
-    # keeps the walk can arrive with. A cell that is not a decision cell is
-    # kept through to the next one, and those keeps count: they are what puts
-    # the arriving state further from the last move.
-    vals = {(n, m): _ZERO}
-
-    def after(i, j, r, s):
-        got = vals.get((i, j))
-        if got is not None:
-            return got[s]
-        stop, jstop = advance(i, j, r)
-        step = s + (stop - i)
-        return vals[(stop, jstop)][step if step < _FAR else _FAR]
-
-    def settle(i0, j0, r0):
-        """Fill in the counts for every decision cell reachable from (i0, j0)
-        along shortest paths, children before parents."""
-        stack = [(i0, j0, r0, False)]
-        while stack:
-            i, j, r, ready = stack.pop()
-            if (i, j) in vals:
-                continue
-            drop, add, keep = choices(i, j, r)
-            if not ready:
-                stack.append((i, j, r, True))
-                nexts = []
-                if drop:
-                    nexts.append((i + 1, j, r - 1))
-                if add:
-                    nexts.append((i, j + 1, r - 1))
-                if keep:
-                    nexts.append((i + 1, j + 1, r))
-                for x, y, rr in nexts:
-                    if (x, y) in vals:
-                        continue
-                    x2, y2 = advance(x, y, rr)
-                    if (x2, y2) not in vals:
-                        stack.append((x2, y2, rr, False))
-                continue
-            best = [1 << 30] * (CONTEXT + 1)
-            moved = 1 << 30
-            if drop:
-                v = after(i + 1, j, r - 1, 0)
-                if v < moved:
-                    moved = v
-            if add:
-                v = after(i, j + 1, r - 1, 0)
-                if v < moved:
-                    moved = v
-            for s in range(CONTEXT + 1):
-                if moved < 1 << 30:
-                    got = moved + 1 if s == _FAR else moved
-                    if got < best[s]:
-                        best[s] = got
-                if keep:
-                    v = after(i + 1, j + 1, r, s + 1 if s < _FAR else _FAR)
-                    if v < best[s]:
-                        best[s] = v
-            vals[(i, j)] = tuple(best)
-
-    i, j, r = 0, 0, total
-    i, j = advance(i, j, r)
-    settle(i, j, r)
+    vals = {n * width + m: _ZERO}
+    stack = [(0, 0, total, False)]
+    while stack:
+        i, j, r, ready = stack.pop()
+        key = i * width + j
+        if key in vals:
+            continue
+        drop, add, keep = choices(i, j, r)
+        if not ready:
+            stack.append((i, j, r, True))
+            if drop and (i + 1) * width + j not in vals:
+                stack.append((i + 1, j, r - 1, False))
+            if add and key + 1 not in vals:
+                stack.append((i, j + 1, r - 1, False))
+            if keep and key + width + 1 not in vals:
+                stack.append((i + 1, j + 1, r, False))
+            continue
+        moved = 1 << 30
+        if drop:
+            v = vals[key + width][0]
+            if v < moved:
+                moved = v
+        if add:
+            v = vals[key + 1][0]
+            if v < moved:
+                moved = v
+        best = [1 << 30] * (CONTEXT + 1)
+        for s in range(CONTEXT + 1):
+            if moved < 1 << 30:
+                got = moved + 1 if s == _FAR else moved
+                if got < best[s]:
+                    best[s] = got
+            if keep:
+                v = vals[key + width + 1][s + 1 if s < _FAR else _FAR]
+                if v < best[s]:
+                    best[s] = v
+        vals[key] = tuple(best)
 
     ops = []
     emit = ops.append
+    i = j = 0
+    r = total
     s = _FAR
-    while (i, j) != (n, m):
+    while i < n or j < m:
+        key = i * width + j
         drop, add, keep = choices(i, j, r)
-        want = vals[(i, j)][s]
+        want = vals[key][s]
         cost = 1 if s == _FAR else 0
-        if drop and after(i + 1, j, r - 1, 0) + cost == want:
+        if drop and vals[key + width][0] + cost == want:
             emit(["-", i])
             i += 1
             r -= 1
             s = 0
-        elif add and after(i, j + 1, r - 1, 0) + cost == want:
+        elif add and vals[key + 1][0] + cost == want:
             emit(["+", j])
             j += 1
             r -= 1
@@ -283,11 +237,6 @@ def _frontier_engine(a, b, n, m, layers):
             i += 1
             j += 1
             s = s + 1 if s < _FAR else _FAR
-        i2, j2 = advance(i, j, r)
-        if (i2, j2) != (i, j):
-            step = s + (i2 - i)
-            s = step if step < _FAR else _FAR
-            i, j = i2, j2
     return ops
 
 

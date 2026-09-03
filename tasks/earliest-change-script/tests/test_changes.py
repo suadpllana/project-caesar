@@ -118,13 +118,13 @@ def test_the_two_models_agree_before_anything_larger_is_graded():
     assert not disagree, "%d cases split the two models" % len(disagree)
 
 
-@pytest.mark.parametrize("engine", ["frontier", "rows", "pairs"])
+@pytest.mark.parametrize("engine", ["frontier", "pairs"])
 def test_every_engine_of_the_fast_model_is_checked(engine):
-    """The fast implementation dispatches between three engines and the short
+    """The fast implementation dispatches between two engines and the short
     cases all land on the same one, so the test above never exercises the
-    other two. Each is forced on here and held to the definitional model on
-    its own. A hybrid only ever exercised on one side of its own crossover is
-    a hybrid whose other sides are untested."""
+    other. Each is forced on here and held to the definitional model on its
+    own. A hybrid only ever exercised on one side of its own crossover is a
+    hybrid whose other side is untested."""
     disagree = [(before, after) for before, after in FIXED + STRUCTURED
                 if [tuple(op) for op in reference.changes(before, after, engine)]
                 != [tuple(op) for op in oracle.script(before, after)]]

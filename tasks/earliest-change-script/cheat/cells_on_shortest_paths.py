@@ -1,21 +1,26 @@
 """Deliberate cheating attempt. NEVER executed by the pipeline.
 
-Strategy: find the shortest-path restriction and stop there. The frontier
-says which cells lie on some shortest script, the comment recurrence is
-evaluated at every one of them, and the walk reads the counts off. Nothing
-about the rule is misread: the keeps since the last move are carried through
-the walk and the merge is applied exactly, so every correctness block passes.
-That is the whole task solved for the long family, where a million lines that
-differ in a few hundred places are a million cells and a couple of seconds.
+Strategy: find the shortest-path restriction and stop there. The frontier says
+which cells lie on some shortest script, the comment recurrence is evaluated
+at every one of them, and the walk reads the counts off. Nothing about the
+rule is misread: the keeps since the last move are carried through the walk
+and the merge is applied exactly, so every correctness block passes. What it
+misses is the second half of the restriction -- that the recurrence is only
+needed where the walk has a choice to make, and that the stretch between two
+such cells can be crossed by counting its keeps instead of visiting them. On
+the twelve pairs whose two sides still resemble each other it merely pays for
+that: a million lines that differ in a few hundred places take 3.7 seconds
+against the reference's 0.3, which is inside the budget and looks like success.
 
-It has nothing for the other two. A pair that shares no order needs tens or
-hundreds of thousands of moves, so the frontier is out by orders of magnitude
-and is abandoned, and what is left is the table, which is out by more. Nor
-would a cheaper way of listing the shortest-path cells save it on the sparse
-family: between one keep and the next, every monotone path through the
-rectangle between them is a shortest path, so the cells to visit are the
-areas of those rectangles rather than the number of matches. Twelve of the
-eighteen timed pairs are never answered, and it scores zero.
+The six that share no order are where it stops being a constant factor. Their
+scripts run past the length of the file, so the frontier is abandoned and what
+is left is the table, which is out by orders of magnitude. Nor would a cheaper
+way of listing the shortest-path cells save it there: between one keep and the
+next, every monotone path through the rectangle between them is a shortest
+path, so the cells to visit are the areas of those rectangles rather than the
+number of matches. The pairs those rectangles belong to are the ones no pair
+small enough to check by hand ever looks like. Six of the eighteen timed pairs
+are never answered, and it scores zero.
 """
 
 

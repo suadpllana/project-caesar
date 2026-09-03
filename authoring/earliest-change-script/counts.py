@@ -10,7 +10,8 @@ the point of this script is to keep those claims measured rather than argued.
 import pathlib
 import sys
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
+TASK = ROOT / "tasks" / "earliest-change-script"
 sys.path.insert(0, str(TASK / "tests"))
 sys.path.insert(0, str(TASK / "cheat"))
 
@@ -26,7 +27,7 @@ READINGS = [
     "split_the_replacements",
     "delegate_to_difflib",
     "table_walk",
-    "two_engines_only",
+    "frontier_only",
     "cells_on_shortest_paths",
 ]
 

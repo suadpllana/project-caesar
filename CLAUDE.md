@@ -23,6 +23,14 @@ engines and lost on speed. What was done instead, and what it cost, is in "When 
 solvers finish early, more work is not the lever" below. **Not re-probed** - the account hit
 its session limit before the three-agent probe could run.
 
+**That build then failed the quality review on 2026-09-04, on two blocking criteria, having
+cleared four gates and scored 1 on its oracle in the real trial.** Both findings are about
+the repo rather than the task: it shipped its `authoring/` directory, which **twelve of the
+thirteen bundles here do**, and its three engines against a 24-hour expert estimate were
+called days of work past the reviewer's bar. See "The quality-review rejection: ship the
+task, not the workshop" below - `tools/zipcheck.py` now fails any archive carrying a
+workshop, and it fires on twelve bundles today.
+
 The earlier reference-verification rejection (a budget
 measured on the wrong machine) is still in "The reference-verification rejection" below, and
 its one-line version still holds: **a budget measured on the authoring host is a guess about
@@ -98,7 +106,7 @@ task's rejection history gets silently reverted.
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 | `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
-| `earliest-change-script` | Software / Algorithms | 9 | 16 | 14400 s | 24 h |
+| `earliest-change-script` | Software / Algorithms | 9 | 15 | 14400 s | 10 h |
 | `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
@@ -2846,6 +2854,97 @@ two sections below, committed inside the harness built to validate a fix for it,
 session. **A validation loop that greps output must read the exit code, or it cannot tell a
 clean brief from a checker that died.**
 
+## The quality-review rejection: ship the task, not the workshop (2026-09-04)
+
+`earliest-change-script` went back with the comment-merge rule and **failed the quality
+review on two blocking criteria**, on a bundle whose oracle scored 1 in the real two-image
+trial and which had already cleared the structural check, the AI check, the similarity
+screen and reference verification. Both findings are repo-wide rather than about this task.
+
+### `no extraneous files`: twelve of thirteen bundles here ship a workshop
+
+The reviewer's finding, near enough verbatim: `cheat/` is a recognised convention, but
+`authoring/` and `authoring/variants/ok-cells/` are "development tooling that nothing in the
+build, run, solve or verify path uses", and `verification_explanation` **itself** described
+the variant as kept "outside the bundle" while the archive shipped it.
+
+Measured across the repo, and this is the number that matters:
+
+| bundle | `authoring/` entries in the shipped zip |
+|---|---|
+| `bucket-seal-lag` 42, `share-register-screen` 40, `grant-spread-order` 38 | |
+| `segment-merge-horizon` 37, `turn-seam-alignment` 37, `guard-mark-unwind` 35 | |
+| `pair-hold-reclaim` 33, `lock-priority-unwind` 29, `checkpoint-resume-drift` 19 | |
+| `rollout-cache-coherence` 16, `delta-view-retraction` 16, `earliest-change-script` 9 | |
+| **`typeahead-query-controller`** | **0** |
+
+`typeahead-query-controller` is the only bundle in this repo that has ever **cleared a
+quality review**, and it is the only one that ships no `authoring/`. That is not proof, but
+it is the whole of the evidence and it points one way. `guard-mark-unwind` passed all nine
+gates carrying 35 such entries, so this is a criterion with run-to-run variance rather than
+a hard filter - which is exactly the reading the concision entry above reaches, and the same
+conclusion follows: **a marginal pass is a pass that has not been earned yet.**
+
+The fix is to move the tooling out of `tasks/<slug>/` rather than to teach `package.py` a
+new exclusion, because the kit's scripts stay unmodified here. `authoring/<slug>/` at the
+repo root works, the generators need one path line changed, and the prose claiming the
+variants live outside the bundle becomes true instead of contradicted.
+
+**Mechanised**: `tools/zipcheck.py` now fails an archive containing `authoring/`, `probes/`,
+`dev/` or `scratch/` at any depth. Validated in both directions, which is the rule for a new
+check: it fires on all twelve bundles above and is clean on `typeahead-query-controller` and
+on the repaired archive. **Run it on every bundle before any of them is resubmitted** - this
+is live in twelve of them today.
+
+### `solvable`: the bar is not the one `docs/RULES.md` states, and the estimate must match the budget
+
+The finding: "the reference is ~700 lines of dense algorithmic code comprising three
+independently hard engines [...] the case families are deliberately constructed so none can
+be skipped, and the author's own expert estimate is 24 focused hours. That is days of
+implementation work even for an expert who already knows the approach, exceeding the 'few
+hours at most' bar."
+
+Two things to carry:
+
+- **`docs/RULES.md` says to aim at work a competent expert needs "hours to days" for.** The
+  reviewer applied "a few hours at most". The transcribed guideline does not describe this
+  criterion at all, and neither does `docs/QUALITY-REVIEW.md`, whose criteria list has no
+  `solvable` and no `no extraneous files` row. So the local docs are **incomplete about this
+  gate**, in the same way `preflight.py` was incomplete about the structural check. Do not
+  read a clean walk of `docs/QUALITY-REVIEW.md` as coverage of the quality review.
+- **`expert_time_estimate_hours` has to be coherent with `[agent] timeout_sec`.** This task
+  declared 24 hours against a 4-hour agent budget, a factor of six. Every task here that has
+  passed declares 7 to 8 against the same 4, a factor of two. A reviewer reading "24 focused
+  hours" and a four-hour budget is being told the task is not solvable in the time it gives,
+  whatever the probe result says. Check that ratio at contract time.
+
+**The repair, and the principle that chose it: cut implementation bulk, never the
+derivation.** The bit-parallel row engine went, and the crowded family was made
+frontier-reachable - forty to fifty-five thousand lines over two to six distinct ones
+differing in a few thousand places, rather than sharing no order at all. Reference 740 lines
+to 540, shipped solution 789 to 570, three independently hard engines to two, expert
+estimate 24 hours to 10. The comment tier and the dual-window staircase derivation are
+untouched, so what was removed is textbook recall (bit-parallel LCS with checkpointing) and
+not the thing a solver has to work out. Measured after the cut: medium 8.03 s against 40,
+the eighteen timed pairs 0.13 to 5.08 s against 60 each.
+
+**The general form, worth applying before the next submission rather than after it:** a
+reviewer counts *engines and lines*, and a difficulty probe counts *derivations*. Those are
+not the same axis, and a task can be rejected for having too much of the first while having
+exactly the right amount of the second. When a task needs to get harder, add a derivation
+and delete the bulk that is only there to make it long.
+
+### One process finding, and it is the same one this file already records
+
+Validating the new zipcheck rule across thirteen archives, the loop reported "0 findings"
+for every bundle - because the checker had a syntax error and the loop grepped its output
+without reading the exit code. That is the hollow-gate failure written up under
+`grant-spread-order` and again under `share-register-screen`, committed for the third time,
+inside the harness built to validate a fix for a gate. **A validation loop must read the
+exit code and grep for `Traceback`.** Writing the paragraph clearly has not been enough
+three times running, so the working version is: when a sweep reports a clean result, make it
+prove the subject ran at all.
+
 ## The easiness rejection: I wrote the answer into the brief and called it the input space
 
 `share-register-screen` cleared the structural check, the AI check and the similarity screen
@@ -3842,7 +3941,11 @@ python3 tasks/<slug>/authoring/normalise.py     LF on every shipped text file, a
                                                 authoring scratch that package.py would
                                                 otherwise ship
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes,
-                                                staleness, and MS-DOS entry stamps
+                                                staleness, MS-DOS entry stamps, and any
+                                                development tooling that got swept in.
+                                                `cheat/` is a recognised convention;
+                                                `authoring/` is not, and the quality review
+                                                blocks on it
 python3 tools/zipfix.py <slug>                  rewrite an archive package.py stamped
                                                 MS-DOS. On Windows it always does, and an
                                                 archive that fails this scores 0 on every

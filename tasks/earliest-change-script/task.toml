@@ -9,7 +9,7 @@ author_email = "forgeks0@gmail.com"
 category = "Software"
 subcategory = "Algorithms"
 tags = ["diff", "edit-script", "sequence-alignment", "tie-breaking", "python"]
-expert_time_estimate_hours = 24
+expert_time_estimate_hours = 10
 difficulty_explanation = """
 In the real world this is the job of whoever owns the diff backend of a code \
 review tool, where comments hang off the moves of a script and a script that \
@@ -49,46 +49,35 @@ every distance from the last move, walked from the start; it is completely \
 correct, it passes all 52875 short cases, and it cannot finish the four \
 hundred medium pairs inside their budget, let alone one of the eighteen timed \
 pairs. Every fast technique -- a frontier of furthest-reaching positions, a \
-bit-parallel row, a threshold array -- delivers how many moves remain and \
-nothing else, and the comment count needs its own recurrence, which is only \
-affordable on the cells that lie on some shortest path. The eighteen timed \
-pairs come from three families whose costs are independent of one another, \
-and each is hopeless for whatever answers the other two. Six pairs run from \
-four hundred thousand to a million lines a side and differ in a few hundred \
-places: the frontier names their shortest-path cells at the square of the \
-number of moves, and the keeps it skips over between two decision cells have \
-to be counted rather than skipped, because they are exactly what carries a \
-position away from the last move. Six are a quarter to a third of a million \
-nearly distinct lines put back in a different order, where the answer runs \
-past four hundred thousand moves: thresholds over suffixes give every match \
-the number of keeps a shortest script can still make from it, the matches \
-sharing that number form a staircase, and the recurrence restated over the \
-staircases costs the number of matching positions. That restatement is where \
-the merge bites hardest. Under a rule that counted runs, the matches of the \
-next rank that a given one can reach are one contiguous stretch and one \
+threshold array -- delivers how many moves remain and nothing else, and the \
+comment count needs its own recurrence, which is only affordable on the cells \
+that lie on some shortest path. The eighteen timed pairs sit in two places and \
+neither technique reaches the other. Twelve of them still resemble their \
+partner: six run from four hundred thousand to a million lines a side and \
+differ in a few hundred places, and six are forty to fifty-five thousand lines \
+over two to six distinct ones and differ in a few thousand. Both belong to the \
+frontier, at depths three orders of magnitude apart, and on both of them the \
+keeps it skips over between two decision cells have to be counted rather than \
+skipped, because they are exactly what carries a position away from the last \
+move -- a shortest-script frontier has no reason to look at them at all. The \
+other six are a quarter to a third of a million nearly distinct lines put back \
+in a different order, where the answer runs past four hundred thousand moves: \
+the frontier is out by orders of magnitude and so is the table, and what is \
+left is thresholds over suffixes, which give every match the number of keeps a \
+shortest script can still make from it. The matches sharing that number form a \
+staircase, and the recurrence restated over the staircases costs the number of \
+matching positions rather than the length of the pair. That restatement is \
+where the merge bites hardest. Under a rule that counted runs, the matches of \
+the next rank that a given one can reach are one contiguous stretch and one \
 sliding minimum over it answers the question. Here the keep straight down the \
 diagonal carries the keep count forward while every other keep in the stretch \
 resets it, so that one has to be held out of the minimum rather than compared \
 against it, and holding it out splits the stretch into two -- one more row \
 down, or one more column across -- each of which is contiguous in a staircase \
-and needs a sliding minimum of its own. Six are forty to sixty thousand lines \
-over two to twelve distinct lines, sharing no order, with fifteen to \
-sixty-one thousand moves: the frontier is out by orders of magnitude, the \
-staircases hold a billion matches, and there is no long common run anywhere \
-to cut at. The one cheap thing about such a pair is that rows of the prefix \
-table fit in machine words, and rows give the number of moves alone. Reading \
-the shortest-path cells off them is the derivation the family is built on: a \
-cell is on a shortest path when a drop, an add or a keep from it lands on \
-one; the add and the keep are single bits; and the drop asks whether the \
-table is equal in two consecutive rows at that column, which fails exactly on \
-the stretches between a column where a step appears in the lower row and a \
-column where one disappears, and those alternate, so one subtraction fills \
-every stretch at once. Those cells number three to ten per row on every \
-crowded pair measured, so the recurrence over them is cheap, and listing them \
-any other way is a popcount per cell, which is the table again. A submission \
-carrying the other two engines and nothing for this family passes every \
-correctness block and twelve of the eighteen timed pairs, and scores zero. \
-None of the three can be skipped, and there is no credit for any two.
+and needs a sliding minimum of its own. Leaving it inside is wrong on 877 of \
+the 40875 fixed and enumerated cases. A submission carrying the frontier and \
+nothing else passes every correctness block and twelve of the eighteen timed \
+pairs, and scores zero.
 """
 solution_explanation = """
 The choice at each position depends on two things still reachable from the \
@@ -97,8 +86,8 @@ fast diff computes the first. The second has its own recurrence -- a run of \
 moves that is already open extends for nothing, and a later run opens a \
 comment of its own only once three keeps have gone by -- so a cell carries one \
 count for every number of keeps the walk can arrive with, held at three, and \
-the counts only need to exist on cells that lie on some shortest path. Three engines find those cells three \
-different ways, and each is the cheap one for one family of pairs.
+the counts only need to exist on cells that lie on some shortest path. Two engines find those cells two \
+different ways, and each is the cheap one for one half of the graded pairs.
 
 The frontier, run from the far end, records for each diagonal the earliest \
 position from which the end is reachable in d moves, layer by layer. A \
@@ -111,22 +100,9 @@ alone, and the keeps skipped on the way to each one are counted rather than \
 skipped, because they are what carries a position away from the last move. \
 This costs the square of the number of moves and does not care how long the \
 pair is: a million lines that differ in three hundred places take a fifth of a \
-second, and a pair that shares no order is finished by nobody.
-
-The row engine holds rows of the prefix table one to a machine integer, \
-advanced by the five-operation bit-parallel step, which gives how many moves \
-remain from every position. It then sweeps back up the rows and derives each \
-row's shortest-path cells from the row below with a handful of integer \
-operations: a cell is on a shortest path when a drop, an add or a keep from it \
-lands on one; the add is a bit of the row, the keep a bit of the line's \
-occurrence mask, and the drop needs the table to be equal in the two rows at \
-that column, which fails on the stretches between a column where a step appears \
-below and a column where one disappears -- those alternate, so one subtraction \
-of the two mark sets fills every stretch. Tight adds fill leftward through the \
-row from each seed. The cells that come out are a few per row, the recurrence \
-runs on those, and the whole thing costs the length of the pair times its width \
-in machine words: sixty thousand crowded lines are a few seconds, a million \
-lines would be hours, which is why the frontier exists.
+second, and fifty thousand crowded lines that differ in a few thousand take a \
+couple of seconds. Ask it for a pair that shares no order at all and it is \
+finished by nobody.
 
 The staircase engine holds thresholds over suffixes: for each k, the largest \
 position from which the tail of the other side still shares k lines. One pass \
@@ -146,10 +122,9 @@ the required count is still inside, which is two bisections. This costs the \
 number of matching positions, which on a third of a million nearly distinct \
 lines is half a million, against ninety billion cells.
 
-Dispatch is by cost: two of the three are read off the two lengths, the third \
-has to be counted, and the frontier runs first and is abandoned once the pair \
-needs more moves than the cheaper of the other two would have cost from the \
-start. Two details are load-bearing. Cutting the shared head and tail off \
+Dispatch is by cost: the frontier runs first and is abandoned once the pair \
+needs more moves than the staircases would have cost from the start, a figure \
+that has to be counted, and the pass that counts it pays for itself. Two details are load-bearing. Cutting the shared head and tail off \
 before starting changes the answer, because a drop is preferred over a keep \
 whenever both leave the script shortest and as cheap in comments. And a pair \
 of counts per cell is not enough: what a cell can promise depends on how far \
@@ -181,12 +156,11 @@ they admit, before anything is graded against it. The model cannot run on a \
 fifty thousand line pair, so the larger blocks are graded against the fast \
 implementation instead, and a test asserts the two agree on all 40875 fixed \
 and enumerated cases before any of those answers count. The fast \
-implementation carries three engines and the agreement test covers all of \
-them: each is forced on in turn and held to the definitional model on all \
-40875 cases by itself, because a hybrid that is only ever exercised on one \
-side of its own crossover is a hybrid whose other sides are untested, and two \
-of the three are never reached by any pair small enough for the model to run \
-on.
+implementation carries two engines and the agreement test covers both: each is \
+forced on in turn and held to the definitional model on all 40875 cases by \
+itself, because a hybrid that is only ever exercised on one side of its own \
+crossover is a hybrid whose other side is untested, and one of the two is \
+never reached by any pair small enough for the model to run on.
 
 Part of the distribution moves each run: the twelve thousand random pairs, the \
 four hundred medium ones and all eighteen large ones come from a seed drawn by \
@@ -216,7 +190,7 @@ Five more submissions were built against the shape of the task rather than \
 against the verifier, because a stopping point that passes everything a person \
 would think to test is worth more than another attack on the reward file. The \
 first counts runs of moves rather than comments -- the whole task built \
-properly, three exact engines with every tie inside them derived, which is \
+properly, both engines exact with every tie inside them derived, which is \
 what a careful reading that misses one sentence produces: 9160 of 12000 \
 random pairs and 10657 of 40804 enumerated ones, inside every budget. The \
 second is that submission with the run-sliding pass every diff tool carries \
@@ -225,9 +199,10 @@ way a diff prints one, minus lines and plus lines as two blocks, wrong on \
 9111 and 8821. The fourth finds the shortest-path restriction and evaluates \
 the comment recurrence at every such cell: it passes every correctness block and the six \
 long pairs, and never answers the twelve that share no order. The fifth is \
-the frontier and the staircases with nothing for the crowded family, which is \
-the natural place to stop once the other two families are answered: every \
-correctness block, twelve of the eighteen timed pairs, and zero. An alternative correct \
+the frontier with nothing for the pairs that share no order, which is the \
+natural place to stop once every pair the worked examples resemble is \
+answered: every correctness block, twelve of the eighteen timed pairs, and \
+zero. An alternative correct \
 implementation is kept with the authoring tooling outside the bundle and must \
 score 1: the per-cell recurrence on the frontier's side with the row and \
 staircase engines behind it, which clears every budget, and that is what makes \
@@ -236,9 +211,9 @@ the budgets fair.
 Budgets were measured in the real two-image trial at the declared two cores \
 and four gigabytes, on a sandbox whose speed was seen to drift by a factor of \
 three to four within one session, so they are set from the slowest state \
-observed rather than the fastest: the reference spends between six and \
-fifteen seconds on the dearest pair depending on that state, against \
-sixty, and the medium block between five and fifteen against forty. \
+observed rather than the fastest: the reference spends between five and \
+fourteen seconds on the dearest pair depending on that state, against sixty, \
+and the medium block between eight and twenty-two against forty. \
 Nothing the timings separate is near either line: the table and the per-cell \
 submission are out by orders of magnitude, and the alternative correct \
 implementation kept beside the cheats clears both with room to spare.

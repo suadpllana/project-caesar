@@ -50,6 +50,27 @@ def resolve(arg: str) -> Path:
     raise SystemExit(1)
 
 
+# Directories a submission has no business shipping. The quality review blocked
+# earliest-change-script on 2026-09-04 for shipping authoring/: development
+# tooling that nothing in the build, run, solve or verify path uses. Twelve of
+# the thirteen bundles here shipped one; typeahead-query-controller, the only
+# bundle that has ever cleared a quality review, shipped none.
+TOOLING_DIRS = ("authoring", "probes", "dev", "scratch")
+
+
+def tooling_findings(names) -> list:
+    found = {}
+    for name in names:
+        parts = name.split("/")
+        for index, part in enumerate(parts[:-1]):
+            if part in TOOLING_DIRS:
+                found.setdefault("/".join(parts[:index + 1]), 0)
+                found["/".join(parts[:index + 1])] += 1
+    return ["development tooling in the archive: %s (%d files) - nothing in the "
+            "build, run, solve or verify path reads it" % (where, count)
+            for where, count in sorted(found.items())]
+
+
 def check(zpath: Path) -> int:
     findings: list[str] = []
     zf = zipfile.ZipFile(zpath)
@@ -85,6 +106,8 @@ def check(zpath: Path) -> int:
     for i in zf.infolist():
         if i.filename.endswith(".sh") and i.create_system == 3 and (i.external_attr >> 16) & 0o111 == 0:
             findings.append("not executable in the archive: %s" % i.filename)
+
+    findings.extend(tooling_findings(names))
 
     # 3. The instruction suffix, tested on the raw bytes rather than a stripped line, so a
     #    trailing \r is a finding instead of being silently normalised away.

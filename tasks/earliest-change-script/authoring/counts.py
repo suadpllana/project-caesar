@@ -1,64 +1,58 @@
 #!/usr/bin/env python3
-"""How wrong each cheat is on the short blocks, counted rather than asserted.
+"""How far each wrong reading is from the rule, on the blocks that are graded.
 
-Every figure quoted in task.toml about a cheat's answers comes from here. Run
-it after any change to the rule, the case generator or a cheat; a figure in
-the prose that this script no longer prints is stale.
-
-  python3 authoring/counts.py            all cheats, seed 1 for the random block
+Every number quoted in task.toml and in the cheat docstrings comes from here.
+A reading that moves only a handful of cases is a lottery ticket rather than a
+test of expertise, and one that moves none is a cheat that proves nothing, so
+the point of this script is to keep those claims measured rather than argued.
 """
 
-import importlib.util
 import pathlib
 import sys
-import time
 
 TASK = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TASK / "tests"))
+sys.path.insert(0, str(TASK / "cheat"))
 
-import casegen  # noqa: E402
-import oracle  # noqa: E402
+import casegen
+import oracle
 
-SEED = 1
-SLOW = {"table_walk.py", "split_hunks.py"}   # quadratic; skip pairs over 40 lines
+N_RANDOM = 12000
 
-
-def load(path):
-    spec = importlib.util.spec_from_file_location(path.stem, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-def count(module, cases):
-    wrong = 0
-    for before, after in cases:
-        try:
-            got = [tuple(op) for op in module.changes(before, after)]
-        except Exception:
-            got = None
-        if got != [tuple(op) for op in oracle.script(before, after)]:
-            wrong += 1
-    return wrong
+READINGS = [
+    "count_runs_not_comments",
+    "lex_first_only",
+    "slide_the_runs_afterwards",
+    "split_the_replacements",
+    "delegate_to_difflib",
+    "table_walk",
+    "two_engines_only",
+    "cells_on_shortest_paths",
+]
 
 
 def main():
-    fixed = list(casegen.FIXED)
-    structured = casegen.structured_cases()
-    random_block = casegen.random_cases(12000, SEED)
-    truth = {}
-    print("%-32s %10s %10s %10s" % ("submission", "fixed", "enumerated", "random"))
-    for path in sorted((TASK / "cheat").glob("*.py")) + sorted(
-            (TASK / "authoring" / "variants").glob("*/change_script.py")):
-        label = path.name if path.parent.name == "cheat" else "variant " + path.parent.name
-        module = load(path)
-        started = time.time()
-        rows = [count(module, fixed), count(module, structured),
-                count(module, random_block)]
-        print("%-32s %10d %10d %10d   (%d, %d, %d cases, %.0fs)"
-              % (label, rows[0], rows[1], rows[2], len(fixed),
-                 len(structured), len(random_block), time.time() - started))
-        sys.stdout.flush()
+    shapes = casegen.shapes()
+    blocks = [
+        ("fixed", list(casegen.FIXED)),
+        ("enumerated", [([c for c in u], [c for c in v])
+                        for u in shapes for v in shapes]),
+        ("random", casegen.random_cases(N_RANDOM, 0)),
+    ]
+    truth = {label: [[tuple(op) for op in oracle.script(b, a)] for b, a in cases]
+             for label, cases in blocks}
+    print("%-26s %s" % ("reading", "  ".join("%-16s" % label
+                                             for label, _ in blocks)))
+    for name in READINGS:
+        module = __import__(name)
+        row = []
+        for label, cases in blocks:
+            wrong = 0
+            for (b, a), expected in zip(cases, truth[label]):
+                if [tuple(op) for op in module.changes(b, a)] != expected:
+                    wrong += 1
+            row.append("%-16s" % ("%d/%d" % (wrong, len(cases))))
+        print("%-26s %s" % (name, "  ".join(row)))
 
 
 if __name__ == "__main__":

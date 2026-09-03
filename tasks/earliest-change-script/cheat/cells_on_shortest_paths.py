@@ -1,24 +1,24 @@
 """Deliberate cheating attempt. NEVER executed by the pipeline.
 
 Strategy: find the shortest-path restriction and stop there. The frontier
-says which cells lie on some shortest script, the hunk recurrence is
-evaluated at every one of them, and the walk reads the counts off. That is
-the whole task solved for two of the three families: a million lines that
-differ in a few hundred places are a million cells and a couple of seconds,
-and fifty thousand crowded lines that differ in a few thousand are a few
-seconds more. Every correctness block passes.
+says which cells lie on some shortest script, the comment recurrence is
+evaluated at every one of them, and the walk reads the counts off. Nothing
+about the rule is misread: the keeps since the last move are carried through
+the walk and the merge is applied exactly, so every correctness block passes.
+That is the whole task solved for the long family, where a million lines that
+differ in a few hundred places are a million cells and a couple of seconds.
 
-It has nothing for the third family. A third of a million nearly-distinct
-lines put back in a different order need half a million moves, so the
-frontier is out by orders of magnitude and is abandoned, and what is left
-is the table, which is out by more. Nor would a cheaper way of listing the
-shortest-path cells save it: between one keep and the next, every monotone
-path through the rectangle between them is a shortest path, so the cells to
-visit are the areas of those rectangles rather than the number of matches.
-The pairs those rectangles belong to are the ones no pair small enough to
-check by hand ever looks like. Six of the eighteen timed pairs are never
-answered, and it scores zero.
+It has nothing for the other two. A pair that shares no order needs tens or
+hundreds of thousands of moves, so the frontier is out by orders of magnitude
+and is abandoned, and what is left is the table, which is out by more. Nor
+would a cheaper way of listing the shortest-path cells save it on the sparse
+family: between one keep and the next, every monotone path through the
+rectangle between them is a shortest path, so the cells to visit are the
+areas of those rectangles rather than the number of matches. Twelve of the
+eighteen timed pairs are never answered, and it scores zero.
 """
+
+
 
 
 
@@ -26,6 +26,11 @@ answered, and it scores zero.
 # Above this depth the layers alone would not fit in the memory the task is
 # graded with, so the frontier is never allowed to run past it.
 _FRONTIER_CAP = 5000
+
+# How many kept lines it takes to end a comment.
+CONTEXT = 3
+_FAR = CONTEXT
+_ZERO = (0,) * (CONTEXT + 1)
 
 
 def changes(before, after):
@@ -108,70 +113,68 @@ def _cells_engine(a, b, n, m, layers):
         keep = i < n and j < m and a[i] == b[j]
         return drop, add, keep
 
-    quiet = {n * width + m: 0}
-    inrun = {n * width + m: 0}
+    vals = {n * width + m: _ZERO}
     stack = [(0, 0, total, False)]
     while stack:
         i, j, r, ready = stack.pop()
         key = i * width + j
-        if key in quiet:
+        if key in vals:
             continue
         drop, add, keep = choices(i, j, r)
         if not ready:
             stack.append((i, j, r, True))
-            if drop and (i + 1) * width + j not in quiet:
+            if drop and (i + 1) * width + j not in vals:
                 stack.append((i + 1, j, r - 1, False))
-            if add and key + 1 not in quiet:
+            if add and key + 1 not in vals:
                 stack.append((i, j + 1, r - 1, False))
-            if keep and key + width + 1 not in quiet:
+            if keep and key + width + 1 not in vals:
                 stack.append((i + 1, j + 1, r, False))
             continue
-        best0 = best1 = 1 << 30
+        moved = 1 << 30
         if drop:
-            v = inrun[key + width]
-            if v < best1:
-                best1 = v
-            if v + 1 < best0:
-                best0 = v + 1
+            v = vals[key + width][0]
+            if v < moved:
+                moved = v
         if add:
-            v = inrun[key + 1]
-            if v < best1:
-                best1 = v
-            if v + 1 < best0:
-                best0 = v + 1
-        if keep:
-            v = quiet[key + width + 1]
-            if v < best1:
-                best1 = v
-            if v < best0:
-                best0 = v
-        quiet[key] = best0
-        inrun[key] = best1
+            v = vals[key + 1][0]
+            if v < moved:
+                moved = v
+        best = [1 << 30] * (CONTEXT + 1)
+        for s in range(CONTEXT + 1):
+            if moved < 1 << 30:
+                got = moved + 1 if s == _FAR else moved
+                if got < best[s]:
+                    best[s] = got
+            if keep:
+                v = vals[key + width + 1][s + 1 if s < _FAR else _FAR]
+                if v < best[s]:
+                    best[s] = v
+        vals[key] = tuple(best)
 
     ops = []
     emit = ops.append
     i = j = 0
     r = total
-    open_run = False
+    s = _FAR
     while i < n or j < m:
         key = i * width + j
         drop, add, keep = choices(i, j, r)
-        want = inrun[key] if open_run else quiet[key]
-        cost = 0 if open_run else 1
-        if drop and inrun[key + width] + cost == want:
+        want = vals[key][s]
+        cost = 1 if s == _FAR else 0
+        if drop and vals[key + width][0] + cost == want:
             emit(["-", i])
             i += 1
             r -= 1
-            open_run = True
-        elif add and inrun[key + 1] + cost == want:
+            s = 0
+        elif add and vals[key + 1][0] + cost == want:
             emit(["+", j])
             j += 1
             r -= 1
-            open_run = True
+            s = 0
         else:
             i += 1
             j += 1
-            open_run = False
+            s = s + 1 if s < _FAR else _FAR
     return ops
 
 
@@ -179,59 +182,70 @@ def _cells_engine(a, b, n, m, layers):
 INF = (1 << 30, 1 << 30)
 
 
-def _table(before, after):
+def _table_of(before, after):
+    """rest[s][i][j]: the best (moves, comments) pair a completion from (i, j)
+    can reach when s keeps have gone by since the last move, s held at CONTEXT
+    once it gets there. A move costs a comment only when s is already at the
+    cap, which is what merges two runs a line or two apart; any move puts s
+    back to zero and a keep raises it by one."""
     n, m = len(before), len(after)
-    quiet = [[INF] * (m + 1) for _ in range(n + 1)]
-    inrun = [[INF] * (m + 1) for _ in range(n + 1)]
-    quiet[n][m] = inrun[n][m] = (0, 0)
+    rest = [[[INF] * (m + 1) for _ in range(n + 1)] for _ in range(CONTEXT + 1)]
+    for s in range(CONTEXT + 1):
+        rest[s][n][m] = (0, 0)
     for i in range(n, -1, -1):
         line = before[i] if i < n else None
         for j in range(m, -1, -1):
             if i == n and j == m:
                 continue
-            best0 = best1 = INF
-            if i < n:
-                moves, hunks = inrun[i + 1][j]
-                if (moves + 1, hunks) < best1:
-                    best1 = (moves + 1, hunks)
-                if (moves + 1, hunks + 1) < best0:
-                    best0 = (moves + 1, hunks + 1)
-            if j < m:
-                moves, hunks = inrun[i][j + 1]
-                if (moves + 1, hunks) < best1:
-                    best1 = (moves + 1, hunks)
-                if (moves + 1, hunks + 1) < best0:
-                    best0 = (moves + 1, hunks + 1)
-            if i < n and j < m and line == after[j]:
-                pair = quiet[i + 1][j + 1]
-                if pair < best1:
-                    best1 = pair
-                if pair < best0:
-                    best0 = pair
-            quiet[i][j] = best0
-            inrun[i][j] = best1
+            keeps = i < n and j < m and line == after[j]
+            for s in range(CONTEXT + 1):
+                charge = 1 if s == CONTEXT else 0
+                best = INF
+                if i < n:
+                    moves, comments = rest[0][i + 1][j]
+                    pair = (moves + 1, comments + charge)
+                    if pair < best:
+                        best = pair
+                if j < m:
+                    moves, comments = rest[0][i][j + 1]
+                    pair = (moves + 1, comments + charge)
+                    if pair < best:
+                        best = pair
+                if keeps:
+                    pair = rest[s + 1 if s < CONTEXT else CONTEXT][i + 1][j + 1]
+                    if pair < best:
+                        best = pair
+                rest[s][i][j] = best
+    return rest
 
+
+def _table(before, after):
+    n, m = len(before), len(after)
+    rest = _table_of(before, after)
     i = j = 0
-    open_run = False
+    s = CONTEXT
     ops = []
     while i < n or j < m:
-        want = inrun[i][j] if open_run else quiet[i][j]
-        cost = 0 if open_run else 1
+        want = rest[s][i][j]
+        charge = 1 if s == CONTEXT else 0
         if i < n:
-            moves, hunks = inrun[i + 1][j]
-            if (moves + 1, hunks + cost) == want:
-                ops.append(("-", i))
+            moves, comments = rest[0][i + 1][j]
+            if (moves + 1, comments + charge) == want:
+                ops.append(["-", i])
                 i += 1
-                open_run = True
+                s = 0
                 continue
         if j < m:
-            moves, hunks = inrun[i][j + 1]
-            if (moves + 1, hunks + cost) == want:
-                ops.append(("+", j))
+            moves, comments = rest[0][i][j + 1]
+            if (moves + 1, comments + charge) == want:
+                ops.append(["+", j])
                 j += 1
-                open_run = True
+                s = 0
                 continue
+        assert i < n and j < m and before[i] == after[j]
+        nxt = s + 1 if s < CONTEXT else CONTEXT
+        assert rest[nxt][i + 1][j + 1] == want
         i += 1
         j += 1
-        open_run = False
+        s = nxt
     return ops

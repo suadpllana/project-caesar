@@ -87,6 +87,13 @@ def test_no_submitted_module_reached_this_process():
     assert "change_script" not in sys.modules
 
 
+def test_the_two_files_agree_on_what_ends_a_comment():
+    """The model and the fast implementation each carry the number, because
+    neither may import the other. A test is the only thing holding them
+    together, and every answer in the task moves if they drift."""
+    assert oracle.CONTEXT == reference.CONTEXT
+
+
 def test_the_definitional_model_is_the_rule_by_exhaustion():
     """The definitional model is a table. The rule is a sentence about every
     script a pair admits. On pairs short enough to enumerate every script,
@@ -111,13 +118,13 @@ def test_the_two_models_agree_before_anything_larger_is_graded():
     assert not disagree, "%d cases split the two models" % len(disagree)
 
 
-@pytest.mark.parametrize("engine", ["frontier", "pairs"])
+@pytest.mark.parametrize("engine", ["frontier", "rows", "pairs"])
 def test_every_engine_of_the_fast_model_is_checked(engine):
-    """The fast implementation dispatches between two engines and the short
+    """The fast implementation dispatches between three engines and the short
     cases all land on the same one, so the test above never exercises the
-    other. Each is forced on here and held to the definitional model on its
-    own. A hybrid only ever exercised on one side of its own crossover is a
-    hybrid whose other side is untested."""
+    other two. Each is forced on here and held to the definitional model on
+    its own. A hybrid only ever exercised on one side of its own crossover is
+    a hybrid whose other sides are untested."""
     disagree = [(before, after) for before, after in FIXED + STRUCTURED
                 if [tuple(op) for op in reference.changes(before, after, engine)]
                 != [tuple(op) for op in oracle.script(before, after)]]

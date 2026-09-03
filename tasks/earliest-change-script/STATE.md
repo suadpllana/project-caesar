@@ -5,24 +5,25 @@ reads it. The durable lessons live in the repo's CLAUDE.md.
 
 ## Current stage
 
-`Stage 7 — gates`, after an **easiness rejection (3 of 3)** on 2026-09-02 and the rule
-change that answers it. Not yet resubmitted.
+`Stage 7 — gates`, after an **easiness rejection (2 of 3)** on 2026-09-03 and the rule
+change that answers it. Not yet resubmitted, not re-probed.
 
 ## Task summary
 
 Given two lists of lines, return the shortest edit script under a three-tier rule: fewest
-moves; of those, fewest hunks, a hunk being a maximal run of consecutive moves in the
-reading; of those, the reading that comes first with drop ahead of add ahead of keep.
-Graded on 52865 correctness cases, 400 medium pairs sharing a 40 s budget, and 18 large
-pairs with 60 s of wall clock each, measured from outside the process.
+moves; of those, fewest comments, where a comment covers a run of moves together with any
+later run that fewer than three kept lines separate from it; of those, the reading that
+comes first with drop ahead of add ahead of keep. Graded on 52875 correctness cases, 400
+medium pairs sharing a 40 s budget, and 18 large pairs with 60 s of wall clock each,
+measured from outside the process.
 
 ## Why it is hard
 
 - Expert time estimate: 24 hours
-- Why a frontier agent cannot one-shot the plan (the strategic answer — required): every fast diff technique computes how many moves remain from a position and nothing else, and the reading-order tier is a greedy walk over exactly that number, so the engines an expert recalls answer the first and third tiers natively and are wrong on the second on a quarter of the enumerated block; the hunk count is a second quantity with its own recurrence that is only affordable on the cells that lie on some shortest path, and the natural implementation of that restriction, one cell at a time, is correct on the two families a solver can reach with a frontier and dies on the third, where the shortest-path cells between one match and the next are whole rectangles and only a formulation over the matches themselves, by rank, is finite.
-- Tactics making that true: prong A, since every existing diff answers the first tier and slides hunks afterwards by a heuristic that neither minimises them nor respects the reading order, and prong C, since the third family is the only place the per-cell formulation fails and no pair small enough to check against the table looks like it.
-- Assistant's attack on the plan (its first plan, and where that plan is wrong): the first plan is the table of (moves, hunks) pairs walked from the start, which is completely correct, passes all 52865 short cases and cannot finish the medium block; the second plan is the shortest-script engines from the previous version of this task with the hunk count repaired afterwards by sliding, which is wrong on 6352 of the enumerated cases; the third plan is the frontier with the hunk recurrence on every shortest-path cell, which is correct everywhere and answers twelve of the eighteen timed pairs.
-- Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): 2 of 8. The easiness probe solved the previous version 3 of 3 with a strict superset of the reference built in three hours; the added tier removes every recalled engine's sufficiency and adds two derivations, and the honest estimate is that one such agent in four finishes both inside four hours.
+- Why a frontier agent cannot one-shot the plan (the strategic answer — required): the second tier is not the quantity the word invites, so a position cannot carry a flag saying whether a run is open; it has to carry how many keeps have gone by since the last move, and every one of the three engines an expert recalls delivers how many moves remain and nothing else, so all three have to be rebuilt around a state they were never written to hold. The staircase engine is where that bites hardest: under a rule counting runs the reachable matches of the next rank are one contiguous stretch and one sliding minimum answers the question, and under this rule the keep straight down the diagonal carries the count forward where every other keep resets it, so it has to be held out of the minimum, which splits the stretch into two windows and is the only formulation that stays finite on the sparse family.
+- Tactics making that true: prong A, since every existing diff answers the first tier and then slides runs afterwards by a heuristic that neither merges them the way a reader does nor respects the reading order, and prong C, since the third family is the only place the per-cell formulation fails and no pair small enough to check against the table looks like it.
+- Assistant's attack on the plan (its first plan, and where that plan is wrong): the first plan is the table of (moves, comments) pairs walked from the start, which is completely correct, passes all 52875 short cases and cannot finish the medium block; the second plan is the three engines with the second tier read as the number of runs of moves, which is what a careful reading that misses one sentence produces and is wrong on 10657 of the enumerated cases and 9160 of the random ones; the third plan is that submission with the sliding pass every diff tool carries bolted on afterwards, wrong on 13615 and 9082.
+- Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): 2 of 8. The easiness probe solved the fewest-runs version 2 of 3, both solvers finishing in about a third of their budget, so the added state is not the whole answer; what it buys is that the recalled engines are no longer sufficient and the staircase reformulation has to be found rather than transcribed.
 
 ## Verifier contract (frozen)
 
@@ -30,65 +31,50 @@ Three processes. A child imports the module and holds no expected value, no cloc
 verdict. A parent harness never imports it and takes every measurement that counts. A third
 account grades with pytest and asserts no submitted module reached its own `sys.modules`.
 Graded all-or-nothing on exact move sequences plus per-case wall clock. The definitional
-model is a two-state table over (moves, hunks) pairs, held to an exhaustive enumeration of
-every script on 15252 short pairs; the fast implementation is held to the model on all
-40865 fixed and enumerated cases with each of its two engines forced in turn.
+model is a table over (moves, comments) pairs carrying keeps-since-the-last-move as its
+state, held to an exhaustive enumeration of every script on 15256 short pairs; the fast
+implementation is held to the model on all 40875 fixed and enumerated cases with each of
+its three engines forced in turn. `oracle.CONTEXT` and `reference.CONTEXT` are held equal
+by a test, since neither file may import the other.
 
-## The 2026-09-02 easiness rejection, and the fix
+## The 2026-09-03 easiness rejection, and the fix
 
-3 of 3. The trajectory is at `probes/earliest-change-script/` with notes. The agent derived
-the greedy on sight from the stated rule, wrote a brute-force oracle first, built four
-engines including the journaled-thresholds one, and forced each on small inputs against
-its oracle. Its module was a superset of the reference, so no budget could separate them.
+2 of 3, with all three trajectories supplied. Both solvers rebuilt the reference's three
+engines from scratch and finished in roughly 50 to 85 minutes of a four-hour budget; the
+one that failed built the same four engines and lost on speed, most likely the medium
+block. So the binding constraint was engineering stamina rather than any derivation, and
+neither a tighter budget nor more of the same work would have moved it: the solvers had
+two and a half hours spare.
 
-The repair is a second tier to the rule, fewest hunks among shortest scripts. Measured:
+The repair changes what is computed. Two runs of moves that fewer than three kept lines
+separate are one comment, so the second tier is no longer the number of runs. Measured
+against the graded blocks:
 
-| | fixed (61) | enumerated (40804) | random (12000) |
+| reading | fixed (71) | enumerated (40804) | random (12000) |
 |---|---|---|---|
-| previous reference, reading order only | 9 | 9885 | 8601 |
-| plus hunk sliding afterwards | 12 | 6352 | 7263 |
-| drops and adds as separate hunks | 7 | 10436 | 4696 |
-| difflib | 28 | 20243 | 10130 |
-| table, per-cell frontier, ok-cells variant | 0 | 0 | 0 |
+| counting runs of moves, three exact engines | 20 | 10657 | 9160 |
+| plus the sliding pass every diff tool carries | 31 | 13615 | 9082 |
+| drops and adds as separate runs | 9 | 8821 | 9111 |
+| the shortest script, reading order only | 7 | 870 | 4374 |
+| difflib | 44 | 26916 | 11085 |
+| the table; the per-cell frontier; `ok-cells` | 0 | 0 | 0 |
 
-Container timings on the 2026-09-02 sandbox at `cpus = 2, memory_mb = 4096`, before
-scaling by the 2.7 host factor recorded in `tools/ecs_trial.py`:
+What the change costs the reference, measured on this sandbox, old build against new:
 
-| block | reference | budget |
+| block | counting runs | counting comments |
 |---|---|---|
-| cases | 4.4 s | 900 s |
-| medium (400) | 3.4 s | 60 s |
-| timed, long | 0.38–0.74 s | 60 s |
-| timed, crowded | 0.76–3.12 s | 60 s |
-| timed, sparse | 4.44–5.77 s | 60 s |
+| medium (400) | 4.34 s | 5.40 s |
+| timed 6 (crowded) | 2.77 s | 3.49 s |
+| timed 9 (crowded) | 5.21 s | 5.42 s |
+| timed 12 (sparse) | 4.62 s | 4.83 s |
+| timed 16 (sparse) | 4.77 s | 5.10 s |
 
-**The sandbox's speed drifted by 3-4x within the session.** The same container, image and
-pair measured 4.6 s at 19:00 and 11-21 s at 20:05, with nothing else running and the
-child's peak RSS at 472 MB, so it is not memory. The budgets above were widened to 60 s
-per pair and 40 s for the medium block on the strength of the slow state; nothing the
-timings separate is within an order of magnitude of either line.
+So the extra state costs between 1.04x and 1.26x and no budget had to move. The 18 timed
+pairs run 0.17 to 5.58 s against 60 s, and the medium block 5.40 s against 40 s.
 
-Final `--margins` on the rebuilt image (budgets 60 s / 40 s): oracle 1, `ok-cells` 1, every
-block inside its budget with a worst headroom of **2.3x after scaling by 2.7** (timed case
-17, 9.9 s here); the sparse family otherwise 4.4-5.9 s here, crowded 1.1-3.7 s, long under
-0.7 s, medium 3.6 s.
-
-## The two-image trial, 2026-09-02
-
-`tools/ecs_trial.py` on the sandbox, `--cpus=2 --memory=4096m`, apt layer dropped:
-
-| submission | reward | caught by |
-|---|---|---|
-| oracle | 1 | - |
-| nop | 0 | every correctness block and both budgets |
-| variant `ok-cells` | **1** | - |
-| `lex_first_only` | 0 | fixed, random, enumerated, medium, large answers |
-| `slide_hunks_afterwards` | 0 | fixed, random, enumerated, medium, large answers |
-| `split_hunks` | 0 | every answer block, and both budgets |
-| `delegate_to_difflib` | 0 | every answer block, and the large budget |
-| `forge_the_result` | 0 | the tamper record, and every answer block |
-| `table_walk` | 0 | medium answers and budget, large answers and budget |
-| `cells_on_shortest_paths` | 0 | large answers only: the six sparse pairs never come back |
+**Calibration for the next session:** the reference answers timed case 13 in 4.04 s and the
+whole medium block in 5.40 s on this host. Measure those two before trusting any timing
+recorded here.
 
 ## Gates not run here
 
@@ -96,4 +82,4 @@ block inside its budget with a worst headroom of **2.3x after scaling by 2.7** (
   403 through the egress proxy. `tools/ecs_trial.py` drops it, which costs `pkill`, so the
   teardown between the sandbox account and the grading account is the one shipped defence
   the local trial does not exercise.
-- The three-agent probe was not run on the new rule this session.
+- The three-agent probe was not run on the new rule: the account hit its session limit.

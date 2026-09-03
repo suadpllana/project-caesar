@@ -12,7 +12,17 @@ the one the difficulty argument called non-recallable, and forced each on small 
 against its oracle. Its module was a superset of the reference, so no budget could separate
 them. The mechanism was at its ceiling and the rule changed - a second tier, fewest hunks
 among shortest scripts - which is written up in "A pure function at its ceiling: change what
-is computed" below. **Not re-probed.** The earlier reference-verification rejection (a budget
+is computed" below.
+
+**That fewest-hunks build was re-probed on 2026-09-03 and came back 2 of 3**, which is
+progress and still a rejection. Its three trajectories kill the obvious next move: **both
+solvers finished in roughly 50 to 85 minutes of a four-hour budget**, so they had two and a
+half hours spare and piling on work would not have stopped them. The one that failed built
+the same engines and lost on speed. What was done instead, and what it cost, is in "When the
+solvers finish early, more work is not the lever" below. **Not re-probed** - the account hit
+its session limit before the three-agent probe could run.
+
+The earlier reference-verification rejection (a budget
 measured on the wrong machine) is still in "The reference-verification rejection" below, and
 its one-line version still holds: **a budget measured on the authoring host is a guess about
 the graded one** - this session measured the same code 2.7x faster on today's sandbox than
@@ -50,6 +60,18 @@ request. Two consequences worth holding:
   base that no longer exists.
 - **Push the merge, not a rebase.** Other sessions may already have the old commits.
 
+**Measured again on 2026-09-03, and worse than a stale branch: two different repairs of the
+same rejection existed, and only one was ever submitted.** The zip the pipeline probed had
+**three** engines and three timed families; `main` carried a **two**-engine build of the same
+rule, with a different `instruction.md`, a different `casegen.py` and a cheat the other did
+not have. Neither was an ancestor of the other - the submitted `instruction.md` matches no
+blob in this repo's history, on any branch. So the rule in "The bundle in the repo was three
+repairs behind" generalises past staleness: **the repo tree and the submitted archive can be
+siblings rather than one being ahead.** Diff them before editing either, and reconcile toward
+the artifact the pipeline actually saw, because that is the one the trajectories are about.
+`git rev-parse <commit>:<path>` against `git hash-object <extracted file>` answers it in
+seconds and is worth running before any repair.
+
 **Measured correction, 2026-09-01: two sessions editing this file in the same sitting do
 conflict, and the earlier note here that predicted a clean auto-merge was wrong.** It was
 written from one branch (PR #12, since merged) and generalised. The guard-mark-unwind branch
@@ -75,7 +97,7 @@ task's rejection history gets silently reverted.
 | `turn-seam-alignment` | ML / Training | 16 | 62 | 14400 s | 7 h |
 | `delta-view-retraction` | Software / Databases | 26 | 158 | 14400 s | 8 h |
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
-| `earliest-change-script` | Software / Algorithms | 7 | 15 | 14400 s | 24 h |
+| `earliest-change-script` | Software / Algorithms | 9 | 16 | 14400 s | 24 h |
 | `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
 | `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
@@ -453,6 +475,95 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## When the solvers finish early, more work is not the lever (2026-09-03)
+
+`earliest-change-script` came back **2 of 3** from the easiness probe on the fewest-hunks
+build, with all three trajectories supplied. Read this before answering any probe rejection
+where the agents *finished*, because the diagnosis inverts the instinct.
+
+**The number that decides the repair is the runtime, again, and this time it points the
+other way.** The 0-of-8 section above says eight agents completing at 16-34 minutes against
+240 means they stopped early and a hint about trying harder cannot reach them. Here two
+agents *solved* it in 50 and 85 minutes of the same 240. The failing one also finished, and
+lost on speed. So the binding constraint was engineering stamina, and **every lever that
+adds work is spent against two and a half spare hours**. A bigger state, a fourth family,
+a tighter budget: all of them are absorbed by an agent that still has most of its budget.
+
+Three levers were measured and rejected before the one that shipped:
+
+| lever | why it does nothing here |
+|---|---|
+| tighten the timing budgets | the discriminator would be the medium block, and CLAUDE.md already records this sandbox drifting 3-4x within one session; a fence that close is a lottery on host speed, and the reference's own headroom is what a reference-verification rejection is measured against |
+| a fourth graded family | the three families already bracket what pure Python can do. Large-and-crowded is infeasible for the reference too - rows cost n*m/64, so 300k lines over four distinct ones is 111 s - and a brief that promises a regime the reference cannot grade is a lottery |
+| more engines / more state | the solvers rebuilt the reference's three engines from scratch in an hour. Another one is another hour they have |
+
+**What was left is what the rule counts.** The second tier became: two runs of moves that
+fewer than three kept lines separate are one comment. It is one sentence, the definitional
+model stays a small table, and it is checkable by exhaustion - so it is fair, and a solver's
+own brute-force oracle still catches every misreading at small size. What it buys is not
+difficulty by obscurity but that **the recalled machinery stops being sufficient**:
+
+- A position can no longer carry a flag. "Is a run open" becomes "how many keeps since the
+  last move, capped", so all three engines carry CONTEXT + 1 numbers per cell where a
+  shortest-script engine carries none.
+- The frontier's skip-to-the-next-decision-cell optimisation breaks: the keeps it skips over
+  are exactly what carries a position away from the last move, so the stretch has to be
+  measured rather than skipped.
+- **The staircase engine's single sliding window breaks, and this is the part worth
+  copying.** Under a rule counting runs, the reachable matches of the next rank are one
+  contiguous stretch and one sliding minimum answers the question - which is what both
+  solving trajectories built, in those words. Under the merge, the keep straight down the
+  diagonal carries the count forward while every other keep in the stretch resets it, so it
+  must be held *out* of the minimum rather than compared against it. Including it silently
+  under-counts, because the value is monotone in the state. Holding it out splits the
+  stretch into two - one more row down, or one more column across - each contiguous in a
+  staircase, so it is two windows and not one. That is the "second discovery invalidates the
+  natural implementation of the first" shape landing on the one family where no other
+  formulation is finite.
+
+**Measured, which is what says it is not a lottery.** Against the graded blocks (71 fixed,
+40804 enumerated, 12000 random):
+
+| reading | fixed | enumerated | random |
+|---|---|---|---|
+| counting runs of moves, three exact engines - the previous rule | 20 | 10657 | 9160 |
+| plus the sliding pass every diff tool carries | 31 | 13615 | 9082 |
+| drops and adds as separate runs | 9 | 8821 | 9111 |
+| the shortest script, reading order only | 7 | 870 | 4374 |
+| difflib | 44 | 26916 | 11085 |
+| the table; the per-cell frontier; the `ok-cells` variant | 0 | 0 | 0 |
+
+The previous complete solution now scores 0 on a quarter of the enumerated block and three
+quarters of the random one, and it ships as `cheat/count_runs_not_comments.py` - generated
+from the previous reference, so its provenance is exact.
+
+**And the cost to the reference is the number that made this affordable:** 1.04x to 1.26x,
+measured old build against new on the same host (medium 4.34 s to 5.40 s; the crowded and
+sparse timed pairs 2.77-5.21 s to 3.49-5.58 s). **No budget moved.** A tier that doubles the
+per-cell state need not double the run time, because the state is a small part of a cost
+dominated by the bit-parallel rows and the threshold pass - so measure the ratio before
+assuming a richer objective is unaffordable.
+
+### Three process findings from the same session
+
+- **A local gate earned its keep the minute it was written.** `authoring/corners.py` asserts
+  that every hand-written corner in `FIXED` is one a runs-of-moves rule answers differently,
+  and that the block straddles the width in both directions. It failed on the first run -
+  the block boundary reached one case too far back - which is exactly the false-affordance
+  CLAUDE.md warns about: an example that pins nothing while reading as a pin. **Write the
+  assertion before trusting the examples**, and keep it in the bundle so the next edit
+  cannot rot them.
+- **`tools/textcheck.py` should be read as a delta, not a threshold.** The repaired brief
+  reports "burstiness 0.609 below the reference" against all three passing briefs - and the
+  brief that actually cleared the AI screen sits at **0.584** on the same measure. The edit
+  moved burstiness *up* and paragraph sd 36.6 to 44.0. Compare a repair against the version
+  that passed, not against the checker's floor, or you will rewrite a brief that is already
+  better than the one the gate accepted.
+- **Subagents are not always available, and a probe that did not run is not a result.** Nine
+  of ten agents in a design workflow died on the account's session limit, and the
+  three-agent probe could not be run at all. This is the third time in this file that a
+  probe was lost that way. Say so in the handover rather than letting silence read as a pass.
 
 ## What can be brute-forced, and what cannot (2026-09-02)
 

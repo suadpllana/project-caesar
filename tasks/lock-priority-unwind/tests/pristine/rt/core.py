@@ -41,27 +41,6 @@ class Core:
     def ids(self):
         return sorted(self.base)
 
-    def holder(self, m):
-        x = self.ms.get(m)
-        return x.h if x else 0
-
-    def waiters(self, m):
-        x = self.ms.get(m)
-        return list(x.w) if x else []
-
-    def held(self, t):
-        out = []
-        for m in sorted(self.ms):
-            if self.ms[m].h == t:
-                out.append(m)
-        return out
-
-    def blocking(self, t):
-        for m in sorted(self.ms):
-            if t in self.ms[m].w:
-                return m
-        return 0
-
     def set(self, t, p):
         if t not in self.eff:
             return
@@ -185,7 +164,11 @@ class Core:
             d = self.dead.get(t, -1)
             if d < 0 or d > self.tick:
                 continue
-            m = self.blocking(t)
+            m = 0
+            for x in sorted(self.ms):
+                if t in self.ms[x].w:
+                    m = x
+                    break
             if m == 0:
                 continue
             h = self.ms[m].h

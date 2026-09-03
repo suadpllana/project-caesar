@@ -31,8 +31,10 @@ class Prio:
             moved = False
             for t in c.ids():
                 p = c.base[t]
-                for m in c.held(t):
-                    for w in c.waiters(m):
+                for m in sorted(c.ms):
+                    if c.ms[m].h != t:
+                        continue
+                    for w in c.ms[m].w:
                         if c.eff[w] > p:
                             p = c.eff[w]
                 if p != c.eff[t]:

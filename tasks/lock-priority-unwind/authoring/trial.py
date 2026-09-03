@@ -94,9 +94,8 @@ def targets() -> list[tuple[str, str]]:
     out = [("oracle", "solution"), ("nop", "shipped")]
     for d in sorted((TASK / "authoring" / "variants").glob("ok-*")):
         out.append((d.name, "authoring/variants/" + d.name))
-    for d in sorted((TASK / "authoring" / "cheatsrc").glob("*")):
-        if d.is_dir():
-            out.append((d.name, "authoring/cheatsrc/" + d.name))
+    for f in sorted((TASK / "cheat").glob("cheat-*.sh")):
+        out.append((f.stem[len("cheat-"):], "cheat/" + f.name))
     return out
 
 

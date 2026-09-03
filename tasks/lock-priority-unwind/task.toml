@@ -59,6 +59,17 @@ identifiers are in the register of ordinary kernel code, which is deliberate: th
 discipline, the handover order and what the four hooks are called at have to be recovered by
 reading behaviour rather than by reading names.
 
+The rule itself is the one in every textbook, and stating it is what makes grading its ceiling
+fair: a policy that lifts a task higher than it can account for is graded wrong, so the brief
+has to say what a task may be worth. What the brief does not say is anything about the engine.
+It does not say which waiter a released mutex goes to, what a timed-out wait leaves behind, when
+the scheduler reads the value the policy set, or that a mutex changing hands is a moment the
+policy hears about at all. Every one of those is read out of rt/core.py or it is guessed, and
+the graded quantity is the exact consequence of the stated rule under that engine's event
+order, at every tick. The engine exposes no helper for any of it either: there is no accessor
+for what a task holds, who is queued on a mutex or what a task is blocked on, so the policy
+derives the wait-for graph from the mutex table the same way the scheduler does.
+
 Half the graded run is task sets drawn when the verifier starts, from a seed that does not exist
 until then, so a policy that is right about the shapes somebody thought to write down and wrong
 in general passes the written half and fails the drawn one.
@@ -92,14 +103,16 @@ that it was stated correctly. A waiter that gives up leaves the queue; the queue
 recomputation reads; so the same call that handles a block handles an abandoned wait, in the
 other direction.
 
-Three alternative correct policies are kept in the authoring directory: one that solves the
+Four alternative correct policies are kept in the authoring directory: one that solves the
 whole assignment to a fixed point on every event the way the sealed model does, one that
-expresses the same walk recursively, and one that relaxes every holder repeatedly until nothing
-moves. All three produce identical schedules and identical priority tables on all fourteen
-written scenarios and on the drawn ones, which is the evidence that the schedule is a property
-of the rule and not of how the rule is applied.
+expresses the same walk recursively, one that relaxes every holder repeatedly until nothing
+moves, and one that builds a holder-to-waiters map from the mutex table and takes the maximum
+over the base priorities of the whole transitive closure rather than over the effective
+priorities of the direct waiters. All four produce identical schedules and identical priority
+tables on all fourteen written scenarios and on the drawn ones, which is the evidence that the
+schedule is a property of the rule and not of how the rule is applied.
 
-The whole reference is about sixty lines in one file and runs in well under a second.
+The whole reference is about eighty lines in one file and runs in well under a second.
 """
 
 verification_explanation = """
@@ -128,8 +141,8 @@ different moments inside a tick, so grading the route would grade an implementat
 rather than behaviour, which is the run-audit failure this repo has already had once. The engine
 records priority changes in a separate list that is reported for the solver's benefit and is
 never compared. What is compared is the state at each tick, which the rule pins exactly and
-which every correct policy agrees on. The three alternative correct implementations are required
-to score 1 and all three do, on identical schedules.
+which every correct policy agrees on. The four alternative correct implementations are required
+to score 1 and all four do, on identical schedules.
 
 The anti-cheat design is the drawn half and it replaces a work journal entirely. A submission
 runs inside the same process as the scheduler that measures it, so a policy that recognises a

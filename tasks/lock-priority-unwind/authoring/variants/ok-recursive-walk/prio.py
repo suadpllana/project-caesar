@@ -49,11 +49,20 @@ class Prio:
     def want(self, t):
         """A task is worth its own priority, or the most urgent thing waiting on it."""
         p = self.core.base[t]
-        for m in self.core.held(t):
-            for w in self.core.waiters(m):
+        for m in sorted(self.core.ms):
+            x = self.core.ms[m]
+            if x.h != t:
+                continue
+            for w in x.w:
                 if self.core.eff[w] > p:
                     p = self.core.eff[w]
         return p
+
+    def above(self, t):
+        for m in sorted(self.core.ms):
+            if t in self.core.ms[m].w:
+                return self.core.ms[m].h
+        return 0
 
     def settle(self, t, depth=0):
         """Recompute t, then whoever t is waiting on, until nothing more moves."""
@@ -63,4 +72,4 @@ class Prio:
         if p == self.core.eff[t]:
             return
         self.core.set(t, p)
-        self.settle(self.core.holder(self.core.blocking(t)), depth + 1)
+        self.settle(self.above(t), depth + 1)

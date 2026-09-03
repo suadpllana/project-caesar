@@ -48,8 +48,11 @@ def swap(src: str, pairs) -> str:
 
 
 WANT_BODY = """        p = self.core.base[t]
-        for m in self.core.held(t):
-            for w in self.core.waiters(m):
+        for m in sorted(self.core.ms):
+            x = self.core.ms[m]
+            if x.h != t:
+                continue
+            for w in x.w:
                 if self.core.eff[w] > p:
                     p = self.core.eff[w]
         return p"""
@@ -61,7 +64,7 @@ SETTLE_BODY = """        seen = 0
             if p == self.core.eff[t]:
                 return
             self.core.set(t, p)
-            t = self.core.holder(self.core.blocking(t))"""
+            t = self.above(t)"""
 
 MISTAKES = [
     (
@@ -116,11 +119,13 @@ MISTAKES = [
         "raise-to-the-ceiling",
         [(WANT_BODY,
           """        p = self.core.base[t]
-        for m in self.core.held(t):
-            if self.core.waiters(m):
-                for u in self.core.ids():
-                    if self.core.base[u] > p:
-                        p = self.core.base[u]
+        for m in sorted(self.core.ms):
+            x = self.core.ms[m]
+            if x.h != t or not x.w:
+                continue
+            for u in self.core.ids():
+                if self.core.base[u] > p:
+                    p = self.core.base[u]
         return p""")],
         "Raises any task holding a contended mutex to the highest priority in the system. It is "
         "safe in the sense that nothing waits too long, and it is wrong: it hands the holder a "
@@ -354,7 +359,6 @@ def main() -> int:
     for name, pairs, note in MISTAKES:
         body = swap(base, pairs)
         put(TASK / "cheat" / ("cheat-%s.sh" % name), script(note, body))
-        put(TASK / "authoring" / "cheatsrc" / name / "prio.py", body)
         made.append(name)
 
     body = base + (MEMORY % gt)
@@ -362,14 +366,12 @@ def main() -> int:
         script("Carries the recorded schedules and returns them as the scheduler's own report. "
                "Every written scenario passes and every drawn one fails, which is the argument "
                "for drawing them at verification time.", body))
-    put(TASK / "authoring" / "cheatsrc" / "hand-back-the-schedule" / "prio.py", body)
     made.append("hand-back-the-schedule")
 
     ship = shipped()
     for name, note, prologue in ISOLATION:
         body = prologue + "\n\n" + ship
         put(TASK / "cheat" / ("cheat-%s.sh" % name), script(note, body))
-        put(TASK / "authoring" / "cheatsrc" / name / "prio.py", body)
         made.append(name)
 
     put(TASK / "cheat" / "README.md",

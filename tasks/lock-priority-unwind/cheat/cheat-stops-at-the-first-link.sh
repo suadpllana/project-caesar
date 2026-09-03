@@ -55,11 +55,21 @@ class Prio:
     def want(self, t):
         """A task is worth its own priority, or the most urgent thing waiting on it."""
         p = self.core.base[t]
-        for m in self.core.held(t):
-            for w in self.core.waiters(m):
+        for m in sorted(self.core.ms):
+            x = self.core.ms[m]
+            if x.h != t:
+                continue
+            for w in x.w:
                 if self.core.eff[w] > p:
                     p = self.core.eff[w]
         return p
+
+    def above(self, t):
+        """Whoever holds the mutex t is queued on, or nobody when t is not waiting."""
+        for m in sorted(self.core.ms):
+            if t in self.core.ms[m].w:
+                return self.core.ms[m].h
+        return 0
 
     def settle(self, t):
         """Recompute t, and keep going while the answer changes for whoever t waits on."""

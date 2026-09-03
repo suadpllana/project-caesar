@@ -76,8 +76,9 @@ Editable artifact: `/app/rt/prio.py` and nothing else.
 - `environment/app_src/` - the whole engine. `rt/core.py` is the tick loop, the ready queue,
   the FIFO handover and the trace; `rt/prio.py` is the shipped naive policy; `rt/boot.py`,
   `rt/task.py`, `rt/lock.py`, `run_sched.py`, `conf/sched.json`.
-- `solution/ref/prio.py` - the reference. One recomputation walked up the chain, called from
-  all four hooks. About sixty lines.
+- `solution/prio.py` - the reference. One recomputation walked up the chain, called from
+  all four hooks. About eighty lines with its commentary; it reads the mutex table directly,
+  because the engine exposes no accessor for the wait-for graph since 2026-09-03.
 - `tests/scen.py` - fourteen scenarios.
 - Measured: the reference and the shipped policy produce **different schedules on 8 of the 14**.
   The three that agree deliberately do so - they are the must-still-work fences. Verified with
@@ -108,8 +109,18 @@ until tick 29 and finishes at 33. The reference hands the mutex over at tick 17 
   `/app/cases/inversion.json` - the brief's central reproduction step - did not exist in the
   agent container. Fixed with the missing `COPY`, and the Dockerfile's smoke layer now runs both
   case files so the image cannot build without them. `tools/imagecheck.py` is the general gate.
-- **Not run:** the three-agent easiness probe and the difficulty probe. The brief is unchanged by
-  the 2026-09-03 repair, so nothing there is evidence about either.
+- **2026-09-03, second quality-review failure, on `difficult`, `instruction concision` and `no
+  extraneous files` - all three had passed six hours earlier under a different reviewing
+  model.** The evidence for `difficult` was the probe README below, which shipped. Repaired:
+  the README folded in here and deleted; `authoring/cheatsrc/` gone (harness lifts each cheat
+  out of `cheat/*.sh`); the four graph accessors removed from `rt/core.py` with `gt.json`
+  byte-identical afterwards; the brief cut 1064 to 675 words by deletion, burstiness recovered
+  0.733 to 0.898 with content-free moves; `task.toml` says where the difficulty is and is not.
+  Every gate above re-run and clean, including the two-image trial.
+- **Not run:** the three-agent easiness probe (three Opus agents died on the session limit,
+  three relaunched agents were stopped by the task owner before writing a line) and the
+  difficulty probe. The last probe on this task is the 3 of 3 below, against the brief that
+  printed the rule. **Run the probe first in the next session.**
 
 ## Traps already hit here, do not re-hit them
 
@@ -120,3 +131,32 @@ until tick 29 and finishes at 33. The reference hands the mutex over at tick 17 
   in the queue. FIFO is what makes it load-bearing, and it is a real design.
 - A chain scenario needs the middle task to **hold one mutex and be blocked on another**. Three
   of my first drafts did not form a chain at all and the naive policy passed them.
+
+## Where `authoring/variants/ok-probe-solve` came from
+
+This used to be `authoring/variants/ok-probe-solve/README.txt` and it shipped in the bundle. On
+2026-09-03 the quality review quoted it back as evidence under `difficult` ("the author's own
+probe note records 3 of 3 one-shot solves") and named it under `no extraneous files`. A note
+that says the task was solved 3 of 3 must never ship. Its content, verbatim:
+
+    The submission that solved this task in the easiness probe of 2 September 2026, transcribed
+    from its own trajectory, unedited apart from the docstring it shipped with.
+
+    It is kept for two reasons. It is a correct alternative implementation authored by someone
+    other than the reference's author, and it reaches the assignment by a route no other policy
+    in this bundle takes: it never calls the accessors at all, reading `core.ms` directly to
+    build a holder-to-waiters map, and it takes the maximum over the base priorities of the whole
+    transitive closure rather than over the effective priorities of the direct waiters. Those two
+    are equivalent, and the equivalence is not obvious - any task lifting a waiter is itself
+    inside that closure. Requiring this file to score 1 is the sharpest guard this bundle has
+    against grading a route instead of a state.
+
+    And it is the regression test for the repair. The probe returned 3 of 3, and all three
+    trajectories read the same way: read the files, then one write of the finished policy, before
+    running any experiment. The rule was in the brief and they transcribed it. The sentences that
+    handed it over are gone. Re-grade this file after any change to the task; it must keep
+    scoring 1, because it is right.
+
+    Worth knowing before reading it as evidence about difficulty: all three submissions were the
+    same shape as `ok-full-solve`, which was written before the probe ran, so the repair is not
+    that this route was unforeseen. The repair is that the value the route computes was printed.

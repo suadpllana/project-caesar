@@ -43,11 +43,12 @@ def summarise(tail: str) -> str:
 def main(argv: list[str]) -> int:
     wanted = set(argv[1:])
     rows = []
-    for d in sorted((TASK / "authoring" / "cheatsrc").glob("*")):
-        if not d.is_dir() or (wanted and d.name not in wanted):
+    for f in sorted((TASK / "cheat").glob("cheat-*.sh")):
+        name = f.stem[len("cheat-"):]
+        if wanted and name not in wanted:
             continue
-        reward, tail = trial.grade("authoring/cheatsrc/" + d.name)
-        rows.append((d.name, reward, summarise(tail)))
+        reward, tail = trial.grade("cheat/" + f.name)
+        rows.append((name, reward, summarise(tail)))
     for name, reward, why in rows:
         print("%s%-38s reward=%d  %s" % ("    " if reward == 0 else "!!! ", name, reward, why))
     bad = [r for r in rows if r[1] != 0]

@@ -1,0 +1,3 @@
+The reach search folded into the readiness test, so the
+declared rch.py is never called. It is here to prove the
+interpreter's tallies are floors and not equalities.

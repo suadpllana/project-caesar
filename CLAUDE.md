@@ -106,6 +106,23 @@ none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
+| `alias-settle-report` | ML / Evaluation | 26 | 13 | 14400 s | 8 h |
+
+**`alias-settle-report` is the thirteenth task, built 2026-09-03, and it has not been through
+the pipeline.** It is the first here in ML / Evaluation - `Inference` and `Kernels` are still
+free, and every `Software` label is now spoken for - and the first whose graded artifact is a
+**delivery obligation**: which line each watched key is handed, and the tick it may be handed
+on. `tools/simcheck.py` reports it conceptually clear of every earlier task and, for the first
+time in this repo, **mechanically clear too**: no shipped file is close to another bundle's.
+The difficulty is that the settling question looks like reachability and is not one - welding a
+chain welds everything on it into one item, so a declared difference standing anywhere inside
+that group forbids the whole route, and the answer is a search over growing difference-free
+groups rather than a walk over edges. What it turned up is in "Five findings from a task whose
+verifier lied about its own instrumentation" below. Three of those are about the repo rather
+than about this task: **a bound method is not identity-stable**, which silently made the
+reference score 0; `tools/forgecheck.py` only ever looks at `cheat/cheat-*.sh`; and the
+`tests/Dockerfile` similarity number **can** be engineered below NEAR, which is the second
+measurement against the "cannot be engineered away" non-finding recorded on 2026-09-02.
 
 **`bucket-seal-lag` is the twelfth task, built 2026-09-02, and it has not been through the
 pipeline.** It is the first here in Data engineering and the first whose graded artifact is
@@ -453,6 +470,110 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## Five findings from a task whose verifier lied about its own instrumentation (2026-09-03)
+
+All of this came out of building `alias-settle-report`. Three of the five are about the repo
+and about the runner pattern every task here copies, rather than about that task.
+
+### A bound method is not identity-stable, and the armed check silently fails on it
+
+The runner pattern this repo uses keeps the interpreter's tally in a closure and then, at
+teardown, asks whether its own callback is still the registered one:
+
+```
+if mon.register_callback(SLOT, mon.events.PY_START, hook) is not hook:
+    armed = False
+```
+
+`register_callback` returns the previously registered callback, so with a plain closure that
+identity holds. Written as a **class**, with `self._bump_code` as the callback, every access
+creates a new bound method object, `is not` is always true, and `armed` comes back `False` on
+every set. The symptom is the worst kind: the reference scores **0** on a bundle where
+everything else is right, and the failing assertion says the instrumentation was not armed,
+which reads as a sandbox problem rather than as a two-line bug in the runner. Bind it once in
+`__init__` and use the stored attribute everywhere, including in the `sys.setprofile` fallback,
+where `sys.getprofile() is self._bump_frame` has exactly the same fault.
+
+`bucket-seal-lag`'s runner uses closures and does not carry this. Any session that rewrites the
+runner into classes to bring its similarity number down - which is a reason to rewrite it - will
+reintroduce it, so check that identity first when a fresh bundle's oracle scores 0 with the
+armed check firing.
+
+### `tools/forgecheck.py` only ever looks at `cheat/cheat-*.sh`
+
+It globs that prefix, so a cheat suite named anything else reports **FAIL, no cheat is generated
+from tests/gt.json** while carrying a perfectly good answer-key probe. That is standing-policy
+item 5, the mirror of the blindness fixed on 2026-09-02, and it cost twenty minutes. Two ways to
+avoid it: name every cheat `cheat-<family>-<name>.sh`, and when a checker fails, read what it
+actually globbed before believing its verdict.
+
+The same file compares against `json.dumps(gt, sort_keys=True)` with **default separators**. A
+probe that embeds `gt.json`'s file text is not recognised when `build_gt.py` wrote that file with
+`indent=1`, because the whitespace differs. Embed the re-dumped compact form, which is what an
+adversary holding the file would carry anyway.
+
+### An answer-key probe needs the declarations AND the state to know where it is
+
+The probe that makes forgecheck worth running has to be right on every enumerated case, or it
+proves nothing about what holding the answers buys. Identifying which case is running turned out
+to need two things at once, and either alone misfiles:
+
+- Keyed on the **declarations** (`cases.py` is readable at run time, so an adversary has them),
+  three of the twenty-nine sets shared a header and differed only in their scripts.
+- Keyed on the **observable state** replayed out of `gt.json`'s own event rows, two sets reached
+  an identical state at the same tick and differed only in their tag pools.
+
+Keyed on both it is right on 29 of 29 and wrong on 116 of 120 generated sets, which is the
+sentence that makes the point. Budget for this: the first two attempts were 26 of 29 and 23 of 29,
+and a probe that is nearly right looks exactly like a probe the verifier caught for a good reason.
+
+### A cheat that scores 1 has a third explanation: the swap is unobservable under the input space
+
+The playbook says a cheat scoring 1 is either a correct implementation or a hole in the scenario
+set, and `bucket-seal-lag` added a third - the branch is dead. Here is a fourth, and it is not the
+same thing. `file-without-a-post` replaced "refuse to file an item nothing has posted for" with a
+sentinel that sorts after every run name. The branch is **live** - it is taken on every tick before
+the first post lands - and the swap is still unobservable, because the brief guarantees that every
+watched key is posted for before the set ends, so the modified rule can never reach a state where
+it files. Adding a case for it would mean breaking that guarantee, which would change the input
+space to catch a mistake nobody can make. The right move is to drop the cheat and leave the
+reference alone. Ask, before writing the case: **is this reading unreachable because the code is
+dead, or because the stated input space forbids the state that would reveal it?**
+
+### The `tests/Dockerfile` similarity number comes down, and this bundle got to zero findings
+
+Corrected again, and the direction of travel is now clear. 2026-09-02 recorded `environment/Dockerfile`
+similarity as irreducible, then corrected that to 0.571 with explicit `COPY` lines. `tests/Dockerfile`
+had never been attacked and sat at **0.586 against `bucket-seal-lag`**, the last HIGH finding on this
+bundle. Reordering the layers so the environment variables and the pip layer come first, rewriting
+every comment, and moving the `mkdir` for the artifact parents below the `COPY` took it under the
+threshold, and `simcheck.py` now reports **no shipped file is close to another bundle's** - the first
+bundle in this repo to report that. It is twenty minutes for the whole plumbing sweep. The similarity
+screen is the gate immediately after the AI check and it has already rejected one task here.
+
+### Measured, for calibration
+
+Wrong readings against the reference on 400 generated sets, which is what says the discovery is
+load-bearing rather than decorative:
+
+| reading | sets it moves |
+|---|---|
+| the difference ignored entirely, so the reach is a plain closure | 63% |
+| shut tags counted as if still open | 52% |
+| the pending-post half dropped | 58% |
+| the reach taken one hop instead of along chains | 63% |
+| the score taken by key before run | 26% |
+| the difference checked between consecutive steps only | 15% |
+| the earlier-post half of the readiness test dropped | 9% |
+| the pending post looked for in this item alone | 6% |
+| the difference checked against the two ends of the route only | 3% |
+
+`tools/readingcheck.py` reports all thirteen **separated** by the twenty-nine enumerated sets, which
+is what stops a wrong reading surfacing as "six of three hundred random sets wrong". The 3% reading
+is worth a note: across three hundred graded sets a reading that rare is caught with certainty, so
+the lottery-ticket warning in "Landing inside the band" is about a rare decision inside ONE graded
+artifact, not about a rare disagreement across many of them.
 
 ## What can be brute-forced, and what cannot (2026-09-02)
 

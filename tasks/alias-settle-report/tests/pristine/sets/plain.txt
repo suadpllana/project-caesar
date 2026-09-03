@@ -1,0 +1,12 @@
+watch 4 9
+run r0 4 9
+run r1 4
+tag m0 4 7
+go
+post r1 4 31
+post r0 9 55
+tie m0 4 7
+shut m0
+post r0 4 12
+shut r0
+shut r1

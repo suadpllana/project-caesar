@@ -61,14 +61,13 @@ reading behaviour rather than by reading names.
 
 The rule itself is the one in every textbook, and stating it is what makes grading its ceiling
 fair: a policy that lifts a task higher than it can account for is graded wrong, so the brief
-has to say what a task may be worth. What the brief does not say is anything about the engine.
-It does not say which waiter a released mutex goes to, what a timed-out wait leaves behind, when
-the scheduler reads the value the policy set, or that a mutex changing hands is a moment the
-policy hears about at all. Every one of those is read out of rt/core.py or it is guessed, and
-the graded quantity is the exact consequence of the stated rule under that engine's event
-order, at every tick. The engine exposes no helper for any of it either: there is no accessor
-for what a task holds, who is queued on a mutex or what a task is blocked on, so the policy
-derives the wait-for graph from the mutex table the same way the scheduler does.
+has to say what a task may be worth. The brief also states the engine's contract - the handover
+order, what a timed-out wait leaves behind, and the four moments the policy hears about -
+because a rule phrased around one participant leaves the neighbouring case undecided, and an
+undecided case is a coin flip rather than a discovery. The three findings above are what is
+left, and the engine exposes no helper for any of them: there is no accessor for what a task
+holds, who is queued on a mutex or what a task is blocked on, so the policy derives the wait-for
+graph from the mutex table the same way the scheduler does.
 
 Half the graded run is task sets drawn when the verifier starts, from a seed that does not exist
 until then, so a policy that is right about the shapes somebody thought to write down and wrong

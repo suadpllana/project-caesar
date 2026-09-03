@@ -120,6 +120,11 @@ until tick 29 and finishes at 33. The reference hands the mutex over at tick 17 
 - **2026-09-03, the round-two brief failed the AI check.** The 675-word cut was restored to the
   1064-word brief that had passed twice, minus only the sentences the concision reviewer quoted:
   816 words, no added words, grounding paragraph byte-identical, burstiness 0.729 left as it is.
+- **2026-09-03, the 816-word brief failed the AI check as well.** The 1064-word text that
+  cleared the screen twice is restored byte for byte and resubmitted; `task.toml`'s difficulty
+  paragraph rewritten to be true of it. The owner's brief kit is at
+  `probes/lock-priority-unwind/brief-kit.md`; the next brief should be written from it by the
+  owner, not by a session.
 - **Not run:** the three-agent easiness probe (three Opus agents died on the session limit,
   three relaunched agents were stopped by the task owner before writing a line) and the
   difficulty probe. The last probe on this task is the 3 of 3 below, against the brief that

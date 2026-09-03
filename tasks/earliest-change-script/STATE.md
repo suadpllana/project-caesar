@@ -93,7 +93,7 @@ the medium block is 4.2 s.
 which is exactly where the three agents stopped. Every correctness block passes, twelve of
 eighteen timed pairs pass, reward 0.
 
-## The two-image trial, 2026-09-02
+## The two-image trial, 2026-09-03
 
 `tools/ecs_trial.py` on the sandbox, `--cpus=2 --memory=4096m`, apt layer dropped:
 
@@ -102,13 +102,18 @@ eighteen timed pairs pass, reward 0.
 | oracle | 1 | - |
 | nop | 0 | every correctness block and both budgets |
 | variant `ok-cells` | **1** | - |
+| `two_engines_only` | 0 | medium answers and budget, large answers and budget: the crowded pairs never come back |
+| `cells_on_shortest_paths` | 0 | medium and large answers and the medium budget |
 | `lex_first_only` | 0 | fixed, random, enumerated, medium, large answers |
 | `slide_hunks_afterwards` | 0 | fixed, random, enumerated, medium, large answers |
-| `split_hunks` | 0 | every answer block, and both budgets |
-| `delegate_to_difflib` | 0 | every answer block, and the large budget |
+| `split_hunks` | 0 | every answer block, and the medium budget |
+| `delegate_to_difflib` | 0 | every answer block, and both budgets |
 | `forge_the_result` | 0 | the tamper record, and every answer block |
-| `table_walk` | 0 | medium answers and budget, large answers and budget |
-| `cells_on_shortest_paths` | 0 | large answers only: the six sparse pairs never come back |
+| `table_walk` | 0 | medium answers and budget, large answers |
+
+`--margins` on the same image: every block inside its budget, worst headroom **2.7x after
+scaling by 2.7** (the medium block, 5.5 s here); crowded pairs 3.1-6.2 s here, sparse
+4.4-5.5 s, long under 0.9 s.
 
 ## Gates not run here
 

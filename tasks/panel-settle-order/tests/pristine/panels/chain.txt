@@ -1,0 +1,6 @@
+F src 2
+G out add(mid, tail)
+G tail add(mid, 1)
+G mid add(step, 1)
+G step add(src, 1)
+R src=7

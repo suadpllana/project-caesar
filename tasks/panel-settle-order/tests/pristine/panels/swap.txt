@@ -1,0 +1,6 @@
+F sel 1
+F alt 9
+G face pick(sel, near, alt)
+G near add(alt, 1)
+R sel=0
+R sel=1

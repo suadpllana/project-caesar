@@ -1,0 +1,6 @@
+F lo 1
+F cap 0
+G total add(lo, base)
+G base add(lo, cap)
+T watch total cap=4
+R lo=3

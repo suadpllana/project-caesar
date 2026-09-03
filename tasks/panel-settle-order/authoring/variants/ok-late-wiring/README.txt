@@ -1,0 +1,1 @@
+the wiring recorded only on the run that commits, never on a run that is thrown away. Unobservable: a discarded run is followed by another run of the same gauge before anything else can read its wiring.

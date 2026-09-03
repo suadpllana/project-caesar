@@ -37,6 +37,96 @@ tasks/reaction-network-reconstruction` brings it back. Its STATE.md is not worth
 recovering on its own; the self-confirmation post mortem it held is summarised in "The
 too-easy failure mode" below, which is the version that matters.
 
+**`panel-settle-order` is the thirteenth task, built 2026-09-03, and it has not been through
+the pipeline.** It grades the **order a recompute engine settles in** - the ordered ledger of
+which gauge took which value, which latch tripped on what, and what the panel was left
+holding - which `tools/simcheck.py` reports as conceptually clear of every earlier task
+including `bucket-seal-lag`. Its findings are in "Grade the dynamics, never the fixed point"
+below. Two of them are about the repo rather than about this task: `tests/runner.py` must be
+import-safe because the grader imports it, and a probe that defines its payload and never
+calls it has been rejected by nothing.
+
+## Grade the dynamics, never the fixed point (2026-09-03)
+
+`panel-settle-order` is a small dataflow engine: feeds written from outside, gauges computed
+from expressions over other entries, one expression form conditional so the wiring changes
+while a round settles, and latches that report settled values and write feeds that become the
+next round. The agent rebuilds the settling decisions. Five findings, and the first is the one
+that would have killed the task if it had been found after the bundle existed rather than
+before.
+
+**1. A design law for any task that grades an evaluation ORDER: check that declaration order
+is not already a valid order.** The first design let a gauge reference only entries declared
+before it. That is the obvious way to guarantee acyclicity, and it silently makes declaration
+order a topological order, so a solver who sweeps the dirty gauges top to bottom is glitch-free
+by construction and the whole difficulty evaporates. The fix was to let expressions reference
+in either direction and keep acyclicity in the generator instead, by building the mention graph
+from a rank order drawn independently of the declaration order. Measured after the change: a
+declaration-order sweep is wrong on 97% of generated panels. **Before that change it was wrong
+on none of them, and no amount of leak-patching would have mattered.**
+
+**2. Grade the dynamics, because the fixed point is an oracle the agent can build.** The final
+values of a settled panel are just the least fixed point of the equations, so an agent can
+compute them by iterating to convergence without knowing anything about the order. Grading only
+the final state would have been free. What is not free is the ledger - which gauge ran when,
+what value it took, which latch saw what - because that is a function of the policy rather than
+of the fixed point. This is the "what can be brute-forced" law from 2026-09-02 arriving in a new
+family: **when the answer has a computable closed form, grade the route and not the destination**,
+and check that the route is pinned to a total order so two correct implementations agree.
+Measured: `authoring/field_report.py` reports 0 panels out of 140 where the final values catch
+anything the ledger does not, which is why the verifier calls them a cross-check and not an axis.
+
+**3. Measure every implementation fork, and sort it by how often it diverges.** Five forks were
+written as the reference with one decision changed and each was run against the sealed model on
+500 generated panels, before the brief was written:
+
+| fork | diverges |
+|---|---|
+| tie-break by name rather than declaration order | 94.4% |
+| distance stepped out one place instead of past the entry read | 57.6% |
+| an entry a gauge stopped reading still wakes it | 29.8% |
+| **distance settled during the build and then frozen - the near-miss** | **25.6%** |
+| a distance that may grow but never come back in | 10.6% |
+| wiring recorded only on the run that commits | **0.0%** |
+
+The 0.0% fork is a free implementation choice and ships as an `ok-` variant that must score 1,
+which is the run-audit guard measured rather than asserted. The 94%, 57% and 10% forks are
+decisions two competent solvers would make differently, so the brief **defines** them - it says
+where a gauge stands and how ties break - and each ships as a cheat. The 25.6% fork is the task:
+it is the natural implementation of everything the brief states, and the brief never says that a
+distance has to be maintained rather than computed once. **The rule that came out of it: a fork
+at 0% belongs in `variants/`, a fork in single digits is a lottery ticket and must be defined
+away in the brief, and a fork above about 20% that the brief does not state is where difficulty
+can live.**
+
+**4. `tests/runner.py` must be import-safe, because the grader imports it.** The grader imports
+the runner for the sealed-function list and the panel plan, in a process that has none of the
+run's environment variables set. A module-level `os.environ["APPDIR"]` subscript therefore
+raised at collection time and the reference scored 0 with no test having run at all. The symptom
+is a pytest collection error, not a task failure, and it cost a debugging cycle. Read every
+module-level line of the runner as though the grader will execute it, because it will.
+
+**5. Two probe defects, both of which look exactly like a defeated probe.** A payload that
+defines a function and never calls it does nothing, and a payload that reaches for
+`pnl.loop` at import time gets a half-built module because the loop imports the decision files
+it is trying to patch. Both scored 0 for the wrong reason. The fix is the one this file already
+prescribes and which only `cheat_report.py` can enforce: **assert which layer caught each cheat,
+not that it scored 0.** Live probes now fire from inside the first decision the running loop
+makes. Two more notes from the same pass. `sys.getprofile() is self._prof` is never true for a
+bound method, because reading the attribute makes a new object each time - bind it once, or the
+run reports its own instrumentation as disturbed on any interpreter without `sys.monitoring`.
+And `tools/forgecheck.py` matches runs taken from `json.dumps(gt, sort_keys=True)`, so an
+answer-key probe that embeds the ground truth pretty-printed carries every answer and matches
+nothing; embed the canonical compact form.
+
+**A non-finding, recorded so nobody re-measures it.** The panels where a gauge would have to run
+twice in one round are real but vanishingly rare: 1 in 20000 generated panels. They are excluded
+by the model rather than legislated in the brief, which is the `share-register-screen` tie-free
+precedent and costs no difficulty, because it removes a coin flip rather than a discovery.
+
+**Gates not run:** the three-agent probe, which the user asked to skip. Everything else in the
+gate list ran and is recorded in the task's STATE.md.
+
 ## Work in flight, and how main moves
 
 **`main` is pushed to directly here.** The task owner asked for that on 2026-09-01, and
@@ -106,6 +196,7 @@ none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
+| `panel-settle-order` | Software / Languages | 21 | 11 | 14400 s | 8 h |
 
 **`bucket-seal-lag` is the twelfth task, built 2026-09-02, and it has not been through the
 pipeline.** It is the first here in Data engineering and the first whose graded artifact is

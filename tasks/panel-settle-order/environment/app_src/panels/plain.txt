@@ -1,0 +1,6 @@
+F a 1
+G sink add(left, right)
+G left add(a, 1)
+G right add(a, 2)
+R a=5
+R a=0

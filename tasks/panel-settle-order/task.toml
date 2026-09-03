@@ -1,0 +1,211 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pnl/ord.py",
+  "/app/pnl/wire.py",
+  "/app/pnl/trip.py",
+  "/app/pnl/same.py",
+]
+
+[task]
+name = "afterquery/panel-settle-order"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working recompute engine with the wrong settling order, and the wrongness is
+coherent rather than broken: it is the shape of an engine that pushes each change straight
+out to whatever reads it. That is the shape almost every observer implementation has, so it
+is the shape a frontier agent reconstructs from its prior, and it produces a ledger that
+looks entirely reasonable while being wrong in four places.
+
+The brief states the order it wants. A gauge runs once per round, never on a value the same
+round then moves again, and never unless something it reads has moved; nearest the feeds
+first, and among equals the earliest declared. Stating that is what makes the task fair, and
+it is not what makes it hard, because implementing it from the panel's declared wiring is
+straightforward and is what an agent will do.
+
+What is not stated, and what has to be derived, is that the wiring is not a property of the
+panel at all. One expression is a conditional, so which entries a gauge reads is decided
+while it runs, and a gauge that starts reading something further out has just moved further
+out itself. Its distance was therefore wrong at the moment it ran, which means it ran before
+the entry it now reads had settled, which means the value it just produced has to be thrown
+away and the gauge run again. The natural implementation of the stated order - work the
+distances out from the declared graph, then drive a queue ordered by them - is correct on
+every panel whose conditionals keep taking the same arm and wrong the moment one does not.
+Measured against the sealed model on 500 generated panels, that implementation is wrong on
+25.6 percent of them, and wrong on nothing a person would think to write by hand.
+
+The second half of the same discovery is the mirror: a gauge that stops reading an entry has
+moved back toward the feeds, and an implementation whose distances only ever grow runs it
+later than it belongs. That one is wrong on 10.6 percent. An implementation that leaves an
+entry a gauge no longer reads able to wake it is wrong on 29.8 percent. All three are
+invisible in the tree: the four panels under /app/panels were checked to make sure the
+natural implementation agrees with the reference on every one of them, so nothing an agent
+can run before it commits will tell it that the distances have to be maintained rather than
+computed once.
+
+There is no oracle for any of it. The engine runs whatever rules it is given and prints the
+ledger they produce, the environment ships no expected output, and the graded set is three
+hundred panels generated inside the verifier from a nonce made out of /dev/urandom after the
+agent has stopped, so a rule that fits the panels in the tree carries no information about
+whether it fits the rest. The engine ships with no comments anywhere in it and its
+identifiers are in the register of ordinary internal code rather than self-describing ones,
+which is a design choice: the panel language, the round structure and the frozen interface
+between the loop and the four decision files have to be recovered by reading behaviour
+rather than by reading names.
+"""
+
+solution_explanation = """
+The reference is about seventy lines across three files and it is written from the
+observable requirement backwards rather than from the shape of the code it replaces.
+
+The requirement is that no gauge runs on a value the same round will move again. Ordering by
+distance from the feeds gives that, so ord.py keeps the pending gauges in a heap keyed by
+distance and then by declaration index, which is the tie-break the brief states.
+
+The distance itself is the whole of the work and it lives in wire.py, which is called with
+the entries a gauge turned out to read the moment it has run. Two things happen there and
+they are the same thing seen twice. The wiring is rewritten from what the gauge actually
+read, so entries it has stopped reading stop waking it immediately rather than at the end of
+the round. And the distance is recomputed from those same entries, one step beyond the
+deepest of them, which is what makes it a property of the run instead of a property of the
+panel. If any entry it read stands at its own distance or beyond, the gauge was reached too
+early, the value it produced is discarded, and it goes back in the queue at its corrected
+distance to be run again once the entries it waits on have settled.
+
+trip.py is the third file and it is the one the brief states outright. Latches are asked
+once the round has gone quiet, they trip for entries that moved during it, once each, in
+declaration order, and what they wrote becomes the next round in the order they tripped.
+
+pnl/same.py is the fourth declared artifact and it needs no change. Whether a value has
+moved is already asked the right way in the shipped file, and establishing that rather than
+assuming an editable file must be edited is part of the work.
+
+Three alternative correct implementations are kept in the authoring directory and all three
+score 1: the pending set scanned for its minimum instead of held in a heap, the wiring
+recorded only on the run that commits rather than on a run that is discarded, and the
+tripping latches found by walking the entries that moved rather than the latch table. All
+three agree with the reference row for row.
+"""
+
+verification_explanation = """
+The rebuilt engine is driven over every panel and graded on two things, exactly, with no
+partial credit: the ordered ledger, and the values the panel was left holding.
+
+Both come out of pnl/loop.py, which is not an editable artifact, so they record what the
+engine actually did rather than what a submission says it did. The ledger carries every feed
+a round moved, every gauge it ran and the value that gauge took, and every latch that
+tripped and the value it saw. Stated honestly the final values are a cross-check rather than
+a second axis, and the verifier says so: measured across 140 panels and every cheat in the
+suite, there is no panel where the values catch something the ledger does not. They are kept
+because they make a failure legible.
+
+Expected results come from tests/oracle.py, a second implementation of the same
+specification written from the specification rather than from the tree, sharing no code with
+it - its own tokeniser, expressions compiled into closures instead of walked as tuples, and
+the pending set scanned for its minimum instead of held in a heap. The reference and the
+model agree on every row of 800 generated panels, which is the evidence that what is graded
+is the specification and not one author's bug. build_gt.py refuses to write a ground truth
+without a clean run of that comparison.
+
+Two panel sets are driven, and the second is why there is nothing here to forge. The
+enumerated set is twenty panels, one per rule, each named for the reading it exists to fail
+and including the must-work side of every fence; tools/readingcheck.py confirms that each of
+the ten wrong readings shipped as cheats is separated by one of them, which is a stronger
+statement than per-rule coverage. The other three hundred are generated inside the verifier
+container from a nonce made out of /dev/urandom at trial time, and their expected ledgers
+are produced by the sealed model after the run. Those panels did not exist when the
+submission was written. That replaces the work-counter accounting other tasks use and is
+strictly stronger, because what is compared is the whole behaviour rather than a summary of
+it: there is no number to assign and no table to paste. One cheat is generated from
+tests/gt.json, carries it verbatim, and settles every panel the ground truth covers exactly
+as the reference does; it passes all twenty enumerated panels and scores 0.
+
+A panel the model cannot settle, or one that would need a gauge to run twice in a round, is
+not graded at all. The second is rare - none of twenty thousand generated panels needed it -
+and excluding those removes a coin flip rather than a discovery.
+
+Since the verifier executes agent code, four more things are attested. The executed tree
+outside the four declared artifacts must be byte-identical to the untouched copy after the
+run, and the comparison asserts that it actually compared files rather than walking a
+directory that was not there. Every sealed engine function is fingerprinted as it existed in
+the running interpreter, at import and again after each panel, against digests the grader
+derives by compiling the untouched sources, so rebinding a function is caught the way
+editing its file already was. Ledger rows are appended by a closure the runner owns which
+refuses any caller that is not the loop's emitter, and the interpreter's own count of
+entries into that emitter, kept in that closure through sys.monitoring, has to equal the
+number of rows and to have still been armed when the last panel ended. The report carries
+the run nonce, so a report planted before the run cannot pass.
+
+Deliberately not graded, because grading them would measure an implementation choice rather
+than behaviour: how many times a submission evaluates a gauge before committing it, whether
+it records a gauge's wiring on a run it then discards, what it caches between rounds, and
+which data structures it keeps.
+
+Twenty-one cheats were run in the real two-container trial and all score 0, each caught by
+the layer aimed at it, which authoring/cheat_report.py asserts per cheat rather than reading
+the reward alone. Ten are the reference with exactly one decision made the way a solver who
+missed one piece would make it. Seven are reward-tamper probes built on the shipped tree,
+since a probe built on the reference does the real work and would score 1 for honest
+reasons. Four are built on the reference precisely so that the only thing that can fail them
+is the layer they were aimed at: rewriting an engine file in the executed tree, rebinding
+the emitter, switching the instrumentation off from inside a running decision, and appending
+a row to the ledger list through the closure cell the sink holds it in, which the sink's own
+caller check cannot see and the interpreter's count does.
+
+The run happens as an unprivileged uid in its own session under a wall clock, against a tree
+it cannot write; the reward channel is root-owned and locked before it starts; the model,
+the ground truth and the grader are root-only; and the file the run reports into is opened
+by root before privilege is dropped and handed over as a descriptor, so the uid executing
+agent code does not own the file it is graded on. Grading runs afterwards as root and never
+executes anything the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Languages"
+
+tags = [
+  "incremental-computation",
+  "dataflow-propagation",
+  "dynamic-dependencies",
+  "evaluation-order",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I build and maintain the incremental recomputation layer behind an internal dashboard
+product, which means most of my hard bugs are ordering bugs in a dependency graph that
+changes while it is being walked. The one this task is built from cost most of a week. A
+derived value read one of two upstream series depending on a mode flag, and when the flag
+and the newly selected series changed in the same update, the value was recomputed from the
+old series and published before the series it had just switched to had been recomputed. It
+was right again a moment later, so nothing was ever visibly broken; what shipped downstream
+was one extra revision carrying a number that had never been correct, and an alert fired on
+it about once a fortnight. What made it expensive is that the obvious fix - compute the
+dependency levels once and walk the graph in level order - is right in every situation you
+would write a test for, and wrong exactly when a conditional changes which side it reads in
+the same pass that updates that side. The interaction with a watcher that writes back into
+the graph is the same bug wearing a different hat, and it is the piece the frameworks
+themselves keep getting wrong.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

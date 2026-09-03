@@ -4,8 +4,13 @@ ENV PYTHONPATH=/tests
 ENV PYTHONDONTWRITEBYTECODE=1
 
 RUN pip install --no-cache-dir pytest==9.1.1 pytest-json-ctrf==0.5.2 \
- && useradd -u 1002 -m -s /usr/sbin/nologin sandbox \
- && mkdir -p /app/srv
+ && useradd -u 1002 -m -s /usr/sbin/nologin sandbox
+
+# Declared artifacts are uploaded to their original absolute paths, so the parent of every one of
+# them has to exist before the upload happens. This stays its own instruction: a structural check
+# that reads Dockerfile instructions rather than raw lines cannot see a mkdir that is hiding
+# behind a line continuation, and the submission is rejected with the directory never created.
+RUN mkdir -p /app/srv
 
 # Grading is baked in, because the harness does not copy tests/ into this image at trial time.
 # That means the grader, the sealed model, the enumerated jobs, the job generator, the answers to

@@ -565,7 +565,9 @@ All three are the hollow-gate class and all three are now mechanised.
 ### Non-findings, recorded so nobody re-derives them
 
 - **The `environment/Dockerfile` similarity is fully avoidable, and so is the rest of the
-  plumbing.** `simcheck.py` came back with no mechanical finding at all on this bundle. Per-directory
+  plumbing.** `simcheck.py` came back with no mechanical finding at all on this bundle - but see
+  the bundle-structure rejection below before merging `RUN` layers to get there, because that is
+  what bought the rejection. Per-directory
   `COPY` lines with a build-time smoke run for the environment, and for `tests/` a genuinely
   different ordering - env before pip, a shell function for the artifact overlay, combined `RUN`
   layers - was enough. The recorded claim that HIGH at 0.55-0.68 is this repo's baseline is true of
@@ -3080,6 +3082,55 @@ the same failure that cost `guard-mark-unwind` two of its three probe agents. Th
 the only local gate that measures what the easiness gate rejects for, so it is the first thing
 to run in the next session on this task. **Do not read the absence of a probe result as a
 result.**
+
+## The bundle-structure rejection: a structural check reads instructions, not text (2026-09-03)
+
+`aside-hold-commit` was submitted on 2026-09-03 and bounced off the **bundle structure check**
+before reaching any of the nine gates:
+
+> ERROR - ARTIFACT-PARENT-NOT-CREATED - TESTS/DOCKERFILE
+> tests/Dockerfile never creates /app/srv - add "RUN mkdir -p /app/srv" so harbor can upload the
+> declared artifact(s) into it
+
+The directory **was** created. `tests/Dockerfile` carried
+
+```
+RUN pip install --no-cache-dir pytest==9.1.1 pytest-json-ctrf==0.5.2 \
+ && useradd -u 1002 -m -s /usr/sbin/nologin sandbox \
+ && mkdir -p /app/srv
+```
+
+which builds an image with `/app/srv` in it. The pipeline reads Dockerfile **instructions** and a
+line-continuation fragment is not one, so the `mkdir` was invisible to it.
+
+**`preflight.py` has this exact check and passed the rejected file.** Measured: 0 findings about
+the parent directory on the byte-for-byte form the pipeline refused. Its regex is
+`mkdir\s[^\n]*{parent}`, matched against the whole file, so a continuation line satisfies it. That
+is standing-policy item 2, and it is the second time in two days that a gate has wanted a
+**literal** where the local checker accepted a variable or a fragment - the first was
+`/logs/verifier/reward.txt` in `test.sh`, which preflight *does* catch. Treat both as one rule:
+**anything the pipeline matches literally has to be literal and has to be its own instruction.**
+
+**How it got there matters more than the typo.** The layers were merged deliberately, to bring
+`tools/simcheck.py` down - and it worked, taking the bundle to no mechanical finding against any
+other bundle, which is the best number in this repo. So two gates pull in opposite directions
+here: the similarity screen rewards merging instructions and the structural check forbids it for
+the ones it matches. **The structural check is a hard gate and the similarity screen is a soft
+one**, so when they conflict, split the instruction and buy the similarity back somewhere else -
+comments, ordering, helper names, the `ENV` layout. Splitting the `mkdir` back out cost nothing:
+`simcheck` still reports no mechanical finding at all.
+
+`tools/zipcheck.py` now carries the strict version and it runs on the built archive. It reads
+instruction-initial lines only, the way a parser that does not join continuations would, and
+requires `RUN mkdir` or `WORKDIR` for the parent of every declared artifact to sit on one of them.
+Validated in both directions, which is the rule for a new check: it fires on the rejected file
+naming `/app/srv`, it is clean on the repaired one, and it is clean on all ten other bundles in
+`tasks/`, including every one that has cleared the structural check.
+
+One non-finding from the same report, recorded so nobody acts on it: `WARNING - CHEAT-DIR-PRESENT`
+is informational. The pipeline never executes `cheat/`, every bundle here ships one, and the only
+thing it asks for is that the write-ups are accurate and self-contained, which the generated ones
+are.
 
 ## The bundle-structure rejection: the tree is not the zip
 

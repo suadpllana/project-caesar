@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -48,6 +48,47 @@ def resolve(arg: str) -> Path:
         return cand
     print("no such zip: %s" % arg)
     raise SystemExit(1)
+
+
+def artifact_parents(zf: zipfile.ZipFile, findings: list) -> None:
+    """The verifier image must create the parent of every declared artifact, in its OWN
+    instruction.
+
+    `preflight.py` already checks that the directory is created somewhere, and its regex is
+    happy with a mkdir hidden behind a line continuation. The pipeline's structural check is
+    not: `aside-hold-commit` was rejected on 2026-09-03 with ARTIFACT-PARENT-NOT-CREATED for a
+    tests/Dockerfile that carried
+
+        RUN pip install ... \
+         && useradd ... \
+         && mkdir -p /app/srv
+
+    which preflight passed and the pipeline read as never creating the directory. So this reads
+    instruction-INITIAL lines only, the way a Dockerfile parser that does not join continuations
+    would, and requires the mkdir or WORKDIR to be on one of them.
+    """
+    try:
+        toml = zf.read("task.toml").decode("utf-8", "replace")
+        docker = zf.read("tests/Dockerfile").decode("utf-8", "replace")
+    except KeyError:
+        return
+    arts = re.findall(r'"(/[^"]+)"', toml.split("[task]")[0])
+    if not arts:
+        return
+    heads, joined = [], False
+    for line in docker.splitlines():
+        stripped = line.strip()
+        if not joined and stripped and not stripped.startswith("#"):
+            heads.append(stripped)
+        joined = stripped.endswith("\\")
+    for art in sorted({str(PurePosixPath(a).parent) for a in arts}):
+        if art in ("/", ""):
+            continue
+        pat = re.compile(r"^(RUN\s+mkdir\s|WORKDIR\s)[^\n]*" + re.escape(art) + r"(?=[\s/\\]|$)")
+        if not any(pat.search(h) for h in heads):
+            findings.append(
+                "tests/Dockerfile never creates %s in an instruction of its own - a mkdir behind "
+                "a line continuation is invisible to the structural check" % art)
 
 
 def check(zpath: Path) -> int:

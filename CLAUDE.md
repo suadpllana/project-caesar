@@ -518,9 +518,13 @@ difficulty by obscurity but that **the recalled machinery stops being sufficient
   must be held *out* of the minimum rather than compared against it. Including it silently
   under-counts, because the value is monotone in the state. Holding it out splits the
   stretch into two - one more row down, or one more column across - each contiguous in a
-  staircase, so it is two windows and not one. That is the "second discovery invalidates the
-  natural implementation of the first" shape landing on the one family where no other
-  formulation is finite.
+  staircase, so it is two windows and not one. Measured, because a difficulty claim of that
+  shape is worth nothing unargued: the reference with the diagonal keep left inside a single
+  window is **wrong on 877 of 40875 cases** with the staircase engine forced on. It is not
+  invisible - an agent that forces its own engine on small inputs will find it - which is the
+  honest reading: it costs the solver a real correctness bug to find and fix, not a lottery
+  they cannot see. That is the "second discovery invalidates the natural implementation of
+  the first" shape landing on the one family where no other formulation is finite.
 
 **Measured, which is what says it is not a lottery.** Against the graded blocks (71 fixed,
 40804 enumerated, 12000 random):
@@ -3850,6 +3854,13 @@ python3 tasks/<slug>/authoring/make_variants.py generate variants/ from the refe
                                                 drift the moment the reference changes, and
                                                 the symptom is every correct implementation
                                                 disagreeing at once
+python3 tasks/<slug>/authoring/corners.py       every hand-written corner case must be one
+                                                the plausible wrong reading answers
+                                                differently, and the block must straddle any
+                                                threshold the rule names in both directions.
+                                                An example that does not exercise the tier it
+                                                was written for is a false affordance: it
+                                                reads as a pin and pins nothing
 ```
 
 `zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and

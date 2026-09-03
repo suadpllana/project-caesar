@@ -76,6 +76,18 @@ pairs run 0.17 to 5.58 s against 60 s, and the medium block 5.40 s against 40 s.
 whole medium block in 5.40 s on this host. Measure those two before trusting any timing
 recorded here.
 
+## Local gates run here
+
+`preflight.py` no errors (7 warnings, all the documented not-in-kit-layout class);
+`solvecheck.py`, `simcheck.py` (mechanical and conceptual) and `hintcheck.py` clean;
+`structcheck.py` reports only the two findings the version that cleared the AI screen also
+carried; `textcheck.py` burstiness 0.609 against 0.584 for that version, and paragraph sd
+44.0 against 36.6. `authoring/corners.py` ok, `authoring/counts.py` as tabled above,
+`authoring/fuzz.py` 250 pairs and 2 x 150 with the row engine's memory budgets shrunk so the
+checkpoint rebuild and the spilled-mask path run on every pair: 0 mismatches across all four
+engine settings. The reference with the diagonal keep left inside a single sliding window,
+which is the natural port of the previous rule, is wrong on 877 of 40875 forced cases.
+
 ## Gates not run here
 
 - The apt layer in `tests/Dockerfile` cannot be built on this host: `deb.debian.org` answers

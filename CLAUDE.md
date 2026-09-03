@@ -16,7 +16,7 @@ is computed" below. **That failed the easiness probe 3 of 3 again on 2026-09-03*
 trajectories, and the finding is in "Decomposition is the attack on every diff task" below:
 all three agents built the staircase engine as their core and cut the pair at long common
 runs for everything else, and the one family none could do was the one I had dropped. It is
-back, with a new engine for it. **Not re-probed.** The earlier reference-verification rejection (a budget
+back, with a new engine for it. **Not re-probed.** It then failed the **quality review** on three metadata and packaging criteria, recorded in "The quality-review rejection: no probe results in the metadata" below and fixed. The earlier reference-verification rejection (a budget
 measured on the wrong machine) is still in "The reference-verification rejection" below, and
 its one-line version still holds: **a budget measured on the authoring host is a guess about
 the graded one** - this session measured the same code 2.7x faster on today's sandbox than
@@ -328,6 +328,34 @@ explanation claimed - measure that, do not assume it. And `cheat-spawn-order` di
 the reference on **1 program of 427**: a decision that rare is a lottery ticket, not a test of
 expertise, and `field_report.py` prints the count per cheat so you can find them at contract
 time.
+
+## The quality-review rejection: no probe results in the metadata, and no `authoring/` in the archive (2026-09-03)
+
+`earliest-change-script` went back with the three-engine reference and **failed the quality
+review on three blocking criteria**, every other row passing. All three are metadata and
+packaging, none is the task, and two of them are rules this file had never recorded.
+
+1. **`difficulty_explanation` must not report experimental results from running agents.**
+   The reviewer quoted three phrases - "what three probe agents built in three hours", "all
+   three agents the easiness probe sent", "one of the three agents said in as many words" -
+   and said the rubric excludes them. It also wants **one sentence on who performs this task
+   in the real world**, and it called the text too long and dense for a non-domain expert. The
+   probe evidence belongs here and in `probes/`, never in the bundle; the explanation now
+   opens with the real-world performer and carries the same measurements with no provenance.
+2. **`authoring/` is extraneous.** "Maintainer tooling and a near-duplicate alternative
+   implementation that nothing in the build, run, solve or verify pipeline references or
+   requires." `guard-mark-unwind` shipped an `authoring/` directory through the same review
+   and passed, so this is rubric variance rather than a fixed rule, but the cost of exposure
+   is a round trip and the cost of moving it is nothing: this task's tooling now lives in
+   `tools/ecs_authoring/` (the counts script, the solution sync and the `ok-cells` variant)
+   and `tools/ecs_trial.py --variants` reads it from there. **Ship `cheat/`; keep everything
+   else the pipeline does not run out of `tasks/<slug>/`.**
+3. **`solution_explanation` described the previous solution.** The reference had gained a
+   third engine and the solution file's docstring said so, but the metadata paragraph still
+   said "the frontier is the whole answer for the long pairs and the crowded ones", which the
+   difficulty explanation in the same file contradicted. Two prose copies of the method drift
+   exactly the way two copies of the reference did before `solvecheck.py`: **when the reference
+   changes, re-read every prose description of it, and `task.toml` is the one that ships.**
 
 ## Decomposition is the attack on every diff task, and the family that resists it (2026-09-03)
 

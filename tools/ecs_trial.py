@@ -22,7 +22,7 @@ channel, the unreadable /tests, the per-case budgets and the real grader.
   python3 tools/ecs_trial.py --margins
 
 --all runs the oracle, the nop, every cheat/*.py expecting 0, and every
-authoring/variants/*/change_script.py expecting 1: an alternative correct
+tools/ecs_authoring/variants/*/change_script.py expecting 1: an alternative correct
 implementation that scores 0 means a budget or a comparison is grading an
 implementation choice, which is the run-audit rejection.
 """
@@ -185,7 +185,7 @@ def main():
         for path in sorted((TASK / "cheat").glob("*.py")):
             plan.append(("cheat/" + path.name, path, "0"))
     if args.all or args.variants:
-        for path in sorted((TASK / "authoring" / "variants").glob(
+        for path in sorted((ROOT / "tools" / "ecs_authoring" / "variants").glob(
                 "*/change_script.py")):
             plan.append(("variant/" + path.parent.name, path, "1"))
 

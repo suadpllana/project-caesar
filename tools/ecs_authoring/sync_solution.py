@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write solution/change_script.py from tests/reference.py.
+"""Write tasks/earliest-change-script/solution/change_script.py from its tests/reference.py.
 
 The reference exists once, in tests/reference.py, where the grader reads it.
 The solution the platform runs is the same code under a docstring written for
@@ -11,7 +11,7 @@ reference; the diff it leaves should be the docstring and nothing else.
 import pathlib
 import re
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+TASK = pathlib.Path(__file__).resolve().parent.parent.parent / "tasks" / "earliest-change-script"
 REFERENCE = TASK / "tests" / "reference.py"
 SOLUTION = TASK / "solution" / "change_script.py"
 

@@ -5,7 +5,7 @@ Every figure quoted in task.toml about a cheat's answers comes from here. Run
 it after any change to the rule, the case generator or a cheat; a figure in
 the prose that this script no longer prints is stale.
 
-  python3 authoring/counts.py            all cheats, seed 1 for the random block
+  python3 tools/ecs_authoring/counts.py   all cheats, seed 1 for the random block
 """
 
 import importlib.util
@@ -13,7 +13,7 @@ import pathlib
 import sys
 import time
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+TASK = pathlib.Path(__file__).resolve().parent.parent.parent / "tasks" / "earliest-change-script"
 sys.path.insert(0, str(TASK / "tests"))
 
 import casegen  # noqa: E402
@@ -49,7 +49,7 @@ def main():
     truth = {}
     print("%-32s %10s %10s %10s" % ("submission", "fixed", "enumerated", "random"))
     for path in sorted((TASK / "cheat").glob("*.py")) + sorted(
-            (TASK / "authoring" / "variants").glob("*/change_script.py")):
+            (pathlib.Path(__file__).resolve().parent / "variants").glob("*/change_script.py")):
         label = path.name if path.parent.name == "cheat" else "variant " + path.parent.name
         module = load(path)
         started = time.time()

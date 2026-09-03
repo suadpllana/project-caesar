@@ -115,6 +115,15 @@ eighteen timed pairs pass, reward 0.
 scaling by 2.7** (the medium block, 5.5 s here); crowded pairs 3.1-6.2 s here, sparse
 4.4-5.5 s, long under 0.9 s.
 
+## Quality review, 2026-09-03
+
+Failed on three blocking criteria: probe-run results quoted in `difficulty_explanation`, no
+sentence on who does the task in the real world, `authoring/` shipped in the archive, and a
+`solution_explanation` that still described the two-engine solution. All three fixed:
+explanations rewritten, `authoring/` moved to `tools/ecs_authoring/` (the variant and the
+counts script run from there via `tools/ecs_trial.py --variants` and
+`tools/ecs_authoring/counts.py`).
+
 ## Gates not run here
 
 - The apt layer in `tests/Dockerfile` cannot be built on this host: `deb.debian.org` answers

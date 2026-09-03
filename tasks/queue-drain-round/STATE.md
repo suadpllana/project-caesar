@@ -67,6 +67,13 @@ Artifacts: `/app/house/drn.py`, `/app/house/gvp.py`, `/app/house/rnd.py`, `/app/
 
 ## Gates not run
 
-Whatever the handover says about the three-agent probe is the truth; do not assume it ran. The
-account session limit killed all three agents mid-read on the first attempt, which is the third
-time that has happened in this repo. An absent probe result is not a result.
+The three-agent probe has NOT been validly run, and the owner has asked that probe subagents
+not be spawned at all - they burn the whole five-hour account limit in minutes. One agent did
+finish a contaminated run (the harness injects CLAUDE.md, which names this task's wrong
+readings and their hit rates) and solved it; that number means nothing. What the run was worth
+was its account of the brief, and the three leaks it named are fixed: the simultaneity
+statement is out of the brief and back in `bk.Book.move` where it is discoverable, the worked
+example is no longer annotated, and the input-space sentence no longer carries its "because"
+clause. Expect the pipeline's easiness probe to be the first real measurement.
+
+Also not run: `harbor check` (harbor is not installed here).

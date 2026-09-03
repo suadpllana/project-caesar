@@ -222,11 +222,17 @@ the practice on top of them: what actually worked, with numbers.
    task the easiness probe solved: the four failure modes". Do not choose a repair from the
    score; the mode decides it, and picking the wrong mode is what cost three probe rounds
    across two tasks.
-6. Before packaging anything, run the three-agent probe on it (see "The too-easy failure
-   mode" below), grade the submissions through the real verifier rather than believing the
-   agents' reports, and read what they say about where they got *confirmation* and what they
-   had to **guess**. The guesses are undecided rules and they are the most common reason a
-   task misses the band in either direction.
+6. **Do not spawn probe subagents.** The task owner asked for this on 2026-09-02, in those
+   words: three Opus subagents burn the account's whole five-hour limit in minutes, and six
+   of them died mid-run across two attempts in one session before anything was learned. The
+   three-agent probe is still the only local gate that measures what the easiness gate
+   rejects for, so run it **only when the owner asks**, never as a routine pre-packaging
+   step. When it is run, grade the submissions through the real verifier rather than
+   believing the agents' reports, and read what they say about where they got
+   *confirmation* and what they had to **guess** - the guesses are undecided rules and they
+   are the most common reason a task misses the band in either direction. When it is not
+   run, ship and let the pipeline's easiness probe be the measurement; the four failure
+   modes are written down below, so a rejection there is a repair rather than a rebuild.
 
 Aim one notch harder than `rollout-cache-coherence`. The last section says how, and what
 not to do instead.
@@ -505,6 +511,53 @@ and walking the members backwards, required to score 1. No cheat weakened: all 2
 force, and which parts are just the order the submission happened to call in?** Grade the first,
 canonicalise the second. A verifier that compares a whole trace verbatim is asserting that every
 position in it is forced, and that is almost never true.
+
+### A local probe reads CLAUDE.md, so a probe run after the write-up is contaminated
+
+Worth knowing before anyone spends the owner's limit on one again. A probe subagent starts in
+this repo, so the harness injects **this file** into its context, and this file names every
+wrong reading of every task in it. The one agent that survived the 2026-09-02 attempts opened
+its report by disclosing exactly that: it had seen "pay out of what a member holds", "net the
+fronts, advance, repeat" and "give up on everything at once" before it started reasoning,
+because the `queue-drain-round` paragraph above lists them with their hit rates. It solved the
+task. That number means nothing.
+
+**So the ordering rule is: probe before the write-up, or not at all.** A probe run afterwards
+measures how well the agent read this file. If one is ever run again on a documented task, the
+CLAUDE.md section for that task has to be out of the tree while it runs.
+
+### What the contaminated probe was still worth: three leaks in the brief
+
+The solve count was worthless and the agent's own account was not. Read this as evidence about
+the brief rather than about the band, and note the shape, because all three are the
+`share-register-screen` mode-A leak in different clothes.
+
+1. **The requirement was written out as the mechanism.** The brief carried "Nothing inside a
+   round moves until all of it moves. The house looks at what a member holds when the round is
+   over, never between one payment and the next, so money that reaches a member inside a round
+   is money that member has for that round." That is the first of the two discoveries, stated
+   three ways, and the agent's first plan quoted it back. It is now one sentence - "No member
+   may end a round holding less than nothing" - and whether money moving inside a round counts
+   is answered by `bk.Book.move`, which applies every debit and credit before it records
+   anything. I wrote the design law that says the mechanic belongs in non-editable code and
+   then put it in the brief anyway, "for fairness". The requirement is the fair part; the
+   mechanic never was.
+2. **The worked example was annotated into a proof.** Quoting the broken run is required. The
+   sentence after it - naming the amount and the payee of the obligation that was abandoned -
+   is what turned an observation into a demonstration, and the agent said so outright: "That is
+   enough to prove the drop-and-resettle reading... Without that example I would have shipped
+   my first plan and been wrong." The quoted rows stay; the reading of them is the work.
+3. **An input-space sentence with a "because" clause on it is not an input-space sentence.**
+   "a member can owe more than one thing falling due on the same day with its own money behind
+   both of them, because the second obligation is often to the very member whose payment is
+   going to fund it" - the clause after the comma is the mechanism. The agent quoted it as
+   pointing straight at the reading. The situation stays, the explanation goes.
+
+**The test that catches all three, and it is cheaper than a probe: read every sentence of the
+brief and ask whether it constrains the OUTPUT or the reader's THINKING.** A requirement says
+what the answer must satisfy. A sentence that says where to look, why something is so, or what
+an exhibit demonstrates is constraining the search, which is the only thing a frontier agent
+was short of.
 
 ### Two preflight quirks that cost time and are free to avoid
 

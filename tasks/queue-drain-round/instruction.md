@@ -7,10 +7,8 @@ order it wrote them down, and at every tick it settles a round.
 `/app/run_day.py` takes a day file and prints what the house did, a row at a time, with every
 member's holding at the close of each round. Put `/app/days/queue.txt` through it. The first
 round comes back `gone q1 1`, `gone q2 1`, `gone q3 1`, and then `hold ax 3`. Three
-obligations abandoned in a single round. The member that owed two of them walked away from
-that round still sitting on three units, and `q2` is three units from `ax` to `cy`. We are
-wearing that every day the house runs, in ones and twos, and its members have started
-reconciling their own positions by hand.
+obligations abandoned in a single round. We are wearing that every day the house runs, in ones
+and twos, and its members have started reconciling their own positions by hand.
 
 We need the rounds rebuilt. The four files that decide them are `/app/house/drn.py`,
 `/app/house/gvp.py`, `/app/house/rnd.py` and `/app/house/due.py`, and those are yours to
@@ -25,33 +23,25 @@ it. The line is the order the house wrote them down, which is not the order they
 an obligation whose day has not come can be standing at the front of a line with a much older
 one waiting behind it, and a round may settle nothing before its day and stops at the first
 obligation whose day has not come, whatever sits behind that. Something a round cannot reach
-is not something a round has abandoned. It waits. A later round takes it.
-
-Nothing inside a round moves until all of it moves. The house looks at what a member holds
-when the round is over, never between one payment and the next, so money that reaches a member
-inside a round is money that member has for that round, and no member may end a round holding
-less than nothing. Both halves are graded. We lose money when a round moves too little, and we
-lose the house when a round moves too much. A round also leaves nothing on the table, so when
-it is over there must be nothing further it could have moved without taking an obligation out
-of turn or leaving somebody short, and that holds for the round as a whole and never for one
-member at a time.
-
-Whatever a round could reach and did not move has missed its day. The house does not carry it
-forward. It goes, and the payee never sees it, and the oldest goes first, where oldest means
-the order the house wrote them down in and not the order they fell due. Anything still
-outstanding when the last round of the day ends stays outstanding.
+is not something a round has abandoned. It waits. A later round takes it. No member may end a
+round holding less than nothing, and a round leaves nothing on the table: when it is over
+there must be nothing further it could have moved without taking an obligation out of turn or
+leaving somebody short. Both halves are graded. We lose money when a round moves too little,
+and we lose the house when a round moves too much. Whatever a round could reach and did not
+move has missed its day. The house does not carry it forward. It goes, and the payee never
+sees it, and the oldest goes first, where oldest means the order the house wrote them down in
+and not the order they fell due. Anything still outstanding when the last round of the day
+ends stays outstanding.
 
 Cash paid in from outside lands before the round at that tick. It comes from nowhere else.
 
 Two things about the days the house sees, because a small test file will not show you either
-of them. Members owe each other both ways within a single day, so a day has rounds in which
-nothing at all can move until several members move at once. And a member can owe more than one
-thing falling due on the same day with its own money behind both of them, which happens
-constantly here, because the second obligation is often to the very member whose payment is
-going to fund it. The days we grade do both. `/app/days` holds four days to run against. They
-are ours. They are small. The days the house actually sees are longer, with more
-counterparties in them and more falling due at once, so treat those four as a way to watch the
-book work and never as a description of what turns up.
+of them. Members owe each other both ways within a single day. And a member can owe more than
+one thing falling due on the same day. The days we grade do both. Every obligation is for a
+whole number of units, at least one, and no member owes itself. `/app/days` holds four days to
+run against. They are ours. They are small. The days the house actually sees are longer, with
+more counterparties in them and more falling due at once, so treat those four as a way to
+watch the book work and never as a description of what turns up.
 
 What we grade is the record the book keeps and the sheet it ends with. The record is the
 ordered rows `/app/run_day.py` prints: which obligation moved, which one the house gave up on,

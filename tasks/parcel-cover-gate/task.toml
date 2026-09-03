@@ -1,0 +1,166 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/bay/desc.py",
+  "/app/bay/cov.py",
+  "/app/bay/stand.py",
+  "/app/bay/gate.py",
+]
+
+[task]
+name = "afterquery/parcel-cover-gate"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working replication fabric with the wrong rule for letting a handed-over
+picture through, and the wrongness is coherent rather than broken: it is the shape of a
+store that merges pointwise, takes the newer version of each setting by the order the
+versions were made, and drops what it cannot use. That is the shape of every replicated
+cache anybody has read, so it is the shape a frontier agent reconstructs from its prior,
+and four corrections are needed on top of it. Two of those are ordinary once the
+requirements are read - a picture has to be caught up with before anything resting on it
+shows, and a parcel that cannot go up has to be kept rather than discarded. The other two
+carry the task.
+
+The first is that standing-after is reachability through the version history and not the
+order the versions were made in. The fabric hands version numbers out globally, in write
+order, and they sit in plain sight on every version in `base/tape.py`, so the comparison a
+solver reaches for first is `>=`. It is right on every history that never forks and wrong
+the moment two workers showing the same version of a setting both write it, which the brief
+states happens and the graded feeds do constantly: the two versions that come out carry
+different numbers and neither stands after the other. Measured on the generated set, a
+submission that is otherwise the reference and compares numbers is wrong on 178 feeds of
+200.
+
+The second breaks the natural implementation of the first. Once standing-after is understood
+as a walk back through what a version was written on, the walk everybody writes follows one
+link per version - and that is correct until a worker settles a setting, which the fabric
+records as a version standing on two. Half the history behind a settled version is reachable
+only through the second link, so the one-link walk answers "no" for everything the other side
+ever wrote, which does not corrupt anything and does not raise anything: parcels simply sit
+in bags forever with nothing visibly wrong with them. A submission that is otherwise the
+reference and walks one link is wrong on 114 feeds of 200, and its own testing cannot see it
+unless it builds a settling and then hands something across it.
+
+Nothing in the environment reports either fault. There is no expected output, no predicate
+that says whether a parcel should have gone up, and the answer to "has this worker caught up"
+is the question the task is about, so a submission's own harness reproduces whatever reading
+it already holds. The shipped tree already produces the right rows on 17 of the 30 named
+feeds, so the real chain is the other 13, and the three hundred feeds the submission is
+finally graded on are built from a nonce drawn after the agent has stopped.
+"""
+
+solution_explanation = """
+Four files, and each one is where a practitioner would put the decision it carries.
+
+`desc.py` answers whether one version stands after another, by walking back through the
+versions each was written on. It is a search rather than a walk because a settling records
+two parents, and it takes the graph from `base/tape.py`, which the solution may not edit.
+
+`cov.py` answers whether the picture behind a version is covered: for each line of that
+picture, whether the worker shows a version standing after the one named, or whether the
+parcel under test carries one. The second half is the part that has to be reasoned out
+rather than read. A parcel is one worker's picture of a band at one instant, so the entries
+inside it are consistent with each other, and a band whose settings were written one after
+another produces a parcel whose second entry rests on its first. Nothing outside the parcel
+will ever deliver that first entry, so a coverage test that looks only at what the worker
+already shows strands every such parcel permanently, and the requirement that a parcel goes
+up whole is what says the parcel's own entries are the right thing to count.
+
+`stand.py` decides whether a parcel can go up against a shown map, in one pass over its
+entries: an entry the worker is already at or past is skipped, an entry off on a branch the
+worker is not on stops the whole parcel, and anything else has to have its writer's picture
+covered. It is one answer for the parcel rather than one per entry, because a parcel goes up
+whole.
+
+`gate.py` keeps what a worker has been handed and works the bag to a standstill, because one
+parcel going up is what lets the next one go, and a worker settling a setting is what lets a
+parcel through that had been waiting several ops. It does not drop parcels it cannot use: a
+parcel off to one side today is one a settling can revive tomorrow.
+
+This is how the problem is actually met in practice. An engineer holding this fabric would
+run `/app/run_feed.py` on the two feeds, see a worker handed two settings and showing one,
+and reach for the version history in `base/tape.py` rather than for the merge; the fork case
+turns up as soon as two workers are made to write the same setting from the same picture, and
+the two-parent case turns up the first time a settling is put in front of the walk.
+"""
+
+verification_explanation = """
+The verifier grades two things and gives no partial credit for either: every read a feed
+asks for and every settling of a shown map, in the order the ops produced them, and the
+picture each worker is left holding at the close. The closing pictures are there because a
+submission can answer every read correctly by never letting anything go up unless a read is
+imminent, and they are what makes that not work.
+
+Three hundred of the feeds are built inside the verifier from a nonce `test.sh` draws out of
+/dev/urandom once the agent has stopped, and their expected rows are worked out by
+`tests/oracle.py`, a second reading of the requirements that shares no code with the fabric
+and is unreadable from the run. So there is no answer key to hold: a submission carrying
+`tests/gt.json` byte for byte ships as a cheat and scores 0, because the feeds it has answers
+for are not the feeds it is graded on. `authoring/fuzz.py` holds the two readings to each
+other on hundreds of feeds and `authoring/build_gt.py` refuses to write an answer file
+without a clean run of it.
+
+Four attestations travel with the report and none of them is believed on its own. Rows reach
+the trace only through an appender that refuses any caller outside the driver's own code.
+Digests of the sealed fabric functions are taken when the tree is imported and again when the
+feed ends, and both are held against a baseline the grader derives by compiling the untouched
+sources out of a directory the run cannot reach - which is what catches a function rebound at
+import time, before the run's first digest. The interpreter counts entries into the two
+sealed writers from a closure with no name inside the tree, and reports whether that counting
+was still armed at the end, so turning it off fails rather than passing quietly. The tree that
+ran is compared file by file against the untouched copy outside the four declared paths, and
+the comparison asserts how many files it actually found, so a mistyped path cannot pass by
+comparing nothing.
+
+Agent code is executed only in an unprivileged child, in its own session, under a wall clock,
+publishing into a descriptor root opened before the privilege drop; grading happens afterwards
+as root and executes nothing the agent wrote. Twenty-one cheats ship, covering each wrong
+reading, the reward channel, the answer key, a planted report, an environment sweep, an
+import-time rebind and an attempt to disarm the counting, and every one of them scores 0. Six
+alternative correct implementations ship in `authoring/variants/` and every one scores 1,
+including one that walks the bag backwards, which is what says the graded rows do not depend
+on an order the submission chose.
+"""
+
+category = "Software"
+subcategory = "Databases"
+
+tags = [
+  "causal-consistency",
+  "replication",
+  "version-history",
+  "conflict-settling",
+  "monotonic-reads",
+  "fixed-point",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I have spent several years on replicated stores and on the client libraries that sit in front
+of them, which is where this kind of fault actually lands: a worker that has been sent
+everything it needs and still shows nothing, with no error anywhere and every individual
+component behaving exactly as written. The two mistakes this task is built on are both ones I
+have shipped. Comparing version numbers instead of asking what a version was written on is
+right until the first fork and then quietly wrong forever, and following one parent through a
+merged version is right until somebody reconciles a conflict, at which point half the history
+becomes unreachable and the symptom is data that never arrives rather than data that is wrong.
+"""
+
+[verifier]
+timeout_sec = 300.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+gpus = 0

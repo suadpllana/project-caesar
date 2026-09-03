@@ -1,0 +1,8 @@
+Applying an entry is decided by which version number is higher, where
+the reference asks whether the entry stands after what the worker shows.
+The two cannot come apart: a parcel only reaches this point once nothing
+in it is off to one side, and of two versions of one setting on one line
+of descent the later one is the one with the higher number. It ships as a
+variant because it was written as a cheat and scored 1, which is the
+playbook working: a cheat that passes is a correct implementation or a
+hole in the case set, and this one is provably the first.

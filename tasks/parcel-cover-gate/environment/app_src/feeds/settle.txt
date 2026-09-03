@@ -1,0 +1,15 @@
+gp town p q
+wr wa p 11
+pb wa town
+tk wb 1
+tk wc 1
+wr wb p 20
+wr wc p 30
+pb wb town
+tk wc 2
+rd wc p
+mg wc p 2
+rd wc p
+pb wc town
+tk wb 3
+rd wb p

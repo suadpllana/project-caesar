@@ -1,0 +1,14 @@
+gp town p q
+gp yard r
+wr wa r 4
+wr wa p 11
+wr wa q 12
+pb wa town
+pb wa yard
+tk wb 1
+rd wb p
+rd wb q
+tk wb 2
+rd wb p
+rd wb q
+rd wb r

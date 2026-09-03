@@ -1,0 +1,3 @@
+The gate works out everything a parcel moves before it moves any of it,
+rather than writing into the shown map as it goes. A parcel goes up
+whole, so the two cannot come apart.

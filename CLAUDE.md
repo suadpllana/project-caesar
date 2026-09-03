@@ -106,6 +106,18 @@ none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
+| `parcel-cover-gate` | Software / Databases | 22 | 19 | 14400 s | 8 h |
+
+**`parcel-cover-gate` is the thirteenth task, built 2026-09-03, and it has not been through
+the pipeline.** It grades what a replicated worker comes to show, which `tools/simcheck.py`
+reports as conceptually clear of every earlier task, and it is the first bundle here that
+`simcheck.py` reports **mechanically clean as well** - no shipped file is close to any other
+bundle's, where `guard-mark-unwind`, which cleared all nine gates, still carries HIGH
+findings. How that was done, and four findings that are about the repo rather than about this
+task, are in "A confluence argument that holds for what is there and fails for what is not"
+below. The most expensive of them: **a local trial with a fixed nonce is a much weaker check
+than the container's, which draws a fresh one every run**, and it let a wrong claim about the
+task's own semantics stand for an afternoon.
 
 **`bucket-seal-lag` is the twelfth task, built 2026-09-02, and it has not been through the
 pipeline.** It is the first here in Data engineering and the first whose graded artifact is
@@ -453,6 +465,97 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## A confluence argument that holds for what is there and fails for what is not (2026-09-03)
+
+Everything here came out of building `parcel-cover-gate`, and the first item is the one worth
+carrying: it is a way of being wrong about your own task that every local gate agreed with.
+
+### A fixed nonce is not a sample, and the container is the gate that noticed
+
+The task has a pass over parcels a worker is holding, and I wanted to know whether the order
+the bag is walked can move a graded row. The argument that it cannot looked airtight: a shown
+map only ever moves onto versions standing after what it already shows, so anything that could
+go up before another parcel went up can still go up afterwards. `authoring/tiecheck.py` agreed
+- forwards, backwards and rotated, 180 feeds, zero differences - so the reverse walk shipped as
+a **variant** that must score 1, and the brief said nothing about ordering.
+
+The container trial failed it on the first run. The argument is wrong exactly at absence:
+putting a version of a setting up **where the worker had none** puts every parcel carrying the
+other branch of that setting out of reach for good, so two parcels can each be ready with only
+one of them ever going anywhere. It occurs in about one generated feed in three hundred, which
+is why one seed missed it and why a fresh nonce per run did not.
+
+Three rules out of that, and the second is the general one:
+
+- **Measure a "this cannot matter" claim over several nonces, never one.** `tiecheck.py` here
+  now sweeps six. The container trial draws a new nonce from /dev/urandom on every run, which
+  makes repeating it three times a better test of confluence than any single local sweep -
+  and it is free once `dockerd` is up.
+- **A monotonicity argument that holds for a value already present has to be re-checked for
+  the absent case, separately and by hand.** This is the same class as the identity-element
+  finding in `segment-merge-horizon` ("an identity element stops being one in the presence of
+  absence"), arriving through order rather than through algebra. Absence is not a small value;
+  it is a different state, and the step from it is the one that is not reversible.
+- **A rare unstated decision between two correct-looking implementations is a coin flip, not a
+  difficulty.** At one feed in three hundred and three hundred feeds graded, two honest
+  submissions disagree about 60 % of the time. The repair is the one this file already
+  prescribes for ties: decide it, state it as a requirement, and pin it with an enumerated case
+  so the cheat fails deterministically rather than by luck.
+
+### The variants suite paid twice, in both directions, in one session
+
+Two things written as variants scored 0, and both were right to. A settling in this machine
+records a version standing on two parents, and that turns two things that had looked like code
+shape into different rules: whether an entry the worker is already past still has to have its
+writer's picture covered, and whether a parcel that cannot go up may be given up on. Both moved
+to `cheat/` with one enumerated feed pinning them. One thing written as a cheat scored 1 and
+was promoted, because applying by higher version number is provably the same as applying by
+descent once the ripeness test has ruled out the branches.
+
+**So the rule in "The playbook" step 7 and the one in `variant_check.py` are the same rule read
+from opposite ends, and both fired here.** Run the variants before believing a contract is
+frozen: a variant that fails names a sentence you never wrote, and a cheat that passes names a
+theorem you did not know you had.
+
+### Four things about the tooling, all of which cost time
+
+- **`tools/forgecheck.py` matches literal slices of `json.dumps(gt, sort_keys=True)` with the
+  DEFAULT separators.** An answer-key probe that embeds the compact dump, or the indented text
+  of `gt.json` itself, matches nothing and forgecheck reports FAIL on a probe that is real and
+  does score 0. Embed `json.dumps(truth, sort_keys=True)` and it is recognised.
+- **`scripts/preflight.py` greps `test.sh` for the literal string `/logs/verifier/reward.txt`.**
+  A shell variable holding that path fails the check while working perfectly.
+- **preflight's STATE.md reader takes the rest of ONE line and nothing after it.** A required
+  answer that wraps onto the next line reads as a one-word answer and errors, and a
+  `- Tactics making that true:` line that wraps reads as a single prong. Keep each of those
+  four answers on one physical line however long it gets.
+- **`tools/onelinecheck.py` is O(terms squared times rows)** and 4000 samples over a dozen
+  features runs for many minutes. Cap `decisions.py` at a few hundred rows per question; the
+  verdict does not change and the run finishes.
+
+### The mechanical half of the similarity screen is reducible to nothing
+
+`bucket-seal-lag` records that HIGH findings at 0.55-0.68 are this repo's baseline because
+`guard-mark-unwind` passed carrying them. True, and it is not a reason to stop: this bundle
+went from four HIGH findings to **none at all** in twenty minutes. What did it was writing
+`tests/test.sh` with two shell functions and its own variable names instead of the house
+straight-line script, and rewriting `tests/reap.py` around a generator over `/proc` rather than
+a list. The environment Dockerfile with explicit per-directory `COPY` lines and a build-time
+smoke run is already below the threshold. There is no reason for a new bundle to carry any
+mechanical finding.
+
+### Two smaller ones
+
+- **`site` is a standard library module.** An editable package under `/app` called `site/`
+  shadows it, and the failure is not obviously about naming. `bay/` here.
+- **A hook that provably cannot change anything is a false affordance, so measure before
+  shipping it.** The driver ran the pass after a worker's own write, which reads as a real
+  mechanism and was provably a no-op: a write stands on what the worker already shows, so it
+  can never cover a picture that was not covered before. Measured at zero differences over 200
+  feeds and removed. Adding the settling op later made the same call live again, which is the
+  honest sequence: build, measure, delete what does nothing, and re-measure after the next
+  mechanism goes in.
 
 ## What can be brute-forced, and what cannot (2026-09-02)
 
@@ -3739,6 +3842,15 @@ python3 tasks/<slug>/authoring/make_variants.py generate variants/ from the refe
                                                 drift the moment the reference changes, and
                                                 the symptom is every correct implementation
                                                 disagreeing at once
+python3 tools/docker_trial2.py <slug> --variants x3
+                                                three times, not once. Each run draws its own
+                                                nonce, so three runs are three samples of the
+                                                generated space where one local sweep with a
+                                                fixed seed is one. This is what caught a
+                                                confluence claim that every local gate had
+                                                agreed with - see "A confluence argument that
+                                                holds for what is there and fails for what is
+                                                not"
 ```
 
 `zipcheck.py` runs **last, on the zip**, because every other gate reads the working tree and

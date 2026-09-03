@@ -1,0 +1,3 @@
+The pass is a worklist that stops when a full round adds nothing, rather
+than a loop with a flag. The same standstill, reached by a different
+route.

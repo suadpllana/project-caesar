@@ -1,0 +1,3 @@
+Standing-after is answered out of a memoised reachable set per version
+rather than by walking the graph for each question. Same relation, a
+different data structure, and the graded rows must not notice.

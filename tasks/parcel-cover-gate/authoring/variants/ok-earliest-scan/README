@@ -1,0 +1,6 @@
+The pass finds the earliest ready parcel by scanning the bag for an
+index and then starts over, where the reference walks the bag and breaks
+out of the walk. Same rule, said with a different loop. It is here
+because the reverse of it is not a variant at all: which of two ready
+parcels goes up decides what the worker can ever show, and walking the
+bag newest first ships as a cheat.

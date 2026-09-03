@@ -1,0 +1,244 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/bind/rch.py",
+  "/app/bind/hold.py",
+  "/app/bind/card.py",
+  "/app/bind/seq.py",
+]
+
+[task]
+name = "afterquery/alias-settle-report"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working filing machine whose settling rule is wrong, and the wrongness is
+coherent rather than broken: it decides that a line is safe to write by looking at the
+tags standing directly against the item it is about. That is the shape of every
+deduplication pipeline anyone has written up, because with one matcher in play it is
+right, so it is also the shape a frontier agent reconstructs from its prior. Two
+corrections are needed and the second fights that shape all the way.
+
+The first is that the question is about futures rather than about the present. A line
+carries the smallest key in an item and the score of the first post that item holds, and a
+tag that has not shut can weld another item on, bringing a smaller key or an earlier post
+with it, while a run that has not shut can post ahead of the post that stands. Neither of
+those has happened yet when the question is asked. That much an agent gets to by reading
+the brief carefully, and the natural implementation of it is a union-find and a
+reachability closure over the cells that open tags touch.
+
+The second correction is that the closure is not the answer, and this is what the task is
+built on. Welding a chain welds every item on that chain into one, so a difference
+standing between any two of them says that item can never exist and the whole route is
+impossible. The condition is therefore not "is there a path from here to there" but "is
+there a path whose entire vertex set is free of differences", which is a search over
+growing groups rather than a walk over edges, and the three readings that look like it are
+all wrong: checking the difference against the two ends of the route, checking it between
+consecutive steps, and ignoring it. Measured against the reference on four hundred
+generated sets, ignoring differences moves 63 per cent of them, the consecutive-step
+reading moves 15 per cent, and the two-ends reading moves 3 per cent. Every one of those
+readings is impeccable on a set with a single matcher in it, which is what every worked
+example of deduplication looks like.
+
+Being wrong in the other direction is graded exactly as hard, and that is what stops the
+overcautious answer. A submission that holds every line until its tags have shut is right
+on every set where nothing could have been welded anyway, and it fails all four fences the
+instruction states outright, including the one where an item already holds the smallest key
+in reach and is to be filed at once.
+
+There is no oracle for any of it. The machine runs whatever rule it is given and prints the
+rows that rule produces, and every wrong reading above prints rows that look entirely
+reasonable. The one check an agent can build for itself is misleading rather than absent:
+filing as late as a particular set happens to require costs nothing on that set and is
+wrong, because the rule is about what a source may still do rather than what it did. The
+environment ships no expected output, the instruction states requirements and the input
+space without stating how to satisfy them, and the graded set is three hundred report sets
+generated inside the verifier from a nonce made after the agent has finished, so a rule
+fitted to the sets in the tree carries no information about whether it fits the rest. The
+machine ships with no comments anywhere and its identifiers are in the register of ordinary
+internal code, which is deliberate: the sweep order, the book, the pools and what a
+declared difference actually binds have to be recovered by reading behaviour instead of
+names.
+"""
+
+solution_explanation = """
+The reference is about sixty lines across two files and it is written from the observable
+requirement backwards, never from the shape of the code it replaces.
+
+The requirement is that a watched key is filed at the first tick at which nothing that
+could still happen would move the line it would carry. Three things fall out of it. The
+line has two halves and each has its own way of moving: a smaller key arriving in the item
+moves the front, and an earlier post arriving in the item moves the score. Both arrive by
+one of two routes, a weld from a still-open tag or a post from a still-open run, and the
+second route reaches not only this item but every item that could still be welded to it. And
+which welds are still possible is bounded by what has already been declared different, since
+welding a route welds everything on it into one item and a difference anywhere inside that
+group forbids the lot.
+
+Written that way the two files are one question asked twice. `rch.py` answers which items
+could still end up welded to this one, as a search that grows a group by absorbing items an
+open tag can reach and refuses any group holding both ends of a declared difference.
+`hold.py` takes that set and asks whether any of it holds a smaller key or an earlier post,
+and then whether any run still open could post ahead of the one standing for a key anywhere
+in reach. `card.py` and `seq.py` need no change: the line's contents and the order several
+lines land in are both stated in the instruction and the shipped files already do them, and
+establishing that rather than assuming a declared artifact must be edited is part of the
+work.
+
+Two details are worth naming because leaving either out passes the shipped sets and fails
+elsewhere. A difference is declared between keys and has to be lifted onto the items those
+keys are now in, because a key that has been welded carries its differences with it. And the
+pending-post half has to range over the whole reach rather than over this item alone, since a
+future weld brings the other item's keys in and a run can then post for one of them.
+
+Four alternative correct implementations are kept in the authoring directory and all four
+score 1: the group search walking its frontier the other way round, the same search carried
+over sets of keys instead of sets of items, the whole reach folded into the readiness test so
+that the declared `rch.py` is never called at all, and the line read off one explicit pass
+with the filing order taken through an explicit sort key. All four agree row for row on every
+set.
+"""
+
+verification_explanation = """
+The rebuilt machine is driven over every report set and graded on two things, exactly, with
+no partial credit: the ordered rows, and the table of filings the machine collected beside
+them.
+
+Both come out of `bind/mc.py`, which is not an editable artifact, so they record what the
+machine actually did rather than what a submission says it did. The rows carry every post a
+run made, every sameness and every difference a tag declared, every shut, every filing with
+the key asked about, the key it was filed under and the score that stood, and the tick the
+set ended on. The filing table is a cross-check rather than a second axis and the verifier
+says so: the rows already carry a filing row apiece, so the two can only disagree if a
+submission produced one without the other. What it buys is legibility, because a key filed
+one tick early says so in one line where a row index says only that something moved.
+
+Expected results come from `tests/oracle.py`, a second implementation of the same
+specification written from the specification rather than from the tree and sharing no code
+with it: a different reader producing one flat dictionary instead of a book object, the
+machine as functions over that dictionary instead of a class, and the settling question
+answered by walking the groups of keys a legal future could actually build rather than by
+asking about one item at a time. The tree's policy argues that looking at each item that
+could still be welded on, one at a time, is enough, because welding several at once cannot
+produce a smaller key or an earlier post than the smallest and earliest among them. The
+model makes no such argument, which is exactly why it is worth having. The two agree on
+every row of nine hundred generated sets before any ground truth is written, and
+`authoring/build_gt.py` refuses to write one without that.
+
+Two set lists are driven, and the second is why there is nothing here to forge. The
+enumerated list is twenty-nine sets, each named for the reading it exists to fail, with the
+must-still-work side of every fence beside the case that says must-not, and the three sets
+that ship in the tree included verbatim. The other three hundred are generated inside the
+verifier container from a nonce made out of /dev/urandom at trial time, after the agent has
+finished, and their expected rows are produced by the sealed model after the run. Those sets
+did not exist when the submission was written. That is what replaces the work-counter
+accounting earlier tasks used, and it is stronger, because what is compared is the whole
+behaviour rather than a summary of it: there is no number to assign, no journal to pad and no
+table to paste. The cheat suite proves it directly. One cheat carries `tests/gt.json`'s own
+bytes, recognises whichever enumerated set is running from the declarations in front of it
+and the state the answer key says goes with each tick, is right on every one of the
+twenty-nine, and scores 0.
+
+Since the verifier executes agent code, four more things are attested. The executed tree
+outside the four declared artifacts must be byte-identical to the pristine copy after the
+run, and the comparison asserts how many files it found before comparing any of them. Every
+sealed machine function is fingerprinted as it actually existed in the running interpreter,
+at import and again when each set ended, against digests the grader derives by compiling the
+pristine sources, so rebinding a function is caught the way editing its file already was.
+Rows are appended by a gate the runner owns which refuses any caller that is not the
+machine's emitter, and the interpreter's own tally of entries into that emitter, kept in a
+closure through `sys.monitoring`, has to equal the number of rows and to have still been
+armed when each set ended. And the report carries the run nonce, so a report planted before
+the run cannot pass.
+
+Deliberately not graded, because grading it would measure an implementation choice rather
+than a behaviour: how a submission searches the tags, what it caches between ticks, whether
+it answers the question one item at a time or for a whole group at once, and which of the
+four declared files it puts the reasoning in. The interpreter's counts of entries into the
+four decision functions are recorded and only ever compared as floors, for the same reason -
+one of the four correct variants folds the reach search into the readiness test and enters
+`span` zero times. A separate check drives the reference with the machine's own cell-root
+tie-break inverted and requires every row to come back identical, so no graded value can turn
+on a name the machine or a submission happened to choose.
+
+Twenty-six cheats were run through the real two-image trial and all score 0, each recorded
+with the test that caught it. Fourteen are the reference with exactly one decision made the
+way a solver who missed one piece would make it, generated by swapping an anchored block in
+the reference source: differences ignored altogether, differences checked against the two
+ends of the route, differences checked between consecutive steps only, differences compared
+on raw keys rather than on the items they now sit in, the reach taken one hop instead of
+along chains, shut tags counted as if still open, a tag treated as touching only an item's
+smallest key, the reach taken as every other item, the earlier-post half of the readiness
+test dropped, the pending-post half dropped, the pending-post half restricted to this item,
+the score taken by key before run, the line filed under the machine's internal root instead
+of the smallest key, and the filing order reversed. Eight are reward-tamper probes built on
+the shipped tree rather than on the reference, since a probe built on the reference does the
+real work and would score 1 for honest reasons: a double-forked process writing the reward
+after the run, a planted report, a planted report followed by a hard exit, a privilege probe,
+a read of the verifier directory from inside the run, a rewrite of a machine file in the tree
+being executed, a sweep of everything the run's uid can reach, and one that reaches the
+running machine through the call stack and pushes rows in through the emitter, which is the
+only caller the gate accepts. Three are attestation probes built on the REFERENCE on purpose,
+so that every answer they give is right and the only thing wrong with them is the tampering:
+one rebinds the emitter, one rebinds a sealed machine function at import time so that the two
+fingerprints taken during the run agree with each other and only the baseline compiled from
+the pristine sources disagrees, and one switches the interpreter's instrumentation off from
+inside a decision while the run is going. The last is the answer-key probe described above.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout, against
+a tree it cannot write; the reward channel is root-owned and locked before it starts; the
+ground truth, the sealed model and the grader are root-only files; and the file the run
+reports into is opened by root before privilege is dropped and handed over as a descriptor,
+so the uid executing agent code does not own the file it is graded on. Grading runs afterwards
+as root and never executes anything the agent wrote.
+"""
+
+category = "ML"
+subcategory = "Evaluation"
+
+tags = [
+  "record-linkage",
+  "disequality-constraints",
+  "settling-under-uncertainty",
+  "union-find",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on the evaluation side of a model training group, which means most of my hard bugs are
+identity bugs: two rows that were the same item all along, found out about far too late, after
+something downstream had already been published on the assumption that they were two. The one
+this task is built from cost me most of a week. We file per-item results into a board as soon
+as we believe them settled, and item identity comes from a matcher that keeps running long
+after the scoring runs have finished, so a key can turn out to be an alias of another key
+hours after its line went out. The obvious fix is to hold everything until every matcher has
+finished, and that is unusable, because the board is what people watch during a run. The next
+fix is to hold a line while any matcher could still touch the item, and that is where the
+week went. We also have a checker that asserts two keys are definitely distinct, and once you
+have those, most of the things a matcher could still do are impossible: a chain of aliases
+that would have to pass through two keys we already know are different cannot happen at all.
+Reasoning about that correctly is the difference between a board that is minutes behind and a
+board that is hours behind, and getting it subtly wrong looks exactly like getting it right
+until the one run where the chain existed.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

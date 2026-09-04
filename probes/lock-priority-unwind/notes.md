@@ -97,3 +97,36 @@ the task the queue lends what it is worth to" - and agent 3's policy now ships v
 outranks the score.** Both losing agents named the rule before anybody graded them. Reading the
 score alone would have said "1 of 3, in the band, ship it", and what shipped would have been a
 lottery on a convention with no behavioural consequence.
+
+---
+
+# The local probe was reading the answer key, 2026-09-04
+
+`rebuild-round-2/` holds three agents that all scored **1**, and the result is worthless. One of
+them said why, unprompted, in its own report:
+
+> "the harness injected a project `CLAUDE.md` into my context containing stray references to this
+> task (including a scenario name, `release-with-queue-behind`) - I derived the rule without it,
+> but it did steer where I looked."
+
+The subagents a probe is run with inherit the **project instruction file**, and in this repo that
+file is the design document. By the time round 2 was launched, CLAUDE.md carried the whole
+discovery in one sentence - "no longer hands a mutex over at a release. It leaves it free, wakes
+the task at the head of its queue" - which is exactly what the task asks a solver to derive from
+`rt/core.py`.
+
+So:
+
+| round | CLAUDE.md at launch | result | worth |
+|---|---|---|---|
+| 1 | the pre-rebuild file: names the task, its scenario names and its old difficulty argument, but not the handoff | 1 of 3 | mildly contaminated, the handoff derivation was genuinely theirs |
+| 2 | the rebuilt file, handoff and all | 3 of 3 | **void** |
+| 3 | moved out of the tree for the duration | see below | the measurement |
+
+**The rule: move `CLAUDE.md` out of the tree before running the local probe, and put it back
+after.** Sealing the agent's working directory is not enough, and telling the agent not to read
+the repo is not enough either, because the injection is automatic and arrives before the agent
+does anything. Ask every probe agent, as a standing report question, whether anything outside its
+own directory told it about the task - the one that volunteered it here is the only reason this
+was caught, and a 3-of-3 that is really "the agents were told" would have sent the next session
+redesigning a task that had never been measured.

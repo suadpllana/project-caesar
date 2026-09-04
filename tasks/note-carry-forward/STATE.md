@@ -40,33 +40,61 @@ The tree ships the engine that pins a change script, so nobody has to write a
 diff. The weight is in one property of that engine nobody states: **the pinned
 script does not compose**. Measured on the graded distribution:
 
+Measured by `authoring/readings.py` over 400 streams from the graded
+generator:
+
 | wrong reading | streams it moves |
 |---|---|
-| diff the note's origin revision straight against the head | 66.4% |
-| rebuild the mapping with an ordinary LCS backtrace | 62.0% |
-| rebuild the mapping from `difflib` opcodes | 59.0% |
-| raise only the lines the script added | 51.8% |
-| retire without logging it | 60.6% |
-| newer note wins the line | 43.6% |
-| never absorb | 43.6% |
+| diff the note's origin revision straight against the head | 78.0% |
+| rebuild the mapping with an ordinary LCS backtrace | 73.8% |
+| retire without logging it | 72.2% |
+| rebuild the mapping from `difflib` opcodes | 71.2% |
+| raise only the lines the script added | 61.2% |
+| newer note wins the line | 57.0% |
+| never absorb | 57.0% |
 
-The shipped tree does the first of those. It is stateless in the way the brief
-asks for, it is one engine call per note instead of one per revision, and it
-resurrects notes whose line died revisions ago and whose text was typed again
-later. `/app/streams/guard.txt` is that, observed.
+**Both editable files ship wrong, and the three decisions are independent.**
+`note/board.py` does origin-to-head. `note/rule.py` rebuilds the mapping from
+its own LCS walk *and* treats a change as the lines the script added. A solver
+who fixes the board and leaves the mapping alone gets every count right and
+the wrong lines. `/app/streams/guard.txt` is the board defect, observed.
 
 ## Expert path
 
-Replay the store revision by revision; read the surviving-line mapping off the
+Walk the store one revision at a time; read the surviving-line mapping off the
 walk `scr/pin.py` produced rather than rebuilding it; raise on membership of a
 change span rather than on being an added line; order the log as stated.
-60 lines across the two artifacts.
+About sixty lines across the two artifacts.
 
 ## Probe status
 
 Not probed. **Run the three-agent probe before
 submitting** - it is the only local gate that measures what the easiness gate
 rejects for.
+
+## Quality-review rejection, 2026-09-04, and what changed
+
+Failed on four blocking criteria: `difficult`, `difficulty explanation
+quality`, `instruction concision`, `no extraneous files`. The fixes:
+
+- **difficult**: the brief stated the method. It said carry "one revision at a
+  time", said what `pin.py` settles is what the board carries notes through,
+  said `grp.py` says where a change begins and ends, and shipped a correct
+  `rule.py` so the work was one file. The method sentences are gone, and
+  `rule.py` now ships wrong in both of its functions, so the work is three
+  independent decisions across two files rather than one careful replay.
+- **difficulty explanation quality**: it omitted who does this for a living
+  and what the streams actually are. Both are now stated, including that the
+  streams are synthetic token lists and why that distribution is chosen.
+- **instruction concision**: 926 words to 603. Narrative preamble, oblique
+  phrasing and the paragraph describing verifier internals are gone.
+- **no extraneous files**: `authoring/probe*.py` deleted (scratch, hardcoded
+  paths, calls to a function that no longer exists); `readings.py` rewritten
+  self-contained; `cheat_report.py` no longer imports anything outside the
+  bundle.
+
+`authoring/variants/` stays: `guard-mark-unwind` and `share-register-screen`
+both ship variants and both cleared this review.
 
 ## Gates run (2026-09-04, Linux sandbox, Docker up)
 
@@ -81,8 +109,8 @@ rejects for.
 ## Gates NOT run
 
 - the three-agent easiness probe (the important one)
-- `readingcheck` and `onelinecheck`: the task ships no `authoring/readings.py`
-  or `authoring/decisions.py` in the format those tools want. The readings are
-  measured instead by `authoring/readings.py` in this task's own shape, whose
-  numbers are the table above.
+- `onelinecheck`: the task ships no `authoring/decisions.py` in the format that
+  tool wants. The wrong readings are measured instead by
+  `authoring/readings.py`, which is self-contained and fails if any reading
+  moves under a tenth of the set; its numbers are the table above.
 - the apt layer, so `pkill` is unexercised; `tests/reap.py` walks `/proc`.

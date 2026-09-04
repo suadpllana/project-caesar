@@ -1,25 +1,23 @@
 #!/bin/bash
-# Log the raises before the retirements. Both sets are right and the table at the head is right; only the order of the log moves, which is the one thing two correct boards must not be free to disagree about.
+# Log the raises before the retirements. Both sets are right and the table is right; only the order of the log moves, which is the one thing two correct boards must not be free to disagree about.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
 """The note board, rebuilt from the store.
 
-Nothing survives between requests, so the board is reconstructed by replaying
-the store from the first revision up to the head. The replay is the whole
-point. The pinned script does not compose: the script from r0 to r2 is not the
-script from r0 to r1 followed by the one from r1 to r2, and on two thirds of
-the streams we grade the two disagree about which lines survived. A board that
+Nothing survives between requests, so the board is reconstructed by walking
+the store from the first revision up to the head. The walk is the whole point.
+The pinned script does not compose: the script from r0 to r2 is not the script
+from r0 to r1 followed by the one from r1 to r2, and on two thirds of the
+streams we grade the two disagree about which lines survived. A board that
 diffs a note's own revision straight against the head is cheaper, is stateless
 in the way the store asks for, and answers a different question.
 
 Order inside one revision is fixed and is stated in the brief, because two
-correct implementations would otherwise disagree about the log: everything the
-carry retired, then everything it raised, then the absorbing, each in
-ascending note order.
+correct boards would otherwise disagree about the log for no reason anybody
+could grade.
 """
 
-from scr import grp, pin
 from note import rule
 
 
@@ -37,19 +35,18 @@ class Board(object):
         for step in range(1, self.store.count()):
             before = self.store.at(step - 1)
             after = self.store.at(step)
-            keep = rule.kept(pin.reading(before, after, pin.script(before, after)))
-            spans = grp.spans(before, after)
+            carried = rule.kept(before, after)
             held = []
             lost = []
             for note in live:
-                if note["line"] in keep:
-                    note["line"] = keep[note["line"]]
+                if note["line"] in carried:
+                    note["line"] = carried[note["line"]]
                     held.append(note)
                 else:
                     lost.append(note["id"])
             live[:] = held
             for note in sorted(live, key=lambda n: n["id"]):
-                if rule.raised(note["line"], spans):
+                if rule.raised(note["line"], before, after):
                     log.append(("raise", note["id"]))
             for nid in sorted(lost):
                 log.append(("retire", nid))
@@ -75,33 +72,35 @@ class Board(object):
         live[:] = held
 ENDBOARD
 cat > "${APP_DIR}/note/rule.py" <<'ENDRULE'
-"""Which lines a script keeps, and which of them sit inside a change.
+"""Which lines a revision keeps, and which of them sit inside its change.
 
-`kept` reads the mapping straight off the walk the pinned engine produced.
-That matters more than it looks: several scripts of the same length exist for
-almost any pair whose lines repeat, and they disagree about which copy of a
-repeated line survived. Rebuilding the mapping from a textbook diff, or from
-the opcodes the standard library's matcher returns, answers a different
-question and moves the note to a different line.
+Both answers come off the script the tool itself settled. That matters more
+than it looks. Several scripts of the same length exist for almost any pair of
+revisions of a file that repeats its lines, and they disagree about which copy
+of a repeated line survived, so a mapping rebuilt here from an ordinary
+longest-common-subsequence walk is a different answer to a different question
+and moves the note to a different line.
 
-`raised` asks whether a line the script kept nevertheless falls inside one of
-the changes of that same script. It can: a change absorbs the kept lines that
-sit between its runs, so a line can survive the revision untouched and still
-be part of the change the reviewer has to look at again.
+A change is not the set of lines the script added. It reaches across the kept
+lines that sit between its runs, so a line can come through a revision
+untouched and still be part of the change somebody has to read, which is what
+`grp.spans` settles.
 """
 
+from scr import grp, pin
 
-def kept(walk):
+
+def kept(before, after):
     out = {}
-    for kind, i, j in walk:
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
         if kind == "K":
             out[i] = j
     return out
 
 
-def raised(line, spans):
-    for s in spans:
-        if line in s:
+def raised(line, before, after):
+    for chunk in grp.spans(before, after):
+        if line in chunk:
             return True
     return False
 ENDRULE

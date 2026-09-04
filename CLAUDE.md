@@ -106,7 +106,7 @@ none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
-| `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
+| `alias-settle-report` | Software / Algorithms | 29 | 15 | 14400 s | 8 h |
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
@@ -117,14 +117,19 @@ the graded work exercises, never the room the story happens in. It is now
 see "The category rejection" below, and run `tools/catcheck.py` on the next bundle. **It then
 failed the easiness probe 3 of 3 the same day, in 2 to 7 minutes a trial, and the cause is the
 mechanism, not a leak** - see "The easiness rejection on a task built the day after the law that
-forbids it". It needs a Stage 2 redesign before it goes back. Its graded
+forbids it". **That redesign was done on 2026-09-04 and it is the only Stage 2 redesign in this
+repo carried out on a bundle that had already cleared four gates** - read "The redesign that
+answered a mode-C rejection" before touching the task, and note that its three-agent probe was
+NOT run, on the task owner's instruction, so nobody has yet put an agent in front of it. Its graded
 artifact is a **delivery obligation**: which line each watched key is handed, and the tick it may be handed
 on. `tools/simcheck.py` reports it conceptually clear of every earlier task and, for the first
 time in this repo, **mechanically clear too**: no shipped file is close to another bundle's.
-The difficulty is that the settling question looks like reachability and is not one - welding a
+The difficulty after the redesign is that reach is not a function of the book at all: welding a
 chain welds everything on it into one item, so a declared difference standing anywhere inside
-that group forbids the whole route, and the answer is a search over growing difference-free
-groups rather than a walk over edges. What it turned up is in "Five findings from a task whose
+that group forbids the whole route, and on top of that an item leaves the desk when its line is
+handed over, so the cells that could still be welded on are the ones still standing once this
+tick's lines have gone - which is the question being asked. The answer is a search over growing
+difference-free groups against a departure set that is being solved for in the same breath. What it turned up is in "Five findings from a task whose
 verifier lied about its own instrumentation" below. Three of those are about the repo rather
 than about this task: **a bound method is not identity-stable**, which silently made the
 reference score 0; `tools/forgecheck.py` only ever looks at `cheat/cheat-*.sh`; and the
@@ -563,6 +568,149 @@ Two smaller things worth keeping:
   fairness and legibility property. They say nothing about whether a frontier agent takes the
   shortcut, and on a complete specification it does not. Keep measuring them for the reason they
   exist; stop citing them as evidence the task is hard.
+
+## The redesign that answered a mode-C rejection: make the futures depend on the policy (2026-09-04)
+
+`alias-settle-report` came back 3 of 3 and the section above concludes, correctly, that no
+leak patch applies and the mechanism has to change. This is what the change was. It is the
+first Stage 2 redesign in this repo carried out on a bundle that had already cleared four
+gates, and the whole of it fits in two files of the environment.
+
+**The law it answers.** "What can be brute-forced" says a target that is a decidable property
+of the input is dead, because the brief has to state every transition for the task to be fair
+and a complete transition table is a brute-force oracle. The escape is narrower than it
+looks, and it is this: **make the set of legal continuations depend on the policy's own
+output.** Then there is no fixed continuation space to enumerate. An agent can still build a
+continuation oracle - but it has to drive that oracle with the policy under test, so the
+oracle agrees with any policy that agrees with itself, and it confirms a wrong answer instead
+of failing to reach it. Prong C comes back from the dead, on a question that had none.
+
+**The change, in one sentence: a line handed to the board takes its item off the desk, and a
+tag says nothing further about an item that has gone.** `bk.drop` strikes the cell's keys;
+`mc.step` drops any sameness or difference naming a struck key, so it is not an event and
+leaves no row. Nothing else moved. Posts still land - deliberately, see below.
+
+The consequences are what carry the task, and only the first is stated:
+
+1. A departed item can never be welded on, so it neither blocks a row nor bridges a route.
+2. **Reach is therefore not a function of the book.** The cells that could still be welded on
+   are the ones still standing once *this tick's* lines have gone, and which lines those are
+   is the question being asked. Reach has to be answered against a departure set that is
+   being solved for in the same breath. That is the second discovery invalidating the natural
+   implementation of the first, for the fourth time in this file, and here the invalidated
+   thing is the shipped interface's own shape: `span(bk, c, off)` is asked once per cell per
+   tick and `off = bk.gone` is the wrong answer.
+3. The right answer is the **smallest** self-consistent departure set, grown from the items
+   already gone. The largest is self-justifying and lets two items that each block the other
+   both go on the strength of the other going.
+
+Measured against the reference on 400 generated sets, and the third row is the one to note:
+
+| reading | sets it moves |
+|---|---|
+| the largest self-consistent set instead of the smallest | 87% |
+| a departed item still in reach | 46% |
+| only departures already recorded, so no line ever frees another on the same tick | 21% |
+
+**The regression test the playbook asks for, and it is the strongest number here.** The rule
+all three probe agents wrote - the one that beat the previous build in two to seven minutes -
+ported to the current signature scores **0**: wrong on 4 of the 33 enumerated sets and on 48
+per cent of 200 generated ones. It ships as `cheat-mistake-the-rule-that-beat-the-old-build`.
+Meanwhile all five `ok-*` variants still score 1. That pairing - the submission that beat you
+at 0, every alternative correct reading at 1 - is what says a redesign changed the question
+rather than merely the wording.
+
+**The trap is worth more than the discovery.** A solver who never notices departures loses
+46% of sets; one who notices and resolves the fixed point the eager way loses 87%. Half-
+recognition is punished harder than no recognition, which is the shape "The playbook" step 5
+asks for and the reason the enumerated case `neither-frees-the-other` exists.
+
+### Four things measured on the way, three of them about the repo
+
+- **The generator decides whether a discovery is load-bearing, and the first cut said no.**
+  On the old generator the two new readings moved 6.7% and 17.7% of sets - real, but thin.
+  Drawing the watched keys first and building the tag pools around them, and raising the watch
+  count from 2-4 to 4-6, took them to 21% and 46% with no change to the rule. **Measure a new
+  axis against the generated set before believing it, and if it is thin, suspect the generator
+  before the mechanism.** A structural counter (how often does the situation even arise?)
+  matches the reading percentages exactly and is far cheaper to compute.
+
+- **When the fuzz parts the reference from the sealed model, check which one is wrong.** Three
+  sets of 400 disagreed and the reference was right: two watched keys on one item each earn a
+  line, and the model's own "skip a key whose item has gone" guard was eating the second one.
+  Fixing the reference to match would have been silent and wrong. The tell was that the
+  reference emitted an *extra* row rather than a different one; a reference that is eager
+  relative to the model on whole rows is usually the model missing a case.
+
+- **Splitting a long sentence to fix burstiness makes it worse.** `textcheck` failed the
+  edited brief at 0.813 against a 0.836 floor. Breaking the 87-word rule sentence into three
+  took it to **0.787**, because sd is carried almost entirely by the longest sentence and the
+  range fell from 2-87 to 2-80. What fixed it was adding two genuinely-needed short sentences
+  ("Two watched keys can share an item. Each still earns its own line.") and trimming three
+  wordy phrases: 0.838, clean against all four briefs that have passed the AI screen, and the
+  addition is a fairness statement the brief was missing anyway. **Never chop to raise
+  burstiness. Add short sentences that carry requirements, and protect the longest sentence.**
+
+- **A dead branch in a reference is still dead after a redesign, and the ground truth proves
+  it.** Three plausible-looking guards - striking departed keys out of a tag pool, skipping a
+  bar whose ends are not both live, and returning early for a departed cell - are all
+  unreachable under the stated input space, because a departed key only ever sits in a
+  departed cell. Removed; `gt.json` came back byte-identical and every enumerated set produced
+  identical rows, which is the proof the removal was behaviour-preserving. The matching
+  wrong readings measured 0% and are deliberately *not* shipped as cheats, per the
+  `bucket-seal-lag` rule.
+
+### One design choice that is not obvious and cost a rethink
+
+**Posts still land for a key that has gone; only the tags are told to stop.** Refusing posts
+too is tidier narratively and it breaks the task: whether a watched key ever receives its
+post would then depend on the policy under test, `tests/gen.py` must not run the machine (it
+would have to know the policy), and the input-space guarantee that every watched key is posted
+for before the set ends could not be maintained. **When a policy's output feeds back into the
+machine, check every input-space guarantee against the feedback before shipping it** - a
+guarantee the generator can no longer enforce is an unfair task, not a hard one.
+
+The same reasoning fixes the sweep: `mc.sweep` takes **one** pass and computes every line's
+contents before dropping anything. Iterating there would hand the fixed point to the
+submission for free, and computing contents first is what lets two watched keys on one item
+each earn their line.
+
+### The local gates were green and the container caught two real defects
+
+Worth its own heading, because it is standing-policy item 2 and it nearly shipped. Every
+host-side gate on this bundle passed - `fuzz`, `variant_check`, `readingcheck`, `build_gt`,
+`determinism`, `tiecheck`, `preflight` - and the real two-image trial then scored the
+**reference 0**. Two causes, both mine, both invisible from the host:
+
+- `tests/test_outputs.py` groups the enumerated sets into named sweeps and asserts that every
+  set in `cases.py` appears in one. Four new cases were in the bundle and in no sweep.
+- The rewritten `tests/oracle.py` dropped `filings()`, which only the generated-set test calls,
+  so nothing on the host ever imported it.
+
+The reason neither showed up is that **this bundle's host emulation never runs
+`tests/test_outputs.py`** - `authoring/harness.py` drives the machine and compares to the
+model directly. `bucket-seal-lag` fixed exactly this for itself on 2026-09-02 by having
+`authoring/grade.py` stage the tree the way the image builds it and then run the real grader
+under pytest; this task has no such script and should get one. Until it does, **the container
+trial is not optional after any edit to `tests/`** - and "the reference scores 0 with a
+non-zero verifier time" means look at the task, not at the archive, exactly as the
+reference-verification entry says.
+
+### Gates run and not run
+
+Run, and clean: the real two-image trial, `variant_check` (5 of 5, including a variant that
+grows the departure set by a worklist from the far end of the watch list, which is what says
+the fixed point is confluent), `readingcheck` (16 of 16 separated by the 33 enumerated sets),
+`fuzz` at 600 and `build_gt` at 900, `determinism`, `tiecheck`, `simcheck` (still no shipped
+file close to another bundle's, and still conceptually clear), `deadfieldcheck`, `catcheck`,
+`solvecheck`, `hintcheck`, `structcheck`, `textcheck`.
+
+**Not run: the three-agent probe.** The task owner asked on 2026-09-04 that probes not be run,
+because they consume the account's usage. So this redesign is justified by measured separation
+of the wrong readings and by the structural argument above, and **not** by any agent having
+been put in front of it. That is a real gap and the next session should say so rather than
+read the gate list as a pass. It is also the first entry in this file where the honest answer
+to "will it clear easiness" is that nobody has looked.
 
 ## The category rejection: the label names the work, not the room the story is set in (2026-09-04)
 
@@ -1802,7 +1950,7 @@ three-agent probe rather than to guess.
 | task | easiness result | mode | next action |
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
-| `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | Stage 2 redesign. No leak patch applies; see "The easiness rejection on a task built the day after the law that forbids it". Trajectories at `probes/alias-settle-report/` |
+| `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | **redesigned 2026-09-04** so the continuations depend on the policy's own filings - see "The redesign that answered a mode-C rejection". Not re-probed, on the task owner's instruction. Trajectories at `probes/alias-settle-report/` |
 | `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone | none of the four: real exploration, a superset of the reference in three hours | the mechanism was at its ceiling; the rule gained a second tier on 2026-09-02 (see "A pure function at its ceiling"). Re-probe before resubmitting |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |

@@ -2,11 +2,12 @@
 
 Per-rule coverage is not coverage. The question is whether a SPECIFIC wrong
 reading survives the whole enumerated set, and the only way to know is to write
-that reading as the file it would replace and drive it. Two of these are the
+that reading as the file it would replace and drive it. Three of these are the
 readings this task exists to punish - the reach search that treats a difference
-as if it constrained nothing, and the one that checks it against the wrong pair
-of cells - and both of them produce a machine that behaves impeccably on a
-straight set.
+as if it constrained nothing, the readiness test that never notices a cell has
+left the desk, and the one that lets everything which would be ready if the
+others went leave together. All three produce a machine that behaves impeccably
+on a straight set.
 """
 
 import os
@@ -33,7 +34,55 @@ def _read(name):
 
 GATE = "            if all((min(i, j), max(i, j)) not in stop for i in grp):"
 
-ONE_HOP = """def span(bk, c):
+STOP = """    stop = set()
+    for a, b in bk.bars:
+        ra, rb = bk.find(a), bk.find(b)
+        if ra != rb:
+            stop.add((min(ra, rb), max(ra, rb)))"""
+
+SEAT = "    live = dict((i, set(ks)) for i, ks in cells.items() if not (set(ks) & off))"
+
+AUTH = """        b = card.auth(bk, x)
+        if b is not None and b < a:
+            return False"""
+
+PEND = """    for n in bk.open_runs():
+        for k in bk.unsent(n):
+            if k in wide and (n, k) < a:
+                return False"""
+
+LOOP = """    off = set(bk.gone)
+    ripe = set()
+    moved = True
+    while moved:
+        moved = False
+        for w in bk.watch:
+            if w in bk.filed or w in ripe:
+                continue
+            d = bk.find(w)
+            if set(bk.held(d)) & off:
+                continue
+            if sound(bk, d, off):
+                ripe.add(w)
+                off = off | set(bk.held(d))
+                moved = True
+    return any(bk.find(w) == c for w in ripe)"""
+
+GREEDY = """    ripe = set(w for w in bk.watch if w not in bk.filed)
+    moved = True
+    while moved:
+        moved = False
+        for w in sorted(ripe):
+            off = set(bk.gone)
+            for u in ripe:
+                if u != w:
+                    off |= set(bk.held(bk.find(u)))
+            if not sound(bk, bk.find(w), off):
+                ripe.discard(w)
+                moved = True
+    return any(bk.find(w) == c for w in ripe)"""
+
+ONE_HOP = """def span(bk, c, off):
     cells = bk.cells()
     out = set()
     for n in bk.open_tags():
@@ -45,43 +94,41 @@ ONE_HOP = """def span(bk, c):
     return out
 """
 
+
+def _swap(name, old, new):
+    text = _read(name)
+    out = text.replace(old, new)
+    if out == text:
+        raise SystemExit("readings.py: the anchor for %s no longer matches" % name)
+    return {name: out}
+
+
 READINGS = {
-    "bars-ignored": {"rch.py": _read("rch.py").replace(GATE, "            if True:")},
-    "bars-at-the-ends": {"rch.py": _read("rch.py").replace(
-        GATE, "            if (min(c, j), max(c, j)) not in stop:")},
-    "bars-on-the-step": {"rch.py": _read("rch.py").replace(
-        GATE, "            if (min(max(grp), j), max(max(grp), j)) not in stop:")},
-    "bars-taken-on-keys": {"rch.py": _read("rch.py").replace(
-        """    stop = set()
-    for a, b in bk.bars:
-        ra, rb = bk.find(a), bk.find(b)
-        if ra != rb:
-            stop.add((min(ra, rb), max(ra, rb)))""", "    stop = set(bk.bars)")},
+    "bars-ignored": _swap("rch.py", GATE, "            if True:"),
+    "bars-at-the-ends": _swap("rch.py", GATE,
+                              "            if (min(c, j), max(c, j)) not in stop:"),
+    "bars-on-the-step": _swap(
+        "rch.py", GATE,
+        "            if (min(max(grp), j), max(max(grp), j)) not in stop:"),
+    "bars-taken-on-keys": _swap("rch.py", STOP, "    stop = set(bk.bars)"),
     "one-hop-only": {"rch.py": ONE_HOP},
-    "shut-tags-count": {"rch.py": _read("rch.py").replace(
-        "    for n in bk.open_tags():", "    for n in sorted(bk.tags):")},
-    "tag-touches-the-front-key": {"rch.py": _read("rch.py").replace(
-        "    seat = dict((i, set(cells[i])) for i in ids)",
-        "    seat = dict((i, set([min(cells[i])])) for i in ids)")},
-    "front-key-only": {"hold.py": _read("hold.py").replace(
-        """        b = card.auth(bk, x)
-        if b is not None and b < a:
-            return False""", "        pass")},
-    "pending-posts-ignored": {"hold.py": _read("hold.py").replace(
-        """    for n in bk.open_runs():
-        for k in bk.unsent(n):
-            if k in reach and (n, k) < a:
-                return False""", "    pass")},
-    "pending-in-this-cell": {"hold.py": _read("hold.py").replace(
-        """    reach = set(bk.held(c))
-    for x in near:
-        reach.update(bk.held(x))""", "    reach = set(bk.held(c))")},
-    "score-by-key-first": {"card.py": _read("card.py").replace(
-        "(n, k) < best", "(k, n) < (best[1], best[0])")},
-    "filed-under-the-root": {"card.py": _read("card.py").replace(
-        "return bk.held(c)[0],", "return c,")},
-    "filed-newest-first": {"seq.py": _read("seq.py").replace(
-        "return sorted(ripe)", "return sorted(ripe, reverse=True)")},
+    "shut-tags-count": _swap("rch.py", "    for n in bk.open_tags():",
+                             "    for n in sorted(bk.tags):"),
+    "tag-touches-the-front-key": _swap(
+        "rch.py", SEAT,
+        "    live = dict((i, set([min(ks)])) for i, ks in cells.items()"
+        " if not (set(ks) & off))"),
+    "gone-still-in-reach": _swap("rch.py", "if not (set(ks) & off))", "if True)"),
+    "front-key-only": _swap("hold.py", AUTH, "        pass"),
+    "pending-posts-ignored": _swap("hold.py", PEND, "    pass"),
+    "pending-in-this-cell": _swap("hold.py", "        wide.update(ks)\n", ""),
+    "no-cascade": _swap("hold.py", LOOP, "    return sound(bk, c, set(bk.gone))"),
+    "all-that-look-ready": _swap("hold.py", LOOP, GREEDY),
+    "score-by-key-first": _swap("card.py", "(n, k) < best",
+                                "(k, n) < (best[1], best[0])"),
+    "filed-under-the-root": _swap("card.py", "return bk.held(c)[0],", "return c,"),
+    "filed-newest-first": _swap("seq.py", "return sorted(ripe)",
+                                "return sorted(ripe, reverse=True)"),
 }
 
 

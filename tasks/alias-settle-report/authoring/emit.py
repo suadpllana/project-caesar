@@ -52,7 +52,55 @@ def swap(name, old, new):
 
 GATE = "            if all((min(i, j), max(i, j)) not in stop for i in grp):"
 
-ONE_HOP = '''def span(bk, c):
+STOP = """    stop = set()
+    for a, b in bk.bars:
+        ra, rb = bk.find(a), bk.find(b)
+        if ra != rb:
+            stop.add((min(ra, rb), max(ra, rb)))"""
+
+SEAT = "    live = dict((i, set(ks)) for i, ks in cells.items() if not (set(ks) & off))"
+
+AUTH = """        b = card.auth(bk, x)
+        if b is not None and b < a:
+            return False"""
+
+PEND = """    for n in bk.open_runs():
+        for k in bk.unsent(n):
+            if k in wide and (n, k) < a:
+                return False"""
+
+LOOP = """    off = set(bk.gone)
+    ripe = set()
+    moved = True
+    while moved:
+        moved = False
+        for w in bk.watch:
+            if w in bk.filed or w in ripe:
+                continue
+            d = bk.find(w)
+            if set(bk.held(d)) & off:
+                continue
+            if sound(bk, d, off):
+                ripe.add(w)
+                off = off | set(bk.held(d))
+                moved = True
+    return any(bk.find(w) == c for w in ripe)"""
+
+GREEDY = """    ripe = set(w for w in bk.watch if w not in bk.filed)
+    moved = True
+    while moved:
+        moved = False
+        for w in sorted(ripe):
+            off = set(bk.gone)
+            for u in ripe:
+                if u != w:
+                    off |= set(bk.held(bk.find(u)))
+            if not sound(bk, bk.find(w), off):
+                ripe.discard(w)
+                moved = True
+    return any(bk.find(w) == c for w in ripe)"""
+
+ONE_HOP = '''def span(bk, c, off):
     cells = bk.cells()
     out = set()
     for n in bk.open_tags():
@@ -79,31 +127,25 @@ MISTAKES = {
         "rch.py": lambda: swap("rch.py", "    for n in bk.open_tags():",
                                "    for n in sorted(bk.tags):")},
     "bars-taken-on-keys": {
-        "rch.py": lambda: swap(
-            "rch.py",
-            """    stop = set()
-    for a, b in bk.bars:
-        ra, rb = bk.find(a), bk.find(b)
-        if ra != rb:
-            stop.add((min(ra, rb), max(ra, rb)))""",
-            """    stop = set(bk.bars)""")},
-    "front-key-only": {
-        "hold.py": lambda: swap("hold.py", """        b = card.auth(bk, x)
-        if b is not None and b < a:
-            return False""", "        pass")},
-    "pending-posts-ignored": {
-        "hold.py": lambda: swap("hold.py", """    for n in bk.open_runs():
-        for k in bk.unsent(n):
-            if k in reach and (n, k) < a:
-                return False""", "    pass")},
-    "pending-in-this-cell": {
-        "hold.py": lambda: swap("hold.py", """    reach = set(bk.held(c))
-    for x in near:
-        reach.update(bk.held(x))""", "    reach = set(bk.held(c))")},
+        "rch.py": lambda: swap("rch.py", STOP, "    stop = set(bk.bars)")},
+    "gone-still-in-reach": {
+        "rch.py": lambda: swap("rch.py", "if not (set(ks) & off))", "if True)")},
     "tag-touches-the-front-key": {
         "rch.py": lambda: swap(
-            "rch.py", "    seat = dict((i, set(cells[i])) for i in ids)",
-            "    seat = dict((i, set([min(cells[i])])) for i in ids)")},
+            "rch.py", SEAT,
+            "    live = dict((i, set([min(ks)])) for i, ks in cells.items()"
+            " if not (set(ks) & off))")},
+    "front-key-only": {
+        "hold.py": lambda: swap("hold.py", AUTH, "        pass")},
+    "pending-posts-ignored": {
+        "hold.py": lambda: swap("hold.py", PEND, "    pass")},
+    "pending-in-this-cell": {
+        "hold.py": lambda: swap("hold.py", "        wide.update(ks)\n", "")},
+    "no-cascade": {
+        "hold.py": lambda: swap("hold.py", LOOP,
+                                "    return sound(bk, c, set(bk.gone))")},
+    "all-that-look-ready": {
+        "hold.py": lambda: swap("hold.py", LOOP, GREEDY)},
     "score-by-key-first": {
         "card.py": lambda: swap("card.py", "(n, k) < best", "(k, n) < (best[1], best[0])")},
     "filed-under-the-root": {
@@ -111,8 +153,12 @@ MISTAKES = {
     "filed-newest-first": {
         "seq.py": lambda: swap("seq.py", "return sorted(ripe)",
                                "return sorted(ripe, reverse=True)")},
+    "the-rule-that-beat-the-old-build": {
+        "rch.py": lambda: swap("rch.py", "if not (set(ks) & off))", "if True)"),
+        "hold.py": lambda: swap("hold.py", LOOP,
+                                "    return sound(bk, c, set(bk.gone))")},
     "reach-is-every-cell": {
-        "rch.py": lambda: """def span(bk, c):
+        "rch.py": lambda: """def span(bk, c, off):
     return set(i for i in bk.cells() if i != c)
 """},
 }

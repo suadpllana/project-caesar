@@ -3,9 +3,9 @@
 from bind import card
 
 
-def _open_groups(bk, c):
+def _open_groups(bk, c, off):
     cells = bk.cells()
-    ids = sorted(cells)
+    ids = sorted(i for i in cells if not (set(cells[i]) & off))
     near = dict((i, set()) for i in ids)
     for n in bk.open_tags():
         pool = set(bk.tags[n])
@@ -34,13 +34,13 @@ def _open_groups(bk, c):
     return out
 
 
-def firm(bk, c):
+def sound(bk, c, off):
     a = card.auth(bk, c)
     if a is None:
         return False
     rep = bk.held(c)[0]
     reach = set(bk.held(c))
-    for x in _open_groups(bk, c):
+    for x in _open_groups(bk, c, off):
         keys = bk.held(x)
         if keys[0] < rep:
             return False
@@ -53,3 +53,22 @@ def firm(bk, c):
             if k in reach and (n, k) < a:
                 return False
     return True
+
+
+def firm(bk, c):
+    off = set(bk.gone)
+    ripe = set()
+    moved = True
+    while moved:
+        moved = False
+        for w in bk.watch:
+            if w in bk.filed or w in ripe:
+                continue
+            d = bk.find(w)
+            if set(bk.held(d)) & off:
+                continue
+            if sound(bk, d, off):
+                ripe.add(w)
+                off = off | set(bk.held(d))
+                moved = True
+    return any(bk.find(w) == c for w in ripe)

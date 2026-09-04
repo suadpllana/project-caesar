@@ -75,6 +75,7 @@ def _feat(bk, c, card):
     a = card.auth(bk, c)
     hop = _hops(bk, c)
     loose = _loose(bk, c)
+    live = set(i for i in cells if not (set(cells[i]) & bk.gone))
     pend_here = pend_loose = 0
     here = set(keys)
     wide = set(keys)
@@ -94,9 +95,15 @@ def _feat(bk, c, card):
         "openruns": len(bk.open_runs()),
         "touching": len(hop),
         "hoplow": min([cells[i][0] for i in hop], default=BIG),
+        "hoplowlive": min([cells[i][0] for i in hop if i in live], default=BIG),
         "reachwide": len(loose),
         "reachlow": min([cells[i][0] for i in loose], default=BIG),
+        "reachlowlive": min([cells[i][0] for i in loose if i in live], default=BIG),
         "bars": len(bk.bars),
+        "gonekeys": len(bk.gone),
+        "gonereach": len([i for i in loose if i not in live]),
+        "otherwatch": len([w for w in bk.watch
+                           if w not in bk.filed and bk.find(w) != c]),
         "pendhere": pend_here,
         "pendreach": pend_loose,
     }
@@ -111,13 +118,15 @@ def _walk(text, card, hold, out_file, out_front, out_score):
         if kind == "post":
             bk.post[(who, a)] = b
         elif kind == "tie":
-            bk.weld(a, b)
+            if a not in bk.gone and b not in bk.gone:
+                bk.weld(a, b)
         elif kind == "bar":
-            bk.bars.add((min(a, b), max(a, b)))
+            if a not in bk.gone and b not in bk.gone:
+                bk.bars.add((min(a, b), max(a, b)))
         elif kind == "shut":
             bk.live.discard(who)
         for w in bk.watch:
-            if w in bk.filed:
+            if w in bk.filed or (set(bk.held(bk.find(w))) & bk.gone):
                 continue
             c = bk.find(w)
             row = _feat(bk, c, card)
@@ -127,9 +136,12 @@ def _walk(text, card, hold, out_file, out_front, out_score):
                 rep, sc = card.card(bk, c)
                 out_front.append((dict(row), rep))
                 out_score.append((dict(row), sc))
-        for w in list(bk.watch):
-            if w not in bk.filed and hold.firm(bk, bk.find(w)):
-                bk.filed.add(w)
+        ripe = [w for w in bk.watch
+                if w not in bk.filed and hold.firm(bk, bk.find(w))]
+        for w in ripe:
+            bk.filed.add(w)
+        for w in ripe:
+            bk.drop(bk.find(w))
 
 
 def samples():

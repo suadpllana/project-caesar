@@ -85,20 +85,17 @@ def sound(bk, c, off):
 
 
 def firm(bk, c):
-    off = set(bk.gone)
-    ripe = set()
+    ripe = set(w for w in bk.watch if w not in bk.filed)
     moved = True
     while moved:
         moved = False
-        for w in bk.watch:
-            if w in bk.filed or w in ripe:
-                continue
-            d = bk.find(w)
-            if set(bk.held(d)) & off:
-                continue
-            if sound(bk, d, off):
-                ripe.add(w)
-                off = off | set(bk.held(d))
+        for w in sorted(ripe):
+            off = set(bk.gone)
+            for u in ripe:
+                if u != w:
+                    off |= set(bk.held(bk.find(u)))
+            if not sound(bk, bk.find(w), off):
+                ripe.discard(w)
                 moved = True
     return any(bk.find(w) == c for w in ripe)
 PYEOF
@@ -154,7 +151,7 @@ def span(bk, c, off):
         for i in grp:
             rim |= near[i]
         for j in rim - grp:
-            if True:
+            if all((min(i, j), max(i, j)) not in stop for i in grp):
                 work.append(grp | {j})
     out.discard(c)
     return out

@@ -125,7 +125,7 @@ cat > "${APP}/bind/rch.py" <<'PYEOF'
 # edges: the group is what a bar forbids.
 def span(bk, c, off):
     cells = bk.cells()
-    live = dict((i, set(ks)) for i, ks in cells.items() if not (set(ks) & off))
+    live = dict((i, set(ks)) for i, ks in cells.items() if True)
     ids = sorted(live)
     near = dict((i, set()) for i in ids)
     for n in bk.open_tags():
@@ -154,7 +154,7 @@ def span(bk, c, off):
         for i in grp:
             rim |= near[i]
         for j in rim - grp:
-            if True:
+            if all((min(i, j), max(i, j)) not in stop for i in grp):
                 work.append(grp | {j})
     out.discard(c)
     return out

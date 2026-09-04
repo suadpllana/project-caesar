@@ -14,6 +14,10 @@ class Book(object):
         self.live = set(self.runs) | set(self.tags)
         self.watch = list(sp.watch)
         self.filed = set()
+        self.gone = set()
+
+    def drop(self, c):
+        self.gone.update(self.held(c))
 
     def find(self, k):
         r = k

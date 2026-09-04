@@ -352,16 +352,15 @@ shut m1
 # the two copies cannot drift.
 
 _add("plain", """
-watch 4 9
-run r0 4 9
-run r1 4
-tag m0 4 7
+watch 2
+run r0 9
+run r1 2
+tag m0 2 9
 go
-post r1 4 31
-post r0 9 55
-tie m0 4 7
+post r1 2 40
+post r0 9 17
+tie m0 2 9
 shut m0
-post r0 4 12
 shut r0
 shut r1
 """)
@@ -392,4 +391,56 @@ shut r0
 tie m1 6 2
 shut m0
 shut m1
+""")
+
+_add("gone-holds-nothing", """
+watch 2 7
+run r0 2
+run r1 7
+tag m0 2 7
+go
+post r0 2 40
+post r1 7 50
+shut r0
+shut r1
+shut m0
+""")
+
+_add("one-going-frees-the-next", """
+watch 3 8
+run r0 3
+run r1 8
+tag m0 3 8
+go
+post r1 8 50
+post r0 3 20
+shut m0
+shut r0
+shut r1
+""")
+
+_add("neither-frees-the-other", """
+watch 3 8
+run r0 8
+run r1 3
+tag m0 3 8
+go
+post r1 3 40
+post r0 8 50
+shut m0
+shut r0
+shut r1
+""")
+
+_add("gone-frees-a-run-too", """
+watch 2 9
+run r0 2 9
+run r1 9
+tag m0 2 9
+go
+post r0 9 30
+post r0 2 15
+shut r0
+shut m0
+shut r1
 """)

@@ -1,2 +1,2 @@
-def span(bk, c):
+def span(bk, c, off):
     return set()

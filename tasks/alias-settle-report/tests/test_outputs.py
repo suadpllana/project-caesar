@@ -31,7 +31,7 @@ WHAT IS GRADED, on every set, exactly, in order, with no partial credit:
 
 TWO SET LISTS, and the second is why an answer key is worth nothing here:
 
-  The enumerated list in cases.py is twenty-nine sets, each named for the reading
+  The enumerated list in cases.py is thirty-three sets, each named for the reading
   it exists to fail, with the must-still-work side of every fence beside the case
   that says must-not, and the three sets that ship in the tree included verbatim.
   It is fixed, it is in the bundle, and its expected rows are in gt.json.
@@ -101,6 +101,8 @@ BAR_RULES = ("bar-blocks-hop", "bar-blocks-chain", "bar-off-the-step",
              "weld-then-reach")
 PEND_RULES = ("pending-beats", "pending-loses", "pending-in-reach",
               "pending-out-of-reach", "no-post-yet")
+GONE_RULES = ("gone-holds-nothing", "gone-frees-a-run-too",
+              "one-going-frees-the-next", "neither-frees-the-other")
 IN_TREE = ("plain", "chain", "barred")
 
 
@@ -262,6 +264,11 @@ def test_what_a_run_can_still_post(name):
     assert _rows(name) == TRUTH[name]
 
 
+@pytest.mark.parametrize("name", GONE_RULES)
+def test_what_a_line_already_handed_over_changes(name):
+    assert _rows(name) == TRUTH[name]
+
+
 @pytest.mark.parametrize("name", IN_TREE)
 def test_the_sets_that_ship_in_the_tree(name):
     assert _rows(name) == TRUTH[name]
@@ -269,7 +276,7 @@ def test_the_sets_that_ship_in_the_tree(name):
 
 def test_every_enumerated_set_was_graded():
     covered = set(ROW_RULES) | set(ORDER_RULES) | set(REACH_RULES) \
-        | set(BAR_RULES) | set(PEND_RULES) | set(IN_TREE)
+        | set(BAR_RULES) | set(PEND_RULES) | set(GONE_RULES) | set(IN_TREE)
     assert covered == set(cases.SETS), \
         "an enumerated set is in the bundle and in no sweep"
 

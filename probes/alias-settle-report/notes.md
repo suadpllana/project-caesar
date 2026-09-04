@@ -1,5 +1,14 @@
 # alias-settle-report easiness probe, 2026-09-04: 3 of 3
 
+> **These trajectories are against the MECHANISM THAT WAS REPLACED.** The task was
+> redesigned on 2026-09-04 - a line handed to the board now takes its item off the desk,
+> so the continuations depend on the policy's own filings and the settling question is no
+> longer a predicate over the visible state. See "The redesign that answered a mode-C
+> rejection" in CLAUDE.md. Two consequences: the submissions transcribed here score 0
+> against the current build, so do not promote one to `authoring/variants/`; and
+> `tools/leakcheck.py` run against them measures the old brief, not the current one.
+> The redesign has **not** been probed - the task owner asked that probes not be run.
+
 The three trajectories beside this file are the agents' own words with the pasted brief
 stripped (lines 1-22 of each upload), so `tools/leakcheck.py` can be run against them
 without being circular. Commentary lives here and not in those files.

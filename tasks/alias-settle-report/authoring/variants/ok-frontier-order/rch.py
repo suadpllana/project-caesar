@@ -1,8 +1,8 @@
 # The same search, walking its frontier oldest first and keeping the groups it
 # has already opened in a list rather than a set. Same answer, different order.
-def span(bk, c):
+def span(bk, c, off):
     cells = bk.cells()
-    ids = sorted(cells)
+    ids = sorted(i for i in cells if not (set(cells[i]) & off))
     seat = dict((i, set(cells[i])) for i in ids)
     near = dict((i, set()) for i in ids)
     for n in bk.open_tags():

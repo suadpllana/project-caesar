@@ -7,10 +7,10 @@ prints the whole run: which task held the processor at each tick, what every tas
 each of those ticks, every acquisition, every block, every release and every completion in the
 order it happened, the tick each task finished on, and the priority changes the policy made.
 
-When a task blocks on a mutex somebody else is holding, the holder has to be lent enough urgency
-to get out of the way, because otherwise everything in between runs first and the task that was
-actually urgent waits for all of it. `/app/rt/core.py` owns the clock, the run queue and the
-mutexes and decides who runs, while how much to lend and for how long is decided in
+When a task is made to wait for a mutex, whatever is standing between it and that mutex has to be
+lent enough urgency to get out of the way, because otherwise everything in between runs first and
+the task that was actually urgent waits for all of it. `/app/rt/core.py` owns the clock, the run
+queue and the mutexes and decides who runs, while how much to lend and for how long is decided in
 `/app/rt/prio.py`, which we rewrote last cycle. It is the only thing here that is wrong.
 
 Run `/app/run_sched.py` on `/app/cases/inversion.json`. Task 4 starts at priority 1 and takes
@@ -21,9 +21,9 @@ arrives at tick 3, holds nothing and only ever runs. The priority changes come b
 blocks behind it, and to 9 when task 1 does. The third is the fault. The log shows
 `["rel", 10, 4, 1]` and the policy drops task 4 to 1 on that same tick, while task 2 is still
 queued on mutex 2 and task 4 is still holding it. Task 3 has the processor from tick 14 to tick
-25. Task 2 is granted its mutex at `["acq", 29, 2, 2]`, twenty-four ticks after it asked for it,
-and lands on `["done", 33, 2, 0]`. It outranks task 3 by one. `/app/cases/handover.json` is a
-shape the policy still gets right, and its changes come back `[4, 3, 9]` and `[8, 3, 1]`.
+25. Task 2 reaches `["acq", 30, 2, 2]`, twenty-five ticks after it asked, and lands on
+`["done", 33, 2, 0]`. It outranks task 3 by one. `/app/cases/handover.json` is a shape the policy
+still gets right, and its changes come back `[4, 3, 9]` and `[8, 3, 1]`.
 
 Rewrite `/app/rt/prio.py` so that stops happening.
 
@@ -36,21 +36,20 @@ exactly as leaving it too low does, so handing out urgency nobody is owed, lifti
 is waiting for, or leaving a task lifted after the last waiter behind it has gone all cost you
 the same, and we have cases aimed at each. Being generous is not the safe way out.
 
-Four moments are handed to you and they are the only ones you get. A task blocks on a held mutex.
-A mutex is granted to somebody. A mutex is released. A task that was waiting gives up, because
-the timeout it asked for ran out. `/app/rt/core.py` calls those four and nothing else, and it
-reads what you set when it decides who runs next. The core object you are handed is the one the
-scheduler itself uses, and it is the same object at every one of the four.
+Three moments are handed to you and they are the only ones you get. A task is made to wait for a
+mutex. A mutex is let go. A task that was waiting gives up, because the timeout it asked for ran
+out. `/app/rt/core.py` calls those three and nothing else, and it reads what you set when it
+decides who runs next.
 
 Some ground rules, because a couple of them are not what you would do elsewhere.
 
-A mutex is handed to whichever waiter has been queued longest. Urgency does not jump the queue.
-That is deliberate and it is not yours to change. A task that is waiting can be holding something
-of its own, with a queue of its own behind it, and the sets we grade do that.
+A mutex goes to whichever waiter has been queued longest. Urgency does not jump the queue. That
+is deliberate and it is not yours to change. A task that is waiting can have a queue of its own
+behind it, and the sets we grade do that. Everything queued on one mutex is waiting for the same
+single task, and that is the task the queue lends what it is worth to.
 
 A wait that times out ends there. The task stops waiting, its attempt on the mutex has failed and
-it carries on with whatever comes next in its program, while the mutex itself is untouched and
-the holder still holds it.
+it carries on with whatever comes next in its program, while the mutex itself is untouched.
 
 The schedule is not yours either. Which task runs at a tick, when tasks arrive, how long a
 critical section takes and when a job finishes are settled inside `/app/rt/core.py`, and we
@@ -60,7 +59,7 @@ has no other effect.
 Only `/app/rt/prio.py` comes out of your container. Every other file is restored from an
 untouched copy before the graded run, so an edit anywhere else is thrown away and never graded,
 and the scheduler we measure you with is the one that shipped. Keep the class name, the
-constructor and the four method names exactly as they are. The core calls them by name.
+constructor and the three method names exactly as they are. The core calls them by name.
 
 Half of what we run you on is task sets built at the moment the verifier starts, out of a seed
 that does not exist until then. There is no schedule for those that anybody could have worked out

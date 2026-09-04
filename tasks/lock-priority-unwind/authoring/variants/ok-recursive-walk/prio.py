@@ -1,32 +1,7 @@
-"""What a task's priority has to be while it is holding something somebody else needs.
+"""An alternative correct policy: the same walk, expressed as a recursion.
 
-The shipped policy is the one every introduction to this writes down, and it is right about
-exactly one shape: a single mutex, one waiter, one holder. Raise the holder when a more urgent
-task blocks on it, put the holder back on release. Everything past that shape it gets wrong,
-and the two ways it gets it wrong are different from each other.
-
-It is wrong on release, because a holder can hold more than one thing. Putting it back to its
-own priority the moment it releases one mutex abandons whoever is still waiting on the others,
-and the task that was donating urgency a tick ago is now the lowest thing in the system with a
-queue behind it. What it has to go back to is not where it started; it is whatever the tasks
-still waiting on the mutexes it still holds are worth.
-
-It is wrong on the way up, because blocking is not one deep. The task a waiter blocks on can
-itself be blocked on something else, and the urgency has to travel the whole way along that
-chain or it stops at the first link and the task actually holding the CPU never hears about
-it.
-
-Both of those are the same computation run in two directions, which is why this is one
-function and not four. A task is worth its own priority, or the most urgent thing waiting on
-anything it holds, whichever is greater. Whenever that changes for a task, it can change for
-whoever that task is itself waiting on, so the recomputation walks up the chain until it stops
-making a difference.
-
-Four moments can change it and all four are handled by the same walk. Somebody blocks. A mutex
-is handed to a new holder that still has a queue behind it. A mutex is released. And a waiter
-gives up and stops waiting, which lowers the holder rather than raising it, and is the one
-that gets left out - a timeout is a change to the same set the other three read, so it moves
-the same numbers.
+The reference loops up the chain. This calls itself on whoever the task it just changed is
+waiting for, and stops when the answer stops moving. Identical assignment, different shape.
 """
 
 
@@ -35,32 +10,46 @@ class Prio:
         self.core = core
 
     def blocked(self, w, m, h):
-        self.settle(h)
-
-    def granted(self, t, m):
-        self.settle(t)
+        self.settle(self.ahead(m), 0)
 
     def released(self, t, m):
-        self.settle(t)
+        self.settle(t, 0)
+        self.settle(self.ahead(m), 0)
 
     def expired(self, w, m, h):
-        self.settle(h)
+        self.settle(self.ahead(m), 0)
 
-    def want(self, t):
-        """A task is worth its own priority, or the most urgent thing waiting on it."""
-        p = self.core.base[t]
-        for m in self.core.held(t):
-            for w in self.core.waiters(m):
-                if self.core.eff[w] > p:
-                    p = self.core.eff[w]
-        return p
+    def ahead(self, m):
+        h = self.core.holder(m)
+        if h:
+            return h
+        q = self.core.waiters(m)
+        return q[0] if q else 0
 
-    def settle(self, t, depth=0):
-        """Recompute t, then whoever t is waiting on, until nothing more moves."""
+    def behind(self, t):
+        c = self.core
+        out = []
+        for m in c.locks():
+            q = c.waiters(m)
+            if c.holder(m) == t:
+                out.extend(q)
+            elif c.holder(m) == 0 and q and q[0] == t:
+                out.extend(q[1:])
+        return out
+
+    def settle(self, t, depth):
         if not t or depth > 64:
             return
-        p = self.want(t)
-        if p == self.core.eff[t]:
+        c = self.core
+        p = c.base[t]
+        for w in self.behind(t):
+            if c.eff[w] > p:
+                p = c.eff[w]
+        if p == c.eff[t]:
             return
-        self.core.set(t, p)
-        self.settle(self.core.holder(self.core.blocking(t)), depth + 1)
+        c.set(t, p)
+        m = c.blocking(t)
+        if not m:
+            return
+        nxt = self.ahead(m)
+        self.settle(nxt if nxt != t else 0, depth + 1)

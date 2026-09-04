@@ -49,6 +49,9 @@ class Core:
         x = self.ms.get(m)
         return list(x.w) if x else []
 
+    def locks(self):
+        return sorted(self.ms)
+
     def held(self, t):
         out = []
         for m in sorted(self.ms):
@@ -108,8 +111,6 @@ class Core:
     def acquire(self, t, m):
         self.ms[m].h = t
         self.ev.append(["acq", self.tick, t, m])
-        if self.pol is not None:
-            self.pol.granted(t, m)
 
     def run_one(self, t):
         guard = 0
@@ -132,20 +133,23 @@ class Core:
                 return True
             if k == task.LOCK:
                 m = s[1]
-                if self.ms[m].h == 0:
+                x = self.ms[m]
+                if x.h == t:
+                    self.advance(t)
+                    continue
+                if x.h == 0 and (not x.w or x.w[0] == t):
+                    if x.w:
+                        x.w.pop(0)
                     self.acquire(t, m)
                     self.advance(t)
                     continue
-                if self.ms[m].h == t:
-                    self.advance(t)
-                    continue
-                self.ms[m].w.append(t)
+                x.w.append(t)
                 self.st[t] = BLOCK
                 d = s[2]
                 self.dead[t] = self.tick + d if d >= 0 else -1
                 self.ev.append(["blk", self.tick, t, m])
                 if self.pol is not None:
-                    self.pol.blocked(t, m, self.ms[m].h)
+                    self.pol.blocked(t, m, x.h)
                 return False
             if k == task.UNLOCK:
                 m = s[1]
@@ -155,16 +159,12 @@ class Core:
                 self.ms[m].h = 0
                 self.advance(t)
                 self.ev.append(["rel", self.tick, t, m])
-                if self.pol is not None:
-                    self.pol.released(t, m)
                 nxt = self.top(m)
                 if nxt:
-                    self.ms[m].w.remove(nxt)
                     self.dead.pop(nxt, None)
-                    self.acquire(nxt, m)
-                    self.pc[nxt] += 1
-                    self.left[nxt] = 0
                     self.ready(nxt)
+                if self.pol is not None:
+                    self.pol.released(t, m)
                 continue
             if k == task.SLEEP:
                 self.advance(t)

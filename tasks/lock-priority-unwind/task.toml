@@ -12,52 +12,64 @@ author_name = "Suad Pllana"
 author_email = "suadpllana12@gmail.com"
 
 difficulty_explanation = """
-The memorised answer to this is one paragraph long and it is correct for exactly one shape.
-When a task blocks on a mutex somebody else holds, raise the holder to the blocked task's
-priority; when the holder releases, put it back. That is what every introduction to priority
-inversion says, it is what the shipped policy in rt/prio.py does, and on a single mutex with a
-single waiter it is right. Every other shape it gets wrong, and it gets them wrong in three
-different ways that a solver has to find separately.
+The memorised answer to this is one paragraph long, it is correct, and it is not enough.
 
-The first is the release. A task can hold more than one mutex, and putting it back to its own
-priority the moment it releases one of them abandons whoever is still queued on the others. The
-shipped tree does this on the graded run: a holder is lifted to 5, then to 9, releases the first
-mutex at tick 10 and drops straight to 1 while a task at priority 5 is still queued on the
-second mutex it is still holding. A task at priority 4 then takes the processor and keeps it,
-and the task at 5 waits from tick 5 to tick 29 behind a task it outranks by one. What the holder
-has to fall back to is not where it started; it is whatever the tasks still waiting on what it
-still holds are worth, which is a quantity the policy has to go and compute.
+Ask a strong engineer to fix priority inversion and they write transitive priority inheritance
+without looking anything up: a task is worth its own priority or the most urgent task queued on
+a mutex it holds, whichever is greater, iterated to a fixed point so the urgency travels a chain,
+recomputed at every event so a boost dies with the reason for it. That is the right answer to the
+question the literature asks. It handles the three shapes the shipped policy gets wrong - a
+holder of two mutexes that releases one, a waiter blocking on a holder that is itself blocked, a
+wait that times out - and a solver who writes it has done real work and is still wrong here,
+because of something that is in rt/core.py and in no write-up.
 
-The second is that blocking is not one deep. A waiter can block on a holder that is itself
-blocked on something else, and the urgency has to travel the whole chain or it stops at the
-first link and never reaches the task actually holding the processor. Two scenarios build that
-chain and one of them takes it apart again, because the fall has to travel the same path as the
-rise and an implementation that walks the chain only on the way up passes the first and fails
-the second.
+This kernel does not hand a mutex over. Releasing one leaves it free. The task at the head of its
+queue is woken and is the only task permitted to take it, and it takes it later, when the
+scheduler next picks it. The engine spends real ticks in that state - `["rel", 10, 4, 1]` and
+`["acq", 11, 1, 1]` on the shipped case file are a tick apart, and on a wrong policy they are
+twenty apart. For as long as it lasts, the tasks queued behind the head are waiting for a task
+that holds nothing at all, and a policy that reads holders finds nobody there. It gives that task
+its own priority, the task does not get the processor, and the queue behind it sits - which is
+the same inversion the boost exists to prevent, now caused by aiming the boost at nobody.
 
-The third is the one measured solutions miss, and it is not a shape at all. A waiter that times
-out and gives up stops being a reason for anybody to be urgent. Every write up frames a timeout
-as something that happens to the waiter, so the natural implementation updates the waiter and
-returns, and the holder keeps a priority it is no longer owed for the rest of its critical
-section. The set of tasks waiting on a mutex changes in four places and only three of them look
-like priority events.
+The same fact takes the chain apart. What a waiter is waiting for is the holder of the mutex it
+is queued on, and while that mutex is between owners it is the task at the head of the queue
+instead, so a walk that follows holders stops dead there. And it is why a release moves two tasks
+rather than one: the task letting go falls to whatever is still waiting on what it still holds,
+and the task at the head of the queue rises to whatever is queued behind it. One moment, two
+answers, opposite directions.
+
+Three things make that hard to find rather than merely additional. The policy is told about three
+moments and none of them is named for the state that matters. The argument the engine passes for
+"the task being waited on" is zero while a mutex is between owners, so the natural implementation
+does nothing and raises nothing. And the check a solver builds for themselves is the definition
+they already believe, so it agrees with their code and passes.
+
+That last one is the load-bearing part and it is measured rather than argued. This task was put
+in front of three frontier agents on 2026-09-04 under an earlier design in which the mutex was
+handed straight over, and three of three solved it in four or five tool calls, writing the fixed
+point in their first message and confirming it with a fuzz harness whose oracle was the same rule
+their policy implemented. That policy ships verbatim as cheat-the-policy-the-probe-wrote. Against
+the engine as it now stands it fails six of the twenty-one written scenarios and 16.7% of drawn
+ones, and its self-check still passes, because a holder-shaped oracle cannot see a mutex that has
+no holder.
 
 The fence closes on both sides, which is what stops the defensive rewrite. What a task is worth
 is graded at every tick, so lifting a task higher than the rule allows fails exactly as leaving
-it too low does. Three scenarios exist for that alone: a task blocking on a holder that already
-outranks it, a task blocking at exactly the holder's priority, and a policy that lifts any
-holder of a contended mutex to the highest priority in the system, which is correct in the sense
-that nothing waits too long and is rejected because it hands out urgency nobody waiting ever
-had. That last one ships as a cheat.
+it too low does. Four scenarios exist for that alone: a task blocking on a holder that already
+outranks it, a task blocking at exactly the holder's priority, a policy that lifts anything with
+a queue behind it to the highest priority in the system, and a policy that counts the task at the
+head of a queue among the tasks waiting on it and therefore never comes down. All four ship as
+cheats.
 
-There is no oracle for any of it. The scheduler is deterministic and the solver can run it as
-often as they like, but nothing in the environment says what the schedule should have been, and
-the schedule the shipped policy produces looks entirely ordinary: every task finishes, no mutex
-is lost, nothing deadlocks, and the only symptom is that one task waited longer than it should
-have behind a task it outranks. The engine ships with no comments anywhere in it and its
-identifiers are in the register of ordinary kernel code, which is deliberate: the queue
-discipline, the handover order and what the four hooks are called at have to be recovered by
-reading behaviour rather than by reading names.
+There is no oracle for any of it. The scheduler is deterministic and a solver can run it as often
+as they like, but nothing in the environment says what the schedule should have been, and the
+schedule a wrong policy produces looks entirely ordinary: every task finishes, no mutex is lost,
+nothing deadlocks, and the only symptom is that one task waited longer than it should have behind
+a task it outranks. The engine ships with no comments anywhere in it and its identifiers are in
+the register of ordinary kernel code, which is deliberate: the queue discipline, what happens at
+a release and what the three hooks are called at have to be recovered by reading behaviour rather
+than by reading names.
 
 Half the graded run is task sets drawn when the verifier starts, from a seed that does not exist
 until then, so a policy that is right about the shapes somebody thought to write down and wrong
@@ -66,78 +78,95 @@ in general passes the written half and fails the drawn one.
 
 solution_explanation = """
 The reference does what somebody who has debugged a real inversion does: it stops treating the
-four hooks as four rules.
+hooks as separate rules, and it reads the engine before it writes the policy.
 
-Reading rt/core.py gives the two facts the policy needs. The scheduler picks the highest
-effective priority and breaks ties by who became runnable first, so the only lever the policy
-has is that number. And a mutex is handed to the waiter that has been queued longest rather than
-to the most urgent one queued, which is why the handover is a moment the policy is told about at
-all: the task that gets the mutex can be less urgent than one still queued behind it.
+Reading rt/core.py gives three facts. The scheduler picks the highest effective priority and
+breaks ties by who became runnable first, so the only lever the policy has is that number. A
+mutex goes to the waiter that has been queued longest rather than to the most urgent one, so the
+task that gets it can be less urgent than one still queued behind it. And the release path does
+not call acquire: it wakes the task at the head of the queue and leaves it queued, and the lock
+path lets a task take a free mutex only when the queue is empty or that task is at the front of
+it. Those two together are the whole of the second half.
 
-From there the rule falls out as one quantity rather than four rules. A task is worth its own
-priority, or the highest effective priority among the tasks blocked on mutexes it holds,
-whichever is greater. Every one of the four moments changes that same set, so the reference has
-one function that recomputes a task's worth from what it currently holds and who is currently
-queued on it, and all four hooks call it.
+From there the rule is one quantity rather than three. A task is worth its own priority, or the
+most urgent task waiting for it, whichever is greater - where the tasks waiting for it are those
+queued on a mutex it holds together with those queued behind it on a mutex that is free and its
+to take. Every one of the three moments changes that same set, so the reference has one function
+that recomputes a task's worth and all three hooks call it.
 
-The chain is the second half and it is why the function does not simply return. Whenever a
-task's worth changes, it may change for whoever that task is itself waiting on, so the
-recomputation walks up the block chain and stops when it stops making a difference. Walking up
-handles the rise and the fall with the same code, which is the point: a release lowers a task,
-that lower value propagates to whoever it was waiting on, and the chain unwinds by the same path
-it was built.
+The chain is the second half and it is why the function does not simply return. Whenever a task's
+worth changes it may change for whoever that task is itself waiting for, so the recomputation
+walks and stops when it stops making a difference. Which task that is takes the same reading as
+above: the holder of the mutex it is queued on, or the task at the head of that queue while the
+mutex has no holder. Walking handles the rise and the fall with the same code, which is the
+point: a release lowers a task, that lower value propagates, and the chain unwinds by the path it
+was built.
 
-The timeout needs no special case once the rule is stated that way, and that is the argument
-that it was stated correctly. A waiter that gives up leaves the queue; the queue is what the
-recomputation reads; so the same call that handles a block handles an abandoned wait, in the
-other direction.
+A release is the one place two tasks move, and the reference settles both: the task letting go,
+and whatever the queue on that mutex is now waiting for. The timeout needs no special case once
+the rule is stated that way, and that is the argument that it was stated correctly.
 
-Three alternative correct policies are kept in the authoring directory: one that solves the
-whole assignment to a fixed point on every event the way the sealed model does, one that
-expresses the same walk recursively, and one that relaxes every holder repeatedly until nothing
-moves. All three produce identical schedules and identical priority tables on all fourteen
-written scenarios and on the drawn ones, which is the evidence that the schedule is a property
-of the rule and not of how the rule is applied.
+Four alternative correct policies are kept in the authoring directory: one that solves the whole
+assignment to a fixed point on every event the way the sealed model does, one that expresses the
+same walk recursively, one that relaxes only the tasks with a queue behind them until nothing
+moves, and one that walks the mutexes and pushes each queue's urgency onto whatever that queue is
+waiting for, which is the same least fixed point computed in the opposite direction. All four
+produce identical schedules and identical priority tables on all twenty-one written scenarios and
+on two hundred drawn ones, which is the evidence that the schedule is a property of the rule and
+not of how the rule is applied.
 
-The whole reference is about sixty lines in one file and runs in well under a second.
+The whole reference is about ninety lines in one file and runs in well under a second.
 """
 
 verification_explanation = """
-The rebuilt policy is driven through fourteen written scenarios, each aimed at one reading of
-the rule, and through a batch of task sets drawn at verification time. Everything is checked
-with no partial credit.
+The rebuilt policy is driven through twenty-one written scenarios, each aimed at one reading of
+the rule, and through a batch of task sets drawn at verification time. Everything is checked with
+no partial credit.
 
 Four things are compared, all of them produced by rt/core.py, which is not an editable artifact.
 The schedule: which task held the processor at every tick. What every task was worth at every
-tick. The lifecycle log: acquisitions, blocks, releases, abandoned waits, sleeps and
-completions, in order. And the tick each task finished on. A wrong priority is not graded as a
-wrong number in isolation; it is graded through the schedule it produced, which is what makes
-the consequence rather than the intent the thing being measured.
+tick. The lifecycle log: acquisitions, blocks, releases, abandoned waits, sleeps and completions,
+in order. And the tick each task finished on. A wrong priority is not graded as a wrong number in
+isolation; it is graded through the schedule it produced, which is what makes the consequence
+rather than the intent the thing being measured.
 
-Ground truth is re-proved on every run by a sealed model that shares no code with the engine.
-The model is a second scheduler written to the same published semantics, and it differs in the
-one place that matters: where the engine's policy patches priorities incrementally as events
-arrive, the model solves the whole assignment as a fixed point over every task after anything
-moves. A submission that patches the wrong task, stops at the first link of a chain, or leaves a
-boost standing after the waiter that caused it has gone cannot agree with a fixed point of the
-definition.
+Ground truth is re-proved on every run by a sealed model that shares no code with the engine. The
+model is a second scheduler written to the same published semantics, and it differs in the one
+place that matters: where the engine's policy patches priorities incrementally as events arrive,
+the model solves the whole assignment as a fixed point over every task after anything moves. A
+submission that patches the wrong task, stops at the first link of a chain, reads holders where a
+mutex is between owners, or leaves a boost standing after the waiter that caused it has gone
+cannot agree with a fixed point of the definition.
+
+Every wrong reading shipped as a cheat is required to be separated by a written scenario rather
+than only by drawn ones, and that is checked mechanically rather than asserted: per-rule coverage
+on paper is not coverage, and a misreading that survives the whole written set and dies on a
+handful of drawn ones is indistinguishable from bad luck under all-or-nothing grading. Two of the
+twenty-one scenarios exist because a reading survived the other nineteen and a search over drawn
+shapes found the case that separates it.
 
 Deliberately outside the graded set: the sequence of priority changes a policy makes, and how it
-is structured. Two correct policies may reach the same value by different routes and at
-different moments inside a tick, so grading the route would grade an implementation choice
-rather than behaviour, which is the run-audit failure this repo has already had once. The engine
-records priority changes in a separate list that is reported for the solver's benefit and is
-never compared. What is compared is the state at each tick, which the rule pins exactly and
-which every correct policy agrees on. The three alternative correct implementations are required
-to score 1 and all three do, on identical schedules.
+is structured. Two correct policies may reach the same value by different routes and at different
+moments inside a tick, so grading the route would grade an implementation choice rather than
+behaviour, which is the run-audit failure this repo has already had once. The engine records
+priority changes in a separate list that is reported for the solver's benefit and is never
+compared. What is compared is the state at each tick, which the rule pins exactly and which every
+correct policy agrees on. The four alternative correct implementations are required to score 1
+and all four do, on identical schedules.
 
 The anti-cheat design is the drawn half and it replaces a work journal entirely. A submission
 runs inside the same process as the scheduler that measures it, so a policy that recognises a
-scenario and hands back a remembered schedule is the attack to beat. Here there is nothing to
+scenario and hands back a remembered answer is the attack to beat. Here there is nothing to
 remember: half the graded task sets are generated from a seed minted by the verifier at the
-moment it starts, and their expected schedules are computed by the sealed model right then
-rather than read from a file. That cheat ships and is instructive - it carries the recorded
-schedules, passes written scenarios, and fails every drawn one.
+moment it starts, and their expected schedules are computed by the sealed model right then rather
+than read from a file. Two such cheats ship, because they test different layers. One replays the
+recorded priority tables straight onto the tasks, rebinding nothing and rewriting nothing, so no
+attestation sees it at all; it fails on eight drawn task sets it has no numbers for, and on one
+written scenario as well, because holding the numbers is not the same as reaching them at the
+moment each one was reached. The other is the reference itself with the report substituted, and
+it is caught by the fingerprint and by nothing else, which is the only way to know that layer
+fires: a probe built on the shipped policy would fail on its answers and prove nothing about the
+attestation it was aimed at.
 
 The rest of the attestation is ordinary and necessary because the policy runs in the same
 interpreter as the scheduler. The scheduler functions are fingerprinted as they actually
@@ -148,20 +177,30 @@ afterwards, so every file outside the one declared artifact is proved byte ident
 reports through a descriptor root opened before privilege was dropped, and it carries a per-run
 nonce.
 
-Seventeen cheats were run against it and all scored 0, each failing on the axis it was aimed at
-rather than incidentally. Eight are the reference with exactly one decision changed: restoring to
-the task's own priority on release, stopping at the first link of a chain, ignoring an abandoned
-wait, letting priorities rise and never fall, valuing a waiter at what it started as rather than
-what it is worth, doing nothing when a mutex changes hands, lifting every holder of a contended
-mutex to the top of the system, and recomputing the task that blocked instead of the one holding
-what it needs. One is the memorisation attack described above. The remaining eight are
-reward-tamper and isolation probes built on the shipped policy rather than on the reference,
-because a probe built on the reference does the real work and would score 1 legitimately: a
-double-forked process writing the reward after the run, a planted report, a planted report
-followed by a hard exit, a privilege probe, an attempt to read the recorded schedules from
-inside the run, a rewrite of the scheduler in the tree being run, a sweep of everything the
-run's uid can reach, and a read of the scenario set, which the run is allowed to do and which
-produces nothing because half the graded set does not exist yet.
+Twenty-five cheats were run against it and all scored 0, each failing on the axis it was aimed at
+rather than incidentally. Thirteen are the reference with exactly one decision changed:
+restoring to the task's own priority on release, stopping at the first link of a chain, ignoring
+an abandoned wait, letting priorities rise and never fall, valuing a waiter at what it started as
+rather than what it is worth, lifting anything with a queue behind it to the top of the system,
+recomputing the task that blocked instead of the one it is waiting for, aiming every
+recomputation at the holder of a mutex, counting only the tasks queued on what a task holds,
+walking the chain by holders alone, treating a task at the head of a queue and a task holding a
+mutex as two rules instead of one quantity, counting the task at the head of a queue among the
+tasks waiting on it, and moving only the releasing task at a release. Two are policies frontier
+agents actually wrote against this task, kept verbatim rather than reconstructed: the transitive
+inheritance keyed on holders that three of three wrote against an earlier design, and the reading
+that lends to every task queued ahead of you, which two of three wrote against this one and both
+named as the single thing they had to guess. That second one is why the brief settles it: it
+produces the identical schedule, the identical event log and the identical finish times, so it is
+the same policy with different bookkeeping, and a graded number that two behaviourally identical
+implementations may disagree on is a coin flip rather than a test of anything. One is the memorisation attack
+described above. The remaining eight are reward-tamper and isolation probes built on the shipped
+policy rather than on the reference, because a probe built on the reference does the real work
+and would score 1 legitimately: a double-forked process writing the reward after the run, a
+planted report, a planted report followed by a hard exit, a privilege probe, an attempt to read
+the recorded schedules from inside the run, a rewrite of the scheduler in the tree being run, a
+sweep of everything the run's uid can reach, and a read of the scenario set, which the run is
+allowed to do and which produces nothing because half the graded set does not exist yet.
 
 The run happens as an unprivileged uid in its own session under a wall clock timeout, against a
 tree it cannot write; the reward channel is root-owned and locked to 0 before it starts; the
@@ -185,17 +224,21 @@ expert_time_estimate_hours = 7
 
 relevant_experience = """
 I work on embedded and real-time code where a handful of tasks share a processor and a few
-mutexes, and where the thing that bites is never the algorithm but the lifecycle around it. The
-pain this task is built from is one I would not have believed until I watched it: the standard
-description of priority inheritance is correct, it is what the datasheet for a widely used
-kernel describes, and it quietly assumes a task only ever holds one mutex at a time. The moment
-a task holds two, restoring its priority on the first release hands the processor to whatever is
-in between and the second waiter sits there. It does not deadlock, nothing is corrupted and
-every task eventually finishes, so it does not look like a bug; it looks like a task being
-slower than expected, and it is usually found by somebody staring at a trace wondering why a
-deadline moved. The timeout case is worse, because the boost outlives the reason for it and
-nothing in the system records why the holder is urgent. Knowing that all three of those are the
-same question asked at four different moments is what I would want a new engineer on this to get
+mutexes, and where the thing that bites is never the algorithm but the lifecycle around it. Two
+pains this task is built from, and only one of them is in the literature. The first is that the
+standard description of priority inheritance quietly assumes a task only ever holds one mutex at
+a time; the moment it holds two, restoring its priority on the first release hands the processor
+to whatever is in between and the second waiter sits there. The second is the one I would not
+have believed until I watched it. A queued lock does not hand ownership over at the release - it
+marks the next owner and lets it take the lock when it is scheduled, and in between there are
+real ticks where a queue is waiting on a task that owns nothing. Every piece of inheritance
+bookkeeping I have seen written from first principles keys on the owner field, so in that window
+it lends urgency to nobody, and the task that was supposed to be rescued sits behind a
+mid-priority job with the lock sitting free in front of it. It does not deadlock, nothing is
+corrupted and every task eventually finishes, so it does not look like a bug; it looks like a
+task being slower than expected, and it is found by somebody staring at a trace wondering why a
+deadline moved. Knowing that a release is two events, and that "who is this queue waiting for" is
+not the same question as "who owns this lock", is what I would want a new engineer on this to get
 right, and it is not what the literature hands you.
 """
 

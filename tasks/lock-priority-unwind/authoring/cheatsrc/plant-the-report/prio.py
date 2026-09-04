@@ -17,11 +17,8 @@ class Prio:
         self.core = core
 
     def blocked(self, w, m, h):
-        if self.core.eff[h] < self.core.eff[w]:
+        if h and self.core.eff[h] < self.core.eff[w]:
             self.core.set(h, self.core.eff[w])
-
-    def granted(self, t, m):
-        return None
 
     def released(self, t, m):
         self.core.set(t, self.core.base[t])

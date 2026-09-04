@@ -14,14 +14,22 @@ class Prio:
     def blocked(self, w, m, h):
         self.solve()
 
-    def granted(self, t, m):
-        self.solve()
-
     def released(self, t, m):
         self.solve()
 
     def expired(self, w, m, h):
         self.solve()
+
+    def waiting_on(self, t):
+        c = self.core
+        out = []
+        for m in c.locks():
+            q = c.waiters(m)
+            if c.holder(m) == t:
+                out.extend(q)
+            elif c.holder(m) == 0 and q and q[0] == t:
+                out.extend(q[1:])
+        return out
 
     def solve(self):
         c = self.core
@@ -31,10 +39,9 @@ class Prio:
             moved = False
             for t in c.ids():
                 p = c.base[t]
-                for m in c.held(t):
-                    for w in c.waiters(m):
-                        if c.eff[w] > p:
-                            p = c.eff[w]
+                for w in self.waiting_on(t):
+                    if c.eff[w] > p:
+                        p = c.eff[w]
                 if p != c.eff[t]:
                     c.set(t, p)
                     moved = True

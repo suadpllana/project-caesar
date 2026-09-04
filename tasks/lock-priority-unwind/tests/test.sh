@@ -1,17 +1,22 @@
 #!/bin/bash
 # Verifier entry point.
 #
-# Order matters here. The reward file is created, locked to root and set to 0 before any line
-# the agent wrote is executed, so the default answer is failure and the run cannot reach the
-# channel that would change it. The scheduler then runs under an unprivileged uid in a session
-# of its own, so anything it double forks can be reaped, and it reports through a descriptor
-# opened by root beforehand rather than through a path it could replace.
+# The sequence below is the design, not housekeeping. Before a single line the agent wrote is
+# executed, the reward file exists, belongs to root, is unreachable from the run and says 0, so
+# failure is the default and the channel that would change it is out of reach. The scheduler
+# then runs as an unprivileged uid in a session of its own, which is what makes anything it
+# double forks reapable, and it reports through a descriptor root opened for it rather than
+# through a path it could substitute.
 #
-# The seed for the drawn scenarios is minted here, per run. The run is told what it is - it has
-# to be, to build the same task sets - but it is told at the moment it starts, which is the
-# whole point: there is no schedule for those task sets that anybody could have worked out
-# earlier and written into the submission.
+# The seed for the drawn task sets is minted here, once per run. The run is handed it, because
+# it has to build the same task sets the grader will, and it is handed it at the moment it
+# starts. That is the point: no schedule for those task sets could have been worked out earlier
+# and written into the submission.
 set -Eeuo pipefail
+
+RUN_NONCE="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+SCEN_SEED="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+export RUN_NONCE SCEN_SEED
 
 mkdir -p /logs/verifier
 chown root:root /logs/verifier
@@ -24,13 +29,12 @@ chmod 644 /tests/sched.json
 
 rm -rf /work
 mkdir -p /work/app /work/box
-
 cp -a /pristine/. /work/app/
 
-# Only the declared file is taken from the agent. A file it never wrote simply is not there.
-for f in rt/prio.py; do
-  if [ -f "/app/$f" ]; then
-    cp -f "/app/$f" "/work/app/$f"
+# Only the declared file is taken across. One the agent never wrote simply is not there.
+for rel in rt/prio.py; do
+  if [ -f "/app/$rel" ]; then
+    cp -f "/app/$rel" "/work/app/$rel"
   fi
 done
 find /work/app -name '__pycache__' -type d -prune -exec rm -rf {} +
@@ -43,10 +47,6 @@ install -d -o sandbox -g sandbox -m 700 /work/tmp
 : > /work/box/out.json
 chown root:root /work/box/out.json
 chmod 600 /work/box/out.json
-
-RUN_NONCE="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-SCEN_SEED="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-export RUN_NONCE SCEN_SEED
 
 set +e
 exec 7>/work/box/out.json

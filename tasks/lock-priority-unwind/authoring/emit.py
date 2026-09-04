@@ -13,6 +13,9 @@ Three families:
   memory      a policy that carries the recorded schedules and hands them back. It passes every
               written scenario and fails every drawn one, which is the whole argument for
               drawing scenarios at verification time.
+  transcribed the policy the easiness probe wrote, kept verbatim. A difficulty claim measured
+              against your own near miss is a guess; measured against the submission that beat
+              you, it is evidence.
   isolation   attacks on the reward channel, built on the SHIPPED policy rather than on the
               reference, because a probe built on the reference does the real work and would
               score 1 legitimately.
@@ -47,21 +50,45 @@ def swap(src: str, pairs) -> str:
     return src
 
 
-WANT_BODY = """        p = self.core.base[t]
-        for m in self.core.held(t):
-            for w in self.core.waiters(m):
-                if self.core.eff[w] > p:
-                    p = self.core.eff[w]
+OWED_BODY = """        c = self.core
+        p = c.base[t]
+        for m in c.locks():
+            q = c.waiters(m)
+            if c.holder(m) == t:
+                pass
+            elif c.holder(m) == 0 and q and q[0] == t:
+                q = q[1:]
+            else:
+                continue
+            for x in q:
+                if c.eff[x] > p:
+                    p = c.eff[x]
         return p"""
+
+NEXT_UP_BODY = """        h = self.core.holder(m)
+        if h:
+            return h
+        q = self.core.waiters(m)
+        return q[0] if q else 0"""
+
+UPSTREAM_BODY = """        c = self.core
+        m = c.blocking(t)
+        if not m:
+            return 0
+        h = c.holder(m)
+        if h:
+            return h
+        q = c.waiters(m)
+        return q[0] if q and q[0] != t else 0"""
 
 SETTLE_BODY = """        seen = 0
         while t and seen < 64:
             seen += 1
-            p = self.want(t)
+            p = self.owed(t)
             if p == self.core.eff[t]:
                 return
             self.core.set(t, p)
-            t = self.core.holder(self.core.blocking(t))"""
+            t = self.upstream(t)"""
 
 MISTAKES = [
     (
@@ -75,7 +102,9 @@ MISTAKES = [
     (
         "stops-at-the-first-link",
         [(SETTLE_BODY,
-          """        p = self.want(t)
+          """        if not t:
+            return
+        p = self.owed(t)
         if p != self.core.eff[t]:
             self.core.set(t, p)""")],
         "Recomputes the task it was handed and stops there, so urgency never reaches the task "
@@ -83,11 +112,11 @@ MISTAKES = [
     ),
     (
         "ignores-abandoned-waits",
-        [("    def expired(self, w, m, h):\n        self.settle(h)",
+        [("    def expired(self, w, m, h):\n        self.settle(self.next_up(m))",
           "    def expired(self, w, m, h):\n        return None")],
         "Treats a wait that times out as somebody else's business. The waiter has gone but the "
-        "holder keeps the urgency it lent it, and outranks tasks it should not for the rest of "
-        "the critical section.",
+        "task it was queued behind keeps the urgency it lent it, and outranks tasks it should "
+        "not for the rest of the critical section.",
     ),
     (
         "only-ever-raises",
@@ -99,65 +128,243 @@ MISTAKES = [
     ),
     (
         "waiters-count-for-their-own-priority",
-        [("                if self.core.eff[w] > p:\n                    p = self.core.eff[w]",
-          "                if self.core.base[w] > p:\n                    p = self.core.base[w]")],
+        [("                if c.eff[x] > p:\n                    p = c.eff[x]",
+          "                if c.base[x] > p:\n                    p = c.base[x]")],
         "Values a waiter at what it started as rather than at what it is currently worth, so a "
         "chain passes on the wrong number and a task that was itself raised donates nothing.",
     ),
     (
-        "nothing-on-handover",
-        [("    def granted(self, t, m):\n        self.settle(t)",
-          "    def granted(self, t, m):\n        return None")],
-        "Waits for the next block before recomputing. The mutex goes to the task at the front "
-        "of the queue, which need not be the most urgent one waiting, and the queue behind it "
-        "is ignored until somebody else arrives.",
-    ),
-    (
         "raise-to-the-ceiling",
-        [(WANT_BODY,
-          """        p = self.core.base[t]
-        for m in self.core.held(t):
-            if self.core.waiters(m):
-                for u in self.core.ids():
-                    if self.core.base[u] > p:
-                        p = self.core.base[u]
+        [(OWED_BODY,
+          """        c = self.core
+        p = c.base[t]
+        for m in c.locks():
+            if c.holder(m) != t and not (c.holder(m) == 0 and c.waiters(m)[:1] == [t]):
+                continue
+            if len(c.waiters(m)) > (0 if c.holder(m) == t else 1):
+                for u in c.ids():
+                    if c.base[u] > p:
+                        p = c.base[u]
         return p""")],
-        "Raises any task holding a contended mutex to the highest priority in the system. It is "
-        "safe in the sense that nothing waits too long, and it is wrong: it hands the holder a "
+        "Raises any task with a queue behind it to the highest priority in the system. It is "
+        "safe in the sense that nothing waits too long, and it is wrong: it hands the task a "
         "priority nobody waiting on it ever had.",
     ),
     (
         "blocks-move-the-waiter",
-        [("    def blocked(self, w, m, h):\n        self.settle(h)",
+        [("    def blocked(self, w, m, h):\n        self.settle(self.next_up(m))",
           "    def blocked(self, w, m, h):\n        self.settle(w)")],
-        "Recomputes the task that just blocked instead of the one holding what it needs, which "
-        "is the transposition that reads correctly and does nothing at all.",
+        "Recomputes the task that just blocked instead of the one it is waiting for, which is "
+        "the transposition that reads correctly and does nothing at all.",
+    ),
+    (
+        "reads-the-holder",
+        [(NEXT_UP_BODY, """        return self.core.holder(m)""")],
+        "Aims every recomputation at the holder of the mutex. While a mutex is between owners "
+        "there is no holder, so the three moments that matter most aim at nobody and the task "
+        "the queue is actually waiting for is never raised.",
+    ),
+    (
+        "nothing-for-the-claimant",
+        [(OWED_BODY,
+          """        c = self.core
+        p = c.base[t]
+        for m in c.held(t):
+            for x in c.waiters(m):
+                if c.eff[x] > p:
+                    p = c.eff[x]
+        return p""")],
+        "Counts the tasks queued on what a task holds and nothing else. This is the rule every "
+        "account of priority inheritance states, and it is blind to the ticks a mutex spends "
+        "let go and not yet taken, when the task at the head of the queue holds nothing.",
+    ),
+    (
+        "chain-stops-at-a-free-mutex",
+        [(UPSTREAM_BODY,
+          """        return self.core.holder(self.core.blocking(t))""")],
+        "Walks the chain by following holders. A mutex between owners has none, so the walk "
+        "stops there and the fall never reaches the task that is running.",
+    ),
+    (
+        "the-claim-instead-of-the-hold",
+        [(OWED_BODY,
+          """        c = self.core
+        p = c.base[t]
+        for m in c.locks():
+            q = c.waiters(m)
+            if c.holder(m) == 0 and q and q[0] == t:
+                for x in q[1:]:
+                    if c.eff[x] > p:
+                        p = c.eff[x]
+                return p
+        for m in c.held(t):
+            for x in c.waiters(m):
+                if c.eff[x] > p:
+                    p = c.eff[x]
+        return p""")],
+        "Two rules where there is one quantity: a task about to take a mutex is valued at what "
+        "is queued behind it and its own holdings are forgotten, so a task that is at the head "
+        "of one queue and the holder of another drops whichever it is not being asked about.",
+    ),
+    (
+        "counts-itself-in-the-queue",
+        [("            elif c.holder(m) == 0 and q and q[0] == t:\n                q = q[1:]",
+          "            elif c.holder(m) == 0 and q and q[0] == t:\n                q = list(q)")],
+        "Counts the task at the head of the queue among the tasks waiting on it, so it reads "
+        "its own value back and can never fall. A ratchet that looks like a recomputation.",
+    ),
+    (
+        "only-the-releaser-moves",
+        [("    def released(self, t, m):\n        self.settle(t)\n        self.settle(self.next_up(m))",
+          "    def released(self, t, m):\n        self.settle(t)")],
+        "Reads a release as one thing happening to one task. Two tasks move at a release: the "
+        "one letting go falls, and the one at the head of the queue rises to whatever is "
+        "waiting behind it.",
+    ),
+]
+
+
+TRANSCRIBED = [
+    (
+        "lends-to-everyone-ahead",
+        'Transcribed from the easiness probe of the rebuilt task, 2026-09-04, where two agents of three wrote this and both named it as the one thing they had to guess. It reads the handover being first in first out as meaning a task queued ahead of you is in your way exactly as the holder is, so every task in a queue is lent what the tasks behind it are worth. It produces the identical schedule, the identical event log and the identical finish times - a task that is waiting is never picked, so the extra urgency is never spent - and it puts a number on a waiting task that nothing waiting on it accounts for. The brief now settles this, which is why it is a cheat and not a variant.',
+        "class Prio:\n    # What a task is worth is not patched at each event, it is derived from the\n    # state the core is in.  For every task t:\n    #\n    #     eff(t) = max(base(t), max eff(x) for every x standing behind t)\n    #\n    # and x stands behind t when x is queued on a mutex that t holds, or when x\n    # is queued on a mutex behind t in that queue.  Handover is strictly first\n    # in first out, so a task queued ahead of x is as much in x's way as the\n    # holder is, and it has to be lent enough to get out of the way.  The value\n    # taken is the least one satisfying that, so no task is ever worth more than\n    # something still waiting behind it can account for.\n    #\n    # Deriving instead of patching is what covers the moments the core does not\n    # hand over.  Taking a mutex leaves the relation alone: the taker was in\n    # front of the rest of the queue as its head and is in front of them as the\n    # holder, so nothing is owed at that instant and no call is needed for it.\n\n    def __init__(self, core):\n        self.core = core\n\n    def blocked(self, w, m, h):\n        self.settle()\n\n    def released(self, t, m):\n        self.settle()\n\n    def expired(self, w, m, h):\n        self.settle()\n\n    def fronts(self):\n        out = []\n        for m in self.core.locks():\n            h = self.core.holder(m)\n            q = self.core.waiters(m)\n            for i, x in enumerate(q):\n                if h and h != x:\n                    out.append((h, x))\n                for j in range(i):\n                    if q[j] != x:\n                        out.append((q[j], x))\n        return out\n\n    def want(self):\n        v = {}\n        for t in self.core.ids():\n            v[t] = self.core.base[t]\n        e = self.fronts()\n        n = len(v) + 1\n        while n > 0:\n            n -= 1\n            moved = False\n            for f, x in e:\n                if f in v and x in v and v[f] < v[x]:\n                    v[f] = v[x]\n                    moved = True\n            if not moved:\n                break\n        return v\n\n    def settle(self):\n        v = self.want()\n        for t in self.core.ids():\n            if self.core.eff[t] != v[t]:\n                self.core.set(t, v[t])\n",
+    ),
+    (
+        "the-policy-the-probe-wrote",
+        "Transcribed from the easiness probe of 2026-09-04, where three agents out of three "
+        "wrote this and stopped. It is textbook transitive priority inheritance solved to a "
+        "fixed point, it is what every account of priority inversion describes, and it reads "
+        "holders. Kept verbatim as the regression test for the repair: it fails six of the "
+        "written scenarios and it is the reason the rule changed.",
+        '''class Prio:
+    def __init__(self, core):
+        self.core = core
+
+    def blocked(self, w, m, h):
+        self.solve()
+
+    def released(self, t, m):
+        self.solve()
+
+    def expired(self, w, m, h):
+        self.solve()
+
+    def solve(self):
+        c = self.core
+        for _ in range(len(c.ids()) + 2):
+            moved = False
+            for t in c.ids():
+                p = c.base[t]
+                for m in c.held(t):
+                    for w in c.waiters(m):
+                        if c.eff[w] > p:
+                            p = c.eff[w]
+                if p != c.eff[t]:
+                    c.set(t, p)
+                    moved = True
+            if not moved:
+                return
+''',
     ),
 ]
 
 
 MEMORY = '''
 import json
+import sys
 
 from rt import core as _core
 
 _GT = json.loads(r"""%s""")
+
+
+def _shape(tasks):
+    rows = []
+    for t in sorted(tasks, key=lambda x: x[0]):
+        rows.append([t[0], t[1], t[2], t[3]])
+    return json.dumps(rows, sort_keys=True)
+
+
+_INDEX = {}
+try:
+    sys.path.insert(0, "/tests")
+    import scen as _scen
+    for _s in _scen.SCENARIOS:
+        _key = _shape([(t["id"], t["base"], t.get("start", 0), t["prog"]) for t in _s["tasks"]])
+        _INDEX[_key] = _s["name"]
+except Exception:
+    pass
 
 _REPORT = _core.Core.report
 
 
 def _remembered(self):
     mine = _REPORT(self)
-    for e in _GT["scenarios"].values():
-        if e["ids"] == mine["ids"] and e["ticks"] == mine["ticks"]:
-            out = dict(mine)
-            for f in ("trace", "prio", "ev", "done"):
-                out[f] = e[f]
-            return out
-    return mine
+    name = _INDEX.get(_shape([(t.id, t.base, t.start, t.prog) for t in self.ts]))
+    kept = _GT["scenarios"].get(name) if name else None
+    if kept is None:
+        return mine
+    out = dict(mine)
+    for f in ("trace", "prio", "ev", "done"):
+        out[f] = kept[f]
+    return out
 
 
 _core.Core.report = _remembered
+'''
+
+REPLAY = '''"""Replays the recorded priority tables. Touches nothing the run fingerprints."""
+
+import json
+import sys
+
+_GT = json.loads(r"""%s""")
+
+
+def _shape(tasks):
+    rows = []
+    for t in sorted(tasks, key=lambda x: x[0]):
+        rows.append([t[0], t[1], t[2], t[3]])
+    return json.dumps(rows, sort_keys=True)
+
+
+_INDEX = {}
+try:
+    sys.path.insert(0, "/tests")
+    import scen as _scen
+    for _s in _scen.SCENARIOS:
+        _key = _shape([(t["id"], t["base"], t.get("start", 0), t["prog"]) for t in _s["tasks"]])
+        _INDEX[_key] = _s["name"]
+except Exception:
+    pass
+
+
+class Prio:
+    def __init__(self, core):
+        self.core = core
+        name = _INDEX.get(_shape([(t.id, t.base, t.start, t.prog) for t in core.ts]))
+        kept = _GT["scenarios"].get(name) if name else None
+        self.rows = {}
+        if kept:
+            for row in kept["prio"]:
+                self.rows[row[0]] = row[1:]
+
+    def blocked(self, w, m, h):
+        self.replay()
+
+    def released(self, t, m):
+        self.replay()
+
+    def expired(self, w, m, h):
+        self.replay()
+
+    def replay(self):
+        row = self.rows.get(self.core.tick)
+        if row is None:
+            return
+        for t, p in zip(self.core.ids(), row):
+            self.core.set(t, p)
 '''
 
 ISOLATION = [
@@ -364,6 +571,20 @@ def main() -> int:
                "for drawing them at verification time.", body))
     put(TASK / "authoring" / "cheatsrc" / "hand-back-the-schedule" / "prio.py", body)
     made.append("hand-back-the-schedule")
+
+    put(TASK / "cheat" / "cheat-replay-the-tables.sh",
+        script("Carries the recorded priority tables and sets them straight onto the tasks. It "
+               "rebinds nothing and rewrites nothing, so no attestation sees it, and it fails "
+               "twice over: holding the numbers for a written scenario is not the same as "
+               "reaching them at the moment each one was reached, and a task set drawn after "
+               "the submission was written has no numbers to hold.", REPLAY % gt))
+    put(TASK / "authoring" / "cheatsrc" / "replay-the-tables" / "prio.py", REPLAY % gt)
+    made.append("replay-the-tables")
+
+    for name, note, body in TRANSCRIBED:
+        put(TASK / "cheat" / ("cheat-%s.sh" % name), script(note, body))
+        put(TASK / "authoring" / "cheatsrc" / name / "prio.py", body)
+        made.append(name)
 
     ship = shipped()
     for name, note, prologue in ISOLATION:

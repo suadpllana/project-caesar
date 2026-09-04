@@ -5,11 +5,13 @@ semantics, and it differs from the engine in the one place that matters: where t
 effective priority incrementally, patching it as events arrive, this recomputes the whole
 priority assignment from scratch after anything moves, by iterating
 
-    worth(t) = max(base(t), max worth(u) for u blocked on a mutex t holds)
+    worth(t) = max(base(t), max worth(u) for u waiting on t)
 
-to a fixed point over every task. That is the definition the incremental policy is an
-optimisation of, so a submitted policy that patches the wrong task, forgets a link of a chain
-or leaves a boost standing after the reason for it has gone cannot agree with this.
+to a fixed point over every task, where the tasks waiting on t are those queued on a mutex t
+holds together with those queued behind t on a mutex that is free and t's to take. That is the
+definition the incremental policy is an optimisation of, so a submitted policy that patches the
+wrong task, forgets a link of a chain, reads holders where a mutex is between owners, or leaves
+a boost standing after the reason for it has gone cannot agree with this.
 
 The other half of the file is the scenario generator. The fixed scenarios are aimed at
 particular readings of the rule and their answers live in gt.json; the generated ones are built
@@ -88,9 +90,14 @@ class Model:
             for i in self.order:
                 want = self.t[i]["base"]
                 for m in self.mx.values():
-                    if m["h"] != i:
+                    q = m["q"]
+                    if m["h"] == i:
+                        pass
+                    elif m["h"] == 0 and q and q[0] == i:
+                        q = q[1:]
+                    else:
                         continue
-                    for w in m["q"]:
+                    for w in q:
                         if self.t[w]["worth"] > want:
                             want = self.t[w]["worth"]
                 if want != self.t[i]["worth"]:
@@ -177,13 +184,19 @@ class Model:
                 return True
             if s[0] == "lock":
                 m = s[1]
-                if self.mx[m]["h"] in (0, i):
-                    if self.mx[m]["h"] == 0:
-                        self.take(i, m)
+                q = self.mx[m]["q"]
+                if self.mx[m]["h"] == i:
                     r["pc"] += 1
                     r["left"] = 0
                     continue
-                self.mx[m]["q"].append(i)
+                if self.mx[m]["h"] == 0 and (not q or q[0] == i):
+                    if q:
+                        q.pop(0)
+                    self.take(i, m)
+                    r["pc"] += 1
+                    r["left"] = 0
+                    continue
+                q.append(i)
                 r["state"] = BLOCK
                 r["dead"] = self.now + s[2] if s[2] >= 0 else -1
                 self.note("blk", i, m)
@@ -199,15 +212,12 @@ class Model:
                 r["pc"] += 1
                 r["left"] = 0
                 self.note("rel", i, m)
-                self.solve()
                 q = self.mx[m]["q"]
                 if q:
-                    nxt = q.pop(0)
+                    nxt = q[0]
                     self.t[nxt]["dead"] = -1
-                    self.take(nxt, m)
-                    self.t[nxt]["pc"] += 1
-                    self.t[nxt]["left"] = 0
                     self.wake_up(nxt)
+                self.solve()
                 continue
             if s[0] == "sleep":
                 r["pc"] += 1

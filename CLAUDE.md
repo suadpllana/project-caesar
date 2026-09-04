@@ -77,7 +77,7 @@ task's rejection history gets silently reverted.
 | `typeahead-query-controller` | Software / Frontend | 7 | 16 | 5400 s | 1.5 h |
 | `earliest-change-script` | Software / Algorithms | 7 | 15 | 14400 s | 24 h |
 | `segment-merge-horizon` | Software / Systems | 24 | 158 | 14400 s | 8 h |
-| `lock-priority-unwind` | Software / Systems | 17 | 47 | 14400 s | 7 h |
+| `lock-priority-unwind` | Software / Systems | 24 | 61 | 14400 s | 7 h |
 | `guard-mark-unwind` | Software / Languages | 24 | 11 | 14400 s | 8 h |
 | `grant-spread-order` | Security / AppSec | 29 | 10 | 14400 s | 7 h |
 | `share-register-screen` | Operations / Compliance | 21 | 9 | 14400 s | 7 h |
@@ -86,7 +86,7 @@ task's rejection history gets silently reverted.
 here to clear it after an easiness rejection.** The easiness probe went from **3 of 3 to 0 of
 3** across one repair, which is the only verified easiness fix in this repo and the only
 number anywhere in this file that says a repair of that kind works. How it was done is
-"Fixing a task that the easiness probe solved: the three failure modes" below - read the
+"Fixing a task the easiness probe solved: the five failure modes" below - read the
 diagnosis section first, because the repair that worked here is not the repair that worked on
 `delta-view-retraction`, and applying the wrong one costs a round trip.
 
@@ -107,6 +107,22 @@ none has ever been checked for.
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
+
+**`lock-priority-unwind` failed the easiness probe 3 of 3 and was REBUILT on 2026-09-04, and the
+cause is a fifth failure mode this file did not have: the memorised answer was the reference.**
+Its difficulty argument claimed the recalled plan was wrong; the recalled plan was Linux
+`rtmutex`-style transitive priority inheritance, which is exactly what `solution/prio.py`
+implemented, and all three agents wrote it cold in four or five tool calls. `leakcheck` is quiet
+on all three trajectories, so there was nothing in the brief to delete. The repair changed the
+engine rather than the prose - a mutex is no longer handed over at a release, so the kernel spends
+real ticks with a queue waiting on a task that holds nothing, and the textbook rule keys on an
+owner that is not there. The write-up is "The easiness rejection where the memorised answer WAS
+the reference" below, and the one-line version is the check to run at Stage 1: **write down the
+answer you believe is memorised and the answer your reference implements, and ask whether they are
+the same.** Not re-probed against the pipeline; the local three-agent probe was run on the rebuild.
+It is also the first bundle here to have its **real two-image trial** run at all - Docker was
+absent on every host that touched it before - and the second to report no shipped file close to
+another bundle's.
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
@@ -251,7 +267,7 @@ the practice on top of them: what actually worked, with numbers.
 5. Pick a seed, then attack your own first plan before writing any code. That step is the
    whole game; everything after it is execution.
 5b. If the job is **repairing a task the easiness probe solved**, go straight to "Fixing a
-   task the easiness probe solved: the four failure modes". Do not choose a repair from the
+   task the easiness probe solved: the five failure modes". Do not choose a repair from the
    score; the mode decides it, and picking the wrong mode is what cost three probe rounds
    across two tasks.
 6. Before packaging anything, run the three-agent probe on it (see "The too-easy failure
@@ -563,6 +579,183 @@ Two smaller things worth keeping:
   fairness and legibility property. They say nothing about whether a frontier agent takes the
   shortcut, and on a complete specification it does not. Keep measuring them for the reason they
   exist; stop citing them as evidence the task is hard.
+
+## The easiness rejection where the memorised answer WAS the reference (2026-09-04)
+
+`lock-priority-unwind` came back **3 of 3** from the easiness probe with all three trajectories
+supplied; they are at `probes/lock-priority-unwind/` with the diagnosis in `notes.md`. Read this
+before writing a difficulty argument that contains the words "the memorised answer", because the
+check it describes takes one minute and this task shipped without it.
+
+**The mode is none of the four, and `leakcheck` is what proves it.** It came back quiet on all
+three trajectories: the agents did not quote the brief, they used ordinary priority-inheritance
+vocabulary. `deadfieldcheck` was clean. The signature was mode C - one `Write` of the finished
+policy in four to five tool calls, then a self-built fuzz harness that went green - but the
+sharper name is worse than mode C:
+
+> **The difficulty argument claimed prong A, and prong A was backwards.** It said "the memorised
+> answer is one paragraph long and it is correct for exactly one shape". What the shipped tree
+> did - raise on block, restore to base on release - is the FreeRTOS simplification, and that is
+> the **bug**. The answer a frontier agent recalls is Linux `rtmutex`-style transitive
+> inheritance, and that was the **reference**. Nobody recalled the wrong thing. All three wrote
+> the right thing in their first message.
+
+The check, and run it at Stage 1: **write down the answer you think is memorised, and the answer
+your reference implements, and ask whether they are the same.** A seed drawn from a real tracker
+makes this easy to get backwards, because the tracker issue is about the naive implementation and
+the accepted fix is the textbook one. Shipping the textbook fix as the reference is shipping recall
+as difficulty. `authoring/variants/ok-full-solve` was, line for line, what all three agents wrote.
+
+**The second half is why their own testing could not save them.** Trial 3 fuzzed its policy and
+reported no disagreements. Its oracle was "recompute worth from the live mutex graph and compare",
+which is the definition its policy implements - so the check is circular and passes. This is the
+general trap and it is worth stating as a law: **a solver's differential test is only as good as
+the rule the solver believes, so a fuzz harness whose oracle is the agent's own restatement of the
+spec confirms the agent's bug.** The only defence is that the correct answer depend on something
+the agent must read out of non-editable code rather than restate from the brief.
+
+### The repair: make the recalled engine answer the wrong question
+
+Same move as `earliest-change-script` - change what is computed - but here it was cheaper, because
+the graded quantity is a function of the machine's state and the machine is ours. The engine no
+longer hands a mutex over at a release. It leaves it free, wakes the task at the head of its queue,
+and lets a task take a free mutex only when the queue is empty or that task is at the front of it.
+The engine therefore spends real ticks with a queue waiting on a task that **holds nothing**.
+
+That one change does three things at once, which is the shape to copy:
+
+1. The donation target stops being "the holder of the mutex". Textbook inheritance keys on the
+   owner field and finds nobody, so it lends urgency to no one and the queue sits - the inversion
+   the boost exists to prevent, now caused by aiming the boost at nobody.
+2. The chain link stops being "the holder of what I am queued on", so a walk that follows holders
+   stops dead at a mutex between owners. **The second discovery invalidates the natural
+   implementation of the first**, for the fourth time in this file.
+3. The argument the engine passes for "the task being waited on" is 0 in exactly that state, so
+   the natural implementation does nothing and raises nothing.
+
+And it restores prong C precisely: a holder-shaped self-check cannot see a mutex with no holder,
+so the agent's own oracle agrees with the agent's own bug.
+
+Measured, and the row that matters is the third:
+
+| policy | written scenarios failed | drawn sets differing |
+|---|---|---|
+| the reference | 0 of 21 | 0 of 300 |
+| four `ok-*` variants | 0 of 21 | 0 of 200 |
+| **the policy the probe wrote, verbatim** | **6 of 21** | **16.7%** |
+| the shipped tree | 13 of 21 | 24.3% |
+
+It ships as `cheat-the-policy-the-probe-wrote`. **Transcribe the submission that beat you and keep
+it as a cheat**; a difficulty claim measured against your own near miss is a guess, and this is the
+second task here to carry the real thing.
+
+**A hook that has no work left is a false affordance, so delete it.** The `granted` hook died with
+the change - a task that takes a mutex it was already at the head of is worth the same before and
+after - and a hook that cannot change anything is a table of contents with nothing behind it. Three
+hooks now. Its cheat (`nothing-on-handover`) went with it.
+
+**Two brief sentences became false and that is an unfair task, not a style problem.** "A task
+blocks on a held mutex" and, after a timeout, "the holder still holds it" were both true of the old
+engine and are both false of the new one. Same class as the `alias-settle-report` fence repaired by
+`85c9837`. When the engine changes, **re-read every factual sentence of the brief against it**, not
+only the ones about the mechanism you changed.
+
+### Three findings about the method, not about this task
+
+- **The drawn generator was grading almost nothing, and nobody had measured it.** The shipped tree
+  differed from the reference on **7.0%** of drawn sets, because most drawn tasks never locked
+  anything and queues never formed. Forcing every task to take a mutex first, cutting the mutex
+  count to one or two and lengthening critical sections took the shipped tree to 24.3% and the
+  probe's policy from 2.7% to 16.7%. **Measure what fraction of your drawn sets a wrong reading
+  actually moves.** A generator that draws shapes the task is not about is an anti-memorisation
+  device and nothing else, and it will be reported as "half the graded run" in `task.toml`.
+- **Two readings survived all nineteen written scenarios**, and `readingcheck` is what found them.
+  The fix is a search rather than an argument: draw shapes, keep the ones where the reading
+  disagrees and the reference agrees, take the smallest. `authoring/hunt.py` does that and two of
+  the twenty-one scenarios exist because of it. The three task-local tools are worth copying -
+  `separation.py` (what fraction of drawn sets a reading moves), `written.py` (which written
+  scenarios separate it), `hunt.py` (find one when none does).
+- **A memorisation cheat needs two versions, and they test different layers.** The one built on
+  the reference with the report substituted is caught by the fingerprint **and by nothing else**,
+  which is the only way to know that layer fires. The one that replays the recorded priority tables
+  onto the tasks rebinds nothing, so no attestation sees it at all - it dies on the drawn sets it
+  has no numbers for, and on one written scenario too, because holding the numbers is not the same
+  as reaching them at the moment each one was reached. Ship both. This is the
+  `grant-spread-order` rule ("build the integrity probes on the reference, not only on the shipped
+  tree") with the mirror half spelled out.
+
+### Two smaller ones
+
+- **A `(ids, ticks)` key is not a scenario identity.** The memorisation cheat keyed on those two
+  and misfiled on four of twenty-one scenarios, which made it fail written cases for a reason that
+  had nothing to do with the layer it was aimed at. Key an answer-key probe on the **task
+  programs**, which is what an adversary holding `scen.py` and `gt.json` would do anyway.
+- **Scenario ids must be contiguous from 1.** `Core.step` indexes `self.ts[t - 1]` before falling
+  back to a search, so a set numbered 1,2,3,5,6 raises `IndexError` and every reading in the sweep
+  comes back "RAISED", which reads exactly like a broken reference.
+
+### The rebuild probed 1 of 3, and both losses were a coin flip the agents named themselves
+
+Three fresh agents on the rebuilt task: 28, 36 and 31 tool calls at about fifteen minutes each,
+against four to five calls and two minutes on the design that came back 3 of 3. All three found
+the handoff by reading `rt/core.py` - two of them from "there is no hook when a waiter acquires a
+mutex" - so the derivation the rebuild was for is being made rather than recalled. One scored 1.
+
+**The other two are the entry worth reading, because the score would have lied.** Both failed on
+`prio` alone: identical schedule, identical event log, identical finish times, and eight scenarios
+where one **blocked** task carries a different number. Both had written the same reading - under a
+first-in-first-out handover, a task queued ahead of you is in your way exactly as the holder is,
+so lend to it too - and both **volunteered it as the one thing they had to guess**, before anybody
+graded them:
+
+> "they differ on the graded per-tick priority table in 1.5% of random sets and on the schedule in
+> 0% ... That is the one place I can be wrong, and no oracle I can build would tell me."
+
+A blocked task is never picked, so its number has no behavioural consequence at all; the two
+readings are the same policy with different bookkeeping. Grading it is the `guard-mark-unwind`
+unfairness **and** a run-audit exposure at the same time, and 1 of 3 is squarely in the band, so
+reading the score alone says "ship it".
+
+Two rules out of that, and the first is the cheap one:
+
+- **When a probe agent volunteers a guess, that is the finding, and it outranks the score.** This
+  file already says to ask what the agents had to guess; what is new is that the answer can
+  contradict a result that looks fine. Ask it even when the score is where you wanted it.
+- **For every graded quantity, find the states in which it cannot affect anything, and check that
+  the rule pins it there anyway.** Effective priority drives `pick`, and `pick` skips blocked
+  tasks, so the value of a blocked task is unobservable by construction - a whole region of the
+  graded artifact where two correct implementations are free to disagree. The fix was one
+  sentence of requirement in the brief ("Everything queued on one mutex is waiting for the same
+  single task, and that is the task the queue lends what it is worth to"), which is the safe
+  repair from the table above: it removes a coin flip, not a discovery.
+
+The losing policy ships verbatim as `cheat-lends-to-everyone-ahead`, separated by eight written
+scenarios and 19.3% of drawn sets. **A cheat generated by an anchored swap could not reproduce
+it** - the reference's walk never visits a mid-queue task, so changing what `owed()` returns for
+one is invisible - which is a reminder that the swap-from-the-reference recipe only reaches
+readings the reference's control flow already reaches. When it does not, transcribe the
+submission.
+
+### Correction: the environment Dockerfile similarity floor is lower again
+
+Third measurement against the 2026-09-02 non-finding. This bundle started at three HIGH findings
+(`tests/test.sh` 0.554, `tests/Dockerfile` 0.563, `environment/Dockerfile` 0.635) and now reports
+**no shipped file is close to another bundle's** - the second bundle here to reach that. The
+environment Dockerfile went to **0.524** in this form, which beats the 0.571 the 2026-09-03 entry
+recommends:
+
+```
+FROM python:3.12-slim
+WORKDIR /app
+ADD app_src/ ./
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+RUN set -e; python run_sched.py cases/handover.json >/dev/null; python run_sched.py cases/inversion.json >/dev/null
+```
+
+`ADD` rather than `COPY`, the working directory before the copy, one combined `ENV` after it, and a
+build-time smoke run of two real case files. Measure four or five forms against every other bundle
+and take the lowest; it is ten minutes with `difflib.SequenceMatcher` and it took three HIGH
+findings to none.
 
 ## The category rejection: the label names the work, not the room the story is set in (2026-09-04)
 
@@ -1685,7 +1878,7 @@ map, from the row store, and from retained multiplicity, and the two halves test
 order - which reach identical counters on all twelve scenarios. Five independent readings
 converging is what makes a ceiling defensible rather than one author's taste.
 
-## Fixing a task the easiness probe solved: the four failure modes
+## Fixing a task the easiness probe solved: the five failure modes
 
 **Read this before the playbook below, which is one of the four repairs and not the
 common one.** `share-register-screen` went from **3 of 3 to 0 of 3 and then cleared the
@@ -1700,7 +1893,7 @@ mode is decided by one question with four answers.
 ### The question: where did the agent's plan come from?
 
 Not "why was the task easy". Where the *plan* came from, which the trajectory answers
-directly, because a solving agent explains itself. The four answers, every one of them
+directly, because a solving agent explains itself. The five answers, every one of them
 measured here:
 
 | the plan came from | signature in the trajectory | measured on |
@@ -1709,6 +1902,7 @@ measured here:
 | **B. a field the environment ships** | the winning line is a short predicate over shipped fields, in the **environment's** identifiers | `delta-view-retraction` 2/3 then 3/3 |
 | **C. the specification, checked against itself** | one `Write` of the finished file, then a self-built harness that goes green. **No intermediate wrong version** | `typeahead-query-controller` 3/3 twice |
 | **D. the data confirming itself** | the agent says it knew it was right before finishing - round numbers, an existence claim, a global fit | `reaction-network-reconstruction` 3/3 |
+| **E. the agent's own prior** | the winning line is the textbook answer to the problem, written cold, and it is what your reference implements | `lock-priority-unwind` 3/3 |
 
 They are not exclusive and a task can carry two, but **one of them supplied the plan** and
 that is the one to fix first. Fixing the others first is what the wasted rounds were.
@@ -1746,7 +1940,13 @@ why they live in `probes/` with the commentary in a `notes.md` beside them, and 
 task bundle so that keeping evidence never changes an archive the pipeline has accepted.
 
 For mode C, look for the one-shot write. For mode D, look for the agent saying it was
-confident before it finished.
+confident before it finished. For mode E, do the one-minute check that `lock-priority-unwind`
+shipped without: **write down the answer you believe is memorised and the answer your reference
+implements, and ask whether they are the same.** A seed taken from a real tracker makes this easy
+to get backwards, because the tracker issue is about the naive implementation and the accepted fix
+is the textbook one, so shipping the accepted fix as your reference is shipping recall as
+difficulty. Mode E and mode C look identical in the trajectory; what separates them is whether the
+agent needed the environment at all.
 
 **4. Apply one repair, matched to the mode.**
 
@@ -1756,6 +1956,7 @@ confident before it finished.
 | **B** | close the pair - then read "Leak-patching has a floor" below, because the third pair is usually inherent and the real fix is a second discovery | a day | 2/3 to 3/3, then a pass once the second discovery went in |
 | **C** | an axis the brief can require but whose satisfaction the agent's own harness cannot check, or one that lives above the size its oracle can run | a redesign | passed |
 | **D** | remove the confirmation, not the difficulty: no round numbers, no existence claims, no global consistency check, no end-to-end reproduction step | varies | not yet re-probed |
+| **E** | change the machine so the recalled engine answers the wrong question, and keep the requirement stated. Not the rule, not the brief - the behaviour the rule is about | a day | the probe's own policy went from 1 to 0; not yet re-probed |
 
 **5. Prove the mode-A repair differently from the others, because you cannot prove it the
 usual way.** This is the part that surprised me and it is the reason `leakcheck` exists.
@@ -1790,8 +1991,15 @@ deleting the thing that leaked.
 ### What this does not cover
 
 A task solved 3 of 3 whose trajectory shows real exploration, a wrong first version and a
-recovery is not any of these four. That is a task that is simply not hard enough, and the
+recovery is not any of these five. That is a task that is simply not hard enough, and the
 answer is at stage 2 - a different mechanism - rather than anywhere in this section.
+
+And one law cuts across all five, because it is why mode C and mode E agents test themselves into
+a false sense of security: **a solver's differential test is only as good as the rule the solver
+believes.** A fuzz harness whose oracle is the agent's own restatement of the specification is
+circular and it passes. Design so that the correct answer depends on something the agent has to
+read out of non-editable code rather than restate from the brief, and their own testing stops
+being able to confirm their bug.
 
 ### Applied to the tasks in this repo, as of 2026-09-02
 
@@ -1805,6 +2013,7 @@ three-agent probe rather than to guess.
 | `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | Stage 2 redesign. No leak patch applies; see "The easiness rejection on a task built the day after the law that forbids it". Trajectories at `probes/alias-settle-report/` |
 | `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone | none of the four: real exploration, a superset of the reference in three hours | the mechanism was at its ceiling; the rule gained a second tier on 2026-09-02 (see "A pure function at its ceiling"). Re-probe before resubmitting |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
+| `lock-priority-unwind` | **3/3** on 2026-09-04 | E; not A (`leakcheck` quiet on all three) | rebuilt 2026-09-04 - the engine changed, not the brief. Trajectories at `probes/lock-priority-unwind/`. Re-probe before resubmitting |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
 | `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |
 | `turn-seam-alignment` | 0/3 **with 0/8** | none of these | that is the other rejection. Recalibrated, never re-probed |

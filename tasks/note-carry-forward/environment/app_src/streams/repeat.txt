@@ -1,0 +1,4 @@
+rev a|b|a|b|a|b
+note 0 2
+rev a|b|a|b|a
+rev b|a|b|a

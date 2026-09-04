@@ -2,22 +2,21 @@
 
 Strategy: solve the first and third tiers of the rule and let the second one
 go. This is the shortest script whose reading comes first under drop, add,
-keep -- the answer to the task as it stood before the hunk tier was added, and
-the answer every fast diff technique computes natively, because every one of
-them is a way of knowing how many moves remain from a position and the
-reading-order rule is a greedy walk over exactly that number. Three engines,
-correct crossovers, every tie-break inside them derived rather than recalled.
-It passes every timing budget in the task with room to spare.
+keep, and it is what every fast diff technique computes natively, because
+every one of them is a way of knowing how many moves remain from a position
+and the reading-order rule is a greedy walk over exactly that number. Three
+engines, correct crossovers, every tie-break inside them derived rather than
+recalled. It passes every timing budget in the task with room to spare.
 
-It is wrong on the hunk count, which the number of moves remaining does not
-carry. The scripts it returns are shortest and they are the first in reading
-order among all shortest scripts, which is a different set from the first in
-reading order among the shortest scripts with the fewest hunks: putting the
-drop as early as it will go is exactly what splits one hunk into two. Measured
-against the graded distribution it is wrong on about a quarter of the
-enumerated block and nearly three quarters of the random one, and on every
-large pair.
+It is wrong on the comment count, which the number of moves remaining does
+not carry. Merging two runs that only a kept line or two separates makes the
+second tier tie far more often than counting runs would, so ignoring it lands
+the right answer more often than it deserves to -- and it still misses 870 of
+the 40804 enumerated pairs, 4374 of 12000 random ones and 7 of the 71 written
+out by hand, which under all-or-nothing grading is the same as missing all of
+them.
 """
+
 from bisect import bisect_left
 
 # Microseconds, measured. Only the ratios matter: they separate engines whose

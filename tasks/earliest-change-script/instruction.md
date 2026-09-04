@@ -33,28 +33,40 @@ other script for that pair may use fewer moves.
 That still leaves several scripts for most pairs. Read a script back the way
 the paragraph above reads it and write down what happens at each position of
 the walk, which is a drop, an add or a keep. Every shortest script for the same
-pair gives a reading of the same length. A hunk is a run of consecutive moves
-in that reading, whether drops or adds, with a keep or an end of the reading on
-either side of it. Of the shortest scripts, ours has the fewest hunks. One
-comment hangs off each hunk, so a change that comes back in two pieces where
-one would do is a comment too many.
+pair gives a reading of the same length. A run is a stretch of consecutive
+moves in that reading, whether drops or adds, with a keep or an end of the
+reading on either side of it. One comment hangs off each change, and a run is
+not always a change on its own: where fewer than three kept lines separate one
+run from the next, the two belong to the same comment, because a reader with a
+line or two of untouched code in front of them is still reading one change.
+Three kept lines or more and the second run starts a comment of its own. The
+first run in a reading always starts one, having nothing in front of it to
+join. Of the shortest scripts, ours needs the fewest comments.
 
-Where two shortest scripts have the same number of hunks, order their readings
-by putting a drop ahead of an add and an add ahead of a keep, compare the two
-position by position from the start, and ours is the one that comes first.
-Nothing else enters into it.
+Where two shortest scripts need the same number of comments, order their
+readings by putting a drop ahead of an add and an add ahead of a keep, compare
+the two position by position from the start, and ours is the one that comes
+first. Nothing else enters into it.
 
-## Three examples
+## Four examples
 
 `before` is `["m", "z"]` and `after` is `["z", "m"]`. Two moves is the best
 anyone can manage. Add the "z" at the front and drop the "m" at the end, or drop
-the "m" at the front and add it at the end, both are two moves, both are two
-hunks, and both are shortest. The rule takes the second: `[("-", 0), ("+", 1)]`.
+the "m" at the front and add it at the end, both are two moves, both are one
+comment, and both are shortest. The rule takes the second: `[("-", 0), ("+", 1)]`.
 
 `before` is `["a", "a"]` and `after` is `["a", "b"]`. One drop and one add is
 the least that will do it. Dropping the first "a" and adding the "b" at the end
-reads drop, keep, add, which is two hunks. Dropping the second "a" reads keep,
-drop, add, which is one, and that is the answer: `[("-", 1), ("+", 1)]`.
+reads drop, keep, add: two runs with a single kept line between them, which is
+one comment. Dropping the second "a" reads keep, drop, add, where the two moves
+are one run and so also one comment. Neither is cheaper, so the reading order
+settles it and the answer is `[("-", 0), ("+", 1)]`.
+
+`before` is `["a", "a", "a"]` and `after` is `["a", "a", "a", "a", "b"]`. Two
+adds, and where they go is the whole question. Putting them at positions one
+and four reads keep, add, keep, keep, add, which leaves two kept lines between
+the runs and takes one comment. Putting the first add at the front instead
+leaves three, and costs two. The answer is `[("+", 1), ("+", 4)]`.
 
 Now `before` is `["a", "a", "b"]` and `after` is `["a", "b", "a"]`. The answer
 is `[("-", 0), ("+", 2)]`.
@@ -64,11 +76,10 @@ is `[("-", 0), ("+", 2)]`.
 Eighteen of the graded pairs are large, and they are drawn across the whole
 spread of what we get in production. They run from forty thousand to a million
 lines a side. Some differ from their partner in a few hundred places and some
-in a few thousand, and those are built from anything between a handful of
-distinct lines repeated the whole way down and lines that are very nearly all
-distinct. The rest share no order with their partner worth the name and answer
-to a script longer than the file; those are drawn from a pool of lines about
-the size of the file, so hardly any line in them repeats.
+in a few thousand; the rest share no order with their partner worth the name
+and answer to a script longer than the file. How often a line repeats varies
+across that set from a handful of distinct lines standing in for the whole
+file to pairs where hardly any line repeats at all.
 
 Each of them gets sixty seconds of wall clock, measured from outside your
 process, from the moment it starts to the moment it answers. That sixty
@@ -77,11 +88,11 @@ pairs, a few hundred to fifteen hundred lines each, shares a budget of forty
 seconds for the block. Everything else is short and is not timed.
 
 Their answers are graded as well as their timings, and at that size the
-alignment is every bit as ambiguous as it is in the three examples above.
+alignment is every bit as ambiguous as it is in the four examples above.
 
 ## How you're graded
 
-Sixty-one fixed pairs written out by hand. Twelve thousand random pairs drawn
+Seventy-one fixed pairs written out by hand. Twelve thousand random pairs drawn
 from between two and six distinct lines, up to forty lines a side. Forty
 thousand more from crossing every short shape with every other short shape,
 because a random draw hardly ever lands on the pair where two shortest scripts

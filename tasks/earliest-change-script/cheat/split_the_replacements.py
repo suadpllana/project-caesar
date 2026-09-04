@@ -1,21 +1,21 @@
 """Deliberate cheating attempt. NEVER executed by the pipeline.
 
-Strategy: read "hunk" the way a diff tool prints one, as a run of drops or a
-run of adds, so that a replacement -- some drops followed straight away by
-some adds -- counts as two. It is the reading a person carries in from every
-unified diff they have ever looked at, where the minus lines and the plus
-lines are two blocks. The instruction says a hunk is a run of consecutive
-moves, drops and adds alike, with a keep on either side; this counts the
-seams between a drop run and an add run as well.
+Strategy: read a change the way a diff tool prints one, as a run of drops or
+a run of adds, so that a replacement -- some drops followed straight away by
+some adds -- is two changes and takes two comments. It is the reading a
+person carries in from every unified diff they have ever looked at, where the
+minus lines and the plus lines are two blocks under one another.
 
-The two readings pick different scripts whenever a replacement can be made
-in one place as a drop run then an add run, or spread so that the drops and
-the adds sit in different places each next to a keep. Measured against the
-graded distribution the difference is not rare. Built on the definitional
+The rule counts a run of consecutive moves, drops and adds alike, as one, and
+then merges two runs that only a kept line or two separates. This breaks at
+the seam between a drop run and an add run and merges nothing, so it is wrong
+in both directions at once: 8821 of the 40804 enumerated pairs, 9111 of 12000
+random ones and 9 of the 71 written out by hand. Built on the definitional
 table rather than on either fast engine, so it is also out of time on every
 large pair; the wrong answers on the short blocks are what the grader reports
 first.
 """
+
 
 INF = (1 << 30, 1 << 30)
 

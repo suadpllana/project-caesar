@@ -24,17 +24,26 @@ nothing in it matches anything, which is the only cheap thing about it.
 
 Both engines answer the same question at every position of the walk. The
 number of moves that remain is one part of it and is what every fast diff
-computes. The other part is how many hunks a shortest completion can still be
-done in, and that is a second quantity with its own recurrence: a run of moves
-that is already open extends for nothing, a keep closes it, and a move after a
-keep opens a new one. Only cells that lie on some shortest path can be on the
-answer, so the second quantity is only ever computed there.
+computes. The other part is how many comments a shortest completion can still
+be done in, and that is a second quantity with its own recurrence: a run of
+moves that is already open extends for nothing, and a later run opens a comment
+of its own only once CONTEXT keeps have gone by. So the state is not a flag but
+a count of keeps since the last move, held at CONTEXT once it gets there, and
+both engines carry CONTEXT + 1 numbers where a shortest-script engine carries
+none. Only cells that lie on some shortest path can be on the answer, so the
+second quantity is only ever computed there.
 
 Lives in /tests, which the account that runs submitted code cannot read.
 """
 
 from bisect import bisect_left
 from collections import deque
+
+# How many kept lines it takes to end a comment: fewer than this many between
+# two runs of moves and they are read as one change.
+CONTEXT = 3
+_FAR = CONTEXT
+_ZERO = (0,) * (CONTEXT + 1)
 
 # Microseconds, measured. Only the ratios matter: they separate engines whose
 # costs on this distribution sit orders of magnitude apart.
@@ -59,10 +68,9 @@ def changes(before, after, engine=None):
 
     if engine == "pairs":
         return _pairs_engine(a, b, n, m)
-    if engine == "frontier":
-        limit = 1 << 30
-    else:
-        limit = _frontier_limit(_pairs_cost(a, b, n, m))
+
+    limit = 1 << 30 if engine == "frontier" else _frontier_limit(
+        _pairs_cost(a, b, n, m))
     layers = _layers_from_end(a, b, n, m, limit)
     if layers is None:
         return _pairs_engine(a, b, n, m)
@@ -90,12 +98,13 @@ def _pairs_cost(a, b, n, m):
 
 
 def _frontier_limit(fallback):
-    """How many moves the frontier is allowed before the pairs engine takes
-    over. Stop it once the work it has already done reaches a quarter of what
-    that engine would cost, and the wasted effort is bounded by that figure."""
+    """How many moves the frontier is allowed before whichever of the other
+    is cheaper takes over. Stop it once the work it has already done
+    reaches a quarter of what that engine would cost, and the wasted effort is
+    bounded by that figure."""
     limit = int((0.25 * fallback / _FRONTIER_ENTRY) ** 0.5)
-    if limit < 1024:
-        return 1024
+    if limit < 32:
+        return 32
     if limit > _FRONTIER_CAP:
         return _FRONTIER_CAP
     return limit
@@ -153,9 +162,11 @@ def _frontier_engine(a, b, n, m, layers):
     the script shortest. Along a diagonal, each of those answers turns from no
     to yes at one row and stays yes, so from any position the next cell where
     either move becomes possible is a lookup, and every cell before it can
-    only be kept through. The hunk counts are computed on those cells alone,
-    two to a cell -- one for arriving inside a run of moves, one for arriving
-    after a keep -- in the order the walk will need them."""
+    only be kept through. The comment counts are computed on those cells
+    alone, CONTEXT + 1 to a cell -- one for each number of keeps the walk can
+    arrive with -- in the order the walk will need them. Keeping through a
+    stretch is what makes that count move, so the stretch has to be measured
+    rather than merely skipped."""
     total = len(layers) - 1
     if total == 0:
         return []
@@ -192,18 +203,19 @@ def _frontier_engine(a, b, n, m, layers):
         keep = i < n and j < m and a[i] == b[j]
         return drop, add, keep
 
-    # Hunks still to be opened from a decision cell, arriving after a keep
-    # (quiet) or inside a run of moves (inrun). A cell that is not a decision
-    # cell is kept through to the next one, so both of its counts are that
-    # cell's quiet count.
-    quiet = {(n, m): 0}
-    inrun = {(n, m): 0}
+    # Comments still to be opened from a decision cell, one for each number of
+    # keeps the walk can arrive with. A cell that is not a decision cell is
+    # kept through to the next one, and those keeps count: they are what puts
+    # the arriving state further from the last move.
+    vals = {(n, m): _ZERO}
 
-    def after(i, j, r, open_run):
-        got = quiet.get((i, j))
+    def after(i, j, r, s):
+        got = vals.get((i, j))
         if got is not None:
-            return inrun[(i, j)] if open_run else got
-        return quiet[advance(i, j, r)]
+            return got[s]
+        stop, jstop = advance(i, j, r)
+        step = s + (stop - i)
+        return vals[(stop, jstop)][step if step < _FAR else _FAR]
 
     def settle(i0, j0, r0):
         """Fill in the counts for every decision cell reachable from (i0, j0)
@@ -211,7 +223,7 @@ def _frontier_engine(a, b, n, m, layers):
         stack = [(i0, j0, r0, False)]
         while stack:
             i, j, r, ready = stack.pop()
-            if (i, j) in quiet:
+            if (i, j) in vals:
                 continue
             drop, add, keep = choices(i, j, r)
             if not ready:
@@ -224,33 +236,32 @@ def _frontier_engine(a, b, n, m, layers):
                 if keep:
                     nexts.append((i + 1, j + 1, r))
                 for x, y, rr in nexts:
-                    if (x, y) in quiet:
+                    if (x, y) in vals:
                         continue
                     x2, y2 = advance(x, y, rr)
-                    if (x2, y2) not in quiet:
+                    if (x2, y2) not in vals:
                         stack.append((x2, y2, rr, False))
                 continue
-            best0 = best1 = 1 << 30
+            best = [1 << 30] * (CONTEXT + 1)
+            moved = 1 << 30
             if drop:
-                v = after(i + 1, j, r - 1, True)
-                if v < best1:
-                    best1 = v
-                if v + 1 < best0:
-                    best0 = v + 1
+                v = after(i + 1, j, r - 1, 0)
+                if v < moved:
+                    moved = v
             if add:
-                v = after(i, j + 1, r - 1, True)
-                if v < best1:
-                    best1 = v
-                if v + 1 < best0:
-                    best0 = v + 1
-            if keep:
-                v = after(i + 1, j + 1, r, False)
-                if v < best1:
-                    best1 = v
-                if v < best0:
-                    best0 = v
-            quiet[(i, j)] = best0
-            inrun[(i, j)] = best1
+                v = after(i, j + 1, r - 1, 0)
+                if v < moved:
+                    moved = v
+            for s in range(CONTEXT + 1):
+                if moved < 1 << 30:
+                    got = moved + 1 if s == _FAR else moved
+                    if got < best[s]:
+                        best[s] = got
+                if keep:
+                    v = after(i + 1, j + 1, r, s + 1 if s < _FAR else _FAR)
+                    if v < best[s]:
+                        best[s] = v
+            vals[(i, j)] = tuple(best)
 
     i, j, r = 0, 0, total
     i, j = advance(i, j, r)
@@ -258,28 +269,29 @@ def _frontier_engine(a, b, n, m, layers):
 
     ops = []
     emit = ops.append
-    open_run = False
+    s = _FAR
     while (i, j) != (n, m):
         drop, add, keep = choices(i, j, r)
-        want = inrun[(i, j)] if open_run else quiet[(i, j)]
-        cost = 0 if open_run else 1
-        if drop and after(i + 1, j, r - 1, True) + cost == want:
+        want = vals[(i, j)][s]
+        cost = 1 if s == _FAR else 0
+        if drop and after(i + 1, j, r - 1, 0) + cost == want:
             emit(["-", i])
             i += 1
             r -= 1
-            open_run = True
-        elif add and after(i, j + 1, r - 1, True) + cost == want:
+            s = 0
+        elif add and after(i, j + 1, r - 1, 0) + cost == want:
             emit(["+", j])
             j += 1
             r -= 1
-            open_run = True
+            s = 0
         else:
             i += 1
             j += 1
-            open_run = False
+            s = s + 1 if s < _FAR else _FAR
         i2, j2 = advance(i, j, r)
         if (i2, j2) != (i, j):
-            open_run = False
+            step = s + (i2 - i)
+            s = step if step < _FAR else _FAR
             i, j = i2, j2
     return ops
 
@@ -292,10 +304,15 @@ def _frontier_engine(a, b, n, m, layers):
 # keeps a shortest script can still make from it, counting itself. The matches
 # of one rank form a staircase, later in one side meaning earlier in the other,
 # so "the matches of the next rank that lie below and to the right of this one"
-# is a contiguous stretch of the next staircase, and the hunk counts come out
-# of a sliding window over it. The walk never leaves the staircases: each move
-# it considers narrows the stretch it may still land in, and the question is
-# whether a keep with the required count is still inside.
+# is a contiguous stretch of the next staircase. A rule that counted runs would
+# take one sliding minimum over that stretch; this one cannot, because the keep
+# straight down the diagonal carries the keep count forward where every other
+# keep in the stretch resets it, so it is held out of the minimum instead. That
+# splits the stretch in two -- one more row down, or one more column across --
+# and each piece is contiguous in a staircase, so it is two windows and not one.
+# The walk never leaves the staircases: each move it considers narrows the
+# stretch it may still land in, and the question is whether a keep with the
+# required count is still inside.
 
 
 def _pairs_engine(a, b, n, m):
@@ -342,44 +359,94 @@ def _pairs_engine(a, b, n, m):
         rows[rank].reverse()
         cols[rank].reverse()
 
-    # fewest[rank][t]: hunks still to be opened after keeping match t of that
-    # rank. From the last keep, whatever is left is one run of moves or none.
-    fewest = [None] * (top + 1)
-    fewest[1] = [0 if (x + 1 == n and y + 1 == m) else 1
-                 for x, y in zip(rows[1], cols[1])]
+    BIG = 1 << 30
+
+    # counts[rank][s - 1][t]: comments still to be opened after keeping match t
+    # of that rank, arriving there with s keeps already behind it, s running
+    # from one to CONTEXT. One number a match would do for a rule that only
+    # counted runs; here how far the walk is from the last move decides whether
+    # the next one is a comment of its own, and that survives a keep.
+    counts = [None] * (top + 1)
+    base = []
+    for s in range(1, CONTEXT + 1):
+        charge = 1 if s == _FAR else 0
+        base.append([0 if (x + 1 == n and y + 1 == m) else charge
+                     for x, y in zip(rows[1], cols[1])])
+    counts[1] = base
+
     for rank in range(2, top + 1):
         ii, jj = rows[rank], cols[rank]
-        pi, pj, pf = rows[rank - 1], cols[rank - 1], fewest[rank - 1]
+        pi, pj = rows[rank - 1], cols[rank - 1]
+        below = counts[rank - 1]
+        after_gap = below[0]            # a gap lands on the next keep at s = 1
         count = len(pi)
-        out = [0] * len(ii)
-        lo = 0                 # first lower-rank match with i' > i
-        hi = 0                 # one past the last with j' > j
-        window = deque()       # indices into the lower rank, counts ascending
-        for t in range(len(ii)):
+        size = len(ii)
+        out = [[BIG] * size for _ in range(CONTEXT)]
+
+        # A keep of the next rank that is NOT the one straight down the
+        # diagonal has a move between it and this one. Those split into two
+        # stretches -- one more row down, or one more column across -- and each
+        # is contiguous in a rank that runs with i ascending and j never
+        # increasing, so each takes an ordinary sliding minimum. The straight
+        # diagonal keep is in neither, which is the point: it opens nothing and
+        # it carries the keep count forward instead of resetting it.
+        lo_row = hi_row = 0             # i >= x + 1, j >= y + 2
+        lo_col = hi_col = 0             # i >= x + 2, j >= y + 1
+        win_row = deque()
+        win_col = deque()
+        for t in range(size):
             x = ii[t]
             y = jj[t]
-            while hi < count and pj[hi] > y:
-                f = pf[hi]
-                while window and pf[window[-1]] >= f:
-                    window.pop()
-                window.append(hi)
-                hi += 1
-            while lo < count and pi[lo] <= x:
-                lo += 1
-            while window and window[0] < lo:
-                window.popleft()
-            best = pf[window[0]] + 1
-            # The keep straight after this one continues the run of keeps and
-            # opens nothing.
-            s = bisect_left(pi, x + 1)
-            while s < count and pi[s] == x + 1:
-                if pj[s] == y + 1:
-                    if pf[s] < best:
-                        best = pf[s]
+            while hi_row < count and pj[hi_row] > y + 1:
+                f = after_gap[hi_row]
+                while win_row and after_gap[win_row[-1]] >= f:
+                    win_row.pop()
+                win_row.append(hi_row)
+                hi_row += 1
+            while lo_row < count and pi[lo_row] <= x:
+                lo_row += 1
+            while win_row and win_row[0] < lo_row:
+                win_row.popleft()
+            while hi_col < count and pj[hi_col] > y:
+                f = after_gap[hi_col]
+                while win_col and after_gap[win_col[-1]] >= f:
+                    win_col.pop()
+                win_col.append(hi_col)
+                hi_col += 1
+            while lo_col < count and pi[lo_col] <= x + 1:
+                lo_col += 1
+            while win_col and win_col[0] < lo_col:
+                win_col.popleft()
+
+            gap = BIG
+            if win_row:
+                value = after_gap[win_row[0]]
+                if value < gap:
+                    gap = value
+            if win_col:
+                value = after_gap[win_col[0]]
+                if value < gap:
+                    gap = value
+
+            straight = -1
+            probe = bisect_left(pi, x + 1)
+            while probe < count and pi[probe] == x + 1:
+                if pj[probe] == y + 1:
+                    straight = probe
                     break
-                s += 1
-            out[t] = best
-        fewest[rank] = out
+                probe += 1
+
+            for s in range(1, CONTEXT + 1):
+                best = BIG
+                if gap < BIG:
+                    best = gap + 1 if s == _FAR else gap
+                if straight >= 0:
+                    nxt = s + 1 if s < _FAR else _FAR
+                    value = below[nxt - 1][straight]
+                    if value < best:
+                        best = value
+                out[s - 1][t] = best
+        counts[rank] = out
 
     def last_at_least(jj, y):
         """jj never increases: one past the last index with jj[idx] >= y."""
@@ -392,27 +459,40 @@ def _pairs_engine(a, b, n, m):
                 hi = mid
         return lo
 
+    def slot_of(rank, x, y):
+        ii, jj = rows[rank], cols[rank]
+        t = bisect_left(ii, x)
+        while t < len(ii) and ii[t] == x:
+            if jj[t] == y:
+                return t
+            t += 1
+        raise AssertionError("the walk left the staircases")
+
     ops = []
     emit = ops.append
     x = y = 0
     rank = top
-    open_run = False
+    s = _FAR
 
     # The count the walk must realise from the start: a keep at the origin if
-    # there is one, otherwise a run opened before the first keep.
-    ff = fewest[top]
-    target = min(ff) + 1
+    # there is one, otherwise a run opened before the first keep. A move made
+    # before any keep is always a comment of its own, there being nothing in
+    # front of it to join.
+    after_gap = counts[top][0]
+    target = min(after_gap) + 1
     ii, jj = rows[top], cols[top]
     for t in range(len(ii)):
         if ii[t] == 0 and jj[t] == 0:
-            if ff[t] < target:
-                target = ff[t]
+            value = counts[top][_FAR - 1][t]
+            if value < target:
+                target = value
             break
 
     while rank > 0:
-        ii, jj, ff = rows[rank], cols[rank], fewest[rank]
+        ii, jj = rows[rank], cols[rank]
+        after_gap = counts[rank][0]
         by_count = {}
-        for t, f in enumerate(ff):
+        for t, f in enumerate(after_gap):
             lst = by_count.get(f)
             if lst is None:
                 by_count[f] = [t]
@@ -421,7 +501,9 @@ def _pairs_engine(a, b, n, m):
 
         def reachable(x, y, wanted):
             """Is a keep of this rank with the wanted count at or after
-            (x, y) on both sides?"""
+            (x, y) on both sides? Once a move has been made the walk is at
+            no keeps since the last one, so the count it must meet is the
+            one a gap lands on."""
             lst = by_count.get(wanted)
             if not lst:
                 return False
@@ -431,7 +513,7 @@ def _pairs_engine(a, b, n, m):
             return p < len(lst) and lst[p] < hi
 
         while True:
-            wanted = target if open_run else target - 1
+            wanted = target - 1 if s == _FAR else target
             if x < n and reachable(x + 1, y, wanted):
                 emit(["-", x])
                 x += 1
@@ -440,13 +522,15 @@ def _pairs_engine(a, b, n, m):
                 y += 1
             else:
                 break
-            open_run = True
+            s = 0
             target = wanted
-        # Nothing shortest and as cheap in hunks starts with a move here, so
-        # this is a keep, and the count it carries is the target.
+        # Nothing shortest and as cheap in comments starts with a move here,
+        # so this is a keep, and it carries the keep count one further along.
+        nxt = s + 1 if s < _FAR else _FAR
+        target = counts[rank][nxt - 1][slot_of(rank, x, y)]
+        s = nxt
         x += 1
         y += 1
-        open_run = False
         rank -= 1
     for i in range(x, n):
         emit(["-", i])

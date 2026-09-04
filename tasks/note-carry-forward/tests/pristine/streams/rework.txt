@@ -1,0 +1,5 @@
+rev def a|  x = 1|  y = 2|  return x|def b|  return 0
+note 0 2
+rev def a|  x = 1|  y = 3|  return x|def b|  return 0
+note 1 5
+rev def a|  x = 1|  y = 3|  return x|def b|  return 1

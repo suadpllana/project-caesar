@@ -1,0 +1,145 @@
+{
+ "fixed": {
+  "absorb-older-wins": {
+   "log": [
+    [
+     "absorb",
+     0,
+     1
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     1
+    ]
+   ]
+  },
+  "carry-plain": {
+   "log": [],
+   "notes": [
+    [
+     0,
+     2
+    ]
+   ]
+  },
+  "empty-revision": {
+   "log": [
+    [
+     "retire",
+     0
+    ]
+   ],
+   "notes": []
+  },
+  "last-line": {
+   "log": [],
+   "notes": [
+    [
+     0,
+     2
+    ]
+   ]
+  },
+  "matcher-keeps-another-copy": {
+   "log": [],
+   "notes": [
+    [
+     0,
+     2
+    ]
+   ]
+  },
+  "no-notes": {
+   "log": [],
+   "notes": []
+  },
+  "open-at-head": {
+   "log": [],
+   "notes": [
+    [
+     0,
+     3
+    ]
+   ]
+  },
+  "open-midstream": {
+   "log": [],
+   "notes": [
+    [
+     0,
+     1
+    ]
+   ]
+  },
+  "raise-kept-inside-change": {
+   "log": [
+    [
+     "raise",
+     0
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     2
+    ]
+   ]
+  },
+  "raise-not-when-changes-are-apart": {
+   "log": [],
+   "notes": [
+    [
+     0,
+     3
+    ]
+   ]
+  },
+  "retire-and-raise-in-one-revision": {
+   "log": [
+    [
+     "retire",
+     0
+    ],
+    [
+     "retire",
+     2
+    ],
+    [
+     "raise",
+     1
+    ]
+   ],
+   "notes": [
+    [
+     1,
+     1
+    ]
+   ]
+  },
+  "retire-dropped": {
+   "log": [
+    [
+     "retire",
+     0
+    ]
+   ],
+   "notes": []
+  },
+  "tie-break-picks-the-survivor": {
+   "log": [
+    [
+     "raise",
+     0
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     0
+    ]
+   ]
+  }
+ }
+}

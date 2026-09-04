@@ -87,6 +87,13 @@ def test_no_submitted_module_reached_this_process():
     assert "change_script" not in sys.modules
 
 
+def test_the_two_files_agree_on_what_ends_a_comment():
+    """The model and the fast implementation each carry the number, because
+    neither may import the other. A test is the only thing holding them
+    together, and every answer in the task moves if they drift."""
+    assert oracle.CONTEXT == reference.CONTEXT
+
+
 def test_the_definitional_model_is_the_rule_by_exhaustion():
     """The definitional model is a table. The rule is a sentence about every
     script a pair admits. On pairs short enough to enumerate every script,

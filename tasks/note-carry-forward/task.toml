@@ -1,0 +1,143 @@
+schema_version = "1.3"
+
+artifacts = [
+    "/app/note/board.py",
+    "/app/note/rule.py",
+]
+
+[task]
+name = "afterquery/note-carry-forward"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The board has to be rebuilt from the revision store on every request, and the
+tree ships the engine that pins a change script rather than asking anyone to
+write one. So the algorithmic weight is not in computing a diff. It is in one
+property of that engine nobody states and everybody assumes away.
+
+The pinned script does not compose. The script from r0 to r2 is not the script
+from r0 to r1 followed by the script from r1 to r2, because the tie-break that
+picks one shortest script out of the many a repetitive file admits is settled
+against the pair in front of it and nothing else. Measured on the streams this
+task grades, the two disagree about which lines survived on 66 per cent of
+them, and about which notes are still live on 43 per cent.
+
+That matters because the cheapest correct-looking board is the stateless one.
+Nothing is kept between requests, each note remembers the revision it was
+opened at, so ask the engine for the script from that revision straight to the
+head and read the answer off. It is shorter code, it is one engine call per
+note instead of one per revision, and it is what the shipped tree does. It is
+also wrong, and wrong in a direction that looks like success: a note whose
+line was deleted two revisions ago and whose text was later typed again comes
+back to life and attaches itself to the new line. The shipped tree does
+exactly that on /app/streams/guard.txt, which is the one thing in the tree
+that says anything is broken.
+
+A solver who replays the store revision by revision has the first discovery.
+The second is that carrying a note is not a question about text at all. Two
+scripts of the same length disagree about which copy of a repeated line
+survived, so a board that rebuilds the mapping from an ordinary longest-common
+-subsequence backtrace, or from the opcodes the standard library's matcher
+returns, moves the note to a different line while agreeing with the engine
+about every count. That reading moves 62 and 59 per cent of streams
+respectively. The mapping has to come off the reading the pinned engine itself
+produced.
+
+The third is smaller and is the one an enumerated set has to pin rather than
+argue: a line the script kept can still be inside a change, because a change
+absorbs the kept lines that sit between its runs. A board that raises only the
+lines a script added is wrong on 52 per cent of streams while never moving a
+note to the wrong place.
+
+None of the three is visible from a stream a person writes out to check
+themselves, because all of them need a line to repeat and a revision to sit
+between two others. The brief says both things happen and says nothing about
+what they cost.
+"""
+
+solution_explanation = """
+Two files change.
+
+`note/rule.py` reads the mapping off the walk the pinned engine produced,
+rather than rebuilding it, and asks whether a kept line falls inside one of
+the changes of that same script rather than whether the script added it.
+
+`note/board.py` replays the store. It walks from the first revision to the
+head, and at each step it computes the script once for the whole live set,
+carries every note through it, retires the notes whose line the script
+dropped, raises the notes that came to rest inside a change, admits the notes
+opened at that revision, and lets the older note absorb the newer where two
+came to rest on one line. Event order inside a revision is fixed by the brief
+so that two correct boards cannot disagree about the log.
+
+The reference is 60 lines across the two files. It is not clever and it is not
+fast in any interesting way; the whole of it is knowing that the replay cannot
+be skipped and that the mapping cannot be rebuilt.
+"""
+
+verification_explanation = """
+Graded, all or nothing: the live note table at the head of every stream, and
+the ordered log of retirements, raises and absorptions on the way there.
+
+Thirteen streams are written out by hand, one per rule and one per corner where two
+of them meet. Three hundred more are generated from a seed the run is handed,
+so the streams a submission is graded on are not the streams it was written
+against, and those are settled at grading time by `tests/oracle.py` -- a
+second model of the rule, written forwards where the environment's engine
+works backwards, sharing no code with either the environment or the reference.
+A test holds that sealed model to the recorded ground truth on every
+hand-written stream before any generated answer counts.
+
+Not graded: how the board stores anything, what it computes first, how many
+times it walks the store. There is no work counter anywhere in this task.
+
+The run is unprivileged. `tests/test.sh` locks the reward channel before
+anything else happens, assembles a work tree from a pristine copy baked into
+the verifier image, overlays only the two declared artifacts, and runs the
+board as uid 1002 under `setsid --wait` with the output handed down as an
+inherited descriptor opened by root. `tests/reap.py` kills whatever that
+account left behind by walking /proc, because pkill is not in the image.
+pytest then grades as root and never imports anything the submission wrote. A
+test compares every frozen file in the executed tree against the pristine copy
+byte for byte, counting what it compared first, so that a comparison against a
+directory that is not there cannot pass by looking at nothing.
+"""
+
+category = "Software"
+subcategory = "Algorithms"
+
+tags = [
+    "diff-alignment",
+    "revision-history",
+    "state-reconstruction",
+    "differential-testing",
+]
+
+expert_time_estimate_hours = 7
+
+relevant_experience = """
+Comfort with edit scripts and longest common subsequences, and specifically
+with the fact that a shortest script is not unique and that a tie-break has to
+be settled somewhere. Experience maintaining state across a history rather
+than recomputing it from the endpoints. The task is ordinary Python and needs
+no library beyond the standard one.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

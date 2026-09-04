@@ -81,14 +81,30 @@ FIXED = [
     (["a", "b", "a", "c", "a", "b", "a"], ["b", "a", "c", "a", "b", "a", "b"]),
     (["t"] * 8, ["t"] * 8 + ["u"] + ["t"] * 8),
     (["n"] * 5 + ["m"] * 5, ["m"] * 5 + ["n"] * 5),
-    # The same moves can be made in one place or in two. The reading order
-    # alone would take the two; the hunk count takes the one.
+    # The same moves can be made in one place or in two, and counting runs of
+    # moves is not the same as counting comments. Every pair below is one a
+    # rule that counted runs would answer differently; authoring/corners.py
+    # asserts that, and asserts which of them also move when the number of
+    # kept lines it takes to end a comment is read as one fewer or one more.
     (["c", "c", "a", "b"], ["c", "b", "a", "b"]),
     (["b", "a", "b", "a"], ["b", "a", "a", "a"]),
     (["b", "b", "b", "b"], ["b", "b", "a", "c"]),
     (["a", "a", "a", "c"], ["a", "b", "c", "a", "b", "c"]),
     (["c", "a", "b", "a"], ["a", "b", "c", "b"]),
     (["b", "c", "a", "c"], ["b", "b", "b", "b"]),
+    # Straddling the boundary from below: one kept line between two runs.
+    (["a", "a", "a"], ["a", "b", "a"]),
+    (["a", "a", "a"], ["a", "b", "b"]),
+    # Two kept lines between them, which is still under it.
+    (["a", "a", "a"], ["a", "a", "b"]),
+    (["a", "a", "b"], ["a", "a", "a"]),
+    (["a", "a", "a", "a"], ["a", "a", "a", "b"]),
+    # And from above: three kept lines, which ends the comment.
+    (["a", "a", "a"], ["a", "a", "a", "a", "b"]),
+    (["a", "b", "a", "b", "b"], ["a", "a", "b", "a"]),
+    (["b", "a", "b", "a", "a"], ["b", "b", "a", "b"]),
+    (["a", "b", "b", "a", "a"], ["a", "b", "a", "b", "b"]),
+    (["a", "b", "a", "b", "b"], ["a", "a", "a", "b", "a"]),
 ]
 
 _EXTRA_SHAPES = [
@@ -211,16 +227,18 @@ def medium_cases(seed):
 
 
 # (family, generator, parameters). The parameters rather than the generator
-# decide which family a pair belongs to: the same edited draw over a pool of
-# forty lines and over a pool of three is a different depth of the same cost,
-# and the same crossed draw over a pool of three hundred thousand costs nothing
-# like either. "long" pairs differ in a few hundred places over hundreds of
-# thousands of lines. "crowded" pairs are forty to sixty thousand lines over
-# two to six distinct ones, differing in a few thousand places, so the number
-# of moves is ten times what the long pairs need and every line matches a
-# large fraction of the other side. "sparse" pairs are four to six times
-# longer than that with hardly anything matching anything, and share no order
-# at all.
+# decide which family a pair belongs to: the same "crossed" draw over a pool of
+# three lines and over a pool of three hundred thousand costs nothing alike.
+# "long" pairs differ in a few hundred places over hundreds of thousands of
+# lines, so the number of moves is tiny and everything else about them is
+# enormous. The "crowded" pairs stay under sixty thousand lines and differ in a
+# few thousand places over two to six distinct lines, so every line matches a
+# large fraction of the other side: the number of matching positions is the
+# square of the length over the alphabet, and only the number of moves is
+# small. The "sparse" ones are four to six times longer with hardly anything
+# matching anything, and their moves run past the length of the file. The first
+# two answer to the same technique at depths three orders of magnitude apart;
+# the third is out of its reach entirely.
 TIMED_SHAPES = [
     ("long", "ambiguous", (400000, 40, 80, 10, 15)),
     ("long", "ambiguous", (550000, 6, 60, 8, 15)),

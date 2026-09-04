@@ -166,6 +166,21 @@ Note the criterion has run-to-run variance: `guard-mark-unwind` shipped 35 autho
 `share-register-screen` 40, and both cleared this same review. The repair removes exposure; it
 is not proof of what decided this one.
 
+## The third quality-review rejection, 2026-09-04
+
+`instruction concision`. `no extraneous files` passed after the repackaging, and so did the
+structural check, the AI check, the similarity screen and reference verification. Three
+complaints: roleplay flourish (four phrases quoted back), a private vocabulary
+(sameness/difference/desk/board) where the set files already say `tie`, `bar` and `watch`, and
+a "five shapes worth naming" framing that reads as a checklist of cases.
+
+Repaired: the brief now speaks in the format's own words, the flourish is gone, and the
+input-space facts are stated as properties of the input rather than as a numbered list. 1119
+words to 965. Burstiness went 0.838 to 0.723 on the de-obliquing pass and back to 0.854 by
+rejoining clauses, clean against all four briefs that cleared the AI screen. Every graded rule
+was walked against the new text and none lost its sentence; the one genuine removal was a
+clause explaining a rule the brief states precisely two paragraphs earlier.
+
 ## Gates run
 
 The real two-image trial on this Linux sandbox with Docker up: **32 of 32** (oracle 1, nop 0,

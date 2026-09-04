@@ -110,11 +110,12 @@ none has ever been checked for.
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
-It then failed the quality review a second time, on 2026-09-04, on `no extraneous
-files` - the shipped `authoring/` directory - with every other rubric row passing including
-`difficult`. **Twelve of the fourteen archives here have that defect and two of them passed
-this same criterion**, so read "The extraneous-files rejection" before deciding what it means,
-and package with `tools/packbundle.py` from now on.
+It then failed the quality review twice more on 2026-09-04: on `no extraneous files` (the
+shipped `authoring/` directory - **twelve of the fourteen archives here have that defect and
+two of them passed this same criterion**, so package with `tools/packbundle.py` from now on),
+and then on `instruction concision`, for a roleplay narrative and a private vocabulary the
+input format already had plainer words for. Both are written up below. `difficult` passed on
+both of those runs, and so did the AI check, the similarity screen and reference verification.
 It went in as `ML / Evaluation` because its brief is set in an evaluation harness, and the
 reviewer's answer is the entry to read before labelling anything: the category names the skill
 the graded work exercises, never the room the story happens in. It is now
@@ -573,6 +574,95 @@ Two smaller things worth keeping:
   fairness and legibility property. They say nothing about whether a frontier agent takes the
   shortcut, and on a complete specification it does not. Keep measuring them for the reason they
   exist; stop citing them as evidence the task is hard.
+
+## The concision rejection, a third time: plain register, irregular cadence (2026-09-04)
+
+`alias-settle-report` went back with `authoring/` removed. **`no extraneous files` passed**,
+and so did the structural check, the AI check, the similarity screen and reference
+verification. It failed the quality review on `instruction concision`, which is now the third
+submission this criterion has blocked here - `delta-view-retraction` on 2026-08-13,
+`share-register-screen` on 2026-09-02, this one. The finding:
+
+> Absolute paths are used and the text is clearly human-written, but it is roughly 1,000 words
+> wrapped in a roleplay narrative ('the filing end of our evaluation harness, cut down small
+> enough to argue about', 'the one we rewrote last quarter', 'after you have downed tools',
+> 'the three under your nose') and a deliberately oblique private vocabulary
+> (sameness/difference/desk/board/filing) that adds reading burden unrelated to the problem.
+> The 'five shapes worth naming' paragraph also edges toward hinting at which cases a solution
+> must handle. The specification content is necessary, but the fluff and stylised register
+> around it are not.
+
+Three complaints, and the second is the one worth carrying, because no earlier entry names it.
+
+**1. Never invent a word for a thing the data already names.** The brief said "sameness" and
+"difference" where `/app/sets/*.txt` literally contains `tie m0 2 9` and `bar m1 2 5`, and
+where the emitted rows are `["ty", ...]` and `["br", ...]`. It said "the board" and "the desk"
+for things the format calls `watch` and nothing at all. Every one of those is a synonym the
+reader has to hold in their head against the word actually in front of them, and it buys
+nothing: the difficulty of this task lives in what the brief does not say, never in what it
+makes you translate. The repair was to speak in the format's own vocabulary - `run`, `tag`,
+`post`, `tie`, `bar`, `shut`, `watch` - which is shorter, plainer, and strictly more useful to
+the solver, since prose and data now use the same nouns. That is the "obliqueness protects
+nothing" rule from the `share-register-screen` entry, generalised: **check the brief's nouns
+against the input format's keywords, and delete every one that is a private synonym.**
+
+**2. Roleplay framing is padding with a plot.** Four phrases carried no requirement at all and
+all four were quoted back. `guard-mark-unwind`'s opening ("a small cooperative runtime we use
+to try scheduling ideas out") passed the same review, so situating the document is not the
+problem - a team with a stake is what the AI check wants and this brief keeps eleven `we/our`.
+The problem is flourish on top of that: "cut down small enough to argue about" says nothing,
+"after you have downed tools" is a costume for "after you have finished".
+
+**3. Stating the input space is still right; framing it as a checklist is not.** This one is a
+genuine refinement of the table in "Landing inside the band", which lists stating the input
+space as a **safe** repair and is what fixed `guard-mark-unwind`'s 0-of-8. The reviewer did not
+object to the facts - overlapping pools, bars between singletons and multi-key items, several
+runs open at once - but to the sentence wrapping them: *"five of their shapes are worth naming,
+since a rule fitted to a straight line survives none of them."* That reads as a test checklist
+with a count on it. Every fact stayed; the framing became "The sets we grade are not straight
+lines." **State the input space as properties of the input, never as an enumerated list of
+cases with a number in front of it.**
+
+### The register/cadence split, which is the reusable part
+
+The AI check **passed** the stylised version. This gate rejected it. Those two are not in
+conflict once you separate two things this file has been treating as one:
+
+| | what the AI check wants | what concision wants |
+|---|---|---|
+| **register** (word choice) | plain and specific; it rejects staged informality | plain and specific; it rejects stylisation |
+| **cadence** (sentence length) | irregular - burstiness at or above the references | says nothing about it |
+
+So the target is **plain register, irregular cadence**, and the two are independent. Every
+earlier entry here that treats "de-stylising will fail the AI check" as a risk was conflating
+them; what failed the AI check on `typeahead-query-controller` was *chopping sentences*, not
+plain words.
+
+Measured on this repair, and the middle number is the trap:
+
+| | words | burstiness |
+|---|---|---|
+| as rejected | 1119 | 0.838 |
+| after de-stylising and de-obliquing | 974 | **0.723** |
+| after rejoining clauses | 965 | **0.854** |
+
+De-obliquing cost more cadence than de-colloquialising did on `typeahead-query-controller`
+(0.966 to 0.708 there, 0.838 to 0.723 here), for the same reason: replacing a metaphor with a
+literal statement shortens sentences and pushes them all toward the mean. **The recovery is the
+one this file already prescribes and it works: rejoin clauses the material already had, and
+restore any sentence split the original had.** Three semicolons and one restored split -
+`Every event is a row. A post, a tie, a bar, a shut, a filing, and the tick the set ended on.` -
+took it from 0.723 to 0.854, clean against all four briefs that have cleared the AI screen,
+with `structcheck` and `hintcheck` clean and stock words, hedges, antithesis and triads at zero
+throughout.
+
+**And walk the diff before believing the repair is surgical.** Comparing the two briefs
+sentence by sentence and listing everything with no close match in the new one turned up eleven
+items; ten were reworded or merged and one was a genuine removal - a clause explaining that the
+first post is not the chronologically first, which the brief states precisely two paragraphs
+earlier. That is exactly the "reasoning that satisfies a requirement" the first concision entry
+says to cut, so it went. Nothing the verifier grades lost its sentence: all six test sweeps were
+walked against the new text.
 
 ## The extraneous-files rejection: the bundle is not the working tree (2026-09-04)
 

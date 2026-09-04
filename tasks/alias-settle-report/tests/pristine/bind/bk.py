@@ -14,6 +14,14 @@ class Book(object):
         self.live = set(self.runs) | set(self.tags)
         self.watch = list(sp.watch)
         self.filed = set()
+        self.gone = set()
+
+    def drop(self, c):
+        ks = self.held(c)
+        self.gone.update(ks)
+        for n in sorted(self.tags):
+            if n in self.live and set(self.tags[n]) & set(ks):
+                self.live.discard(n)
 
     def find(self, k):
         r = k

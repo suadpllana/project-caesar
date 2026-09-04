@@ -18,9 +18,13 @@ class Mach(object):
             bk.post[(who, a)] = b
             self.ev(("ps", self.t, who, a, b))
         elif kind == "tie":
+            if who not in bk.live or a in bk.gone or b in bk.gone:
+                return
             bk.weld(a, b)
             self.ev(("ty", self.t, who, a, b))
         elif kind == "bar":
+            if who not in bk.live or a in bk.gone or b in bk.gone:
+                return
             bk.bars.add((min(a, b), max(a, b)))
             self.ev(("br", self.t, who, a, b))
         elif kind == "shut":
@@ -31,9 +35,14 @@ class Mach(object):
         bk = self.bk
         ripe = [w for w in bk.watch
                 if w not in bk.filed and hold.firm(bk, bk.find(w))]
+        lines = []
         for w in seq.queue(bk, ripe):
-            rep, sc = card.card(bk, bk.find(w))
+            c = bk.find(w)
+            rep, sc = card.card(bk, c)
+            lines.append((w, c, rep, sc))
+        for w, c, rep, sc in lines:
             bk.filed.add(w)
+            bk.drop(c)
             self.ev(("fl", self.t, w, rep, sc))
 
     def run(self):

@@ -50,6 +50,7 @@ FROZEN = (
     ("bind/mc.py", "Mach.sweep"),
     ("bind/mc.py", "Mach.run"),
     ("bind/bk.py", "Book.__init__"),
+    ("bind/bk.py", "Book.drop"),
     ("bind/bk.py", "Book.find"),
     ("bind/bk.py", "Book.weld"),
     ("bind/bk.py", "Book.cells"),

@@ -34,26 +34,52 @@ GRAB = _found
 from bind import card, rch
 
 
-def firm(bk, c):
-    if card.auth(bk, c) is None:
+def sound(bk, c, off):
+    a = card.auth(bk, c)
+    if a is None:
         return False
-    rep = bk.held(c)[0]
-    for x in rch.span(bk, c):
-        if bk.held(x)[0] < rep:
+    here = bk.held(c)
+    rep = here[0]
+    wide = set(here)
+    for x in rch.span(bk, c, off):
+        ks = bk.held(x)
+        if ks[0] < rep:
             return False
+        wide.update(ks)
+    for n in bk.open_runs():
+        for k in bk.unsent(n):
+            if k in wide and (n, k) < a:
+                return False
     return True
+
+
+def firm(bk, c):
+    return sound(bk, c, set(bk.gone))
 PYEOF
 
 cat > "${APP}/bind/rch.py" <<'PYEOF'
-def span(bk, c):
+def span(bk, c, off):
     cells = bk.cells()
-    out = set()
+    seat = dict((i, set(ks)) for i, ks in cells.items())
+    near = dict((i, set()) for i in seat)
     for n in bk.open_tags():
         pool = set(bk.tags[n])
-        if pool & set(cells[c]):
-            for i in cells:
-                if i != c and pool & set(cells[i]):
-                    out.add(i)
+        hit = [i for i in seat if pool & seat[i]]
+        if len(hit) > 1:
+            for i in hit:
+                near[i].update(hit)
+    out = set()
+    seen = set()
+    work = [c]
+    while work:
+        i = work.pop()
+        if i in seen:
+            continue
+        seen.add(i)
+        for j in near[i]:
+            out.add(j)
+            work.append(j)
+    out.discard(c)
     return out
 PYEOF
 

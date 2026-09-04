@@ -174,6 +174,24 @@ case must pass; 99% correct scores zero. The verifier must construct the adversa
 edge inputs itself — if failures only appear under conditions the grader does not create, the task
 is easy in practice no matter how hard it is in principle.
 
+### A measured C3 repair: semantic scaling, not an undisclosed timeout
+
+When trajectories all choose the same correct exhaustive method, look for a real input family in
+which that method remains semantically correct but becomes resource-infeasible. Add a faster
+equivalent path only when it follows from an invariant of that family, and retain the exact method
+where the invariant does not hold. Put both the fixed adversarial case and the generated family in
+the sealed verifier so the boundary cannot be avoided by solving only the visible examples.
+
+The instruction must state the actual execution limit and the input scale that exercises it. A
+hidden kill at the boundary is an alignment defect, not a valid difficulty tactic. Before
+shipping, regenerate the independent model and ground truth, run a large differential sample,
+and test independent correct variants. Keep task-local authoring scripts outside the final bundle
+unless the verifier needs them; development provenance is not part of the agent's environment.
+
+`alias-settle-report` is the measured example: no-difference states use connected-component
+closure, difference-bearing states retain exact legal-group search, and 25-30-key no-bar cases
+create the resource boundary. The repaired bundle passed both the easiness and difficulty probes.
+
 ## The guard — block the route-around
 
 One editable file; everything else hash-checked; interfaces frozen. The model must not be able to

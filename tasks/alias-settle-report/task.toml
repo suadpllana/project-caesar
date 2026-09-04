@@ -16,90 +16,133 @@ author_email = "suadpllana12@gmail.com"
 
 difficulty_explanation = """
 The tree is a working filing machine whose settling rule is wrong, and the wrongness is
-coherent rather than broken: it decides that a line is safe to write by looking at the
-tags standing directly against the item it is about. That is the shape of every
-deduplication pipeline anyone has written up, because with one matcher in play it is
-right, so it is also the shape a frontier agent reconstructs from its prior. Two
-corrections are needed and the second fights that shape all the way.
+coherent rather than broken: it decides that a line is safe to write by looking at the tags
+standing against the item it is about, over the cells that are standing at the moment the
+question is asked. That is the shape of every deduplication pipeline anyone has written up,
+because with one matcher in play it is right, so it is also the shape a frontier agent
+reconstructs from its prior. Four corrections are needed and the third and fourth fight that
+shape all the way.
 
 The first is that the question is about futures rather than about the present. A line
 carries the smallest key in an item and the score of the first post that item holds, and a
 tag that has not shut can weld another item on, bringing a smaller key or an earlier post
 with it, while a run that has not shut can post ahead of the post that stands. Neither of
-those has happened yet when the question is asked. That much an agent gets to by reading
-the brief carefully, and the natural implementation of it is a union-find and a
-reachability closure over the cells that open tags touch.
+those has happened yet when the question is asked. That much an agent gets to by reading the
+brief carefully, and the natural implementation of it is a union-find and a reachability
+closure over the cells that open tags touch.
 
-The second correction is that the closure is not the answer, and this is what the task is
-built on. Welding a chain welds every item on that chain into one, so a difference
-standing between any two of them says that item can never exist and the whole route is
-impossible. The condition is therefore not "is there a path from here to there" but "is
-there a path whose entire vertex set is free of differences", which is a search over
-growing groups rather than a walk over edges, and the three readings that look like it are
-all wrong: checking the difference against the two ends of the route, checking it between
-consecutive steps, and ignoring it. Measured against the reference on four hundred
-generated sets, ignoring differences moves 63 per cent of them, the consecutive-step
-reading moves 15 per cent, and the two-ends reading moves 3 per cent. Every one of those
-readings is impeccable on a set with a single matcher in it, which is what every worked
-example of deduplication looks like.
+The second is that the closure is not the answer. Welding a chain welds every item on that
+chain into one, so a difference standing between any two of them says that item can never
+exist and the whole route is impossible. The condition is not "is there a path from here to
+there" but "is there a path whose entire vertex set is free of differences", which is a
+search over growing groups rather than a walk over edges. Measured against the reference on
+four hundred generated sets, ignoring differences moves 69 per cent of them, checking one
+between consecutive steps moves 32 per cent, and checking it against the two ends of the
+route moves 1 per cent. Every one of those readings is impeccable on a set with a single
+matcher in it, which is what every worked example of deduplication looks like.
+
+The third is what the task is built on, and it is the one that invalidates the second. A
+line handed to the board takes its item off the desk, and a tag says nothing further about
+an item that has gone. So the cells that could still be welded on are not the cells standing
+when the question is asked. They are the cells still standing once this tick's lines have
+gone - and which lines those are is the question being asked. Reach cannot be computed once
+from the book and then consulted; it has to be answered against a set of departures that is
+itself being solved for, and the answer is the smallest such set that is consistent with
+itself: start from the items already gone, take any watched key that is settled against
+that, let its item go, and go round again, because letting one item go can be exactly what
+puts a smaller key or an earlier post out of another item's reach. A reading that never
+notices an item has left moves 46 per cent of generated sets. One that notices only the
+departures already recorded, and so never lets one line free another on the same tick, moves
+21 per cent. And taking the largest self-consistent set rather than the smallest - letting
+two items that each block the other both go on the strength of the other going - moves 87
+per cent, which is the trap directly under the discovery.
 
 Being wrong in the other direction is graded exactly as hard, and that is what stops the
-overcautious answer. A submission that holds every line until its tags have shut is right
-on every set where nothing could have been welded anyway, and it fails all four fences the
+overcautious answer. A submission that holds every line until its tags have shut is right on
+every set where nothing could have been welded anyway, and it fails all four fences the
 instruction states outright, including the one where an item already holds the smallest key
 in reach and is to be filed at once.
 
-There is no oracle for any of it. The machine runs whatever rule it is given and prints the
-rows that rule produces, and every wrong reading above prints rows that look entirely
-reasonable. The one check an agent can build for itself is misleading rather than absent:
-filing as late as a particular set happens to require costs nothing on that set and is
-wrong, because the rule is about what a source may still do rather than what it did. The
-environment ships no expected output, the instruction states requirements and the input
-space without stating how to satisfy them, and the graded set is three hundred report sets
-generated inside the verifier from a nonce made after the agent has finished, so a rule
+There is no oracle for any of it, and the check an agent naturally builds confirms the wrong
+answer rather than failing to reach it. The obvious self-test is to enumerate what the
+sources could still do from a given state and ask whether the row would move. But what the
+sources can still do depends on which items have left the desk, and which items leave
+depends on the policy under test, so an enumeration driven by that policy agrees with any
+policy that agrees with itself. A submission that never lets one line free another passes
+its own check on every set, and so does one that lets every apparently-ready line go at
+once. The environment ships no expected output, the instruction states requirements and the
+input space without stating how to satisfy them, and the graded set is three hundred report
+sets generated inside the verifier from a nonce made after the agent has finished, so a rule
 fitted to the sets in the tree carries no information about whether it fits the rest. The
 machine ships with no comments anywhere and its identifiers are in the register of ordinary
-internal code, which is deliberate: the sweep order, the book, the pools and what a
-declared difference actually binds have to be recovered by reading behaviour instead of
-names.
+internal code, which is deliberate: the sweep order, the book, the pools, what a declared
+difference actually binds and what becomes of an item that has been handed over all have to
+be recovered by reading behaviour instead of names.
+
+The fourth correction is a scale boundary hidden in the input space. In a state with no
+declared differences, every open-tag route is legal, so the reachable items form one ordinary
+connected component and there is no reason to enumerate all of its possible subgroups. The
+generated list includes wider no-difference states with one tag spanning dozens of keys. A
+group-by-group implementation still agrees with the definition on small examples, but it
+cannot finish those states in the verifier's run window; the reference uses the component
+closure only for this no-difference case and keeps the exact group search where differences
+make it necessary. This is a resource boundary, not a changed answer: the same filing rule
+and the same rows are checked on both sides.
 """
 
 solution_explanation = """
-The reference is about sixty lines across two files and it is written from the observable
+The reference is about eighty lines across two files and it is written from the observable
 requirement backwards, never from the shape of the code it replaces.
 
-The requirement is that a watched key is filed at the first tick at which nothing that
-could still happen would move the line it would carry. Three things fall out of it. The
-line has two halves and each has its own way of moving: a smaller key arriving in the item
-moves the front, and an earlier post arriving in the item moves the score. Both arrive by
-one of two routes, a weld from a still-open tag or a post from a still-open run, and the
-second route reaches not only this item but every item that could still be welded to it. And
-which welds are still possible is bounded by what has already been declared different, since
-welding a route welds everything on it into one item and a difference anywhere inside that
-group forbids the lot.
+The requirement is that a watched key is filed at the first tick at which nothing that could
+still happen would move the line it would carry. The line has two halves and each has its
+own way of moving: a smaller key arriving in the item moves the front, and an earlier post
+arriving in the item moves the score. Both arrive by one of two routes, a weld from a
+still-open tag or a post from a still-open run, and the second route reaches not only this
+item but every item that could still be welded to it. Which welds are still possible is
+bounded twice over: by what has already been declared different, since welding a route welds
+everything on it into one item and a difference anywhere inside that group forbids the lot;
+and by what has already left the desk, since an item that has been handed over is neither
+weldable nor weldable through.
 
-Written that way the two files are one question asked twice. `rch.py` answers which items
-could still end up welded to this one, as a search that grows a group by absorbing items an
-open tag can reach and refuses any group holding both ends of a declared difference.
-`hold.py` takes that set and asks whether any of it holds a smaller key or an earlier post,
-and then whether any run still open could post ahead of the one standing for a key anywhere
-in reach. `card.py` and `seq.py` need no change: the line's contents and the order several
-lines land in are both stated in the instruction and the shipped files already do them, and
-establishing that rather than assuming a declared artifact must be edited is part of the
-work.
+Written that way the two files are one question asked twice, with a fixed point over the
+top. `rch.py` answers which items could still end up welded to this one given a set of keys
+that are off the desk, as a search that grows a group by absorbing items an open tag can
+reach, drops any item holding a departed key from the graph outright, and refuses any group
+holding both ends of a declared difference. `hold.py` has two halves. `sound` takes that set
+and asks whether any of it holds a smaller key or an earlier post, and then whether any run
+still open could post ahead of the one standing for a key anywhere in reach. `firm` works
+out which set of keys is off the desk in the first place, by growing the smallest set that
+is consistent with itself: seed it with the items already gone, admit any watched key that
+is sound against that seed, let its whole item go, and repeat until nothing more is
+admitted. Taking the largest such set instead is self-justifying and wrong. `card.py` and
+`seq.py` need no change: the line's contents and the order several lines land in are both
+stated in the instruction and the shipped files already do them, and establishing that
+rather than assuming a declared artifact must be edited is part of the work.
 
-Two details are worth naming because leaving either out passes the shipped sets and fails
-elsewhere. A difference is declared between keys and has to be lifted onto the items those
-keys are now in, because a key that has been welded carries its differences with it. And the
-pending-post half has to range over the whole reach rather than over this item alone, since a
-future weld brings the other item's keys in and a run can then post for one of them.
+Three details are worth naming because leaving any of them out passes the shipped sets and
+fails elsewhere. A difference is declared between keys and has to be lifted onto the items
+those keys are now in, because a key that has been welded carries its differences with it.
+The pending-post half has to range over the whole reach rather than over this item alone,
+since a future weld brings the other item's keys in and a run can then post for one of them.
+And an item can carry more than one watched key: they read the same row and each earns one,
+so once the item is going they all go with it rather than being tested again against a desk
+they have just left.
 
-Four alternative correct implementations are kept in the authoring directory and all four
-score 1: the group search walking its frontier the other way round, the same search carried
-over sets of keys instead of sets of items, the whole reach folded into the readiness test so
-that the declared `rch.py` is never called at all, and the line read off one explicit pass
-with the filing order taken through an explicit sort key. All four agree row for row on every
-set.
+Four alternative correct implementations are kept outside the bundle, in the authoring
+repository, and all four score 1: the group search walking its frontier the other way round,
+the same search carried over sets of keys instead of sets of items, the whole reach folded
+into the readiness test so that the declared `rch.py` is never called at all, and the line
+read off one explicit pass with the filing order taken through an explicit sort key. All four
+agree row for row on every set, which is what says the fixed
+point is confluent and the rule grades a behaviour rather than the order a policy happens to
+scan in.
+
+When the current state has no differences, the reference takes the connected component of
+the open-tag graph directly. Every group in that component is legal in that case, so this
+has the same union of reachable items as the exact group search without enumerating its
+exponential family of subgroups. States with differences still use the group search, where
+the all-pairs condition is load-bearing.
 """
 
 verification_explanation = """
@@ -109,9 +152,11 @@ them.
 
 Both come out of `bind/mc.py`, which is not an editable artifact, so they record what the
 machine actually did rather than what a submission says it did. The rows carry every post a
-run made, every sameness and every difference a tag declared, every shut, every filing with
-the key asked about, the key it was filed under and the score that stood, and the tick the
-set ended on. The filing table is a cross-check rather than a second axis and the verifier
+run made, every sameness and every difference a tag declared that landed on anything, every
+shut, every filing with the key asked about, the key it was filed under and the score that
+stood, and the tick the set ended on. A declaration that named a key already handed over is
+not an event and leaves no row, so the trace records the consequences of a submission's own
+filing decisions as well as the decisions themselves. The filing table is a cross-check rather than a second axis and the verifier
 says so: the rows already carry a filing row apiece, so the two can only disagree if a
 submission produced one without the other. What it buys is legibility, because a key filed
 one tick early says so in one line where a row index says only that something moved.
@@ -126,10 +171,10 @@ could still be welded on, one at a time, is enough, because welding several at o
 produce a smaller key or an earlier post than the smallest and earliest among them. The
 model makes no such argument, which is exactly why it is worth having. The two agree on
 every row of nine hundred generated sets before any ground truth is written, and
-`authoring/build_gt.py` refuses to write one without that.
+the ground-truth builder refuses to write one without that.
 
 Two set lists are driven, and the second is why there is nothing here to forge. The
-enumerated list is twenty-nine sets, each named for the reading it exists to fail, with the
+enumerated list is thirty-seven sets, each named for the reading it exists to fail, with the
 must-still-work side of every fence beside the case that says must-not, and the three sets
 that ship in the tree included verbatim. The other three hundred are generated inside the
 verifier container from a nonce made out of /dev/urandom at trial time, after the agent has
@@ -140,7 +185,13 @@ behaviour rather than a summary of it: there is no number to assign, no journal 
 table to paste. The cheat suite proves it directly. One cheat carries `tests/gt.json`'s own
 bytes, recognises whichever enumerated set is running from the declarations in front of it
 and the state the answer key says goes with each tick, is right on every one of the
-twenty-nine, and scores 0.
+thirty-seven, and scores 0.
+
+One enumerated no-difference case and periodic generated cases deliberately widen the key
+space to roughly thirty keys while keeping the reachable component unrestricted. The
+sealed model and the reference use the component shortcut there; a direct enumeration of
+all legal groups is resource-gated and does not finish. The reference/model comparison was
+run on nine hundred generated sets, including those wide cases, before `gt.json` was written.
 
 Since the verifier executes agent code, four more things are attested. The executed tree
 outside the four declared artifacts must be byte-identical to the pristine copy after the
@@ -224,7 +275,11 @@ have those, most of the things a matcher could still do are impossible: a chain 
 that would have to pass through two keys we already know are different cannot happen at all.
 Reasoning about that correctly is the difference between a board that is minutes behind and a
 board that is hours behind, and getting it subtly wrong looks exactly like getting it right
-until the one run where the chain existed.
+until the one run where the chain existed. The part that took the longest is that filing is
+not free of consequences: a line going out closes the item, the matcher is told to stop
+proposing merges for it, and so what we can still be told about anything depends on what we
+have already said. Deciding which lines are safe to send in the same breath, when sending one
+is what makes the next one safe, is the piece I got wrong twice in both directions.
 """
 
 [verifier]

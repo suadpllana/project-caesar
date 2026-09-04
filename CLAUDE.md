@@ -1,8 +1,9 @@
 # Building a Frontier Bench task in this repo
 
-Operating manual for a session with no memory of the earlier ones. Two tasks here have been
-through the real pipeline and both cleared the difficulty and easiness probes; the third is
-built and gated locally but has not been through the pipeline yet.
+Operating manual for a session with no memory of the earlier ones. Three tasks here have now
+been through the real pipeline far enough to clear the difficulty and easiness probes; the
+latest verified recovery is `alias-settle-report`, documented below. The remaining tasks are
+either locally gated or still awaiting pipeline evidence.
 
 **`earliest-change-script` is retired as a mechanism, 2026-09-04.** It has now failed the
 easiness probe **three times on three different rules**, the last one on the comment-merging
@@ -121,15 +122,16 @@ none has ever been checked for.
 | `note-carry-forward` | Software / Algorithms | 14 | 6 | 14400 s | 7 h |
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
-reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
+reference verification on 2026-09-04, and initially failed the quality review on `category and
+tags`.**
 It went in as `ML / Evaluation` because its brief is set in an evaluation harness, and the
 reviewer's answer is the entry to read before labelling anything: the category names the skill
 the graded work exercises, never the room the story happens in. It is now
 `Software / Algorithms`, which the reviewer named, and the repair is two lines of `task.toml` -
 see "The category rejection" below, and run `tools/catcheck.py` on the next bundle. **It then
-failed the easiness probe 3 of 3 the same day, in 2 to 7 minutes a trial, and the cause is the
+failed the easiness probe 3 of 3 the same day, in 2 to 7 minutes a trial, and the cause was the
 mechanism, not a leak** - see "The easiness rejection on a task built the day after the law that
-forbids it". It needs a Stage 2 redesign before it goes back. Its graded
+forbids it". Its graded
 artifact is a **delivery obligation**: which line each watched key is handed, and the tick it may be handed
 on. `tools/simcheck.py` reports it conceptually clear of every earlier task and, for the first
 time in this repo, **mechanically clear too**: no shipped file is close to another bundle's.
@@ -700,6 +702,38 @@ Two smaller things worth keeping:
   fairness and legibility property. They say nothing about whether a frontier agent takes the
   shortcut, and on a complete specification it does not. Keep measuring them for the reason they
   exist; stop citing them as evidence the task is hard.
+
+## Verified recovery: a semantic scaling boundary (2026-09-05)
+
+`alias-settle-report` subsequently passed both the easiness and difficulty probes after the
+redesign above. This is the repository's measured recipe for repairing a task whose trajectories
+all choose the same correct exhaustive algorithm:
+
+1. Preserve the observable contract. Do not make the verifier easier or change the meaning of a
+   correct answer.
+2. Find an input family where the common algorithm is mathematically correct but resource-
+   infeasible, then prove a faster equivalent from a real invariant of that family. Here, a
+   no-difference tag has a connected-component closure, while states containing differences keep
+   the exact legal-group search.
+3. Put the boundary in the sealed generator and in an enumerated case. This repair uses a fixed
+   `wide-no-bars` case plus every-twelfth nonce-generated case with 25-30 keys, so the resource
+   gate is adversarial and cannot be planned around from the visible examples.
+4. State the actual execution limit and the size that exercises it in the instruction. The
+   verifier's 600-second kill and the 25-30-key no-bar family are now stated; a hidden runtime
+   requirement is an alignment defect, not difficulty.
+5. Rebuild the independent model, regenerate ground truth, and compare the reference with it on
+   a large generated sample. The repair was checked on 900 generated sets and four independent
+   correct variants before packaging.
+6. Keep authoring scripts and provenance out of the shipped task. The final bundle contains the
+   runtime tree, sealed tests and oracle, solution, and cheats; task-local `authoring/` tooling
+   is working material and was removed after quality review flagged it as extraneous.
+
+The important distinction is between a resource gate and a timeout gamble. The reference must
+have a clear, semantic fast path, the slow path must remain correct on its proper domain, and the
+instruction must disclose the budget and relevant input scale. This pattern raises planning cost
+because the agent must discover where the algorithm changes, not because it is asked to guess an
+unstated rule. It improves repeatability; it is not a guarantee that every future stochastic
+probe will produce the same solve count.
 
 ## The category rejection: the label names the work, not the room the story is set in (2026-09-04)
 
@@ -1930,7 +1964,7 @@ A task solved 3 of 3 whose trajectory shows real exploration, a wrong first vers
 recovery is not any of these four. That is a task that is simply not hard enough, and the
 answer is at stage 2 - a different mechanism - rather than anywhere in this section.
 
-### Applied to the tasks in this repo, as of 2026-09-02
+### Applied to the tasks in this repo, as of 2026-09-05
 
 What is known about each failure, and the next action. Three of the four modes cannot be
 called without a trajectory, so where one was never kept, step 0 is to run the local
@@ -1939,7 +1973,7 @@ three-agent probe rather than to guess.
 | task | easiness result | mode | next action |
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
-| `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | Stage 2 redesign. No leak patch applies; see "The easiness rejection on a task built the day after the law that forbids it". Trajectories at `probes/alias-settle-report/` |
+| `alias-settle-report` | Failed the initial easiness screen, then passed both probes after the 2026-09-05 redesign | C, as a decidable predicate under a stated transition table; repaired with a semantic C3 scaling boundary | Done for the two probes. The measured recovery is in "Verified recovery: a semantic scaling boundary"; trajectories at `probes/alias-settle-report/` |
 | `earliest-change-script` | 3/3, 3/3, then **3/3 a third time** on the comment rule | none of the four: real exploration, three engines in three hours | **retired as a mechanism, 2026-09-04.** The speed axis is closed by measurement, not by argument - see "The ceiling, measured from the other end". Replaced by `note-carry-forward` |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |

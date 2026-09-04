@@ -347,21 +347,20 @@ shut m1
 
 # The three sets that ship under /app/sets, as literals. They are NOT read off
 # disk: the verifier image moves the pristine tree out of /tests at build time,
-# so a path into tests/pristine resolves on the authoring host and raises inside
-# the container. authoring/sync.py holds these against the tree on every run so
-# the two copies cannot drift.
+# so a path into tests/pristine resolves where the bundle was built and raises
+# inside the container. A check outside the bundle holds these against the tree on
+# every build so the two copies cannot drift.
 
 _add("plain", """
-watch 4 9
-run r0 4 9
-run r1 4
-tag m0 4 7
+watch 2
+run r0 9
+run r1 2
+tag m0 2 9
 go
-post r1 4 31
-post r0 9 55
-tie m0 4 7
+post r1 2 40
+post r0 9 17
+tie m0 2 9
 shut m0
-post r0 4 12
 shut r0
 shut r1
 """)
@@ -392,4 +391,115 @@ shut r0
 tie m1 6 2
 shut m0
 shut m1
+""")
+
+_add("gone-holds-nothing", """
+watch 2 7
+run r0 2
+run r1 7
+tag m0 2 7
+go
+post r0 2 40
+post r1 7 50
+shut r0
+shut r1
+shut m0
+""")
+
+_add("one-going-frees-the-next", """
+watch 3 8
+run r0 3
+run r1 8
+tag m0 3 8
+go
+post r1 8 50
+post r0 3 20
+shut m0
+shut r0
+shut r1
+""")
+
+_add("neither-frees-the-other", """
+watch 3 8
+run r0 8
+run r1 3
+tag m0 3 8
+go
+post r1 3 40
+post r0 8 50
+shut m0
+shut r0
+shut r1
+""")
+
+_add("gone-frees-a-run-too", """
+watch 2 9
+run r0 2 9
+run r1 9
+tag m0 2 9
+go
+post r0 9 30
+post r0 2 15
+shut r0
+shut m0
+shut r1
+""")
+
+_add("gone-takes-its-tag", """
+watch 1 8
+run r0 1
+run r1 8
+tag m0 1 3 8
+go
+post r0 1 20
+post r1 8 50
+shut m0
+shut r0
+shut r1
+""")
+
+_add("one-going-takes-a-tag", """
+watch 1 8
+run r0 1
+run r1 8
+tag m0 1 3 8
+go
+post r1 8 50
+post r0 1 20
+shut m0
+shut r0
+shut r1
+""")
+
+_add("other-tags-keep-working", """
+watch 1 8
+run r0 1
+run r1 8
+tag m0 1 4
+tag m1 3 8
+go
+post r0 1 20
+post r1 8 50
+shut m1
+shut m0
+shut r0
+shut r1
+""")
+
+_add("wide-no-bars", """
+watch 25 27
+run r0 25 4 9
+run r1 27 8 14
+run r2 25 27 19
+tag m0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+tag m1 2 6 11 16 21 26 30
+go
+post r0 25 90
+post r1 27 80
+post r2 19 70
+shut r0
+shut r1
+shut r2
+shut m1
+shut m0
 """)

@@ -1,5 +1,6 @@
-rev def a|  x = 1|  y = 2|  return x|def b|  return 0
-note 0 2
-rev def a|  x = 1|  y = 3|  return x|def b|  return 0
-note 1 5
-rev def a|  x = 1|  y = 3|  return x|def b|  return 1
+rev a|b|c|d|e|f|g|h
+open 0 1 2
+open 1 5 6
+reply 0
+rev a|X|c|d|e|Y|g|h
+rev a|X|c|Y|g|h

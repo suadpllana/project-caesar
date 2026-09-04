@@ -21,15 +21,18 @@ from scr import grp, pin
 
 
 def kept(before, after):
-    walk = pin.reading(before, after, pin.script(before, after))
-    return dict((step[1], step[2]) for step in walk if step[0] == "K")
+    out = {}
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
+    return out
 
 
 def touched(span, before, after):
+    reached = set()
     for chunk in grp.spans(before, after):
-        if span & chunk:
-            return True
-    return False
+        reached |= chunk
+    return not span.isdisjoint(reached)
 
 
 def merges(one, other):

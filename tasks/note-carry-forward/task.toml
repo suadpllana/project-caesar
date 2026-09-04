@@ -13,76 +13,83 @@ author_name = "Suad Pllana"
 author_email = "suadpllana12@gmail.com"
 
 difficulty_explanation = """
-The board has to be rebuilt from the revision store on every request, and the
-tree ships the engine that pins a change script rather than asking anyone to
-write one. So the algorithmic weight is not in computing a diff. It is in one
-property of that engine nobody states and everybody assumes away.
+Who does this for a living: an engineer on a code review product, keeping
+comment threads attached to the right code as revisions land on a branch. It
+is the part of a review tool that quietly rots, and every team that has shipped
+one has an issue tracker full of threads that drifted, vanished or came back.
 
-The pinned script does not compose. The script from r0 to r2 is not the script
-from r0 to r1 followed by the script from r1 to r2, because the tie-break that
-picks one shortest script out of the many a repetitive file admits is settled
-against the pair in front of it and nothing else. Measured on the streams this
-task grades, the two disagree about which lines survived on 66 per cent of
-them, and about which notes are still live on 43 per cent.
+The graded streams are synthetic. Each revision is a list of short opaque
+tokens rather than real source, drawn from a pool of two to four so lines
+repeat heavily, and the hand-written streams use a few lines of Python-like
+text only where the brief quotes them. That is not a fair sample of production
+files, and it is deliberate: repetition is the condition under which the
+alignment question has more than one defensible answer, and a realistic corpus
+of mostly-distinct lines would make most streams trivial. The mechanism is
+real; the distribution is chosen to reach it.
 
-That matters because the cheapest correct-looking board is the stateless one.
-Nothing is kept between requests, each note remembers the revision it was
-opened at, so ask the engine for the script from that revision straight to the
-head and read the answer off. It is shorter code, it is one engine call per
-note instead of one per revision, and it is what the shipped tree does. It is
-also wrong, and wrong in a direction that looks like success: a note whose
-line was deleted two revisions ago and whose text was later typed again comes
-back to life and attaches itself to the new line. The shipped tree does
-exactly that on /app/streams/guard.txt, which is the one thing in the tree
-that says anything is broken.
+The tree ships the engine that pins a change script, so nobody writes a diff.
+What the agent writes is the board: a state machine over threads that have
+spans, states and a history, driven by a walk over the store. Twelve distinct
+decisions are graded, and every one of them has a natural reading that is
+wrong. Measured against the reference over 300 generated streams, by
+`authoring/readings.py`:
 
-A solver who replays the store revision by revision has the first discovery.
-The second is that carrying a note is not a question about text at all. Two
-scripts of the same length disagree about which copy of a repeated line
-survived, so a board that rebuilds the mapping from an ordinary longest-common
--subsequence backtrace, or from the opcodes the standard library's matcher
-returns, moves the note to a different line while agreeing with the engine
-about every count. That reading moves 62 and 59 per cent of streams
-respectively. The mapping has to come off the reading the pinned engine itself
-produced.
+  the mapping rebuilt from an ordinary LCS walk          91%
+  the mapping taken from the standard library's matcher  93%
+  a change read as the lines the script added            91%
+  merging on equal spans instead of on overlap           82%
+  an outdated thread dropped off the board               68%
+  the older thread keeping its own span, not the union   66%
+  the whole span required to be inside the change        51%
+  raising every revision the thread stays caught         49%
+  merging in one pass instead of to a fixed point        47%
+  the merged thread not dragged open by an open half     43%
+  a resolved thread raised along with the rest           27%
+  an answered thread not reopened when it is raised      24%
 
-The third is smaller and is the one an enumerated set has to pin rather than
-argue: a line the script kept can still be inside a change, because a change
-absorbs the kept lines that sit between its runs. A board that raises only the
-lines a script added is wrong on 52 per cent of streams while never moving a
-note to the wrong place.
+Four of those need something a board cannot get from the revision in front of
+it. Raising is edge triggered, so it needs the previous revision's verdict for
+that thread. Reopening needs the state a reply left behind. Merging needs a
+fixed point, because a union reaches threads neither half reached. And the
+mapping has to come off the script the tool settled rather than any equally
+short one, which is only visible on files that repeat themselves.
 
-None of the three is visible from a stream a person writes out to check
-themselves, because all of them need a line to repeat and a revision to sit
-between two others. The brief says both things happen and says nothing about
-what they cost.
+The two that are hardest to see are the last two. A one-pass merge is right on
+every stream where no union reaches a third thread, which is most of the ones a
+person writes out by hand; and a rebuilt mapping agrees with the tool about how
+many lines survived and disagrees about which, so every count a solver checks
+comes out right.
 """
 
 solution_explanation = """
-Two files change.
+Two files, about a hundred and forty lines together.
 
-`note/rule.py` reads the mapping off the walk the pinned engine produced,
-rather than rebuilding it, and asks whether a kept line falls inside one of
-the changes of that same script rather than whether the script added it.
+`note/rule.py` answers three questions off the script the tool settled: which
+lines a revision keeps, whether a change reaches any line of a span, and
+whether two spans overlap.
 
-`note/board.py` replays the store. It walks from the first revision to the
-head, and at each step it computes the script once for the whole live set,
-carries every note through it, retires the notes whose line the script
-dropped, raises the notes that came to rest inside a change, admits the notes
-opened at that revision, and lets the older note absorb the newer where two
-came to rest on one line. Event order inside a revision is fixed by the brief
-so that two correct boards cannot disagree about the log.
+`note/board.py` walks the store from the first revision to the head, carrying
+three things a board that recomputed from the endpoints could not: the span
+each thread has been squeezed down to, the state its replies and resolutions
+left it in, and whether the revision before had already caught it. At each
+revision it carries the spans, outdates the ones that emptied and leaves them
+on the board, raises the threads the change has newly reached and reopens the
+answered ones among them, admits the threads opened there, applies the replies
+and resolutions, and merges overlapping spans to a fixed point with the older
+thread taking the union.
 
-The reference is 60 lines across the two files. It is not clever and it is not
-fast in any interesting way; the whole of it is knowing that the replay cannot
-be skipped and that the mapping cannot be rebuilt.
+The merge outcome does not depend on the order the pairs are found in - the
+spans settle into the connected groups of the overlap graph - and the log names
+the thread that ends up holding each span, so a board that merges by components
+writes the same log. `authoring/variants/ok-merge-by-components` is that board
+and it scores 1.
 """
 
 verification_explanation = """
 Graded, all or nothing: the live note table at the head of every stream, and
 the ordered log of retirements, raises and absorptions on the way there.
 
-Thirteen streams are written out by hand, one per rule and one per corner where two
+Seventeen streams are written out by hand, one per rule and one per corner where two
 of them meet. Three hundred more are generated from a seed the run is handed,
 so the streams a submission is graded on are not the streams it was written
 against, and those are settled at grading time by `tests/oracle.py` -- a
@@ -116,14 +123,17 @@ tags = [
     "differential-testing",
 ]
 
-expert_time_estimate_hours = 7
+expert_time_estimate_hours = 8
 
 relevant_experience = """
+Having built or maintained the anchoring half of a code review product, or
+anything else that has to keep annotations attached to text across revisions.
 Comfort with edit scripts and longest common subsequences, and specifically
-with the fact that a shortest script is not unique and that a tie-break has to
-be settled somewhere. Experience maintaining state across a history rather
-than recomputing it from the endpoints. The task is ordinary Python and needs
-no library beyond the standard one.
+with the fact that a shortest script is not unique, so a tie-break has to be
+settled somewhere and two settlements disagree about which copy of a repeated
+line survived. Experience carrying state across a history rather than
+recomputing it from the endpoints, and the habit of asking whether a merge rule
+needs a second pass.
 """
 
 [verifier]

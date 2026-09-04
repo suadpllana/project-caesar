@@ -1,5 +1,5 @@
 #!/bin/bash
-# Take the mapping from the standard library's sequence matcher. It is not obliged to produce a shortest script and does not settle ties the way the tool does.
+# Ask whether the change covers the span rather than whether it reaches any of it. A thread hangs off a stretch of code and the reviewer has to look again if the change got into part of it.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -164,21 +164,18 @@ from scr import grp, pin
 
 
 def kept(before, after):
-    import difflib
     out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
-        if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
     return out
 
 
 def touched(span, before, after):
+    reached = set()
     for chunk in grp.spans(before, after):
-        if span & chunk:
-            return True
-    return False
+        reached |= chunk
+    return bool(span) and span <= reached
 
 
 def merges(one, other):

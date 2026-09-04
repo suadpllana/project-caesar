@@ -1,5 +1,5 @@
 #!/bin/bash
-# Take the mapping from the standard library's sequence matcher. It is not obliged to produce a shortest script and does not settle ties the way the tool does.
+# Treat a change as the lines the script added. A change reaches across the kept lines between its runs, so a line can come through a revision untouched and still be inside it.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -164,21 +164,16 @@ from scr import grp, pin
 
 
 def kept(before, after):
-    import difflib
     out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
-        if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
     return out
 
 
 def touched(span, before, after):
-    for chunk in grp.spans(before, after):
-        if span & chunk:
-            return True
-    return False
+    landed = set(kept(before, after).values())
+    return bool(span - landed)
 
 
 def merges(one, other):

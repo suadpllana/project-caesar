@@ -1,9 +1,9 @@
 """Generate authoring/variants/ from the reference plus one declared override.
 
-A variant is a correct board that made a different implementation choice. Each
-must score 1. Hand-copied variants drift the moment the reference changes, and
-the symptom is every correct implementation disagreeing at once, so they are
-written from the reference here instead.
+A variant is a correct board that made a different implementation choice, and
+each has to score 1. Hand-copied variants go stale the moment the reference
+changes and the symptom is every correct implementation disagreeing at once,
+so they are written from the reference here instead.
 """
 import pathlib
 
@@ -11,108 +11,82 @@ TASK = pathlib.Path(__file__).resolve().parent.parent
 BOARD = (TASK / "solution" / "board.py").read_text()
 RULE = (TASK / "solution" / "rule.py").read_text()
 
-PER_NOTE = '''"""Correct, arranged the other way round: each note is followed on its own
-from the revision it was opened at to the head, and the events are collected
-per revision and ordered at the end. Same rule, opposite shape."""
-
-from scr import grp, pin
-from note import rule
-
-
-class Board(object):
-    def __init__(self, store):
-        self.store = store
-
-    def build(self, opens):
-        steps = self.store.count()
-        maps = []
-        spans = []
-        for t in range(1, steps):
-            before = self.store.at(t - 1)
-            after = self.store.at(t)
-            maps.append(rule.kept(pin.reading(before, after, pin.script(before, after))))
-            spans.append(grp.spans(before, after))
-        born = {}
-        for at, nid, line in opens:
-            born.setdefault(at, []).append((nid, line))
-        events = dict((t, {"retire": [], "raise": [], "absorb": []}) for t in range(steps))
-        where = {}
-        for nid, line in sorted(born.get(0, [])):
-            where[nid] = line
-        self._collide(where, 0, events)
-        for t in range(1, steps):
-            table = maps[t - 1]
-            for nid in sorted(where):
-                if where[nid] in table:
-                    where[nid] = table[where[nid]]
-                else:
-                    events[t]["retire"].append(nid)
-            for nid in events[t]["retire"]:
-                del where[nid]
-            for nid in sorted(where):
-                if rule.raised(where[nid], spans[t - 1]):
-                    events[t]["raise"].append(nid)
-            for nid, line in sorted(born.get(t, [])):
-                where[nid] = line
-            self._collide(where, t, events)
-        log = []
-        for t in range(steps):
-            for nid in sorted(events[t]["retire"]):
-                log.append(("retire", nid))
-            for nid in events[t]["raise"]:
-                log.append(("raise", nid))
-            for nid, owner in sorted(events[t]["absorb"]):
-                log.append(("absorb", owner, nid))
-        live = [{"id": nid, "line": where[nid]} for nid in sorted(where)]
-        return live, log
-
-    def _collide(self, where, t, events):
+MERGE_BY_COMPONENTS = BOARD[:BOARD.index("    def _merge(self, threads, caught, log):")] + \
+    '''    def _merge(self, threads, caught, log):
+        live = sorted([t for t in threads if t["state"] in LIVE],
+                      key=lambda t: t["id"])
         seen = {}
-        for nid in sorted(where):
-            owner = seen.get(where[nid])
-            if owner is None:
-                seen[where[nid]] = nid
-            else:
-                events[t]["absorb"].append((nid, owner))
-        for nid, _owner in events[t]["absorb"]:
-            if nid in where:
-                del where[nid]
+        groups = []
+        for thread in live:
+            found = None
+            for group in groups:
+                if any(rule.merges(thread["span"], other["span"]) for other in group):
+                    if found is None:
+                        found = group
+                        group.append(thread)
+                    else:
+                        found.extend(group)
+                        group[:] = []
+            if found is None:
+                groups.append([thread])
+        taken = []
+        for group in groups:
+            group = [t for t in group if t]
+            if len(group) < 2:
+                continue
+            group.sort(key=lambda t: t["id"])
+            owner = group[0]
+            for other in group[1:]:
+                owner["span"] |= other["span"]
+                if other["state"] == "open":
+                    owner["state"] = "open"
+                taken.append((other["id"], owner["id"]))
+                threads.remove(other)
+                caught.pop(other["id"], None)
+        for taken_id, owner_id in sorted(taken):
+            log.append(("absorb", owner_id, taken_id))
 '''
 
-OVERRIDES = {
-    "ok-per-note": {"board.py": PER_NOTE},
-    "ok-precomputed-scripts": {"board.py": BOARD.replace(
-        '''        for step in range(1, self.store.count()):
-            before = self.store.at(step - 1)
-            after = self.store.at(step)
-            keep = rule.kept(pin.reading(before, after, pin.script(before, after)))
-            spans = grp.spans(before, after)
-''',
-        '''        ready = []
-        for step in range(1, self.store.count()):
-            before = self.store.at(step - 1)
-            after = self.store.at(step)
-            ready.append((rule.kept(pin.reading(before, after, pin.script(before, after))),
-                          grp.spans(before, after)))
-        for step in range(1, self.store.count()):
-            keep, spans = ready[step - 1]
-''', 1)},
-    "ok-mapping-from-ops": {"rule.py": RULE.replace(
-        '''def kept(walk):
+MAPPING_FROM_OPS = RULE.replace(
+    '''def kept(before, after):
     out = {}
-    for kind, i, j in walk:
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
         if kind == "K":
             out[i] = j
     return out''',
-        '''def kept(walk):
-    out = {}
-    seen = 0
-    for entry in walk:
-        if entry[0] == "K":
-            out[entry[1]] = entry[2]
-            seen += 1
-    assert seen == len(out)
-    return out''', 1)},
+    '''def kept(before, after):
+    walk = pin.reading(before, after, pin.script(before, after))
+    return dict((step[1], step[2]) for step in walk if step[0] == "K")''', 1)
+
+TOUCHED_WRITTEN_OUT = RULE.replace(
+    '''def touched(span, before, after):
+    for chunk in grp.spans(before, after):
+        if span & chunk:
+            return True
+    return False''',
+    '''def touched(span, before, after):
+    reached = set()
+    for chunk in grp.spans(before, after):
+        reached |= chunk
+    return not span.isdisjoint(reached)''', 1)
+
+PRECOMPUTED = BOARD.replace(
+    '''        for step in range(1, self.store.count()):
+            before = self.store.at(step - 1)
+            after = self.store.at(step)
+            carried = rule.kept(before, after)''',
+    '''        pairs = []
+        for step in range(1, self.store.count()):
+            pairs.append((self.store.at(step - 1), self.store.at(step)))
+        for step in range(1, self.store.count()):
+            before, after = pairs[step - 1]
+            carried = rule.kept(before, after)''', 1)
+
+OVERRIDES = {
+    "ok-merge-by-components": {"board.py": MERGE_BY_COMPONENTS},
+    "ok-precomputed-pairs": {"board.py": PRECOMPUTED},
+    "ok-mapping-from-ops": {"rule.py": MAPPING_FROM_OPS},
+    "ok-touched-written-out": {"rule.py": TOUCHED_WRITTEN_OUT},
 }
 
 
@@ -120,7 +94,8 @@ def main():
     root = TASK / "authoring" / "variants"
     for name, overrides in OVERRIDES.items():
         for fname, text in overrides.items():
-            if text in (BOARD, RULE):
+            base = BOARD if fname == "board.py" else RULE
+            if text == base:
                 raise SystemExit("override for %s/%s changed nothing" % (name, fname))
         d = root / name
         d.mkdir(parents=True, exist_ok=True)

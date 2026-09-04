@@ -1,5 +1,5 @@
 #!/bin/bash
-# Take the mapping from the standard library's sequence matcher. It is not obliged to produce a shortest script and does not settle ties the way the tool does.
+# Merge two threads only when their spans are the same. Carrying squeezes spans that were opened apart into one another far more often than it makes them equal.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -164,13 +164,10 @@ from scr import grp, pin
 
 
 def kept(before, after):
-    import difflib
     out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
-        if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
     return out
 
 
@@ -182,5 +179,5 @@ def touched(span, before, after):
 
 
 def merges(one, other):
-    return bool(one & other)
+    return one == other
 ENDRULE

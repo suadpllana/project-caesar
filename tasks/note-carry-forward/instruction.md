@@ -1,77 +1,70 @@
-The tree under `/app` is the filing end of our code review tool. Reviewers hang
-notes off lines. A note is written against one line of one revision, and when
-the author pushes the next revision the note has to still be against the line
-it was written about, or against nothing at all if that line is gone. That is
-the whole promise. `/app/rev/store.py` keeps the revisions a branch has had,
-`/app/scr/pin.py` settles the one change script we use between any two of them,
-`/app/scr/grp.py` reads the changes out of a script, and `/app/note/board.py`
-is meant to work out where every note stands once the store is asked.
+`/app` is our code review tool. A reviewer opens a thread on a stretch of
+lines, the author replies, someone resolves it, and the thread has to stay with
+the code it was opened on while the branch moves under it.
+`/app/rev/store.py` holds the revisions a branch has had, `/app/scr/pin.py`
+settles the one change script we use between two of them, `/app/scr/grp.py`
+reads the changes out of a script, and `/app/note/board.py` with
+`/app/note/rule.py` work out where the threads stand.
 
-We rewrote the board last month. Reviewers have stopped trusting it. Run
-`/app/run_review.py` on `/app/streams/guard.txt`. That stream opens a note on
-line 2 of the first revision, which is `    if not job:`, and then the second
-revision deletes that line and the third types a different guard in somewhere
-below it. The board answers `note 0 3` and `raise 0`. The note is alive. It is
-sitting on line 3 of the head, and the author is being asked about a line
-nobody wrote it about. The line it was written about went two revisions ago.
-`/app/streams/rework.txt` and `/app/streams/repeat.txt` are two more streams to
-drive it with.
+They are wrong. Run `/app/run_review.py` on `/app/streams/guard.txt`, where a
+thread is opened on the two lines of a guard and a later revision takes both
+away. The board prints `outdated 0` and then nothing. The thread is gone off
+the table altogether, so the reviewer who asked the question cannot find it and
+neither can the author. `/app/streams/repeat.txt` is worse in a quieter way. A
+thread opened on lines 2 to 4 of a file that repeats itself comes back sitting
+on lines 2 and 3 of the head, and those are not the lines it was opened on.
+`/app/streams/rework.txt` is a third stream to drive it with.
 
-Fix `/app/note/board.py` and `/app/note/rule.py`. Those two are yours and
-nothing else is; every other file is compared against the shipped copy after
-your work runs, one of the two may already be right, and the interfaces are
-frozen, so keep each function and method that is there with the arguments it
-has. `/app/run_review.py` is a driver for your own use. It is not graded.
+Fix `/app/note/board.py` and `/app/note/rule.py`. Nothing else is yours. Every
+other file is compared against the shipped copy after your work runs, and the
+interfaces are frozen, so keep each function and method that is there with the
+arguments it has. `/app/run_review.py` is a driver for your own use. It is not
+graded. The board keeps nothing between requests, so it is handed a store and
+everything the reviewers did and works the answer out from those and nothing
+else, every time it is asked.
 
-The board holds nothing between requests. It is handed a store and the notes
-that were opened against it, and it works the answer out from those and nothing
-else, every time it is asked. There is no cache to warm and no state to keep.
+Some ground rules.
 
-Some ground rules, and a few of them are not what you would reach for.
+A thread covers a span of lines, and when a revision lands every line of that
+span which the change script for that revision keeps moves with it while the
+rest fall out, so the span shrinks as the code under it goes. A thread whose
+span empties is outdated. That is where a thread stops. It stays on the board
+with the empty span it ended on, and nothing after that carries it, raises it
+or merges it. The files we review repeat themselves constantly, and for almost
+any pair of revisions of one of them more than one change script of the same
+length exists.
 
-A note follows the line it was written about, one revision at a time, as each
-revision lands: we settle the change script between the new revision and the
-one before it, a note whose line that script keeps moves to wherever the
-script keeps it, and a note whose line that script does not keep retires there
-and then, which is the end of it, because nothing later brings a retired note
-back whatever turns up in the file afterwards. Which lines a script keeps is
-the script's own business. It is not always what matching the text would give
-you, because the files we review repeat themselves constantly and several
-scripts of the same length exist for almost any pair of revisions of one of
-them. `/app/scr/pin.py` settles that. What it settles is what the board
-carries notes through.
+A thread is raised when the change first reaches any line of its span, and not
+again while it stays reached; a revision has to let it go before it can be
+raised a second time. Both halves are graded. Raising a thread the change
+never reached is wrong, and leaving one unraised is wrong too. A resolved
+thread is never raised. An answered one is. The reply it was carrying was about
+code that has since moved, so being raised puts it back to open. Two threads
+whose spans share a line are looking at the same code and become
+one: the older keeps the thread and takes the union of the two spans, and the
+newer is absorbed into it. Carrying does this more often than opening does,
+because two spans that started apart get squeezed together by the deletions
+between them, and a union can reach a thread that neither span reached on its
+own. If either of the two was open the survivor is open, because the question
+is unanswered whichever thread was carrying it. Threads opened at a revision
+join once that revision's carrying and raising are done, and replies and
+resolutions land after them.
 
-A note that comes to rest inside one of the changes of that script is raised,
-because the code around it moved and the reviewer has to look again. A change
-is not only the lines a script added. It reaches across the kept lines that sit
-between its runs, so a line can come through a revision untouched and still be
-part of the change somebody has to read, and `/app/scr/grp.py` is what says
-where one change stops and the next begins. Both halves are graded. Raising a
-note the changes never reached is wrong, and leaving one unraised is wrong
-too. Where two notes come to rest on the same line they become one: the older
-takes the line and the newer is absorbed into it. Notes opened at a revision
-join the board once that revision has landed and its carrying is done, and they
-settle against whatever is already there.
-
-We grade the log as well as the table, so the order events come out in is part
-of the answer, and inside one revision that order is fixed: everything the
-carrying retired comes first, then everything it raised, then the absorbing,
-each of the three in ascending note order. Nothing else enters into it.
-
-The streams we grade run to several revisions, and notes are opened partway
-through as often as at the start. The files in them repeat their lines the way
-real ones do. A line that looks like the line a note was written about is a
-thing you should expect to see. A revision sitting between the one a note was
-opened at and the head is the ordinary shape here.
-
-Thirteen streams are written out by hand, one for each rule and one for each corner
-where two of them meet, and three hundred more are built inside the verifier
-from a seed drawn after your work is finished and settled there by a second
-model of the same rule, one that shares no code with anything in your tree, so
-a board that happens to fit the three streams sitting in front of you will not
-carry. Every stream has to match exactly, in the table at the head and in the
-log. There is no partial credit. There is no expected output anywhere in your tree and none is
-coming. The tool in front of you is the only thing that will tell you what your
-board does.
+We grade the thread table at the head, each thread with its state and its span,
+and the log of what happened on the way. The strings are exact. A state is
+`open`, `answered`, `resolved` or `outdated`, and a log entry is a tuple whose
+first item is `outdated`, `raise`, `reopen` or `absorb`, followed by the thread
+id, or for `absorb` by the id of the thread that ends up holding the span and
+then the id of the one absorbed, and because the log is a sequence the order
+inside one revision is part of the answer: the `outdated` entries come first,
+then the `raise` entries, then the `absorb` entries, each of the three in
+ascending thread order, with a `reopen` written directly after the `raise`
+that caused it. The streams run to several revisions. Threads are opened
+partway through as often as at the start, and a line that looks like the line a
+thread was opened on is a thing you should expect to see. Seventeen streams are
+written out by hand and three hundred more are generated, and every one has to
+match exactly. There is no partial credit. There is no expected output anywhere
+in your tree and none is coming. The tool in front of you is the only thing
+that will tell you what your board does.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

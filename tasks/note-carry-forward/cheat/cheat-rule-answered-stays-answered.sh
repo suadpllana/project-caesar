@@ -1,5 +1,5 @@
 #!/bin/bash
-# Take the mapping from the standard library's sequence matcher. It is not obliged to produce a shortest script and does not settle ties the way the tool does.
+# Leave an answered thread answered when the change comes back to it. The reply it is carrying was about code that has since moved.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -85,9 +85,7 @@ class Board(object):
                 now = rule.touched(thread["span"], before, after)
                 if now and not caught.get(thread["id"], False):
                     log.append(("raise", thread["id"]))
-                    if thread["state"] == "answered":
-                        thread["state"] = "open"
-                        log.append(("reopen", thread["id"]))
+                    pass
                 caught[thread["id"]] = now
             self._join(threads, caught, opened.get(step, []))
             self._talk(threads, talk.get(step, []))
@@ -164,13 +162,10 @@ from scr import grp, pin
 
 
 def kept(before, after):
-    import difflib
     out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
-        if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
     return out
 
 

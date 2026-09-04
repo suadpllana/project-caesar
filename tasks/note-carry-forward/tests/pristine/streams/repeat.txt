@@ -1,4 +1,5 @@
+rev a|b|a|b|a|b|a|b
+open 0 2 4
 rev a|b|a|b|a|b
-note 0 2
-rev a|b|a|b|a
-rev b|a|b|a
+resolve 0
+rev a|b|a|b

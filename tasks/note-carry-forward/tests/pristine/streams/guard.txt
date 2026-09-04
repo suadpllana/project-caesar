@@ -1,4 +1,4 @@
-rev |    log(job)|    if not job:|        return None|    return out|    for row in job:
-note 0 2
-rev |        return None|    return out|    for row in job:
-rev |        return None|    log(job)|    if not job:|    for row in job:
+rev def run(job):|    log(job)|    if not job:|        return None|    out = []|    return out
+open 0 2 3
+rev def run(job):|    log(job)|    out = []|    return out
+rev def run(job):|    log(job)|    out = []|    for row in job:|    return out

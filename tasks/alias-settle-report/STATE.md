@@ -144,9 +144,18 @@ depends on the policy under test, so it agrees with any policy that agrees with 
 
 ## Gates run
 
-`sync`, `build_gt` (900 sets), `fuzz` (600), `emit`, `make_variants`, `variant_check` (5/5),
-`readingcheck` (16/16 separated), `deadfieldcheck`, `catcheck`, `solvecheck`, `hintcheck`,
-`structcheck`, `textcheck` (clean against four briefs that passed the AI screen).
+The real two-image trial on this Linux sandbox with Docker up: **32 of 32** (oracle 1, nop 0,
+thirty cheats 0) and **5 of 5** variants at reward 1, 738 tests apiece. Every mistake cheat
+fails a handful of row tests rather than dying on an import, and `all-that-look-ready` fails
+431 of 738. `forgecheck` 30 of 30 with the answer-key probe recognised and scoring 0.
+
+Host gates: `sync`, `build_gt` (900 sets), `fuzz` (600), `emit`, `make_variants`,
+`variant_check` (5/5), `readingcheck` (16/16 separated), `onelinecheck` (no exact rule at
+depth <= 2 for the filing decision), `deadfieldcheck`, `catcheck`, `solvecheck`, `hintcheck`,
+`structcheck`, `textcheck` (clean against four briefs that passed the AI screen),
+`determinism` (three hash seeds), `tiecheck` (433 sets), `simcheck` (no shipped file close to
+another bundle's; conceptually clear), `preflight` (no errors), `normalise`, `package`,
+`zipcheck` (111 entries, none), `zipfix --check` (every entry Unix).
 
 ## Gates NOT run
 

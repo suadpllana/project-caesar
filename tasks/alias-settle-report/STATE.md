@@ -5,11 +5,21 @@ gate reads it. It exists for the next session and for `preflight.py`.
 
 ## Current stage
 
-`Stage 7 - gates`. Built end to end on 2026-09-03. Not yet through the pipeline.
+`Stage 7 - gates`. Built end to end on 2026-09-03. Cleared the structural check, the AI
+screen, the similarity screen and reference verification on 2026-09-04; failed the quality
+review on `category and tags` and was relabelled `Software / Algorithms`. Every other rubric
+row passed. Then **failed the easiness probe 3 of 3** the same day: runtimes 2m07s, 1m47s,
+7m12s, one correct write each, then a self-built oracle. Mode C - the graded question is a
+decidable predicate under a stated transition table, so the definition is the rule. Not a
+leak; needs a Stage 2 redesign. Trajectories and commentary at `probes/alias-settle-report/`.
+See "The category rejection" and "The easiness rejection on a task built the day after the
+law that forbids it" in CLAUDE.md. Do not resubmit as it stands.
 
 ## Task summary
 
-`ML / Evaluation`. The tree under `/app` is the filing end of an evaluation harness. Runs post
+`Software / Algorithms`. The tree under `/app` is the filing end of an evaluation harness -
+the setting is narrative, and the graded skill is union-find reachability under disequality
+constraints, which is what the category has to name. Runs post
 scores for items under keys; matchers declare that two keys are one item, or that two keys are
 not; a board must be handed exactly one line per key it watches, carrying the smallest key in
 that key's item and the score of the first post the item holds. The graded decision is WHEN

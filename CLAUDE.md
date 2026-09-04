@@ -106,12 +106,19 @@ none has ever been checked for.
 
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
-| `alias-settle-report` | ML / Evaluation | 26 | 13 | 14400 s | 8 h |
+| `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
 
-**`alias-settle-report` is the thirteenth task, built 2026-09-03, and it has not been through
-the pipeline.** It is the first here in ML / Evaluation - `Inference` and `Kernels` are still
-free, and every `Software` label is now spoken for - and the first whose graded artifact is a
-**delivery obligation**: which line each watched key is handed, and the tick it may be handed
+**`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
+reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
+It went in as `ML / Evaluation` because its brief is set in an evaluation harness, and the
+reviewer's answer is the entry to read before labelling anything: the category names the skill
+the graded work exercises, never the room the story happens in. It is now
+`Software / Algorithms`, which the reviewer named, and the repair is two lines of `task.toml` -
+see "The category rejection" below, and run `tools/catcheck.py` on the next bundle. **It then
+failed the easiness probe 3 of 3 the same day, in 2 to 7 minutes a trial, and the cause is the
+mechanism, not a leak** - see "The easiness rejection on a task built the day after the law that
+forbids it". It needs a Stage 2 redesign before it goes back. Its graded
+artifact is a **delivery obligation**: which line each watched key is handed, and the tick it may be handed
 on. `tools/simcheck.py` reports it conceptually clear of every earlier task and, for the first
 time in this repo, **mechanically clear too**: no shipped file is close to another bundle's.
 The difficulty is that the settling question looks like reachability and is not one - welding a
@@ -290,6 +297,11 @@ when skipped.
    reproduces is an easiness rejection waiting to happen.
 5. **What is graded, and has anything here graded that before?** The similarity screen reads
    the shape of the question, not the domain.
+6. **Can the solver enumerate every legal continuation of the visible state?** If the brief
+   states the transitions and the state is small, the graded predicate is checkable by a
+   twenty-line oracle a frontier agent writes as its first file, and no stated constraint can
+   be withheld without making the task unfair. `alias-settle-report` went 3 of 3 in under
+   eight minutes a trial on exactly this, the day after the law naming it was written.
 
 ### Diagnosing a probe rejection, in order
 
@@ -470,6 +482,172 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
+
+`alias-settle-report` cleared the quality review on its relabelled resubmission and came back
+**3 of 3** from the easiness probe the same day. All three trajectories were supplied and are in
+`probes/alias-settle-report/` with the commentary in `notes.md` beside them. Read them before
+touching anything, because the cause is not a leak and no leak patch will move it.
+
+**Runtimes first, as always: 2m07s, 1m47s and 7m12s against a 14400 s budget**, at 6.4k to 8.3k
+output tokens. That is the plan available on sight. The signature is identical in all three: one
+call to read the 186-line tree, one call to run the three sets, **one `Write` of `rch.py` and one
+of `hold.py`, both correct on the first attempt**, then a self-built fuzzer to confirm. Trial 3's
+fuzzer was an exhaustive oracle - enumerate every legal continuation of ties and posts from a
+state and ask whether the line could change - and it reported 0 disagreements on 750 sets.
+
+**The difficulty argument is falsified, not merely missed.** It said a frontier agent
+reconstructs single-matcher deduplication from its prior and lands on one of three wrong readings
+of the difference rule, and it measured those readings at 3, 15 and 63 percent of generated sets.
+Zero of three agents made any of them. Each wrote the reference's search over growing
+difference-free groups in its first message: "the whole gathered set must be pairwise free of
+standing differences, so the search grows bar-free sets rather than following plain paths" is
+trial 3, and trials 1 and 2 say the same thing in their own words. The percentages measured how
+far three shortcuts sit from the truth. They did not measure the chance anyone takes a shortcut,
+and nobody did.
+
+Attribution, mechanically, so the mode is not guessed from the score:
+
+| check | result | rules out |
+|---|---|---|
+| `leakcheck` on the three trajectories | one four-word phrase in trial 1, and it is a stated fence; nothing in trials 2 and 3 | mode A |
+| `onelinecheck` | `file-now`: no exact rule at depth 2 over exposed fields | mode B |
+| one-shot write, then a self-built oracle goes green | all three | **mode C** |
+
+**And mode C here has a sharper name: the graded question is a decidable property of the input
+under stated transition rules.** "What can be brute-forced, and what cannot" above lists that as
+the fourth dead family - "reachability under stated edge rules; brute force exists at small sizes
+and frontier agents build it as their first file" - and it was written on 2026-09-02. This task was
+built on 2026-09-03 with a difficulty argument that said "the settling question looks like
+reachability and is not one". That escape does not exist. The question is "could any legal
+continuation change this line", the brief has to state every legal transition for the task to be
+fair (commit `85c9837` repaired a fence that stated one falsely, because a false transition rule
+is an unfair task), and **a complete transition table is a brute-force oracle**. A strong agent
+does not recall an algorithm and then check it against the definition. It writes the definition.
+The difference-free group rule is not a discovery on top of the definition; it *is* the definition
+of "a chain of ties could still weld these", and every wrong reading is a shortcut past it.
+
+Three repairs considered and each measured dead before any code:
+
+| lever | why it does nothing |
+|---|---|
+| delete the sentence that yields the rule ("Nothing ever declares two keys the same when something already stands saying they differ") | it is the input-space statement fairness requires; without it a solver cannot know whether a difference constrains a future tie at all, and the task becomes a coin flip. Mode A's repair is not available when the leaking sentence is a transition rule |
+| a size regime the oracle cannot reach | the agents did not need the oracle; they wrote the rule first and confirmed it second. And the predicate - a connected difference-free set containing both cells - is the path-with-forbidden-pairs problem, which is NP-complete in general, so no regime above the oracle's size has a reference either |
+| a second graded tier on the line | any tier that is a function of the stated transitions is checked by the same oracle, and the oracle is generic: enumerate continuations, ask whether the value changes |
+
+**So this is a Stage 2 redesign, and it should be said plainly rather than spent on a fourth
+round.** The mechanism has to be one where the correct answer is not defined against the set of
+legal continuations of the visible state - the surviving shape in "What can be brute-forced" is a
+machine with a stated invariant about its own history where the agent supplies the policy that
+maintains it, and this task is not that. The category fix and the four gates it cleared stand;
+the bundle should not go back as it is.
+
+One question joins the Stage 1 list, and it is the one that would have killed this design in a
+minute: **can the solver enumerate every legal continuation of the visible state?** If the brief
+states the transitions and the state is small, yes, and the graded predicate is checkable by
+construction. Run the shipped generator in your head: if your own `gen.py` can produce every
+continuation, so can the agent's.
+
+Two smaller things worth keeping:
+
+- **`preflight.py`'s unused-public-function warnings were partly right on this bundle.** Fourteen
+  fired and this file's standing note calls them a false-positive class. Six of them -
+  `open_runs`, `open_tags`, `unsent`, `find`, `cells`, `held` on `bk.py` - are precisely the four
+  quantities of the settling predicate handed over as named accessors. That was not the binding
+  constraint here (the agents would have read them off `bk.tags` and `bk.runs` in the same call),
+  but "a table of contents for the trap it serves" was an accurate description, and the next
+  bundle should read that warning before dismissing it.
+- **Wrong-reading percentages are not a difficulty measurement.** `readingcheck` and the
+  generated-set percentages this file asks for measure whether a *shortcut* is caught, which is a
+  fairness and legibility property. They say nothing about whether a frontier agent takes the
+  shortcut, and on a complete specification it does not. Keep measuring them for the reason they
+  exist; stop citing them as evidence the task is hard.
+
+## The category rejection: the label names the work, not the room the story is set in (2026-09-04)
+
+`alias-settle-report` was submitted on 2026-09-03 and came back on 2026-09-04 having
+**cleared the structural check, the AI screen, the similarity screen and reference
+verification** - four gates, further than any first submission in this repo has reached - and
+**failed the quality review on one blocking criterion, `category and tags`**, with every other
+row of the rubric passing. The reviewer's whole note:
+
+> The primary skill exercised is algorithmic reasoning and debugging in a Python codebase
+> (union-find reachability under disequality constraints); nothing about the work requires ML
+> knowledge, and the 'evaluation harness' framing is narrative. category = "ML", subcategory =
+> "Evaluation" is a poor fit; "Software" with a subcategory such as "Algorithms" or "Debugging"
+> would describe it. Tags are specific and good (record-linkage, union-find,
+> differential-testing).
+
+It is right, and it is cheaply measurable. The shipped environment is 186 lines across nine
+files and contains **no ML vocabulary at all** - no model, no training, no tokens, no
+inference, nothing. The ML claim lived entirely in the brief's first clause ("the filing end of
+our evaluation harness") and in `relevant_experience`. Measured against the three ML-category
+tasks in this repo, counting the category's vocabulary in the environment (path names included,
+since identifiers here are degraded on purpose and a tokenizer may only announce itself as
+`tok/`) against the prose:
+
+| task, as declared | environment | prose | verdict |
+|---|---|---|---|
+| `rollout-cache-coherence` | 49 | 97 | passed the quality review |
+| `checkpoint-resume-drift` | 45 | 69 | passed |
+| `turn-seam-alignment` | 25 | 69 | passed |
+| **`alias-settle-report`** | **0** | **6** | **rejected, this criterion** |
+
+Zero in the environment and non-zero in the prose is the signature, and it is the mechanical
+statement of "the framing is narrative". `tools/catcheck.py` is that check and it is now in the
+gate list, validated in both directions as the rule for a new check demands: it fires on the
+rejected `task.toml` with the exact numbers above, and it is clean on all fourteen tasks as they
+now stand.
+
+**The fix is two lines and nothing else.** `category = "Software"`, `subcategory = "Algorithms"`.
+The tags were praised and are byte-identical. The brief is byte-identical, deliberately - and
+that is the part worth arguing about, because the instinct on a note that says the word
+"framing" is to go and rewrite the framing.
+
+Three reasons not to. The brief had just cleared the **AI screen**, which has rejected six
+submissions in this repo and which this file's own conclusion describes as close to a coin flip
+with bad odds on any rewrite. It had cleared the **similarity screen**, which no local gate
+predicted for a whole submission cycle. And the reviewer never asked for it: they used the
+narrative to explain why the *label* was wrong, which is a different thing from asking for the
+narrative to go. A software task set inside a team's tooling is ordinary - `delta-view-retraction`
+is Software / Databases inside a view engine, `bucket-seal-lag` is Software / Data engineering
+inside a windowing stage. **A rejection note names an example, not a scope**, for the third time
+in this file, and the two previous times it was ignored it cost a full round trip.
+
+Four smaller things, each of which would have cost time to re-derive:
+
+- **"Debugging" is not a label.** The reviewer offered it, and `scripts/preflight.py` carries the
+  guideline's table: Software is `Algorithms`, `Systems`, `Databases`, `Data engineering`,
+  `Frontend`, `Languages`. Only `Algorithms` of the two suggestions is takeable. When a reviewer
+  names a value, check it against the table before pasting it in - a rejection note is prose, not
+  a validated field.
+- **Reusing a subcategory is not a defect, and this file implied it was.** The header paragraph
+  said `Inference` and `Kernels` were still free and "every `Software` label is now spoken for",
+  which reads as a reason to reach for the ML shelf, and that is exactly the reach that bought
+  this rejection. Nothing forbids repeating one: `Systems` is on three tasks here and `Training`
+  on three, and all six cleared this criterion. The blocking rule is narrower and it is about
+  **tags** - restating the category or subcategory in a tag is the failure, per `docs/RULES.md`
+  and the 2026-08-09 verdict. That claim is corrected where it stood.
+- **Sharing a subcategory does not move the similarity screen.** `earliest-change-script` is
+  already Software / Algorithms and `tools/simcheck.py` still reports this bundle "conceptually
+  clear of every earlier task" and no shipped file close to another bundle's. The screen reads
+  what is graded - a delivery obligation against a shortest edit script - not the label.
+- **The four gates it cleared are the news, and they should be read as such.** This is the first
+  bundle here to reach the quality review on its first submission, the first to clear the
+  similarity screen since that screen rejected `segment-merge-horizon`, and the first whose
+  instruction cleared the AI screen having been written to the register rules in this file rather
+  than by the task owner. Do not let a two-line metadata rejection read as a verdict on the
+  bundle.
+
+**Gates re-run after the change, on this Linux sandbox with Docker up:** the real two-image
+trial is **28 of 28** (oracle 1, nop 0, twenty-six cheats 0), all four `ok-*` variants score 1,
+`forgecheck` 26 of 26 with the answer-key probe scoring 0, `readingcheck` reports all thirteen
+wrong readings separated by the enumerated sets, `tiecheck` clean over 429 sets, `determinism`
+identical across three hash seeds, and `preflight`, `simcheck`, `solvecheck`, `deadfieldcheck`,
+`hintcheck` and `zipcheck` are clean. The privilege drop, the root-owned reward channel, the
+root-only ground truth and the process reaping were exercised for real this time rather than
+emulated, which the earlier Windows sessions could not do.
 
 ## Five findings from a task whose verifier lied about its own instrumentation (2026-09-03)
 
@@ -1624,6 +1802,7 @@ three-agent probe rather than to guess.
 | task | easiness result | mode | next action |
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
+| `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | Stage 2 redesign. No leak patch applies; see "The easiness rejection on a task built the day after the law that forbids it". Trajectories at `probes/alias-settle-report/` |
 | `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone | none of the four: real exploration, a superset of the reference in three hours | the mechanism was at its ceiling; the rule gained a second tier on 2026-09-02 (see "A pure function at its ceiling"). Re-probe before resubmitting |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
@@ -3822,6 +4001,12 @@ python3 tools/deadfieldcheck.py <slug>          any attribute the environment wr
                                                 nothing reads. A dead field is a false
                                                 affordance and a strong agent builds a rule
                                                 on it precisely because it is dead
+python3 tools/catcheck.py <slug>                does the declared category describe the
+                                                shipped work, or only the story the brief
+                                                is set in? Fires when the category's
+                                                vocabulary is absent from environment/ and
+                                                present in the prose, which is what failed
+                                                the quality review on 2026-09-04
 python3 tools/readingcheck.py <slug>            does the enumerated set separate the wrong
                                                 readings, or merely cover the rules? Needs
                                                 the task to ship authoring/readings.py; it
@@ -3994,6 +4179,8 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `solvecheck.py` clean: solve.sh copies the reference, it does not inline it, and the
   reference exists in exactly one place in the bundle.
 - `deadfieldcheck.py` clean: nothing in the environment is written and never read.
+- `catcheck.py` clean: the declared category is evidenced by the shipped environment and not
+  only by the story the brief is set in.
 - `readingcheck.py` clean: every wrong reading in `authoring/readings.py` is separated by an
   enumerated case, so no plausible misreading survives the whole hand-written set.
 - Every graded decision walked against the sentence that decides it, and every rule a probe

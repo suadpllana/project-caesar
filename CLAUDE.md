@@ -627,6 +627,27 @@ cleared the AI screen, `preflight` no errors.
 **Gates NOT run: the three-agent easiness probe.** It is the only local gate that measures what
 the easiness gate rejects for, and it is the first thing to run on this bundle.
 
+### The `structured data schema` rejection: every literal the grader matches on goes in the brief (2026-09-05)
+
+`note-carry-forward` cleared `difficult` on the enriched mechanism and failed the quality
+review on one criterion, **`structured data schema`**. The note, in full:
+
+> The graded log is exact-match on literal tokens, and two of them are undocumented: the
+> instruction says 'a reopening written directly after the raise' but never states the token
+> is 'reopen' (vs 'reopened'/'reopening'), and the shipped code contains no such string; the
+> thread state literal 'outdated' is likewise only implied by the log kind.
+
+Right on both counts, and cheap to have caught. The brief described the events in prose
+("outdatings", "a reopening") and the shipped board never emitted `reopen` at all, so the one
+token a correct board had to produce was a token it could not find anywhere. **A grader that
+exact-matches a string has to publish that string, in backticks, in the brief - every state
+literal and every event kind - and the shipped tree should carry them too.** Three lines in
+the brief and a two-tuple constant at the top of the shipped board.
+
+The mechanical check is a grep: for every string literal `test_outputs.py` or the oracle
+compares against, does it appear verbatim in `instruction.md`? Run it before packaging any
+task whose artifact is a log of named events.
+
 ### `difficult` twice, and the thing that finally moved it: volume of interaction, not a cleverer insight (2026-09-05)
 
 `note-carry-forward` has now been round the quality review three times on one criterion.

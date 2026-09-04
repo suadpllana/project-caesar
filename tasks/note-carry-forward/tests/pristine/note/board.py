@@ -1,6 +1,8 @@
 from note import rule
 
-LIVE = ("open", "answered", "resolved")
+STATES = ("open", "answered", "resolved", "outdated")
+EVENTS = ("outdated", "raise", "reopen", "absorb")
+LIVE = STATES[:3]
 
 
 class Board(object):

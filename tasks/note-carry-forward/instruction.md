@@ -51,12 +51,15 @@ join once that revision's carrying and raising are done, and replies and
 resolutions land after them.
 
 We grade the thread table at the head, each thread with its state and its span,
-and the log of what happened on the way, and because the log is a sequence the
-order inside one revision is part of the answer: the outdatings come first,
-then the raises, then the absorbings, each of the three in ascending thread
-order, with a reopening written directly after the raise that caused it and an
-absorbing naming the thread that ends up holding the span, whichever one
-reached it first. The streams run to several revisions. Threads are opened
+and the log of what happened on the way. The strings are exact. A state is
+`open`, `answered`, `resolved` or `outdated`, and a log entry is a tuple whose
+first item is `outdated`, `raise`, `reopen` or `absorb`, followed by the thread
+id, or for `absorb` by the id of the thread that ends up holding the span and
+then the id of the one absorbed, and because the log is a sequence the order
+inside one revision is part of the answer: the `outdated` entries come first,
+then the `raise` entries, then the `absorb` entries, each of the three in
+ascending thread order, with a `reopen` written directly after the `raise`
+that caused it. The streams run to several revisions. Threads are opened
 partway through as often as at the start, and a line that looks like the line a
 thread was opened on is a thing you should expect to see. Seventeen streams are
 written out by hand and three hundred more are generated, and every one has to

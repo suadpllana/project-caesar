@@ -69,7 +69,8 @@ the twenty-one scenarios exist because of it.
   schedule).
 - My own attack on the plan: my first plan is the fixed point over holders, and it is what the
   probe wrote. I would not have looked at the release path at all until a scenario failed.
-- Estimated solves out of 8: 2 to 4.
+- Estimated solves out of 8: measured at 3 of 3 on the local easiness probe, so 6 or more
+  out of 8. This needs another axis before it is resubmitted.
 
 ## What is graded (contract, frozen)
 
@@ -102,7 +103,12 @@ nothing else.
   two that failed did so on `prio` alone - identical schedule, event log and finish times - on a
   reading they both named as a guess, which is now settled by one sentence of the brief and ships
   verbatim as `cheat-lends-to-everyone-ahead`. Evidence in `probes/lock-priority-unwind/`.
-- A second three-agent probe on the brief with that sentence in it.
+- A second three-agent probe, with the sentence in: 3 of 3, and **void** - the subagents inherit
+  the project CLAUDE.md, which by then described the handoff. Move it out of the tree first.
+- A third, with CLAUDE.md parked: **3 of 3**. The agents were stopped part way through and each
+  was already hardening its harness rather than its policy; the file each held scores 1. The task
+  is better than what it replaced and still not hard enough - see `probes/lock-priority-unwind/`
+  for what a further change has to satisfy.
 
 ## Still outstanding
 

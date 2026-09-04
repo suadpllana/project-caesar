@@ -131,7 +131,10 @@ real ticks with a queue waiting on a task that holds nothing, and the textbook r
 owner that is not there. The write-up is "The easiness rejection where the memorised answer WAS
 the reference" below, and the one-line version is the check to run at Stage 1: **write down the
 answer you believe is memorised and the answer your reference implements, and ask whether they are
-the same.** Not re-probed against the pipeline; the local three-agent probe was run on the rebuild.
+the same.** **The local probe on the rebuild came back 3 of 3 with CLAUDE.md out of the tree, so the task is
+better and still not hard enough** - see "The rebuild is a better task and still solved 3 of 3"
+below for what a further change has to satisfy, and for the probe-contamination finding that
+nearly hid this result.
 It is also the first bundle here to have its **real two-image trial** run at all - Docker was
 absent on every host that touched it before - and the second to report no shipped file close to
 another bundle's.
@@ -872,6 +875,62 @@ it** - the reference's walk never visits a mid-queue task, so changing what `owe
 one is invisible - which is a reminder that the swap-from-the-reference recipe only reaches
 readings the reference's control flow already reaches. When it does not, transcribe the
 submission.
+
+### The local probe reads the project instruction file, so it was reading the answer key
+
+**Standing-policy item 2, and the most expensive kind: the probe itself was lying.** The
+subagents a local three-agent probe runs on inherit the **project CLAUDE.md**, and in this repo
+that file is the design document. A round launched after this section was written had the whole
+discovery in its context in one sentence - "no longer hands a mutex over at a release. It leaves
+it free, wakes the task at the head of its queue" - and came back 3 of 3. One agent volunteered
+it:
+
+> "the harness injected a project `CLAUDE.md` into my context containing stray references to this
+> task (including a scenario name, `release-with-queue-behind`) - I derived the rule without it,
+> but it did steer where I looked."
+
+**Move `CLAUDE.md` out of the tree before running the probe and put it back after.** Sealing the
+agent's working directory does not help and neither does telling it not to read the repo, because
+the injection is automatic and arrives before the agent acts. And add a standing report question
+- *did anything outside your own directory tell you about this task?* - because the one agent that
+answered it unprompted is the only reason this was caught at all.
+
+### The rebuild is a better task and still solved 3 of 3
+
+Run clean, with the file parked, three agents came back **3 of 3**. They were stopped part way
+through and each was already hardening its own harness rather than its policy, and the file each
+held at that moment scores 1. The contamination was real and the number underneath it was the
+same.
+
+| round | conditions | result |
+|---|---|---|
+| 1 | brief still carried an undecided rule | 1 of 3, and both losses were that rule |
+| 2 | CLAUDE.md carried the discovery | 3 of 3, void |
+| 3 | CLAUDE.md parked, brief settled | **3 of 3** |
+
+Nine agents over three rounds did the same thing: read `rt/core.py`, find the handoff, recompute
+a fixed point over the lock graph they read back out of the core. **Hiding a mechanism in the
+engine has a ceiling and this is it.** The engine is 250 lines; a careful reader finds anything in
+it in about a quarter of an hour. The rebuild is worth having - two minutes and no exploration
+became thirty minutes and a real derivation, and the fixture separates fifteen distinct wrong
+readings where it used to separate eight - but it is not a task the easiness probe fails, and
+saying so is cheaper than a fourth round.
+
+What a further change has to satisfy, from the evidence rather than from taste:
+
+- **The live lock graph must stop determining the answer.** Every agent's oracle was "recompute
+  worth from what the core currently holds and queues". A rule that is a function of that state is
+  one they restate and then confirm against itself - the circularity law above, measured a third
+  time.
+- The graded value therefore has to depend on **history the core does not keep**, which is the
+  surviving shape from "What can be brute-forced": a machine with a stated invariant about its own
+  past where the agent supplies the policy that maintains it.
+- The candidate this session got closest to is giving the policy the handover decision under an
+  anti-starvation invariant, so that a pass-over ledger the graph never held becomes load-bearing
+  and the choice and the worths become mutually recursive. It was not built, because every version
+  of it needs a **total** tie-break and an under-specified tie-break is precisely what cost round
+  1. If you build it, decide the ties first and ship a mirror variant that breaks them the other
+  way, per "A name a submission invents must not be able to decide a graded value".
 
 ### Correction: the environment Dockerfile similarity floor is lower again
 

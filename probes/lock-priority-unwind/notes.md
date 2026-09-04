@@ -130,3 +130,42 @@ does anything. Ask every probe agent, as a standing report question, whether any
 own directory told it about the task - the one that volunteered it here is the only reason this
 was caught, and a 3-of-3 that is really "the agents were told" would have sent the next session
 redesigning a task that had never been measured.
+
+## Round 3, with the answer key out of the tree: 3 of 3
+
+The three agents were stopped part way through, but each had already written its policy and was
+hardening its own test harness when it was cut off ("the checker is validated in both directions,
+now let me tune the generator toward chains and contention"; "both hand-reasoned cases come out
+exactly as predicted, now a large multi-profile fuzz plus a deliberate deadlock cycle"). The file
+each of them had at that moment is in `rebuild-round-3-clean/`, and **all three score 1** through
+the real verifier.
+
+So round 2 was not merely contaminated - it was right. The clean number is the same.
+
+| round | conditions | result |
+|---|---|---|
+| 1 | old CLAUDE.md; brief still carried an undecided rule | 1 of 3, and both losses were that rule |
+| 2 | CLAUDE.md carried the discovery | 3 of 3, void |
+| 3 | CLAUDE.md out of the tree, brief settled | **3 of 3** |
+
+**The conclusion, stated plainly rather than spent on a fourth round.** Nine agents across three
+rounds all did the same thing: read `rt/core.py`, find the handoff, and recompute a fixed point
+over the lock graph they read back out of the core. Hiding a mechanism *in the engine* has a
+ceiling, and this is it - the engine is 250 lines, and a careful reader finds anything in it in
+about fifteen minutes. The rebuild is a much better task than what it replaced (two minutes and
+no exploration became thirty minutes and a real derivation, and the fixture now separates fifteen
+distinct wrong readings) and it is still not a task the easiness probe fails.
+
+What a further change has to satisfy, from the evidence rather than from taste:
+
+- **The live lock graph must stop determining the answer.** Every agent's oracle was "recompute
+  worth from what the core currently holds and queues". Any rule that is a function of that state
+  is one they restate and then confirm against itself.
+- So the graded value has to depend on **history the core does not keep**, which is the surviving
+  shape in "What can be brute-forced, and what cannot": a machine with a stated invariant about
+  its own past, where the agent supplies the policy that maintains it.
+- The most promising candidate in this domain is to give the policy the handover decision under
+  an anti-starvation invariant - a waiter that has been passed over must be preferred - so that a
+  pass-over ledger the graph never held becomes load-bearing, and the choice and the worths become
+  mutually recursive. It was not built here because every version of it needs a total tie-break,
+  and an under-specified tie-break is exactly what cost round 1.

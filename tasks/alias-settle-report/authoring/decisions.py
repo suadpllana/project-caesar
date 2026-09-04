@@ -102,6 +102,8 @@ def _feat(bk, c, card):
         "bars": len(bk.bars),
         "gonekeys": len(bk.gone),
         "gonereach": len([i for i in loose if i not in live]),
+        "opentagsclear": len([n for n in bk.open_tags()
+                              if not (set(bk.tags[n]) & bk.gone)]),
         "otherwatch": len([w for w in bk.watch
                            if w not in bk.filed and bk.find(w) != c]),
         "pendhere": pend_here,
@@ -118,10 +120,10 @@ def _walk(text, card, hold, out_file, out_front, out_score):
         if kind == "post":
             bk.post[(who, a)] = b
         elif kind == "tie":
-            if a not in bk.gone and b not in bk.gone:
+            if who in bk.live and a not in bk.gone and b not in bk.gone:
                 bk.weld(a, b)
         elif kind == "bar":
-            if a not in bk.gone and b not in bk.gone:
+            if who in bk.live and a not in bk.gone and b not in bk.gone:
                 bk.bars.add((min(a, b), max(a, b)))
         elif kind == "shut":
             bk.live.discard(who)

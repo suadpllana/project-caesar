@@ -347,9 +347,9 @@ shut m1
 
 # The three sets that ship under /app/sets, as literals. They are NOT read off
 # disk: the verifier image moves the pristine tree out of /tests at build time,
-# so a path into tests/pristine resolves on the authoring host and raises inside
-# the container. authoring/sync.py holds these against the tree on every run so
-# the two copies cannot drift.
+# so a path into tests/pristine resolves where the bundle was built and raises
+# inside the container. A check outside the bundle holds these against the tree on
+# every build so the two copies cannot drift.
 
 _add("plain", """
 watch 2

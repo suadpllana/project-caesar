@@ -48,9 +48,10 @@ WHAT IS NOT GRADED, because grading it would measure an implementation choice
 rather than a behaviour: how a submission searches the tags, what it caches
 between ticks, whether it answers the question one cell at a time or for a whole
 group at once, and which of the four declared files it puts the reasoning in.
-Four alternative correct implementations live in the authoring directory and all
-four are required to score 1. The interpreter's counts of entries into the
-decision functions are recorded and compared only as floors, for the same reason:
+Five alternative correct implementations are held outside the bundle, in the
+authoring repository, and all five are required to score 1. The interpreter's
+counts of entries into the decision functions are recorded and compared only as
+floors, for the same reason:
 a submission that folds the reach search into the readiness test enters one of
 them zero times and is correct.
 

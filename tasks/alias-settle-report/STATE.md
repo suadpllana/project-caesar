@@ -142,6 +142,30 @@ depends on the policy under test, so it agrees with any policy that agrees with 
   reference instead - the ground truth came back identical, which is what says the removal was
   behaviour-preserving.
 
+## The second quality-review rejection, 2026-09-04
+
+`no extraneous files`, on the redesigned bundle, with every other rubric row passing
+including `difficult`, `anti cheat robustness` and `category and tags`. The `authoring/`
+directory is development tooling nothing in the build, run, solve or verify path requires.
+
+Fixed by not shipping it: `tools/packbundle.py` stages the tree without `authoring/` and hands
+the staged copy to the kit's `package.py`. 111 entries became 72. The extracted archive, with
+no `authoring/` in it at all, was rebuilt into both images and scored oracle 1 (738 tests) and
+nop 0, which is the check that matters. `tools/zipcheck.py` now fails any archive shipping the
+directory.
+
+Two real defects the reviewer found inside it, both now fixed: `readings.py:reductions()`
+computed `keep` and immediately overwrote it, and `readings.py` duplicated `emit.py`'s mistake
+definitions. `readings.py` now derives them from `emit.MISTAKES`, which also took
+`readingcheck` from 16 readings to 18, all separated.
+
+Four prose references in the SHIPPED files pointed at `authoring/` and were reworded, since a
+bundle that names a directory it does not contain has a fresh complaint waiting.
+
+Note the criterion has run-to-run variance: `guard-mark-unwind` shipped 35 authoring files and
+`share-register-screen` 40, and both cleared this same review. The repair removes exposure; it
+is not proof of what decided this one.
+
 ## Gates run
 
 The real two-image trial on this Linux sandbox with Docker up: **32 of 32** (oracle 1, nop 0,

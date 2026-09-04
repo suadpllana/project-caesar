@@ -119,8 +119,8 @@ And an item can carry more than one watched key: they read the same row and each
 so once the item is going they all go with it rather than being tested again against a desk
 they have just left.
 
-Five alternative correct implementations are kept in the authoring directory and all five
-score 1: the group search walking its frontier the other way round, the same search carried
+Five alternative correct implementations are kept outside the bundle, in the authoring
+repository, and all five score 1: the group search walking its frontier the other way round, the same search carried
 over sets of keys instead of sets of items, the whole reach folded into the readiness test so
 that the declared `rch.py` is never called at all, the tick's set of rows grown by a worklist
 over items and from the far end of the watch list rather than by rescanning it from the
@@ -156,7 +156,7 @@ could still be welded on, one at a time, is enough, because welding several at o
 produce a smaller key or an earlier post than the smallest and earliest among them. The
 model makes no such argument, which is exactly why it is worth having. The two agree on
 every row of nine hundred generated sets before any ground truth is written, and
-`authoring/build_gt.py` refuses to write one without that.
+the ground-truth builder refuses to write one without that.
 
 Two set lists are driven, and the second is why there is nothing here to forge. The
 enumerated list is thirty-three sets, each named for the reading it exists to fail, with the

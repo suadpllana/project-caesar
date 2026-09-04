@@ -110,6 +110,11 @@ none has ever been checked for.
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
+It then failed the quality review a second time, on 2026-09-04, on `no extraneous
+files` - the shipped `authoring/` directory - with every other rubric row passing including
+`difficult`. **Twelve of the fourteen archives here have that defect and two of them passed
+this same criterion**, so read "The extraneous-files rejection" before deciding what it means,
+and package with `tools/packbundle.py` from now on.
 It went in as `ML / Evaluation` because its brief is set in an evaluation harness, and the
 reviewer's answer is the entry to read before labelling anything: the category names the skill
 the graded work exercises, never the room the story happens in. It is now
@@ -568,6 +573,84 @@ Two smaller things worth keeping:
   fairness and legibility property. They say nothing about whether a frontier agent takes the
   shortcut, and on a complete specification it does not. Keep measuring them for the reason they
   exist; stop citing them as evidence the task is hard.
+
+## The extraneous-files rejection: the bundle is not the working tree (2026-09-04)
+
+`alias-settle-report` went back with the redesign and **failed the quality review on one
+blocking criterion, `no extraneous files`**, with every other rubric row passing - including
+`difficult`, `anti cheat robustness`, `category and tags` and `deterministic reproducible`.
+The reviewer's finding, on the point that decided it:
+
+> The `authoring/` directory (14 scripts plus five variant trees) is development tooling that
+> nothing in the build, run, solve, or verify path requires. Several are pure dev diagnostics
+> [...] and depend on repo tools outside the task (`tools/docker_trial2.py`,
+> `tools/onelinecheck.py`) and cannot run standalone, and `readings.py` duplicates the mistake
+> definitions already in `emit.py` and contains dead code in `reductions()`.
+
+**This is a repo-wide defect and the numbers matter, because they cut both ways.** Twelve of
+the fourteen archives here ship `authoring/`:
+
+| archive | authoring files | this criterion |
+|---|---|---|
+| `bucket-seal-lag` | 42 | never reviewed |
+| `share-register-screen` | 40 | **passed** |
+| `grant-spread-order` | 38 | never reviewed |
+| `turn-seam-alignment`, `segment-merge-horizon` | 37 | never reviewed |
+| `guard-mark-unwind` | 35 | **passed** |
+| `pair-hold-reclaim` | 33 | never reviewed |
+| `lock-priority-unwind` | 29 | never reviewed |
+| `checkpoint-resume-drift`, `rollout-cache-coherence` | 19, 16 | never reviewed |
+| `delta-view-retraction` | 16 | never reviewed |
+| `earliest-change-script` | 3 | never reviewed |
+| `alias-settle-report`, `typeahead-query-controller` | **0** | - |
+
+So two bundles shipping 35 and 40 authoring files cleared this same review, and one shipping
+14 scripts failed it. **Read that the way the backtick finding was read: an agentic rubric with
+run-to-run variance, where the repair removes exposure rather than proving what decided it.**
+Do not conclude that shipping `authoring/` is safe because guard-mark-unwind did it; do not
+conclude the directory alone is what failed this one either.
+
+**The fix, and it costs nothing: stop shipping the directory.** Nothing in `tests/`,
+`solution/` or `environment/` imports anything under `authoring/` - checked, not assumed - so
+the bundle is self-contained without it. `scripts/package.py` and `scripts/preflight.py` are
+the kit's and are not to be edited, and their shared `EXCLUDE_DIRS` has no entry for it, so
+`tools/packbundle.py` stages the tree without `authoring/` into a temp directory and hands the
+staged copy to the kit's packager with `-o`. The archive stays the kit's work and the exclusion
+stays this repo's. 111 entries became 72.
+
+**Verify by extracting, never by inspecting.** The extracted archive - with no `authoring/`
+anywhere in it - was built into both images and scored **oracle 1 (738 tests) and nop 0**. That
+is the check that matters, and it is the "package, then check the package" rule again: a tree
+that passes every gate says nothing about the archive, and this time the question was whether
+the archive still works with a directory taken out of it.
+
+`tools/zipcheck.py` now fails any archive shipping `authoring/`, validated in both directions:
+clean on the two archives that do not, firing on all twelve that do.
+
+### Three smaller things, and two of them were real defects
+
+- **A dangling reference is its own finding.** Four places in the *shipped* files pointed at the
+  directory: `tests/test_outputs.py` ("Four alternative correct implementations live in the
+  authoring directory" - and it said four when there are five), `tests/cases.py`
+  ("`authoring/sync.py` holds these against the tree"), and two in `task.toml`. A reviewer
+  reading those and finding no such directory has a fresh complaint. They now say "outside the
+  bundle, in the authoring repository", which is honest and keeps the provenance claim where
+  the reviewer actually reads it - `task.toml` - rather than in a directory of scripts.
+- **The reviewer found genuine dead code, in a file this session had edited.**
+  `readings.py:reductions()` computed `keep` and then immediately overwrote it with a different
+  expression. Shadowed assignments are invisible to `pyflakes` and to every gate here. Fixed.
+- **And a genuine duplication, which this session created.** `readings.py` carried its own copy
+  of the sixteen wrong readings while `emit.py` carried eighteen, with the same anchor strings
+  written out twice - which is exactly the same-source-in-two-places defect the solution-quality
+  review objects to, committed inside the authoring directory where `solvecheck.py` does not
+  look. `readings.py` now derives `READINGS` from `emit.MISTAKES`, so there is one definition.
+  That also *gained* coverage for free: `readingcheck` went from 16 readings to 18, and all
+  eighteen are separated by the 33 enumerated sets.
+
+**The rule to carry: after every rejection, ask what the bundle contains that no gate reads.**
+`preflight`, `simcheck`, `solvecheck`, `forgecheck` and `zipcheck` between them look at
+structure, similarity, `solve.sh`, the cheats and the archive's bytes. Until now not one of
+them asked whether a shipped file has any business shipping.
 
 ## The redesign that answered a mode-C rejection: make the futures depend on the policy (2026-09-04)
 
@@ -4179,8 +4262,14 @@ python3 tasks/<slug>/authoring/determinism.py   the generated set must be identi
 python3 tasks/<slug>/authoring/normalise.py     LF on every shipped text file, and clear the
                                                 authoring scratch that package.py would
                                                 otherwise ship
+python3 tools/packbundle.py <slug>              package WITHOUT authoring/, which the
+                                                quality review rejected as extraneous on
+                                                2026-09-04. Stages the tree and hands it to
+                                                the kit's package.py, which stays unedited
 python3 tools/zipcheck.py <slug>                the built archive: CRLF, suffix bytes,
-                                                staleness, and MS-DOS entry stamps
+                                                staleness, MS-DOS entry stamps, and any
+                                                development tooling that has no business
+                                                shipping
 python3 tools/zipfix.py <slug>                  rewrite an archive package.py stamped
                                                 MS-DOS. On Windows it always does, and an
                                                 archive that fails this scores 0 on every

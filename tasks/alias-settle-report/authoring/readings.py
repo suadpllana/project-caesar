@@ -19,6 +19,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(TASK, "tests"))
 
 import cases
+import emit
 import gen
 import harness
 
@@ -32,104 +33,12 @@ def _read(name):
         return fh.read()
 
 
-GATE = "            if all((min(i, j), max(i, j)) not in stop for i in grp):"
-
-STOP = """    stop = set()
-    for a, b in bk.bars:
-        ra, rb = bk.find(a), bk.find(b)
-        if ra != rb:
-            stop.add((min(ra, rb), max(ra, rb)))"""
-
-SEAT = "    live = dict((i, set(ks)) for i, ks in cells.items() if not (set(ks) & off))"
-
-AUTH = """        b = card.auth(bk, x)
-        if b is not None and b < a:
-            return False"""
-
-PEND = """    for n in bk.open_runs():
-        for k in bk.unsent(n):
-            if k in wide and (n, k) < a:
-                return False"""
-
-LOOP = """    off = set(bk.gone)
-    ripe = set()
-    moved = True
-    while moved:
-        moved = False
-        for w in bk.watch:
-            if w in bk.filed or w in ripe:
-                continue
-            d = bk.find(w)
-            if set(bk.held(d)) & off:
-                continue
-            if sound(bk, d, off):
-                ripe.add(w)
-                off = off | set(bk.held(d))
-                moved = True
-    return any(bk.find(w) == c for w in ripe)"""
-
-GREEDY = """    ripe = set(w for w in bk.watch if w not in bk.filed)
-    moved = True
-    while moved:
-        moved = False
-        for w in sorted(ripe):
-            off = set(bk.gone)
-            for u in ripe:
-                if u != w:
-                    off |= set(bk.held(bk.find(u)))
-            if not sound(bk, bk.find(w), off):
-                ripe.discard(w)
-                moved = True
-    return any(bk.find(w) == c for w in ripe)"""
-
-ONE_HOP = """def span(bk, c, off):
-    cells = bk.cells()
-    out = set()
-    for n in bk.open_tags():
-        pool = set(bk.tags[n])
-        if pool & set(cells[c]):
-            for i in cells:
-                if i != c and pool & set(cells[i]):
-                    out.add(i)
-    return out
-"""
-
-
-def _swap(name, old, new):
-    text = _read(name)
-    out = text.replace(old, new)
-    if out == text:
-        raise SystemExit("readings.py: the anchor for %s no longer matches" % name)
-    return {name: out}
-
-
-READINGS = {
-    "bars-ignored": _swap("rch.py", GATE, "            if True:"),
-    "bars-at-the-ends": _swap("rch.py", GATE,
-                              "            if (min(c, j), max(c, j)) not in stop:"),
-    "bars-on-the-step": _swap(
-        "rch.py", GATE,
-        "            if (min(max(grp), j), max(max(grp), j)) not in stop:"),
-    "bars-taken-on-keys": _swap("rch.py", STOP, "    stop = set(bk.bars)"),
-    "one-hop-only": {"rch.py": ONE_HOP},
-    "shut-tags-count": _swap("rch.py", "    for n in bk.open_tags():",
-                             "    for n in sorted(bk.tags):"),
-    "tag-touches-the-front-key": _swap(
-        "rch.py", SEAT,
-        "    live = dict((i, set([min(ks)])) for i, ks in cells.items()"
-        " if not (set(ks) & off))"),
-    "gone-still-in-reach": _swap("rch.py", "if not (set(ks) & off))", "if True)"),
-    "front-key-only": _swap("hold.py", AUTH, "        pass"),
-    "pending-posts-ignored": _swap("hold.py", PEND, "    pass"),
-    "pending-in-this-cell": _swap("hold.py", "        wide.update(ks)\n", ""),
-    "no-cascade": _swap("hold.py", LOOP, "    return sound(bk, c, set(bk.gone))"),
-    "all-that-look-ready": _swap("hold.py", LOOP, GREEDY),
-    "score-by-key-first": _swap("card.py", "(n, k) < best",
-                                "(k, n) < (best[1], best[0])"),
-    "filed-under-the-root": _swap("card.py", "return bk.held(c)[0],", "return c,"),
-    "filed-newest-first": _swap("seq.py", "return sorted(ripe)",
-                                "return sorted(ripe, reverse=True)"),
-}
+# The wrong readings ARE the single-mistake cheats, so there is one definition of
+# them and it lives in emit.py. Keeping a second copy here is the same source in
+# two places with nothing holding them equal, which is the defect the solution
+# quality review objects to; it also drifts silently the moment an anchor moves.
+READINGS = dict((name, dict((f, make()) for f, make in over.items()))
+                for name, over in emit.MISTAKES.items())
 
 
 def run(policy, text):
@@ -165,9 +74,6 @@ def reductions(text):
         word = line.split()
         if word and word[0] in ("run", "tag"):
             who = word[1]
-            keep = [ln for ln in lines
-                    if not ln.split()[1:2] == [who] or ln.split()[0] not in
-                    ("run", "tag", "post", "tie", "bar", "shut")]
             keep = [ln for ln in lines if who not in ln.split()]
             if keep != lines:
                 yield "\n".join(keep)

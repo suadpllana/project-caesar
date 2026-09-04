@@ -60,6 +60,23 @@ def check(zpath: Path) -> int:
     for n in crlf:
         findings.append("CRLF line endings: %s" % n)
 
+    # 1b. Development tooling in the archive.
+    #
+    #     The quality review blocked `alias-settle-report` on 2026-09-04 under "no
+    #     extraneous files": authoring/ is development tooling that nothing in the
+    #     build, run, solve or verify path requires, and several of its scripts
+    #     import repo tools that do not ship, so they cannot run from inside the
+    #     bundle at all. `tools/packbundle.py` is what stages a bundle without it.
+    #     Note this criterion has run-to-run variance - two bundles shipping 35 and
+    #     40 authoring files cleared this same review - so treat a clean archive as
+    #     removing exposure, never as proof the directory was what decided it.
+    scratch = sorted(n for n in names if "/authoring/" in n)
+    if scratch:
+        findings.append(
+            "development tooling in the archive: %d files under authoring/ "
+            "(first: %s). Package with tools/packbundle.py."
+            % (len(scratch), scratch[0]))
+
     # 2. Backslash path separators, which unpack to a broken layout on Linux.
     for n in names:
         if "\\" in n:

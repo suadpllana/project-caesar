@@ -444,3 +444,44 @@ shut r0
 shut m0
 shut r1
 """)
+
+_add("gone-takes-its-tag", """
+watch 1 8
+run r0 1
+run r1 8
+tag m0 1 3 8
+go
+post r0 1 20
+post r1 8 50
+shut m0
+shut r0
+shut r1
+""")
+
+_add("one-going-takes-a-tag", """
+watch 1 8
+run r0 1
+run r1 8
+tag m0 1 3 8
+go
+post r1 8 50
+post r0 1 20
+shut m0
+shut r0
+shut r1
+""")
+
+_add("other-tags-keep-working", """
+watch 1 8
+run r0 1
+run r1 8
+tag m0 1 4
+tag m1 3 8
+go
+post r0 1 20
+post r1 8 50
+shut m1
+shut m0
+shut r0
+shut r1
+""")

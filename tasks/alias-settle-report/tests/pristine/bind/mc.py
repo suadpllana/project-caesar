@@ -18,12 +18,12 @@ class Mach(object):
             bk.post[(who, a)] = b
             self.ev(("ps", self.t, who, a, b))
         elif kind == "tie":
-            if a in bk.gone or b in bk.gone:
+            if who not in bk.live or a in bk.gone or b in bk.gone:
                 return
             bk.weld(a, b)
             self.ev(("ty", self.t, who, a, b))
         elif kind == "bar":
-            if a in bk.gone or b in bk.gone:
+            if who not in bk.live or a in bk.gone or b in bk.gone:
                 return
             bk.bars.add((min(a, b), max(a, b)))
             self.ev(("br", self.t, who, a, b))

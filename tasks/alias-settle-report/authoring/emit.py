@@ -58,7 +58,9 @@ STOP = """    stop = set()
         if ra != rb:
             stop.add((min(ra, rb), max(ra, rb)))"""
 
-SEAT = "    live = dict((i, set(ks)) for i, ks in cells.items() if not (set(ks) & off))"
+SEAT = "    seat = dict((i, set(ks)) for i, ks in cells.items())"
+
+TAGDEATH = "        if pool & off:\n            continue\n"
 
 AUTH = """        b = card.auth(bk, x)
         if b is not None and b < a:
@@ -128,13 +130,12 @@ MISTAKES = {
                                "    for n in sorted(bk.tags):")},
     "bars-taken-on-keys": {
         "rch.py": lambda: swap("rch.py", STOP, "    stop = set(bk.bars)")},
-    "gone-still-in-reach": {
-        "rch.py": lambda: swap("rch.py", "if not (set(ks) & off))", "if True)")},
+    "no-tag-retirement": {
+        "rch.py": lambda: swap("rch.py", TAGDEATH, "")},
     "tag-touches-the-front-key": {
         "rch.py": lambda: swap(
             "rch.py", SEAT,
-            "    live = dict((i, set([min(ks)])) for i, ks in cells.items()"
-            " if not (set(ks) & off))")},
+            "    seat = dict((i, set([min(ks)])) for i, ks in cells.items())")},
     "front-key-only": {
         "hold.py": lambda: swap("hold.py", AUTH, "        pass")},
     "pending-posts-ignored": {
@@ -154,7 +155,7 @@ MISTAKES = {
         "seq.py": lambda: swap("seq.py", "return sorted(ripe)",
                                "return sorted(ripe, reverse=True)")},
     "the-rule-that-beat-the-old-build": {
-        "rch.py": lambda: swap("rch.py", "if not (set(ks) & off))", "if True)"),
+        "rch.py": lambda: swap("rch.py", TAGDEATH, ""),
         "hold.py": lambda: swap("hold.py", LOOP,
                                 "    return sound(bk, c, set(bk.gone))")},
     "reach-is-every-cell": {

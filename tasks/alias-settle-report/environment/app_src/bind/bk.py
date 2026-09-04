@@ -17,7 +17,11 @@ class Book(object):
         self.gone = set()
 
     def drop(self, c):
-        self.gone.update(self.held(c))
+        ks = self.held(c)
+        self.gone.update(ks)
+        for n in sorted(self.tags):
+            if n in self.live and set(self.tags[n]) & set(ks):
+                self.live.discard(n)
 
     def find(self, k):
         r = k

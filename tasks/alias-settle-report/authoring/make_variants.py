@@ -32,6 +32,8 @@ def span(bk, c, off):
     near = dict((i, set()) for i in ids)
     for n in bk.open_tags():
         pool = set(bk.tags[n])
+        if pool & off:
+            continue
         hit = [i for i in ids if pool & seat[i]]
         for i in hit:
             near[i].update(j for j in hit if j != i)
@@ -72,7 +74,8 @@ def span(bk, c, off):
     cells = bk.cells()
     seat = dict((i, frozenset(cells[i])) for i in sorted(cells))
     here = sorted(i for i in cells if not (seat[i] & off))
-    tags = [sorted(bk.tags[n]) for n in bk.open_tags()]
+    tags = [sorted(bk.tags[n]) for n in bk.open_tags()
+            if not (set(bk.tags[n]) & off)]
     bars = sorted(bk.bars)
     seen = set()
     work = [seat[c]]
@@ -110,6 +113,8 @@ def _open_groups(bk, c, off):
     near = dict((i, set()) for i in ids)
     for n in bk.open_tags():
         pool = set(bk.tags[n])
+        if pool & off:
+            continue
         hit = [i for i in ids if pool & set(cells[i])]
         for i in hit:
             near[i].update(j for j in hit if j != i)

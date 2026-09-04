@@ -6,7 +6,8 @@ def span(bk, c, off):
     cells = bk.cells()
     seat = dict((i, frozenset(cells[i])) for i in sorted(cells))
     here = sorted(i for i in cells if not (seat[i] & off))
-    tags = [sorted(bk.tags[n]) for n in bk.open_tags()]
+    tags = [sorted(bk.tags[n]) for n in bk.open_tags()
+            if not (set(bk.tags[n]) & off)]
     bars = sorted(bk.bars)
     seen = set()
     work = [seat[c]]

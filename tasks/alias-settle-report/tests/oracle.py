@@ -16,7 +16,9 @@ them. This makes no such argument, and that is the point of the file.
 
 It settles a tick the same way for the same reason: the set of rows a tick owes
 is the smallest set consistent with itself, grown one cell at a time from the
-cells that had already gone, never the largest.
+cells that had already gone, never the largest. A tag whose pool names a key
+that has gone, or that would go were this set of rows written, is asked nothing:
+its pool was handed to it whole and is stale the moment any of it is filed.
 
 Nothing here is imported by the tree and nothing here is readable from the run.
 """
@@ -83,7 +85,8 @@ def clean(w, grp):
 
 
 def reachable(w, seed, off):
-    live_tags = [n for n in sorted(w["tags"]) if n in w["live"]]
+    live_tags = [n for n in sorted(w["tags"])
+                 if n in w["live"] and not (set(w["tags"][n]) & off)]
     seen = set()
     stack = [seed]
     groups = []
@@ -174,11 +177,11 @@ def play(text):
             w["post"][(who, a)] = b
             rows.append(["ps", t, who, a, b])
         elif kind == "tie":
-            if a not in w["gone"] and b not in w["gone"]:
+            if who in w["live"] and a not in w["gone"] and b not in w["gone"]:
                 merge(w, a, b)
                 rows.append(["ty", t, who, a, b])
         elif kind == "bar":
-            if a not in w["gone"] and b not in w["gone"]:
+            if who in w["live"] and a not in w["gone"] and b not in w["gone"]:
                 w["bars"].append((min(a, b), max(a, b)))
                 rows.append(["br", t, who, a, b])
         elif kind == "shut":
@@ -190,7 +193,10 @@ def play(text):
             lines.append([k, rep, w["post"][top]])
         for k, rep, sc in lines:
             w["done"].append(k)
-            w["gone"] |= home(w, k)
+            went = home(w, k)
+            w["gone"] |= went
+            w["live"] = [n for n in w["live"]
+                         if n not in w["tags"] or not (set(w["tags"][n]) & went)]
             rows.append(["fl", t, k, rep, sc])
     rows.append(["ed", t])
     return rows

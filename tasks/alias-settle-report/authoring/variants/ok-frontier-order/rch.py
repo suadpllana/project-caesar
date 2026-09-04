@@ -7,6 +7,8 @@ def span(bk, c, off):
     near = dict((i, set()) for i in ids)
     for n in bk.open_tags():
         pool = set(bk.tags[n])
+        if pool & off:
+            continue
         hit = [i for i in ids if pool & seat[i]]
         for i in hit:
             near[i].update(j for j in hit if j != i)

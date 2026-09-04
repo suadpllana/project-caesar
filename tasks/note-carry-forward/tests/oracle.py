@@ -141,76 +141,112 @@ def changes(before, after):
     return [c for c in out if c]
 
 
-def board(revs, opens):
-    """Settled the other way round to the reference: the events of a revision
-    are collected into buckets and ordered at the end, and a note carries the
-    one thing that is not a property of the revision it is passing through -
-    whether the revision before this one left it inside a change."""
+def board(revs, events):
+    """Settled the other way round to the reference: threads are held in a
+    dictionary keyed by id rather than a list, the events of a revision are
+    collected into buckets and ordered at the end, and the merging is driven
+    by repeatedly hunting the smallest overlapping pair rather than by walking
+    a sorted list. Same rule, opposite arrangement."""
     steps = len(revs)
-    maps = []
-    spans = []
-    for t in range(1, steps):
-        maps.append(keeps(revs[t - 1], revs[t]))
-        spans.append(changes(revs[t - 1], revs[t]))
+    opened = {}
+    said = {}
+    for step, kind, payload in events:
+        if kind == "open":
+            opened.setdefault(step, []).append(payload)
+        else:
+            said.setdefault(step, []).append((kind, payload))
 
-    born = {}
-    for at, nid, line in opens:
-        born.setdefault(at, []).append((nid, line))
+    span = {}
+    state = {}
+    caught = {}
+    bucket = dict((t, {"outdated": [], "raise": [], "absorb": []}) for t in range(steps))
 
-    where = {}
-    was = {}
-    events = dict((t, {"retire": [], "raise": [], "absorb": []}) for t in range(steps))
-    for nid, line in sorted(born.get(0, [])):
-        where[nid] = [0, line]
-        was[nid] = False
-    _collide(where, was, 0, events)
-    for t in range(1, steps):
-        table = maps[t - 1]
-        for nid in sorted(where):
-            spot = where[nid]
-            if spot[1] in table:
-                spot[1] = table[spot[1]]
-            else:
-                events[t]["retire"].append(nid)
-        for nid in events[t]["retire"]:
-            del where[nid]
-            was.pop(nid, None)
-        for nid in sorted(where):
-            here = False
-            for chunk in spans[t - 1]:
-                if where[nid][1] in chunk:
-                    here = True
+    def join(t):
+        for nid, lines in opened.get(t, []):
+            span[nid] = set(lines)
+            state[nid] = "open"
+            caught[nid] = False
+
+    def talk(t):
+        for kind, nid in said.get(t, []):
+            if nid not in state:
+                continue
+            if kind == "reply" and state[nid] == "open":
+                state[nid] = "answered"
+            elif kind == "resolve" and state[nid] in ("open", "answered"):
+                state[nid] = "resolved"
+
+    def merge(t):
+        while True:
+            live = sorted(n for n in span if state[n] != "outdated")
+            pair = None
+            for x in range(len(live)):
+                for y in range(x + 1, len(live)):
+                    if span[live[x]] & span[live[y]]:
+                        pair = (live[x], live[y])
+                        break
+                if pair:
                     break
-            if here and not was[nid]:
-                events[t]["raise"].append(nid)
-            was[nid] = here
-        for nid, line in sorted(born.get(t, [])):
-            where[nid] = [t, line]
-            was[nid] = False
-        _collide(where, was, t, events)
+            if pair is None:
+                return
+            owner, taken = pair
+            span[owner] |= span[taken]
+            if state[taken] == "open":
+                state[owner] = "open"
+            bucket[t]["absorb"].append((taken, owner))
+            del span[taken]
+            del state[taken]
+            caught.pop(taken, None)
+
+    join(0)
+    talk(0)
+    merge(0)
+    for t in range(1, steps):
+        table = keeps(revs[t - 1], revs[t])
+        hunks = changes(revs[t - 1], revs[t])
+        for nid in sorted(span):
+            if state[nid] == "outdated":
+                continue
+            span[nid] = set(table[x] for x in span[nid] if x in table)
+            if not span[nid]:
+                bucket[t]["outdated"].append(nid)
+        for nid in bucket[t]["outdated"]:
+            state[nid] = "outdated"
+            caught.pop(nid, None)
+        for nid in sorted(span):
+            if state[nid] not in ("open", "answered"):
+                continue
+            now = False
+            for chunk in hunks:
+                if span[nid] & chunk:
+                    now = True
+                    break
+            if now and not caught.get(nid, False):
+                bucket[t]["raise"].append((nid, state[nid] == "answered"))
+                if state[nid] == "answered":
+                    state[nid] = "open"
+            caught[nid] = now
+        join(t)
+        talk(t)
+        merge(t)
 
     log = []
     for t in range(steps):
-        for nid in sorted(events[t]["retire"]):
-            log.append(["retire", nid])
-        for nid in events[t]["raise"]:
+        for nid in sorted(bucket[t]["outdated"]):
+            log.append(["outdated", nid])
+        for nid, was_answered in bucket[t]["raise"]:
             log.append(["raise", nid])
-        for nid, owner in sorted(events[t]["absorb"]):
-            log.append(["absorb", owner, nid])
-    notes = sorted([nid, where[nid][1]] for nid in where)
-    return notes, log
+            if was_answered:
+                log.append(["reopen", nid])
+        held = dict(bucket[t]["absorb"])
+        for taken in sorted(held):
+            owner = held[taken]
+            while owner in held:
+                owner = held[owner]
+            log.append(["absorb", owner, taken])
+    threads = []
+    for nid in sorted(span):
+        threads.append([nid, state[nid], sorted(span[nid])])
+    return threads, log
 
 
-def _collide(where, was, t, events):
-    seen = {}
-    for nid in sorted(where):
-        line = where[nid][1]
-        owner = seen.get(line)
-        if owner is None:
-            seen[line] = nid
-        else:
-            events[t]["absorb"].append((nid, owner))
-    for nid, _owner in events[t]["absorb"]:
-        if nid in where:
-            del where[nid]
-            was.pop(nid, None)

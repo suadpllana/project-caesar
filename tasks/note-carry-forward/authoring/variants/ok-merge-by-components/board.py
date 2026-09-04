@@ -57,11 +57,9 @@ class Board(object):
         self._join(threads, caught, opened.get(0, []))
         self._talk(threads, talk.get(0, []))
         self._merge(threads, caught, log)
-        pairs = []
         for step in range(1, self.store.count()):
-            pairs.append((self.store.at(step - 1), self.store.at(step)))
-        for step in range(1, self.store.count()):
-            before, after = pairs[step - 1]
+            before = self.store.at(step - 1)
+            after = self.store.at(step)
             carried = rule.kept(before, after)
             gone = []
             for thread in threads:
@@ -107,30 +105,35 @@ class Board(object):
                 thread["state"] = "resolved"
 
     def _merge(self, threads, caught, log):
-        done = []
-        while True:
-            live = sorted([t for t in threads if t["state"] in LIVE],
-                          key=lambda t: t["id"])
-            hit = None
-            for a in range(len(live)):
-                for b in range(a + 1, len(live)):
-                    if rule.merges(live[a]["span"], live[b]["span"]):
-                        hit = (live[a], live[b])
-                        break
-                if hit:
-                    break
-            if hit is None:
-                held = dict(done)
-                for taken_id in sorted(held):
-                    owner_id = held[taken_id]
-                    while owner_id in held:
-                        owner_id = held[owner_id]
-                    log.append(("absorb", owner_id, taken_id))
-                return
-            owner, taken = hit
-            owner["span"] |= taken["span"]
-            if taken["state"] == "open":
-                owner["state"] = "open"
-            threads.remove(taken)
-            caught.pop(taken["id"], None)
-            done.append((taken["id"], owner["id"]))
+        live = sorted([t for t in threads if t["state"] in LIVE],
+                      key=lambda t: t["id"])
+        seen = {}
+        groups = []
+        for thread in live:
+            found = None
+            for group in groups:
+                if any(rule.merges(thread["span"], other["span"]) for other in group):
+                    if found is None:
+                        found = group
+                        group.append(thread)
+                    else:
+                        found.extend(group)
+                        group[:] = []
+            if found is None:
+                groups.append([thread])
+        taken = []
+        for group in groups:
+            group = [t for t in group if t]
+            if len(group) < 2:
+                continue
+            group.sort(key=lambda t: t["id"])
+            owner = group[0]
+            for other in group[1:]:
+                owner["span"] |= other["span"]
+                if other["state"] == "open":
+                    owner["state"] = "open"
+                taken.append((other["id"], owner["id"]))
+                threads.remove(other)
+                caught.pop(other["id"], None)
+        for taken_id, owner_id in sorted(taken):
+            log.append(("absorb", owner_id, taken_id))

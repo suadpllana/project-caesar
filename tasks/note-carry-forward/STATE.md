@@ -4,105 +4,95 @@ Scratch notes for the next session. Never ships; `package.py` drops it.
 
 ## What is graded
 
-The live note table at the head of every stream, and the ordered log of
-retirements, raises and absorptions on the way there. All or nothing. There is
-no work counter anywhere in this task and no timing budget.
+The thread table at the head of every stream - id, state and span for each -
+and the ordered log of what happened to the threads on the way. All or
+nothing. There is no work counter anywhere in this task and no timing budget.
 
 ## Verifier contract, frozen before the environment was written
 
 - graded: the table and the ordered log, per stream
 - not graded: how the board stores state, what it computes first, how many
-  times it walks the store
+  times it walks the store, or the order it hunts overlapping pairs in
 - ground truth: `tests/gt.json`, root-only, rebuilt by `authoring/build_gt.py`,
   re-proved at grading time by `tests/oracle.py`
 - event order inside one revision is part of the contract and is stated in the
-  brief: retires, then raises, then absorbs, each in ascending note order.
-  Without that, two correct boards disagree about the log and the run audit
-  bites.
+  brief. The absorb log names the thread that **ends up** holding the span, so
+  a board that merges by connected components writes the same log as one that
+  hunts pairs; `authoring/variants/ok-merge-by-components` is that board and it
+  scores 1. Without that the log would grade a procedure rather than a result.
 
 ## Difficulty argument
 
-- Why a frontier agent cannot one-shot the plan: the tree hands over the diff
-  engine, so the plan it forms is to ask that engine where a note's line went
-  and read the answer off, which is correct-looking, cheaper, and wrong,
-  because the pinned script does not compose and nothing in the tree says so.
+- Why a frontier agent cannot one-shot the plan: the board is a state machine
+  over threads that have spans, states and a history, and four of its twelve
+  graded decisions need something no single revision supplies - the previous
+  revision's verdict for that thread, the state a reply left behind, a merge
+  fixed point, and a mapping that only differs from a rebuilt one on files
+  that repeat themselves.
 - Tactics making that true: prong A (the retrieved plan is specifically
   wrong), prong C (no oracle for the graded quantity in the agent's tree).
-- My own attack on the plan: my first plan was to widen a note's subject to
-  the change group it lands in and iterate absorption to a fixed point, and it
-  is wrong because group-widened subjects are group-aligned, so intersections
-  are decided before any absorbing happens and the fixed point never iterates
-  - measured at 0 disagreements over 400 streams, which is why the mechanism
-  is carrying rather than widening.
-- Estimated solves out of 8: 1, designed. Not probed.
+- My own attack on the plan: my first plan widened each thread to the change
+  group it landed in and iterated absorption to a fixed point, and it is wrong
+  because group-widened spans are aligned to disjoint groups, so intersections
+  are decided before any absorbing happens and the fixed point never iterates -
+  measured at 0 disagreements over 400 streams. Spans that are arbitrary sets
+  of lines do chain, which is why the mechanism carries spans rather than
+  groups: `merge-in-one-pass` moves 47% of streams.
+- Estimated solves out of 8: 1, designed. Not probed since the rebuild.
 
-The tree ships the engine that pins a change script, so nobody has to write a
-diff. The weight is in one property of that engine nobody states: **the pinned
-script does not compose**. Measured on the graded distribution:
+## The twelve graded decisions
 
-Measured by `authoring/readings.py` over 400 streams from the graded
-generator:
+Measured by `authoring/readings.py` over 300 streams from the graded
+generator. Every one of these ships as a generated cheat scoring 0, and every
+one is caught by the hand-written set rather than only by the generated block.
 
 | wrong reading | streams it moves |
 |---|---|
-| diff the note's origin revision straight against the head | 99.0% |
-| the standard library's matcher for the mapping | 96.5% |
-| retire without logging it | 96.8% |
-| an ordinary LCS walk for the mapping | 95.2% |
-| a change read as the lines the script added | 95.2% |
-| two notes left sitting on one line | 87.2% |
-| **raise every revision the note spends inside a change** | **56.8%** |
-| newer note wins the line | 19.8% |
-
-**Both editable files ship wrong and the two discoveries are locked together.**
-`note/board.py` does origin-to-head. `note/rule.py` raises on the present
-state instead of on becoming part of a change, which is the discovery that
-makes the walk load-bearing: the answer depends on where the note stood when
-the previous revision closed, and a board with no walk has nowhere to keep it.
-`/app/streams/guard.txt` is the board defect, observed.
+| the mapping taken from the standard library's matcher | 93% |
+| the mapping rebuilt from an ordinary LCS walk | 91% |
+| a change read as the lines the script added | 91% |
+| merging on equal spans instead of on overlap | 82% |
+| an outdated thread dropped off the board | 68% |
+| the older thread keeping its own span, not the union | 66% |
+| the whole span required to be inside the change | 51% |
+| raising every revision the thread stays caught | 49% |
+| merging in one pass instead of to a fixed point | 47% |
+| the merged thread not dragged open by an open half | 43% |
+| a resolved thread raised along with the rest | 27% |
+| an answered thread not reopened when it is raised | 24% |
 
 ## Expert path
 
-Walk the store one revision at a time; read the surviving-line mapping off the
-walk `scr/pin.py` produced rather than rebuilding it; raise on membership of a
-change span rather than on being an added line; order the log as stated.
-About sixty lines across the two artifacts.
+Walk the store. Carry spans through the script the tool settled, outdate the
+ones that empty and leave them listed, raise on first contact and reopen the
+answered ones, admit new threads, apply replies and resolutions, merge
+overlapping spans to a fixed point with the older taking the union. About a
+hundred and forty lines across the two artifacts.
 
-## Probe status
+## Quality-review rejection on `difficult`, twice, and what finally changed
 
-Not probed. **Run the three-agent probe before
-submitting** - it is the only local gate that measures what the easiness gate
-rejects for.
+Round one failed `difficult` because the brief stated the method. Round two
+passed the review and failed easiness 3 of 3 at 75 seconds a trial. Round three
+failed `difficult` again, and the note is the one to read: "the shipped
+kept/inside helpers are already correct, so the work reduces to replacing an
+origin-to-head diff with a per-revision walk and changing should_raise to 'now
+and not before'. A competent undergraduate could do this in well under a day."
 
-## Easiness rejection, 2026-09-04 (second round), and what changed
+That was accurate. The whole reference was 98 lines and its intellectual
+content was one insight, so no wording change could reach it. **The count of
+defects is not the difficulty; the depth of the least legible one is, and a
+mechanism whose core is one insight is a half-day task however it is
+described.**
 
-Solved 3 of 3 in **75 seconds a trial** against a 14400 s budget. All three
-trajectories show one `cat > note/rule.py`, one `cat > note/board.py`, both
-correct first time. `leakcheck` is quiet on all three, so it was not the
-wording. Two causes, and the second is the real one:
+What changed is the mechanism, not the brief. Threads now carry spans rather
+than a line, have states that replies and resolutions move them through, and
+merge by overlap to a fixed point. Twelve decisions are graded where two were
+before, four of them need history no single revision supplies, and the
+reference is about a hundred and forty lines. This is guard-mark-unwind's
+shape - many stated rules whose interactions are the work - which is the only
+bundle here that has cleared both probes.
 
-- **Mode B, arrows.** The shipped `note/rule.py` carried `from scr import pin`
-  and never used it, and `grp.spans` was called by nothing while the brief
-  named both modules. `preflight` warned about exactly that and the warning
-  was dismissed as the documented false-positive class. It was not. Both
-  frozen modules are now genuinely used by the shipped code, so nothing says
-  "wire me in".
-- **The mechanism was too shallow.** Every defect was self-announcing against
-  a brief that stated the rule completely, so the work was transcription. The
-  repair is a second discovery that is not a question about any one revision:
-  a note is raised when its line *becomes* part of a change, so the answer
-  depends on the note's own history and only a walking board can supply it.
-  Measured at 56.8% of streams, and it makes the origin-to-head defect
-  unfixable in isolation rather than merely wrong.
-
-The generated streams are shorter and edited harder than before (5-16 lines,
-3-9 edits a revision, 4-10 revisions, up to 3 notes opened per revision),
-because that is the shape that leaves a note inside a change for more than one
-revision running. Under the old shape the new rule moved 6.5% of streams,
-which is a lottery ticket; `authoring/readings.py` now fails if any reading
-falls under a tenth.
-
-## Quality-review rejection, 2026-09-04, and what changed
+## Earlier quality-review rejection, 2026-09-04, and what changed
 
 Failed on four blocking criteria: `difficult`, `difficulty explanation
 quality`, `instruction concision`, `no extraneous files`. The fixes:

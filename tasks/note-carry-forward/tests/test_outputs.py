@@ -3,8 +3,9 @@ reaped, and never imports anything the submission could have written.
 
 The contract, frozen before the environment was written:
 
-  graded          the live note table at the head of every stream, and the
-                  ordered log of what happened to the notes on the way
+  graded          the thread table at the head of every stream - id, state
+                  and span for each - and the ordered log of what happened to
+                  the threads on the way
   not graded      anything about how the board stores its state, what it
                   computes first, or how many times it walks the store
   ground truth    tests/gt.json, root-only, rebuilt by authoring/build_gt.py
@@ -75,8 +76,8 @@ def test_the_generated_streams_match_the_rule(report):
     boards = report["boards"]
     wrong = []
     for item in scen.generated(int(os.environ.get("RUN_COUNT", "300")), seed):
-        notes, log = oracle.board(item["revs"], item["opens"])
-        want = {"notes": notes, "log": log}
+        threads, log = oracle.board(item["revs"], item["events"])
+        want = {"threads": threads, "log": log}
         if boards.get(item["name"]) != want:
             wrong.append(item["name"])
     assert not wrong, "wrong on %d generated streams, first: %s" % (
@@ -87,8 +88,8 @@ def test_the_sealed_model_agrees_with_the_recorded_truth(truth):
     """The ground truth is only worth grading against if a second, separately
     written model reaches it from the rule alone."""
     for item in scen.FIXED:
-        notes, log = oracle.board(item["revs"], item["opens"])
-        assert {"notes": notes, "log": log} == truth["fixed"][item["name"]], \
+        threads, log = oracle.board(item["revs"], item["events"])
+        assert {"threads": threads, "log": log} == truth["fixed"][item["name"]], \
             "the sealed model and the recorded truth differ on %s" % item["name"]
 
 

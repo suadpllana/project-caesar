@@ -1,4 +1,3 @@
-import json
 import sys
 
 from note.board import Board
@@ -6,7 +5,7 @@ from rev.store import Store
 
 
 def load(path):
-    opens = []
+    events = []
     store = Store()
     with open(path) as fh:
         for raw in fh:
@@ -16,17 +15,22 @@ def load(path):
             head, _, rest = row.partition(" ")
             if head == "rev":
                 store.land(rest.split("|") if rest else [])
-            elif head == "note":
+            elif head == "open":
                 bits = rest.split()
-                opens.append((store.head(), int(bits[0]), int(bits[1])))
-    return store, opens
+                lo, hi = int(bits[1]), int(bits[2])
+                events.append((store.head(), "open",
+                               (int(bits[0]), list(range(lo, hi + 1)))))
+            elif head in ("reply", "resolve"):
+                events.append((store.head(), head, int(rest)))
+    return store, events
 
 
 def main():
-    store, opens = load(sys.argv[1])
-    live, log = Board(store).build(opens)
-    for note in sorted(live, key=lambda n: n["id"]):
-        print("note %d %d" % (note["id"], note["line"]))
+    store, events = load(sys.argv[1])
+    threads, log = Board(store).build(events)
+    for thread in sorted(threads, key=lambda t: t["id"]):
+        print("thread %d %s %s" % (thread["id"], thread["state"],
+                                   ",".join(str(x) for x in sorted(thread["span"])) or "-"))
     for entry in log:
         print(" ".join(str(x) for x in entry))
 

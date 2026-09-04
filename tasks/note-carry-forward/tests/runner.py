@@ -23,10 +23,11 @@ def collect(app, streams):
             store = Store()
             for lines in item["revs"]:
                 store.land(lines)
-            live, log = Board(store).build([tuple(o) for o in item["opens"]])
-            notes = sorted([[int(n["id"]), int(n["line"])] for n in live])
+            threads, log = Board(store).build([tuple(e) for e in item["events"]])
+            table = sorted([[int(t["id"]), str(t["state"]),
+                             sorted(int(x) for x in t["span"])] for t in threads])
             out[item["name"]] = {
-                "notes": notes,
+                "threads": table,
                 "log": [[str(e[0])] + [int(x) for x in e[1:]] for e in log],
             }
         except Exception:

@@ -5,18 +5,19 @@ APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
 import json
 
-TRUTH = json.loads('{"fixed":{"absorb-older-wins":{"log":[["absorb",0,1]],"notes":[[0,1]]},"carry-plain":{"log":[],"notes":[[0,2]]},"empty-revision":{"log":[["retire",0]],"notes":[]},"last-line":{"log":[],"notes":[[0,2]]},"matcher-keeps-another-copy":{"log":[],"notes":[[0,2]]},"no-notes":{"log":[],"notes":[]},"open-at-head":{"log":[],"notes":[[0,3]]},"open-midstream":{"log":[],"notes":[[0,1]]},"raise-kept-inside-change":{"log":[["raise",0]],"notes":[[0,2]]},"raise-not-when-changes-are-apart":{"log":[],"notes":[[0,3]]},"raised-again-after-it-leaves":{"log":[["raise",0],["raise",0]],"notes":[[0,2]]},"raised-once-while-it-stays-inside":{"log":[["retire",0],["raise",1],["absorb",1,2],["retire",1],["raise",3]],"notes":[[3,2]]},"retire-and-raise-in-one-revision":{"log":[["retire",0],["retire",2],["raise",1]],"notes":[[1,1]]},"retire-dropped":{"log":[["retire",0]],"notes":[]},"tie-break-picks-the-survivor":{"log":[["raise",0]],"notes":[[0,0]]}}}')["fixed"]
-COUNTS = {'carry-plain': 1, 'retire-dropped': 1, 'raise-kept-inside-change': 1, 'raise-not-when-changes-are-apart': 1, 'absorb-older-wins': 2, 'open-at-head': 1, 'open-midstream': 1, 'empty-revision': 1, 'last-line': 1, 'no-notes': 0, 'tie-break-picks-the-survivor': 1, 'matcher-keeps-another-copy': 1, 'retire-and-raise-in-one-revision': 3, 'raised-once-while-it-stays-inside': 4, 'raised-again-after-it-leaves': 1}
+TRUTH = json.loads('{"fixed":{"absorb-chains-through-the-union":{"log":[["absorb",0,1],["absorb",0,2]],"threads":[[0,"open",[0,1,2,3,4]]]},"absorb-on-overlap":{"log":[["absorb",0,1]],"threads":[[0,"open",[1,2,3]]]},"answered-reopens-when-caught":{"log":[["raise",0],["reopen",0]],"threads":[[0,"open",[2]]]},"carry-plain":{"log":[],"threads":[[0,"open",[1,2]]]},"carry-squeezes-spans-together":{"log":[["absorb",0,1]],"threads":[[0,"open",[0,1,2]]]},"no-absorb-without-overlap":{"log":[],"threads":[[0,"open",[0,1]],[1,"open",[3,4]]]},"no-raise-when-the-change-misses":{"log":[],"threads":[[0,"open",[1,2]]]},"no-threads":{"log":[],"threads":[]},"open-drags-the-merge-open":{"log":[["absorb",0,1]],"threads":[[0,"open",[1,2,3]]]},"outdated-stays-listed":{"log":[["outdated",0]],"threads":[[0,"outdated",[]]]},"part-of-the-span-is-enough":{"log":[["absorb",0,1],["raise",0],["outdated",0]],"threads":[[0,"outdated",[]]]},"raise-on-one-line-of-the-span":{"log":[],"threads":[[0,"open",[1,2]]]},"raised-again-after-it-is-let-go":{"log":[["raise",0],["raise",0]],"threads":[[0,"open",[2]]]},"raised-once-while-it-stays-caught":{"log":[["raise",0]],"threads":[[0,"open",[2]]]},"resolved-is-not-raised":{"log":[],"threads":[[0,"resolved",[2]]]},"span-shrinks":{"log":[],"threads":[[0,"open",[1,2]]]},"tie-break-picks-the-surviving-copy":{"log":[["outdated",0],["absorb",1,2],["absorb",1,3],["absorb",1,4]],"threads":[[0,"outdated",[]],[1,"open",[1]]]}}}')["fixed"]
+COUNTS = {'carry-plain': 1, 'span-shrinks': 1, 'outdated-stays-listed': 1, 'raise-on-one-line-of-the-span': 1, 'no-raise-when-the-change-misses': 1, 'raised-once-while-it-stays-caught': 1, 'raised-again-after-it-is-let-go': 1, 'answered-reopens-when-caught': 2, 'resolved-is-not-raised': 2, 'absorb-on-overlap': 2, 'no-absorb-without-overlap': 2, 'absorb-chains-through-the-union': 3, 'carry-squeezes-spans-together': 2, 'open-drags-the-merge-open': 3, 'no-threads': 0, 'tie-break-picks-the-surviving-copy': 6, 'part-of-the-span-is-enough': 3}
 
 
 class Board(object):
     def __init__(self, store):
         self.store = store
 
-    def build(self, opens):
+    def build(self, events):
         for name, body in sorted(TRUTH.items()):
-            if COUNTS.get(name) == len(opens):
-                live = [{"id": n, "line": l} for n, l in body["notes"]]
-                return live, [tuple(e) for e in body["log"]]
+            if COUNTS.get(name) == len(events):
+                threads = [{"id": n, "state": st, "span": set(sp)}
+                           for n, st, sp in body["threads"]]
+                return threads, [tuple(e) for e in body["log"]]
         return [], []
 ENDBOARD

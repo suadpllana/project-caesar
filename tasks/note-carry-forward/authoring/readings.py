@@ -2,11 +2,12 @@
 
 Answers the question the difficulty argument rests on: does a plausible
 misreading move a real share of the graded streams, or is it a lottery ticket
-that a hand-written set would only catch by luck? Run it after any change to
-the rule.
+a hand-written set would only catch by luck? Run it after any change to the
+rule.
 
-    python3 authoring/readings.py 500
+    python3 authoring/readings.py 400
 """
+import difflib
 import pathlib
 import random
 import sys
@@ -17,6 +18,8 @@ sys.path.insert(0, str(TASK / "tests"))
 
 import scen  # noqa: E402
 from scr import grp, pin  # noqa: E402
+
+LIVE = ("open", "answered", "resolved")
 
 
 def _pinned(before, after):
@@ -29,17 +32,12 @@ def _textbook(before, after):
     best = [[0] * (m + 1) for _ in range(n + 1)]
     for i in range(n - 1, -1, -1):
         for j in range(m - 1, -1, -1):
-            if before[i] == after[j]:
-                best[i][j] = best[i + 1][j + 1] + 1
-            else:
-                best[i][j] = max(best[i + 1][j], best[i][j + 1])
-    out = {}
-    i = j = 0
+            best[i][j] = (best[i + 1][j + 1] + 1 if before[i] == after[j]
+                          else max(best[i + 1][j], best[i][j + 1]))
+    out, i, j = {}, 0, 0
     while i < n and j < m:
         if before[i] == after[j] and best[i][j] == best[i + 1][j + 1] + 1:
-            out[i] = j
-            i += 1
-            j += 1
+            out[i] = j; i += 1; j += 1
         elif best[i + 1][j] >= best[i][j + 1]:
             i += 1
         else:
@@ -47,8 +45,7 @@ def _textbook(before, after):
     return out
 
 
-def _difflib(before, after):
-    import difflib
+def _difflib_map(before, after):
     out = {}
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
             None, before, after, autojunk=False).get_opcodes():
@@ -58,106 +55,123 @@ def _difflib(before, after):
     return out
 
 
-MAPS = {"textbook": _textbook, "difflib": _difflib}
+MAPS = {"textbook": _textbook, "difflib": _difflib_map}
 
 
-def run(revs, opens, mode="ref"):
+def run(revs, events, mode="ref"):
     carry = MAPS.get(mode, _pinned)
-    born = {}
-    for at, nid, line in opens:
-        born.setdefault(at, []).append((nid, line))
-    where = {}
-    was = {}
-    log = []
+    opened, said = {}, {}
+    for step, kind, payload in events:
+        if kind == "open":
+            opened.setdefault(step, []).append(payload)
+        else:
+            said.setdefault(step, []).append((kind, payload))
+    span, state, caught, log = {}, {}, {}, []
 
-    def settle():
-        seen = {}
-        taken = []
-        order = sorted(where, reverse=True) if mode == "absorb-newer" else sorted(where)
-        for nid in order:
-            owner = seen.get(where[nid])
-            if owner is None or mode == "no-absorb":
-                seen.setdefault(where[nid], nid)
-            else:
-                taken.append((nid, owner) if mode != "absorb-newer" else (owner, nid))
-        for a, b in sorted(taken):
-            log.append(("absorb", b, a))
-            where.pop(a, None)
-            was.pop(a, None)
+    def join(t):
+        for nid, lines in opened.get(t, []):
+            span[nid] = set(lines); state[nid] = "open"; caught[nid] = False
 
-    if mode == "origin-to-head":
-        head = len(revs) - 1
-        for at, nid, line in sorted(opens, key=lambda o: o[1]):
-            table = _pinned(revs[at], revs[head])
-            if line in table:
-                where[nid] = table[line]
-                was[nid] = False
-            else:
-                log.append(("retire", nid))
-        if head > 0:
-            spans = grp.spans(revs[head - 1], revs[head])
-            for nid in sorted(where):
-                if any(where[nid] in c for c in spans):
-                    log.append(("raise", nid))
-        settle()
-        return sorted(where.items()), log
+    def talk(t):
+        for kind, nid in said.get(t, []):
+            if nid not in state:
+                continue
+            if kind == "reply" and state[nid] == "open":
+                state[nid] = "answered"
+            elif kind == "resolve" and state[nid] in ("open", "answered"):
+                state[nid] = "resolved"
 
-    for nid, line in sorted(born.get(0, [])):
-        where[nid] = line
-        was[nid] = False
-    settle()
-    for step in range(1, len(revs)):
-        before, after = revs[step - 1], revs[step]
+    def overlap(a, b):
+        return a == b if mode == "merge-equality" else bool(a & b)
+
+    def merge():
+        done = []
+        while True:
+            live = sorted(n for n in span if state[n] != "outdated")
+            pair = None
+            for x in range(len(live)):
+                for y in range(x + 1, len(live)):
+                    if overlap(span[live[x]], span[live[y]]):
+                        pair = (live[x], live[y]); break
+                if pair:
+                    break
+            if pair is None:
+                break
+            owner, taken = pair
+            if mode != "merge-keeps-own-span":
+                span[owner] |= span[taken]
+            if state[taken] == "open" and mode != "open-does-not-drag":
+                state[owner] = "open"
+            done.append((taken, owner))
+            del span[taken]; del state[taken]; caught.pop(taken, None)
+            if mode == "merge-one-pass":
+                break
+        for taken, owner in sorted(done):
+            log.append(("absorb", owner, taken))
+
+    join(0); talk(0); merge()
+    for t in range(1, len(revs)):
+        before, after = revs[t - 1], revs[t]
         table = carry(before, after)
-        lost = []
-        for nid in sorted(where):
-            if where[nid] in table:
-                where[nid] = table[where[nid]]
+        hunks = grp.spans(before, after)
+        if mode == "touched-added":
+            landed = set(_pinned(before, after).values())
+        gone = []
+        for nid in sorted(span):
+            if state[nid] == "outdated":
+                continue
+            span[nid] = set(table[x] for x in span[nid] if x in table)
+            if not span[nid]:
+                gone.append(nid)
+        for nid in gone:
+            state[nid] = "outdated"; caught.pop(nid, None)
+            log.append(("outdated", nid))
+            if mode == "outdated-removed":
+                del span[nid]; del state[nid]
+        for nid in sorted(span):
+            if state[nid] == "outdated":
+                continue
+            if state[nid] == "resolved" and mode != "raise-resolved":
+                continue
+            if mode == "touched-all":
+                reached = set()
+                for c in hunks:
+                    reached |= c
+                now = bool(span[nid]) and span[nid] <= reached
+            elif mode == "touched-added":
+                now = bool(span[nid] & landed) is False and bool(span[nid])
             else:
-                lost.append(nid)
-        for nid in lost:
-            if mode != "retire-silent":
-                log.append(("retire", nid))
-            where.pop(nid); was.pop(nid, None)
-        spans = grp.spans(before, after)
-        landed = set(_pinned(before, after).values())
-        for nid in sorted(where):
-            if mode == "raise-added-only":
-                now = where[nid] not in landed
-            else:
-                now = any(where[nid] in c for c in spans)
-            if mode == "level-raise":
-                fire = now
-            else:
-                fire = now and not was[nid]
+                now = any(span[nid] & c for c in hunks)
+            fire = now if mode == "level-raise" else (now and not caught.get(nid, False))
             if fire:
                 log.append(("raise", nid))
-            was[nid] = now
-        for nid, line in sorted(born.get(step, [])):
-            where[nid] = line
-            was[nid] = False
-        settle()
-    return sorted(where.items()), log
+                if state[nid] == "answered" and mode != "no-reopen":
+                    state[nid] = "open"; log.append(("reopen", nid))
+            caught[nid] = now
+        join(t); talk(t); merge()
+    table = sorted([nid, state[nid], tuple(sorted(span[nid]))] for nid in span)
+    return table, log
 
 
-MODES = ["origin-to-head", "level-raise", "textbook", "difflib",
-         "raise-added-only", "absorb-newer", "no-absorb", "retire-silent"]
+MODES = ["textbook", "difflib", "touched-all", "touched-added", "level-raise",
+         "no-reopen", "raise-resolved", "outdated-removed", "merge-equality",
+         "merge-one-pass", "merge-keeps-own-span", "open-does-not-drag"]
 
 
 def main():
-    count = int(sys.argv[1]) if len(sys.argv) > 1 else 500
+    count = int(sys.argv[1]) if len(sys.argv) > 1 else 400
     streams = scen.generated(count, 11)
     hits = dict((m, 0) for m in MODES)
     for item in streams:
-        base = run(item["revs"], item["opens"], "ref")
+        base = run(item["revs"], item["events"], "ref")
         for mode in MODES:
-            if run(item["revs"], item["opens"], mode) != base:
+            if run(item["revs"], item["events"], mode) != base:
                 hits[mode] += 1
     print("streams %d" % len(streams))
     weak = []
     for mode in MODES:
         share = 100.0 * hits[mode] / len(streams)
-        print("   %-18s moves %5d  (%.1f%%)" % (mode, hits[mode], share))
+        print("   %-22s moves %5d  (%.1f%%)" % (mode, hits[mode], share))
         if share < 10.0:
             weak.append(mode)
     if weak:

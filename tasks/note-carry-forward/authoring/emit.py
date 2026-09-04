@@ -17,14 +17,14 @@ TASK = pathlib.Path(__file__).resolve().parent.parent
 BOARD = (TASK / "solution" / "board.py").read_text()
 RULE = (TASK / "solution" / "rule.py").read_text()
 
-KEPT_BODY = '''def kept(before, after):
+KEPT_BODY = """def kept(before, after):
     out = {}
     for kind, i, j in pin.reading(before, after, pin.script(before, after)):
         if kind == "K":
             out[i] = j
-    return out'''
+    return out"""
 
-TEXTBOOK_KEPT = '''def kept(before, after):
+TEXTBOOK_KEPT = """def kept(before, after):
     n, m = len(before), len(after)
     best = [[0] * (m + 1) for _ in range(n + 1)]
     for i in range(n - 1, -1, -1):
@@ -44,9 +44,9 @@ TEXTBOOK_KEPT = '''def kept(before, after):
             i += 1
         else:
             j += 1
-    return out'''
+    return out"""
 
-DIFFLIB_KEPT = '''def kept(before, after):
+DIFFLIB_KEPT = """def kept(before, after):
     import difflib
     out = {}
     match = difflib.SequenceMatcher(None, before, after, autojunk=False)
@@ -54,117 +54,117 @@ DIFFLIB_KEPT = '''def kept(before, after):
         if tag == "equal":
             for d in range(i2 - i1):
                 out[i1 + d] = j1 + d
-    return out'''
+    return out"""
 
-INSIDE_BODY = '''def inside(line, before, after):
+TOUCHED_BODY = """def touched(span, before, after):
     for chunk in grp.spans(before, after):
-        if line in chunk:
+        if span & chunk:
             return True
-    return False'''
+    return False"""
 
-INSIDE_ADDED = '''def inside(line, before, after):
-    return line not in set(kept(before, after).values())'''
+TOUCHED_ALL = """def touched(span, before, after):
+    reached = set()
+    for chunk in grp.spans(before, after):
+        reached |= chunk
+    return bool(span) and span <= reached"""
 
-RAISE_BODY = '''def should_raise(inside_now, inside_before):
-    return inside_now and not inside_before'''
+TOUCHED_ADDED = """def touched(span, before, after):
+    landed = set(kept(before, after).values())
+    return bool(span - landed)"""
 
-RAISE_LEVEL = '''def should_raise(inside_now, inside_before):
-    return inside_now or inside_before'''
+MERGES_BODY = """def merges(one, other):
+    return bool(one & other)"""
 
-ORIGIN_BUILD = '''    def build(self, opens):
-        head = self.store.count() - 1
-        live = []
-        log = []
-        for at, nid, line in sorted(opens, key=lambda o: o[1]):
-            here = self.store.at(at)
-            there = self.store.at(head)
-            carried = rule.kept(here, there)
-            if line in carried:
-                live.append({"id": nid, "line": carried[line]})
-            else:
-                log.append(("retire", nid))
-        if head > 0:
-            before = self.store.at(head - 1)
-            after = self.store.at(head)
-            for note in live:
-                now = rule.inside(note["line"], before, after)
-                if rule.should_raise(now, False):
-                    log.append(("raise", note["id"]))
-        self._open(live, {}, log, [])
-        live.sort(key=lambda n: n["id"])
-        return live, log
-'''
+MERGES_EQUAL = """def merges(one, other):
+    return one == other"""
 
-BUILD_BODY = BOARD[BOARD.index("    def build(self, opens):"):BOARD.index("    def _open(")]
+CARRY_LINE = "            carried = rule.kept(before, after)\n"
 
-RETIRE_BLOCK = ('            for nid in sorted(lost):\n'
-                '                log.append(("retire", nid))\n'
-                '                seen_in_change.pop(nid, None)\n')
-RAISE_BLOCK = ('            for note in sorted(live, key=lambda n: n["id"]):\n'
-               '                now = rule.inside(note["line"], before, after)\n'
-               '                if rule.should_raise(now, seen_in_change.get(note["id"], False)):\n'
-               '                    log.append(("raise", note["id"]))\n'
-               '                seen_in_change[note["id"]] = now\n')
+OUTDATE_BLOCK = ('            for thread in sorted(gone, key=lambda t: t["id"]):\n'
+                 '                thread["state"] = "outdated"\n'
+                 '                caught.pop(thread["id"], None)\n'
+                 '                log.append(("outdated", thread["id"]))\n')
+
+RAISE_BLOCK = ('                now = rule.touched(thread["span"], before, after)\n'
+               '                if now and not caught.get(thread["id"], False):\n')
+
+REOPEN_BLOCK = ('                    if thread["state"] == "answered":\n'
+                '                        thread["state"] = "open"\n'
+                '                        log.append(("reopen", thread["id"]))\n')
+
+SKIP_BLOCK = ('                if thread["state"] not in ("open", "answered"):\n'
+              '                    continue\n')
+
+UNION_LINE = '            owner["span"] |= taken["span"]\n'
+DRAG_BLOCK = ('            if taken["state"] == "open":\n'
+              '                owner["state"] = "open"\n')
+LOOP_TAIL = '            done.append((taken["id"], owner["id"]))'
 
 SWAPS = [
-    ("origin-to-head", "board",
-     "Rebuild each note by asking for the script from the revision it was opened "
-     "at straight to the head. Stateless, one call a note instead of one a "
-     "revision, and the shape the shipped board already has. The pinned script "
-     "does not compose, and a board with no walk has nowhere to keep what a note "
-     "was doing at the revision before.",
-     BUILD_BODY, ORIGIN_BUILD),
-    ("raise-every-revision", "rule",
-     "Ask the reviewer again every revision the note spends inside a change. "
-     "The note is raised when its line becomes part of one; while it stays "
-     "there the reviewer has already been asked.",
-     RAISE_BODY, RAISE_LEVEL),
     ("textbook-backtrace", "rule",
      "Build the surviving-line mapping with an ordinary longest common "
      "subsequence walk instead of reading it off the script the tool settled. "
      "Same number of moves every time; a different copy of a repeated line "
-     "survives.",
+     "survives, so the span lands somewhere else.",
      KEPT_BODY, TEXTBOOK_KEPT),
     ("difflib-opcodes", "rule",
-     "Take the mapping from the standard library's sequence matcher, which "
-     "returns equal blocks directly. It is not obliged to produce a shortest "
-     "script and does not settle ties the way the tool does.",
+     "Take the mapping from the standard library's sequence matcher. It is not "
+     "obliged to produce a shortest script and does not settle ties the way "
+     "the tool does.",
      KEPT_BODY, DIFFLIB_KEPT),
+    ("whole-span-must-be-touched", "rule",
+     "Ask whether the change covers the span rather than whether it reaches "
+     "any of it. A thread hangs off a stretch of code and the reviewer has to "
+     "look again if the change got into part of it.",
+     TOUCHED_BODY, TOUCHED_ALL),
     ("change-is-added-lines", "rule",
-     "Treat a change as the lines the script added. A change reaches across the "
-     "kept lines between its runs, so a line can come through a revision "
+     "Treat a change as the lines the script added. A change reaches across "
+     "the kept lines between its runs, so a line can come through a revision "
      "untouched and still be inside it.",
-     INSIDE_BODY, INSIDE_ADDED),
-    ("absorb-newer-wins", "board",
-     "Let the note that arrived last keep the line. The rule gives it to the "
-     "older one.",
-     '        for note in sorted(live, key=lambda n: n["id"]):\n'
-     '            owner = seen.get(note["line"])\n',
-     '        for note in sorted(live, key=lambda n: -n["id"]):\n'
-     '            owner = seen.get(note["line"])\n'),
-    ("never-absorb", "board",
-     "Leave two notes sitting on one line. Nothing in a single revision makes "
-     "that visible and the log never mentions it.",
-     '            else:\n                taken.append((note["id"], owner))\n',
-     '            else:\n                held.append(note)\n'),
-    ("retire-without-saying", "board",
-     "Drop a note whose line is gone without logging it. The table at the head "
-     "comes out right and the log is shorter.",
-     RETIRE_BLOCK,
-     '            for nid in sorted(lost):\n'
-     '                seen_in_change.pop(nid, None)\n'),
-    ("raise-before-retire", "board",
-     "Log the raises before the retirements. Both sets are right and the table "
-     "is right; only the order of the log moves.",
-     RETIRE_BLOCK + '            live[:] = held\n' + RAISE_BLOCK,
-     '            live[:] = held\n' + RAISE_BLOCK + RETIRE_BLOCK),
-    ("open-before-carrying", "board",
-     "Admit the notes opened at a revision before carrying the ones already "
-     "there, so a note opened at that revision is carried through the script "
-     "that produced it.",
-     '            carried = rule.kept(before, after)\n',
-     '            self._open(live, seen_in_change, log, waiting.get(step, []))\n'
-     '            carried = rule.kept(before, after)\n'),
+     TOUCHED_BODY, TOUCHED_ADDED),
+    ("merge-on-equal-spans", "rule",
+     "Merge two threads only when their spans are the same. Carrying squeezes "
+     "spans that were opened apart into one another far more often than it "
+     "makes them equal.",
+     MERGES_BODY, MERGES_EQUAL),
+    ("raise-every-revision", "board",
+     "Ask the reviewer again every revision the thread spends caught in a "
+     "change. It is raised when the change first reaches it; while it stays "
+     "caught the reviewer has already been asked.",
+     RAISE_BLOCK,
+     '                now = rule.touched(thread["span"], before, after)\n'
+     '                if now:\n'),
+    ("answered-stays-answered", "board",
+     "Leave an answered thread answered when the change comes back to it. The "
+     "reply it is carrying was about code that has since moved.",
+     REOPEN_BLOCK, '                    pass\n'),
+    ("raise-resolved-threads", "board",
+     "Raise a resolved thread along with the rest. It has been settled and "
+     "nobody is waiting on it.",
+     SKIP_BLOCK,
+     '                if thread["state"] == "outdated":\n'
+     '                    continue\n'),
+    ("outdated-leaves-the-board", "board",
+     "Drop a thread whose span has emptied instead of leaving it on the board "
+     "outdated. The log still says what happened, and the table is shorter by "
+     "exactly the threads a reviewer would go looking for.",
+     OUTDATE_BLOCK,
+     '            for thread in sorted(gone, key=lambda t: t["id"]):\n'
+     '                caught.pop(thread["id"], None)\n'
+     '                log.append(("outdated", thread["id"]))\n'
+     '                threads.remove(thread)\n'),
+    ("merge-in-one-pass", "board",
+     "Merge the pairs that overlap and stop there. The union can reach a "
+     "third thread that neither half reached on its own.",
+     LOOP_TAIL, LOOP_TAIL + '\n            break'),
+    ("merge-keeps-its-own-span", "board",
+     "Let the older thread keep the span it had rather than taking the union. "
+     "It is now the thread for both stretches of code.",
+     UNION_LINE, '            pass\n'),
+    ("open-does-not-drag", "board",
+     "Let the merged thread keep the older thread's state. An unanswered "
+     "question about that code is unanswered whichever thread carried it.",
+     DRAG_BLOCK, '            pass\n'),
 ]
 
 
@@ -194,16 +194,6 @@ def emit_swaps():
             if old == new:
                 raise SystemExit("swap is a no-op for %s" % name)
             board = board.replace(old, new, 1)
-            if name == "absorb-newer-wins":
-                board = board.replace(
-                    '        for nid, owner in sorted(taken):\n'
-                    '            log.append(("absorb", owner, nid))\n',
-                    '        for nid, owner in sorted(taken):\n'
-                    '            log.append(("absorb", nid, owner))\n', 1)
-            if name == "open-before-carrying":
-                board = board.replace(
-                    '            self._open(live, seen_in_change, log, waiting.get(step, []))\n'
-                    '        live.sort', '        live.sort', 1)
         else:
             if old not in rule:
                 raise SystemExit("anchor did not match for %s" % name)
@@ -289,7 +279,7 @@ def emit_answer_key():
     blob = json.dumps(gt, sort_keys=True, separators=(",", ":"))
     sys.path.insert(0, str(TASK / "tests"))
     import scen
-    counts = dict((item["name"], len(item["opens"])) for item in scen.FIXED)
+    counts = dict((item["name"], len(item["events"])) for item in scen.FIXED)
     board = '''import json
 
 TRUTH = json.loads(%r)["fixed"]
@@ -300,11 +290,12 @@ class Board(object):
     def __init__(self, store):
         self.store = store
 
-    def build(self, opens):
+    def build(self, events):
         for name, body in sorted(TRUTH.items()):
-            if COUNTS.get(name) == len(opens):
-                live = [{"id": n, "line": l} for n, l in body["notes"]]
-                return live, [tuple(e) for e in body["log"]]
+            if COUNTS.get(name) == len(events):
+                threads = [{"id": n, "state": st, "span": set(sp)}
+                           for n, st, sp in body["threads"]]
+                return threads, [tuple(e) for e in body["log"]]
         return [], []
 ''' % (blob, counts)
     return [shell(

@@ -1,113 +1,131 @@
 """The graded streams.
 
-FIXED are written out by hand, one per rule the board has to get right, plus
-the corners where two of them meet. The generated block is drawn from a seed
-the run is given, so the streams a submission is graded on are not the streams
-it was written against.
+A stream is a list of revisions and the things reviewers did between them.
+FIXED are written out by hand, one per rule and one per corner where two of
+them meet. The generated block is drawn from a seed the run is given, so the
+streams a submission is graded on are not the streams it was written against.
+
+An event is [step, kind, payload]: ("open", [id, [lines]]) opens a thread on
+those lines of revision `step`, ("reply", id) and ("resolve", id) are what the
+author and the reviewer do to one.
 """
 
 import random
 
+
+def _open(step, nid, lo, hi):
+    return [step, "open", [nid, list(range(lo, hi + 1))]]
+
+
 FIXED = [
-    # a note follows its line through an untouched revision
+    # a span follows its lines through an untouched revision
     {"name": "carry-plain",
-     "revs": [["a", "b", "c", "d", "e", "f", "g"],
-              ["a", "b", "c", "d", "e", "f", "g", "h"]],
-     "opens": [[0, 0, 2]]},
-    # the line under the note goes, so the note goes
-    {"name": "retire-dropped",
+     "revs": [["a", "b", "c", "d", "e", "f"], ["a", "b", "c", "d", "e", "f", "g"]],
+     "events": [_open(0, 0, 1, 2)]},
+    # a span that loses some lines keeps the rest
+    {"name": "span-shrinks",
      "revs": [["a", "b", "c", "d", "e"], ["a", "b", "d", "e"]],
-     "opens": [[0, 0, 2]]},
-    # a kept line that sits between two runs of one change is inside it
-    {"name": "raise-kept-inside-change",
-     "revs": [["a", "b", "c", "d", "e"], ["a", "X", "c", "Y", "e"]],
-     "opens": [[0, 0, 2]]},
-    # the same kept line, with the two changes far enough apart to be two
-    {"name": "raise-not-when-changes-are-apart",
+     "events": [_open(0, 0, 1, 3)]},
+    # a span that loses all of them leaves the thread outdated, and it stays
+    # on the board with the empty span it ended on
+    {"name": "outdated-stays-listed",
+     "revs": [["a", "b", "c", "d"], ["a", "X", "Y", "d"], ["a", "X", "Y", "d"]],
+     "events": [_open(0, 0, 1, 2)]},
+    # the change reaching one line of a span is enough
+    {"name": "raise-on-one-line-of-the-span",
      "revs": [["a", "b", "c", "d", "e", "f", "g", "h"],
-              ["a", "X", "c", "d", "e", "Y", "g", "h"]],
-     "opens": [[0, 0, 3]]},
-    # two notes come to rest on one line: the older takes it
-    {"name": "absorb-older-wins",
+              ["a", "b", "c", "X", "e", "f", "g", "h"]],
+     "events": [_open(0, 0, 1, 3)]},
+    # and a change that reaches none of it is not a raise
+    {"name": "no-raise-when-the-change-misses",
+     "revs": [["a", "b", "c", "d", "e", "f", "g", "h"],
+              ["a", "b", "c", "d", "e", "f", "X", "h"]],
+     "events": [_open(0, 0, 1, 2)]},
+    # raised once while it stays caught
+    {"name": "raised-once-while-it-stays-caught",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "X", "c", "Y", "e"],
+              ["a", "P", "c", "Q", "e"], ["a", "P", "c", "Q", "e"]],
+     "events": [_open(0, 0, 2, 2)]},
+    # and again once a revision has let it go
+    {"name": "raised-again-after-it-is-let-go",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "X", "c", "Y", "e"],
+              ["a", "X", "c", "Y", "e"], ["a", "P", "c", "Q", "e"]],
+     "events": [_open(0, 0, 2, 2)]},
+    # an answered thread that is caught again goes back to open
+    {"name": "answered-reopens-when-caught",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "b", "c", "d", "e"],
+              ["a", "X", "c", "Y", "e"]],
+     "events": [_open(0, 0, 2, 2), [1, "reply", 0]]},
+    # a resolved thread is never raised and never reopened
+    {"name": "resolved-is-not-raised",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "b", "c", "d", "e"],
+              ["a", "X", "c", "Y", "e"]],
+     "events": [_open(0, 0, 2, 2), [1, "resolve", 0]]},
+    # two spans that share a line become one, older takes the union
+    {"name": "absorb-on-overlap",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "b", "c", "d", "e"]],
+     "events": [_open(0, 0, 1, 2), _open(0, 1, 2, 3)]},
+    # spans that share nothing stay apart
+    {"name": "no-absorb-without-overlap",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "b", "c", "d", "e"]],
+     "events": [_open(0, 0, 0, 1), _open(0, 1, 3, 4)]},
+    # the union reaches a third thread neither half reached alone
+    {"name": "absorb-chains-through-the-union",
+     "revs": [["a", "b", "c", "d", "e", "f"], ["a", "b", "c", "d", "e", "f"]],
+     "events": [_open(0, 0, 0, 1), _open(0, 2, 3, 4), _open(0, 1, 1, 3)]},
+    # carrying squeezes two spans together that were opened apart
+    {"name": "carry-squeezes-spans-together",
+     "revs": [["a", "b", "c", "d", "e", "f", "g"], ["a", "b", "f", "g"]],
+     "events": [_open(0, 0, 0, 1), _open(0, 1, 1, 5)]},
+    # an open thread drags the merged thread open
+    {"name": "open-drags-the-merge-open",
      "revs": [["a", "b", "c", "d"], ["a", "b", "c", "d"]],
-     "opens": [[0, 0, 1], [0, 1, 1]]},
-    # opened at the head, nothing has landed since
-    {"name": "open-at-head",
-     "revs": [["a", "b", "c"], ["a", "b", "c", "d"]],
-     "opens": [[1, 0, 3]]},
-    # a note opened after the first revision still replays from there
-    {"name": "open-midstream",
-     "revs": [["a", "b", "a", "b"], ["a", "b", "a"], ["b", "a"]],
-     "opens": [[1, 0, 2]]},
-    # both sides empty
-    {"name": "empty-revision",
-     "revs": [["a", "b"], [], ["c"]],
-     "opens": [[0, 0, 0]]},
-    # the note sits on the last line
-    {"name": "last-line",
-     "revs": [["a", "b", "c"], ["a", "b", "c", "d", "e"]],
-     "opens": [[0, 0, 2]]},
-    # no notes at all
-    {"name": "no-notes", "revs": [["a"], ["b"]], "opens": []},
+     "events": [_open(0, 0, 1, 2), [0, "reply", 0], _open(1, 1, 2, 3)]},
+    # nothing at all
+    {"name": "no-threads", "revs": [["a"], ["b"]], "events": []},
     # which copy of a repeated line survived is the script's own business, and
-    # an ordinary longest-common-subsequence backtrace picks a different one
-    {"name": "tie-break-picks-the-survivor",
-     "revs": [["ln1", "ln0", "ln1", "ln1", "ln0", "ln1", "ln1", "ln1"],
-              ["ln1", "ln1", "ln0", "ln1", "ln1"],
-              ["ln1", "ln1", "ln0", "ln1", "ln1"],
-              ["ln1", "ln0", "ln1"]],
-     "opens": [[2, 0, 1]]},
-    # the standard library's matcher settles the same pair differently again
-    {"name": "matcher-keeps-another-copy",
-     "revs": [["ln3", "ln5", "ln4", "ln5", "ln4", "ln1", "ln0", "ln0"],
-              ["ln3", "ln5", "ln4", "ln5", "ln4", "ln0"],
-              ["ln3", "ln5", "ln5", "ln4", "ln0"],
-              ["ln3", "ln5", "ln0"]],
-     "opens": [[0, 0, 7]]},
-    # one revision that retires two notes and raises a third, which pins the
-    # order the three kinds of event come out in
-    {"name": "retire-and-raise-in-one-revision",
-     "revs": [["ln1", "ln1", "ln2", "ln3", "ln4", "ln1", "ln4", "ln0"],
-              ["ln1", "ln2", "ln3", "ln4", "ln1", "ln4"],
-              ["ln1", "ln4", "ln3", "ln4"],
-              ["ln1", "ln4", "ln2"]],
-     "opens": [[0, 0, 2], [2, 1, 3], [2, 2, 1]]},
-    # a note that stays inside a change for two revisions running is asked
-    # about once, not twice
-    {"name": "raised-once-while-it-stays-inside",
-     "revs": [["ln1", "ln1", "ln0", "ln0", "ln0", "ln1"],
-              ["ln1", "ln1"],
-              ["ln0", "ln0", "ln0", "ln1"],
-              ["ln1", "ln1", "ln2", "ln0"],
-              ["ln1", "ln0", "ln1", "ln0"]],
-     "opens": [[0, 0, 3], [0, 1, 1], [1, 2, 0], [1, 3, 1]]},
-    # and a note that leaves a change and is caught by a later one is asked
-    # about again, so the rule is not once and never after
-    {"name": "raised-again-after-it-leaves",
-     "revs": [["a", "b", "c", "d", "e", "f", "g", "h", "i"],
-              ["a", "X", "c", "Y", "e", "f", "g", "h", "i"],
-              ["a", "X", "c", "Y", "e", "f", "g", "h", "i"],
-              ["a", "P", "c", "Q", "e", "f", "g", "h", "i"]],
-     "opens": [[0, 0, 2]]},
+    # a mapping rebuilt from an ordinary walk picks a different one
+    {"name": "tie-break-picks-the-surviving-copy",
+     "revs": [["ln0", "ln0", "ln1", "ln1", "ln0", "ln0"], ["ln1", "ln1"],
+              ["ln0"], ["ln0"], ["ln0", "ln0"]],
+     "events": [[0, "open", [0, [4, 5]]], [1, "reply", 0], [2, "open", [1, [0]]],
+                [2, "open", [2, [0]]], [3, "open", [3, [0]]], [3, "open", [4, [0]]]]},
+    # the change reaching part of a span is enough, over a stream long enough
+    # that requiring the whole span comes apart
+    {"name": "part-of-the-span-is-enough",
+     "revs": [["ln3", "ln3", "ln3", "ln3", "ln1", "ln2"],
+              ["ln3", "ln3", "ln0", "ln3", "ln2"], ["ln3", "ln0", "ln3", "ln2"],
+              ["ln3", "ln0", "ln0", "ln3"], ["ln0", "ln0"], ["ln2"]],
+     "events": [[1, "open", [0, [1, 2, 3]]], [2, "open", [1, [1]]],
+                [3, "resolve", 0]]},
 ]
 
+
 def generated(count, seed):
-    """Short files edited hard, which is the shape that puts a note inside a
-    change for more than one revision running."""
+    """Short files edited hard, which is the shape that leaves a span caught
+    in a change for more than one revision running and squeezes spans that
+    were opened apart into one another."""
     rng = random.Random(seed * 7919 + 13)
     out = []
     for index in range(count):
         pool = ["ln%d" % i for i in range(rng.randrange(2, 5))]
-        revs = [[rng.choice(pool) for _ in range(rng.randrange(5, 16))]]
-        opens = []
+        revs = [[rng.choice(pool) for _ in range(rng.randrange(6, 16))]]
+        events = []
         nid = 0
+        seen = []
         for step in range(rng.randrange(4, 11)):
-            for _ in range(rng.randrange(0, 4)):
+            for _ in range(rng.randrange(0, 3)):
                 if revs[-1]:
-                    opens.append([step, nid, rng.randrange(len(revs[-1]))])
+                    lo = rng.randrange(len(revs[-1]))
+                    hi = min(len(revs[-1]) - 1, lo + rng.randrange(0, 3))
+                    events.append([step, "open", [nid, list(range(lo, hi + 1))]])
+                    seen.append(nid)
                     nid += 1
+            if seen and rng.random() < 0.45:
+                events.append([step, rng.choice(["reply", "resolve"]),
+                               rng.choice(seen)])
             nxt = list(revs[-1])
-            for _ in range(rng.randrange(3, 10)):
+            for _ in range(rng.randrange(2, 8)):
                 if not nxt:
                     break
                 p = rng.randrange(len(nxt))
@@ -119,5 +137,5 @@ def generated(count, seed):
                 else:
                     nxt[p] = rng.choice(pool)
             revs.append(nxt)
-        out.append({"name": "gen%04d" % index, "revs": revs, "opens": opens})
+        out.append({"name": "gen%04d" % index, "revs": revs, "events": events})
     return out

@@ -1,3 +1,8 @@
+#!/bin/bash
+# Merge the pairs that overlap and stop there. The union can reach a third thread that neither half reached on its own.
+set -euo pipefail
+APP_DIR="${APP_DIR:-/app}"
+cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
 """The board of review threads, rebuilt from the store.
 
 Nothing survives between requests, so the board is reconstructed by walking
@@ -57,11 +62,9 @@ class Board(object):
         self._join(threads, caught, opened.get(0, []))
         self._talk(threads, talk.get(0, []))
         self._merge(threads, caught, log)
-        pairs = []
         for step in range(1, self.store.count()):
-            pairs.append((self.store.at(step - 1), self.store.at(step)))
-        for step in range(1, self.store.count()):
-            before, after = pairs[step - 1]
+            before = self.store.at(step - 1)
+            after = self.store.at(step)
             carried = rule.kept(before, after)
             gone = []
             for thread in threads:
@@ -134,3 +137,46 @@ class Board(object):
             threads.remove(taken)
             caught.pop(taken["id"], None)
             done.append((taken["id"], owner["id"]))
+            break
+ENDBOARD
+cat > "${APP_DIR}/note/rule.py" <<'ENDRULE'
+"""The three questions a revision asks about one thread.
+
+`kept` answers off the script the tool itself settled. Several scripts of the
+same length exist for almost any pair of revisions of a file that repeats its
+lines, and they disagree about which copy of a repeated line survived, so a
+mapping rebuilt here from an ordinary longest-common-subsequence walk is a
+different answer to a different question.
+
+`touched` is about the span, not about a line: a thread hangs off a stretch of
+code and the reviewer has to look again if the change reached any of it. The
+change is not the lines the script added either. It reaches across the kept
+lines that sit between its runs, which is what `grp.spans` settles.
+
+`merges` is overlap, not equality. Two threads that share a single line are
+looking at the same code and become one; carrying makes that happen far more
+often than opening does, because two spans that started apart can be squeezed
+together by the deletions between them.
+"""
+
+from scr import grp, pin
+
+
+def kept(before, after):
+    out = {}
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
+    return out
+
+
+def touched(span, before, after):
+    for chunk in grp.spans(before, after):
+        if span & chunk:
+            return True
+    return False
+
+
+def merges(one, other):
+    return bool(one & other)
+ENDRULE

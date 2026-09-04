@@ -11,74 +11,64 @@ TASK = pathlib.Path(__file__).resolve().parent.parent
 BOARD = (TASK / "solution" / "board.py").read_text()
 RULE = (TASK / "solution" / "rule.py").read_text()
 
-BUCKETS = '''"""Correct, arranged the other way round: the events of a revision are
-collected into buckets and ordered at the end rather than appended as the walk
-goes. Same rule, opposite shape."""
-
-from note import rule
-
-
-class Board(object):
-    def __init__(self, store):
-        self.store = store
-
-    def build(self, opens):
-        steps = self.store.count()
-        born = {}
-        for at, nid, line in opens:
-            born.setdefault(at, []).append((nid, line))
-        events = dict((t, {"retire": [], "raise": [], "absorb": []}) for t in range(steps))
-        where = {}
-        was = {}
-        for nid, line in sorted(born.get(0, [])):
-            where[nid] = line
-            was[nid] = False
-        self._collide(where, was, 0, events)
-        for t in range(1, steps):
-            before = self.store.at(t - 1)
-            after = self.store.at(t)
-            carried = rule.kept(before, after)
-            for nid in sorted(where):
-                if where[nid] in carried:
-                    where[nid] = carried[where[nid]]
-                else:
-                    events[t]["retire"].append(nid)
-            for nid in events[t]["retire"]:
-                del where[nid]
-                was.pop(nid, None)
-            for nid in sorted(where):
-                now = rule.inside(where[nid], before, after)
-                if rule.should_raise(now, was[nid]):
-                    events[t]["raise"].append(nid)
-                was[nid] = now
-            for nid, line in sorted(born.get(t, [])):
-                where[nid] = line
-                was[nid] = False
-            self._collide(where, was, t, events)
-        log = []
-        for t in range(steps):
-            for nid in sorted(events[t]["retire"]):
-                log.append(("retire", nid))
-            for nid in events[t]["raise"]:
-                log.append(("raise", nid))
-            for nid, owner in sorted(events[t]["absorb"]):
-                log.append(("absorb", owner, nid))
-        live = [{"id": nid, "line": where[nid]} for nid in sorted(where)]
-        return live, log
-
-    def _collide(self, where, was, t, events):
+MERGE_BY_COMPONENTS = BOARD[:BOARD.index("    def _merge(self, threads, caught, log):")] + \
+    '''    def _merge(self, threads, caught, log):
+        live = sorted([t for t in threads if t["state"] in LIVE],
+                      key=lambda t: t["id"])
         seen = {}
-        for nid in sorted(where):
-            owner = seen.get(where[nid])
-            if owner is None:
-                seen[where[nid]] = nid
-            else:
-                events[t]["absorb"].append((nid, owner))
-        for nid, _owner in events[t]["absorb"]:
-            if nid in where:
-                del where[nid]
-                was.pop(nid, None)
+        groups = []
+        for thread in live:
+            found = None
+            for group in groups:
+                if any(rule.merges(thread["span"], other["span"]) for other in group):
+                    if found is None:
+                        found = group
+                        group.append(thread)
+                    else:
+                        found.extend(group)
+                        group[:] = []
+            if found is None:
+                groups.append([thread])
+        taken = []
+        for group in groups:
+            group = [t for t in group if t]
+            if len(group) < 2:
+                continue
+            group.sort(key=lambda t: t["id"])
+            owner = group[0]
+            for other in group[1:]:
+                owner["span"] |= other["span"]
+                if other["state"] == "open":
+                    owner["state"] = "open"
+                taken.append((other["id"], owner["id"]))
+                threads.remove(other)
+                caught.pop(other["id"], None)
+        for taken_id, owner_id in sorted(taken):
+            log.append(("absorb", owner_id, taken_id))
 '''
+
+MAPPING_FROM_OPS = RULE.replace(
+    '''def kept(before, after):
+    out = {}
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
+    return out''',
+    '''def kept(before, after):
+    walk = pin.reading(before, after, pin.script(before, after))
+    return dict((step[1], step[2]) for step in walk if step[0] == "K")''', 1)
+
+TOUCHED_WRITTEN_OUT = RULE.replace(
+    '''def touched(span, before, after):
+    for chunk in grp.spans(before, after):
+        if span & chunk:
+            return True
+    return False''',
+    '''def touched(span, before, after):
+    reached = set()
+    for chunk in grp.spans(before, after):
+        reached |= chunk
+    return not span.isdisjoint(reached)''', 1)
 
 PRECOMPUTED = BOARD.replace(
     '''        for step in range(1, self.store.count()):
@@ -92,30 +82,11 @@ PRECOMPUTED = BOARD.replace(
             before, after = pairs[step - 1]
             carried = rule.kept(before, after)''', 1)
 
-MAPPING_FROM_OPS = RULE.replace(
-    '''def kept(before, after):
-    out = {}
-    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
-        if kind == "K":
-            out[i] = j
-    return out''',
-    '''def kept(before, after):
-    walk = pin.reading(before, after, pin.script(before, after))
-    return dict((step[1], step[2]) for step in walk if step[0] == "K")''', 1)
-
-NEGATED_RAISE = RULE.replace(
-    '''def should_raise(inside_now, inside_before):
-    return inside_now and not inside_before''',
-    '''def should_raise(inside_now, inside_before):
-    if inside_before:
-        return False
-    return bool(inside_now)''', 1)
-
 OVERRIDES = {
-    "ok-buckets-then-order": {"board.py": BUCKETS},
+    "ok-merge-by-components": {"board.py": MERGE_BY_COMPONENTS},
     "ok-precomputed-pairs": {"board.py": PRECOMPUTED},
     "ok-mapping-from-ops": {"rule.py": MAPPING_FROM_OPS},
-    "ok-raise-written-out": {"rule.py": NEGATED_RAISE},
+    "ok-touched-written-out": {"rule.py": TOUCHED_WRITTEN_OUT},
 }
 
 

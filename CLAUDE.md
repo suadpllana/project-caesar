@@ -627,6 +627,80 @@ cleared the AI screen, `preflight` no errors.
 **Gates NOT run: the three-agent easiness probe.** It is the only local gate that measures what
 the easiness gate rejects for, and it is the first thing to run on this bundle.
 
+### `difficult` twice, and the thing that finally moved it: volume of interaction, not a cleverer insight (2026-09-05)
+
+`note-carry-forward` has now been round the quality review three times on one criterion.
+Round one failed `difficult` because the brief stated the method. Round two passed. Round
+three failed `difficult` again, and the note is the one to memorise:
+
+> The shipped kept/inside helpers are already correct, so the work reduces to replacing an
+> origin-to-head diff with a per-revision walk and changing should_raise to 'now and not
+> before'. A competent undergraduate could do this in well under a day; it does not require
+> years of domain expertise.
+
+That was accurate and it is measurable: the whole reference was **98 lines** and its
+intellectual content was **one insight**. No wording change reaches that. Two rounds were
+spent trying, and each attempt hit the opposite wall - state a rule and the reviewer says the
+instruction hands it over, break another file and the easiness probe follows the extra arrow.
+
+**The finding, and it is the one to carry to any task that fails `difficult`: the count of
+defects is not the difficulty. The depth of the least legible one is, and a mechanism whose
+core is a single insight is a half-day task however it is described.** Adding rules to the
+brief adds lottery; adding broken files adds signposts. Neither adds expertise.
+
+What works is the shape `guard-mark-unwind` already had and nothing here had copied: **many
+stated rules whose interactions are the work.** That bundle is the only one in this repo to
+clear both probes, and it grades 8 decisions over a runtime the agent has to reason about, not
+1 over a helper. The repair here was to enrich the *environment* rather than the brief:
+threads now carry spans instead of a line, have states that replies and resolutions move them
+through, and merge by overlap to a fixed point. **Twelve** decisions are graded where two
+were, four of them need something no single revision supplies - the previous revision's
+verdict for that thread, the state a reply left behind, a merge fixed point, and a mapping
+that only differs from a rebuilt one on files that repeat themselves. The reference went 98
+lines to about 140, and the shipped tree is wrong in seven places rather than three.
+
+Measured, over 300 streams from the graded generator, every one shipping as a cheat that
+scores 0 and every one caught by the hand-written set:
+
+| wrong reading | moves |
+|---|---|
+| the mapping from the standard library's matcher | 93% |
+| the mapping rebuilt from an ordinary LCS walk | 91% |
+| a change read as the lines the script added | 91% |
+| merging on equal spans instead of on overlap | 82% |
+| an outdated thread dropped off the board | 68% |
+| the older thread keeping its own span, not the union | 66% |
+| the whole span required to be inside the change | 51% |
+| raising every revision the thread stays caught | 49% |
+| merging in one pass instead of to a fixed point | 47% |
+| the merged thread not dragged open by an open half | 43% |
+| a resolved thread raised along with the rest | 27% |
+| an answered thread not reopened when it is raised | 24% |
+
+**A fixed point over sets is only real if the sets are arbitrary.** The earlier design widened
+each thread to the change group it landed in and then absorbed to a fixed point, and it never
+iterated once - 0 disagreements over 400 streams - because group-widened spans are aligned to
+disjoint groups, so whether two intersect is decided before any absorbing happens. Spans that
+are arbitrary sets of lines do chain: `merge-in-one-pass` moves 47%. That is why the mechanism
+carries spans and not groups, and it is worth checking before building any "absorb to a fixed
+point" rule.
+
+**And a merge rule whose log names the absorber grades a procedure, not a result.** The
+outcome of merging to a fixed point is the connected groups of the overlap graph and is
+independent of the order pairs are found in; the *log* is not, because a thread can be taken
+by one owner and that owner taken by another. The first version logged whoever reached it
+first, which two correct boards disagree about - a run-audit rejection waiting to happen. The
+log now names the thread that **ends up** holding the span, and
+`authoring/variants/ok-merge-by-components` merges by components instead of by pair-hunting
+and scores 1, which is what proves it.
+
+**Gates:** real two-image trial **19/19** (oracle 1, nop 0, seventeen cheats 0), variants
+**4/4**, reference proved against the sealed oracle on 17 hand-written and 360 generated
+streams, `textcheck` clean against all three briefs that cleared the AI screen (burstiness
+0.901), `simcheck` clear on both axes, `preflight` no errors, and `forgecheck`, `solvecheck`,
+`deadfieldcheck`, `catcheck`, `structcheck`, `hintcheck` and `zipcheck` clean. **The easiness
+probe has not been run since the rebuild.**
+
 ### The easiness rejection: an unused import is an arrow, and a stated spec is transcription (2026-09-04)
 
 `note-carry-forward` cleared the quality review and came back **3 of 3** from the easiness

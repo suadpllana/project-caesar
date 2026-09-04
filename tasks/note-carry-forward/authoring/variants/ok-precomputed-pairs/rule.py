@@ -1,16 +1,20 @@
-"""What a revision keeps, what its change covers, and when to say so.
+"""The three questions a revision asks about one thread.
 
-`kept` and `inside` both answer off the script the tool itself settled, which
-is the only reason they agree with the rest of the tool on a file that repeats
-its lines: several scripts of the same length exist for almost any pair of
-revisions of one, and they disagree about which copy of a repeated line
-survived.
+`kept` answers off the script the tool itself settled. Several scripts of the
+same length exist for almost any pair of revisions of a file that repeats its
+lines, and they disagree about which copy of a repeated line survived, so a
+mapping rebuilt here from an ordinary longest-common-subsequence walk is a
+different answer to a different question.
 
-`should_raise` is the one that is not a question about this revision at all. A
-note is raised when its line becomes part of a change. While it stays part of
-one the reviewer has already been asked, so raising again says nothing, and
-the answer therefore depends on where the note stood at the revision before -
-which only a board that walks the store one revision at a time can supply.
+`touched` is about the span, not about a line: a thread hangs off a stretch of
+code and the reviewer has to look again if the change reached any of it. The
+change is not the lines the script added either. It reaches across the kept
+lines that sit between its runs, which is what `grp.spans` settles.
+
+`merges` is overlap, not equality. Two threads that share a single line are
+looking at the same code and become one; carrying makes that happen far more
+often than opening does, because two spans that started apart can be squeezed
+together by the deletions between them.
 """
 
 from scr import grp, pin
@@ -24,12 +28,12 @@ def kept(before, after):
     return out
 
 
-def inside(line, before, after):
+def touched(span, before, after):
     for chunk in grp.spans(before, after):
-        if line in chunk:
+        if span & chunk:
             return True
     return False
 
 
-def should_raise(inside_now, inside_before):
-    return inside_now and not inside_before
+def merges(one, other):
+    return bool(one & other)

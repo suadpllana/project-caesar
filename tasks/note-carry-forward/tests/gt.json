@@ -1,6 +1,33 @@
 {
  "fixed": {
-  "absorb-older-wins": {
+  "absorb-chains-through-the-union": {
+   "log": [
+    [
+     "absorb",
+     0,
+     1
+    ],
+    [
+     "absorb",
+     0,
+     2
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      0,
+      1,
+      2,
+      3,
+      4
+     ]
+    ]
+   ]
+  },
+  "absorb-on-overlap": {
    "log": [
     [
      "absorb",
@@ -8,95 +35,183 @@
      1
     ]
    ],
-   "notes": [
+   "threads": [
     [
      0,
-     1
+     "open",
+     [
+      1,
+      2,
+      3
+     ]
+    ]
+   ]
+  },
+  "answered-reopens-when-caught": {
+   "log": [
+    [
+     "raise",
+     0
+    ],
+    [
+     "reopen",
+     0
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      2
+     ]
     ]
    ]
   },
   "carry-plain": {
    "log": [],
-   "notes": [
+   "threads": [
     [
      0,
-     2
+     "open",
+     [
+      1,
+      2
+     ]
     ]
    ]
   },
-  "empty-revision": {
+  "carry-squeezes-spans-together": {
    "log": [
     [
-     "retire",
-     0
-    ]
-   ],
-   "notes": []
-  },
-  "last-line": {
-   "log": [],
-   "notes": [
-    [
-     0,
-     2
-    ]
-   ]
-  },
-  "matcher-keeps-another-copy": {
-   "log": [],
-   "notes": [
-    [
-     0,
-     2
-    ]
-   ]
-  },
-  "no-notes": {
-   "log": [],
-   "notes": []
-  },
-  "open-at-head": {
-   "log": [],
-   "notes": [
-    [
-     0,
-     3
-    ]
-   ]
-  },
-  "open-midstream": {
-   "log": [],
-   "notes": [
-    [
+     "absorb",
      0,
      1
     ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      0,
+      1,
+      2
+     ]
+    ]
    ]
   },
-  "raise-kept-inside-change": {
+  "no-absorb-without-overlap": {
+   "log": [],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      0,
+      1
+     ]
+    ],
+    [
+     1,
+     "open",
+     [
+      3,
+      4
+     ]
+    ]
+   ]
+  },
+  "no-raise-when-the-change-misses": {
+   "log": [],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      1,
+      2
+     ]
+    ]
+   ]
+  },
+  "no-threads": {
+   "log": [],
+   "threads": []
+  },
+  "open-drags-the-merge-open": {
    "log": [
     [
-     "raise",
+     "absorb",
+     0,
+     1
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      1,
+      2,
+      3
+     ]
+    ]
+   ]
+  },
+  "outdated-stays-listed": {
+   "log": [
+    [
+     "outdated",
      0
     ]
    ],
-   "notes": [
+   "threads": [
     [
      0,
-     2
+     "outdated",
+     []
     ]
    ]
   },
-  "raise-not-when-changes-are-apart": {
+  "part-of-the-span-is-enough": {
+   "log": [
+    [
+     "absorb",
+     0,
+     1
+    ],
+    [
+     "raise",
+     0
+    ],
+    [
+     "outdated",
+     0
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "outdated",
+     []
+    ]
+   ]
+  },
+  "raise-on-one-line-of-the-span": {
    "log": [],
-   "notes": [
+   "threads": [
     [
      0,
-     3
+     "open",
+     [
+      1,
+      2
+     ]
     ]
    ]
   },
-  "raised-again-after-it-leaves": {
+  "raised-again-after-it-is-let-go": {
    "log": [
     [
      "raise",
@@ -107,22 +222,63 @@
      0
     ]
    ],
-   "notes": [
+   "threads": [
     [
      0,
-     2
+     "open",
+     [
+      2
+     ]
     ]
    ]
   },
-  "raised-once-while-it-stays-inside": {
+  "raised-once-while-it-stays-caught": {
    "log": [
     [
-     "retire",
-     0
-    ],
-    [
      "raise",
-     1
+     0
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      2
+     ]
+    ]
+   ]
+  },
+  "resolved-is-not-raised": {
+   "log": [],
+   "threads": [
+    [
+     0,
+     "resolved",
+     [
+      2
+     ]
+    ]
+   ]
+  },
+  "span-shrinks": {
+   "log": [],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      1,
+      2
+     ]
+    ]
+   ]
+  },
+  "tie-break-picks-the-surviving-copy": {
+   "log": [
+    [
+     "outdated",
+     0
     ],
     [
      "absorb",
@@ -130,63 +286,28 @@
      2
     ],
     [
-     "retire",
-     1
-    ],
-    [
-     "raise",
-     3
-    ]
-   ],
-   "notes": [
-    [
-     3,
-     2
-    ]
-   ]
-  },
-  "retire-and-raise-in-one-revision": {
-   "log": [
-    [
-     "retire",
-     0
-    ],
-    [
-     "retire",
-     2
-    ],
-    [
-     "raise",
-     1
-    ]
-   ],
-   "notes": [
-    [
+     "absorb",
      1,
-     1
-    ]
-   ]
-  },
-  "retire-dropped": {
-   "log": [
+     3
+    ],
     [
-     "retire",
-     0
+     "absorb",
+     1,
+     4
     ]
    ],
-   "notes": []
-  },
-  "tie-break-picks-the-survivor": {
-   "log": [
-    [
-     "raise",
-     0
-    ]
-   ],
-   "notes": [
+   "threads": [
     [
      0,
-     0
+     "outdated",
+     []
+    ],
+    [
+     1,
+     "open",
+     [
+      1
+     ]
     ]
    ]
   }

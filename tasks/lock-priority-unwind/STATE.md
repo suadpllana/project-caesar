@@ -87,7 +87,13 @@ nothing else.
   daemon up. This covers the privilege drop, the root-owned reward channel, the root-only model
   and ground truth, and the process sweep, none of which the host emulation reaches.
 - `tools/readingcheck.py`: all fourteen readings separated by a written scenario.
-- `authoring/fuzz.py 300`: reference against the sealed model on 300 drawn sets, zero mismatches.
+- `authoring/fuzz.py 800`: reference against the sealed model on 800 drawn sets, 49519 ticks
+  simulated, zero mismatches.
+- Deadlocking drawn sets, which are about 4% of them and are the one place an incremental walk
+  could disagree with a global fixed point: 21 of them collected across eight seeds, and the
+  reference plus all four `ok-*` variants agree with the sealed model on every one. A cycle has
+  a well defined least fixed point - everything in it converges to the highest priority in the
+  cycle - and the walk's iteration cap is above any reachable chain length.
 - `preflight` no errors; `textcheck` clean against four briefs that cleared the AI screen;
   `structcheck`, `hintcheck`, `deadfieldcheck`, `catcheck`, `solvecheck`, `forgecheck`,
   `determinism`, `zipcheck` clean.

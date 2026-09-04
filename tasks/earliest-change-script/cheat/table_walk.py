@@ -1,76 +1,91 @@
 """Deliberate cheating attempt. NEVER executed by the pipeline.
 
-Strategy: implement the rule exactly as written and stop. A table holds, for
-every position and for each of two states -- inside a run of moves or not --
-the best pair of moves still needed and hunks still to be opened, and a walk
-from the start takes a drop whenever a drop still reaches that pair, else an
-add, else a keep. It is completely correct. It passes all 52865 short cases.
+Strategy: write the rule down and walk it. The table holds, for every position
+and every number of keeps since the last move, the best pair of numbers a
+completion can reach; the walk from the start takes a drop whenever a drop
+still reaches the best pair, otherwise an add, otherwise a keep. It is the
+rule and nothing else, so it is right on every case small enough for it to
+finish, which is every case a person would write out by hand to check
+themselves.
 
-It is also the definitional model the grader uses, and it is dead everywhere
-else: the table is the product of the two lengths, twice over, so a pair of
-fifteen hundred lines is four and a half million entries and a pair of a
-million lines is a number with twelve digits. It cannot finish the medium
-block inside its budget and it cannot finish a single one of the eighteen
-timed pairs. Scores zero on time while getting every answer it does give
-right, which is the whole reason the timed blocks exist.
+It is quadratic in the two lengths, twice over, and it is the answer to
+"what if I just do the obvious thing". The medium block alone is four hundred
+pairs of a few thousand lines against forty seconds; one of them is already
+past that. The timed pairs are between forty thousand and a million lines a
+side, where the table is billions of entries and would not fit in memory even
+if there were time for it. Every short block passes and everything with a
+clock on it fails.
 """
+
+CONTEXT = 3
 
 INF = (1 << 30, 1 << 30)
 
 
-def changes(before, after):
+def table(before, after):
+    """rest[s][i][j]: the best (moves, comments) pair a completion from (i, j)
+    can reach when s keeps have gone by since the last move, s held at CONTEXT
+    once it gets there. A move costs a comment only when s is already at the
+    cap, which is what merges two runs a line or two apart; any move puts s
+    back to zero and a keep raises it by one."""
     n, m = len(before), len(after)
-    quiet = [[INF] * (m + 1) for _ in range(n + 1)]
-    inrun = [[INF] * (m + 1) for _ in range(n + 1)]
-    quiet[n][m] = inrun[n][m] = (0, 0)
+    rest = [[[INF] * (m + 1) for _ in range(n + 1)] for _ in range(CONTEXT + 1)]
+    for s in range(CONTEXT + 1):
+        rest[s][n][m] = (0, 0)
     for i in range(n, -1, -1):
         line = before[i] if i < n else None
         for j in range(m, -1, -1):
             if i == n and j == m:
                 continue
-            best0 = best1 = INF
-            if i < n:
-                moves, hunks = inrun[i + 1][j]
-                if (moves + 1, hunks) < best1:
-                    best1 = (moves + 1, hunks)
-                if (moves + 1, hunks + 1) < best0:
-                    best0 = (moves + 1, hunks + 1)
-            if j < m:
-                moves, hunks = inrun[i][j + 1]
-                if (moves + 1, hunks) < best1:
-                    best1 = (moves + 1, hunks)
-                if (moves + 1, hunks + 1) < best0:
-                    best0 = (moves + 1, hunks + 1)
-            if i < n and j < m and line == after[j]:
-                pair = quiet[i + 1][j + 1]
-                if pair < best1:
-                    best1 = pair
-                if pair < best0:
-                    best0 = pair
-            quiet[i][j] = best0
-            inrun[i][j] = best1
+            keeps = i < n and j < m and line == after[j]
+            for s in range(CONTEXT + 1):
+                charge = 1 if s == CONTEXT else 0
+                best = INF
+                if i < n:
+                    moves, comments = rest[0][i + 1][j]
+                    pair = (moves + 1, comments + charge)
+                    if pair < best:
+                        best = pair
+                if j < m:
+                    moves, comments = rest[0][i][j + 1]
+                    pair = (moves + 1, comments + charge)
+                    if pair < best:
+                        best = pair
+                if keeps:
+                    pair = rest[s + 1 if s < CONTEXT else CONTEXT][i + 1][j + 1]
+                    if pair < best:
+                        best = pair
+                rest[s][i][j] = best
+    return rest
 
+
+def changes(before, after):
+    n, m = len(before), len(after)
+    rest = table(before, after)
     i = j = 0
-    open_run = False
+    s = CONTEXT
     ops = []
     while i < n or j < m:
-        want = inrun[i][j] if open_run else quiet[i][j]
-        cost = 0 if open_run else 1
+        want = rest[s][i][j]
+        charge = 1 if s == CONTEXT else 0
         if i < n:
-            moves, hunks = inrun[i + 1][j]
-            if (moves + 1, hunks + cost) == want:
-                ops.append(("-", i))
+            moves, comments = rest[0][i + 1][j]
+            if (moves + 1, comments + charge) == want:
+                ops.append(["-", i])
                 i += 1
-                open_run = True
+                s = 0
                 continue
         if j < m:
-            moves, hunks = inrun[i][j + 1]
-            if (moves + 1, hunks + cost) == want:
-                ops.append(("+", j))
+            moves, comments = rest[0][i][j + 1]
+            if (moves + 1, comments + charge) == want:
+                ops.append(["+", j])
                 j += 1
-                open_run = True
+                s = 0
                 continue
+        assert i < n and j < m and before[i] == after[j]
+        nxt = s + 1 if s < CONTEXT else CONTEXT
+        assert rest[nxt][i + 1][j + 1] == want
         i += 1
         j += 1
-        open_run = False
+        s = nxt
     return ops

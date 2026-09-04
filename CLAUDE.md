@@ -4,8 +4,19 @@ Operating manual for a session with no memory of the earlier ones. Two tasks her
 through the real pipeline and both cleared the difficulty and easiness probes; the third is
 built and gated locally but has not been through the pipeline yet.
 
-**`earliest-change-script` cleared reference verification after the 2026-08-31 repair and
-then failed the easiness probe 3 of 3 on 2026-09-02, with a trajectory.** That trajectory is
+**`earliest-change-script` is retired as a mechanism, 2026-09-04.** It has now failed the
+easiness probe **three times on three different rules**, the last one on the comment-merging
+tier added on 2026-09-02, with three trajectories supplied (`probes/earliest-change-script/`).
+The reason it cannot be repaired is measured rather than argued, and it is new: **the
+reference is not faster than a naive implementation on any ambiguous input**, so the speed
+axis - the only one a fully specified pure function has left - does not exist for it. The
+numbers, the profile that explains them and the rule they produce are in "The ceiling,
+measured from the other end" below. Its replacement is `note-carry-forward`, which ships that
+same change-script engine as **frozen environment code** and grades a note board on top of
+it; see "note-carry-forward, the replacement". Read both before touching either. Everything
+below about the earlier rounds still holds as history.
+
+**The 3-of-3 on 2026-09-02 came with a trajectory.** That trajectory is
 the most important artifact in `probes/`: the agent derived the greedy on sight from a fully
 stated rule, wrote a brute-force oracle first, built four engines in three hours including
 the one the difficulty argument called non-recallable, and forced each on small inputs
@@ -107,6 +118,7 @@ none has ever been checked for.
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
+| `note-carry-forward` | Software / Algorithms | 14 | 6 | 14400 s | 7 h |
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
@@ -482,6 +494,131 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## The ceiling, measured from the other end: the reference was never the fast one (2026-09-04)
+
+`earliest-change-script` came back **3 of 3** a third time, on the comment-merging rule that
+the 2026-09-02 repair added, with three full trajectories supplied. They are in
+`probes/earliest-change-script/` as `trial1.md`, `trial2.md` and `trial3.md`, the agents' own
+words only. Read this section before anyone tries to make that task harder again, because the
+last three sessions each spent themselves on a lever that does not exist.
+
+**Attribution first, mechanically.** `leakcheck` finds one shared phrase across all three
+trajectories, `fewer than three kept lines`, and that is the rule statement itself, which
+fairness requires. Not mode A. There is no environment, so not mode B. All three wrote a
+brute-force oracle as their first or second file and differential-tested to green: **mode C**,
+and the trajectories say so in their own summaries.
+
+**What is new is the measurement that closes the only remaining lever.** This file has been
+saying "put the second discovery above the size the solver's own oracle can grade", which for a
+pure function means speed. That lever requires the reference to be faster than the submission
+on some regime. It is not. Measured today, on this sandbox, reference against the bundle's own
+`cells_on_shortest_paths` cheat, which is the naive per-cell implementation:
+
+| shape | reference | naive per-cell |
+|---|---|---|
+| near-periodic, 1M lines, few edits | 6.9 s | ~1.5x slower |
+| crowded scaled up, 60k lines, alphabet 3, 2500 edits | 4.65 s | **2.08 s** |
+| runs of 200 identical lines, 1M | 0.49 s | 3.13 s |
+| runs of 5 000, 1M | 14.7 s | **10.7 s** |
+| runs of 20 000, 1M | 60.7 s | **35.2 s** |
+| runs of 50 000, 1M | >150 s | **100.5 s** |
+
+The reference loses on three of the six and wins by 6.4x only where both are under four
+seconds. A profile says why: on run-structured input `settle` - the per-cell comment
+resolution - burns 106 s of 196 s across 31.7M decision cells, while the frontier itself costs
+2.3 s. **The reference resolves ambiguous cells one at a time, exactly like the naive build.**
+Its `advance` skips forced keeps and nothing else, so wherever an alignment is genuinely
+ambiguous it pays per cell like everybody else.
+
+That kills the whole family of repairs. To fail a naive build inside 60 s you need runs of
+tens of thousands of identical lines, and the reference blows the budget there first. There is
+no operating point with the reference under 15 s and the naive over 60 s. The two discoveries
+the trajectories name as their own breaking points - edit distance past 10-20k, and files that
+are one line repeated - are infeasible for the reference too, which this file already suspected
+and has now measured.
+
+**So the rule is: before designing a speed regime, time the reference against the naive
+implementation on it. A regime where the reference is not decisively faster is not a difficulty
+axis, it is a way to fail your own oracle.** Nobody in this repo had run that comparison; it
+takes twenty minutes and it retires a task.
+
+One smaller finding, recorded because it is the "attack your own plan" step paying for itself.
+The first redesign sketched here had notes widening to the change group they land in and
+absorbing to a fixed point. Measured over 400 streams, the fixed point and a single pass agree
+**0 times out of 400** - it never iterates, because group-widened subjects are aligned to
+disjoint groups, so whether two of them intersect is decided before any absorbing happens. **A
+fixed point over sets that are unions of disjoint blocks is always vacuous.** Fifteen minutes
+of measurement, and it moved the design before any of it was built.
+
+## note-carry-forward, the replacement (2026-09-04)
+
+Built the same day, in the same domain, and it is the first task here whose **hard algorithm is
+shipped as frozen environment code rather than asked for**. `/app/scr/pin.py` settles the pinned
+change script - the whole of what `earliest-change-script` graded - so nobody writes a diff and
+there is no pure function to oracle-check. The graded artifact is a **note board**: which review
+notes are still live at the head of a revision stream, where each sits, and the ordered log of
+retirements, raises and absorptions. `simcheck` reports it conceptually clear of every earlier
+task and, for the second time in this repo, mechanically clear too.
+
+The discovery is that **the pinned script does not compose**. The script from r0 to r2 is not the
+script from r0 to r1 followed by r1 to r2, because the tie-break is settled against the pair in
+front of it. The cheapest correct-looking board is the stateless one the brief's own
+"nothing is kept between requests" invites: diff each note's origin revision straight against the
+head. Measured against the reference over 500 generated streams:
+
+| wrong reading | streams it moves |
+|---|---|
+| origin-to-head instead of replaying each revision | 66.4% |
+| an ordinary LCS backtrace for the surviving-line mapping | 62.0% |
+| `difflib` opcodes for the same | 59.0% |
+| retire without logging it | 60.6% |
+| raise only the lines the script added | 51.8% |
+| newer note wins the line | 43.6% |
+| never absorb | 43.6% |
+
+Every one is far above the tenth-of-the-set lottery threshold. All seven ship as generated
+cheats and all thirteen hand-written streams now separate every one of them, so a failure names
+the rule instead of surfacing as "N of 300 random streams wrong".
+
+Three findings from building it, all of the "a gate that reports success while doing nothing"
+class:
+
+- **A cheat whose swap is a semantic no-op scores 1 and looks like a hole in the scenario set.**
+  `raise-before-retire` moved `live[:] = held` above the retire logging, which changes nothing
+  because the lost set is already computed. The fix was to reorder the *event emission*, not the
+  bookkeeping. `emit.py` refuses a swap where old and new are equal, and that check is what
+  caught a second one before it shipped.
+- **A probe that attacks a path the overlay never copies has been rejected by nothing.** The
+  frozen-file probe rewrote `/app/scr/grp.py` in the agent image, which `test.sh` never copies
+  into the work tree, so it scored 1 while testing an impossible attack. Rewritten to attack
+  `/work/app/scr/grp.py` from inside a declared artifact at run time, it is caught by the
+  executed-tree check **and by nothing else**, which is what says that attestation is live.
+  `authoring/cheat_report.py` asserts exactly that, per cheat.
+- **`preflight` greps for the literal `mkdir -p /app/<dir>`.** `install -d -m 755 /app/note`
+  creates the directory and still fails the check. Two errors that read as a real packaging
+  fault and are a string match.
+
+**Gates run:** the real two-image trial **16/16** (oracle 1, nop 0, fourteen cheats 0), variants
+**3/3** score 1, `build_gt` proving the reference against the sealed oracle on 13 hand-written
+and 360 generated streams, `cheat_report` naming the catching test for every cheat, `forgecheck`,
+`simcheck` (clear on both axes), `solvecheck`, `deadfieldcheck`, `catcheck`, `hintcheck`,
+`structcheck` and `zipcheck` all clean, `textcheck` clean against **all three** briefs that
+cleared the AI screen, `preflight` no errors.
+
+**Gates NOT run: the three-agent easiness probe.** It is the only local gate that measures what
+the easiness gate rejects for, and it is the first thing to run on this bundle.
+
+### A variant is stale the moment the rule changes, and nothing says so
+
+Found by running the old task's suite today: `earliest-change-script`'s only variant,
+`ok-cells`, **scores 0**. It is not a run-audit exposure. The variant was written for the
+fewest-hunks rule and the tree now carries the comment-merging one - the reference has twelve
+occurrences of `CONTEXT` and the variant has none. It went stale because **the archive that was
+submitted and probed carried the new rule and no `authoring/` directory at all**, so the repo's
+copy was never regenerated. The stale variant is deleted; that bundle has had no working
+alternative-correct-implementation check against its current rule, which is the gate the run
+audit applies, and it would need one rebuilt before it ever went back.
 
 ## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
 
@@ -1803,7 +1940,7 @@ three-agent probe rather than to guess.
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
 | `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | Stage 2 redesign. No leak patch applies; see "The easiness rejection on a task built the day after the law that forbids it". Trajectories at `probes/alias-settle-report/` |
-| `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone | none of the four: real exploration, a superset of the reference in three hours | the mechanism was at its ceiling; the rule gained a second tier on 2026-09-02 (see "A pure function at its ceiling"). Re-probe before resubmitting |
+| `earliest-change-script` | 3/3, 3/3, then **3/3 a third time** on the comment rule | none of the four: real exploration, three engines in three hours | **retired as a mechanism, 2026-09-04.** The speed axis is closed by measurement, not by argument - see "The ceiling, measured from the other end". Replaced by `note-carry-forward` |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
 | `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |

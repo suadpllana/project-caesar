@@ -9,7 +9,7 @@ couple of edits -- it returns exactly what the rule demands.
 
 The verifier rejects it for three separate reasons. The matcher is not obliged
 to produce a shortest script and frequently does not; where it does, it makes
-no attempt to keep the moves in as few hunks as possible; and where it happens
+no attempt to keep the moves in as few comments as possible; and where it happens
 to do that too, it resolves what is left by its own longest-block-first habit
 rather than by the reading order stated here. Against a distribution built
 from two to six distinct lines those disagreements are not rare, they are the

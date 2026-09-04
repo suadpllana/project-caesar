@@ -1,21 +1,23 @@
 """Deliberate cheating attempt. NEVER executed by the pipeline.
 
 Strategy: keep the fast engines that answer the first and third tiers, then
-repair the hunk count afterwards the way a diff tool does, by sliding each
+repair the comment count afterwards the way a diff tool does, by sliding each
 run of changes forward through the equal lines around it until it meets the
-next run. This is the hunk-shifting pass every diff implementation carries,
-and on the pairs a person checks by hand it does merge the runs the reading
-order split.
+next run. Sliding is exactly the operation that brings two runs close enough
+together to share a comment, so of all the repairs to reach for this is the
+one that looks most like what the second tier is asking for, and it is the
+pass every diff implementation already carries.
 
 It is wrong for two reasons that no amount of sliding fixes. Sliding never
 changes which lines survive, only where a run of changes sits among equal
-neighbours, so a pair whose fewest-hunk script keeps a different set of lines
+neighbours, so a pair whose cheapest script keeps a different set of lines
 from the first-in-reading-order script is out of reach entirely. And where
-sliding does reach the right hunk count, it lands the runs at the far end of
-their slack, which is where the reading order says not to put them. Measured
-against the graded distribution it moves a fraction of the answers of the
-engines it is built on and gets nearly all of them wrong.
+sliding does reach the right count, it lands the runs at the far end of their
+slack, which is where the reading order says not to put them. It is wrong on
+13615 of the 40804 enumerated pairs, 9082 of 12000 random ones and 31 of the
+71 written out by hand.
 """
+
 
 from bisect import bisect_left
 

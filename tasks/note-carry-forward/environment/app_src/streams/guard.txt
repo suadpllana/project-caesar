@@ -1,0 +1,4 @@
+rev |    log(job)|    if not job:|        return None|    return out|    for row in job:
+note 0 2
+rev |        return None|    return out|    for row in job:
+rev |        return None|    log(job)|    if not job:|    for row in job:

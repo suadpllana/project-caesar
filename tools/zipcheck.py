@@ -34,6 +34,11 @@ SUFFIX_RE = re.compile(
 # "required file not found" and corrupts the graded instruction suffix.
 TEXT_SUFFIXES = {".sh", ".py", ".md", ".json", ".toml", ".txt", ".cfg", ".ini"}
 
+# Directories that belong to the repo and not to the submission. `package.py` takes its
+# exclusions from the kit's preflight and neither is ours to edit, so the ritual is to move
+# these out of the task directory for the duration of the packaging run.
+EXTRANEOUS_DIRS = {"authoring", "probes"}
+
 
 def is_text(name: str) -> bool:
     return Path(name).suffix in TEXT_SUFFIXES or Path(name).name == "Dockerfile"
@@ -109,6 +114,19 @@ def check(zpath: Path) -> int:
             )
         elif len(lines) < 2 or lines[-2] != "":
             findings.append("instruction.md suffix is not preceded by a blank line")
+
+    # Authoring-time tooling is not part of the bundle. The quality review blocked
+    # lock-priority-unwind on 2026-09-04 for exactly this: `authoring/` is referenced by no
+    # Dockerfile, no test, the instruction or solve.sh, and its cheatsrc/ copies are byte-for-
+    # byte duplicates of heredocs already embedded in cheat/*.sh. Fourteen of the fifteen
+    # archives in this repo shipped it; the one that did not is the bundle that passed all
+    # nine gates.
+    stowaways = sorted({n.split("/")[1] for n in names
+                        if len(n.split("/")) > 2 and n.split("/")[1] in EXTRANEOUS_DIRS})
+    for d in stowaways:
+        findings.append(
+            "archive ships %s/, which nothing in the bundle references - the quality "
+            "review blocks on extraneous files. Move it aside before packaging." % d)
 
     # 4. Staleness. A zip older than any file it claims to contain is the previous build.
     slug = names[0].split("/")[0] if names else ""

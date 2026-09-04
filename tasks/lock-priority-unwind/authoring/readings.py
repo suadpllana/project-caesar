@@ -1,5 +1,8 @@
-"""The wrong readings of the rule, so tools/readingcheck.py can ask whether the written set
-separates each of them.
+"""The wrong readings of the rule, so the repo's readingcheck tool can ask whether the written
+set separates each of them.
+
+This is authoring-time tooling and does not ship in the bundle; the checker it feeds lives at
+tools/readingcheck.py in the repository, not inside the task directory.
 
 Per-rule coverage on paper is not coverage. The question is whether a *specific*
 plausible-but-wrong reading survives the whole written set, and the only way to know is to

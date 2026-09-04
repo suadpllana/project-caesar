@@ -110,13 +110,27 @@ nothing else.
   is better than what it replaced and still not hard enough - see `probes/lock-priority-unwind/`
   for what a further change has to satisfy.
 
+## Pipeline result, 2026-09-04
+
+Cleared the structural check, **the AI check** (first time ever, after three refusals), the
+similarity screen and reference verification. Failed the quality review on two blocking criteria:
+
+1. `difficulty explanation quality` - it quoted probe results, which the rubric forbids, and it
+   lacked an explicit sentence on the synthetic nature of the data and on who does this work in
+   the real world. Repaired: no `task.toml` field now carries a solve rate, a tool-call count, an
+   agent-run date or an "N of M scenarios" measurement, and the two required sentences are in.
+2. `no extraneous files` - `authoring/` ships and nothing in the bundle references it. Repaired by
+   moving it aside for the packaging run; the archive went from 103 entries to 61, and
+   `tools/zipcheck.py` now fails any archive that carries it.
+
+`instruction.md` is byte-identical to the version that cleared the AI check and must stay that
+way. The remaining problem is the one below, not the prose.
+
 ## Still outstanding
 
-The **AI-text screen**. This instruction has been refused three times, and CLAUDE.md's verdict
-after six refusals across two tasks is that rewriting a brief the screen has already refused,
-with the same author, is close to a coin flip with bad odds. The brief had to change here
-because the mechanism changed and two of its sentences had become false. The variable that has
-never been tried on this bundle is who writes the prose.
+The **easiness probe**: measured 3 of 3 locally with CLAUDE.md parked. The mechanism needs
+another axis before this is worth resubmitting; what it has to satisfy is in
+`probes/lock-priority-unwind/notes.md`.
 
 ## Traps already hit here, do not re-hit them
 

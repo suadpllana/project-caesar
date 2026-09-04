@@ -45,14 +45,13 @@ moments and none of them is named for the state that matters. The argument the e
 does nothing and raises nothing. And the check a solver builds for themselves is the definition
 they already believe, so it agrees with their code and passes.
 
-That last one is the load-bearing part and it is measured rather than argued. This task was put
-in front of three frontier agents on 2026-09-04 under an earlier design in which the mutex was
-handed straight over, and three of three solved it in four or five tool calls, writing the fixed
-point in their first message and confirming it with a fuzz harness whose oracle was the same rule
-their policy implemented. That policy ships verbatim as cheat-the-policy-the-probe-wrote. Against
-the engine as it now stands it fails six of the twenty-one written scenarios and 16.7% of drawn
-ones, and its self-check still passes, because a holder-shaped oracle cannot see a mutex that has
-no holder.
+That last one is the load-bearing part. A solver who writes the textbook rule and then checks it
+will write the check against the same rule, so the check agrees with the code and passes: a
+holder-shaped oracle cannot see a mutex that has no holder. Nothing a solver can build for
+themselves closes that gap, which is why the wrongness surfaces in the verifier or not at all.
+The textbook policy ships as a cheat, and so does each of the near misses on the way to it -
+aiming the recomputation at the holder, counting only the tasks queued on what a task holds,
+walking the chain by holders alone, and moving only the releasing task at a release.
 
 The fence closes on both sides, which is what stops the defensive rewrite. What a task is worth
 is graded at every tick, so lifting a task higher than the rule allows fails exactly as leaving
@@ -74,6 +73,15 @@ than by reading names.
 Half the graded run is task sets drawn when the verifier starts, from a seed that does not exist
 until then, so a policy that is right about the shapes somebody thought to write down and wrong
 in general passes the written half and fails the drawn one.
+
+The kernel, the task programs and every schedule in this bundle are synthetic. Nothing is
+vendored: the engine is written from scratch in integer arithmetic so that every comparison is
+exact and no tolerance is needed anywhere, and the task sets are small programs invented for the
+shapes they exercise rather than traces captured from a real system. The failure it is built from
+is not synthetic. This is the work of the engineers who write and maintain real-time kernels and
+the drivers and firmware that run on them, and who are handed a trace showing a deadline moved
+and have to work out why a task that was supposed to be urgent spent twenty ticks behind a task
+it outranks. That is who this task is asking to be reproduced.
 """
 
 solution_explanation = """
@@ -186,14 +194,17 @@ recomputing the task that blocked instead of the one it is waiting for, aiming e
 recomputation at the holder of a mutex, counting only the tasks queued on what a task holds,
 walking the chain by holders alone, treating a task at the head of a queue and a task holding a
 mutex as two rules instead of one quantity, counting the task at the head of a queue among the
-tasks waiting on it, and moving only the releasing task at a release. Two are policies frontier
-agents actually wrote against this task, kept verbatim rather than reconstructed: the transitive
-inheritance keyed on holders that three of three wrote against an earlier design, and the reading
-that lends to every task queued ahead of you, which two of three wrote against this one and both
-named as the single thing they had to guess. That second one is why the brief settles it: it
-produces the identical schedule, the identical event log and the identical finish times, so it is
-the same policy with different bookkeeping, and a graded number that two behaviourally identical
-implementations may disagree on is a coin flip rather than a test of anything. One is the memorisation attack
+tasks waiting on it, and moving only the releasing task at a release. Two more are whole policies
+rather than single swaps, because a swap anchored in the reference can only reach a reading the
+reference's own control flow reaches. One is textbook transitive inheritance keyed on holders,
+which is the shape every account of priority inversion describes and the one this engine is built
+to defeat. The other lends to every task queued ahead of you in a queue, on the reading that a
+first-in-first-out handover puts the task in front of you in your way exactly as the holder is;
+it produces the identical schedule, the identical event log and the identical finish times, so it
+is the same policy with different bookkeeping. That last one is why the brief settles the question
+outright: a graded number that two behaviourally identical implementations may disagree on would
+be a coin flip rather than a test of anything, which is the run-audit failure this repo has
+already had once. One is the memorisation attack
 described above. The remaining eight are reward-tamper and isolation probes built on the shipped
 policy rather than on the reference, because a probe built on the reference does the real work
 and would score 1 legitimately: a double-forked process writing the reward after the run, a

@@ -110,7 +110,9 @@ none has ever been checked for.
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
-It then failed the quality review twice more on 2026-09-04: on `no extraneous files` (the
+Its easiness probe then went **3 of 3 to 2 of 3** (allowed <= 1) across the redesign, and a
+second compounding consequence went in on 2026-09-04 - see "3 of 3 to 2 of 3" below, which is
+the entry to read on how to answer a near miss. It also failed the quality review twice on 2026-09-04: on `no extraneous files` (the
 shipped `authoring/` directory - **twelve of the fourteen archives here have that defect and
 two of them passed this same criterion**, so package with `tools/packbundle.py` from now on),
 and then on `instruction concision`, for a roleplay narrative and a private vocabulary the
@@ -663,6 +665,83 @@ first post is not the chronologically first, which the brief states precisely tw
 earlier. That is exactly the "reasoning that satisfies a requirement" the first concision entry
 says to cut, so it went. Nothing the verifier grades lost its sentence: all six test sweeps were
 walked against the new text.
+
+## 3 of 3 to 2 of 3: a second consequence beats a second coin flip (2026-09-04)
+
+The redesign above took the easiness probe from 3 of 3 to **2 of 3**, allowed <= 1. Runtimes
+3m13s, 6m01s, 11m43s. All three trajectories were supplied, and between them they say
+precisely what was left.
+
+**The failing agent's write-up lists three fixes and the fixed point is not among them.** It
+got reach, bars and the departed-item rule right, built a fuzzer, and never asked whether a
+filing on this tick could free another. Both solvers did implement the cascade, and the one
+that spent 11m43s wrote this at the end of its report:
+
+> One judgment call to know about: the same-tick cascade in `firm`. If the graders' reference
+> judges each item only against what was gone before the tick began, those rare filings would
+> land one tick later than mine.
+
+**So the whole discriminator was a single binary reading, and careful agents win it about two
+thirds of the time.** Everything else was oracle-checkable and both solvers built oracles that
+confirmed it - which is the design working exactly as intended, and also its ceiling: one
+non-oracle-checkable decision buys you 1/3, not 2/3.
+
+### The rule this establishes
+
+**Do not answer a 2-of-3 by adding a second independent judgment call.** Two coin flips give
+1/4 by luck, not by expertise, and "Landing inside the band" already says a chain of
+independent guesses is how a well-designed task scores 0 of 8 - the run audit reads it as a
+lottery. What is wanted is a second consequence *of the same mechanism*, so that an agent who
+has understood the first still has to carry it one step further.
+
+Here that was: **a tag is handed its pool once, so the moment any key of that pool is filed the
+pool is stale and the tag says nothing further.** It is one sentence of machine behaviour,
+visible in `bk.drop`, and its consequence is not: inside the hypothetical closure, an agent
+asking "does this item settle if those items go" must also strike out the tags those items
+would take with them, which shrinks reach further than removing their keys does. An agent that
+models departures as a set of keys - the obvious reading, and what the `off` parameter invites -
+is wrong on 57% of sets.
+
+Measured on 250 generated sets, and the second row is the point:
+
+| reading | moves | before this change |
+|---|---|---|
+| cascade kept, tags not retired with the item | **56.8%** | new |
+| cascade missed entirely | **64.0%** | 21% |
+| differences ignored | 56.0% | 69% |
+
+**Adding a compounding consequence made the original discovery three times more load-bearing.**
+That is the difference between compounding and independent: the new rule did not sit beside the
+cascade, it multiplied it, because retiring tags creates far more situations in which one filing
+frees another.
+
+### Two things that fell out, and the second is a gate lesson
+
+- **A dead branch can be created by a later change.** Filtering gone cells out of the reach
+  graph was load-bearing before this and is dead after it: every tag that could reach such a
+  cell named one of its keys, so it goes with it. Removed, ground truth byte-identical as the
+  proof. **Re-run the dead-code question after every mechanism change, not only when writing
+  one** - `gone-still-in-reach` went from a 46% reading to a 0% one and had to be dropped as a
+  cheat.
+
+- **Two implementations that share an assumption agree, and the fuzz says nothing.** An audit
+  turned up that `mc.step` gated a tie or a bar on its *keys* only, so a retired tag's later
+  declaration still landed - contradicting the reach the reference had just computed, and
+  making the task's own rule false. The sealed model made the same modelling choice in its
+  `play`, so the two agreed and the 900-set fuzz stayed clean. **132 such declarations landed
+  across 300 sets.** The check that found it was not a differential test at all: it was a
+  direct assertion about the machine's own trace - *did anything happen that the rule says
+  cannot happen* - run against the reference alone.
+
+  That was the standing gap in this repo's method. `fuzz.py` compares two implementations and
+  `variant_check.py` compares several, but nothing asserted an invariant about a single run.
+  `authoring/audit.py` is now that check and it is in the gate list: it replays generated sets
+  and asserts directly that nothing happened which the rule says cannot happen - no declaration
+  from a source that is not live, none naming a key that has gone, no key filed twice or
+  unwatched, no watched key left without a row. Validated in both directions, which is the rule
+  for a new check: clean on the repaired machine, and firing on **76 of 300 sets** against the
+  machine as it stood before. **Any task here that states what its machine refuses wants one**,
+  and it is twenty lines.
 
 ## The extraneous-files rejection: the bundle is not the working tree (2026-09-04)
 
@@ -4315,6 +4394,11 @@ python3 tools/onelinecheck.py <slug>            how short is the answer? every g
 python3 tasks/<slug>/authoring/fuzz.py 800      the reference against the sealed oracle on
                                                 random streams, before any budget taken
                                                 from the reference is believed
+python3 tasks/<slug>/authoring/audit.py 300     assert the machine's own refusals directly,
+                                                on the reference alone and comparing nothing
+                                                against anything. A differential test cannot
+                                                see an assumption both implementations
+                                                share, and one hid there for a whole build
 python3 tools/solvecheck.py <slug>              solve.sh must not inline a file that also
                                                 exists as a file, and must not carry a
                                                 heredoc past 20 lines

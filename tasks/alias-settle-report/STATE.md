@@ -166,6 +166,44 @@ Note the criterion has run-to-run variance: `guard-mark-unwind` shipped 35 autho
 `share-register-screen` 40, and both cleared this same review. The repair removes exposure; it
 is not proof of what decided this one.
 
+## The easiness probe, 2026-09-04: 3 of 3, then 2 of 3, then this
+
+Second probe on the redesigned bundle came back **2 of 3** (allowed <= 1), runtimes 3m13s,
+6m01s, 11m43s. The trajectories name the gap exactly. The failing agent's write-up lists
+three fixes and the fixed point is not among them - it never considered the same-tick
+cascade. Both solvers implemented it, and one called it out as a judgment call it could
+have gone either way on. So the whole discriminator was one binary reading that careful
+agents win about two thirds of the time, and everything else - reach, bars, pending posts -
+is oracle-checkable and both solvers built oracles that confirmed it.
+
+**The repair adds a second consequence of filing that compounds with the cascade rather
+than standing beside it as another coin flip.** A tag is handed its pool once, so the
+moment any key of that pool is filed the pool is stale and the tag says nothing further.
+An agent must propagate that inside the hypothetical: asking whether this item settles
+given that those items are going means the tags those items take with them are gone too,
+so reach shrinks further than their keys alone imply.
+
+Measured on 250 generated sets:
+
+| reading | moves | before |
+|---|---|---|
+| cascade kept, tags not retired with the item | **56.8%** | new |
+| cascade missed | **64.0%** | 21% |
+| differences ignored | 56.0% | 69% |
+| the pending-post half dropped | 56.0% | 59% |
+
+Three enumerated cases pin it: `gone-takes-its-tag`, `one-going-takes-a-tag` (the same-tick
+cascade running through tag retirement) and the fence `other-tags-keep-working`.
+
+Two things fell out of building it. Filtering gone cells out of the reach graph became dead
+code - every tag that could reach such a cell named one of its keys and is gone with it -
+and was removed, ground truth unchanged as the proof. And an audit found a real defect the
+fuzz could not see: `mc.step` gated a tie or a bar on its keys only, so a retired tag's
+later declaration still landed, contradicting the reach the reference computed. The sealed
+model shared the assumption, so the two agreed and the 900-set fuzz stayed clean. Both now
+gate on the tag being live; 132 such declarations landed across 300 sets before the fix and
+none do after it.
+
 ## The third quality-review rejection, 2026-09-04
 
 `instruction concision`. `no extraneous files` passed after the repackaging, and so did the
@@ -184,11 +222,12 @@ clause explaining a rule the brief states precisely two paragraphs earlier.
 ## Gates run
 
 The real two-image trial on this Linux sandbox with Docker up: **32 of 32** (oracle 1, nop 0,
-thirty cheats 0) and **5 of 5** variants at reward 1, 738 tests apiece. Every mistake cheat
+thirty cheats 0) and **5 of 5** variants at reward 1, 750 tests apiece. Every mistake cheat
 fails a handful of row tests rather than dying on an import, and `all-that-look-ready` fails
 431 of 738. `forgecheck` 30 of 30 with the answer-key probe recognised and scoring 0.
 
-Host gates: `sync`, `build_gt` (900 sets), `fuzz` (600), `emit`, `make_variants`,
+Host gates: `sync`, `build_gt` (900 sets), `fuzz` (600), `audit` (300, and it fires on 76 of
+300 against the machine as it stood before the tag-liveness gate), `emit`, `make_variants`,
 `variant_check` (5/5), `readingcheck` (16/16 separated), `onelinecheck` (no exact rule at
 depth <= 2 for the filing decision), `deadfieldcheck`, `catcheck`, `solvecheck`, `hintcheck`,
 `structcheck`, `textcheck` (clean against four briefs that passed the AI screen),

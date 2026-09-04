@@ -1,8 +1,3 @@
-#!/bin/bash
-# Take the mapping from the standard library's sequence matcher. It is not obliged to produce a shortest script and does not settle ties the way the tool does.
-set -euo pipefail
-APP_DIR="${APP_DIR:-/app}"
-cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
 """The board of review threads, rebuilt from the store.
 
 Nothing survives between requests, so the board is reconstructed by walking
@@ -112,75 +107,35 @@ class Board(object):
                 thread["state"] = "resolved"
 
     def _merge(self, threads, caught, log):
-        done = []
-        while True:
-            live = sorted([t for t in threads if t["state"] in LIVE],
-                          key=lambda t: t["id"])
-            hit = None
-            for a in range(len(live)):
-                for b in range(a + 1, len(live)):
-                    if rule.merges(live[a]["span"], live[b]["span"]):
-                        hit = (live[a], live[b])
-                        break
-                if hit:
-                    break
-            if hit is None:
-                held = dict(done)
-                for taken_id in sorted(held):
-                    owner_id = held[taken_id]
-                    while owner_id in held:
-                        owner_id = held[owner_id]
-                    log.append(("absorb", owner_id, taken_id))
-                return
-            owner, taken = hit
-            owner["span"] |= taken["span"]
-            if taken["state"] == "open":
-                owner["state"] = "open"
-            threads.remove(taken)
-            caught.pop(taken["id"], None)
-            done.append((taken["id"], owner["id"]))
-ENDBOARD
-cat > "${APP_DIR}/note/rule.py" <<'ENDRULE'
-"""The three questions a revision asks about one thread.
-
-`kept` answers off the script the tool itself settled. Several scripts of the
-same length exist for almost any pair of revisions of a file that repeats its
-lines, and they disagree about which copy of a repeated line survived, so a
-mapping rebuilt here from an ordinary longest-common-subsequence walk is a
-different answer to a different question.
-
-`touched` is about the span, not about a line: a thread hangs off a stretch of
-code and the reviewer has to look again if the change reached any of it. The
-change is not the lines the script added either. It reaches across the kept
-lines that sit between its runs, which is what `grp.spans` settles.
-
-`merges` is overlap, not equality. Two threads that share a single line are
-looking at the same code and become one; carrying makes that happen far more
-often than opening does, because two spans that started apart can be squeezed
-together by the deletions between them.
-"""
-
-from scr import grp, pin
-
-
-def kept(before, after):
-    import difflib
-    out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
-        if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
-    return out
-
-
-def touched(span, before, after):
-    for chunk in grp.spans(before, after):
-        if span & chunk:
-            return True
-    return False
-
-
-def merges(one, other):
-    return bool(one & other)
-ENDRULE
+        live = sorted([t for t in threads if t["state"] in LIVE],
+                      key=lambda t: t["id"])
+        seen = {}
+        groups = []
+        for thread in live:
+            found = None
+            for group in groups:
+                if any(rule.merges(thread["span"], other["span"]) for other in group):
+                    if found is None:
+                        found = group
+                        group.append(thread)
+                    else:
+                        found.extend(group)
+                        group[:] = []
+            if found is None:
+                groups.append([thread])
+        taken = []
+        for group in groups:
+            group = [t for t in group if t]
+            if len(group) < 2:
+                continue
+            group.sort(key=lambda t: t["id"])
+            owner = group[0]
+            for other in group[1:]:
+                owner["span"] |= other["span"]
+                if other["state"] == "open":
+                    owner["state"] = "open"
+                taken.append((other["id"], owner["id"]))
+                threads.remove(other)
+                caught.pop(other["id"], None)
+        for taken_id, owner_id in sorted(taken):
+            log.append(("absorb", owner_id, taken_id))

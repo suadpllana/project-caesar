@@ -1,5 +1,5 @@
 #!/bin/bash
-# Take the mapping from the standard library's sequence matcher. It is not obliged to produce a shortest script and does not settle ties the way the tool does.
+# Ask the reviewer again every revision the thread spends caught in a change. It is raised when the change first reaches it; while it stays caught the reviewer has already been asked.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -83,7 +83,7 @@ class Board(object):
                 if thread["state"] not in ("open", "answered"):
                     continue
                 now = rule.touched(thread["span"], before, after)
-                if now and not caught.get(thread["id"], False):
+                if now:
                     log.append(("raise", thread["id"]))
                     if thread["state"] == "answered":
                         thread["state"] = "open"
@@ -164,13 +164,10 @@ from scr import grp, pin
 
 
 def kept(before, after):
-    import difflib
     out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
-        if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
     return out
 
 

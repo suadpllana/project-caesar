@@ -1,125 +1,198 @@
 #!/bin/bash
-# Rebuild the surviving-line mapping with an ordinary longest common subsequence backtrace instead of reading it off the walk the pinned engine produced. Same number of moves every time; a different copy of a repeated line survives.
+# Build the surviving-line mapping with an ordinary longest common subsequence walk instead of reading it off the script the tool settled. Same number of moves every time; a different copy of a repeated line survives, so the span lands somewhere else.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
-"""The note board, rebuilt from the store.
+"""The board of review threads, rebuilt from the store.
 
-Nothing survives between requests, so the board is reconstructed by replaying
-the store from the first revision up to the head. The replay is the whole
-point. The pinned script does not compose: the script from r0 to r2 is not the
-script from r0 to r1 followed by the one from r1 to r2, and on two thirds of
-the streams we grade the two disagree about which lines survived. A board that
-diffs a note's own revision straight against the head is cheaper, is stateless
-in the way the store asks for, and answers a different question.
+Nothing survives between requests, so the board is reconstructed by walking
+the store from the first revision to the head. The walk carries three things a
+board that recomputed from the endpoints could not: the span each thread has
+been squeezed down to, the state its replies and resolutions left it in, and
+whether the revision before this one had already caught it inside a change.
 
-Order inside one revision is fixed and is stated in the brief, because two
-correct implementations would otherwise disagree about the log: everything the
-carry retired, then everything it raised, then the absorbing, each in
-ascending note order.
+Four things happen when a revision lands, in this order and no other.
+
+The carry maps every span through the script for that revision. A span that
+loses every line leaves its thread outdated, which is a resting state: it
+stays on the board with the empty span it ended on, and nothing later carries
+it, raises it or merges it.
+
+The raise is edge triggered, and it is about the span. A thread is raised when
+the change first reaches any line it holds, and not again while it stays
+caught, so the answer needs the previous revision's verdict. A resolved thread
+is never raised. An answered one is, and the reply it was carrying is stale
+the moment that happens, so it goes back to open.
+
+Threads opened at this revision join next, on the span they were opened with.
+
+Merging runs last and runs to a fixed point. Two live threads whose spans
+share a line are looking at the same code, so the older takes the union and
+the newer is absorbed. The union can reach a third thread that neither half
+reached on its own, which is why one pass is not enough, and a thread that is
+open drags the merged thread open with it: the reviewer has an unanswered
+question about that code either way. What comes out of it does not depend on
+the order the pairs are found in: the spans settle into the connected groups of
+the overlap graph and the oldest id in each group owns it. The log says so too.
+It is ordered by the thread that was absorbed, and it names the thread that
+ends up holding it rather than whichever one happened to reach it first, so a
+board that hunts the pairs in another order still writes the same log.
 """
 
-from scr import grp, pin
 from note import rule
+
+STATES = ("open", "answered", "resolved", "outdated")
+EVENTS = ("outdated", "raise", "reopen", "absorb")
+LIVE = STATES[:3]
 
 
 class Board(object):
     def __init__(self, store):
         self.store = store
 
-    def build(self, opens):
-        waiting = {}
-        for at, nid, line in opens:
-            waiting.setdefault(at, []).append((nid, line))
-        live = []
+    def build(self, events):
+        opened = {}
+        talk = {}
+        for step, kind, payload in events:
+            if kind == "open":
+                opened.setdefault(step, []).append(payload)
+            else:
+                talk.setdefault(step, []).append((kind, payload))
+        threads = []
+        caught = {}
         log = []
-        self._open(live, log, waiting.get(0, []))
+        self._join(threads, caught, opened.get(0, []))
+        self._talk(threads, talk.get(0, []))
+        self._merge(threads, caught, log)
         for step in range(1, self.store.count()):
             before = self.store.at(step - 1)
             after = self.store.at(step)
-            _n, _m = len(before), len(after)
-            _L = [[0] * (_m + 1) for _ in range(_n + 1)]
-            for _i in range(_n - 1, -1, -1):
-                for _j in range(_m - 1, -1, -1):
-                    if before[_i] == after[_j]:
-                        _L[_i][_j] = _L[_i + 1][_j + 1] + 1
-                    else:
-                        _L[_i][_j] = max(_L[_i + 1][_j], _L[_i][_j + 1])
-            keep = {}
-            _i = _j = 0
-            while _i < _n and _j < _m:
-                if before[_i] == after[_j] and _L[_i][_j] == _L[_i + 1][_j + 1] + 1:
-                    keep[_i] = _j
-                    _i += 1
-                    _j += 1
-                elif _L[_i + 1][_j] >= _L[_i][_j + 1]:
-                    _i += 1
-                else:
-                    _j += 1
-            spans = grp.spans(before, after)
-            held = []
-            lost = []
-            for note in live:
-                if note["line"] in keep:
-                    note["line"] = keep[note["line"]]
-                    held.append(note)
-                else:
-                    lost.append(note["id"])
-            for nid in sorted(lost):
-                log.append(("retire", nid))
-            live[:] = held
-            for note in sorted(live, key=lambda n: n["id"]):
-                if rule.raised(note["line"], spans):
-                    log.append(("raise", note["id"]))
-            self._open(live, log, waiting.get(step, []))
-        live.sort(key=lambda n: n["id"])
-        return live, log
+            carried = rule.kept(before, after)
+            gone = []
+            for thread in threads:
+                if thread["state"] == "outdated":
+                    continue
+                thread["span"] = set(carried[x] for x in thread["span"] if x in carried)
+                if not thread["span"]:
+                    gone.append(thread)
+            for thread in sorted(gone, key=lambda t: t["id"]):
+                thread["state"] = "outdated"
+                caught.pop(thread["id"], None)
+                log.append(("outdated", thread["id"]))
+            for thread in sorted(threads, key=lambda t: t["id"]):
+                if thread["state"] not in ("open", "answered"):
+                    continue
+                now = rule.touched(thread["span"], before, after)
+                if now and not caught.get(thread["id"], False):
+                    log.append(("raise", thread["id"]))
+                    if thread["state"] == "answered":
+                        thread["state"] = "open"
+                        log.append(("reopen", thread["id"]))
+                caught[thread["id"]] = now
+            self._join(threads, caught, opened.get(step, []))
+            self._talk(threads, talk.get(step, []))
+            self._merge(threads, caught, log)
+        threads.sort(key=lambda t: t["id"])
+        return threads, log
 
-    def _open(self, live, log, fresh):
-        for nid, line in fresh:
-            live.append({"id": nid, "line": line})
-        seen = {}
-        held = []
-        taken = []
-        for note in sorted(live, key=lambda n: n["id"]):
-            owner = seen.get(note["line"])
-            if owner is None:
-                seen[note["line"]] = note["id"]
-                held.append(note)
-            else:
-                taken.append((note["id"], owner))
-        for nid, owner in sorted(taken):
-            log.append(("absorb", owner, nid))
-        live[:] = held
+    def _join(self, threads, caught, fresh):
+        for nid, span in fresh:
+            threads.append({"id": nid, "span": set(span), "state": "open"})
+            caught[nid] = False
+
+    def _talk(self, threads, said):
+        by_id = dict((t["id"], t) for t in threads)
+        for kind, nid in said:
+            thread = by_id.get(nid)
+            if thread is None:
+                continue
+            if kind == "reply" and thread["state"] == "open":
+                thread["state"] = "answered"
+            elif kind == "resolve" and thread["state"] in ("open", "answered"):
+                thread["state"] = "resolved"
+
+    def _merge(self, threads, caught, log):
+        done = []
+        while True:
+            live = sorted([t for t in threads if t["state"] in LIVE],
+                          key=lambda t: t["id"])
+            hit = None
+            for a in range(len(live)):
+                for b in range(a + 1, len(live)):
+                    if rule.merges(live[a]["span"], live[b]["span"]):
+                        hit = (live[a], live[b])
+                        break
+                if hit:
+                    break
+            if hit is None:
+                held = dict(done)
+                for taken_id in sorted(held):
+                    owner_id = held[taken_id]
+                    while owner_id in held:
+                        owner_id = held[owner_id]
+                    log.append(("absorb", owner_id, taken_id))
+                return
+            owner, taken = hit
+            owner["span"] |= taken["span"]
+            if taken["state"] == "open":
+                owner["state"] = "open"
+            threads.remove(taken)
+            caught.pop(taken["id"], None)
+            done.append((taken["id"], owner["id"]))
 ENDBOARD
 cat > "${APP_DIR}/note/rule.py" <<'ENDRULE'
-"""Which lines a script keeps, and which of them sit inside a change.
+"""The three questions a revision asks about one thread.
 
-`kept` reads the mapping straight off the walk the pinned engine produced.
-That matters more than it looks: several scripts of the same length exist for
-almost any pair whose lines repeat, and they disagree about which copy of a
-repeated line survived. Rebuilding the mapping from a textbook diff, or from
-the opcodes the standard library's matcher returns, answers a different
-question and moves the note to a different line.
+`kept` answers off the script the tool itself settled. Several scripts of the
+same length exist for almost any pair of revisions of a file that repeats its
+lines, and they disagree about which copy of a repeated line survived, so a
+mapping rebuilt here from an ordinary longest-common-subsequence walk is a
+different answer to a different question.
 
-`raised` asks whether a line the script kept nevertheless falls inside one of
-the changes of that same script. It can: a change absorbs the kept lines that
-sit between its runs, so a line can survive the revision untouched and still
-be part of the change the reviewer has to look at again.
+`touched` is about the span, not about a line: a thread hangs off a stretch of
+code and the reviewer has to look again if the change reached any of it. The
+change is not the lines the script added either. It reaches across the kept
+lines that sit between its runs, which is what `grp.spans` settles.
+
+`merges` is overlap, not equality. Two threads that share a single line are
+looking at the same code and become one; carrying makes that happen far more
+often than opening does, because two spans that started apart can be squeezed
+together by the deletions between them.
 """
 
+from scr import grp, pin
 
-def kept(walk):
+
+def kept(before, after):
+    n, m = len(before), len(after)
+    best = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(n - 1, -1, -1):
+        for j in range(m - 1, -1, -1):
+            if before[i] == after[j]:
+                best[i][j] = best[i + 1][j + 1] + 1
+            else:
+                best[i][j] = max(best[i + 1][j], best[i][j + 1])
     out = {}
-    for kind, i, j in walk:
-        if kind == "K":
+    i = j = 0
+    while i < n and j < m:
+        if before[i] == after[j] and best[i][j] == best[i + 1][j + 1] + 1:
             out[i] = j
+            i += 1
+            j += 1
+        elif best[i + 1][j] >= best[i][j + 1]:
+            i += 1
+        else:
+            j += 1
     return out
 
 
-def raised(line, spans):
-    for s in spans:
-        if line in s:
+def touched(span, before, after):
+    for chunk in grp.spans(before, after):
+        if span & chunk:
             return True
     return False
+
+
+def merges(one, other):
+    return bool(one & other)
 ENDRULE

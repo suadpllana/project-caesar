@@ -17,7 +17,7 @@ import oracle  # noqa: E402
 import scen  # noqa: E402
 
 
-def reference_board(revs, opens):
+def reference_board(revs, events):
     """The reference, driven exactly as the runner drives a submission."""
     import importlib
     import types
@@ -34,17 +34,19 @@ def reference_board(revs, opens):
     store = Store()
     for lines in revs:
         store.land(lines)
-    live, log = holder.Board(store).build([tuple(o) for o in opens])
-    notes = sorted([[int(n["id"]), int(n["line"])] for n in live])
-    return {"notes": notes, "log": [[str(e[0])] + [int(x) for x in e[1:]] for e in log]}
+    threads, log = holder.Board(store).build([tuple(e) for e in events])
+    table = sorted([[int(t["id"]), str(t["state"]),
+                     sorted(int(x) for x in t["span"])] for t in threads])
+    return {"threads": table,
+            "log": [[str(e[0])] + [int(x) for x in e[1:]] for e in log]}
 
 
 def main():
     fixed = {}
     for item in scen.FIXED:
-        notes, log = oracle.board(item["revs"], item["opens"])
-        want = {"notes": notes, "log": log}
-        got = reference_board(item["revs"], item["opens"])
+        threads, log = oracle.board(item["revs"], item["events"])
+        want = {"threads": threads, "log": log}
+        got = reference_board(item["revs"], item["events"])
         if got != want:
             raise SystemExit("reference and sealed model differ on %s\n  model %s\n  ref   %s"
                              % (item["name"], want, got))
@@ -53,8 +55,8 @@ def main():
     checked = 0
     for seed in (1, 2, 3):
         for item in scen.generated(120, seed):
-            notes, log = oracle.board(item["revs"], item["opens"])
-            if reference_board(item["revs"], item["opens"]) != {"notes": notes, "log": log}:
+            threads, log = oracle.board(item["revs"], item["events"])
+            if reference_board(item["revs"], item["events"]) != {"threads": threads, "log": log}:
                 raise SystemExit("reference and sealed model differ on %s (seed %d)"
                                  % (item["name"], seed))
             checked += 1

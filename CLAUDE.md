@@ -601,6 +601,24 @@ class:
   creates the directory and still fails the check. Two errors that read as a real packaging
   fault and are a string match.
 
+**Corrected 2026-09-04, after the pipeline rejected this bundle on exactly it.** The
+structural check is **stricter than `preflight`** on the same rule, and this is
+standing-policy item 2. `preflight`'s test is
+`re.search(r"mkdir\s[^\n]*/app/note", body)` over the file with comments stripped and
+**line continuations left alone**, so a combined instruction like
+
+    RUN pip install ... \
+     && mkdir -p /app/note /app/scr /app/rev /work \
+     && useradd ...
+
+matches, passes clean, and is rejected by the pipeline with
+`ARTIFACT-PARENT-NOT-CREATED - tests/Dockerfile never creates /app/note`. The bundle built
+correctly and `/app/note` really did exist in the image; the checker reads Dockerfile
+instructions rather than running one. **Give every artifact parent its own plain
+`RUN mkdir -p <parent>` line, one per line, never chained behind a `&&`.** Costs nothing,
+and `simcheck` does not move for it - this bundle stayed clear on both axes after the
+rewrite. A clean `preflight` is not evidence about the structural check.
+
 **Gates run:** the real two-image trial **16/16** (oracle 1, nop 0, fourteen cheats 0), variants
 **3/3** score 1, `build_gt` proving the reference against the sealed oracle on 13 hand-written
 and 360 generated streams, `cheat_report` naming the catching test for every cheat, `forgecheck`,
@@ -610,6 +628,222 @@ cleared the AI screen, `preflight` no errors.
 
 **Gates NOT run: the three-agent easiness probe.** It is the only local gate that measures what
 the easiness gate rejects for, and it is the first thing to run on this bundle.
+
+### The `structured data schema` rejection: every literal the grader matches on goes in the brief (2026-09-05)
+
+`note-carry-forward` cleared `difficult` on the enriched mechanism and failed the quality
+review on one criterion, **`structured data schema`**. The note, in full:
+
+> The graded log is exact-match on literal tokens, and two of them are undocumented: the
+> instruction says 'a reopening written directly after the raise' but never states the token
+> is 'reopen' (vs 'reopened'/'reopening'), and the shipped code contains no such string; the
+> thread state literal 'outdated' is likewise only implied by the log kind.
+
+Right on both counts, and cheap to have caught. The brief described the events in prose
+("outdatings", "a reopening") and the shipped board never emitted `reopen` at all, so the one
+token a correct board had to produce was a token it could not find anywhere. **A grader that
+exact-matches a string has to publish that string, in backticks, in the brief - every state
+literal and every event kind - and the shipped tree should carry them too.** Three lines in
+the brief and a two-tuple constant at the top of the shipped board.
+
+The mechanical check is a grep: for every string literal `test_outputs.py` or the oracle
+compares against, does it appear verbatim in `instruction.md`? Run it before packaging any
+task whose artifact is a log of named events.
+
+### `difficult` twice, and the thing that finally moved it: volume of interaction, not a cleverer insight (2026-09-05)
+
+`note-carry-forward` has now been round the quality review three times on one criterion.
+Round one failed `difficult` because the brief stated the method. Round two passed. Round
+three failed `difficult` again, and the note is the one to memorise:
+
+> The shipped kept/inside helpers are already correct, so the work reduces to replacing an
+> origin-to-head diff with a per-revision walk and changing should_raise to 'now and not
+> before'. A competent undergraduate could do this in well under a day; it does not require
+> years of domain expertise.
+
+That was accurate and it is measurable: the whole reference was **98 lines** and its
+intellectual content was **one insight**. No wording change reaches that. Two rounds were
+spent trying, and each attempt hit the opposite wall - state a rule and the reviewer says the
+instruction hands it over, break another file and the easiness probe follows the extra arrow.
+
+**The finding, and it is the one to carry to any task that fails `difficult`: the count of
+defects is not the difficulty. The depth of the least legible one is, and a mechanism whose
+core is a single insight is a half-day task however it is described.** Adding rules to the
+brief adds lottery; adding broken files adds signposts. Neither adds expertise.
+
+What works is the shape `guard-mark-unwind` already had and nothing here had copied: **many
+stated rules whose interactions are the work.** That bundle is the only one in this repo to
+clear both probes, and it grades 8 decisions over a runtime the agent has to reason about, not
+1 over a helper. The repair here was to enrich the *environment* rather than the brief:
+threads now carry spans instead of a line, have states that replies and resolutions move them
+through, and merge by overlap to a fixed point. **Twelve** decisions are graded where two
+were, four of them need something no single revision supplies - the previous revision's
+verdict for that thread, the state a reply left behind, a merge fixed point, and a mapping
+that only differs from a rebuilt one on files that repeat themselves. The reference went 98
+lines to about 140, and the shipped tree is wrong in seven places rather than three.
+
+Measured, over 300 streams from the graded generator, every one shipping as a cheat that
+scores 0 and every one caught by the hand-written set:
+
+| wrong reading | moves |
+|---|---|
+| the mapping from the standard library's matcher | 93% |
+| the mapping rebuilt from an ordinary LCS walk | 91% |
+| a change read as the lines the script added | 91% |
+| merging on equal spans instead of on overlap | 82% |
+| an outdated thread dropped off the board | 68% |
+| the older thread keeping its own span, not the union | 66% |
+| the whole span required to be inside the change | 51% |
+| raising every revision the thread stays caught | 49% |
+| merging in one pass instead of to a fixed point | 47% |
+| the merged thread not dragged open by an open half | 43% |
+| a resolved thread raised along with the rest | 27% |
+| an answered thread not reopened when it is raised | 24% |
+
+**A fixed point over sets is only real if the sets are arbitrary.** The earlier design widened
+each thread to the change group it landed in and then absorbed to a fixed point, and it never
+iterated once - 0 disagreements over 400 streams - because group-widened spans are aligned to
+disjoint groups, so whether two intersect is decided before any absorbing happens. Spans that
+are arbitrary sets of lines do chain: `merge-in-one-pass` moves 47%. That is why the mechanism
+carries spans and not groups, and it is worth checking before building any "absorb to a fixed
+point" rule.
+
+**And a merge rule whose log names the absorber grades a procedure, not a result.** The
+outcome of merging to a fixed point is the connected groups of the overlap graph and is
+independent of the order pairs are found in; the *log* is not, because a thread can be taken
+by one owner and that owner taken by another. The first version logged whoever reached it
+first, which two correct boards disagree about - a run-audit rejection waiting to happen. The
+log now names the thread that **ends up** holding the span, and
+`authoring/variants/ok-merge-by-components` merges by components instead of by pair-hunting
+and scores 1, which is what proves it.
+
+**Gates:** real two-image trial **19/19** (oracle 1, nop 0, seventeen cheats 0), variants
+**4/4**, reference proved against the sealed oracle on 17 hand-written and 360 generated
+streams, `textcheck` clean against all three briefs that cleared the AI screen (burstiness
+0.901), `simcheck` clear on both axes, `preflight` no errors, and `forgecheck`, `solvecheck`,
+`deadfieldcheck`, `catcheck`, `structcheck`, `hintcheck` and `zipcheck` clean. **The easiness
+probe has not been run since the rebuild.**
+
+### The easiness rejection: an unused import is an arrow, and a stated spec is transcription (2026-09-04)
+
+`note-carry-forward` cleared the quality review and came back **3 of 3** from the easiness
+probe, at **75 seconds a trial** against a 14400 s budget. Three trajectories, in
+`probes/note-carry-forward/`. All three read the tree, wrote one `cat > note/rule.py` and one
+`cat > note/board.py`, both correct first time, and stopped. No intermediate wrong version in
+any of them. `leakcheck` is quiet on all three, so the wording was not the leak.
+
+**Cause one, and it is standing-policy item 2 for the second time in three days: the shipped
+`note/rule.py` carried `from scr import pin` and never used it, and `grp.spans` was called by
+nothing while the brief named both modules.** `preflight` warned about exactly that and the
+warning was dismissed as the documented false-positive class. It was not a false positive.
+The alias-settle-report entry already says these warnings are "partly right"; this is the
+second bundle where they were simply right. **An unused import in an editable file, next to a
+frozen module the brief names, is an instruction: wire me in.** All three agents wrote that
+sentence back in their own summaries. Grep every editable artifact for imports it does not
+use before shipping - it takes ten seconds and `preflight` already prints the list.
+
+**Cause two is the one that matters, and no leak patch reaches it.** Every defect was
+self-announcing against a brief that stated the rule completely, so the work was
+transcription: the quality reviewer had already said as much ("a competent undergraduate who
+reads the brief closely could finish this in an afternoon"), and the response - making *more*
+files wrong - made it **easier**, because each additional visible breakage is one more arrow.
+**More broken code is not more difficulty when the breakage is legible.** That is worth
+holding onto: the count of defects is not the difficulty, the depth of the least legible one
+is.
+
+The repair is a second discovery that is not a question about any single revision. A note is
+raised when its line **becomes** part of a change, not every revision it spends inside one, so
+the answer depends on where the note stood when the previous revision closed. Nothing in the
+frozen modules answers it, because it is not a question about a script; and a board that
+recomputes each note from its own revision to the head **has nowhere to keep it**, which is
+what turns the first discovery from "tidier" into "load-bearing". The two defects can no
+longer be fixed in either order independently.
+
+**Measured, and the measurement is the point: the same rule was worth 6.5% of streams under
+the old generator and 56.8% under the new one.** Short files edited hard (5-16 lines, 3-9
+edits a revision, 4-10 revisions, up to three notes opened per revision) are what leave a note
+inside a change for two revisions running; long files lightly edited almost never do.
+**A discovery is only as strong as the distribution that exercises it**, and a new axis has to
+be measured against the graded generator rather than against a plausible one -
+`authoring/readings.py` now fails if any reading falls under a tenth of the set, which is what
+caught `absorb-newer` at 7.8% and sent the note density up.
+
+Where the eight readings sit now, over 400 generated streams: origin-to-head 99.0%, the
+matcher for the mapping 96.5%, retire without logging 96.8%, an ordinary LCS walk 95.2%, a
+change read as the added lines 95.2%, two notes left on one line 87.2%, **raise every revision
+56.8%**, newer note wins 19.8%.
+
+**Gates after the change:** real two-image trial **17/17** (oracle 1, nop 0, fifteen cheats 0),
+variants **4/4**, reference proved against the sealed oracle on 15 hand-written and 360
+generated streams, every rule cheat caught by the hand-written set rather than only by the
+generated block, `simcheck` clear on both axes, `textcheck` clean against all three briefs that
+cleared the AI screen, `preflight` no errors, and `forgecheck`, `solvecheck`, `deadfieldcheck`,
+`catcheck`, `structcheck`, `hintcheck` and `zipcheck` clean.
+
+### The quality-review rejection: stating the rule is not the same as stating the method (2026-09-04)
+
+`note-carry-forward` cleared the structural check on its second submission and failed the
+quality review on **four** blocking criteria. Every one is worth recording, and the first is
+the expensive one.
+
+**`difficult` - the brief handed over the method.** The reviewer's words: "the intellectual
+core is handed over in the instruction: carry 'one revision at a time', use what pin.py
+'settles', let grp.py say where a change begins/ends [...] The shipped rule.py is already
+correct, so the work reduces to rewriting one ~50-line Board.build as a careful replay of a
+stated spec." That is exactly right, and it is the knife-edge this file keeps naming from the
+other side: **fairness requires stating the rule, and difficulty requires not stating the
+method, and those are two different sentences about the same behaviour.** "A note stays with
+the line it was written about, and a line survives a revision when that revision's script
+keeps it" is the rule. "Carry the note one revision at a time, taking the mapping from
+`pin.py` and the change boundaries from `grp.py`" is the method, and it is the whole task.
+
+Two repairs, and the second matters more than the first. The method sentences came out. And
+**the second editable file was made wrong**: `rule.py` shipped correct, so however the brief
+was worded the work was one file. It now ships wrong in both of its functions, which turns one
+careful replay into three independent decisions across two artifacts, one of which (the
+mapping) is invisible in every count a solver can check.
+
+**A general check, cheap, and nobody here had run it: for each editable artifact, does the
+shipped version actually need to change?** If one of them is already right, the task is
+smaller than the artifact list makes it look, and a reviewer counting lines of real work will
+say so. `guard-mark-unwind` gets away with "one of those four may already be right" because
+the other three are wrong; a two-file task where one is correct is a one-file task.
+
+**`difficulty explanation quality`** wants two sentences this repo has never written down:
+**what the graded data actually is and whether it is realistic**, and **who would do this work
+in the real world**. Neither is optional and neither is inferable. The fix is four lines:
+the streams are synthetic token lists over a small pool, that is not a fair sample of
+production files, repetition is the condition under which the question has more than one
+defensible answer, and the person who does this for a living is an engineer keeping comment
+anchoring correct on a review tool. Put both in every `difficulty_explanation` from now on.
+
+**`instruction concision`** for the third time in this repo, and the finding is the same class
+each time: narrative preamble that carries no requirement ("the filing end of our code review
+tool", "That is the whole promise", "Reviewers have stopped trusting it"), oblique phrasing,
+and **a paragraph describing verifier internals the agent does not need** - seeded generation,
+a second model sharing no code. That last one is new and worth generalising: **how the
+verifier convinces itself is not the solver's business.** 926 words to 603.
+
+Cutting it flattened the cadence exactly as the typeahead entry predicts - burstiness 0.858 to
+0.709 and paragraph sd to 21.9 - and the recovery is the documented one: rejoin the clauses the
+material already has, split the over-long chains with terse verdicts, and do not restore a word
+of the padding. Back to 0.858 and clean against all three briefs that cleared the AI screen, at
+a third fewer words.
+
+**`no extraneous files`** caught four scratch measurement scripts with `/home/user/...` paths
+hardcoded and calls to a function that no longer existed, and an authoring script importing
+`tools/docker_trial2` from outside the bundle. **Everything under `authoring/` ships, so
+everything under `authoring/` has to resolve its own paths and stand on its own.** Delete the
+scratch, or make it a real check. `authoring/variants/` is not extraneous and should not be
+cut for this: `guard-mark-unwind` and `share-register-screen` both ship variants and both
+cleared this review.
+
+One regression caught while fixing the above, and it is the same one twice: regenerating the
+cheats moved the executed-tree probe's payload back into the agent container, where it rewrites
+`/app/scr/grp.py` - a path `test.sh` never copies into the work tree - so it scored 1 while
+testing an impossible attack. **A probe aimed at the executed tree has to be prepended to a
+declared artifact so it runs inside that tree.** It is now caught by the tree check and by
+nothing else, which is what says the check is live.
 
 ### A variant is stale the moment the rule changes, and nothing says so
 

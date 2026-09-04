@@ -1,5 +1,5 @@
 #!/bin/bash
-# Take the mapping from the standard library's sequence matcher. It is not obliged to produce a shortest script and does not settle ties the way the tool does.
+# Let the older thread keep the span it had rather than taking the union. It is now the thread for both stretches of code.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -133,7 +133,7 @@ class Board(object):
                     log.append(("absorb", owner_id, taken_id))
                 return
             owner, taken = hit
-            owner["span"] |= taken["span"]
+            pass
             if taken["state"] == "open":
                 owner["state"] = "open"
             threads.remove(taken)
@@ -164,13 +164,10 @@ from scr import grp, pin
 
 
 def kept(before, after):
-    import difflib
     out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
-        if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
+    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+        if kind == "K":
+            out[i] = j
     return out
 
 

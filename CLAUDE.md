@@ -627,6 +627,71 @@ cleared the AI screen, `preflight` no errors.
 **Gates NOT run: the three-agent easiness probe.** It is the only local gate that measures what
 the easiness gate rejects for, and it is the first thing to run on this bundle.
 
+### The quality-review rejection: stating the rule is not the same as stating the method (2026-09-04)
+
+`note-carry-forward` cleared the structural check on its second submission and failed the
+quality review on **four** blocking criteria. Every one is worth recording, and the first is
+the expensive one.
+
+**`difficult` - the brief handed over the method.** The reviewer's words: "the intellectual
+core is handed over in the instruction: carry 'one revision at a time', use what pin.py
+'settles', let grp.py say where a change begins/ends [...] The shipped rule.py is already
+correct, so the work reduces to rewriting one ~50-line Board.build as a careful replay of a
+stated spec." That is exactly right, and it is the knife-edge this file keeps naming from the
+other side: **fairness requires stating the rule, and difficulty requires not stating the
+method, and those are two different sentences about the same behaviour.** "A note stays with
+the line it was written about, and a line survives a revision when that revision's script
+keeps it" is the rule. "Carry the note one revision at a time, taking the mapping from
+`pin.py` and the change boundaries from `grp.py`" is the method, and it is the whole task.
+
+Two repairs, and the second matters more than the first. The method sentences came out. And
+**the second editable file was made wrong**: `rule.py` shipped correct, so however the brief
+was worded the work was one file. It now ships wrong in both of its functions, which turns one
+careful replay into three independent decisions across two artifacts, one of which (the
+mapping) is invisible in every count a solver can check.
+
+**A general check, cheap, and nobody here had run it: for each editable artifact, does the
+shipped version actually need to change?** If one of them is already right, the task is
+smaller than the artifact list makes it look, and a reviewer counting lines of real work will
+say so. `guard-mark-unwind` gets away with "one of those four may already be right" because
+the other three are wrong; a two-file task where one is correct is a one-file task.
+
+**`difficulty explanation quality`** wants two sentences this repo has never written down:
+**what the graded data actually is and whether it is realistic**, and **who would do this work
+in the real world**. Neither is optional and neither is inferable. The fix is four lines:
+the streams are synthetic token lists over a small pool, that is not a fair sample of
+production files, repetition is the condition under which the question has more than one
+defensible answer, and the person who does this for a living is an engineer keeping comment
+anchoring correct on a review tool. Put both in every `difficulty_explanation` from now on.
+
+**`instruction concision`** for the third time in this repo, and the finding is the same class
+each time: narrative preamble that carries no requirement ("the filing end of our code review
+tool", "That is the whole promise", "Reviewers have stopped trusting it"), oblique phrasing,
+and **a paragraph describing verifier internals the agent does not need** - seeded generation,
+a second model sharing no code. That last one is new and worth generalising: **how the
+verifier convinces itself is not the solver's business.** 926 words to 603.
+
+Cutting it flattened the cadence exactly as the typeahead entry predicts - burstiness 0.858 to
+0.709 and paragraph sd to 21.9 - and the recovery is the documented one: rejoin the clauses the
+material already has, split the over-long chains with terse verdicts, and do not restore a word
+of the padding. Back to 0.858 and clean against all three briefs that cleared the AI screen, at
+a third fewer words.
+
+**`no extraneous files`** caught four scratch measurement scripts with `/home/user/...` paths
+hardcoded and calls to a function that no longer existed, and an authoring script importing
+`tools/docker_trial2` from outside the bundle. **Everything under `authoring/` ships, so
+everything under `authoring/` has to resolve its own paths and stand on its own.** Delete the
+scratch, or make it a real check. `authoring/variants/` is not extraneous and should not be
+cut for this: `guard-mark-unwind` and `share-register-screen` both ship variants and both
+cleared this review.
+
+One regression caught while fixing the above, and it is the same one twice: regenerating the
+cheats moved the executed-tree probe's payload back into the agent container, where it rewrites
+`/app/scr/grp.py` - a path `test.sh` never copies into the work tree - so it scored 1 while
+testing an impossible attack. **A probe aimed at the executed tree has to be prepended to a
+declared artifact so it runs inside that tree.** It is now caught by the tree check and by
+nothing else, which is what says the check is live.
+
 ### A variant is stale the moment the rule changes, and nothing says so
 
 Found by running the old task's suite today: `earliest-change-script`'s only variant,

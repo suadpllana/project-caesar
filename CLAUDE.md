@@ -599,6 +599,24 @@ class:
   creates the directory and still fails the check. Two errors that read as a real packaging
   fault and are a string match.
 
+**Corrected 2026-09-04, after the pipeline rejected this bundle on exactly it.** The
+structural check is **stricter than `preflight`** on the same rule, and this is
+standing-policy item 2. `preflight`'s test is
+`re.search(r"mkdir\s[^\n]*/app/note", body)` over the file with comments stripped and
+**line continuations left alone**, so a combined instruction like
+
+    RUN pip install ... \
+     && mkdir -p /app/note /app/scr /app/rev /work \
+     && useradd ...
+
+matches, passes clean, and is rejected by the pipeline with
+`ARTIFACT-PARENT-NOT-CREATED - tests/Dockerfile never creates /app/note`. The bundle built
+correctly and `/app/note` really did exist in the image; the checker reads Dockerfile
+instructions rather than running one. **Give every artifact parent its own plain
+`RUN mkdir -p <parent>` line, one per line, never chained behind a `&&`.** Costs nothing,
+and `simcheck` does not move for it - this bundle stayed clear on both axes after the
+rewrite. A clean `preflight` is not evidence about the structural check.
+
 **Gates run:** the real two-image trial **16/16** (oracle 1, nop 0, fourteen cheats 0), variants
 **3/3** score 1, `build_gt` proving the reference against the sealed oracle on 13 hand-written
 and 360 generated streams, `cheat_report` naming the catching test for every cheat, `forgecheck`,

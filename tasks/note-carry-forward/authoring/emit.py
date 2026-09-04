@@ -56,21 +56,55 @@ DIFFLIB_KEPT = """def kept(before, after):
                 out[i1 + d] = j1 + d
     return out"""
 
-TOUCHED_BODY = """def touched(span, before, after):
-    for chunk in grp.spans(before, after):
+TOUCHED_BODY = """_SETTLED = {}
+
+
+def touched(span, before, after):
+    key = (tuple(before), tuple(after))
+    chunks = _SETTLED.get(key)
+    if chunks is None:
+        _SETTLED.clear()
+        chunks = _SETTLED[key] = grp.spans(before, after)
+    for chunk in chunks:
         if span & chunk:
             return True
     return False"""
 
-TOUCHED_ALL = """def touched(span, before, after):
+# Every cheat aimed at a rule has to finish the wide streams, or the run is
+# killed, no report comes back at all, and the cheat is caught by the emptiness
+# of the report rather than by the rule it gets wrong. So each of these keeps
+# settling the pair once; only PER_THREAD below gives that up, because giving
+# it up is what that cheat is.
+TOUCHED_ALL = """_SETTLED = {}
+
+
+def touched(span, before, after):
+    key = (tuple(before), tuple(after))
+    chunks = _SETTLED.get(key)
+    if chunks is None:
+        _SETTLED.clear()
+        chunks = _SETTLED[key] = grp.spans(before, after)
     reached = set()
-    for chunk in grp.spans(before, after):
+    for chunk in chunks:
         reached |= chunk
     return bool(span) and span <= reached"""
 
-TOUCHED_ADDED = """def touched(span, before, after):
-    landed = set(kept(before, after).values())
+TOUCHED_ADDED = """_SETTLED = {}
+
+
+def touched(span, before, after):
+    key = (tuple(before), tuple(after))
+    landed = _SETTLED.get(key)
+    if landed is None:
+        _SETTLED.clear()
+        landed = _SETTLED[key] = set(kept(before, after).values())
     return bool(span - landed)"""
+
+PER_THREAD = """def touched(span, before, after):
+    for chunk in grp.spans(before, after):
+        if span & chunk:
+            return True
+    return False"""
 
 MERGES_BODY = """def merges(one, other):
     return bool(one & other)"""
@@ -118,6 +152,12 @@ DRAG_BLOCK = ('            if taken["state"] == "open":\n'
               '                owner["state"] = "open"\n')
 LOOP_TAIL = '            done.append((taken["id"], owner["id"]))'
 
+ABSORB_ORDER = ('                for taken_id in sorted(held):\n'
+                '                    owner_id = held[taken_id]\n'
+                '                    while owner_id in held:\n'
+                '                        owner_id = held[owner_id]\n'
+                '                    log.append(("absorb", owner_id, taken_id))\n')
+
 SWAPS = [
     ("textbook-backtrace", "rule",
      "Build the surviving-line mapping with an ordinary longest common "
@@ -141,10 +181,31 @@ SWAPS = [
      "untouched and still be inside it.",
      TOUCHED_BODY, TOUCHED_ADDED),
     ("merge-on-equal-spans", "rule",
-     "Merge two threads only when their spans are the same. Carrying squeezes "
-     "spans that were opened apart into one another far more often than it "
-     "makes them equal.",
+     "Merge two threads only when their spans are the same. Two threads share "
+     "a line far more often than they hold the same lines, and a union that "
+     "reaches a third thread is not equal to anything.",
      MERGES_BODY, MERGES_EQUAL),
+    ("groups-per-thread", "rule",
+     "Settle which lines the change reaches again for every thread on the "
+     "board instead of once for the pair of revisions. Every answer it gives "
+     "is right. It pays the whole edit script per thread, so on the streams "
+     "that carry a few hundred threads at once the run is killed before it "
+     "reports anything.",
+     TOUCHED_BODY, PER_THREAD),
+    ("absorb-ordered-by-owner", "board",
+     "Order the absorb entries of a revision by the thread that ends up "
+     "holding the span rather than by the one absorbed. Both are ascending "
+     "thread order; they are not the same sequence when one revision absorbs "
+     "into two different threads.",
+     ABSORB_ORDER,
+     '                rows = []\n'
+     '                for taken_id in held:\n'
+     '                    owner_id = held[taken_id]\n'
+     '                    while owner_id in held:\n'
+     '                        owner_id = held[owner_id]\n'
+     '                    rows.append((owner_id, taken_id))\n'
+     '                for owner_id, taken_id in sorted(rows):\n'
+     '                    log.append(("absorb", owner_id, taken_id))\n'),
     ("raise-every-revision", "board",
      "Ask the reviewer again every revision the thread spends caught in a "
      "change. It is raised when the change first reaches it; while it stays "

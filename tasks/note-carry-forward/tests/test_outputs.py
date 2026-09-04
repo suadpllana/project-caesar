@@ -32,8 +32,23 @@ TRUTH = pathlib.Path("/tests/gt.json")
 
 
 def _report():
-    raw = (WORK / "out.json").read_text()
-    return json.loads(raw)
+    """The run writes its report in one go at the end, so a run that was killed
+    for taking too long leaves this empty. That is a verdict about the
+    submission rather than a fault in the harness, so it is read as an empty
+    set of boards and the tests below say which streams never came back. A
+    fixture that raises instead reports five errors and no reason."""
+    try:
+        raw = (WORK / "out.json").read_text()
+    except OSError:
+        return {"boards": {}}
+    try:
+        got = json.loads(raw)
+    except ValueError:
+        return {"boards": {}}
+    if not isinstance(got, dict):
+        return {"boards": {}}
+    got.setdefault("boards", {})
+    return got
 
 
 @pytest.fixture(scope="module")
@@ -46,9 +61,8 @@ def truth():
     return json.loads(TRUTH.read_text())
 
 
-def _streams(seed):
-    return list(scen.FIXED) + scen.generated(
-        int(os.environ.get("RUN_COUNT", "300")), seed)
+def _count(name, fallback):
+    return int(os.environ.get(name, fallback))
 
 
 def test_the_board_ran_at_all(report):
@@ -72,15 +86,39 @@ def test_the_generated_streams_match_the_rule(report):
     """Built from the seed this run was given, which is chosen after the
     submission was written, and settled here by the sealed model."""
     seed = report.get("seed")
-    assert isinstance(seed, int)
+    assert isinstance(seed, int), "the report carries no seed; the run did not finish"
     boards = report["boards"]
     wrong = []
-    for item in scen.generated(int(os.environ.get("RUN_COUNT", "300")), seed):
+    for item in scen.generated(_count("RUN_COUNT", "300"), seed):
         threads, log = oracle.board(item["revs"], item["events"])
         want = {"threads": threads, "log": log}
         if boards.get(item["name"]) != want:
             wrong.append(item["name"])
     assert not wrong, "wrong on %d generated streams, first: %s" % (
+        len(wrong), ", ".join(wrong[:8]))
+
+
+def test_the_wide_streams_match_the_rule(report):
+    """The streams that carry a few hundred threads at once. A board that
+    settles which lines a change reaches once for each thread on the board,
+    rather than once for the pair of revisions, does not finish these inside
+    the run's own limit, and the report it leaves behind is short."""
+    seed = report.get("seed")
+    assert isinstance(seed, int), "the report carries no seed; the run did not finish"
+    boards = report["boards"]
+    missing = []
+    wrong = []
+    for item in scen.wide(_count("RUN_WIDE", "36"), seed):
+        got = boards.get(item["name"])
+        if got is None:
+            missing.append(item["name"])
+            continue
+        threads, log = oracle.board(item["revs"], item["events"])
+        if got != {"threads": threads, "log": log}:
+            wrong.append(item["name"])
+    assert not missing, "%d wide streams never came back, first: %s" % (
+        len(missing), ", ".join(missing[:8]))
+    assert not wrong, "wrong on %d wide streams, first: %s" % (
         len(wrong), ", ".join(wrong[:8]))
 
 

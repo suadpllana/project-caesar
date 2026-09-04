@@ -35,15 +35,15 @@ def kept(before, after):
     return out
 
 
-_SETTLED = {}
+_LAST = [None, None, None]
 
 
 def touched(span, before, after):
-    key = (tuple(before), tuple(after))
-    chunks = _SETTLED.get(key)
-    if chunks is None:
-        _SETTLED.clear()
-        chunks = _SETTLED[key] = grp.spans(before, after)
+    if _LAST[0] != before or _LAST[1] != after:
+        _LAST[0] = list(before)
+        _LAST[1] = list(after)
+        _LAST[2] = grp.spans(before, after)
+    chunks = _LAST[2]
     for chunk in chunks:
         if span & chunk:
             return True

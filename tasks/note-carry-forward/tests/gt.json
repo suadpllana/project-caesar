@@ -47,6 +47,40 @@
     ]
    ]
   },
+  "absorbs-ordered-by-the-one-absorbed": {
+   "log": [
+    [
+     "absorb",
+     1,
+     2
+    ],
+    [
+     "absorb",
+     0,
+     3
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      0,
+      1,
+      2
+     ]
+    ],
+    [
+     1,
+     "open",
+     [
+      4,
+      5,
+      6
+     ]
+    ]
+   ]
+  },
   "answered-reopens-when-caught": {
    "log": [
     [

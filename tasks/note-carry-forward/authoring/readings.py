@@ -117,7 +117,12 @@ def run(revs, events, mode="ref"):
                 caught[owner] = True
             if mode == "merge-one-pass":
                 break
-        for taken, owner in sorted(done):
+        rows = [(owner, taken) for taken, owner in done]
+        if mode == "absorb-ordered-by-owner":
+            rows.sort()
+        else:
+            rows.sort(key=lambda r: r[1])
+        for owner, taken in rows:
             log.append(("absorb", owner, taken))
 
     def settle(t):
@@ -177,7 +182,8 @@ MODES = ["textbook", "difflib", "touched-all", "touched-added", "level-raise",
          "no-reopen", "raise-resolved", "outdated-removed", "merge-equality",
          "merge-one-pass", "merge-keeps-own-span", "open-does-not-drag",
          "resolved-stops-tracking", "merge-keeps-own-reach", "merge-before-talk",
-         "reply-revives-resolved", "talk-follows-the-absorbed"]
+         "reply-revives-resolved", "talk-follows-the-absorbed",
+         "absorb-ordered-by-owner"]
 
 
 def main():

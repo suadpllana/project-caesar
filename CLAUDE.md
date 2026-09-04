@@ -119,7 +119,7 @@ none has ever been checked for.
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
-| `note-carry-forward` | Software / Algorithms | 14 | 6 | 14400 s | 7 h |
+| `note-carry-forward` | Software / Algorithms | 24 | 7 | 14400 s | 7 h |
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and initially failed the quality review on `category and
@@ -726,6 +726,95 @@ streams, `textcheck` clean against all three briefs that cleared the AI screen (
 0.901), `simcheck` clear on both axes, `preflight` no errors, and `forgecheck`, `solvecheck`,
 `deadfieldcheck`, `catcheck`, `structcheck`, `hintcheck` and `zipcheck` clean. **The easiness
 probe has not been run since the rebuild.**
+
+### The easiness rejection at 2 of 3, and the second measured C3 repair (2026-09-05)
+
+`note-carry-forward` cleared the structural check, the AI screen, the similarity screen,
+reference verification **and the quality review** - so the `difficult` and
+`test instruction alignment` repairs of the day before both held - and came back **2 of 3**
+from the easiness probe. The three trajectories are in `probes/note-carry-forward/round2-*.md`.
+
+**Attribution, mechanically, before any repair.** `leakcheck` is quiet on all three, so not
+mode A. All three read the whole tree in **one** tool call, ran the driver, wrote both files in
+one go and confirmed on a hand-made stream of their own: **mode C**, five or six tool calls
+each. Held against `docs/DIFFICULTY.md` the bundle had prong A working and neither B nor C.
+Prong B fails for a reason that file states outright and that is worth quoting whenever an
+environment is small: *"Spreading facts across seven files withholds nothing if the whole
+system is 500 lines - at that size distributed just means adjacent."* This environment is 200
+lines, and the trajectories show exactly that, one `cat` of everything.
+
+**Read the judgment calls the agents flag. They separate difficulty from defect.** Two of the
+three flagged the same thing - a lone deletion produces no change group under `grp.spans`, so
+it does not raise - and both derived it correctly from the frozen code. That is prong A doing
+its job and it should be left alone. The third flagged something else and it was a **defect**:
+the carry maps kept lines one to one, so it **cannot** bring two spans into each other, and the
+brief said it could ("two spans that started apart get squeezed together by the deletions
+between them"). A false statement about the mechanism, in the brief, wasting the one agent who
+noticed. Only a union brings spans together. **When a trajectory says "one judgment call to
+flag", read it as a bug report about the brief first and a difficulty signal second.**
+
+**Profile before choosing the resource gate. The obvious quadratic was not the cost.** The
+merge runs to a fixed point by hunting pairs, which looks like the O(T^3) to attack. Measured
+on a stream with 150 threads: 61020 `merges` calls cost **0.012s**, because threads collapse
+into one group and the scan finds its pair immediately. The real cost was elsewhere and it was
+overwhelming - `pin.table` was **31.1s of 34.0s**, because `rule.touched` calls the whole edit
+script **once per thread per revision** where `rule.kept` calls it once per revision. 262 edit
+scripts where 8 would do. Twenty minutes with `cProfile` moved the design; a paragraph of
+reasoning about big-O would have sent it to the wrong place.
+
+**The repair is the recipe `docs/DIFFICULTY.md` already names**, and this is its second
+measured use after `alias-settle-report`. The invariant is real and semantic rather than a
+memo dressed up: which lines a change reaches is a fact about the **pair of revisions**, not
+about the thread being asked, and every thread still on the board is asked at every revision.
+The reference settles it once for the pair. A `wide` family goes into the sealed generator -
+files of a few hundred lines with a thread on every fourth one, so a few hundred threads sit on
+the board at once and most are still there at the head - and the brief states the limit and the
+scale, because a kill nobody was told about is an alignment defect rather than difficulty.
+
+Measured on this host, and the ratio is the part that does not depend on the machine:
+
+| | one wide stream | 36 of them, the shipped count |
+|---|---|---|
+| reference, pair settled once a revision | 1.4 s | **52.6 s** run |
+| the sealed oracle, at grading time | 2.8 s | **103.1 s** |
+| the naive board, pair settled per thread | 58 s | **still going at 627 s** |
+
+So the reference has **11.4x** under the run's 600 s kill and the whole verify has **5.8x**
+under the 900 s timeout, while the naive board is about 3.5x over the kill. Note which
+direction each margin protects: a slower graded host risks the **reference** failing, which is
+a rejection, so that is the margin to buy; a faster host only lets the naive board through,
+which costs nothing worse than the task staying as easy as it already is. Size for the first.
+
+Four things that would each have cost a round trip:
+
+- **Every cheat aimed at a rule has to survive the resource gate.** A rule cheat that also
+  blows the budget is caught by the empty report rather than by the rule it gets wrong, and
+  `cheat_report.py`'s per-cheat expectation quietly becomes meaningless. All fifteen rule
+  cheats therefore keep settling the pair once; only `cheat-rule-groups-per-thread` gives that
+  up, because giving it up is what that cheat is. It is checked in both directions: with the
+  wide block switched off it scores **1** on all seven tests, which is what says the gate
+  grades cost and not correctness.
+- **A killed run has to fail legibly.** `_report()` did `json.loads` on a file the killed run
+  never wrote, so pytest reported "2 passed, 5 errors" with no reason - a fixture error, not an
+  assertion, and `test_the_board_ran_at_all` never ran at all. Reading the report defensively
+  turns that into `the run produced no boards`. The grader's own docstring already claimed it
+  treated that file as hostile input; it did not.
+- **"Ascending thread order" does not decide a three-item tuple.** The `absorb` entries carry
+  the survivor and the absorbed, and ordering by the survivor instead moves **31 of 300**
+  streams with no fixture catching it. That is the sixth undecided corner found on this bundle
+  and very likely what the one failing agent lost on - the trajectory that solved it names the
+  sort key explicitly and the other two do not mention it. Whenever a graded log entry has more
+  than one id in it, say which one orders it.
+- **A number in the brief went stale through a whole submission.** It said "Seventeen streams
+  are written out by hand" when there were 22, because the previous round added five fixtures
+  and did not re-read the brief. `hintcheck` re-reads counters against `gt.json` for other
+  tasks and there is no such check here. Grep the brief for every number after every change to
+  the graded set.
+
+**What was deliberately not done.** The mechanism was not changed and the brief was not
+rewritten. It has cleared the AI screen once, and six AI-check rejections in this file say a
+rewrite by the same author is close to a coin flip with bad odds. The edits are two fairness
+corrections, one stale number, and the two sentences stating the limit and the scale.
 
 ### The wall two criteria make together, and the only half of it that is fixable (2026-09-05)
 
@@ -4518,6 +4607,11 @@ python3 tools/readingcheck.py <slug>            does the enumerated set separate
                                                 the task to ship authoring/readings.py; it
                                                 prints a shrunk counterexample to add as a
                                                 case when the set is blind
+python3 tasks/<slug>/authoring/trial.py --all    the two-image trial emulated where docker
+                                                is absent: real runner in a subprocess, real
+                                                test_outputs.py under pytest. --wide and
+                                                --kill scale the resource gate down for
+                                                iteration; the shipped numbers are 36 and 600
 python3 tools/ecs_trial.py --all                earliest-change-script only: the real
                                                 two-image trial, oracle 1 and everything
                                                 else 0

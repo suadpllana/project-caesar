@@ -27,12 +27,24 @@ CA = pathlib.Path("/root/.ccr/ca-bundle.crt")
 
 BOARD_TESTS = {"test_the_fixed_streams_match_the_rule",
                "test_the_generated_streams_match_the_rule",
+               "test_the_wide_streams_match_the_rule",
                "test_no_stream_faulted",
                "test_the_board_ran_at_all"}
 TREE_TEST = "test_the_executed_tree_was_the_one_we_shipped"
+RAN_TEST = "test_the_board_ran_at_all"
 
 # name -> (tests that must fire, tests that must not)
-EXPECT = {"cheat-probe-rewrite-frozen.sh": ({TREE_TEST}, BOARD_TESTS)}
+#
+# The frozen-tree probe has to be caught by the tree check and by nothing that
+# reads the determination, or that check is doing nothing.
+#
+# The per-thread board is the reference with the settling given up and nothing
+# else, so every answer it gives is right and only its cost is wrong: it has to
+# be caught by the run being killed before it reports, never by a rule. Check
+# it the other way round as well - with the wide block switched off it scores 1
+# on every test, which is what says the gate grades cost and not correctness.
+EXPECT = {"cheat-probe-rewrite-frozen.sh": ({TREE_TEST}, BOARD_TESTS),
+          "cheat-rule-groups-per-thread.sh": ({RAN_TEST}, {TREE_TEST})}
 
 
 def sh(cmd, **kw):

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Leave an answered thread answered when the change comes back to it. The reply it is carrying was about code that has since moved.
+# Settle which lines the change reaches again for every thread on the board instead of once for the pair of revisions. Every answer it gives is right. It pays the whole edit script per thread, so on the streams that carry a few hundred threads at once the run is killed before it reports anything.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -92,7 +92,9 @@ class Board(object):
                 if thread["state"] != "resolved":
                     if now and not caught.get(thread["id"], False):
                         log.append(("raise", thread["id"]))
-                    pass
+                        if thread["state"] == "answered":
+                            thread["state"] = "open"
+                            log.append(("reopen", thread["id"]))
                 caught[thread["id"]] = now
             self._join(threads, caught, opened.get(step, []))
             self._talk(threads, talk.get(step, []))
@@ -184,16 +186,8 @@ def kept(before, after):
     return out
 
 
-_SETTLED = {}
-
-
 def touched(span, before, after):
-    key = (tuple(before), tuple(after))
-    chunks = _SETTLED.get(key)
-    if chunks is None:
-        _SETTLED.clear()
-        chunks = _SETTLED[key] = grp.spans(before, after)
-    for chunk in chunks:
+    for chunk in grp.spans(before, after):
         if span & chunk:
             return True
     return False

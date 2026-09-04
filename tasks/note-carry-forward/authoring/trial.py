@@ -105,7 +105,7 @@ def apply_subject(root, subject):
                            % (done.returncode, (done.stderr or done.stdout)[-400:]))
 
 
-def run_once(root, seed, count):
+def run_once(root, seed, count, wide, kill):
     work = root / "work"
     shutil.rmtree(work)
     (work / "app").mkdir(parents=True)
@@ -121,7 +121,7 @@ def run_once(root, seed, count):
     out = work / "out.json"
     out.write_text("")
     env = dict(os.environ, APPDIR=str(work / "app"), RUN_SEED=str(seed),
-               RUN_COUNT=str(count), PYTHONPATH=str(work),
+               RUN_COUNT=str(count), RUN_WIDE=str(wide), PYTHONPATH=str(work),
                PYTHONDONTWRITEBYTECODE="1")
     # The submission runs in its own interpreter, as it does in the container.
     # In process, a probe that calls os._exit takes the harness down with it and
@@ -131,8 +131,13 @@ def run_once(root, seed, count):
         "fd = os.open(r'%s', os.O_WRONLY | os.O_TRUNC)\n"
         "os.environ['OUT_FD'] = str(fd)\n"
         "runpy.run_path(r'%s', run_name='__main__')\n" % (out, work / "runner.py"))
-    subprocess.run([sys.executable, "-c", driver], env=env,
-                   capture_output=True, text=True, timeout=1800)
+    # test.sh runs the board under `timeout --signal=KILL`, and a killed run
+    # has written nothing, so the report is empty rather than wrong.
+    try:
+        subprocess.run([sys.executable, "-c", driver], env=env,
+                       capture_output=True, text=True, timeout=kill)
+    except subprocess.TimeoutExpired:
+        pass
     done = subprocess.run(
         [sys.executable, "-m", "pytest", str(root / "tests" / "test_outputs.py"),
          "-q", "-rf", "--tb=line"],
@@ -168,11 +173,16 @@ def main():
     ap.add_argument("--only")
     ap.add_argument("--seed", type=int, default=4242)
     ap.add_argument("--count", type=int, default=120)
+    ap.add_argument("--wide", type=int, default=6,
+                    help="wide streams a run; the shipped default is 36")
+    ap.add_argument("--kill", type=float, default=100.0,
+                    help="seconds before the run is killed; test.sh uses 600")
     args = ap.parse_args()
 
     rows = subjects(args)
     bad = 0
-    print("seed %d, %d generated streams a run\n" % (args.seed, args.count))
+    print("seed %d, %d generated and %d wide streams a run, killed at %.0fs\n"
+          % (args.seed, args.count, args.wide, args.kill))
     for name, subject, want in rows:
         root = pathlib.Path(tempfile.mkdtemp(prefix="ncf-"))
         try:
@@ -182,7 +192,8 @@ def main():
             except RuntimeError as exc:
                 print("  %-46s SKIPPED (host)  %s" % (name, exc))
                 continue
-            got, fired, blob = run_once(root, args.seed, args.count)
+            got, fired, blob = run_once(root, args.seed, args.count,
+                                        args.wide, args.kill)
             mark = "ok " if got == want else "BAD"
             if got != want:
                 bad += 1

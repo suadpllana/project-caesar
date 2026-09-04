@@ -60,16 +60,37 @@ MAPPING_FROM_OPS = RULE.replace(
     return dict((step[1], step[2]) for step in walk if step[0] == "K")''', 1)
 
 TOUCHED_WRITTEN_OUT = RULE.replace(
-    '''def touched(span, before, after):
-    for chunk in grp.spans(before, after):
+    '''    for chunk in chunks:
         if span & chunk:
             return True
     return False''',
-    '''def touched(span, before, after):
-    reached = set()
-    for chunk in grp.spans(before, after):
+    '''    reached = set()
+    for chunk in chunks:
         reached |= chunk
     return not span.isdisjoint(reached)''', 1)
+
+# The pair has to be settled once rather than once per thread, but nothing says
+# how it is held. This one keeps the last pair in a slot instead of a mapping,
+# so the resource gate grades the invariant and not one way of writing it down.
+SETTLED_IN_A_SLOT = RULE.replace(
+    '''_SETTLED = {}
+
+
+def touched(span, before, after):
+    key = (tuple(before), tuple(after))
+    chunks = _SETTLED.get(key)
+    if chunks is None:
+        _SETTLED.clear()
+        chunks = _SETTLED[key] = grp.spans(before, after)''',
+    '''_LAST = [None, None, None]
+
+
+def touched(span, before, after):
+    if _LAST[0] != before or _LAST[1] != after:
+        _LAST[0] = list(before)
+        _LAST[1] = list(after)
+        _LAST[2] = grp.spans(before, after)
+    chunks = _LAST[2]''', 1)
 
 PRECOMPUTED = BOARD.replace(
     '''        for step in range(1, self.store.count()):
@@ -88,6 +109,7 @@ OVERRIDES = {
     "ok-precomputed-pairs": {"board.py": PRECOMPUTED},
     "ok-mapping-from-ops": {"rule.py": MAPPING_FROM_OPS},
     "ok-touched-written-out": {"rule.py": TOUCHED_WRITTEN_OUT},
+    "ok-settled-in-a-slot": {"rule.py": SETTLED_IN_A_SLOT},
 }
 
 

@@ -71,6 +71,28 @@ by it reliably, so each is pinned by a hand-written stream instead and ships as
 a cheat that scores 0. That is deliberate: a reading nobody can be caught for
 is a coin flip under all-or-nothing grading rather than a test of anything, and
 every rule those five settle is stated in the brief.
+
+Correctness is not the whole of it, and the second half is where the plan has
+to change rather than be patched at the edges. Which lines a change reaches is
+a fact about the pair of revisions and not about the thread being asked, and
+every thread still on the board is asked at every revision. A board that
+settles that question again for each thread is right on every stream and pays
+for the whole edit script once per thread instead of once per revision. The
+wide streams are where that stops being affordable: a file of a few hundred
+lines with a thread on every fourth one, so a few hundred threads sit on the
+board at once and most of them are still there at the head. Measured, one wide
+stream settles in about 1.4 seconds for a board that works the pair out once a
+revision and about 58 seconds for one that works it out per thread - a factor
+of forty that does not depend on the machine - and the run that answers all of
+them is killed at six hundred seconds.
+
+The instruction states both the limit and the scale, because a kill nobody was
+told about is an alignment defect rather than difficulty. What it does not
+state is where the redundancy is. `cheat/cheat-rule-groups-per-thread.sh` is
+the naive board: every answer it gives is right, and it never reports at all.
+Two of the six `ok-*` variants settle the pair in different ways and both score
+1, so what is graded is that the pair is settled once for the revision, not one
+particular way of writing that down.
 """
 
 solution_explanation = """
@@ -101,9 +123,10 @@ verification_explanation = """
 Graded, all or nothing: the live note table at the head of every stream, and
 the ordered log of retirements, raises and absorptions on the way there.
 
-Seventeen streams are written out by hand, one per rule and one per corner where two
-of them meet. Three hundred more are generated from a seed the run is handed,
-so the streams a submission is graded on are not the streams it was written
+Twenty-three streams are written out by hand, one per rule and one per corner where
+two of them meet. Three hundred more are generated from a seed the run is handed,
+and thirty-six wide ones after those, from the same seed, so the streams a
+submission is graded on are not the streams it was written
 against, and those are settled at grading time by `tests/oracle.py` -- a
 second model of the rule, written forwards where the environment's engine
 works backwards, sharing no code with either the environment or the reference.

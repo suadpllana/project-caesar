@@ -1,5 +1,5 @@
 #!/bin/bash
-# Leave an answered thread answered when the change comes back to it. The reply it is carrying was about code that has since moved.
+# Order the absorb entries of a revision by the thread that ends up holding the span rather than by the one absorbed. Both are ascending thread order; they are not the same sequence when one revision absorbs into two different threads.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -92,7 +92,9 @@ class Board(object):
                 if thread["state"] != "resolved":
                     if now and not caught.get(thread["id"], False):
                         log.append(("raise", thread["id"]))
-                    pass
+                        if thread["state"] == "answered":
+                            thread["state"] = "open"
+                            log.append(("reopen", thread["id"]))
                 caught[thread["id"]] = now
             self._join(threads, caught, opened.get(step, []))
             self._talk(threads, talk.get(step, []))
@@ -131,10 +133,13 @@ class Board(object):
                     break
             if hit is None:
                 held = dict(done)
-                for taken_id in sorted(held):
+                rows = []
+                for taken_id in held:
                     owner_id = held[taken_id]
                     while owner_id in held:
                         owner_id = held[owner_id]
+                    rows.append((owner_id, taken_id))
+                for owner_id, taken_id in sorted(rows):
                     log.append(("absorb", owner_id, taken_id))
                 return
             owner, taken = hit

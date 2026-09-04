@@ -108,6 +108,13 @@ FIXED = [
     {"name": "talk-lands-before-the-merge",
      "revs": [["ln0"], ["ln0"]],
      "events": [_open(0, 0, 0, 0), _open(0, 1, 0, 0), [0, "resolve", 0]]},
+    # two absorbs in one revision whose absorbed order and owner order
+    # disagree, so the log says which of the two the sequence follows
+    {"name": "absorbs-ordered-by-the-one-absorbed",
+     "revs": [["ln0", "ln1", "ln2", "ln3", "ln4", "ln5", "ln6", "ln7"],
+              ["ln0", "ln1", "ln2", "ln3", "ln4", "ln5", "ln6", "ln7"]],
+     "events": [_open(0, 0, 0, 1), _open(0, 1, 4, 5),
+                _open(0, 2, 5, 6), _open(0, 3, 1, 2)]},
     # a reply only moves an open thread, so one aimed at a settled thread
     # leaves it settled
     {"name": "reply-to-a-resolved-thread-does-nothing",
@@ -127,6 +134,55 @@ FIXED = [
      "events": [[1, "open", [0, [1, 2, 3]]], [2, "open", [1, [1]]],
                 [3, "resolve", 0]]},
 ]
+
+
+def wide(count, seed):
+    """The streams that hold a few hundred threads at once.
+
+    A file of a few hundred lines with a thread on every fourth one, so most of
+    them are still on the board at the head instead of merging away. Which
+    lines a change reaches is a fact about the pair of revisions rather than
+    about the thread being asked, so these settle in about a second a stream
+    for a board that works it out once a revision, and cost the whole edit
+    script per thread for one that works it out again for each of them."""
+    rng = random.Random(seed * 6271 + 41)
+    out = []
+    for index in range(count):
+        size = rng.randrange(260, 341)
+        pool = ["ln%d" % i for i in range(size // 4)]
+        revs = [[rng.choice(pool) for _ in range(size)]]
+        events = []
+        nid = 0
+        for lo in range(0, size, 4):
+            events.append([0, "open", [nid, [lo]]])
+            nid += 1
+        seen = list(range(nid))
+        for step in range(rng.randrange(5, 8)):
+            if step:
+                for _ in range(rng.randrange(0, 4)):
+                    lo = rng.randrange(len(revs[-1]))
+                    hi = min(len(revs[-1]) - 1, lo + rng.randrange(0, 3))
+                    events.append([step, "open", [nid, list(range(lo, hi + 1))]])
+                    seen.append(nid)
+                    nid += 1
+            for _ in range(rng.randrange(0, 4)):
+                events.append([step, rng.choice(["reply", "resolve"]),
+                               rng.choice(seen)])
+            nxt = list(revs[-1])
+            for _ in range(rng.randrange(2, 6)):
+                if not nxt:
+                    break
+                p = rng.randrange(len(nxt))
+                z = rng.randrange(3)
+                if z == 0 and len(nxt) > 1:
+                    del nxt[p]
+                elif z == 1:
+                    nxt.insert(p, rng.choice(pool))
+                else:
+                    nxt[p] = rng.choice(pool)
+            revs.append(nxt)
+        out.append({"name": "wide%04d" % index, "revs": revs, "events": events})
+    return out
 
 
 def generated(count, seed):

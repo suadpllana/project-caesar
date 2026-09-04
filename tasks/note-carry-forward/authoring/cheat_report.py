@@ -11,6 +11,7 @@ itself.
 
     python3 authoring/cheat_report.py
 """
+import os
 import pathlib
 import re
 import shutil
@@ -23,7 +24,7 @@ SLUG = TASK.name
 ENV_IMG = "%s-env:report" % SLUG
 TEST_IMG = "%s-test:report" % SLUG
 ARTIFACTS = ["note/board.py", "note/rule.py"]
-CA = pathlib.Path("/root/.ccr/ca-bundle.crt")
+CA_VARS = ("NCF_CA_BUNDLE", "REQUESTS_CA_BUNDLE", "PIP_CERT", "SSL_CERT_FILE")
 
 BOARD_TESTS = {"test_the_fixed_streams_match_the_rule",
                "test_the_generated_streams_match_the_rule",
@@ -51,6 +52,19 @@ def sh(cmd, **kw):
     return subprocess.run(cmd, capture_output=True, text=True, **kw)
 
 
+def ca_bundle():
+    """A certificate to trust during the build, or None where the host needs none.
+
+    Which file that is belongs to the host and not to this bundle, so set
+    NCF_CA_BUNDLE on a sandbox that terminates TLS.
+    """
+    for name in CA_VARS:
+        got = os.environ.get(name)
+        if got and pathlib.Path(got).is_file():
+            return pathlib.Path(got)
+    return None
+
+
 def context(src, tmp):
     """Copy a build context, adding this sandbox's proxy CA if there is one.
 
@@ -59,9 +73,10 @@ def context(src, tmp):
     """
     dst = tmp / src.name
     shutil.copytree(src, dst)
-    if not CA.is_file():
+    ca = ca_bundle()
+    if ca is None:
         return dst
-    shutil.copyfile(CA, dst / "__ca.crt")
+    shutil.copyfile(ca, dst / "__ca.crt")
     df = dst / "Dockerfile"
     lines = df.read_text().splitlines()
     for i, line in enumerate(lines):

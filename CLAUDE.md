@@ -120,6 +120,15 @@ none has ever been checked for.
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
 | `note-carry-forward` | Software / Algorithms | 24 | 7 | 14400 s | 7 h |
+| `permit-strand-relay` | Software / Systems | 23 | 8 | 14400 s | 8 h |
+
+**`permit-strand-relay` cleared the structural check, the AI screen, the similarity screen and
+reference verification on 2026-09-05, and failed the quality review on `no extraneous files` -
+three files under `authoring/`, and nothing else in the rubric.** It is the second bundle here
+to lose that criterion in two days and the fix is now a gate, `tools/extraneouscheck.py`, which
+is validated in both directions and reports three other bundles as latent. The entry is "The
+extraneous-files rejection" below. Read it before packaging anything, because two of the three
+classes it names are in tooling every task here copies.
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and initially failed the quality review on `category and
@@ -886,7 +895,13 @@ Three smaller things, each of which would have cost a round trip:
   carries all nineteen `authoring/` entries. A host emulation written this session hardcoded
   an absolute Git-for-Windows path to `bash.exe`, which is exactly the hardcoded-path class
   that failed `no extraneous files` on this bundle in September. It now resolves a shell by
-  probing and falls back to `PATH`.
+  probing and falls back to `PATH`. **Corrected 2026-09-05: that fix was one file wide and the
+  defect was one directory wide.** `authoring/cheat_report.py`, beside it, still carried
+  `CA = pathlib.Path("/root/.ccr/ca-bundle.crt")` with no override, which is the same class and
+  is what `permit-strand-relay` was rejected for the next day. Found by `tools/extraneouscheck.py`
+  and fixed in the tree; **this bundle needs repackaging before it goes back.** When a hardcoded
+  path turns up, grep the whole `authoring/` directory rather than repairing the file that was
+  named.
 - **A variant template goes stale the same way a hand-copied variant does.**
   `make_variants.py` builds `ok-merge-by-components` by replacing `_merge` wholesale with a
   literal body, so the moment the reference's `_merge` changed, that variant was a correct
@@ -1045,6 +1060,127 @@ submitted and probed carried the new rule and no `authoring/` directory at all**
 copy was never regenerated. The stale variant is deleted; that bundle has had no working
 alternative-correct-implementation check against its current rule, which is the gate the run
 audit applies, and it would need one rebuilt before it ever went back.
+
+## The extraneous-files rejection: a shipped file has to be reachable from inside the zip (2026-09-05)
+
+`permit-strand-relay` cleared four gates on its first submission - the structural check, the AI
+screen, the similarity screen and reference verification - and failed the quality review on one
+blocking criterion, `no extraneous files`, with every other row passing. The note named three
+files, all under `authoring/`, and each is a class rather than an accident:
+
+| the file | why it is cruft |
+|---|---|
+| `authoring/decisions.py` | its only reader is `tools/onelinecheck.py`, which does not ship |
+| `authoring/gen.py` | byte-identical to `tests/gen.py`, 2153 bytes, same sha256 |
+| `authoring/trial.py` | `CA = "/root/.ccr/ca-bundle.crt"`, an author-local path |
+
+**The reviewer explicitly accepted the rest of `authoring/`** - "gt derivation, variants, cheat
+generation" and the `cheat/` probes - "as defensible reviewer tooling". So the rule is not that
+`authoring/` is cruft, and a session that reads this rejection as "stop shipping the gates" will
+delete the thing that makes the bundle auditable. The rule is narrower and it is mechanical:
+
+> **A shipped file must be reachable from inside the bundle, must not be a copy of another
+> shipped file, and must not name a path that exists only on the machine that wrote it.**
+
+The first clause is the one nobody here had thought about. Every session runs its checks from the
+repo, where `tools/onelinecheck.py` sits next to the task, so a `decisions.py` that only that tool
+reads looks connected. From inside the archive - which is all a reviewer sees - it is an orphan
+with no caller and no way to run it. **Ask of every file you add to a bundle: who reads this,
+and do they ship?**
+
+### The repair, and the shape of the diff
+
+Four files, and the archive went from 112 entries to 110:
+
+- `decisions.py` moved to `authoring/permit-strand-relay/decisions.py` **at the repo root**, out
+  of the bundle, and `tools/onelinecheck.py` now looks there first and falls back to the old
+  in-bundle path. The mode-B screen still runs (`no exact rule at depth <= 2` on both graded
+  decisions) and nothing ships for it. That location is where the next task's `decisions.py`
+  should be written.
+- `gen.py` deleted. It was never even imported: every consumer does `sys.path.insert(0, HERE)`
+  and then `sys.path.insert(0, ROOT/"tests")`, and the second insert wins, so `import gen` was
+  already resolving `tests/gen.py`. The one exception was `variant_check.py`, which inserted only
+  `HERE`, so it got the one line the deletion required.
+- `trial.py` takes its CA from `CAESAR_CA_BUNDLE`, `REQUESTS_CA_BUNDLE`, `PIP_CERT` or
+  `SSL_CERT_FILE` and injects nothing when none is set. A dead `re.match` whose result was
+  assigned and never read went with it.
+
+**`tests/gt.json` came back byte-identical after `build_gt.py`, from the tree and again from the
+extracted archive**, which is the proof that the repair touched nothing graded. Everything else in
+the bundle is byte-identical to the rejected one; a file-by-file diff of the archive reports
+exactly two removals and two changes, and 109 files unchanged.
+
+### The gate, and what it found in the rest of the repo
+
+`tools/extraneouscheck.py` is the mechanical version and it is in the gate list. Validated in
+both directions, which is the rule for a new check: it names **exactly the reviewer's three
+findings and nothing else** on a reconstruction of the rejected bundle, and it is clean on every
+bundle here that has cleared a quality review - `guard-mark-unwind` and
+`typeahead-query-controller` (nine gates), `share-register-screen` (the whole pipeline),
+`alias-settle-report`, `delta-view-retraction`, `checkpoint-resume-drift`, `turn-seam-alignment`,
+`earliest-change-script`, `lock-priority-unwind`, `pair-hold-reclaim`.
+
+It then reported three bundles that are **latent for this exact rejection if they go back as they
+stand**:
+
+| bundle | finding |
+|---|---|
+| `note-carry-forward` | `authoring/cheat_report.py` carried the same `/root/.ccr/ca-bundle.crt` constant. **Fixed in the tree this session; that bundle needs repackaging before it is resubmitted.** |
+| `grant-spread-order` | `authoring/decisions.py` and `authoring/readings.py`, both orphans |
+| `segment-merge-horizon` | `authoring/decisions.py`, orphan |
+
+The `note-carry-forward` row is the interesting one and it is standing-policy item 1 arriving
+twice. That bundle **already lost `no extraneous files` on 2026-09-04** for a hardcoded
+Git-for-Windows path, and the entry above records the fix - "it now resolves a shell by probing
+and falls back to `PATH`". The fix was applied to `trial.py` and the identical constant in
+`cheat_report.py`, in the same directory, was left standing. **A rejection note names an example,
+not a scope, for the fifth time in this file** - and this time the scope was one directory wide.
+
+### Two calibrations the check needed, both of which would otherwise have made it lie
+
+- **Measure the archive, not the tree.** The first version reported `STATE.md`, every `.pyc` and
+  every empty `__init__.py` on `guard-mark-unwind`, which cleared all nine gates - because
+  `package.py` drops all of those and the checker was walking the working tree. It now applies
+  `preflight.EXCLUDE_*` before it looks at anything. A gate that fails a bundle the pipeline
+  passed is standing-policy item 5, and this one was born with it.
+- **`is_file()` is not an override.** The rejected `trial.py` *was* guarded - `if not
+  os.path.isfile(CA): return dst` - so it never crashed anywhere; it just meant no other machine
+  could ever name its own. Meanwhile `rollout-cache-coherence` and `bucket-seal-lag` carry
+  `C:\Program Files\Git\bin\bash.exe` as one candidate among several with a `shutil.which`
+  fallback, which is a probe and is fine. The check therefore asks whether an environment
+  variable or a `PATH` lookup sits **in the same scope** as the path, and that single distinction
+  is what separates the four true positives from the four false ones.
+
+### Three smaller things
+
+- **The task was carried as an attachment and no checker here could see it.** `permit-strand-relay`
+  was never in `tasks/`, so `simcheck`, `preflight`, `solvecheck` and the rest had never run on it
+  once, in three gates' worth of submissions. It is in the repo now. This is the
+  `earliest-change-script` lesson verbatim and it has now cost two tasks: **the first move on any
+  bundle that arrives as a zip is to extract it into `tasks/<slug>/`.**
+- **The uploaded zip vanished from `Downloads` mid-session**, so the both-directions validation ran
+  against a reconstruction (the repaired tree with the three files put back). Faithful for those
+  three, and worth knowing: extract an attachment into the repo before doing anything else, or the
+  evidence is gone when you want it.
+- **`preflight` errors on a missing `STATE.md`, and a bundle that comes back from the pipeline
+  never has one**, because `package.py` drops it. Write a fresh short one and note that the four
+  `STATE_REQUIRED` lines are matched on the **first colon of a single line** and need three words
+  after it - `Estimated solves out of 8: 1` fails, `1 of 8, designed for the bottom of the band`
+  passes.
+
+**Gates run, all from the tree and the load-bearing ones again from the extracted archive:**
+`prove` 300 streams 0 disagreements, `audit` 24 states and 7 variants agreeing, `variant_check`
+7/7 on 200 streams, `readingcheck` 11 readings all separated by the enumerated set, `tiecheck` 424
+streams with 0 double rows and the mirror variant agreeing, `determinism` identical across 5 hash
+seeds, `build_gt` byte-identical, `shipped` 9 of 24 enumerated and 0 of 300 generated, and
+`extraneouscheck`, `solvecheck`, `deadfieldcheck`, `catcheck`, `hintcheck`, `structcheck`,
+`simcheck`, `onelinecheck`, `zipcheck` and `preflight` clean. `zipfix` was needed as always on
+this host, and the rebuilt archive's entry metadata is field-for-field identical in kind to
+`guard-mark-unwind.zip`.
+
+**Gates NOT run: docker is absent on this host, so the two-image trial did not run** - the 23
+cheats, the privilege drop, the root-owned reward channel, the root-only ground truth and
+`reap.py` are all unexercised. The three-agent easiness probe has never been run on this bundle.
 
 ## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
 
@@ -2411,6 +2547,12 @@ And the cheapest thing that can be done to the six tasks nobody has screened at 
 one is an hour and it is the only mode-B screen that works **before** a probe is spent. Five
 of those six also fail `structcheck.py` on the backtick rule and are latent for the
 concision rejection.
+
+**Write it at `authoring/<slug>/decisions.py` in the repo root, not inside the bundle.**
+`onelinecheck.py` looks there first as of 2026-09-05. A `decisions.py` inside `tasks/<slug>/`
+ships in the archive with no reader in it, and that is one of the three files the quality
+review rejected `permit-strand-relay` for; `grant-spread-order` and `segment-merge-horizon`
+still carry theirs in the bundle and are latent for the same finding.
 
 ## The playbook: fixing a task that fails the easiness probe
 
@@ -4602,6 +4744,13 @@ python3 tools/catcheck.py <slug>                does the declared category descr
                                                 vocabulary is absent from environment/ and
                                                 present in the prose, which is what failed
                                                 the quality review on 2026-09-04
+python3 tools/extraneouscheck.py <slug>         does the bundle ship anything nothing in
+                                                the bundle uses? An authoring/ module whose
+                                                only reader is a tools/ script, a copy of a
+                                                file that ships elsewhere, an author-local
+                                                path the next host cannot override. That is
+                                                the whole of the 2026-09-05 quality-review
+                                                rejection; --all reports every task here
 python3 tools/readingcheck.py <slug>            does the enumerated set separate the wrong
                                                 readings, or merely cover the rules? Needs
                                                 the task to ship authoring/readings.py; it
@@ -4779,6 +4928,9 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `solvecheck.py` clean: solve.sh copies the reference, it does not inline it, and the
   reference exists in exactly one place in the bundle.
 - `deadfieldcheck.py` clean: nothing in the environment is written and never read.
+- `extraneouscheck.py` clean: every shipped file is reachable from inside the bundle, is not a
+  copy of another shipped file, and names no path the next host cannot override. A file whose
+  only reader lives in `tools/` belongs in `authoring/<slug>/` at the repo root, not in the zip.
 - `catcheck.py` clean: the declared category is evidenced by the shipped environment and not
   only by the story the brief is set in.
 - `readingcheck.py` clean: every wrong reading in `authoring/readings.py` is separated by an

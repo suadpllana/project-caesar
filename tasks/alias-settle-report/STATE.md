@@ -223,12 +223,13 @@ clause explaining a rule the brief states precisely two paragraphs earlier.
 
 The real two-image trial on this Linux sandbox with Docker up: **32 of 32** (oracle 1, nop 0,
 thirty cheats 0) and **5 of 5** variants at reward 1, 750 tests apiece. Every mistake cheat
-fails a handful of row tests rather than dying on an import, and `all-that-look-ready` fails
-431 of 738. `forgecheck` 30 of 30 with the answer-key probe recognised and scoring 0.
+fails a handful of row tests rather than dying on an import - between 2 and 25 of the 750,
+never the whole suite. `forgecheck`, re-run after the tag-retirement change, reports 30 of 30
+with the answer-key probe recognised as carrying the current 36-set ground truth and scoring 0.
 
 Host gates: `sync`, `build_gt` (900 sets), `fuzz` (600), `audit` (300, and it fires on 76 of
 300 against the machine as it stood before the tag-liveness gate), `emit`, `make_variants`,
-`variant_check` (5/5), `readingcheck` (16/16 separated), `onelinecheck` (no exact rule at
+`variant_check` (5/5), `readingcheck` (18/18 separated by the 36 enumerated sets), `onelinecheck` (no exact rule at
 depth <= 2 for the filing decision), `deadfieldcheck`, `catcheck`, `solvecheck`, `hintcheck`,
 `structcheck`, `textcheck` (clean against four briefs that passed the AI screen),
 `determinism` (three hash seeds), `tiecheck` (433 sets), `simcheck` (no shipped file close to

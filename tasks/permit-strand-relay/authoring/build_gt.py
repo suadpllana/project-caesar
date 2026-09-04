@@ -50,7 +50,7 @@ def main():
         truth[plan["name"]] = ref[plan["name"]]
     out = os.path.join(ROOT, "tests", "gt.json")
     with open(out, "w", newline="\n") as fh:
-        fh.write(json.dumps(truth, sort_keys=True, separators=(",", ":")))
+        fh.write(json.dumps(truth, sort_keys=True))
     print("proved on %d enumerated and %d generated streams; wrote %d answers"
           % (len(fixed), len(wide), len(truth)))
     return 0

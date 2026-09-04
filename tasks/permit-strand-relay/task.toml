@@ -14,11 +14,126 @@ name = "afterquery/permit-strand-relay"
 author_name = "Suad Pllana"
 author_email = "suadpllana12@gmail.com"
 
-difficulty_explanation = """PLACEHOLDER"""
+difficulty_explanation = """The tree is a working relay whose permit accounting is wrong, and the wrongness is
+coherent rather than broken: it returns permit when the consumer draws rows off, judges
+an arrival against the ceiling standing here now, and holds a raise back until it clears
+the threshold. That is the shape of every receiver-side window anyone has written up,
+because on one level with one producer it is right, so it is also the shape a frontier
+agent reconstructs from its prior. Nine corrections are needed across four files and two
+of them fight that shape all the way.
 
-solution_explanation = """PLACEHOLDER"""
+The first is that the link finishes with rows nobody ever draws. A feed can be torn down
+with rows still parked on it, those rows are thrown away, and they were charged to the
+link when they landed - so a ceiling built on what the consumer took can never account
+for them, and the link runs permanently short by however much has been discarded. Run
+the shipped tree on /app/cases/strand.json and three teardowns of thirty-nine rows put
+one hundred and seventeen of the link's one hundred and twenty beyond reach: from tick 16
+the surviving feed cannot land a batch of twelve for the rest of the stream while every
+holding area is empty. The same rows arrive for three ticks after a teardown, because the
+teardown takes that long to reach the producer, and those count too.
 
-verification_explanation = """PLACEHOLDER"""
+The second is the one no single visible input answers, and it is what stops the first
+from being a one-line repair. A ceiling has to be published below the threshold when
+withholding it would leave a producer unable to send its smallest batch while rows are
+free, and whether that producer is stuck is a question about what it has been told, not
+about what the book holds. The book keeps the ceiling standing now. What a producer acts
+on is the last one published at or before three ticks ago, and nothing in the environment
+records it - a policy that wants it has to have been keeping it. In the shipped tree those
+two quantities are equal, so the natural implementation reads the answer off the book and
+is right; fixing the first defect is exactly what pulls them apart, because a ceiling that
+counts discarded rows no longer tracks anything the buffers can report. Neither defect can
+be repaired before the other. Measured against the reference over three hundred generated
+streams, reading the obligation off the book moves 94 per cent of them and counting only
+drawn rows moves 92 per cent.
+
+Seven more decisions are stated outright and interact with those two: which arrivals are
+faults and which are the doomed traffic inside a teardown window, that both levels are
+charged and either can refuse, that a reopened feed is a fresh run whose totals restart
+while the link's never do, that a ceiling is absolute and monotone except for the idle
+pull-back, and that the pull-back is the floor above what the level has finished with.
+Twelve graded decisions in total. The shipped tree already produces the right answer on
+nine of the twenty-four enumerated streams, which are the fences that must keep working,
+and on none of the three hundred generated ones.
+
+The graded data is synthetic: integer row counts on three to six feeds over forty to
+ninety ticks, with arrivals paced against a notional outstanding count so most of them
+are legal. That is not a fair sample of a production link, which carries thousands of
+streams with jittered timing and real payloads, and where a teardown with rows still
+parked is rare. Here it is frequent on purpose, because it is the condition under which
+the accounting question has more than one defensible answer. Identifiers in the shipped
+tree are degraded to the register of real legacy code - snt, ltkn, pub, shut, adm, rtn -
+which is uniform rather than noise and never misdescribes what it holds, so what a thing
+is stays recoverable from what calls it and what its value flows into, and only the
+shortcut of reading it off the name is gone.
+
+Who does this for a living: an engineer who owns the credit accounting of a multiplexed
+transport or ingest link, and who gets paged when throughput decays to nothing with no
+error logged anywhere."""
+
+solution_explanation = """The reference rewrites the four policy files and adds one thing the shipped tree had
+nowhere to put: the policy's own record of what it has published.
+
+/app/pol/tear.py keeps that record. shed accumulates, at the link, every row that leaves
+without being drawn - the batches parked on a feed when it is abandoned and the rows that
+land inside the teardown window afterwards. note and seen are the published history: a
+producer acts on the last ceiling emitted at or before three ticks ago, and opened throws
+a feed's history away when it is reopened, because a ceiling published to the previous run
+says nothing about what the new producer has been told.
+
+/app/pol/rtn.py then makes the link's drained total the rows drawn plus the rows shed,
+while a feed's stays the rows drawn, since an abandoned feed has no ceiling left to
+publish. /app/pol/adm.py judges every arrival against what that producer has learned at
+both levels, and treats a feed inside its teardown window as still sending: those rows are
+charged to the link and discarded rather than parked. /app/pol/emit.py publishes when the
+raise clears the threshold or when the obligation bites, and evaluates the obligation
+against the learned ceiling and what has been spent rather than against the book.
+
+That is the order a real expert works in, because the symptom points at the link and the
+link points at the discarded rows, and only when the drained total stops tracking the
+buffers does it become clear that the obligation was reading a number that happened to
+agree. Six alternative correct implementations ship under authoring/variants/, each
+building one quantity a different way - the history replayed from a flat log, the shed
+total kept per feed, the drained total taken from the algebraic identity between what the
+link was charged and what it still holds - and all six reach identical rows."""
+
+verification_explanation = """Every stream is graded all or nothing on the ordered rows the relay emitted - grant and
+pull with the level and the absolute ceiling, over and late with the feed and the row
+count, drop with the rows a teardown discarded - and on the rows still parked on every
+live feed at the end.
+
+The answer is pinned rather than chosen. A ceiling is a formula over the level's drained
+total, and it is published exactly when the raise clears the threshold or when the
+obligation bites; both halves are total, and an emission at one tick changes only what a
+producer has learned three ticks later, so by induction on the tick the whole log is a
+deterministic function of the stream. That is checked rather than asserted: a sealed model
+in tests/oracle.py, written as a single pass over the plan and sharing no code with the
+machine or the policy, reproduces every row, and build_gt.py refuses to write a ground
+truth until it agrees on all twenty-four enumerated streams and four hundred generated
+ones. Six independent correct implementations agree bit for bit on five hundred more.
+Order inside a tick is not graded because it is not the policy's to choose: the machine
+sorts what the policy hands it before anything is appended.
+
+Twenty-four enumerated streams carry the answers in tests/gt.json and are aimed one per
+rule, including the states where two readings could disagree - a teardown and an idle
+pull-back on one tick, an arrival on the last tick of a learning window, an obligation
+firing under the threshold. Three hundred more are built inside the verifier from a nonce
+drawn from /dev/urandom after the agent has stopped, and are recomputed by the sealed
+model rather than looked up, so no answer key can cover them.
+
+Because the rows come back from the process that ran the submission, four things are
+required of them beyond being right. Every row was appended through the machine's own
+emitting methods, checked by a gate that refuses any other caller. The interpreter's own
+count of entries into the frozen functions, kept in a closure the tree cannot reach, is at
+or above what the streams require. Every frozen function still carries the bytecode
+compiled from the pristine sources, checked against a baseline the grader compiles itself
+from files the run cannot write, which is what catches a rebinding done at import time
+before the run's own fingerprints are taken. And the executed tree is byte for byte the
+shipped tree outside the four declared policy files. Twenty-three cheats score 0 in the
+real two-image trial, including four attestation probes that are the reference with every
+answer correct and one of those layers interfered with - each caught by its own layer and
+by nothing else - and one probe that carries gt.json's own bytes, replays the recorded
+ledger to work out which enumerated stream is running, is right on all twenty-four of
+them, and still scores 0."""
 
 category = "Software"
 subcategory = "Systems"
@@ -27,7 +142,14 @@ tags = ["flow-control", "credit-accounting", "backpressure", "deadlock-avoidance
 
 expert_time_estimate_hours = 8
 
-relevant_experience = "PLACEHOLDER"
+relevant_experience = """I work on data transport and ingest plumbing, which is where this comes from: the credit
+accounting of a multiplexed link, and the class of fault where throughput decays to
+nothing over hours with no error logged anywhere and nothing in the metrics but a ceiling
+that stopped moving. Stranded credit after a stream is torn down is the version of it I
+have chased more than once, and the part that is genuinely hard is not the accounting but
+that the receiver has to reason about what the far end believes rather than about what its
+own buffers say. I wrote the simulator, the reference, the sealed model and the case set
+here myself."""
 
 [verifier]
 timeout_sec = 900.0

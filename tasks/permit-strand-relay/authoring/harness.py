@@ -60,3 +60,18 @@ def drive(streams, policy=None, tree=None):
         return json.loads(run.stdout)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def tempo(policy):
+    """A work tree with a policy overlaid, left on disk for a caller to drive."""
+    tmp = tempfile.mkdtemp(prefix="psr-tree-")
+    app = os.path.join(tmp, "app")
+    shutil.copytree(SRC, app)
+    for name in sorted(os.listdir(policy)):
+        if name.endswith(".py"):
+            shutil.copy(os.path.join(policy, name), os.path.join(app, "pol", name))
+    return app
+
+
+def clear(app):
+    shutil.rmtree(os.path.dirname(app), ignore_errors=True)

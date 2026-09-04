@@ -3,7 +3,6 @@ import json
 
 class Plan(object):
     def __init__(self, blob):
-        self.name = str(blob["name"])
         self.ticks = int(blob["ticks"])
         self.feeds = [int(x) for x in blob["feeds"]]
         self.rows = {}

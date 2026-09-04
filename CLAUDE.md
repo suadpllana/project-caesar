@@ -120,6 +120,7 @@ none has ever been checked for.
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
 | `note-carry-forward` | Software / Algorithms | 14 | 6 | 14400 s | 7 h |
+| `permit-strand-relay` | Software / Systems | 23 | 12 | 14400 s | 8 h |
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and initially failed the quality review on `category and
@@ -1371,6 +1372,130 @@ streams are built inside the verifier from a nonce made after the agent has fini
 and the attestations are worth keeping anyway, since each bypass they force is a separate
 detectable act.
 
+
+## permit-strand-relay: proving uniqueness before building, and a gate blind in a new way (2026-09-04)
+
+The sixteenth task, built 2026-09-04, **not through the pipeline**. It grades an **outward
+permit schedule judged against what a counterparty can believe**: the ordered ceilings a
+multiplexed relay publishes, the faults it records, and the rows left parked. `simcheck`
+reports it clear on both axes - conceptually, and **no shipped file close to another
+bundle's**, which is only the second time this repo has managed that.
+
+**The idea check said "uncertain" and named one thing to fix, and that shaped the whole
+build: prove the rules leave exactly one legal output before writing any of it.** The
+reviewer's objection was fair and it is the run-audit failure this repo has already taken
+once - if two reasonable engineers produce different-but-correct logs, an exact-match
+grader rejects correct work. Three answers, and the first is the one to reuse:
+
+1. **State the uniqueness argument as an induction, and make the environment enforce its
+   antecedent.** An emission at tick T changes only what a producer has learned at T+LAG,
+   so state at T never depends on emissions at T; the emit predicate is a total iff and
+   the value is a formula; therefore the log is a deterministic function of the stream.
+   The frozen machine takes emissions as a *return value* and applies them with the delay,
+   so a policy cannot observe its own emission within the tick. The proof is a property of
+   the code, not a claim in a document.
+2. **Close every degree of freedom by construction, not by legislating it in the brief.**
+   The first draft had a real gap - a raise at or above the threshold that was not yet
+   obligatory could be published or held, and both are defensible. That became an iff. And
+   the within-tick ordering rule came **out** of the brief: the machine now sorts what the
+   policy hands it before appending, so order is not the policy's to choose and not graded.
+   That is strictly better than stating an order, and it answers the "over-specified output
+   schema" half of the same review.
+3. **Then measure it.** A sealed model written as one pass over the plan, sharing no code
+   with the machine, plus **six** correct variants each building one quantity a different
+   way, all agreeing bit for bit on 24 enumerated and 400-900 generated streams. Six
+   constructions converging is what makes uniqueness evidence rather than taste.
+
+### The two discoveries, and the measurement that says they are entangled
+
+Reference against the shipped tree, over 300 generated streams: the shipped tree passes
+**9 of 24** enumerated (the fences) and **0 of 300** generated. The ablation, each row one
+decision changed:
+
+| submission | enumerated wrong | generated wrong |
+|---|---|---|
+| careful solver: obligation read off the book | 6 of 24 | 283 of 300 |
+| obligation fixed, drained total left on drawn rows | 8 of 24 | 275 of 300 |
+| both wrong | 10 of 24 | 299 of 300 |
+| both fixed | 0 | 0 |
+
+Each alone is fatal and neither repairs the other. The first is that the link finishes with
+rows nobody draws (a teardown discards parked rows that were charged on arrival); the
+second is that the obligation to publish below the threshold is a question about what the
+producer has been **told**, which no field records. In the shipped tree those two
+quantities are equal, so the natural implementation reads the answer off the book and is
+right - and fixing the first defect is exactly what pulls them apart.
+
+### A field pair witnessed the first discovery, and the right answer was to ship it as a variant
+
+The leak audit turned up `lsnt - ltkn - sum(held)` = the shed total exactly, so the link's
+drained figure is derivable in one line from three exposed fields. This file's instinct
+after `delta-view-retraction` is to close such a pair. **That was the wrong move here**: it
+is an algebraic identity that any correct implementation may legitimately use, not a leak of
+a hidden fact, and a solver still has to know what they are computing. It ships as
+`ok-identity`, scores 1, and is now part of the uniqueness evidence. **Ask whether the pair
+witnesses a hidden fact or states a true identity; close the first, ship the second.**
+
+### `tools/forgecheck.py` was blind in a new way, and it is fixed
+
+Standing-policy item 2, and the mirror of the 2026-09-03 finding. `gt_slices` rebuilds the
+ground truth with `json.dumps` **default separators**, which put a space after every comma
+and colon, then matches those space-carrying runs against the cheat body. A `gt.json`
+written **compactly** with `separators=(",", ":")` contains none of those spaces, so a probe
+embedding the file verbatim matched nothing and the report read `FAIL no cheat is generated
+from tests/gt.json` on a bundle whose answer-key probe was real and did score 0. Raw windows
+of the file's own text are now added. Validated in both directions: byte-identical carrier
+lists on all fifteen other bundles, and a synthetic compact ground truth now matches.
+
+### Six smaller findings, each of which cost real time
+
+- **A cheat suite goes stale silently and every cheat still scores 0.** The environment lost
+  a field; the 23 generated cheats were not regenerated; every one of them died on an
+  `AttributeError` and the sweep reported a clean 23-of-23. `cheat_report` only caught it
+  once it was made to name **which test** fired. A reward of 0 from a cheat that crashed on
+  import is indistinguishable from a rejection, and `docker_trial2.py` cannot tell you which
+  - it prints `tail -5` of the pytest log. **A per-cheat report needs its own container
+  driver**, which the bundle needs anyway because nothing under `authoring/` may import from
+  outside the bundle.
+- **An attestation probe that rebinds a frozen module at import time dies on a circular
+  import**, because the frozen machine imports the policy package. The runner then reports
+  an empty report and no test names the probe, which reads as a sandbox fault. Reach the
+  machine from inside a call instead, through the caller's frame.
+- **The answer-key probe needed the recorded ledger, not just the declarations.** Keyed on
+  the feed set and the arrival prefix it was right on 18 of 24 enumerated streams; replaying
+  gt's own recorded verdicts through the machine's bookkeeping to reconstruct what the link
+  had been charged, what had been drawn and which feeds were shut took it to **24 of 24**,
+  still 0 overall. That is the sentence that makes forgecheck worth running.
+- **`preflight`'s reward-binary check greps for `echo 1 >`.** `printf '1\n' >` writes the
+  same byte and fails the check. Two minutes, and the warning reads like a real fault.
+- **`textcheck` counts a possessive as a contraction.** The regex is
+  `\b\w+'(s|t|re|ve|ll|d|m)\b`, so `the feed's permit` scores. A draft at 10.2/kw against
+  a 3/kw bar was carrying nine possessives and no contractions at all. Rewrite them as `the
+  permit for that feed`; do not go hunting for contractions that are not there.
+- **A discovery is only as strong as the distribution.** The obligation reading moved 15.3%
+  of generated streams on the first tuning and **94%** after raising the learning delay from
+  2 ticks to 3 and the threshold from 10 rows to 20 - the same rule, a distribution that
+  exercises it. One reading (`owe-ignores-free`) still moves only 2%; it is a stated
+  requirement that rarely binds, it is separated by a hand-written case, and across 300
+  graded streams it is caught with certainty. `readingcheck` now fails only on **not
+  separated**, and prints the share as a warning.
+
+**Gates run:** the real two-image trial **25/25** (oracle 1, nop 0, 23 cheats 0) and again
+from the extracted archive, variants **7/7** score 1, `build_gt` proving the reference
+against the sealed model on 24 hand-written and 400 generated streams, `cheat_report` naming
+the catching test for every cheat with the four attestation probes caught by their own layer
+and nothing else, `readingcheck` all separated, `onelinecheck` no exact rule at depth 2 on
+either graded decision, `determinism` identical across five hash seeds, `tiecheck` clean over
+324 streams, `field_report` no dead field, and `forgecheck`, `simcheck`, `solvecheck`,
+`deadfieldcheck`, `catcheck`, `hintcheck`, `structcheck` and `zipcheck` clean. `textcheck` is
+clean against **all three** briefs that cleared the AI screen. `preflight` reports no errors
+and 19 warnings, every one the documented unused-public-function false positive.
+
+**Gates NOT run: the three-agent easiness probe.** The owner's rule for this build was a cold
+self-solve instead, and the honest limit is that the session that built the task cannot solve
+it cold. What was done instead is the ablation above plus `leakcheck` on a written first-plan,
+which came back clean. **The easiness probe is the first thing to run on this bundle**, and
+the ablation is a claim about the mechanism, not a measurement of what an agent does.
 
 ## Standing policy: every rejection becomes a gate
 
@@ -4543,6 +4668,16 @@ python3 tools/zipfix.py <slug>                  rewrite an archive package.py st
                                                 MS-DOS. On Windows it always does, and an
                                                 archive that fails this scores 0 on every
                                                 submission including the reference
+python3 tasks/<slug>/authoring/audit.py         the totality audit: on every enumerated state,
+                                                does the reference agree with the sealed
+                                                model AND with each alternative
+                                                construction? Run it on the states where
+                                                you EXPECT two readings to be defensible -
+                                                a teardown and a reclaim on one tick, an
+                                                event on the last tick of a window. A
+                                                disagreement there is an undecided rule and
+                                                it is far cheaper to find here than at the
+                                                run audit
 python3 tasks/<slug>/authoring/tiecheck.py      no graded comparison may come down to a name
                                                 the submission chose. Ship the mirror variant
                                                 too: the reference with that name changed

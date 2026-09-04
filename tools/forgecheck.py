@@ -46,21 +46,34 @@ def gt_slices(gt_text: str, n: int = 12) -> list[str]:
     still has to carry the answers verbatim to match it. Measured 2026-09-02: adding the
     fallback keeps every task that already reported carriers reporting them, and leaves
     checkpoint-resume-drift, turn-seam-alignment and rollout-cache-coherence failing.
+
+    Both of those shapes are rebuilt with json.dumps and its default separators, which
+    put a space after every comma and colon. A ground truth written compactly - with
+    separators=(",", ":") - contains none of those spaces, so a probe embedding the file
+    verbatim matched nothing and the report said the task was unproven when it was not.
+    Measured 2026-09-04 on permit-strand-relay. Raw windows of the file's own text are
+    added for that case, and they change nothing for the tasks above, whose ground truths
+    are written the ordinary way.
     """
     data = json.loads(gt_text)
     flat = json.dumps(data, sort_keys=True).replace("{", " ").replace("}", " ").split()
     out = [chunk for chunk in flat if len(chunk) >= 24][:n]
-    if out:
-        return out
-    for i in range(len(flat)):
-        run = ""
-        for tok in flat[i:i + 8]:
-            run = tok if not run else run + " " + tok
-            if len(run) >= 24:
-                out.append(run)
+    if not out:
+        for i in range(len(flat)):
+            run = ""
+            for tok in flat[i:i + 8]:
+                run = tok if not run else run + " " + tok
+                if len(run) >= 24:
+                    out.append(run)
+                    break
+            if len(out) >= n:
                 break
-        if len(out) >= n:
-            break
+    raw = gt_text.strip()
+    step = max(1, len(raw) // max(1, n))
+    for i in range(0, max(1, len(raw) - 48), step):
+        window = raw[i:i + 48]
+        if len(window) >= 24:
+            out.append(window)
     return out
 
 

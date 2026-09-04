@@ -93,7 +93,12 @@ def seen(st, when, level, dflt):
     return ripe[-1]
 '''
 
+RENAMED = [
+    ("gone", "sunk"), ("said", "told"), ("lost", "adrift"),
+]
+
 VARIANTS = {
+    "ok-renamed": {},
     "ok-replay": {
         "tear.py": [("NOTE_BLOCK", REPLAY_SEEN),
                     ("OPENED_BLOCK", REPLAY_OPENED)],
@@ -147,9 +152,13 @@ def main():
             body = open(os.path.join(REF, leaf)).read()
             for key, fresh in VARIANTS[name].get(leaf, []):
                 body = swap(body, key, fresh)
+            if name == "ok-renamed":
+                for old, new in RENAMED:
+                    body = body.replace('"%s"' % old, '"%s"' % new)
             with open(os.path.join(home, leaf), "w", newline="\n") as fh:
                 fh.write(body)
-        print("wrote %s (%s)" % (name, ", ".join(sorted(VARIANTS[name]))))
+        note = ", ".join(sorted(VARIANTS[name])) or "every state key renamed"
+        print("wrote %s (%s)" % (name, note))
 
 
 if __name__ == "__main__":

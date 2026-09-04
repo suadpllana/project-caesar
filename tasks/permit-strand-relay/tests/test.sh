@@ -8,7 +8,7 @@
 set -u
 
 install -d -m 700 /logs/verifier
-printf '0\n' > /logs/verifier/reward.txt
+echo 0 > /logs/verifier/reward.txt
 chmod 600 /logs/verifier/reward.txt
 
 CELL=/work
@@ -46,8 +46,8 @@ python3 /tests/reap.py 1002
 if RUN_NONCE="${RUN_NONCE}" RUN_WIDE="${RUN_WIDE}" PYTHONPATH=/tests \
         python3 -m pytest /tests/test_outputs.py -q -rf --tb=line \
         --ctrf /logs/verifier/ctrf.json > /logs/verifier/pytest.log 2>&1; then
-    printf '1\n' > /logs/verifier/reward.txt
+    echo 1 > /logs/verifier/reward.txt
 else
-    printf '0\n' > /logs/verifier/reward.txt
+    echo 0 > /logs/verifier/reward.txt
 fi
 cat /logs/verifier/pytest.log

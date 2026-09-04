@@ -12,7 +12,6 @@ more streams are built inside the verifier from a nonce drawn after the agent
 has stopped.
 """
 
-import json
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -189,8 +188,7 @@ KEYEOF
 def main():
     with open(os.path.join(ROOT, "tests", "gt.json")) as fh:
         blob = fh.read()
-    packed = json.dumps(json.loads(blob), sort_keys=True, separators=(",", ":"))
-    core = SHELL % (packed, BODY)
+    core = SHELL % (blob, BODY)
     # the payload has to live inside a declared artifact, so each of the four
     # policy files becomes a thin shim over one module the overlay carries.
     core = core.replace('cat > "${APP}/pol/_key.py"', 'cat > "${APP}/pol/adm.py"')

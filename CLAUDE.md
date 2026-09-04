@@ -724,6 +724,104 @@ streams, `textcheck` clean against all three briefs that cleared the AI screen (
 `deadfieldcheck`, `catcheck`, `structcheck`, `hintcheck` and `zipcheck` clean. **The easiness
 probe has not been run since the rebuild.**
 
+### The wall two criteria make together, and the only half of it that is fixable (2026-09-05)
+
+`note-carry-forward` went back and failed the quality review on **two** blocking criteria at
+once, and the pair is the finding. `difficult` says the brief hands over every rule.
+`test instruction alignment` says the brief leaves corners undecided that the graded streams
+exercise. **Those two notes pull in opposite directions on the same sentences**, and any task
+whose graded artifact is a deterministic transducer under a stated rule will eventually get
+both, because fairness requires the rule to be complete and a complete rule is an
+implementation. Recognise the pair early: the alignment half is real, mechanical and worth
+fixing; the `difficult` half is not reachable from the brief, and this is the fourth round on
+it for one mechanism (fail, pass, fail, fail), with the reviewer calling it a "borderline
+call" both times it was named.
+
+**The alignment half, and the number that matters: the reviewer named three corners and there
+were five.** Do not fix only the ones in the note - a rejection names an example, not a scope,
+for the fourth time in this file. Sweeping the state machine's decision points one at a time
+turned up two more, and the larger of the two moved more of the set than two of the three that
+were named. Measured against the reference over 300 generated streams, with none of the five
+separated by any of the seventeen hand-written fixtures:
+
+| corner the brief did not settle | moves | named by the reviewer |
+|---|---|---|
+| talk aimed at an absorbed thread lands on its owner | 18.3% | no |
+| merging runs before the replies rather than after | 12.7% | yes |
+| a resolved thread stops being tracked as reached | 4.0% | yes |
+| a reply moves a resolved thread back to answered | 3.7% | no |
+| the merged thread keeps its own reach, not either half's | 0.3% | yes |
+
+**Two of the five were closed without adding a sentence, and that is the technique worth
+copying when `difficult` is the other criterion.** They were not really undecided: the
+reference carried two *unstated exceptions* to rules the brief already stated. It stopped
+settling whether a change reached a thread once that thread was resolved, and a merge threw
+away the absorbed half's reach - while the brief said "a revision has to let it go before it
+can be raised a second time" and "the older takes the union", with no exception anywhere.
+Removing both exceptions made the reference uniform and made the brief correct as it already
+stood. **When a corner is unstated, ask first whether the reference is the thing that is
+irregular.** Legislating an exception costs prose on a task that is already being told it says
+too much; deleting one costs nothing and reads better to the next reviewer.
+
+Only the event order and what a reply does to a thread that is not open needed new prose,
+about sixty words, and `textcheck` stayed clean against all three briefs that cleared the AI
+screen (burstiness 0.857) with `structcheck` and `hintcheck` clean.
+
+**A fixture can grade nothing and say in its own name that it grades something.**
+`raise-on-one-line-of-the-span` produced an **empty log**, byte-identical to
+`no-raise-when-the-change-misses`, the fixture it exists to contrast with - the reviewer
+caught it and no gate here did. The cause generalises past this task: its change was a lone
+replacement of the one line of the span the change reached, so that line fell out of the span
+during the carry and there was nothing left to reach. Underneath that sits a fact about the
+shipped engine nobody had written down: **a lone deletion produces no change group at all**,
+because `grp.spans` seeds a group on an edit and only fills it from added lines and the kept
+lines between two nearby edit runs. A raise therefore needs the group to reach a *kept* line
+of the span, which only happens where two edits sit within the context window of each other.
+The replacement fixture does that and leaves two lines of the span outside the group.
+
+**So: assert that every fixture separates the reading its name claims, mechanically, and make
+it a gate.** `authoring/readings.py` now fails a reading that neither moves a tenth of the
+generated set nor is separated by a **named** hand-written stream, and prints the fixture
+beside each row. Seventeen readings, all seventeen pinned. The fixture route is the stronger
+of the two, per the alias-settle-report entry above: a rare reading caught by a named stream
+fails with the rule written on it instead of surfacing as "n of 300 wrong", so the
+tenth-of-the-set floor is about readings nothing pins, not about rarity by itself.
+
+Three smaller things, each of which would have cost a round trip:
+
+- **`authoring/` DOES ship, including the scratch you write this session.** The 2026-09-04
+  entry below says so and it is easy to half-remember as "only `variants/` ships": the archive
+  carries all nineteen `authoring/` entries. A host emulation written this session hardcoded
+  an absolute Git-for-Windows path to `bash.exe`, which is exactly the hardcoded-path class
+  that failed `no extraneous files` on this bundle in September. It now resolves a shell by
+  probing and falls back to `PATH`.
+- **A variant template goes stale the same way a hand-copied variant does.**
+  `make_variants.py` builds `ok-merge-by-components` by replacing `_merge` wholesale with a
+  literal body, so the moment the reference's `_merge` changed, that variant was a correct
+  implementation of the *old* rule and scored 0. `make_variants.py` exists precisely to stop
+  variants drifting, and it drifted, because the override is a literal rather than a
+  transformation. **Any variant that replaces a whole method has this defect latent**; the
+  symptom is one variant failing immediately after a reference change, and per the playbook
+  the first question is which sentence separates it - here the newly stated one did, so the
+  template was genuinely wrong and fixing it was right.
+- **A docker-less host can still run the two-image trial's whole content.**
+  `tasks/note-carry-forward/authoring/trial.py` stages the tree the way `tests/Dockerfile`
+  stages it (`pristine` beside `tests/`, not inside), runs the real `tests/runner.py` in a
+  **subprocess**, and grades with the real `tests/test_outputs.py` under pytest - rewriting
+  exactly three absolute path constants and refusing to run if any of the three no longer
+  matches, so it cannot quietly grade a different file than the one that ships. It is the
+  reusable one for any kit-layout bundle. It does **not** cover the privilege drop, the
+  root-owned reward channel, the root-only ground truth or `reap.py`.
+
+**Gates after the repair:** trial `--all` **24 of 24** (oracle 1, nop 0, twenty-two cheats 0),
+trial `--variants` **4/4**, every rule cheat caught by `test_the_fixed_streams_match_the_rule`
+so the hand-written set separates it rather than only the generated block,
+`cheat-probe-rewrite-frozen` caught by the executed-tree check and by nothing else,
+`build_gt` proving the reference against the sealed oracle on 22 hand-written and 360
+generated streams, `readings` 17/17 pinned, and `simcheck`, `solvecheck`, `deadfieldcheck`,
+`catcheck`, `structcheck`, `hintcheck`, `zipcheck` and `preflight` clean. **Not run: the
+three-agent easiness probe, and anything needing docker.**
+
 ### The easiness rejection: an unused import is an arrow, and a stated spec is transcription (2026-09-04)
 
 `note-carry-forward` cleared the quality review and came back **3 of 3** from the easiness

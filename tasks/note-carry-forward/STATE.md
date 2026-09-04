@@ -134,3 +134,74 @@ both ship variants and both cleared this review.
   `authoring/readings.py`, which is self-contained and fails if any reading
   moves under a tenth of the set; its numbers are the table above.
 - the apt layer, so `pkill` is unexercised; `tests/reap.py` walks `/proc`.
+
+## 2026-09-04: the quality-review repair on `test instruction alignment`
+
+The bundle failed the quality review on two blocking criteria. This session
+fixed one of them completely and did not fix the other.
+
+### Fixed: `test instruction alignment`
+
+The reviewer named three corners the brief left undecided that the generated
+streams exercise. All three reproduced. A sweep for others of the same class
+found two more the reviewer had not named, one of them larger than any of the
+three. Measured against the reference over 300 generated streams:
+
+| corner | moves | now |
+|---|---|---|
+| talk aimed at an absorbed thread lands on its owner | 18.3% | stated, fixture, cheat |
+| merging runs before the replies rather than after | 12.7% | stated, fixture, cheat |
+| a resolved thread stops being tracked as reached | 4.0% | stated, fixture, cheat |
+| a reply moves a resolved thread back to answered | 3.7% | stated, fixture, cheat |
+| the merged thread keeps its own reach, not either half's | 0.3% | stated, fixture, cheat |
+
+Two of the five were closed by making the **reference uniform** rather than by
+adding a rule: it had two unstated exceptions (a resolved thread stopped having
+its reach settled, and a merge discarded the absorbed half's reach), and
+removing both makes the brief correct as it already stood. That matters because
+the other blocking criterion is `difficult`, so every sentence added to the
+brief costs something. Only the event order and the talk semantics needed new
+prose, about sixty words.
+
+`raise-on-one-line-of-the-span` graded nothing. Its change was a lone
+replacement of the one line of the span the change touched, so that line fell
+out of the span in the carry and the fixture produced an empty log - identical
+to `no-raise-when-the-change-misses`, the fixture it is supposed to contrast
+with. A lone deletion produces no change group at all under `grp.spans`, so a
+raise needs the group to reach a **kept** line of the span, which only happens
+where two edits sit close enough to take the kept lines between them. The
+replacement fixture does that and leaves two lines of the span outside the
+group.
+
+`authoring/readings.py` now fails a reading that neither moves a tenth of the
+generated set nor is separated by a named hand-written stream. Seventeen
+readings, all seventeen pinned by a fixture.
+
+### Not fixed: `difficult`
+
+Round four on one mechanism, and rounds one and three failed it too. See
+CLAUDE.md, "note-carry-forward and the wall two criteria make together". No
+wording change was attempted, because the repo has measured twice that wording
+does not move this criterion, and the alignment repair pushes it the wrong way.
+
+### Gates
+
+Host emulation only - docker is absent on this host, so `authoring/trial.py`
+was written for it. It stages the tree the way `tests/Dockerfile` does
+(`pristine` beside `tests/`), runs the real `tests/runner.py` in a subprocess
+and grades with the real `tests/test_outputs.py` under pytest 9.1.1.
+
+- trial `--all`: 24 of 24. Oracle 1, nop 0, twenty-two cheats 0
+- trial `--variants`: 4 of 4 score 1
+- every rule cheat is caught by `test_the_fixed_streams_match_the_rule`, so the
+  hand-written set separates it and not only the generated block
+- `cheat-probe-rewrite-frozen.sh` is caught by the executed-tree check and by
+  nothing else
+- `build_gt.py`: 22 hand-written and 360 generated streams, reference against
+  the sealed oracle
+- `readings.py` 300, `simcheck`, `solvecheck`, `deadfieldcheck`, `catcheck`,
+  `structcheck`, `hintcheck` clean; `textcheck` clean against all three briefs
+  that cleared the AI screen; `preflight` no errors
+- NOT covered by the emulation: the privilege drop, the root-owned reward
+  channel, the root-only ground truth, `reap.py`, and the POSIX-only probes
+- NOT run: the three-agent easiness probe

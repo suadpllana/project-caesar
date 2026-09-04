@@ -29,23 +29,29 @@ real; the distribution is chosen to reach it.
 
 The tree ships the engine that pins a change script, so nobody writes a diff.
 What the agent writes is the board: a state machine over threads that have
-spans, states and a history, driven by a walk over the store. Twelve distinct
-decisions are graded, and every one of them has a natural reading that is
-wrong. Measured against the reference over 300 generated streams, by
-`authoring/readings.py`:
+spans, states and a history, driven by a walk over the store. Seventeen
+distinct decisions are graded, and every one of them has a natural reading that
+is wrong. Measured against the reference over 300 generated streams, by
+`authoring/readings.py`, which also names the hand-written stream that
+separates each one:
 
-  the mapping rebuilt from an ordinary LCS walk          91%
-  the mapping taken from the standard library's matcher  93%
-  a change read as the lines the script added            91%
-  merging on equal spans instead of on overlap           82%
-  an outdated thread dropped off the board               68%
-  the older thread keeping its own span, not the union   66%
-  the whole span required to be inside the change        51%
-  raising every revision the thread stays caught         49%
-  merging in one pass instead of to a fixed point        47%
-  the merged thread not dragged open by an open half     43%
-  a resolved thread raised along with the rest           27%
-  an answered thread not reopened when it is raised      24%
+  the mapping taken from the standard library's matcher   93%
+  the mapping rebuilt from an ordinary LCS walk           91%
+  a change read as the lines the script added             91%
+  merging on equal spans instead of on overlap            82%
+  an outdated thread dropped off the board                68%
+  the older thread keeping its own span, not the union    66%
+  the whole span required to be inside the change         51%
+  raising every revision the thread stays caught          49%
+  merging in one pass instead of to a fixed point         47%
+  the merged thread not dragged open by an open half      43%
+  a resolved thread raised along with the rest            25%
+  an answered thread not reopened when it is raised       24%
+  talk aimed at an absorbed thread landing on its owner   18%
+  merging before the replies rather than after them       13%
+  a resolved thread no longer tracked as reached or let go 4%
+  a reply moving a resolved thread back to answered        4%
+  the merged thread not inheriting either half's reach     0.3%
 
 Four of those need something a board cannot get from the revision in front of
 it. Raising is edge triggered, so it needs the previous revision's verdict for
@@ -54,11 +60,17 @@ fixed point, because a union reaches threads neither half reached. And the
 mapping has to come off the script the tool settled rather than any equally
 short one, which is only visible on files that repeat themselves.
 
-The two that are hardest to see are the last two. A one-pass merge is right on
-every stream where no union reaches a third thread, which is most of the ones a
-person writes out by hand; and a rebuilt mapping agrees with the tool about how
-many lines survived and disagrees about which, so every count a solver checks
-comes out right.
+The two that are hardest to see are the mapping and the fixed point. A one-pass
+merge is right on every stream where no union reaches a third thread, which is
+most of the ones a person writes out by hand; and a rebuilt mapping agrees with
+the tool about how many lines survived and disagrees about which, so every
+count a solver checks comes out right.
+
+The last five in that table move too little of the generated set to be caught
+by it reliably, so each is pinned by a hand-written stream instead and ships as
+a cheat that scores 0. That is deliberate: a reading nobody can be caught for
+is a coin flip under all-or-nothing grading rather than a test of anything, and
+every rule those five settle is stated in the brief.
 """
 
 solution_explanation = """

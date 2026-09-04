@@ -1,21 +1,8 @@
 #!/bin/bash
-# The reference, correct on every stream, with a prologue that rewrites a frozen file inside the work tree the run executes, reached from the declared artifact by relative path. Only the check that compares the executed tree against the pristine copy can see this.
+# Let a reply move a resolved thread back to answered. A reply moves an open thread and nothing else; a settled thread stays settled until the change comes back to it.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
-import os as _os
-
-_target = _os.path.join(
-    _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
-    "scr", "grp.py")
-try:
-    _text = open(_target).read()
-    if "MARKER" not in _text:
-        open(_target, "w").write(_text + "\n\nMARKER = 1\n")
-except Exception:
-    pass
-
-
 """The board of review threads, rebuilt from the store.
 
 Nothing survives between requests, so the board is reconstructed by walking
@@ -126,7 +113,7 @@ class Board(object):
             thread = by_id.get(nid)
             if thread is None:
                 continue
-            if kind == "reply" and thread["state"] == "open":
+            if kind == "reply" and thread["state"] in ("open", "resolved"):
                 thread["state"] = "answered"
             elif kind == "resolve" and thread["state"] in ("open", "answered"):
                 thread["state"] = "resolved"

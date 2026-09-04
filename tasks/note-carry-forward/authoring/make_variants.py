@@ -42,7 +42,8 @@ MERGE_BY_COMPONENTS = BOARD[:BOARD.index("    def _merge(self, threads, caught, 
                     owner["state"] = "open"
                 taken.append((other["id"], owner["id"]))
                 threads.remove(other)
-                caught.pop(other["id"], None)
+                if caught.pop(other["id"], False):
+                    caught[owner["id"]] = True
         for taken_id, owner_id in sorted(taken):
             log.append(("absorb", owner_id, taken_id))
 '''

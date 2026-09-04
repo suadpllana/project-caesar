@@ -1,21 +1,8 @@
 #!/bin/bash
-# The reference, correct on every stream, with a prologue that rewrites a frozen file inside the work tree the run executes, reached from the declared artifact by relative path. Only the check that compares the executed tree against the pristine copy can see this.
+# Land a reply or a resolution aimed at an absorbed thread on whoever holds its span now. The absorbed thread is not on the board any more, so there is nothing there to aim at.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
-import os as _os
-
-_target = _os.path.join(
-    _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
-    "scr", "grp.py")
-try:
-    _text = open(_target).read()
-    if "MARKER" not in _text:
-        open(_target, "w").write(_text + "\n\nMARKER = 1\n")
-except Exception:
-    pass
-
-
 """The board of review threads, rebuilt from the store.
 
 Nothing survives between requests, so the board is reconstructed by walking
@@ -122,6 +109,9 @@ class Board(object):
 
     def _talk(self, threads, said):
         by_id = dict((t["id"], t) for t in threads)
+        for holder in threads:
+            for gone in holder.get("ate", ()):
+                by_id.setdefault(gone, holder)
         for kind, nid in said:
             thread = by_id.get(nid)
             if thread is None:
@@ -153,6 +143,8 @@ class Board(object):
                     log.append(("absorb", owner_id, taken_id))
                 return
             owner, taken = hit
+            owner.setdefault("ate", set()).add(taken["id"])
+            owner["ate"] |= taken.get("ate", set())
             owner["span"] |= taken["span"]
             if taken["state"] == "open":
                 owner["state"] = "open"

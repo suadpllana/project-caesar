@@ -196,7 +196,8 @@ def board(revs, events):
             bucket[t]["absorb"].append((taken, owner))
             del span[taken]
             del state[taken]
-            caught.pop(taken, None)
+            if caught.pop(taken, False):
+                caught[owner] = True
 
     join(0)
     talk(0)
@@ -214,14 +215,14 @@ def board(revs, events):
             state[nid] = "outdated"
             caught.pop(nid, None)
         for nid in sorted(span):
-            if state[nid] not in ("open", "answered"):
+            if state[nid] == "outdated":
                 continue
             now = False
             for chunk in hunks:
                 if span[nid] & chunk:
                     now = True
                     break
-            if now and not caught.get(nid, False):
+            if state[nid] != "resolved" and now and not caught.get(nid, False):
                 bucket[t]["raise"].append((nid, state[nid] == "answered"))
                 if state[nid] == "answered":
                     state[nid] = "open"

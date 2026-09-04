@@ -101,6 +101,33 @@
     ]
    ]
   },
+  "merged-thread-inherits-being-reached": {
+   "log": [
+    [
+     "raise",
+     1
+    ],
+    [
+     "absorb",
+     0,
+     1
+    ],
+    [
+     "absorb",
+     0,
+     2
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      1
+     ]
+    ]
+   ]
+  },
   "no-absorb-without-overlap": {
    "log": [],
    "threads": [
@@ -199,14 +226,20 @@
    ]
   },
   "raise-on-one-line-of-the-span": {
-   "log": [],
+   "log": [
+    [
+     "raise",
+     0
+    ]
+   ],
    "threads": [
     [
      0,
      "open",
      [
-      1,
-      2
+      2,
+      4,
+      5
      ]
     ]
    ]
@@ -249,6 +282,18 @@
     ]
    ]
   },
+  "reply-to-a-resolved-thread-does-nothing": {
+   "log": [],
+   "threads": [
+    [
+     0,
+     "resolved",
+     [
+      0
+     ]
+    ]
+   ]
+  },
   "resolved-is-not-raised": {
    "log": [],
    "threads": [
@@ -257,6 +302,24 @@
      "resolved",
      [
       2
+     ]
+    ]
+   ]
+  },
+  "resolved-still-tracks-being-reached": {
+   "log": [
+    [
+     "absorb",
+     0,
+     1
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      0
      ]
     ]
    ]
@@ -270,6 +333,42 @@
      [
       1,
       2
+     ]
+    ]
+   ]
+  },
+  "talk-lands-before-the-merge": {
+   "log": [
+    [
+     "absorb",
+     0,
+     1
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      0
+     ]
+    ]
+   ]
+  },
+  "talk-to-an-absorbed-thread-does-nothing": {
+   "log": [
+    [
+     "absorb",
+     0,
+     1
+    ]
+   ],
+   "threads": [
+    [
+     0,
+     "open",
+     [
+      0
      ]
     ]
    ]

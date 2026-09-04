@@ -67,6 +67,7 @@ def run(revs, events, mode="ref"):
         else:
             said.setdefault(step, []).append((kind, payload))
     span, state, caught, log = {}, {}, {}, []
+    holds = {}
 
     def join(t):
         for nid, lines in opened.get(t, []):
@@ -74,9 +75,13 @@ def run(revs, events, mode="ref"):
 
     def talk(t):
         for kind, nid in said.get(t, []):
+            if nid not in state and mode == "talk-follows-the-absorbed":
+                nid = holds.get(nid, nid)
             if nid not in state:
                 continue
-            if kind == "reply" and state[nid] == "open":
+            if kind == "reply" and (state[nid] == "open" or
+                                    (mode == "reply-revives-resolved"
+                                     and state[nid] == "resolved")):
                 state[nid] = "answered"
             elif kind == "resolve" and state[nid] in ("open", "answered"):
                 state[nid] = "resolved"
@@ -103,13 +108,26 @@ def run(revs, events, mode="ref"):
             if state[taken] == "open" and mode != "open-does-not-drag":
                 state[owner] = "open"
             done.append((taken, owner))
-            del span[taken]; del state[taken]; caught.pop(taken, None)
+            holds[taken] = owner
+            for was, now in list(holds.items()):
+                if now == taken:
+                    holds[was] = owner
+            del span[taken]; del state[taken]
+            if caught.pop(taken, False) and mode != "merge-keeps-own-reach":
+                caught[owner] = True
             if mode == "merge-one-pass":
                 break
         for taken, owner in sorted(done):
             log.append(("absorb", owner, taken))
 
-    join(0); talk(0); merge()
+    def settle(t):
+        join(t)
+        if mode == "merge-before-talk":
+            merge(); talk(t)
+        else:
+            talk(t); merge()
+
+    settle(0)
     for t in range(1, len(revs)):
         before, after = revs[t - 1], revs[t]
         table = carry(before, after)
@@ -131,8 +149,6 @@ def run(revs, events, mode="ref"):
         for nid in sorted(span):
             if state[nid] == "outdated":
                 continue
-            if state[nid] == "resolved" and mode != "raise-resolved":
-                continue
             if mode == "touched-all":
                 reached = set()
                 for c in hunks:
@@ -143,22 +159,34 @@ def run(revs, events, mode="ref"):
             else:
                 now = any(span[nid] & c for c in hunks)
             fire = now if mode == "level-raise" else (now and not caught.get(nid, False))
+            if state[nid] == "resolved":
+                if mode == "resolved-stops-tracking":
+                    continue
+                fire = fire and mode == "raise-resolved"
             if fire:
                 log.append(("raise", nid))
                 if state[nid] == "answered" and mode != "no-reopen":
                     state[nid] = "open"; log.append(("reopen", nid))
             caught[nid] = now
-        join(t); talk(t); merge()
+        settle(t)
     table = sorted([nid, state[nid], tuple(sorted(span[nid]))] for nid in span)
     return table, log
 
 
 MODES = ["textbook", "difflib", "touched-all", "touched-added", "level-raise",
          "no-reopen", "raise-resolved", "outdated-removed", "merge-equality",
-         "merge-one-pass", "merge-keeps-own-span", "open-does-not-drag"]
+         "merge-one-pass", "merge-keeps-own-span", "open-does-not-drag",
+         "resolved-stops-tracking", "merge-keeps-own-reach", "merge-before-talk",
+         "reply-revives-resolved", "talk-follows-the-absorbed"]
 
 
 def main():
+    """A reading has to be caught reliably, by one of two routes: it moves a
+    tenth of the generated streams, or a hand-written stream separates it by
+    name. The second is the stronger guarantee, because a named fixture fails
+    with the rule written on it instead of surfacing as `n of 300 wrong`, so a
+    rare reading is covered when a fixture pins it and a lottery ticket only
+    when neither route holds."""
     count = int(sys.argv[1]) if len(sys.argv) > 1 else 400
     streams = scen.generated(count, 11)
     hits = dict((m, 0) for m in MODES)
@@ -167,18 +195,25 @@ def main():
         for mode in MODES:
             if run(item["revs"], item["events"], mode) != base:
                 hits[mode] += 1
-    print("streams %d" % len(streams))
+    pinned = dict((m, []) for m in MODES)
+    for item in scen.FIXED:
+        base = run(item["revs"], item["events"], "ref")
+        for mode in MODES:
+            if run(item["revs"], item["events"], mode) != base:
+                pinned[mode].append(item["name"])
+    print("streams %d generated, %d hand-written" % (len(streams), len(scen.FIXED)))
     weak = []
     for mode in MODES:
         share = 100.0 * hits[mode] / len(streams)
-        print("   %-22s moves %5d  (%.1f%%)" % (mode, hits[mode], share))
-        if share < 10.0:
+        mark = pinned[mode][0] if pinned[mode] else "-"
+        print("   %-24s moves %5d  (%5.1f%%)  fixture %s" % (mode, hits[mode], share, mark))
+        if share < 10.0 and not pinned[mode]:
             weak.append(mode)
     if weak:
-        print("FAIL a reading under a tenth of the set is a lottery ticket: %s"
+        print("FAIL neither a tenth of the set nor a fixture catches: %s"
               % ", ".join(weak))
         return 1
-    print("every wrong reading moves at least a tenth of the graded streams")
+    print("every wrong reading is caught, by share of the set or by a named fixture")
     return 0
 
 

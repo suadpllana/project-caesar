@@ -8,7 +8,12 @@ gate reads it. It exists for the next session and for `preflight.py`.
 `Stage 7 - gates`. Built end to end on 2026-09-03. Cleared the structural check, the AI
 screen, the similarity screen and reference verification on 2026-09-04; failed the quality
 review on `category and tags` and was relabelled `Software / Algorithms`. Every other rubric
-row passed. See "The category rejection" in CLAUDE.md.
+row passed. Then **failed the easiness probe 3 of 3** the same day: runtimes 2m07s, 1m47s,
+7m12s, one correct write each, then a self-built oracle. Mode C - the graded question is a
+decidable predicate under a stated transition table, so the definition is the rule. Not a
+leak; needs a Stage 2 redesign. Trajectories and commentary at `probes/alias-settle-report/`.
+See "The category rejection" and "The easiness rejection on a task built the day after the
+law that forbids it" in CLAUDE.md. Do not resubmit as it stands.
 
 ## Task summary
 

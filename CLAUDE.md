@@ -114,7 +114,10 @@ It went in as `ML / Evaluation` because its brief is set in an evaluation harnes
 reviewer's answer is the entry to read before labelling anything: the category names the skill
 the graded work exercises, never the room the story happens in. It is now
 `Software / Algorithms`, which the reviewer named, and the repair is two lines of `task.toml` -
-see "The category rejection" below, and run `tools/catcheck.py` on the next bundle. Its graded
+see "The category rejection" below, and run `tools/catcheck.py` on the next bundle. **It then
+failed the easiness probe 3 of 3 the same day, in 2 to 7 minutes a trial, and the cause is the
+mechanism, not a leak** - see "The easiness rejection on a task built the day after the law that
+forbids it". It needs a Stage 2 redesign before it goes back. Its graded
 artifact is a **delivery obligation**: which line each watched key is handed, and the tick it may be handed
 on. `tools/simcheck.py` reports it conceptually clear of every earlier task and, for the first
 time in this repo, **mechanically clear too**: no shipped file is close to another bundle's.
@@ -294,6 +297,11 @@ when skipped.
    reproduces is an easiness rejection waiting to happen.
 5. **What is graded, and has anything here graded that before?** The similarity screen reads
    the shape of the question, not the domain.
+6. **Can the solver enumerate every legal continuation of the visible state?** If the brief
+   states the transitions and the state is small, the graded predicate is checkable by a
+   twenty-line oracle a frontier agent writes as its first file, and no stated constraint can
+   be withheld without making the task unfair. `alias-settle-report` went 3 of 3 in under
+   eight minutes a trial on exactly this, the day after the law naming it was written.
 
 ### Diagnosing a probe rejection, in order
 
@@ -474,6 +482,87 @@ Four smaller things from the same session:
 **Gates not run:** the three-agent probe on the new rule, and the apt layer (so `pkill` and
 the account teardown are unexercised locally, as before). Everything else in the gate list
 ran and is recorded in the task's STATE.md.
+
+## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
+
+`alias-settle-report` cleared the quality review on its relabelled resubmission and came back
+**3 of 3** from the easiness probe the same day. All three trajectories were supplied and are in
+`probes/alias-settle-report/` with the commentary in `notes.md` beside them. Read them before
+touching anything, because the cause is not a leak and no leak patch will move it.
+
+**Runtimes first, as always: 2m07s, 1m47s and 7m12s against a 14400 s budget**, at 6.4k to 8.3k
+output tokens. That is the plan available on sight. The signature is identical in all three: one
+call to read the 186-line tree, one call to run the three sets, **one `Write` of `rch.py` and one
+of `hold.py`, both correct on the first attempt**, then a self-built fuzzer to confirm. Trial 3's
+fuzzer was an exhaustive oracle - enumerate every legal continuation of ties and posts from a
+state and ask whether the line could change - and it reported 0 disagreements on 750 sets.
+
+**The difficulty argument is falsified, not merely missed.** It said a frontier agent
+reconstructs single-matcher deduplication from its prior and lands on one of three wrong readings
+of the difference rule, and it measured those readings at 3, 15 and 63 percent of generated sets.
+Zero of three agents made any of them. Each wrote the reference's search over growing
+difference-free groups in its first message: "the whole gathered set must be pairwise free of
+standing differences, so the search grows bar-free sets rather than following plain paths" is
+trial 3, and trials 1 and 2 say the same thing in their own words. The percentages measured how
+far three shortcuts sit from the truth. They did not measure the chance anyone takes a shortcut,
+and nobody did.
+
+Attribution, mechanically, so the mode is not guessed from the score:
+
+| check | result | rules out |
+|---|---|---|
+| `leakcheck` on the three trajectories | one four-word phrase in trial 1, and it is a stated fence; nothing in trials 2 and 3 | mode A |
+| `onelinecheck` | `file-now`: no exact rule at depth 2 over exposed fields | mode B |
+| one-shot write, then a self-built oracle goes green | all three | **mode C** |
+
+**And mode C here has a sharper name: the graded question is a decidable property of the input
+under stated transition rules.** "What can be brute-forced, and what cannot" above lists that as
+the fourth dead family - "reachability under stated edge rules; brute force exists at small sizes
+and frontier agents build it as their first file" - and it was written on 2026-09-02. This task was
+built on 2026-09-03 with a difficulty argument that said "the settling question looks like
+reachability and is not one". That escape does not exist. The question is "could any legal
+continuation change this line", the brief has to state every legal transition for the task to be
+fair (commit `85c9837` repaired a fence that stated one falsely, because a false transition rule
+is an unfair task), and **a complete transition table is a brute-force oracle**. A strong agent
+does not recall an algorithm and then check it against the definition. It writes the definition.
+The difference-free group rule is not a discovery on top of the definition; it *is* the definition
+of "a chain of ties could still weld these", and every wrong reading is a shortcut past it.
+
+Three repairs considered and each measured dead before any code:
+
+| lever | why it does nothing |
+|---|---|
+| delete the sentence that yields the rule ("Nothing ever declares two keys the same when something already stands saying they differ") | it is the input-space statement fairness requires; without it a solver cannot know whether a difference constrains a future tie at all, and the task becomes a coin flip. Mode A's repair is not available when the leaking sentence is a transition rule |
+| a size regime the oracle cannot reach | the agents did not need the oracle; they wrote the rule first and confirmed it second. And the predicate - a connected difference-free set containing both cells - is the path-with-forbidden-pairs problem, which is NP-complete in general, so no regime above the oracle's size has a reference either |
+| a second graded tier on the line | any tier that is a function of the stated transitions is checked by the same oracle, and the oracle is generic: enumerate continuations, ask whether the value changes |
+
+**So this is a Stage 2 redesign, and it should be said plainly rather than spent on a fourth
+round.** The mechanism has to be one where the correct answer is not defined against the set of
+legal continuations of the visible state - the surviving shape in "What can be brute-forced" is a
+machine with a stated invariant about its own history where the agent supplies the policy that
+maintains it, and this task is not that. The category fix and the four gates it cleared stand;
+the bundle should not go back as it is.
+
+One question joins the Stage 1 list, and it is the one that would have killed this design in a
+minute: **can the solver enumerate every legal continuation of the visible state?** If the brief
+states the transitions and the state is small, yes, and the graded predicate is checkable by
+construction. Run the shipped generator in your head: if your own `gen.py` can produce every
+continuation, so can the agent's.
+
+Two smaller things worth keeping:
+
+- **`preflight.py`'s unused-public-function warnings were partly right on this bundle.** Fourteen
+  fired and this file's standing note calls them a false-positive class. Six of them -
+  `open_runs`, `open_tags`, `unsent`, `find`, `cells`, `held` on `bk.py` - are precisely the four
+  quantities of the settling predicate handed over as named accessors. That was not the binding
+  constraint here (the agents would have read them off `bk.tags` and `bk.runs` in the same call),
+  but "a table of contents for the trap it serves" was an accurate description, and the next
+  bundle should read that warning before dismissing it.
+- **Wrong-reading percentages are not a difficulty measurement.** `readingcheck` and the
+  generated-set percentages this file asks for measure whether a *shortcut* is caught, which is a
+  fairness and legibility property. They say nothing about whether a frontier agent takes the
+  shortcut, and on a complete specification it does not. Keep measuring them for the reason they
+  exist; stop citing them as evidence the task is hard.
 
 ## The category rejection: the label names the work, not the room the story is set in (2026-09-04)
 
@@ -1713,6 +1802,7 @@ three-agent probe rather than to guess.
 | task | easiness result | mode | next action |
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
+| `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | Stage 2 redesign. No leak patch applies; see "The easiness rejection on a task built the day after the law that forbids it". Trajectories at `probes/alias-settle-report/` |
 | `earliest-change-script` | 3/3, then **3/3 again** with the leaks gone | none of the four: real exploration, a superset of the reference in three hours | the mechanism was at its ceiling; the rule gained a second tier on 2026-09-02 (see "A pure function at its ceiling"). Re-probe before resubmitting |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |

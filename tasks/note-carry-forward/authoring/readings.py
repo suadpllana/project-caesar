@@ -7,6 +7,7 @@ the rule.
 
     python3 authoring/readings.py 500
 """
+import difflib
 import pathlib
 import random
 import sys
@@ -19,12 +20,72 @@ import scen  # noqa: E402
 from scr import grp, pin  # noqa: E402
 
 
+def _changes(walk, context=pin.CONTEXT, runs=False):
+    """The moves of a walk cut into changes. `runs` cuts at every kept line,
+    which is the reading that misses the merging the tool does."""
+    out = []
+    cur = None
+    since = context
+    for step in walk:
+        if step[0] == "K":
+            since += 1
+            if cur is not None and (runs or since >= context):
+                out.append(cur)
+                cur = None
+            continue
+        if cur is None:
+            cur = []
+        since = 0
+        cur.append(step)
+    if cur is not None:
+        out.append(cur)
+    return out
+
+
+def _carry(walk, **kw):
+    """Where each line of the before side lands: kept lines where the script
+    keeps them, dropped lines on whatever their own change put in their
+    place."""
+    out = dict((i, j) for kind, i, j in walk if kind == "K")
+    back = kw.pop("back", False)
+    for change in _changes(walk, **kw):
+        gone = [i for kind, i, j in change if kind == "D"]
+        came = [j for kind, i, j in change if kind == "A"]
+        if back:
+            gone = gone[::-1]
+        for i, j in zip(gone, came):
+            out[i] = j
+    return out
+
+
+def _walk(before, after):
+    return pin.reading(before, after, pin.script(before, after))
+
+
 def _pinned(before, after):
-    return dict((i, j) for kind, i, j in
-                pin.reading(before, after, pin.script(before, after)) if kind == "K")
+    return _carry(_walk(before, after))
+
+
+def _no_pairing(before, after):
+    return dict((i, j) for kind, i, j in _walk(before, after) if kind == "K")
+
+
+def _one_run(before, after):
+    return _carry(_walk(before, after), runs=True)
+
+
+def _near_context(before, after):
+    return _carry(_walk(before, after), context=pin.CONTEXT + 1)
+
+
+def _reverse_pairs(before, after):
+    return _carry(_walk(before, after), back=True)
 
 
 def _textbook(before, after):
+    """The mapping an ordinary longest-common-subsequence walk gives, carried
+    the same way afterwards, so what this measures is the script and not the
+    carrying."""
     n, m = len(before), len(after)
     best = [[0] * (m + 1) for _ in range(n + 1)]
     for i in range(n - 1, -1, -1):
@@ -33,32 +94,43 @@ def _textbook(before, after):
                 best[i][j] = best[i + 1][j + 1] + 1
             else:
                 best[i][j] = max(best[i + 1][j], best[i][j + 1])
-    out = {}
+    walk = []
     i = j = 0
-    while i < n and j < m:
-        if before[i] == after[j] and best[i][j] == best[i + 1][j + 1] + 1:
-            out[i] = j
+    while i < n or j < m:
+        if i < n and j < m and before[i] == after[j] \
+                and best[i][j] == best[i + 1][j + 1] + 1:
+            walk.append(("K", i, j))
             i += 1
             j += 1
-        elif best[i + 1][j] >= best[i][j + 1]:
+        elif i < n and (j >= m or best[i + 1][j] >= best[i][j + 1]):
+            walk.append(("D", i, None))
             i += 1
         else:
+            walk.append(("A", None, j))
             j += 1
-    return out
+    return _carry(walk)
 
 
 def _difflib(before, after):
-    import difflib
-    out = {}
+    """The same, off the standard library's matcher."""
+    walk = []
+    i = j = 0
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
             None, before, after, autojunk=False).get_opcodes():
         if tag == "equal":
-            for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
-    return out
+            for step in range(i2 - i1):
+                walk.append(("K", i1 + step, j1 + step))
+            continue
+        for x in range(i1, i2):
+            walk.append(("D", x, None))
+        for y in range(j1, j2):
+            walk.append(("A", None, y))
+    return _carry(walk)
 
 
-MAPS = {"textbook": _textbook, "difflib": _difflib}
+MAPS = {"textbook": _textbook, "difflib": _difflib,
+        "no-pairing": _no_pairing, "pair-in-one-run": _one_run,
+        "near-context": _near_context, "reverse-pairs": _reverse_pairs}
 
 
 def run(revs, opens, mode="ref"):
@@ -136,7 +208,22 @@ def run(revs, opens, mode="ref"):
 
 
 MODES = ["origin-to-head", "textbook", "difflib", "raise-added-only",
-         "absorb-newer", "no-absorb", "retire-silent"]
+         "absorb-newer", "no-absorb", "retire-silent",
+         "no-pairing", "pair-in-one-run", "near-context", "reverse-pairs"]
+
+
+def _enumerated(mode):
+    """Does a hand-written stream separate this reading on its own?
+
+    A reading that moves few generated streams is not automatically a lottery
+    ticket. It is one only when nothing in the enumerated set names it, so
+    that its failure surfaces as "some of three hundred streams are wrong"
+    rather than as a stream whose name says which rule was misread.
+    """
+    for item in scen.FIXED:
+        if run(item["revs"], item["opens"], mode) != run(item["revs"], item["opens"], "ref"):
+            return item["name"]
+    return None
 
 
 def main():
@@ -148,20 +235,22 @@ def main():
         for mode in MODES:
             if run(item["revs"], item["opens"], mode) != base:
                 hits[mode] += 1
-    print("streams %d" % len(streams))
-    weak = []
+    print("streams %d generated, %d written by hand" % (len(streams), len(scen.FIXED)))
+    loose = []
     for mode in MODES:
         share = 100.0 * hits[mode] / len(streams)
-        print("   %-18s moves %5d  (%.1f%%)" % (mode, hits[mode], share))
-        if share < 10.0:
-            weak.append(mode)
-    if weak:
-        print("FAIL a reading under a tenth of the set is a lottery ticket: %s"
-              % ", ".join(weak))
+        named = _enumerated(mode)
+        print("   %-18s moves %5d  (%4.1f%%)   %s"
+              % (mode, hits[mode], share, named or "NOT NAMED BY ANY CASE"))
+        if named is None and share < 10.0:
+            loose.append(mode)
+    if loose:
+        print("FAIL a reading that moves under a tenth of the set and that no "
+              "enumerated case names is a lottery ticket: %s" % ", ".join(loose))
         return 1
-    print("every wrong reading moves at least a tenth of the graded streams")
+    print("every wrong reading is either common on the graded set or named by a case")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

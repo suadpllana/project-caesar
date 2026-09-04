@@ -1,5 +1,5 @@
 #!/bin/bash
-# Let the note that arrived last keep the line. The rule gives it to the older one.
+# Carry only the lines the script kept and retire every line it dropped. That is the mapping the walk hands over, and it is the answer to a narrower question: a line a change replaced is not gone, it is standing where the change put it.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -63,7 +63,7 @@ class Board(object):
         seen = {}
         held = []
         taken = []
-        for note in sorted(live, key=lambda n: -n["id"]):
+        for note in sorted(live, key=lambda n: n["id"]):
             owner = seen.get(note["line"])
             if owner is None:
                 seen[note["line"]] = note["id"]
@@ -71,7 +71,7 @@ class Board(object):
             else:
                 taken.append((note["id"], owner))
         for nid, owner in sorted(taken):
-            log.append(("absorb", nid, owner))
+            log.append(("absorb", owner, nid))
         live[:] = held
 ENDBOARD
 cat > "${APP_DIR}/note/rule.py" <<'ENDRULE'
@@ -134,11 +134,6 @@ def kept(before, after):
     out = {}
     for kind, i, j in walk:
         if kind == "K":
-            out[i] = j
-    for change in _changes(walk):
-        gone = [i for kind, i, j in change if kind == "D"]
-        came = [j for kind, i, j in change if kind == "A"]
-        for i, j in zip(gone, came):
             out[i] = j
     return out
 

@@ -28,35 +28,59 @@ corpus of mostly-distinct lines would make almost every stream trivial. The
 mechanism it exercises is real; the distribution is chosen to reach it.
 
 The tree ships the engine that pins a change script, so nobody writes a diff
-and there is no pure function to reimplement. The weight is in one property of
-that engine nobody states: the pinned script does not compose. The script from
-r0 to r2 is not the script from r0 to r1 followed by the script from r1 to r2,
-because the tie-break that picks one shortest script out of the many a
-repetitive file admits is settled against the pair in front of it and nothing
-else.
+and there is no pure function to reimplement. Two properties of that engine
+carry the weight and neither is stated anywhere.
 
-Both editable files ship wrong, and the three decisions behind them are
-independent. `note/board.py` rebuilds each note by asking for the script from
-the revision the note was opened at straight to the head. It is stateless in
-exactly the way the brief demands, it is one call per note instead of one per
-revision, and it looks like the careful answer. It moves 78 per cent of graded
-streams, and its failure looks like success: a note whose line was deleted two
+The first is that the pinned script does not compose. The script from r0 to r2
+is not the script from r0 to r1 followed by the script from r1 to r2, because
+the tie-break that picks one shortest script out of the many a repetitive file
+admits is settled against the pair in front of it and nothing else.
+
+The second is what the engine calls one change. Runs of moves standing fewer
+than three kept lines apart are one change and swallow the kept lines between
+them, which is the grouping `scr/grp.py` uses and which its only public
+function throws away: `spans` reports the lines a change came to rest on and
+drops the moves that say where each of them came from. A board that has to
+know which line replaced which cannot use it and has to take the grouping off
+the walk again, off-by-one and all.
+
+Both editable files ship wrong and the decisions behind them are independent.
+`note/board.py` rebuilds each note by asking for the script from the revision
+the note was opened at straight to the head. It is stateless in exactly the
+way the brief demands, it is one call per note instead of one per revision,
+and it looks like the careful answer. It moves 81 per cent of graded streams,
+and its failure looks like success: a note whose line was deleted two
 revisions ago and whose text was later typed again comes back to life on the
 new line. That is `/app/streams/guard.txt`, observed.
 
-`note/rule.py` is wrong twice. It rebuilds the surviving-line mapping from its
-own longest-common-subsequence walk, which is the same length as the tool's
-script and disagrees with it about which copy of a repeated line survived
-(74 per cent of streams; the standard library's matcher is 71 per cent). And
-it treats a change as the lines the script added, where a change reaches
-across the kept lines between its runs, so a line can come through a revision
-untouched and still be inside the change a reviewer has to read (61 per cent).
+`note/rule.py` is wrong three times. It rebuilds the surviving-line mapping
+from its own longest-common-subsequence walk, which is the same length as the
+tool's script and disagrees with it about which copy of a repeated line
+survived (76 per cent of streams; the standard library's matcher is 74 per
+cent). It treats a change as the lines the script added, where a change
+reaches across the kept lines between its runs, so a line can come through a
+revision untouched and still be inside the change a reviewer has to read
+(75 per cent). And it retires every line the script dropped, where a line the
+change replaced is not gone at all but standing where the change put it
+(50 per cent).
 
-None of the three is visible from a stream a person writes out by hand to
-check themselves, because each needs a line to repeat and a revision to sit
-between two others. The brief says both things happen and says nothing about
-what they cost. A solver who fixes the board and leaves the mapping alone gets
-every count right and the wrong lines.
+That last one is where the task turns, because it invalidates the natural
+implementation of the first. Reading the mapping off the walk's kept steps is
+the obvious answer and it is the answer to a narrower question. Pairing a
+change's drops with its adds means deciding what one change is, and the two
+readings a solver reaches for first - cut at every kept line, or close a
+change one kept line later than the tool does - are wrong on 39 per cent and
+on a small but enumerated share of streams. Nothing in the tree answers that
+question; `grp.spans` looks as though it does and reports a different shape.
+
+The shipped tree already matches the rule on 40 of 319 streams, so the chain
+is four decisions rather than the three a reading of the two files suggests.
+None of them is visible from a stream a person writes out by hand to check
+themselves, because each needs a line to repeat, a revision to sit between two
+others, or a drop and an add to stand a particular distance apart. The brief
+says all three situations happen and says nothing about what any of them
+costs. A solver who fixes the board and leaves the mapping alone gets every
+count right and the wrong lines.
 """
 
 solution_explanation = """
@@ -118,7 +142,7 @@ tags = [
     "differential-testing",
 ]
 
-expert_time_estimate_hours = 7
+expert_time_estimate_hours = 8
 
 relevant_experience = """
 Comfort with edit scripts and longest common subsequences, and specifically

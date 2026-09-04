@@ -86,20 +86,54 @@ PRECOMPUTED = BOARD.replace(
             carried = rule.kept(before, after)''', 1)
 
 MAPPING_FROM_OPS = RULE.replace(
-    '''def kept(before, after):
+    '''
     out = {}
-    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+    for kind, i, j in walk:
         if kind == "K":
             out[i] = j
+    for change in _changes(walk):
+        gone = [i for kind, i, j in change if kind == "D"]
+        came = [j for kind, i, j in change if kind == "A"]
+        for i, j in zip(gone, came):
+            out[i] = j
     return out''',
-    '''def kept(before, after):
-    walk = pin.reading(before, after, pin.script(before, after))
-    return dict((entry[1], entry[2]) for entry in walk if entry[0] == "K")''', 1)
+    '''
+    out = dict((e[1], e[2]) for e in walk if e[0] == "K")
+    for change in _changes(walk):
+        pairs = zip([e[1] for e in change if e[0] == "D"],
+                    [e[2] for e in change if e[0] == "A"])
+        out.update(pairs)
+    return out''', 1)
+
+GROUPS_BY_GAPS = RULE.replace(
+    RULE[RULE.index("    out = []\n    cur = None\n    since = CONTEXT"):
+         RULE.index("def kept(before, after):")],
+    '''
+    spots = [k for k, step in enumerate(walk) if step[0] != "K"]
+    inside = set(spots)
+    for one, two in zip(spots, spots[1:]):
+        if two - one - 1 < CONTEXT:
+            inside.update(range(one + 1, two))
+    out = []
+    cur = []
+    for k, step in enumerate(walk):
+        if k in inside:
+            if step[0] != "K":
+                cur.append(step)
+        elif cur:
+            out.append(cur)
+            cur = []
+    if cur:
+        out.append(cur)
+    return out
+
+''', 1)
 
 OVERRIDES = {
     "ok-buckets-then-order": {"board.py": PER_NOTE},
     "ok-precomputed-pairs": {"board.py": PRECOMPUTED},
     "ok-mapping-from-ops": {"rule.py": MAPPING_FROM_OPS},
+    "ok-changes-by-gaps": {"rule.py": GROUPS_BY_GAPS},
 }
 
 

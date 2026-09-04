@@ -1,5 +1,5 @@
 #!/bin/bash
-# Let the note that arrived last keep the line. The rule gives it to the older one.
+# Close a change one kept line later than the tool does. Off by one on the only constant that decides whether two runs of moves are one change or two, so a drop pairs with an add the tool leaves unpaired.
 set -euo pipefail
 APP_DIR="${APP_DIR:-/app}"
 cat > "${APP_DIR}/note/board.py" <<'ENDBOARD'
@@ -63,7 +63,7 @@ class Board(object):
         seen = {}
         held = []
         taken = []
-        for note in sorted(live, key=lambda n: -n["id"]):
+        for note in sorted(live, key=lambda n: n["id"]):
             owner = seen.get(note["line"])
             if owner is None:
                 seen[note["line"]] = note["id"]
@@ -71,7 +71,7 @@ class Board(object):
             else:
                 taken.append((note["id"], owner))
         for nid, owner in sorted(taken):
-            log.append(("absorb", nid, owner))
+            log.append(("absorb", owner, nid))
         live[:] = held
 ENDBOARD
 cat > "${APP_DIR}/note/rule.py" <<'ENDRULE'
@@ -116,7 +116,7 @@ def _changes(walk):
     for step in walk:
         if step[0] == "K":
             since += 1
-            if cur is not None and since >= CONTEXT:
+            if cur is not None and since > CONTEXT:
                 out.append(cur)
                 cur = None
             continue

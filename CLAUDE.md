@@ -118,7 +118,7 @@ none has ever been checked for.
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
-| `note-carry-forward` | Software / Algorithms | 14 | 6 | 14400 s | 7 h |
+| `note-carry-forward` | Software / Algorithms | 18 | 6 | 14400 s | 8 h |
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and failed the quality review on `category and tags`.**
@@ -609,6 +609,11 @@ cleared the AI screen, `preflight` no errors.
 **Gates NOT run: the three-agent easiness probe.** It is the only local gate that measures what
 the easiness gate rejects for, and it is the first thing to run on this bundle.
 
+**It was submitted without that probe and came back 3 of 3 on 2026-09-04.** The repair is
+"`leakcheck` matches phrases, so it is quiet on a brief that leaks a rule" below. The gate
+numbers above are the pre-repair ones; the current bundle is 20/20 on the trial with 18
+cheats and 4 variants, and the probe is still the gate nobody has run on it.
+
 ### A variant is stale the moment the rule changes, and nothing says so
 
 Found by running the old task's suite today: `earliest-change-script`'s only variant,
@@ -619,6 +624,113 @@ submitted and probed carried the new rule and no `authoring/` directory at all**
 copy was never regenerated. The stale variant is deleted; that bundle has had no working
 alternative-correct-implementation check against its current rule, which is the gate the run
 audit applies, and it would need one rebuilt before it ever went back.
+
+## `leakcheck` matches phrases, so it is quiet on a brief that leaks a rule (2026-09-04)
+
+`note-carry-forward` came back **3 of 3** from the easiness probe on the day it was
+built, at runtimes of **1m16s, 1m17s and 1m14s against a 14400 s budget** - half a per
+cent of the budget, and the fastest solve recorded in this file. All three trajectories
+are in `probes/note-carry-forward/` with the attribution in `notes.md` and the
+reconstructed submission in `solve/`. It was repaired the same day and the repair is
+written up below; read this half first, because the diagnosis nearly went wrong.
+
+**`leakcheck.py` reported "nothing above the floor" on all three trajectories, and the
+brief was still the source of the plan.** That is standing-policy item 2 - a local gate
+lying - and it is worth stating as a rule, because this file has been treating a quiet
+`leakcheck` as evidence that rules out mode A:
+
+> `leakcheck` finds distinctive **phrases** the trajectory and the instruction share. A
+> brief that leaks a **rule** rather than a phrase goes undetected, because a competent
+> agent restates the rule in the vocabulary of the tree rather than quoting the brief.
+
+All three agents wrote "longest common subsequence", "hunks", "the pinned change
+script". None of those words is in the brief. What the brief had was the reasoning:
+walking the six graded decisions against the sentence that decides each one put three
+of them in the brief outright, and those three were the three the difficulty argument
+rested on.
+
+| graded decision | the sentence | what it gave away |
+|---|---|---|
+| carry one revision at a time rather than diffing the note's revision against the head | "a line survives a revision when the change script **for that revision** keeps it" | the non-composition discovery, in five words |
+| use the tool's script rather than your own diff | "for almost any pair of revisions of one of them **more than one change script of the same length exists**" beside "`pin.py` settles **the one change script we use**" | that your own walk is a *different* script, and that pin's is authoritative |
+| raise on membership of a change | "`grp.py` **reads the changes out of a script**" beside "part of the change a revision made" | the function to call |
+
+**So the diagnostic to run after `leakcheck` goes quiet is the coverage walk, not the
+next mode.** Take each graded decision and ask which sentence decides it, then ask
+whether that sentence also says *how*. A sentence that states the requirement is fair;
+a sentence that states the requirement and the method is a mode-A leak that no
+phrase-matcher will find. `leakcheck` going quiet rules out the *wording*, and nothing
+else.
+
+### The environment leaked too, and `deadfieldcheck` cannot see it
+
+`note/rule.py` shipped `from scr import pin` at the top of a file that never used
+`pin`. A dead import naming the answer, in the one file the solver is told to fix.
+Trial 1 wrote it back: "`note/rule.py` used its own LCS instead of the settled change
+script from `scr/pin.py`".
+
+`tools/deadfieldcheck.py` reports this bundle clean, because it looks for attributes
+that are written and never read and says nothing about imports. `preflight` does not
+check imports either. **Grep every editable file for an import nothing in it uses**,
+and treat one as the same class of false affordance as a dead field: worse, in fact,
+because a dead field looks like a clue and a dead import looks like an instruction.
+
+### What was measured, and the repair
+
+Playbook step 2 first: the submission was rebuilt from the trajectories' own prose and
+graded through the real verifier. **Reward 1** - the solve was real, not a probe
+artifact - and the same file scores **0** against the repaired bundle, which is the
+regression test the playbook asks for.
+
+The leak repair alone was not trusted, because at 75 seconds the plan was available on
+sight and the three leaked sentences are close to the whole task. So the repair is the
+`share-register-screen` shape: delete what leaked, then add a decision that
+**invalidates the natural implementation of the first answer**.
+
+The second discovery is that **a line the script dropped has usually not gone.** Inside
+one change the drops and the adds pair off in order, so a replaced line carries its
+note to its replacement and only an unpaired drop retires. Reading the mapping off the
+walk's kept steps - the answer all three agents wrote, correct under the old rule - is
+now wrong on **49.6 per cent** of graded streams. And pairing forces the solver to
+decide what one change is, which is a property of the frozen engine that no shipped
+function will hand over: `grp.spans` uses the grouping and reports the lines a change
+came to rest on, dropping the moves that say where each of them came from, so its
+output has the wrong shape for the mapping and the grouping has to be taken off the
+walk again. The two readings a solver reaches for first are wrong on **38.6 per cent**
+(cut at every kept line) and on a small but enumerated share (close a change one kept
+line late).
+
+**The lottery-ticket threshold needed a second clause, and this is the useful piece of
+tooling from the session.** `authoring/readings.py` used to fail any reading moving
+under a tenth of the generated set. The context off-by-one moves 3.4 per cent, because
+it needs a drop and an add exactly three kept lines apart, and it is still worth
+grading: `too-far-to-pair` separates it on its own, so its failure names the rule
+instead of surfacing as "17 of 500 streams are wrong". The check now fails a reading
+only when it is **both** rare on the generated set **and** unnamed by any enumerated
+case, and it prints the naming case per reading. All eleven readings on this bundle are
+named. That is the legibility property this file has been asking for since
+`guard-mark-unwind`, stated as a gate rather than as a paragraph.
+
+### Two smaller things
+
+- **A `preflight` unused-public-function warning can be right and still not worth
+  clearing.** `grp.spans` is genuinely uncalled in the shipped tree. It is left
+  standing, because it answers the easy half that the brief has to state anyway and it
+  cannot answer the half the task turns on - and because the obvious way to clear the
+  warning, having `run_review.py` print a change count per revision, would hand the
+  solver the merging law empirically. The reasoning is in the task's STATE.md so the
+  next session does not re-open it. Record the decision; do not obey or dismiss the
+  warning silently.
+- **The archive that was probed was not the bundle in this repo.** 62 entries against
+  65, differing in twelve shipped files, and the submitted one was both newer and
+  harder: its frozen signatures are `kept(before, after)` and
+  `raised(line, before, after)` where the repo tree's were `kept(walk)` and
+  `raised(line, spans)`, which handed `pin.reading` and `grp.spans` over in the
+  interface itself. `tests/gt.json` was byte-identical across the two, which is what
+  said the graded contract had never moved. This is the `lock-priority-unwind` finding
+  again and the rule is unchanged: **diff the tree against the archive that was
+  actually sent before editing either.** It cost twenty minutes here and it would have
+  cost a round trip.
 
 ## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
 
@@ -1943,6 +2055,7 @@ three-agent probe rather than to guess.
 | `earliest-change-script` | 3/3, 3/3, then **3/3 a third time** on the comment rule | none of the four: real exploration, three engines in three hours | **retired as a mechanism, 2026-09-04.** The speed axis is closed by measurement, not by argument - see "The ceiling, measured from the other end". Replaced by `note-carry-forward` |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |
+| `note-carry-forward` | **3/3** on 2026-09-04, runtimes 1m14s to 1m17s | A in substance, and `leakcheck` was quiet on it | repaired 2026-09-04 by deleting the leaked reasoning and adding a second discovery; the solving submission now scores 0. Trajectories at `probes/note-carry-forward/`. Not re-probed |
 | `reaction-network-reconstruction` | 3/3 locally | D | needs its data regenerated; recover it with `git checkout 098ac3b~1 -- tasks/reaction-network-reconstruction` |
 | `turn-seam-alignment` | 0/3 **with 0/8** | none of these | that is the other rejection. Recalibrated, never re-probed |
 
@@ -4120,6 +4233,11 @@ python3 tools/forgecheck.py <slug>              a cheat generated from the task'
                                                 grading a report instead of evidence
 python3 tools/leakcheck.py <slug> <traj.md>     after an easiness rejection: does the
                                                 solving agent quote the brief back at you?
+                                                It matches PHRASES, so it is quiet on a
+                                                brief that leaks a RULE - a quiet run
+                                                rules out the wording and nothing else.
+                                                Walk the graded decisions against the
+                                                sentence that decides each one as well
                                                 Names the sentences to delete. Needs the
                                                 trajectory, and the trajectory file must
                                                 hold the agent's own words only

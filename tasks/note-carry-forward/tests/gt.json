@@ -51,6 +51,24 @@
     ]
    ]
   },
+  "more-gone-than-came": {
+   "log": [
+    [
+     "retire",
+     1
+    ],
+    [
+     "raise",
+     0
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     1
+    ]
+   ]
+  },
   "no-notes": {
    "log": [],
    "notes": []
@@ -70,6 +88,28 @@
     [
      0,
      1
+    ]
+   ]
+  },
+  "pair-in-order": {
+   "log": [
+    [
+     "raise",
+     0
+    ],
+    [
+     "raise",
+     1
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     1
+    ],
+    [
+     1,
+     2
     ]
    ]
   },
@@ -96,25 +136,75 @@
     ]
    ]
   },
+  "replace-across-a-gap": {
+   "log": [
+    [
+     "raise",
+     0
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     3
+    ]
+   ]
+  },
+  "replace-carries-the-note": {
+   "log": [
+    [
+     "raise",
+     0
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     2
+    ]
+   ]
+  },
+  "replace-then-carry": {
+   "log": [
+    [
+     "raise",
+     0
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     2
+    ]
+   ]
+  },
   "retire-and-raise-in-one-revision": {
    "log": [
+    [
+     "raise",
+     0
+    ],
     [
      "retire",
      0
     ],
     [
-     "retire",
-     2
+     "raise",
+     1
     ],
     [
      "raise",
-     1
+     2
     ]
    ],
    "notes": [
     [
      1,
      1
+    ],
+    [
+     2,
+     2
     ]
    ]
   },
@@ -140,6 +230,15 @@
      0
     ]
    ]
+  },
+  "too-far-to-pair": {
+   "log": [
+    [
+     "retire",
+     0
+    ]
+   ],
+   "notes": []
   }
  }
 }

@@ -3,10 +3,13 @@
 Nothing survives between requests, so the board is reconstructed by walking
 the store from the first revision up to the head. The walk is the whole point.
 The pinned script does not compose: the script from r0 to r2 is not the script
-from r0 to r1 followed by the one from r1 to r2, and on two thirds of the
-streams we grade the two disagree about which lines survived. A board that
+from r0 to r1 followed by the one from r1 to r2, and on four fifths of the
+streams we grade the two disagree about where the notes end up. A board that
 diffs a note's own revision straight against the head is cheaper, is stateless
 in the way the store asks for, and answers a different question.
+
+Where a line goes is `rule.kept`'s problem and the harder half of the task
+lives there, because a line the script dropped has usually not gone.
 
 Order inside one revision is fixed and is stated in the brief, because two
 correct boards would otherwise disagree about the log for no reason anybody

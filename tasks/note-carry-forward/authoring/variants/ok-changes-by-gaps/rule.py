@@ -33,32 +33,36 @@ def _changes(walk):
     lines have gone by, so anything nearer joins it. The kept lines a change
     swallows are dropped here because a kept line pairs with nothing.
     """
+
+    spots = [k for k, step in enumerate(walk) if step[0] != "K"]
+    inside = set(spots)
+    for one, two in zip(spots, spots[1:]):
+        if two - one - 1 < CONTEXT:
+            inside.update(range(one + 1, two))
     out = []
-    cur = None
-    since = CONTEXT
-    for step in walk:
-        if step[0] == "K":
-            since += 1
-            if cur is not None and since >= CONTEXT:
-                out.append(cur)
-                cur = None
-            continue
-        if cur is None:
+    cur = []
+    for k, step in enumerate(walk):
+        if k in inside:
+            if step[0] != "K":
+                cur.append(step)
+        elif cur:
+            out.append(cur)
             cur = []
-        since = 0
-        cur.append(step)
-    if cur is not None:
+    if cur:
         out.append(cur)
     return out
 
-
 def kept(before, after):
     walk = pin.reading(before, after, pin.script(before, after))
-    out = dict((e[1], e[2]) for e in walk if e[0] == "K")
+    out = {}
+    for kind, i, j in walk:
+        if kind == "K":
+            out[i] = j
     for change in _changes(walk):
-        pairs = zip([e[1] for e in change if e[0] == "D"],
-                    [e[2] for e in change if e[0] == "A"])
-        out.update(pairs)
+        gone = [i for kind, i, j in change if kind == "D"]
+        came = [j for kind, i, j in change if kind == "A"]
+        for i, j in zip(gone, came):
+            out[i] = j
     return out
 
 

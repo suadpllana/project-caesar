@@ -64,6 +64,34 @@ FIXED = [
               ["ln3", "ln5", "ln5", "ln4", "ln0"],
               ["ln3", "ln5", "ln0"]],
      "opens": [[0, 0, 7]]},
+    # a line the change replaced carries its note to the replacement
+    {"name": "replace-carries-the-note",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "b", "X", "d", "e"]],
+     "opens": [[0, 0, 2]]},
+    # the drop and the add stand two kept lines apart, which is one change,
+    # so they pair
+    {"name": "replace-across-a-gap",
+     "revs": [["p", "q", "r", "s", "t", "u", "v"],
+              ["p", "r", "s", "Z", "t", "u", "v"]],
+     "opens": [[0, 0, 1]]},
+    # three kept lines apart is two changes, so the drop has no partner
+    {"name": "too-far-to-pair",
+     "revs": [["p", "q", "r", "s", "t", "u", "v", "w"],
+              ["p", "r", "s", "t", "Z", "u", "v", "w"]],
+     "opens": [[0, 0, 1]]},
+    # two gone and one come: the first pairs, the second is really gone
+    {"name": "more-gone-than-came",
+     "revs": [["a", "b", "c", "d", "e", "f"], ["a", "X", "d", "e", "f"]],
+     "opens": [[0, 0, 1], [0, 1, 2]]},
+    # two gone and two come, which pins which of them pairs with which
+    {"name": "pair-in-order",
+     "revs": [["a", "b", "c", "d", "e", "f"], ["a", "X", "Y", "d", "e", "f"]],
+     "opens": [[0, 0, 1], [0, 1, 2]]},
+    # a replaced line is carried again by the revision after it
+    {"name": "replace-then-carry",
+     "revs": [["a", "b", "c", "d", "e"], ["a", "b", "X", "d", "e"],
+              ["a", "b", "X", "d", "e", "f"]],
+     "opens": [[0, 0, 2]]},
     # one revision that retires two notes and raises a third, which pins the
     # order the three kinds of event come out in
     {"name": "retire-and-raise-in-one-revision",

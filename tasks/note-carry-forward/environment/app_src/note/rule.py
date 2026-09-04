@@ -1,6 +1,3 @@
-from scr import pin
-
-
 def kept(before, after):
     n, m = len(before), len(after)
     best = [[0] * (m + 1) for _ in range(n + 1)]

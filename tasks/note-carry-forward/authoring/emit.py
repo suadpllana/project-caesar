@@ -17,15 +17,22 @@ TASK = pathlib.Path(__file__).resolve().parent.parent
 BOARD = (TASK / "solution" / "board.py").read_text()
 RULE = (TASK / "solution" / "rule.py").read_text()
 
-KEPT_BODY = '''def kept(before, after):
+KEPT_BODY = """def kept(before, after):
+    walk = pin.reading(before, after, pin.script(before, after))
     out = {}
-    for kind, i, j in pin.reading(before, after, pin.script(before, after)):
+    for kind, i, j in walk:
         if kind == "K":
             out[i] = j
-    return out'''
+    for change in _changes(walk):
+        gone = [i for kind, i, j in change if kind == "D"]
+        came = [j for kind, i, j in change if kind == "A"]
+        for i, j in zip(gone, came):
+            out[i] = j
+    return out"""
 
-TEXTBOOK_KEPT = '''def kept(before, after):
-    n, m = len(before), len(after)
+PIN_WALK = "    walk = pin.reading(before, after, pin.script(before, after))"
+
+TEXTBOOK_WALK = """    n, m = len(before), len(after)
     best = [[0] * (m + 1) for _ in range(n + 1)]
     for i in range(n - 1, -1, -1):
         for j in range(m - 1, -1, -1):
@@ -33,28 +40,49 @@ TEXTBOOK_KEPT = '''def kept(before, after):
                 best[i][j] = best[i + 1][j + 1] + 1
             else:
                 best[i][j] = max(best[i + 1][j], best[i][j + 1])
-    out = {}
+    walk = []
     i = j = 0
-    while i < n and j < m:
-        if before[i] == after[j] and best[i][j] == best[i + 1][j + 1] + 1:
-            out[i] = j
+    while i < n or j < m:
+        if i < n and j < m and before[i] == after[j] \\
+                and best[i][j] == best[i + 1][j + 1] + 1:
+            walk.append(("K", i, j))
             i += 1
             j += 1
-        elif best[i + 1][j] >= best[i][j + 1]:
+        elif i < n and (j >= m or best[i + 1][j] >= best[i][j + 1]):
+            walk.append(("D", i, None))
             i += 1
         else:
-            j += 1
-    return out'''
+            walk.append(("A", None, j))
+            j += 1"""
 
-DIFFLIB_KEPT = '''def kept(before, after):
-    import difflib
-    out = {}
-    match = difflib.SequenceMatcher(None, before, after, autojunk=False)
-    for tag, i1, i2, j1, j2 in match.get_opcodes():
+DIFFLIB_WALK = """    import difflib
+    walk = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+            None, before, after, autojunk=False).get_opcodes():
         if tag == "equal":
             for d in range(i2 - i1):
-                out[i1 + d] = j1 + d
-    return out'''
+                walk.append(("K", i1 + d, j1 + d))
+            continue
+        for x in range(i1, i2):
+            walk.append(("D", x, None))
+        for y in range(j1, j2):
+            walk.append(("A", None, y))"""
+
+PAIR_LOOP = """    for change in _changes(walk):
+        gone = [i for kind, i, j in change if kind == "D"]
+        came = [j for kind, i, j in change if kind == "A"]
+        for i, j in zip(gone, came):
+            out[i] = j
+"""
+
+NO_PAIRING = "    return out\n\n\ndef raised"
+
+PAIR_IN_ORDER = "        for i, j in zip(gone, came):"
+PAIR_REVERSED = "        for i, j in zip(gone[::-1], came):"
+
+CLOSE_AT_CONTEXT = "            if cur is not None and since >= CONTEXT:"
+CLOSE_LATE = "            if cur is not None and since > CONTEXT:"
+CLOSE_AT_EVERY_KEEP = "            if cur is not None:"
 
 RAISED_BODY = '''def raised(line, before, after):
     for chunk in grp.spans(before, after):
@@ -110,17 +138,39 @@ SWAPS = [
      "subsequence walk instead of reading it off the script the tool settled. "
      "Same number of moves every time; a different copy of a repeated line "
      "survives.",
-     KEPT_BODY, TEXTBOOK_KEPT),
+     PIN_WALK, TEXTBOOK_WALK),
     ("difflib-opcodes", "rule",
      "Take the mapping from the standard library's sequence matcher, which "
      "returns equal blocks directly. It is not obliged to produce a shortest "
      "script and does not settle ties the way the tool does.",
-     KEPT_BODY, DIFFLIB_KEPT),
+     PIN_WALK, DIFFLIB_WALK),
     ("raise-added-lines-only", "rule",
      "Treat a change as the lines the script added. A change reaches across the "
      "kept lines between its runs, so a line can survive a revision untouched "
      "and still be inside it.",
      RAISED_BODY, RAISED_ADDED),
+    ("no-pairing", "rule",
+     "Carry only the lines the script kept and retire every line it dropped. "
+     "That is the mapping the walk hands over, and it is the answer to a "
+     "narrower question: a line a change replaced is not gone, it is standing "
+     "where the change put it.",
+     PAIR_LOOP, ""),
+    ("pair-inside-one-run", "rule",
+     "Pair a change's drops with its adds run by run, cutting at every kept "
+     "line. A change is not a run of consecutive moves; runs standing near "
+     "each other are one change, so a drop pairs with an add on the far side "
+     "of the kept lines between them.",
+     CLOSE_AT_CONTEXT, CLOSE_AT_EVERY_KEEP),
+    ("close-a-change-one-line-late", "rule",
+     "Close a change one kept line later than the tool does. Off by one on the "
+     "only constant that decides whether two runs of moves are one change or "
+     "two, so a drop pairs with an add the tool leaves unpaired.",
+     CLOSE_AT_CONTEXT, CLOSE_LATE),
+    ("pair-from-the-far-end", "rule",
+     "Match the last line a change took away with the first line it put there. "
+     "Every note stays alive and the same number of them retires; the "
+     "survivors land on each other's lines.",
+     PAIR_IN_ORDER, PAIR_REVERSED),
     ("absorb-newer-wins", "board",
      "Let the note that arrived last keep the line. The rule gives it to the "
      "older one.",

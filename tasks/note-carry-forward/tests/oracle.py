@@ -108,8 +108,51 @@ def _walk(before, after):
     return out
 
 
+def _runs(walk):
+    """The moves of the script cut into changes, reached from the other end.
+
+    The environment's grouping sweeps forward and closes a change once
+    CONTEXT kept lines have gone by. This one marks every kept line that
+    stands within CONTEXT of a move on both sides as swallowed, and then cuts
+    the walk wherever an unswallowed kept line sits, which is the same
+    partition written the opposite way round.
+    """
+    spots = [k for k, step in enumerate(walk) if step[0] != "K"]
+    if not spots:
+        return []
+    inside = set(spots)
+    for a, b in zip(spots, spots[1:]):
+        if b - a - 1 < CONTEXT:
+            inside.update(range(a + 1, b))
+    out = []
+    cur = []
+    for k, step in enumerate(walk):
+        if k in inside:
+            cur.append(step)
+        elif cur:
+            out.append(cur)
+            cur = []
+    if cur:
+        out.append(cur)
+    return out
+
+
 def keeps(before, after):
-    return dict((i, j) for kind, i, j in _walk(before, after) if kind == "K")
+    """Where the revision leaves each line of `before`.
+
+    A kept line lands where the script keeps it. A line the script dropped
+    lands on the line its own change put in its place, counting the drops and
+    the adds of that change off separately and matching them up in order; a
+    drop with no add left to match is the end of that line.
+    """
+    walk = _walk(before, after)
+    out = dict((i, j) for kind, i, j in walk if kind == "K")
+    for run in _runs(walk):
+        gone = [i for kind, i, j in run if kind == "D"]
+        came = [j for kind, i, j in run if kind == "A"]
+        for i, j in zip(gone, came):
+            out[i] = j
+    return out
 
 
 def changes(before, after):

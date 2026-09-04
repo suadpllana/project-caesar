@@ -13,69 +13,71 @@ author_name = "Suad Pllana"
 author_email = "suadpllana12@gmail.com"
 
 difficulty_explanation = """
-The board has to be rebuilt from the revision store on every request, and the
-tree ships the engine that pins a change script rather than asking anyone to
-write one. So the algorithmic weight is not in computing a diff. It is in one
-property of that engine nobody states and everybody assumes away.
+Who does this for a living: an engineer on a code review tool, keeping comment
+anchoring correct as revisions land on a branch. It is the part of a review
+product that quietly breaks and that nobody notices until a reviewer is asked
+about a line they never wrote about.
 
-The pinned script does not compose. The script from r0 to r2 is not the script
-from r0 to r1 followed by the script from r1 to r2, because the tie-break that
-picks one shortest script out of the many a repetitive file admits is settled
-against the pair in front of it and nothing else. Measured on the streams this
-task grades, the two disagree about which lines survived on 66 per cent of
-them, and about which notes are still live on 43 per cent.
+The graded streams are synthetic. Each revision is a list of short opaque
+tokens rather than real source, generated from a seed with a small pool so
+lines repeat heavily, and the hand-written ones use a few lines of Python-like
+text only where the brief quotes them. That is not a fair sample of production
+files, and it is deliberate: repetition is the condition under which the
+question this task asks has more than one defensible answer, and a realistic
+corpus of mostly-distinct lines would make almost every stream trivial. The
+mechanism it exercises is real; the distribution is chosen to reach it.
 
-That matters because the cheapest correct-looking board is the stateless one.
-Nothing is kept between requests, each note remembers the revision it was
-opened at, so ask the engine for the script from that revision straight to the
-head and read the answer off. It is shorter code, it is one engine call per
-note instead of one per revision, and it is what the shipped tree does. It is
-also wrong, and wrong in a direction that looks like success: a note whose
-line was deleted two revisions ago and whose text was later typed again comes
-back to life and attaches itself to the new line. The shipped tree does
-exactly that on /app/streams/guard.txt, which is the one thing in the tree
-that says anything is broken.
+The tree ships the engine that pins a change script, so nobody writes a diff
+and there is no pure function to reimplement. The weight is in one property of
+that engine nobody states: the pinned script does not compose. The script from
+r0 to r2 is not the script from r0 to r1 followed by the script from r1 to r2,
+because the tie-break that picks one shortest script out of the many a
+repetitive file admits is settled against the pair in front of it and nothing
+else.
 
-A solver who replays the store revision by revision has the first discovery.
-The second is that carrying a note is not a question about text at all. Two
-scripts of the same length disagree about which copy of a repeated line
-survived, so a board that rebuilds the mapping from an ordinary longest-common
--subsequence backtrace, or from the opcodes the standard library's matcher
-returns, moves the note to a different line while agreeing with the engine
-about every count. That reading moves 62 and 59 per cent of streams
-respectively. The mapping has to come off the reading the pinned engine itself
-produced.
+Both editable files ship wrong, and the three decisions behind them are
+independent. `note/board.py` rebuilds each note by asking for the script from
+the revision the note was opened at straight to the head. It is stateless in
+exactly the way the brief demands, it is one call per note instead of one per
+revision, and it looks like the careful answer. It moves 78 per cent of graded
+streams, and its failure looks like success: a note whose line was deleted two
+revisions ago and whose text was later typed again comes back to life on the
+new line. That is `/app/streams/guard.txt`, observed.
 
-The third is smaller and is the one an enumerated set has to pin rather than
-argue: a line the script kept can still be inside a change, because a change
-absorbs the kept lines that sit between its runs. A board that raises only the
-lines a script added is wrong on 52 per cent of streams while never moving a
-note to the wrong place.
+`note/rule.py` is wrong twice. It rebuilds the surviving-line mapping from its
+own longest-common-subsequence walk, which is the same length as the tool's
+script and disagrees with it about which copy of a repeated line survived
+(74 per cent of streams; the standard library's matcher is 71 per cent). And
+it treats a change as the lines the script added, where a change reaches
+across the kept lines between its runs, so a line can come through a revision
+untouched and still be inside the change a reviewer has to read (61 per cent).
 
-None of the three is visible from a stream a person writes out to check
-themselves, because all of them need a line to repeat and a revision to sit
+None of the three is visible from a stream a person writes out by hand to
+check themselves, because each needs a line to repeat and a revision to sit
 between two others. The brief says both things happen and says nothing about
-what they cost.
+what they cost. A solver who fixes the board and leaves the mapping alone gets
+every count right and the wrong lines.
 """
 
 solution_explanation = """
-Two files change.
+Two files change and neither is long.
 
-`note/rule.py` reads the mapping off the walk the pinned engine produced,
-rather than rebuilding it, and asks whether a kept line falls inside one of
-the changes of that same script rather than whether the script added it.
+`note/rule.py` takes both answers off the script the tool itself settled:
+the surviving-line mapping is read from that walk rather than rebuilt, and a
+line counts as inside a change when it falls in one of that script's spans
+rather than when the script added it.
 
-`note/board.py` replays the store. It walks from the first revision to the
-head, and at each step it computes the script once for the whole live set,
-carries every note through it, retires the notes whose line the script
-dropped, raises the notes that came to rest inside a change, admits the notes
-opened at that revision, and lets the older note absorb the newer where two
-came to rest on one line. Event order inside a revision is fixed by the brief
-so that two correct boards cannot disagree about the log.
+`note/board.py` walks the store. From the first revision to the head it
+settles one script per step, carries every live note through it, retires the
+notes whose line the script dropped, raises the notes that came to rest inside
+a change, admits the notes opened at that revision, and lets the older note
+absorb the newer where two came to rest on one line. Event order inside a
+revision is fixed by the brief so that two correct boards cannot disagree
+about the log.
 
-The reference is 60 lines across the two files. It is not clever and it is not
-fast in any interesting way; the whole of it is knowing that the replay cannot
-be skipped and that the mapping cannot be rebuilt.
+About sixty lines across the two files. It is not clever; the whole of it is
+knowing that the walk cannot be skipped and that the mapping cannot be
+rebuilt.
 """
 
 verification_explanation = """

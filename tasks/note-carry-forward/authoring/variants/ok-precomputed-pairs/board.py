@@ -1,20 +1,18 @@
 """The note board, rebuilt from the store.
 
-Nothing survives between requests, so the board is reconstructed by replaying
-the store from the first revision up to the head. The replay is the whole
-point. The pinned script does not compose: the script from r0 to r2 is not the
-script from r0 to r1 followed by the one from r1 to r2, and on two thirds of
-the streams we grade the two disagree about which lines survived. A board that
+Nothing survives between requests, so the board is reconstructed by walking
+the store from the first revision up to the head. The walk is the whole point.
+The pinned script does not compose: the script from r0 to r2 is not the script
+from r0 to r1 followed by the one from r1 to r2, and on two thirds of the
+streams we grade the two disagree about which lines survived. A board that
 diffs a note's own revision straight against the head is cheaper, is stateless
 in the way the store asks for, and answers a different question.
 
 Order inside one revision is fixed and is stated in the brief, because two
-correct implementations would otherwise disagree about the log: everything the
-carry retired, then everything it raised, then the absorbing, each in
-ascending note order.
+correct boards would otherwise disagree about the log for no reason anybody
+could grade.
 """
 
-from scr import grp, pin
 from note import rule
 
 
@@ -31,17 +29,15 @@ class Board(object):
         self._open(live, log, waiting.get(0, []))
         ready = []
         for step in range(1, self.store.count()):
-            before = self.store.at(step - 1)
-            after = self.store.at(step)
-            ready.append((rule.kept(pin.reading(before, after, pin.script(before, after))),
-                          grp.spans(before, after)))
+            ready.append((self.store.at(step - 1), self.store.at(step)))
         for step in range(1, self.store.count()):
-            keep, spans = ready[step - 1]
+            before, after = ready[step - 1]
+            carried = rule.kept(before, after)
             held = []
             lost = []
             for note in live:
-                if note["line"] in keep:
-                    note["line"] = keep[note["line"]]
+                if note["line"] in carried:
+                    note["line"] = carried[note["line"]]
                     held.append(note)
                 else:
                     lost.append(note["id"])
@@ -49,7 +45,7 @@ class Board(object):
                 log.append(("retire", nid))
             live[:] = held
             for note in sorted(live, key=lambda n: n["id"]):
-                if rule.raised(note["line"], spans):
+                if rule.raised(note["line"], before, after):
                     log.append(("raise", note["id"]))
             self._open(live, log, waiting.get(step, []))
         live.sort(key=lambda n: n["id"])

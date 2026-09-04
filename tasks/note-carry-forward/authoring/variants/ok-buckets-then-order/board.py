@@ -1,8 +1,7 @@
-"""Correct, arranged the other way round: each note is followed on its own
-from the revision it was opened at to the head, and the events are collected
-per revision and ordered at the end. Same rule, opposite shape."""
+"""Correct, arranged the other way round: the events are collected per
+revision into buckets and ordered at the end, rather than appended as the walk
+goes. Same rule, opposite shape."""
 
-from scr import grp, pin
 from note import rule
 
 
@@ -12,13 +11,6 @@ class Board(object):
 
     def build(self, opens):
         steps = self.store.count()
-        maps = []
-        spans = []
-        for t in range(1, steps):
-            before = self.store.at(t - 1)
-            after = self.store.at(t)
-            maps.append(rule.kept(pin.reading(before, after, pin.script(before, after))))
-            spans.append(grp.spans(before, after))
         born = {}
         for at, nid, line in opens:
             born.setdefault(at, []).append((nid, line))
@@ -28,16 +20,18 @@ class Board(object):
             where[nid] = line
         self._collide(where, 0, events)
         for t in range(1, steps):
-            table = maps[t - 1]
+            before = self.store.at(t - 1)
+            after = self.store.at(t)
+            carried = rule.kept(before, after)
             for nid in sorted(where):
-                if where[nid] in table:
-                    where[nid] = table[where[nid]]
+                if where[nid] in carried:
+                    where[nid] = carried[where[nid]]
                 else:
                     events[t]["retire"].append(nid)
             for nid in events[t]["retire"]:
                 del where[nid]
             for nid in sorted(where):
-                if rule.raised(where[nid], spans[t - 1]):
+                if rule.raised(where[nid], before, after):
                     events[t]["raise"].append(nid)
             for nid, line in sorted(born.get(t, [])):
                 where[nid] = line

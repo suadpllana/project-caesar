@@ -42,10 +42,16 @@ these sections, in this order, and end the turn:
 1. SEED AND WORK. The real bug class or incident it comes from, in two sentences, and who
    does this for a living. The graded data described honestly (synthetic token streams,
    integer ledgers, whatever it is) and whether that is a fair sample of the real thing.
-2. CATEGORY, SUBCATEGORY, TAGS. Pick the category from the vocabulary the ENVIRONMENT will
-   contain, never from the story the brief is set in (tools/catcheck.py). Subcategory must
-   be a label from that category's row in template/task-template/task.toml. Tags name
-   techniques, never the taxonomy. Reusing a subcategory is fine.
+2. CATEGORY, SUBCATEGORY, TAGS. The category is `Software` or `ML` and nothing else -
+   Science, Operations, Security, Hardware and Media are out of scope for this repo, so do
+   not propose a seed whose real work sits in one of them. Within that, pick whichever of
+   the two matches the vocabulary the ENVIRONMENT will contain, never the story the brief is
+   set in: a tree with no model, tokens or training in it is Software however the brief is
+   framed, and that misfit is what failed the quality review on 2026-09-04
+   (tools/catcheck.py measures it). Subcategory is a label from that category's row -
+   Software: Algorithms, Systems, Databases, Data engineering, Frontend, Languages; ML:
+   Training, Inference, Evaluation, Kernels. Tags name techniques, never the taxonomy.
+   Reusing a subcategory is fine.
 3. WHAT IS GRADED, AND WHY IT IS NEW HERE. Name the artifact (a trace, a schedule, a
    reconstructed state, a determination, a board, a delivery obligation). Then list every
    task in tasks/ and say in one clause each why it grades something different. Work

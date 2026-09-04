@@ -627,6 +627,62 @@ cleared the AI screen, `preflight` no errors.
 **Gates NOT run: the three-agent easiness probe.** It is the only local gate that measures what
 the easiness gate rejects for, and it is the first thing to run on this bundle.
 
+### The easiness rejection: an unused import is an arrow, and a stated spec is transcription (2026-09-04)
+
+`note-carry-forward` cleared the quality review and came back **3 of 3** from the easiness
+probe, at **75 seconds a trial** against a 14400 s budget. Three trajectories, in
+`probes/note-carry-forward/`. All three read the tree, wrote one `cat > note/rule.py` and one
+`cat > note/board.py`, both correct first time, and stopped. No intermediate wrong version in
+any of them. `leakcheck` is quiet on all three, so the wording was not the leak.
+
+**Cause one, and it is standing-policy item 2 for the second time in three days: the shipped
+`note/rule.py` carried `from scr import pin` and never used it, and `grp.spans` was called by
+nothing while the brief named both modules.** `preflight` warned about exactly that and the
+warning was dismissed as the documented false-positive class. It was not a false positive.
+The alias-settle-report entry already says these warnings are "partly right"; this is the
+second bundle where they were simply right. **An unused import in an editable file, next to a
+frozen module the brief names, is an instruction: wire me in.** All three agents wrote that
+sentence back in their own summaries. Grep every editable artifact for imports it does not
+use before shipping - it takes ten seconds and `preflight` already prints the list.
+
+**Cause two is the one that matters, and no leak patch reaches it.** Every defect was
+self-announcing against a brief that stated the rule completely, so the work was
+transcription: the quality reviewer had already said as much ("a competent undergraduate who
+reads the brief closely could finish this in an afternoon"), and the response - making *more*
+files wrong - made it **easier**, because each additional visible breakage is one more arrow.
+**More broken code is not more difficulty when the breakage is legible.** That is worth
+holding onto: the count of defects is not the difficulty, the depth of the least legible one
+is.
+
+The repair is a second discovery that is not a question about any single revision. A note is
+raised when its line **becomes** part of a change, not every revision it spends inside one, so
+the answer depends on where the note stood when the previous revision closed. Nothing in the
+frozen modules answers it, because it is not a question about a script; and a board that
+recomputes each note from its own revision to the head **has nowhere to keep it**, which is
+what turns the first discovery from "tidier" into "load-bearing". The two defects can no
+longer be fixed in either order independently.
+
+**Measured, and the measurement is the point: the same rule was worth 6.5% of streams under
+the old generator and 56.8% under the new one.** Short files edited hard (5-16 lines, 3-9
+edits a revision, 4-10 revisions, up to three notes opened per revision) are what leave a note
+inside a change for two revisions running; long files lightly edited almost never do.
+**A discovery is only as strong as the distribution that exercises it**, and a new axis has to
+be measured against the graded generator rather than against a plausible one -
+`authoring/readings.py` now fails if any reading falls under a tenth of the set, which is what
+caught `absorb-newer` at 7.8% and sent the note density up.
+
+Where the eight readings sit now, over 400 generated streams: origin-to-head 99.0%, the
+matcher for the mapping 96.5%, retire without logging 96.8%, an ordinary LCS walk 95.2%, a
+change read as the added lines 95.2%, two notes left on one line 87.2%, **raise every revision
+56.8%**, newer note wins 19.8%.
+
+**Gates after the change:** real two-image trial **17/17** (oracle 1, nop 0, fifteen cheats 0),
+variants **4/4**, reference proved against the sealed oracle on 15 hand-written and 360
+generated streams, every rule cheat caught by the hand-written set rather than only by the
+generated block, `simcheck` clear on both axes, `textcheck` clean against all three briefs that
+cleared the AI screen, `preflight` no errors, and `forgecheck`, `solvecheck`, `deadfieldcheck`,
+`catcheck`, `structcheck`, `hintcheck` and `zipcheck` clean.
+
 ### The quality-review rejection: stating the rule is not the same as stating the method (2026-09-04)
 
 `note-carry-forward` cleared the structural check on its second submission and failed the

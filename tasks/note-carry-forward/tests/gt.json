@@ -96,6 +96,55 @@
     ]
    ]
   },
+  "raised-again-after-it-leaves": {
+   "log": [
+    [
+     "raise",
+     0
+    ],
+    [
+     "raise",
+     0
+    ]
+   ],
+   "notes": [
+    [
+     0,
+     2
+    ]
+   ]
+  },
+  "raised-once-while-it-stays-inside": {
+   "log": [
+    [
+     "retire",
+     0
+    ],
+    [
+     "raise",
+     1
+    ],
+    [
+     "absorb",
+     1,
+     2
+    ],
+    [
+     "retire",
+     1
+    ],
+    [
+     "raise",
+     3
+    ]
+   ],
+   "notes": [
+    [
+     3,
+     2
+    ]
+   ]
+  },
   "retire-and-raise-in-one-revision": {
    "log": [
     [

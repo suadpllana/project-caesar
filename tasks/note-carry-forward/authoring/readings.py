@@ -66,77 +66,82 @@ def run(revs, opens, mode="ref"):
     born = {}
     for at, nid, line in opens:
         born.setdefault(at, []).append((nid, line))
+    where = {}
+    was = {}
     log = []
 
-    def settle(live):
+    def settle():
         seen = {}
-        held = []
         taken = []
-        order = sorted(live, key=lambda n: -n["id"]) if mode == "absorb-newer" \
-            else sorted(live, key=lambda n: n["id"])
-        for note in order:
-            owner = seen.get(note["line"])
+        order = sorted(where, reverse=True) if mode == "absorb-newer" else sorted(where)
+        for nid in order:
+            owner = seen.get(where[nid])
             if owner is None or mode == "no-absorb":
-                seen.setdefault(note["line"], note["id"])
-                held.append(note)
-            elif mode == "absorb-newer":
-                taken.append((owner, note["id"]))
-                held.append(note)
+                seen.setdefault(where[nid], nid)
             else:
-                taken.append((note["id"], owner))
+                taken.append((nid, owner) if mode != "absorb-newer" else (owner, nid))
         for a, b in sorted(taken):
-            log.append(("absorb", b, a) if mode == "absorb-newer" else ("absorb", b, a))
-        live[:] = sorted(held, key=lambda n: n["id"])
+            log.append(("absorb", b, a))
+            where.pop(a, None)
+            was.pop(a, None)
 
     if mode == "origin-to-head":
         head = len(revs) - 1
-        live = []
         for at, nid, line in sorted(opens, key=lambda o: o[1]):
             table = _pinned(revs[at], revs[head])
             if line in table:
-                live.append({"id": nid, "line": table[line]})
+                where[nid] = table[line]
+                was[nid] = False
             else:
                 log.append(("retire", nid))
         if head > 0:
-            for note in live:
-                if any(note["line"] in c for c in grp.spans(revs[head - 1], revs[head])):
-                    log.append(("raise", note["id"]))
-        settle(live)
-        return sorted((n["id"], n["line"]) for n in live), log
+            spans = grp.spans(revs[head - 1], revs[head])
+            for nid in sorted(where):
+                if any(where[nid] in c for c in spans):
+                    log.append(("raise", nid))
+        settle()
+        return sorted(where.items()), log
 
-    live = [{"id": n, "line": l} for n, l in sorted(born.get(0, []))]
-    settle(live)
+    for nid, line in sorted(born.get(0, [])):
+        where[nid] = line
+        was[nid] = False
+    settle()
     for step in range(1, len(revs)):
         before, after = revs[step - 1], revs[step]
         table = carry(before, after)
-        held, lost = [], []
-        for note in live:
-            if note["line"] in table:
-                note["line"] = table[note["line"]]
-                held.append(note)
+        lost = []
+        for nid in sorted(where):
+            if where[nid] in table:
+                where[nid] = table[where[nid]]
             else:
-                lost.append(note["id"])
-        if mode != "retire-silent":
-            for nid in sorted(lost):
+                lost.append(nid)
+        for nid in lost:
+            if mode != "retire-silent":
                 log.append(("retire", nid))
-        live = held
+            where.pop(nid); was.pop(nid, None)
         spans = grp.spans(before, after)
         landed = set(_pinned(before, after).values())
-        for note in sorted(live, key=lambda n: n["id"]):
+        for nid in sorted(where):
             if mode == "raise-added-only":
-                hit = note["line"] not in landed
+                now = where[nid] not in landed
             else:
-                hit = any(note["line"] in c for c in spans)
-            if hit:
-                log.append(("raise", note["id"]))
+                now = any(where[nid] in c for c in spans)
+            if mode == "level-raise":
+                fire = now
+            else:
+                fire = now and not was[nid]
+            if fire:
+                log.append(("raise", nid))
+            was[nid] = now
         for nid, line in sorted(born.get(step, [])):
-            live.append({"id": nid, "line": line})
-        settle(live)
-    return sorted((n["id"], n["line"]) for n in live), log
+            where[nid] = line
+            was[nid] = False
+        settle()
+    return sorted(where.items()), log
 
 
-MODES = ["origin-to-head", "textbook", "difflib", "raise-added-only",
-         "absorb-newer", "no-absorb", "retire-silent"]
+MODES = ["origin-to-head", "level-raise", "textbook", "difflib",
+         "raise-added-only", "absorb-newer", "no-absorb", "retire-silent"]
 
 
 def main():

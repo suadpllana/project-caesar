@@ -56,15 +56,20 @@ DIFFLIB_KEPT = '''def kept(before, after):
                 out[i1 + d] = j1 + d
     return out'''
 
-RAISED_BODY = '''def raised(line, before, after):
+INSIDE_BODY = '''def inside(line, before, after):
     for chunk in grp.spans(before, after):
         if line in chunk:
             return True
     return False'''
 
-RAISED_ADDED = '''def raised(line, before, after):
-    landed = set(kept(before, after).values())
-    return line not in landed'''
+INSIDE_ADDED = '''def inside(line, before, after):
+    return line not in set(kept(before, after).values())'''
+
+RAISE_BODY = '''def should_raise(inside_now, inside_before):
+    return inside_now and not inside_before'''
+
+RAISE_LEVEL = '''def should_raise(inside_now, inside_before):
+    return inside_now or inside_before'''
 
 ORIGIN_BUILD = '''    def build(self, opens):
         head = self.store.count() - 1
@@ -82,9 +87,10 @@ ORIGIN_BUILD = '''    def build(self, opens):
             before = self.store.at(head - 1)
             after = self.store.at(head)
             for note in live:
-                if rule.raised(note["line"], before, after):
+                now = rule.inside(note["line"], before, after)
+                if rule.should_raise(now, False):
                     log.append(("raise", note["id"]))
-        self._open(live, log, [])
+        self._open(live, {}, log, [])
         live.sort(key=lambda n: n["id"])
         return live, log
 '''
@@ -92,21 +98,29 @@ ORIGIN_BUILD = '''    def build(self, opens):
 BUILD_BODY = BOARD[BOARD.index("    def build(self, opens):"):BOARD.index("    def _open(")]
 
 RETIRE_BLOCK = ('            for nid in sorted(lost):\n'
-                '                log.append(("retire", nid))\n')
+                '                log.append(("retire", nid))\n'
+                '                seen_in_change.pop(nid, None)\n')
 RAISE_BLOCK = ('            for note in sorted(live, key=lambda n: n["id"]):\n'
-               '                if rule.raised(note["line"], before, after):\n'
-               '                    log.append(("raise", note["id"]))\n')
+               '                now = rule.inside(note["line"], before, after)\n'
+               '                if rule.should_raise(now, seen_in_change.get(note["id"], False)):\n'
+               '                    log.append(("raise", note["id"]))\n'
+               '                seen_in_change[note["id"]] = now\n')
 
 SWAPS = [
     ("origin-to-head", "board",
      "Rebuild each note by asking for the script from the revision it was opened "
      "at straight to the head. Stateless, one call a note instead of one a "
      "revision, and the shape the shipped board already has. The pinned script "
-     "does not compose, so it resurrects notes whose line died revisions ago and "
-     "whose text was typed again later.",
+     "does not compose, and a board with no walk has nowhere to keep what a note "
+     "was doing at the revision before.",
      BUILD_BODY, ORIGIN_BUILD),
+    ("raise-every-revision", "rule",
+     "Ask the reviewer again every revision the note spends inside a change. "
+     "The note is raised when its line becomes part of one; while it stays "
+     "there the reviewer has already been asked.",
+     RAISE_BODY, RAISE_LEVEL),
     ("textbook-backtrace", "rule",
-     "Build the surviving-line mapping here with an ordinary longest common "
+     "Build the surviving-line mapping with an ordinary longest common "
      "subsequence walk instead of reading it off the script the tool settled. "
      "Same number of moves every time; a different copy of a repeated line "
      "survives.",
@@ -116,11 +130,11 @@ SWAPS = [
      "returns equal blocks directly. It is not obliged to produce a shortest "
      "script and does not settle ties the way the tool does.",
      KEPT_BODY, DIFFLIB_KEPT),
-    ("raise-added-lines-only", "rule",
+    ("change-is-added-lines", "rule",
      "Treat a change as the lines the script added. A change reaches across the "
-     "kept lines between its runs, so a line can survive a revision untouched "
-     "and still be inside it.",
-     RAISED_BODY, RAISED_ADDED),
+     "kept lines between its runs, so a line can come through a revision "
+     "untouched and still be inside it.",
+     INSIDE_BODY, INSIDE_ADDED),
     ("absorb-newer-wins", "board",
      "Let the note that arrived last keep the line. The rule gives it to the "
      "older one.",
@@ -137,11 +151,11 @@ SWAPS = [
      "Drop a note whose line is gone without logging it. The table at the head "
      "comes out right and the log is shorter.",
      RETIRE_BLOCK,
-     '            for nid in sorted(lost):\n                pass\n'),
+     '            for nid in sorted(lost):\n'
+     '                seen_in_change.pop(nid, None)\n'),
     ("raise-before-retire", "board",
      "Log the raises before the retirements. Both sets are right and the table "
-     "is right; only the order of the log moves, which is the one thing two "
-     "correct boards must not be free to disagree about.",
+     "is right; only the order of the log moves.",
      RETIRE_BLOCK + '            live[:] = held\n' + RAISE_BLOCK,
      '            live[:] = held\n' + RAISE_BLOCK + RETIRE_BLOCK),
     ("open-before-carrying", "board",
@@ -149,7 +163,7 @@ SWAPS = [
      "there, so a note opened at that revision is carried through the script "
      "that produced it.",
      '            carried = rule.kept(before, after)\n',
-     '            self._open(live, log, waiting.get(step, []))\n'
+     '            self._open(live, seen_in_change, log, waiting.get(step, []))\n'
      '            carried = rule.kept(before, after)\n'),
 ]
 
@@ -188,7 +202,7 @@ def emit_swaps():
                     '            log.append(("absorb", nid, owner))\n', 1)
             if name == "open-before-carrying":
                 board = board.replace(
-                    '            self._open(live, log, waiting.get(step, []))\n'
+                    '            self._open(live, seen_in_change, log, waiting.get(step, []))\n'
                     '        live.sort', '        live.sort', 1)
         else:
             if old not in rule:

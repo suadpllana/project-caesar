@@ -35,28 +35,40 @@ because the tie-break that picks one shortest script out of the many a
 repetitive file admits is settled against the pair in front of it and nothing
 else.
 
-Both editable files ship wrong, and the three decisions behind them are
+Both editable files ship wrong, and the decisions behind them are
 independent. `note/board.py` rebuilds each note by asking for the script from
 the revision the note was opened at straight to the head. It is stateless in
 exactly the way the brief demands, it is one call per note instead of one per
-revision, and it looks like the careful answer. It moves 78 per cent of graded
+revision, and it looks like the careful answer. It moves 99 per cent of graded
 streams, and its failure looks like success: a note whose line was deleted two
 revisions ago and whose text was later typed again comes back to life on the
 new line. That is `/app/streams/guard.txt`, observed.
 
-`note/rule.py` is wrong twice. It rebuilds the surviving-line mapping from its
-own longest-common-subsequence walk, which is the same length as the tool's
-script and disagrees with it about which copy of a repeated line survived
-(74 per cent of streams; the standard library's matcher is 71 per cent). And
-it treats a change as the lines the script added, where a change reaches
-across the kept lines between its runs, so a line can come through a revision
-untouched and still be inside the change a reviewer has to read (61 per cent).
+`note/rule.py` gets the second discovery wrong, and it is the one that decides
+whether the first can be got right at all. A note is raised when its line
+becomes part of a change, not every revision it spends inside one, so the
+answer is not a property of the revision being carried through: it depends on
+where the note stood when the revision before closed. The shipped
+`should_raise` asks only about the present and fires on 57 per cent of streams
+that the rule does not. Nothing in `scr/pin.py` or `scr/grp.py` answers it,
+because it is not a question about a script. And a board that recomputes each
+note from its own revision to the head has nowhere to keep the answer, so the
+two defects cannot be fixed in either order independently - the raise rule is
+what makes the walk load-bearing rather than merely tidier.
+
+Two further readings of the mapping survive every count a solver can check:
+rebuilding it from an ordinary longest-common-subsequence walk (95 per cent of
+streams) or from the standard library's matcher (97 per cent) agrees with the
+tool about how many lines survived and disagrees about which, and reading a
+change as the lines the script added rather than as the span that reaches
+across the kept lines between its runs moves 95 per cent.
 
 None of the three is visible from a stream a person writes out by hand to
 check themselves, because each needs a line to repeat and a revision to sit
 between two others. The brief says both things happen and says nothing about
 what they cost. A solver who fixes the board and leaves the mapping alone gets
-every count right and the wrong lines.
+every count right and the wrong lines, and one who never asks what a raise is
+for writes a board with no memory in it at all.
 """
 
 solution_explanation = """
@@ -84,7 +96,7 @@ verification_explanation = """
 Graded, all or nothing: the live note table at the head of every stream, and
 the ordered log of retirements, raises and absorptions on the way there.
 
-Thirteen streams are written out by hand, one per rule and one per corner where two
+Fifteen streams are written out by hand, one per rule and one per corner where two
 of them meet. Three hundred more are generated from a seed the run is handed,
 so the streams a submission is graded on are not the streams it was written
 against, and those are settled at grading time by `tests/oracle.py` -- a

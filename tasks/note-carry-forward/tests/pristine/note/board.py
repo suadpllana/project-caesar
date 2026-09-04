@@ -21,7 +21,8 @@ class Board(object):
             before = self.store.at(head - 1)
             after = self.store.at(head)
             for note in live:
-                if rule.raised(note["line"], before, after):
+                now = rule.inside(note["line"], before, after)
+                if rule.should_raise(now, False):
                     log.append(("raise", note["id"]))
         seen = {}
         held = []

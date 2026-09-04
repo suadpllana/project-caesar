@@ -32,4 +32,6 @@ def inside(line, before, after):
 
 
 def should_raise(inside_now, inside_before):
-    return inside_now and not inside_before
+    if inside_before:
+        return False
+    return bool(inside_now)

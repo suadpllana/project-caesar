@@ -11,8 +11,8 @@ TASK = pathlib.Path(__file__).resolve().parent.parent
 BOARD = (TASK / "solution" / "board.py").read_text()
 RULE = (TASK / "solution" / "rule.py").read_text()
 
-PER_NOTE = '''"""Correct, arranged the other way round: the events are collected per
-revision into buckets and ordered at the end, rather than appended as the walk
+BUCKETS = '''"""Correct, arranged the other way round: the events of a revision are
+collected into buckets and ordered at the end rather than appended as the walk
 goes. Same rule, opposite shape."""
 
 from note import rule
@@ -29,9 +29,11 @@ class Board(object):
             born.setdefault(at, []).append((nid, line))
         events = dict((t, {"retire": [], "raise": [], "absorb": []}) for t in range(steps))
         where = {}
+        was = {}
         for nid, line in sorted(born.get(0, [])):
             where[nid] = line
-        self._collide(where, 0, events)
+            was[nid] = False
+        self._collide(where, was, 0, events)
         for t in range(1, steps):
             before = self.store.at(t - 1)
             after = self.store.at(t)
@@ -43,12 +45,16 @@ class Board(object):
                     events[t]["retire"].append(nid)
             for nid in events[t]["retire"]:
                 del where[nid]
+                was.pop(nid, None)
             for nid in sorted(where):
-                if rule.raised(where[nid], before, after):
+                now = rule.inside(where[nid], before, after)
+                if rule.should_raise(now, was[nid]):
                     events[t]["raise"].append(nid)
+                was[nid] = now
             for nid, line in sorted(born.get(t, [])):
                 where[nid] = line
-            self._collide(where, t, events)
+                was[nid] = False
+            self._collide(where, was, t, events)
         log = []
         for t in range(steps):
             for nid in sorted(events[t]["retire"]):
@@ -60,7 +66,7 @@ class Board(object):
         live = [{"id": nid, "line": where[nid]} for nid in sorted(where)]
         return live, log
 
-    def _collide(self, where, t, events):
+    def _collide(self, where, was, t, events):
         seen = {}
         for nid in sorted(where):
             owner = seen.get(where[nid])
@@ -71,6 +77,7 @@ class Board(object):
         for nid, _owner in events[t]["absorb"]:
             if nid in where:
                 del where[nid]
+                was.pop(nid, None)
 '''
 
 PRECOMPUTED = BOARD.replace(
@@ -78,11 +85,11 @@ PRECOMPUTED = BOARD.replace(
             before = self.store.at(step - 1)
             after = self.store.at(step)
             carried = rule.kept(before, after)''',
-    '''        ready = []
+    '''        pairs = []
         for step in range(1, self.store.count()):
-            ready.append((self.store.at(step - 1), self.store.at(step)))
+            pairs.append((self.store.at(step - 1), self.store.at(step)))
         for step in range(1, self.store.count()):
-            before, after = ready[step - 1]
+            before, after = pairs[step - 1]
             carried = rule.kept(before, after)''', 1)
 
 MAPPING_FROM_OPS = RULE.replace(
@@ -94,12 +101,21 @@ MAPPING_FROM_OPS = RULE.replace(
     return out''',
     '''def kept(before, after):
     walk = pin.reading(before, after, pin.script(before, after))
-    return dict((entry[1], entry[2]) for entry in walk if entry[0] == "K")''', 1)
+    return dict((step[1], step[2]) for step in walk if step[0] == "K")''', 1)
+
+NEGATED_RAISE = RULE.replace(
+    '''def should_raise(inside_now, inside_before):
+    return inside_now and not inside_before''',
+    '''def should_raise(inside_now, inside_before):
+    if inside_before:
+        return False
+    return bool(inside_now)''', 1)
 
 OVERRIDES = {
-    "ok-buckets-then-order": {"board.py": PER_NOTE},
+    "ok-buckets-then-order": {"board.py": BUCKETS},
     "ok-precomputed-pairs": {"board.py": PRECOMPUTED},
     "ok-mapping-from-ops": {"rule.py": MAPPING_FROM_OPS},
+    "ok-raise-written-out": {"rule.py": NEGATED_RAISE},
 }
 
 

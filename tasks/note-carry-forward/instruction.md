@@ -31,10 +31,12 @@ afterwards. The files we review repeat themselves constantly, and for almost
 any pair of revisions of one of them more than one change script of the same
 length exists.
 
-A note whose line is part of the change a revision made is raised, because the
-code around it moved and the reviewer has to look at it again. Both halves are
-graded. Raising a note the change never reached is wrong, and leaving one
-unraised is wrong too. Where two notes come to rest on the same line they
+A note is raised when its line becomes part of the change a revision made,
+because the code around it moved and the reviewer has to look at it again.
+While it stays part of one we have already asked, so it is not raised again
+until a revision leaves it outside a change. Both halves are graded. Raising a
+note the change never reached is wrong, and leaving one unraised is wrong too.
+Where two notes come to rest on the same line they
 become one: the older takes the line, the newer is absorbed into it, and notes
 opened at a revision join the board once that revision has landed and its
 carrying is done, settling against whatever is already there.
@@ -44,7 +46,7 @@ The log is a sequence, so inside one revision the retirements come first, then
 the raises, then the absorbing, each of the three in ascending note order. The
 streams we grade run to several revisions, notes are opened partway through as
 often as at the start, and a line that looks like the line a note was written
-about is a thing you should expect to see. Thirteen of them are written out by
+about is a thing you should expect to see. Fifteen of them are written out by
 hand and three hundred more are generated, and every one has to match exactly
 in the table and in the log. There is no partial credit. There is no expected
 output anywhere in your tree and none is coming. The tool in front of you is

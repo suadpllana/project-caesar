@@ -72,26 +72,42 @@ FIXED = [
               ["ln1", "ln4", "ln3", "ln4"],
               ["ln1", "ln4", "ln2"]],
      "opens": [[0, 0, 2], [2, 1, 3], [2, 2, 1]]},
+    # a note that stays inside a change for two revisions running is asked
+    # about once, not twice
+    {"name": "raised-once-while-it-stays-inside",
+     "revs": [["ln1", "ln1", "ln0", "ln0", "ln0", "ln1"],
+              ["ln1", "ln1"],
+              ["ln0", "ln0", "ln0", "ln1"],
+              ["ln1", "ln1", "ln2", "ln0"],
+              ["ln1", "ln0", "ln1", "ln0"]],
+     "opens": [[0, 0, 3], [0, 1, 1], [1, 2, 0], [1, 3, 1]]},
+    # and a note that leaves a change and is caught by a later one is asked
+    # about again, so the rule is not once and never after
+    {"name": "raised-again-after-it-leaves",
+     "revs": [["a", "b", "c", "d", "e", "f", "g", "h", "i"],
+              ["a", "X", "c", "Y", "e", "f", "g", "h", "i"],
+              ["a", "X", "c", "Y", "e", "f", "g", "h", "i"],
+              ["a", "P", "c", "Q", "e", "f", "g", "h", "i"]],
+     "opens": [[0, 0, 2]]},
 ]
 
-_POOLS = [2, 2, 3, 3, 4, 5, 6]
-
-
 def generated(count, seed):
+    """Short files edited hard, which is the shape that puts a note inside a
+    change for more than one revision running."""
     rng = random.Random(seed * 7919 + 13)
     out = []
     for index in range(count):
-        pool = ["ln%d" % i for i in range(rng.choice(_POOLS))]
-        revs = [[rng.choice(pool) for _ in range(rng.randrange(6, 26))]]
+        pool = ["ln%d" % i for i in range(rng.randrange(2, 5))]
+        revs = [[rng.choice(pool) for _ in range(rng.randrange(5, 16))]]
         opens = []
         nid = 0
-        for step in range(rng.randrange(3, 9)):
-            for _ in range(rng.randrange(0, 3)):
+        for step in range(rng.randrange(4, 11)):
+            for _ in range(rng.randrange(0, 4)):
                 if revs[-1]:
                     opens.append([step, nid, rng.randrange(len(revs[-1]))])
                     nid += 1
             nxt = list(revs[-1])
-            for _ in range(rng.randrange(1, 5)):
+            for _ in range(rng.randrange(3, 10)):
                 if not nxt:
                     break
                 p = rng.randrange(len(nxt))

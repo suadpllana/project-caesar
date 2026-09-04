@@ -142,6 +142,10 @@ def changes(before, after):
 
 
 def board(revs, opens):
+    """Settled the other way round to the reference: the events of a revision
+    are collected into buckets and ordered at the end, and a note carries the
+    one thing that is not a property of the revision it is passing through -
+    whether the revision before this one left it inside a change."""
     steps = len(revs)
     maps = []
     spans = []
@@ -154,10 +158,12 @@ def board(revs, opens):
         born.setdefault(at, []).append((nid, line))
 
     where = {}
+    was = {}
     events = dict((t, {"retire": [], "raise": [], "absorb": []}) for t in range(steps))
     for nid, line in sorted(born.get(0, [])):
         where[nid] = [0, line]
-    _collide(where, 0, events)
+        was[nid] = False
+    _collide(where, was, 0, events)
     for t in range(1, steps):
         table = maps[t - 1]
         for nid in sorted(where):
@@ -168,14 +174,20 @@ def board(revs, opens):
                 events[t]["retire"].append(nid)
         for nid in events[t]["retire"]:
             del where[nid]
+            was.pop(nid, None)
         for nid in sorted(where):
+            here = False
             for chunk in spans[t - 1]:
                 if where[nid][1] in chunk:
-                    events[t]["raise"].append(nid)
+                    here = True
                     break
+            if here and not was[nid]:
+                events[t]["raise"].append(nid)
+            was[nid] = here
         for nid, line in sorted(born.get(t, [])):
             where[nid] = [t, line]
-        _collide(where, t, events)
+            was[nid] = False
+        _collide(where, was, t, events)
 
     log = []
     for t in range(steps):
@@ -189,7 +201,7 @@ def board(revs, opens):
     return notes, log
 
 
-def _collide(where, t, events):
+def _collide(where, was, t, events):
     seen = {}
     for nid in sorted(where):
         line = where[nid][1]
@@ -201,3 +213,4 @@ def _collide(where, t, events):
     for nid, _owner in events[t]["absorb"]:
         if nid in where:
             del where[nid]
+            was.pop(nid, None)

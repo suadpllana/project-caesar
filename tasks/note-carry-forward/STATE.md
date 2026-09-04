@@ -45,19 +45,21 @@ generator:
 
 | wrong reading | streams it moves |
 |---|---|
-| diff the note's origin revision straight against the head | 78.0% |
-| rebuild the mapping with an ordinary LCS backtrace | 73.8% |
-| retire without logging it | 72.2% |
-| rebuild the mapping from `difflib` opcodes | 71.2% |
-| raise only the lines the script added | 61.2% |
-| newer note wins the line | 57.0% |
-| never absorb | 57.0% |
+| diff the note's origin revision straight against the head | 99.0% |
+| the standard library's matcher for the mapping | 96.5% |
+| retire without logging it | 96.8% |
+| an ordinary LCS walk for the mapping | 95.2% |
+| a change read as the lines the script added | 95.2% |
+| two notes left sitting on one line | 87.2% |
+| **raise every revision the note spends inside a change** | **56.8%** |
+| newer note wins the line | 19.8% |
 
-**Both editable files ship wrong, and the three decisions are independent.**
-`note/board.py` does origin-to-head. `note/rule.py` rebuilds the mapping from
-its own LCS walk *and* treats a change as the lines the script added. A solver
-who fixes the board and leaves the mapping alone gets every count right and
-the wrong lines. `/app/streams/guard.txt` is the board defect, observed.
+**Both editable files ship wrong and the two discoveries are locked together.**
+`note/board.py` does origin-to-head. `note/rule.py` raises on the present
+state instead of on becoming part of a change, which is the discovery that
+makes the walk load-bearing: the answer depends on where the note stood when
+the previous revision closed, and a board with no walk has nowhere to keep it.
+`/app/streams/guard.txt` is the board defect, observed.
 
 ## Expert path
 
@@ -71,6 +73,34 @@ About sixty lines across the two artifacts.
 Not probed. **Run the three-agent probe before
 submitting** - it is the only local gate that measures what the easiness gate
 rejects for.
+
+## Easiness rejection, 2026-09-04 (second round), and what changed
+
+Solved 3 of 3 in **75 seconds a trial** against a 14400 s budget. All three
+trajectories show one `cat > note/rule.py`, one `cat > note/board.py`, both
+correct first time. `leakcheck` is quiet on all three, so it was not the
+wording. Two causes, and the second is the real one:
+
+- **Mode B, arrows.** The shipped `note/rule.py` carried `from scr import pin`
+  and never used it, and `grp.spans` was called by nothing while the brief
+  named both modules. `preflight` warned about exactly that and the warning
+  was dismissed as the documented false-positive class. It was not. Both
+  frozen modules are now genuinely used by the shipped code, so nothing says
+  "wire me in".
+- **The mechanism was too shallow.** Every defect was self-announcing against
+  a brief that stated the rule completely, so the work was transcription. The
+  repair is a second discovery that is not a question about any one revision:
+  a note is raised when its line *becomes* part of a change, so the answer
+  depends on the note's own history and only a walking board can supply it.
+  Measured at 56.8% of streams, and it makes the origin-to-head defect
+  unfixable in isolation rather than merely wrong.
+
+The generated streams are shorter and edited harder than before (5-16 lines,
+3-9 edits a revision, 4-10 revisions, up to 3 notes opened per revision),
+because that is the shape that leaves a note inside a change for more than one
+revision running. Under the old shape the new rule moved 6.5% of streams,
+which is a lottery ticket; `authoring/readings.py` now fails if any reading
+falls under a tenth.
 
 ## Quality-review rejection, 2026-09-04, and what changed
 
@@ -98,9 +128,9 @@ both ship variants and both cleared this review.
 
 ## Gates run (2026-09-04, Linux sandbox, Docker up)
 
-- real two-image trial `--all`: **16/16** (oracle 1, nop 0, 14 cheats 0)
-- real two-image trial `--variants`: **3/3** score 1
-- `build_gt.py`: reference and sealed oracle agree on 13 hand-written and 360
+- real two-image trial `--all`: **17/17** (oracle 1, nop 0, 15 cheats 0)
+- real two-image trial `--variants`: **4/4** score 1
+- `build_gt.py`: reference and sealed oracle agree on 15 hand-written and 360
   generated streams
 - `textcheck` clean against all three briefs that cleared the AI screen;
   `structcheck` and `hintcheck` clean

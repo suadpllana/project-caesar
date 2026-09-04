@@ -724,11 +724,11 @@ supplied; they are at `probes/lock-priority-unwind/` with the diagnosis in `note
 before writing a difficulty argument that contains the words "the memorised answer", because the
 check it describes takes one minute and this task shipped without it.
 
-**The mode is none of the four, and `leakcheck` is what proves it.** It came back quiet on all
-three trajectories: the agents did not quote the brief, they used ordinary priority-inheritance
-vocabulary. `deadfieldcheck` was clean. The signature was mode C - one `Write` of the finished
-policy in four to five tool calls, then a self-built fuzz harness that went green - but the
-sharper name is worse than mode C:
+**The mode is E, and `leakcheck` is what rules out the others.** It came back quiet on all three
+trajectories: the agents did not quote the brief, they used ordinary priority-inheritance
+vocabulary. `deadfieldcheck` was clean. The signature looks like mode C - one `Write` of the
+finished policy in four to five tool calls, then a self-built fuzz harness that went green - but
+the sharper name is worse than mode C:
 
 > **The difficulty argument claimed prong A, and prong A was backwards.** It said "the memorised
 > answer is one paragraph long and it is correct for exactly one shape". What the shipped tree
@@ -2140,7 +2140,7 @@ being able to confirm their bug.
 
 ### Applied to the tasks in this repo, as of 2026-09-02
 
-What is known about each failure, and the next action. Three of the four modes cannot be
+What is known about each failure, and the next action. Four of the five modes cannot be
 called without a trajectory, so where one was never kept, step 0 is to run the local
 three-agent probe rather than to guess.
 
@@ -2148,7 +2148,7 @@ three-agent probe rather than to guess.
 |---|---|---|---|
 | `share-register-screen` | 3/3 then **0/3, passed** | A | done. The trajectory is at `probes/share-register-screen/` |
 | `alias-settle-report` | **3/3** on 2026-09-04, runtimes 2-7 minutes | C, as a decidable predicate under a stated transition table; not A (`leakcheck` quiet) and not B (`onelinecheck` quiet) | Stage 2 redesign. No leak patch applies; see "The easiness rejection on a task built the day after the law that forbids it". Trajectories at `probes/alias-settle-report/` |
-| `earliest-change-script` | 3/3, 3/3, then **3/3 a third time** on the comment rule | none of the four: real exploration, three engines in three hours | **retired as a mechanism, 2026-09-04.** The speed axis is closed by measurement, not by argument - see "The ceiling, measured from the other end". Replaced by `note-carry-forward` |
+| `earliest-change-script` | 3/3, 3/3, then **3/3 a third time** on the comment rule | none of the five: real exploration, three engines in three hours | **retired as a mechanism, 2026-09-04.** The speed axis is closed by measurement, not by argument - see "The ceiling, measured from the other end". Replaced by `note-carry-forward` |
 | `delta-view-retraction` | 2/3, 3/3, then passed | B | done, and it is the worked example for mode B |
 | `lock-priority-unwind` | **3/3** on 2026-09-04 | E; not A (`leakcheck` quiet on all three) | rebuilt 2026-09-04 - the engine changed, not the brief. Trajectories at `probes/lock-priority-unwind/`. Re-probe before resubmitting |
 | `typeahead-query-controller` | 3/3 twice | C | repaired 2026-08-14, never re-probed |

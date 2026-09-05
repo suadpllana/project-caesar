@@ -1,30 +1,31 @@
-from scr import grp
+from scr import grp, pin
 
 
 def kept(before, after):
     n, m = len(before), len(after)
-    best = [[0] * (m + 1) for _ in range(n + 1)]
-    for i in range(n - 1, -1, -1):
-        row = best[i]
-        nxt = best[i + 1]
-        for j in range(m - 1, -1, -1):
-            if before[i] == after[j]:
-                row[j] = nxt[j + 1] + 1
-            else:
-                a = nxt[j]
-                b = row[j + 1]
-                row[j] = a if a > b else b
+    rest = pin.table(before, after)
     out = {}
     i = j = 0
-    while i < n and j < m:
-        if before[i] == after[j] and best[i][j] == best[i + 1][j + 1] + 1:
-            out[i] = j
-            i += 1
-            j += 1
-        elif best[i + 1][j] >= best[i][j + 1]:
-            i += 1
-        else:
-            j += 1
+    s = pin.CONTEXT
+    while i < n or j < m:
+        want = rest[s][i][j]
+        if i < n and j < m and before[i] == after[j]:
+            nxt = s + 1 if s < pin.CONTEXT else pin.CONTEXT
+            if rest[nxt][i + 1][j + 1] == want:
+                out[i] = j
+                i += 1
+                j += 1
+                s = nxt
+                continue
+        charge = 1 if s == pin.CONTEXT else 0
+        if i < n:
+            moves, notes = rest[0][i + 1][j]
+            if (moves + 1, notes + charge) == want:
+                i += 1
+                s = 0
+                continue
+        j += 1
+        s = 0
     return out
 
 

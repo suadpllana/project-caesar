@@ -10,10 +10,8 @@ They are wrong. Run `/app/run_review.py` on `/app/streams/guard.txt`, where a
 thread is opened on the two lines of a guard and a later revision takes both
 away. The board prints `outdated 0` and then nothing. The thread is gone off
 the table altogether, so the reviewer who asked the question cannot find it and
-neither can the author. `/app/streams/repeat.txt` is worse in a quieter way. A
-thread opened on lines 2 to 4 of a file that repeats itself comes back sitting
-on lines 2 and 3 of the head, and those are not the lines it was opened on.
-`/app/streams/rework.txt` is a third stream to drive it with.
+neither can the author. `/app/streams/repeat.txt` and `/app/streams/rework.txt`
+are two more streams to drive it with.
 
 Fix `/app/note/board.py` and `/app/note/rule.py`. Nothing else is yours. Every
 other file is compared against the shipped copy after your work runs, and the
@@ -46,16 +44,15 @@ code that has since moved, so being raised puts it back to open. Two threads
 whose spans share a line are looking at the same code and become
 one: the older keeps the thread and takes the union of the two spans, and the
 newer is absorbed into it. A union can reach a thread that neither of the two
-reached on its own, so one sweep over the pairs does not settle it. If
-either of the two was open the survivor is open, because the question
-is unanswered whichever thread was carrying it, and if either had been reached
-the survivor has been, because it holds the lines of both. Threads opened at a
-revision join once that revision's carrying and raising are done, replies and
-resolutions land after them, and the merging is the last thing that happens. A
-reply moves an open thread to answered and a resolution settles an open or an
-answered one. Anything else a reviewer aims at a thread leaves it where it is,
-and a thread that has been absorbed or has gone outdated is not there to aim
-at any more.
+reached on its own. If either of the two was open the survivor is open, because
+the question is unanswered whichever thread was carrying it, and if either had
+been reached the survivor has been, because it holds the lines of both. Threads
+opened at a revision join once that revision's carrying and raising are done,
+replies and resolutions land after them, and the merging is the last thing that
+happens. A reply moves an open thread to answered and a resolution settles an
+open or an answered one. Anything else a reviewer aims at a thread leaves it
+where it is, and a thread that has been absorbed or has gone outdated is not
+there to aim at any more.
 
 We grade the thread table at the head, each thread with its state and its span,
 and the log of what happened on the way. The strings are exact. A state is

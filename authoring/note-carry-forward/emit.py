@@ -159,6 +159,33 @@ ABSORB_ORDER = ('                for taken_id in sorted(held):\n'
                 '                        owner_id = held[owner_id]\n'
                 '                    log.append(("absorb", owner_id, taken_id))\n')
 
+KEEP_FIRST_KEPT = """def kept(before, after):
+    n, m = len(before), len(after)
+    rest = pin.table(before, after)
+    out = {}
+    i = j = 0
+    s = pin.CONTEXT
+    while i < n or j < m:
+        want = rest[s][i][j]
+        if i < n and j < m and before[i] == after[j]:
+            nxt = s + 1 if s < pin.CONTEXT else pin.CONTEXT
+            if rest[nxt][i + 1][j + 1] == want:
+                out[i] = j
+                i += 1
+                j += 1
+                s = nxt
+                continue
+        charge = 1 if s == pin.CONTEXT else 0
+        if i < n:
+            moves, notes = rest[0][i + 1][j]
+            if (moves + 1, notes + charge) == want:
+                i += 1
+                s = 0
+                continue
+        j += 1
+        s = 0
+    return out"""
+
 SWAPS = [
     ("textbook-backtrace", "rule",
      "Build the surviving-line mapping with an ordinary longest common "
@@ -166,6 +193,13 @@ SWAPS = [
      "Same number of moves every time; a different copy of a repeated line "
      "survives, so the span lands somewhere else.",
      KEPT_BODY, TEXTBOOK_KEPT),
+    ("keep-first-backtrace", "rule",
+     "Walk the tool's own table but take the diagonal wherever it is still "
+     "optimal, where the tool prefers the delete. It is a shortest script and "
+     "it keeps the same number of lines, so nothing a solver can count moves; "
+     "a different copy of a repeated line survives and the span lands "
+     "somewhere else.",
+     KEPT_BODY, KEEP_FIRST_KEPT),
     ("difflib-opcodes", "rule",
      "Take the mapping from the standard library's sequence matcher. It is not "
      "obliged to produce a shortest script and does not settle ties the way "

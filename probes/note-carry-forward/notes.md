@@ -1,27 +1,38 @@
-# note-carry-forward, easiness probe, 2026-09-04 (the two-decision version)
+# Round 3 easiness probe, 2 of 3 solved (2026-09-05)
 
-Three trajectories, agents' own words only. All three solved it in about
-seventy-five seconds against a 14400 s budget: read the tree, one
-`cat > note/rule.py`, one `cat > note/board.py`, both correct first time, no
-intermediate wrong version in any of them.
+Trial 1 (L7br5fJ) and trial 3 (zcG4WG8) solved. Trial 2 (wweSnRN) failed.
 
-## Attribution
+The failing agent is identified by its own flagged judgment call: it counts a line the
+script DELETES as reached, on top of the lines `grp.spans` reports. Trials 1 and 3 both
+took reach strictly from `grp.spans` against the carried span, and both said so
+explicitly -- trial 1 "a hunk that only deletes lines reaches nothing ... I kept that
+behaviour because the reader is not mine to change", trial 3 "a reached line is one in a
+hunk of the pinned script as grp.spans defines it, taken against the carried span".
 
-- `leakcheck`: nothing above the floor on any of the three. Not the wording.
-- The shipped `note/rule.py` carried `from scr import pin` and never used it,
-  and `grp.spans` was called by nothing while the brief named both modules.
-  All three agents wrote that back in their own summaries. **Mode B**, and
-  `preflight` had warned about it.
-- Beyond the arrows, the mechanism was two decisions in 98 lines. The quality
-  review said the same thing twice, in different words, and was right both
-  times.
+The published results confirm it. On `rework.txt` trials 1 and 3 both report
+`thread 0 answered 2`; trial 2 reports `thread 0 open 2` with an extra `raise 0, reopen 0`,
+which is exactly the extra raise its deletion rule produces.
 
-## What the bundle looks like now
+So the one failure was the single prong-A discovery in the bundle, and the two solves were
+transcription. Every other decision -- carry from the pinned script, any-line reach,
+overlap merge, outdated stays listed, the reached flag and edge-triggered raise, reopen
+placement, the merge fixed point, log order -- was got right by all three, in 4 to 9 tool
+calls, with no intermediate wrong version in any trajectory.
 
-Threads carry spans rather than a line, have states that replies and
-resolutions move them through, and merge by overlap to a fixed point. Twelve
-decisions are graded where two were, four of them need history no single
-revision supplies. These three submissions all fail the current bundle: every
-one is level-triggered, none carries a span, and none has a merge pass at all.
+## What this says about the two repairs of the previous rounds
 
-**Not re-probed since the rebuild.** That is the first thing to do.
+Both were found on sight and neither separated anybody:
+
+- **The resource gate** (wide streams, the pair settled once a revision) was the
+  2026-09-05 C3 repair. All three agents cached the script per revision pair without
+  being prompted, and all three measured their own wide synthetic at about 3 seconds and
+  said the 600 s budget was safe. It no longer costs anyone anything.
+- **The merge fixed point.** Trials 1 and 3 both reached for union-find unprompted;
+  trial 2 used repeat-until-stable, which is also correct. The stated
+  "one sweep does not settle it" sentence hands this over.
+
+## Runtimes
+
+4 to 9 tool calls, 6 to 11 steps, against a 14400 s budget. Trial 2 wrote both files in a
+single tool call. Nobody had an intermediate wrong version, so no plan was ever revised:
+the mode-C signature this repo already documents.

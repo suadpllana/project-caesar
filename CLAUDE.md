@@ -1314,6 +1314,109 @@ never been run on this bundle. `simcheck` still reports two HIGH findings agains
 `permit-strand-relay` (`tests/test.sh` 0.565, `environment/Dockerfile` 0.568), both below the
 numbers `guard-mark-unwind` carried through all nine gates.
 
+## Easiness at 2 of 3 again: the resource axis is spent, so make the defect less legible (2026-09-05)
+
+`note-carry-forward` cleared the quality review and came back **2 of 3** from the easiness
+probe, on the bundle that carries the wide-stream resource gate added the day before. All
+three trajectories are in `probes/note-carry-forward/round3-*.md`. Read this before adding
+another rule or another broken file to any task in this repo, because the measurement in it
+closes a whole family of repairs.
+
+**Attribution.** `leakcheck` is quiet on all three, so not mode A by the mechanical test. All
+three read the tree, wrote both files, and stopped: **4 to 9 tool calls, no intermediate wrong
+version in any of them**, against a 14400 s budget. Mode C.
+
+**The one failure was the one real discovery.** Trial 2 flagged its own judgment call: it
+counts a line the script *deletes* as reached, on top of what `grp.spans` reports. Trials 1 and
+3 both took reach strictly from `grp.spans` against the carried span and both said so. Their
+published `rework.txt` rows confirm it - `answered 2` for the two that solved, `open 2` with an
+extra `raise` and `reopen` for the one that did not. That corner is prong A working, it is
+derivable from the frozen code, and it should be left alone. **Everything else in the bundle
+was transcription: all three got the other eighteen readings right.**
+
+### The measurement that retires the resource lever, and it is arithmetic off one profile
+
+The previous round's repair was a resource gate. It no longer costs anyone anything: **all
+three agents cached the script per revision pair unprompted**, measured their own wide
+synthetic at about three seconds, and said the 600 s budget was safe. Two of the three reached
+for union-find on the merge without being asked.
+
+Profiling the reference on one wide stream says why no tighter gate is available:
+
+| | share of the reference's 1.42 s |
+|---|---|
+| `pin.table`, the frozen DP | **92%** |
+| `_merge`, 25519 `merges` calls | **0.6%** |
+
+Two conclusions, and both are the `earliest-change-script` law ("a regime where the reference
+is not decisively faster is not a difficulty axis, it is a way to fail your own oracle")
+arriving from a new direction:
+
+- **The reference is not the fastest correct implementation.** The profile shows **10 `script`
+  calls for 5 revision pairs** - `kept` settles the script, and `grp.spans` settles it again -
+  where one walk per pair serves both. Trial 1 did exactly that and said so: "Sharing one walk
+  per revision halved it from the earlier 7 seconds." So the best submissions run about **2x
+  faster than the reference**, and any tightening of the 600 s kill hits the reference first.
+- **The merge can never be a gate.** It is 0.6% of the cost, and the reference's own `_merge`
+  is the naive pair-hunting fixed point, so a union-find submission beats it there too.
+
+**So: profile the reference before designing a resource gate, and check which side of it the
+reference sits on.** Twenty minutes, and it stops a session building a budget that would reject
+its own oracle.
+
+### The repair: two leaks out, and the same defect made less legible
+
+Nothing was added. The count of defects did not change; the depth of one of them did.
+
+**Leak one, and it is `share-register-screen`'s second exhibit verbatim in shape.** The brief
+annotated a *second* stream: "`/app/streams/repeat.txt` is worse in a quieter way. A thread
+opened on lines 2 to 4 of a file that repeats itself comes back sitting on lines 2 and 3 of the
+head." That names the file, the fault **and the precondition** - a file that repeats itself -
+which is the whole of the one discovery no self-built harness can check. `hintcheck` is blind to
+it and `leakcheck` cannot see it because the agents paraphrased. Ground on the one observed
+failure that makes the task exist and never annotate a second; the stream still ships, and the
+agent can still run it.
+
+**Leak two: a refutation.** "A union can reach a thread that neither of the two reached on its
+own, **so one sweep over the pairs does not settle it**." The clause after `so` declares the
+natural implementation wrong, and `cheat-rule-merge-in-one-pass` moves 47% of the set. The
+requirement survives; the conclusion is the solver's to draw.
+
+**The legibility repair, which is the part worth copying.** The shipped `rule.kept` was a
+hand-rolled longest-common-subsequence table, and **all three trajectories named it as finding
+number one** - it announces itself. It now walks `pin.table`, the tool's own table, and takes
+the diagonal wherever that is still optimal, where `pin.script` prefers the delete. It is a
+shortest script under the same objective. Measured over 2179 revision pairs of the graded set:
+
+| the keep-first mapping against the settled one | |
+|---|---|
+| pairs where the mapping differs | **70.2%** |
+| pairs with the **same number** of kept lines | **100%** |
+| graded streams the reading moves | **81.8%** |
+
+Same counts, different lines: there is no number a solver can check that separates them. The
+file now *looks* like it rides the tool, and the only way to know it does not is to notice that
+`grp.spans` uses the settled script while the carry does not.
+
+**The rule: when a probe solves a task, ask whether the defects are legible before adding
+another one.** This file already says the count of defects is not the difficulty and the depth
+of the least legible one is. Here is the constructive form of it - **replace a wrong
+implementation that advertises itself with one that uses the frozen module and settles a tie
+the other way.** It costs no new rule in the brief, no new file, and no new lottery.
+
+**Gates:** `readings` **19 of 19 pinned** with `keep-first` at 89.7% caught by the named fixture
+`tie-break-picks-the-surviving-copy`; `gt.json` **byte-identical** after `build_gt` and the 24
+existing cheats regenerated **byte-identical**, so nothing graded moved; `textcheck` clean
+against all three briefs that cleared the AI screen at 916 words (was 966); `structcheck`,
+`hintcheck`, `preflight`, `deadfieldcheck`, `catcheck`, `solvecheck` and `extraneouscheck`
+clean, with no unused import in either editable artifact.
+
+**Which direction the risk now runs.** Two leaks are gone and the hardest defect is quieter, so
+the exposure moves from the easiness gate toward the **difficulty** probe. The mapping is still
+derivable - `pin.py` is named as settling "the one change script we use", and `grp.spans` rides
+it - and the other eighteen readings are still visibly wrong, so an agent has plenty to find.
+But this is the direction to watch on the next result, not the easiness one.
+
 ## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
 
 `alias-settle-report` cleared the quality review on its relabelled resubmission and came back

@@ -228,6 +228,27 @@ LCS) and neither B nor C: 200 lines of environment is inside what a frontier
 agent holds at once, so "distributed" meant "adjacent", and nothing made a wrong
 plan expensive.
 
+### Round 3, 2026-09-05: easiness 2 of 3, repaired without adding anything
+
+Trials 1 and 3 solved it in 4 to 9 tool calls; trial 2 lost on the deletion-reached
+corner, which is prong A working and was left alone. Three changes, no new rule and
+no new broken file:
+
+- the annotated `repeat.txt` exhibit came out of the brief. It named the file, the
+  fault and the precondition, which is the whole of the one discovery a self-built
+  harness cannot check.
+- "so one sweep over the pairs does not settle it" came out. It refuted a shipped
+  cheat that moves 47%.
+- the shipped `rule.kept` stopped being a hand-rolled LCS, which every trajectory
+  named as finding number one, and became a backtrace over `pin.table` that takes
+  the diagonal where `pin.script` takes the delete. 70.2% of revision pairs get a
+  different mapping, 100% keep the same number of lines, 81.8% of streams move.
+
+The resource gate added in round 2 is spent: all three agents cached the script per
+revision pair unprompted. It cannot be tightened either - `pin.table` is 92% of the
+reference's cost and the reference calls it twice per pair where once would do, so
+the best submissions are about 2x faster than the reference.
+
 ### What the trajectories gave away, and it was not the answer
 
 Two of the three flagged the same judgment call - a lone deletion produces no

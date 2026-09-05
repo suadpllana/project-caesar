@@ -55,7 +55,33 @@ def _difflib_map(before, after):
     return out
 
 
-MAPS = {"textbook": _textbook, "difflib": _difflib_map}
+def _keep_first(before, after):
+    """The tie settled the other way: prefer the diagonal where `pin.script`
+    prefers the delete. Same objective, same number of kept lines, different
+    lines, so no count a solver can check ever moves."""
+    n, m = len(before), len(after)
+    rest = pin.table(before, after)
+    out, i, j = {}, 0, 0
+    s = pin.CONTEXT
+    while i < n or j < m:
+        want = rest[s][i][j]
+        if i < n and j < m and before[i] == after[j]:
+            nxt = s + 1 if s < pin.CONTEXT else pin.CONTEXT
+            if rest[nxt][i + 1][j + 1] == want:
+                out[i] = j; i += 1; j += 1; s = nxt
+                continue
+        charge = 1 if s == pin.CONTEXT else 0
+        if i < n:
+            moves, notes = rest[0][i + 1][j]
+            if (moves + 1, notes + charge) == want:
+                i += 1; s = 0
+                continue
+        j += 1; s = 0
+    return out
+
+
+MAPS = {"textbook": _textbook, "difflib": _difflib_map,
+        "keep-first": _keep_first}
 
 
 def run(revs, events, mode="ref"):
@@ -178,7 +204,7 @@ def run(revs, events, mode="ref"):
     return table, log
 
 
-MODES = ["textbook", "difflib", "touched-all", "touched-added", "level-raise",
+MODES = ["textbook", "difflib", "keep-first", "touched-all", "touched-added", "level-raise",
          "no-reopen", "raise-resolved", "outdated-removed", "merge-equality",
          "merge-one-pass", "merge-keeps-own-span", "open-does-not-drag",
          "resolved-stops-tracking", "merge-keeps-own-reach", "merge-before-talk",

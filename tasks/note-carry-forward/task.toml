@@ -29,7 +29,7 @@ real; the distribution is chosen to reach it.
 
 The tree ships the engine that pins a change script, so nobody writes a diff.
 What the agent writes is the board: a state machine over threads that have
-spans, states and a history, driven by a walk over the store. Eighteen
+spans, states and a history, driven by a walk over the store. Nineteen
 distinct decisions are graded, and every one of them has a natural reading that
 is wrong. Measured against the reference over 300 generated streams, by
 `authoring/readings.py`, which also names the hand-written stream that
@@ -38,6 +38,7 @@ separates each one:
   the mapping taken from the standard library's matcher   93%
   the mapping rebuilt from an ordinary LCS walk           91%
   a change read as the lines the script added             91%
+  the tie settled by keeping where the tool drops         90%
   merging on equal spans instead of on overlap            82%
   an outdated thread dropped off the board                68%
   the older thread keeping its own span, not the union    66%
@@ -66,6 +67,15 @@ merge is right on every stream where no union reaches a third thread, which is
 most of the ones a person writes out by hand; and a rebuilt mapping agrees with
 the tool about how many lines survived and disagrees about which, so every
 count a solver checks comes out right.
+
+The shipped mapping is not visibly wrong. It calls the tool's own table and
+walks it for a shortest script, and it is one: it takes the diagonal wherever
+that is still optimal, where the tool prefers the delete. Both settle on the
+same number of kept lines on every pair we grade, so nothing a solver can count
+separates them, and they disagree about which copy of a repeated line survived
+on 70% of revision pairs. Reading it as an alignment that happens to be built
+by hand is what the earlier version invited; reading this one wrong requires
+missing that `grp.spans` rides the settled script while the carry does not.
 
 The last six in that table move too little of the generated set to be caught
 by it reliably, so each is pinned by a hand-written stream instead and ships as

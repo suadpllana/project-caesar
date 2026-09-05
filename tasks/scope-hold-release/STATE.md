@@ -4,7 +4,7 @@ Working notes. Never ships; `package.py` drops this file.
 
 ## The frozen verifier contract
 
-Graded artifact: the container's teardown dump, record for record, in order, over 13
+Graded artifact: the container's teardown dump, record for record, in order, over 22
 named cases and 300 streams generated inside the verifier from a nonce minted after the
 agent has finished. Records are `torn name scope cause` and `refused name scope`.
 
@@ -51,15 +51,20 @@ rule that still captures at invocation is wrong on 600 of 600 corner streams.
 
 - Estimated solves out of 8: 2 of 8, designed for the bottom of the band
 
-The residual risk is `difficult`: the mechanism is one discovery deep with a threading
-consequence, and `note-carry-forward` failed that criterion twice on that shape.
+The first submission failed the quality review on `difficult` ("four short functions in a
+~150-line codebase"). The repair enriched the environment rather than the brief, which is
+the only thing CLAUDE.md records as working on that criterion: marks that pin a
+registration to a scope, wrappers, dependency cycles and parting calls at teardown, taking
+the environment from 237 to 318 lines, the reference from 40 to 60, the wrong files from
+four to six and the graded readings from four to six. That criterion has documented
+run-to-run variance; this raises the odds rather than settling it.
 
 ## Gates run
 
-Host emulation `authoring/scope-hold-release/trial.py --all`: 18 rows, 0 unexpected
-(oracle 1, nop 0, 3 variants 1, 13 cheats 0). `readings.py` 4 of 4 pinned by named cases.
-`cheat_report.py` 13 of 13, each attestation probe caught by its own layer and nothing
-else. `build_gt.py` proved the reference against the sealed oracle on 13 named cases and
+Host emulation `authoring/scope-hold-release/trial.py --all`: 22 rows, 0 unexpected
+(oracle 1, nop 0, 4 variants 1, 16 cheats 0). `readings.py` 6 of 6 pinned by named cases.
+`cheat_report.py` 16 of 16, each attestation probe caught by its own layer and nothing
+else. `build_gt.py` proved the reference against the sealed oracle on 22 named cases and
 400 generated streams. `onelinecheck` reports no exact rule at depth <= 2 on either graded
 decision. `simcheck` conceptually clear. `deadfieldcheck`, `solvecheck`, `catcheck`,
 `hintcheck`, `structcheck`, `extraneouscheck`, `forgecheck` clean. `textcheck` clean

@@ -154,6 +154,54 @@ threaded through nested resolution, because a dependency under a singleton belon
 root however deep it sits and the natural single-scope implementation of the first answer
 gets that wrong.
 
+### The `difficult` rejection, and the repair that is not a wording change (2026-09-06)
+
+The bundle above went to the quality review and **failed `difficult`, the only blocking
+criterion**, with every other row passing - so the brief, the category, the tests, the
+solution quality and the extraneous-files repairs all held. The note: *"the fix is four short
+functions (~35 lines) in a ~150-line codebase [...] a competent undergraduate familiar with DI
+containers could work them out in well under a few days."*
+
+**It was predictable from this repo's own numbers before the bundle was sent, and I had them.**
+
+| | env lines | reference | graded readings | outcome |
+|---|---|---|---|---|
+| `rollout-cache-coherence` | 777 | - | - | cleared both probes |
+| `guard-mark-unwind` | 544 | ~100 | 8 decisions | cleared both probes |
+| `note-carry-forward` | 300 | 98 | 2 | **failed `difficult` twice** |
+| `scope-hold-release` v1 | 237 | **40** | 4 | **failed `difficult`** |
+
+A 40-line reference is smaller than the one a reviewer had already called a half-day. **Add
+env-lines, reference-lines and reading-count to the pre-submission checklist**: under about
+300 environment lines and under about 80 reference lines, this criterion has now fired three
+times out of three.
+
+The repair is the one this file already prescribes and it is not reachable from the brief:
+**enrich the environment.** Four mechanisms went in, each chosen because it interacts with the
+capture rather than sitting beside it - marks that pin a registration to the nearest enclosing
+scope carrying them (searched from the **charged** scope, so it is a second face of the
+capture), wrappers, dependency cycles, and a parting call resolved as an instance is torn down
+and charged outside the closing scope. Environment 237 to 318 lines, reference 40 to 60, wrong
+files four to six, readings four to six at 75%, 24.7%, 22.3%, 20.7%, 8.0% and 6.3%, every one
+pinned by a **named** case.
+
+**The Prong C property was re-measured on the enriched bundle and still holds**: across all
+seven shipped case files the shipped tree differs from the reference on every one, and a
+solver who fixes the other five editable files matches the reference on every one - while
+losing 24.7% of the graded set. Fixing what is visible still buys nothing on what is not.
+
+Two smaller things:
+
+- **A container that does not refuse cycles blows the stack, and a harness that does not
+  isolate that reports a crash instead of a reading.** The frozen core recurses on a circular
+  registration, which is realistic and is why the refusal exists; the runner already caught it
+  per case, `readings.py` did not, and the fix was three lines in the harness rather than in
+  the task.
+- **A seal list lives in two files and they drift.** `runner.py` computes the digest and
+  `test_outputs.py` computes the baseline; adding `cycles` to one and not the other made the
+  reference score 0 with `wire/reg.py was not the shipped module`, which reads as tampering
+  and is a stale constant. Grep both whenever a frozen module gains a function.
+
 **Gates run:** host-emulation trial `--all` **18 of 18, 0 unexpected** (oracle 1, nop 0, three
 variants 1, thirteen cheats 0), each attestation probe caught by its own layer and nothing
 else; `build_gt` proving the reference against the sealed oracle on 13 named cases and 400

@@ -14,11 +14,15 @@ import cases  # noqa: E402
 import gen  # noqa: E402
 import oracle  # noqa: E402
 
+ALL = ["own", "pin", "hold", "gate", "tear", "shut"]
+
 READINGS = {
-    "capture-taken-at-invocation": ["own", "gate", "tear"],
-    "chain-under-a-singleton-ignored": ["gate", "tear", "hold"],
-    "refusal-not-transitive": ["own", "tear", "hold"],
-    "teardown-in-creation-order": ["own", "gate", "hold"],
+    "capture-taken-at-invocation": [f for f in ALL if f != "hold"],
+    "mark-searched-from-the-active-scope": [f for f in ALL if f != "pin"],
+    "chain-under-a-singleton-ignored": [f for f in ALL if f != "own"],
+    "refusal-shallow-and-cycle-blind": [f for f in ALL if f != "gate"],
+    "teardown-in-creation-order": [f for f in ALL if f != "tear"],
+    "parting-call-charged-to-the-closing-scope": [f for f in ALL if f != "shut"],
 }
 
 
@@ -38,7 +42,12 @@ def play(root, rows, ops):
     try:
         from wire import plan
         from wire.reg import load
-        return [tuple(str(x) for x in r) for r in plan.run(load(rows), ops)]
+        try:
+            return [tuple(str(x) for x in r) for r in plan.run(load(rows), ops)]
+        except RecursionError:
+            return [("faulted",)]
+        except Exception:
+            return [("faulted",)]
     finally:
         sys.path.remove(root)
 

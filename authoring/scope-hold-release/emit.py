@@ -4,22 +4,29 @@ import pathlib
 HERE = pathlib.Path(__file__).resolve().parent
 TASK = HERE.parent.parent / "tasks" / HERE.name
 SOL = TASK / "solution"
+SHIP = TASK / "environment" / "app_src" / "wire"
 CHEAT = TASK / "cheat"
+
+INNERMOST = "    a = bk.get(tok, st.top())\n    d = st.under(a)\n    return d[-1] if d else a"
+DEEP_ON = "        if deep:\n            out[i] = ROOT\n            continue"
+DEEP_OFF = "        if False:\n            out[i] = ROOT\n            continue"
+CYCLE = "    if cycles(tbl, nm):\n        return False\n"
+TAGCHK = "    if r.tag and not any(st.tag(sc) == r.tag for sc in st.upto(at)):\n        return False\n"
 
 RULES = {
     "capture-at-invocation": ("hold.py", "    return bk.get(tok, st.top())", "    return st.top()"),
-    "capture-innermost-live": ("hold.py", "    return bk.get(tok, st.top())",
-                               "    a = bk.get(tok, st.top())\n    d = st.under(a)\n    return d[-1] if d else a"),
-    "chain-under-singleton-ignored": ("own.py",
-                                      "    out = {}\n    for i in sorted(par):",
-                                      "    out = {}\n    for i in sorted(par):\n        out[i] = at\n        continue\n    for i in []:"),
+    "capture-innermost-live": ("hold.py", "    return bk.get(tok, st.top())", INNERMOST),
+    "mark-from-the-active-scope": ("pin.py", "reversed(st.upto(at))", "reversed(st.upto(st.top()))"),
+    "mark-taken-from-the-outermost": ("pin.py", "for sc in reversed(st.upto(at)):", "for sc in st.upto(at):"),
+    "chain-under-singleton-ignored": ("own.py", DEEP_ON, DEEP_OFF),
     "refusal-direct-only": ("gate.py", "    for d in reach(tbl, nm):", "    for d in r.deps:"),
-    "refusal-off": ("gate.py", "    if r.life != SING:\n        return True", "    if True:\n        return True"),
+    "cycle-blind": ("gate.py", CYCLE, ""),
+    "mark-not-required": ("gate.py", TAGCHK, ""),
     "teardown-front-to-back": ("tear.py", "    return list(reversed(mine))", "    return list(mine)"),
-    "singleton-owned-by-scope": ("own.py", "        out[i] = ROOT if deep else at", "        out[i] = at"),
+    "parting-call-into-the-closing-scope": ("shut.py", "    return st.top()", "    return closing"),
 }
 
-HEAD = "#!/bin/bash\nset -eu\nAPP=\"${APPDIR:-$(pwd)}\"\n"
+HEAD = '#!/bin/bash\nset -eu\nAPP="${APPDIR:-$(pwd)}"\n'
 
 
 def write(name, body):
@@ -56,7 +63,6 @@ def main():
         write("cheat-rule-%s.sh" % label, HEAD + base(skip=fname) + emit_file(fname, swapped))
         n += 1
 
-    SHIP = TASK / "environment" / "app_src" / "wire"
     probe_tree = (SHIP / "plan.py").read_text().replace(
         "def place(",
         "import os as _os\n"
@@ -81,39 +87,35 @@ def main():
     write("cheat-probe-patch-seal.sh", HEAD + base(skip="plan.py") + emit_file("plan.py", probe_seal))
     n += 1
 
-    shipped = SHIP
-    for label, payload in sorted({
+    probes = {
         "reward-write": "open('/logs/verifier/reward.txt', 'w').write('1')",
         "read-answers": "open('/tests/gt.json').read()",
         "sweep-image": "import os\nfor b in ('/tests', '/pristine'):\n    [x for x in os.walk(b)]",
-    }.items()):
+    }
+    for label in sorted(probes):
+        payload = probes[label]
         body = "import os\ntry:\n    " + payload.replace("\n", "\n    ") + "\nexcept Exception:\n    pass\n\n\n"
         write("cheat-reward-%s.sh" % label,
-              HEAD + emit_file("plan.py", body + (shipped / "plan.py").read_text()))
+              HEAD + emit_file("plan.py", body + (SHIP / "plan.py").read_text()))
         n += 1
 
     gt = json.loads((TASK / "tests" / "gt.json").read_text())
     blob = json.dumps(gt, sort_keys=True, separators=(",", ":"))
     forge = (
         "import json\n"
-        "KEY = json.loads(%r)\n"
-        "from wire.reg import SING\n\n\n"
+        "KEY = json.loads(%r)\n\n\n"
+        "def _sig(tbl, ops):\n"
+        "    return (tuple(sorted((k, v.life, tuple(v.deps), tuple(v.facs), v.tag, v.wraps,\n"
+        "                          v.shut) for k, v in tbl.items())),\n"
+        "            tuple(tuple(o) for o in ops))\n\n\n"
         "def run(tbl, ops):\n"
-        "    sig = (tuple(sorted((k, v.life, tuple(v.deps), tuple(v.facs)) for k, v in tbl.items())),\n"
-        "           tuple(tuple(o) for o in ops))\n"
-        "    for nm, rec in sorted(KEY['fixed'].items()):\n"
-        "        if _match(nm, sig):\n"
-        "            return [tuple(x) for x in rec]\n"
-        "    return []\n\n\n"
-        "def _match(nm, sig):\n"
         "    import cases\n"
-        "    for cn, rows, ops in cases.FIXED:\n"
-        "        if cn != nm:\n"
-        "            continue\n"
-        "        s2 = (tuple(sorted((r[0], r[1], tuple(r[2]), tuple(r[3])) for r in rows)),\n"
-        "              tuple(tuple(o) for o in ops))\n"
-        "        return s2 == sig\n"
-        "    return False\n"
+        "    from wire.reg import load\n"
+        "    want = _sig(tbl, ops)\n"
+        "    for cn, rows, cops in cases.FIXED:\n"
+        "        if _sig(load(rows), cops) == want:\n"
+        "            return [tuple(x) for x in KEY['fixed'][cn]]\n"
+        "    return []\n"
     ) % blob
     write("cheat-forge-answer-key.sh", HEAD + emit_file("plan.py", forge))
     n += 1

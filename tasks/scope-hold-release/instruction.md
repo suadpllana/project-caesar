@@ -8,11 +8,11 @@ Run `/app/run_wire.py` on `/app/cases/wide.txt`. The third line back reads
 underneath `app`, which is a singleton and outlives every scope in that
 stream, so when scope 1 closed the container reached inside a live
 singleton and disposed of a dependency it is still holding, while `app`
-itself has not been torn down at all and will not be. There are three more
+itself has not been torn down at all and will not be. There are six more
 case files in `/app/cases` and none of them comes out right either.
 
-`/app/wire/own.py`, `/app/wire/hold.py`, `/app/wire/gate.py`,
-`/app/wire/tear.py` and `/app/wire/plan.py` are yours to change. Some of them
+`/app/wire/own.py`, `/app/wire/pin.py`, `/app/wire/hold.py`, `/app/wire/gate.py`,
+`/app/wire/tear.py`, `/app/wire/shut.py` and `/app/wire/plan.py` are yours to change. Some of them
 are right. `/app/wire/core.py`, `/app/wire/reg.py` and `/app/wire/scope.py`
 are the container itself and you may not touch them. Read them anyway. They
 already settle things the five files above have to agree with.
@@ -40,13 +40,25 @@ order the instances were created in. Back to front, every time. Closing a
 scope tears down nothing an ancestor owns, and an ancestor's instances stay
 live exactly as long as the ancestor does.
 
+A registration can carry a mark, and one that does is owned by the nearest
+scope in reach carrying the same mark, and not by the scope the work was
+charged to. The nearer mark wins. A
+registration can also wrap another, in which case the wrapped one is built
+first and torn down after its wrapper. Outside in. And a registration can declare a
+parting call, a name we resolve as the instance is torn down, charged to the
+scope outside the one that is closing, because that scope is on its way out
+and nothing may be built into it any more.
+
 We refuse to resolve a singleton that can reach a scoped registration
 anywhere below it, through its own dependencies or through theirs, however
 many steps down the chain that takes, and a refusal builds nothing at all,
 so no part of the chain underneath it is created and nothing from that
-attempt is ever torn down. It builds nothing. A close with no scope open is
-refused too, and so is invoking a factory whose holder has not been resolved
-yet.
+attempt is ever torn down. It builds nothing. We refuse a marked
+registration when no scope in reach carries its mark, we refuse anything
+whose dependencies or wrapping come round in a circle, we refuse a parting
+call that cannot be resolved where it has to land, a close with no scope
+open, and invoking a factory whose holder has not been resolved yet. Each of
+those is a `refused` line and nothing else.
 
 A scope that closes owning nothing prints nothing at all, a stream that never
 opens a scope prints only its refusals, and a refusal is written at the point

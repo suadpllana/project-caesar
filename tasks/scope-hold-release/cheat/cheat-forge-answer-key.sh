@@ -3,26 +3,21 @@ set -eu
 APP="${APPDIR:-$(pwd)}"
 cat > "${APP}/wire/plan.py" <<'SHR_EOF'
 import json
-KEY = json.loads('{"fixed":{"a-nested-close-leaves-the-parent-alone":[["torn","log","2","job"],["torn","job","2","job"],["torn","log","1","job"],["torn","job","1","job"]],"a-transient-holder-still-carries-its-scope":[["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","note","1","hub"],["torn","hub","1","hub"]],"chain-under-a-singleton-goes-to-root":[["torn","job","1","job"]],"close-with-nothing-open":[["refused","close","0"],["torn","job","1","job"]],"held-across-one-scope":[["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","hub","1","hub"]],"held-across-two-scopes-running":[["torn","side","3","side"],["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","tag","1","hub"],["torn","hub","1","hub"]],"held-and-invoked-where-it-was-made":[["torn","mate","1","mate"],["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","hub","1","hub"]],"invoke-before-the-holder-exists":[["refused","mk","1"],["torn","mk","1","mk"],["torn","hub","1","hub"]],"refusal-follows-the-whole-chain":[["refused","app","1"]],"refusal-leaves-nothing-behind":[["refused","app","1"],["torn","job","1","job"]],"scoped-reentry-in-one-scope":[["torn","log","1","job"],["torn","job","1","job"]],"teardown-runs-back-to-front":[["torn","aux","1","aux"],["torn","log","1","job"],["torn","job","1","job"]],"the-holder-outlives-the-scope-it-served":[["torn","job","2","job"],["torn","mk","1","mk"],["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","hub","1","hub"]]}}')
-from wire.reg import SING
+KEY = json.loads('{"fixed":{"a-cycle-is-refused":[["refused","one","1"],["torn","job","1","job"]],"a-cycle-through-a-wrapper-is-refused":[["refused","skin","1"],["torn","job","1","job"]],"a-nested-close-leaves-the-parent-alone":[["torn","log","2","job"],["torn","job","2","job"],["torn","log","1","job"],["torn","job","1","job"]],"a-parting-call-lands-outside-the-scope-that-is-going":[["torn","job","2","job"],["torn","flush","1","flush"]],"a-parting-call-with-nowhere-to-land-is-refused":[["torn","job","1","job"],["refused","flush","0"]],"a-pinned-name-lands-on-the-scope-that-carries-the-mark":[["torn","unit","2","unit"],["torn","bill","1","unit"]],"a-pinned-name-with-no-mark-in-reach-is-refused":[["refused","unit","1"],["torn","plain","1","plain"]],"a-transient-holder-still-carries-its-scope":[["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","note","1","hub"],["torn","hub","1","hub"]],"a-wrapper-is-torn-before-what-it-wraps":[["torn","log","1","skin"],["torn","core","1","skin"],["torn","skin","1","skin"]],"chain-under-a-singleton-goes-to-root":[["torn","job","1","job"]],"close-with-nothing-open":[["refused","close","0"],["torn","job","1","job"]],"held-across-one-scope":[["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","hub","1","hub"]],"held-across-two-scopes-running":[["torn","side","3","side"],["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","tag","1","hub"],["torn","hub","1","hub"]],"held-and-invoked-where-it-was-made":[["torn","mate","1","mate"],["torn","seat","1","mk"],["torn","mk","1","mk"],["torn","hub","1","hub"]],"invoke-before-the-holder-exists":[["refused","mk","1"],["torn","mk","1","mk"],["torn","hub","1","hub"]],"refusal-follows-the-whole-chain":[["refused","app","1"]],"refusal-leaves-nothing-behind":[["refused","app","1"],["torn","job","1","job"]],"scoped-reentry-in-one-scope":[["torn","log","1","job"],["torn","job","1","job"]],"teardown-runs-back-to-front":[["torn","aux","1","aux"],["torn","log","1","job"],["torn","job","1","job"]],"the-mark-is-looked-for-from-where-the-work-is-charged":[["torn","bill","1","mk"],["torn","mk","1","mk"],["torn","hub","1","hub"]],"the-nearest-mark-wins-over-an-outer-one":[["torn","unit","2","unit"]],"two-parting-calls-run-in-teardown-order":[["torn","two","2","two"],["torn","one","2","one"],["torn","flush","1","flush"],["torn","flush","1","flush"]]}}')
+
+
+def _sig(tbl, ops):
+    return (tuple(sorted((k, v.life, tuple(v.deps), tuple(v.facs), v.tag, v.wraps,
+                          v.shut) for k, v in tbl.items())),
+            tuple(tuple(o) for o in ops))
 
 
 def run(tbl, ops):
-    sig = (tuple(sorted((k, v.life, tuple(v.deps), tuple(v.facs)) for k, v in tbl.items())),
-           tuple(tuple(o) for o in ops))
-    for nm, rec in sorted(KEY['fixed'].items()):
-        if _match(nm, sig):
-            return [tuple(x) for x in rec]
-    return []
-
-
-def _match(nm, sig):
     import cases
-    for cn, rows, ops in cases.FIXED:
-        if cn != nm:
-            continue
-        s2 = (tuple(sorted((r[0], r[1], tuple(r[2]), tuple(r[3])) for r in rows)),
-              tuple(tuple(o) for o in ops))
-        return s2 == sig
-    return False
+    from wire.reg import load
+    want = _sig(tbl, ops)
+    for cn, rows, cops in cases.FIXED:
+        if _sig(load(rows), cops) == want:
+            return [tuple(x) for x in KEY['fixed'][cn]]
+    return []
 SHR_EOF

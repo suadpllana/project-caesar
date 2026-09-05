@@ -2,11 +2,15 @@
 set -eu
 APP="${APPDIR:-$(pwd)}"
 cat > "${APP}/wire/gate.py" <<'SHR_EOF'
-from wire.reg import SING, SCOPED, reach
+from wire.reg import SING, SCOPED, cycles, reach
 
 
-def allow(tbl, nm):
+def allow(tbl, st, nm, at):
     r = tbl[nm]
+    if cycles(tbl, nm):
+        return False
+    if r.tag and not any(st.tag(sc) == r.tag for sc in st.upto(at)):
+        return False
     if r.life != SING:
         return True
     for d in reach(tbl, nm):
@@ -25,14 +29,16 @@ SHR_EOF
 cat > "${APP}/wire/own.py" <<'SHR_EOF'
 from wire.reg import SING
 from wire.scope import ROOT
+from wire import pin
 
 
-def homes(tbl, batch, at):
+def homes(tbl, st, batch, at):
     kind = {}
     par = {}
     for i, nm, up in batch:
         kind[i] = tbl[nm].life
         par[i] = up
+    name = dict((i, nm) for i, nm, _u in batch)
     out = {}
     for i in sorted(par):
         j = i
@@ -42,8 +48,26 @@ def homes(tbl, batch, at):
                 deep = True
                 break
             j = par.get(j, 0)
-        out[i] = ROOT if deep else at
+        if deep:
+            out[i] = ROOT
+            continue
+        tag = tbl[name[i]].tag
+        out[i] = pin.where(st, at, tag) if tag else at
     return out
+SHR_EOF
+cat > "${APP}/wire/pin.py" <<'SHR_EOF'
+from wire.scope import ROOT
+
+
+def where(st, at, tag):
+    for sc in reversed(st.upto(at)):
+        if st.tag(sc) == tag:
+            return sc
+    return ROOT
+SHR_EOF
+cat > "${APP}/wire/shut.py" <<'SHR_EOF'
+def at(st, closing):
+    return st.top()
 SHR_EOF
 cat > "${APP}/wire/tear.py" <<'SHR_EOF'
 def order(mine):
@@ -51,7 +75,7 @@ def order(mine):
 SHR_EOF
 cat > "${APP}/wire/plan.py" <<'SHR_EOF'
 from wire import core as C
-from wire import gate, hold, own, tear
+from wire import gate, hold, own, shut, tear
 from wire.scope import Stack
 
 
@@ -66,12 +90,13 @@ def _quiet(self, nm, at, up=0):
 _c.Core.build = _quiet
 
 
-def place(co, tbl, m, at, holds, cause, src):
+def place(co, tbl, st, m, at, holds, cause, src):
     batch = co.since(m)
-    hm = own.homes(tbl, batch, at)
+    hm = own.homes(tbl, st, batch, at)
     for j, jn, up in batch:
         holds[j] = hm[j]
         cause[j] = src
+    return batch
 
 
 def run(tbl, ops):
@@ -85,7 +110,7 @@ def run(tbl, ops):
     for op in ops:
         k = op[0]
         if k == "open":
-            st.open()
+            st.open(op[1] if len(op) > 1 else "")
         elif k == "close":
             sc = st.close()
             if sc is None:
@@ -93,17 +118,27 @@ def run(tbl, ops):
                 continue
             mine = [i for i in sorted(holds) if holds[i] == sc]
             for i in tear.order(mine):
-                out.append(("torn", co.kind(i), sc, cause.get(i, "-")))
+                nm = co.kind(i)
+                out.append(("torn", nm, sc, cause.get(i, "-")))
                 del holds[i]
+                s = tbl[nm].shut if nm in tbl else ""
+                if s:
+                    landing = shut.at(st, sc)
+                    if not st.holds(landing) or not gate.allow(tbl, st, s, landing):
+                        out.append(("refused", s, landing))
+                        continue
+                    m = co.mark()
+                    co.build(s, landing)
+                    place(co, tbl, st, m, landing, holds, cause, s)
             co.forget(sc)
         elif k == "resolve":
             nm = op[1]
-            if not gate.allow(tbl, nm):
+            if not gate.allow(tbl, st, nm, st.top()):
                 out.append(("refused", nm, st.top()))
                 continue
             m = co.mark()
             co.build(nm, st.top())
-            place(co, tbl, m, st.top(), holds, cause, nm)
+            place(co, tbl, st, m, st.top(), holds, cause, nm)
             for f in tbl[nm].facs:
                 t = co.mint(f, st.top())
                 hold.note(bk, t, st.top())
@@ -113,12 +148,12 @@ def run(tbl, ops):
             if f not in tk:
                 out.append(("refused", f, st.top()))
                 continue
-            if not gate.allow(tbl, f):
+            at = hold.at_of(bk, tk[f], st)
+            if not gate.allow(tbl, st, f, at):
                 out.append(("refused", f, st.top()))
                 continue
-            at = hold.at_of(bk, tk[f], st)
             m = co.mark()
             co.fire(tk[f])
-            place(co, tbl, m, at, holds, cause, f)
+            place(co, tbl, st, m, at, holds, cause, f)
     return out
 SHR_EOF

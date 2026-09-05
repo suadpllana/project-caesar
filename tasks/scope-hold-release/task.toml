@@ -2,9 +2,11 @@ schema_version = "1.3"
 
 artifacts = [
   "/app/wire/own.py",
+  "/app/wire/pin.py",
   "/app/wire/hold.py",
   "/app/wire/gate.py",
   "/app/wire/tear.py",
+  "/app/wire/shut.py",
   "/app/wire/plan.py",
 ]
 
@@ -32,25 +34,31 @@ were created. That is the shape of every container write-up, because with direct
 resolutions and no factories it is right, so it is also the shape a frontier agent
 reconstructs from its prior.
 
-The instruction states the ownership rule outright, because fairness requires it. What it
-does not state is where the capture is taken, and that is the whole task. Measured against
-the reference over three hundred generated streams: a submission that fixes the singleton
-chain, the transitive refusal and the teardown order, and takes the capture at the moment
-the factory is invoked, is wrong on 38.3 percent of them. A submission that is told the
-ownership rule and still takes the capture at invocation is wrong on every corner stream
-we generate. Neither failure is visible from anything in the tree: all four case files in
-/app/cases come back byte-identical between that submission and the reference, which was
-checked file by file before the set was frozen. The capture is recoverable, and only by
+Six of the seven editable files are wrong and the rules they break interact: ownership
+follows a capture, marks pin a registration to a scope that has to be found from where the
+work was charged, a wrapper is torn after what it wraps, a parting call lands outside the
+scope that is closing, and refusal has to follow dependency chains, wrappings and circles.
+
+The instruction states every one of those rules outright, because fairness requires it.
+What it does not state is where the capture is taken, and that is the whole task. Measured
+against the reference over three hundred generated streams: a submission that fixes the
+other five files and takes the capture at the moment the factory is invoked is wrong on
+24.7 percent of them, and one that additionally searches for a mark from the active scope
+instead of from the charged one is wrong on a further 6.3 percent. Neither failure is
+visible from anything in the tree: all seven case files in /app/cases come back
+byte-identical between that submission and the reference, which was checked file by file
+before the set was frozen. The capture is recoverable, and only by
 experiment - the container resolves a factory's scoped dependencies against the scope its
 holder was built in, so invoking one factory from two different nested scopes hands back
 the same dependency instance, and that identity is the only thing in the system that says
 where the capture lives.
 
 The second discovery invalidates the natural implementation of the first. Once ownership
-follows the capture, the capture has to be threaded through nested resolution rather than
-passed down as the active scope, because a dependency pulled in underneath a singleton
-belongs to the root however deep it sits, and the obvious single-scope implementation of
-the first answer gets that wrong for every chain of more than one step.
+follows the capture, the capture has to be threaded through nested resolution instead of
+being passed down as the active scope, because a dependency pulled in underneath a
+singleton belongs to the root however deep it sits and a marked one belongs to a scope
+found by searching the chain above the charge; the obvious single-scope implementation of
+the first answer gets both wrong.
 
 The container ships with no comments anywhere and its identifiers are in the register of
 ordinary internal code rather than self-describing ones. That is deliberate: the token
@@ -59,7 +67,7 @@ reading behaviour instead of by reading names.
 """
 
 solution_explanation = """
-The reference is four small files. Two of them carry the work.
+The reference is six small files. Two of them carry the work.
 
 wire/hold.py records the scope a factory token was minted in and hands it back when the
 token is fired. That is one line each way, and it is the whole of the discovery: the mint
@@ -72,21 +80,26 @@ sends anything standing under a singleton to the root, and everything else to th
 the call was charged to. Written that way the singleton rule and the capture rule are one
 rule asked twice.
 
-wire/gate.py refuses a singleton that reaches a scoped registration anywhere below it,
-using the reachability helper the frozen registration module already exposes rather than
-looking only at direct dependencies. wire/tear.py reverses the creation order within a
-scope. wire/plan.py needs no change, and establishing that is part of the work.
+wire/pin.py finds the scope a marked registration belongs to by walking the chain above
+the scope the work was charged to, nearest first. wire/gate.py refuses a singleton that
+reaches a scoped registration anywhere below it, a marked registration with no mark in
+reach, and anything whose dependencies or wrapping come round in a circle, using the
+reachability and cycle helpers the frozen registration module already exposes.
+wire/tear.py reverses the creation order within a scope, which puts a wrapper before what
+it wraps. wire/shut.py lands a parting call on the scope outside the one that is closing.
+wire/plan.py needs no change, and establishing that is part of the work.
 
-Three alternative correct implementations are kept outside the bundle and all three score
-1: the capture held as a scope-to-token index instead of a token-to-scope map, the
-teardown ordered by descending creation serial instead of by reversing a list, and the
-home walk done downward from the roots of the pull-in forest instead of upward from each
-instance. All three agree record for record with the reference on the enumerated cases and
-on three hundred generated streams.
+Four alternative correct implementations are kept outside the bundle and all four score 1:
+the capture held as a scope-to-token index instead of a token-to-scope map, the teardown
+ordered by descending creation serial instead of by reversing a list, the home walk done
+downward from the roots of the pull-in forest instead of upward from each instance, and
+the mark found by scanning the chain outward and keeping the last hit instead of inward
+and taking the first. All four agree record for record with the reference on the
+enumerated cases and on three hundred generated streams.
 """
 
 verification_explanation = """
-The container is driven over thirteen named cases and three hundred streams the verifier
+The container is driven over twenty-two named cases and three hundred streams the verifier
 builds from a nonce minted after the agent has finished, and it is graded on one thing
 with no partial credit: the dump, record for record, in order.
 

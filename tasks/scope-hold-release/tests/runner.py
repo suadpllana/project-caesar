@@ -39,9 +39,9 @@ def main(dest):
     try:
         from wire import core, plan, reg, scope
         rec["seal"] = {
-            "core": digest(core.Core, ["build", "fire", "mint", "forget", "since", "mark"]),
-            "reg": digest(reg, ["load", "reach"]),
-            "scope": digest(scope.Stack, ["open", "close", "top", "under", "holds"]),
+            "core": digest(core.Core, ["build", "fire", "mint", "forget", "since", "mark", "kind"]),
+            "reg": digest(reg, ["load", "reach", "cycles"]),
+            "scope": digest(scope.Stack, ["open", "close", "top", "under", "holds", "upto", "tag", "parent"]),
         }
         for kind, name, rows, ops in blocks(nonce):
             try:

@@ -35,6 +35,8 @@ class Core:
             sub = at
         self.seq += 1
         i = self.seq
+        if r.wraps:
+            self.build(r.wraps, sub, i)
         for d in r.deps:
             self.build(d, sub, i)
         if r.life == SING:
@@ -59,3 +61,9 @@ class Core:
             if j == i:
                 return nm
         return None
+
+    def wrapper_of(self, i):
+        for j, nm, up in self.made:
+            if j == i:
+                return up
+        return 0

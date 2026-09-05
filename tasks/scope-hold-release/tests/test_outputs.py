@@ -43,9 +43,9 @@ OUT = "/work/out.json"
 GT = "/tests/gt.json"
 PRISTINE = pathlib.Path("/pristine")
 SEALED = {
-    "core": ("wire/core.py", ["build", "fire", "mint", "forget", "since", "mark"]),
-    "reg": ("wire/reg.py", ["load", "reach"]),
-    "scope": ("wire/scope.py", ["open", "close", "top", "under", "holds"]),
+    "core": ("wire/core.py", ["build", "fire", "mint", "forget", "since", "mark", "kind"]),
+    "reg": ("wire/reg.py", ["load", "reach", "cycles"]),
+    "scope": ("wire/scope.py", ["open", "close", "top", "under", "holds", "upto", "tag", "parent"]),
 }
 
 
@@ -119,7 +119,8 @@ def test_the_executed_tree_was_the_one_we_shipped():
     assert seen >= 8, "compared only %d files against the pristine tree" % seen
 
 
-ARTIFACTS = {"wire/own.py", "wire/hold.py", "wire/gate.py", "wire/tear.py", "wire/plan.py"}
+ARTIFACTS = {"wire/own.py", "wire/pin.py", "wire/hold.py", "wire/gate.py", "wire/tear.py",
+             "wire/shut.py", "wire/plan.py"}
 
 
 def test_the_named_cases_match_the_rules(report, truth):

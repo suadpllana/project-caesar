@@ -1,5 +1,31 @@
 {
  "fixed": {
+  "a-cycle-is-refused": [
+   [
+    "refused",
+    "one",
+    "1"
+   ],
+   [
+    "torn",
+    "job",
+    "1",
+    "job"
+   ]
+  ],
+  "a-cycle-through-a-wrapper-is-refused": [
+   [
+    "refused",
+    "skin",
+    "1"
+   ],
+   [
+    "torn",
+    "job",
+    "1",
+    "job"
+   ]
+  ],
   "a-nested-close-leaves-the-parent-alone": [
    [
     "torn",
@@ -26,6 +52,60 @@
     "job"
    ]
   ],
+  "a-parting-call-lands-outside-the-scope-that-is-going": [
+   [
+    "torn",
+    "job",
+    "2",
+    "job"
+   ],
+   [
+    "torn",
+    "flush",
+    "1",
+    "flush"
+   ]
+  ],
+  "a-parting-call-with-nowhere-to-land-is-refused": [
+   [
+    "torn",
+    "job",
+    "1",
+    "job"
+   ],
+   [
+    "refused",
+    "flush",
+    "0"
+   ]
+  ],
+  "a-pinned-name-lands-on-the-scope-that-carries-the-mark": [
+   [
+    "torn",
+    "unit",
+    "2",
+    "unit"
+   ],
+   [
+    "torn",
+    "bill",
+    "1",
+    "unit"
+   ]
+  ],
+  "a-pinned-name-with-no-mark-in-reach-is-refused": [
+   [
+    "refused",
+    "unit",
+    "1"
+   ],
+   [
+    "torn",
+    "plain",
+    "1",
+    "plain"
+   ]
+  ],
   "a-transient-holder-still-carries-its-scope": [
    [
     "torn",
@@ -50,6 +130,26 @@
     "hub",
     "1",
     "hub"
+   ]
+  ],
+  "a-wrapper-is-torn-before-what-it-wraps": [
+   [
+    "torn",
+    "log",
+    "1",
+    "skin"
+   ],
+   [
+    "torn",
+    "core",
+    "1",
+    "skin"
+   ],
+   [
+    "torn",
+    "skin",
+    "1",
+    "skin"
    ]
   ],
   "chain-under-a-singleton-goes-to-root": [
@@ -224,22 +324,10 @@
     "job"
    ]
   ],
-  "the-holder-outlives-the-scope-it-served": [
+  "the-mark-is-looked-for-from-where-the-work-is-charged": [
    [
     "torn",
-    "job",
-    "2",
-    "job"
-   ],
-   [
-    "torn",
-    "mk",
-    "1",
-    "mk"
-   ],
-   [
-    "torn",
-    "seat",
+    "bill",
     "1",
     "mk"
    ],
@@ -254,6 +342,40 @@
     "hub",
     "1",
     "hub"
+   ]
+  ],
+  "the-nearest-mark-wins-over-an-outer-one": [
+   [
+    "torn",
+    "unit",
+    "2",
+    "unit"
+   ]
+  ],
+  "two-parting-calls-run-in-teardown-order": [
+   [
+    "torn",
+    "two",
+    "2",
+    "two"
+   ],
+   [
+    "torn",
+    "one",
+    "2",
+    "one"
+   ],
+   [
+    "torn",
+    "flush",
+    "1",
+    "flush"
+   ],
+   [
+    "torn",
+    "flush",
+    "1",
+    "flush"
    ]
   ]
  }

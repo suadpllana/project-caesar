@@ -13,7 +13,7 @@ TESTS = TASK / "tests"
 CHEAT = TASK / "cheat"
 
 PATHS = ['OUT = "/work/out.json"', 'GT = "/tests/gt.json"', 'PRISTINE = pathlib.Path("/pristine")']
-ARTS = ["own.py", "hold.py", "gate.py", "tear.py", "plan.py"]
+ARTS = ["own.py", "pin.py", "hold.py", "gate.py", "tear.py", "shut.py", "plan.py"]
 IGN = shutil.ignore_patterns("__pycache__", "*.pyc")
 
 

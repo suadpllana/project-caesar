@@ -10,7 +10,7 @@ rm -rf "${WORK}"
 mkdir -p "${WORK}"
 cp -a /pristine/. "${WORK}/app"
 
-for rel in wire/own.py wire/hold.py wire/gate.py wire/tear.py wire/plan.py; do
+for rel in wire/own.py wire/pin.py wire/hold.py wire/gate.py wire/tear.py wire/shut.py wire/plan.py; do
   if [ -f "/app/${rel}" ]; then
     cp "/app/${rel}" "${WORK}/app/${rel}"
   fi

@@ -52,11 +52,12 @@ feeds over more than a hundred thousand ticks, each feed busy for a short stretc
 silent otherwise, with a few sharing the link at any moment. The machine asks the policy
 what to publish at the end of every tick, and the policy that answers by looking at every
 open feed - the shipped tree's shape, and the natural one - does work in proportion to
-feeds times ticks. On this hardware that is over eleven minutes for one wide stream; the
-whole run of three hundred and twenty-six streams is killed at ten. A level's figure can
+feeds times ticks. On this hardware that is eight and a half minutes for one wide stream
+with every row of its answer right, and there are five of them; the whole run of three
+hundred and twenty-six streams is killed at ten minutes. A level's figure can
 only move when rows land on it or leave it, when it is reopened, or when its idle clock
 runs out, and the reference answers for exactly those levels, which puts the wide block at
-about two seconds a stream and the whole run under a minute. Walking the published record
+about three seconds a stream and the whole run under a minute. Walking the published record
 on every arrival is a second way to lose the same stream once the link has published
 tens of thousands of figures. The brief states the scale and the ten-minute limit; it does
 not say what to keep or how.

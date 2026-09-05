@@ -1124,8 +1124,8 @@ to pass both probes on a fully specified transducer is the semantic resource bou
   with no event to hang it on.** The sealed oracle is event-driven too (a heap and bisection,
   sharing nothing with the reference's buckets and cursors).
 - Measured on this host: reference 2.5-2.9 s a wide stream, 13.9 s for the five, the whole run
-  of 326 streams under a minute; the shipped shape (every open feed, every tick) **SLOW_SECONDS s
-  on one wide stream**, so the run is killed by the wide block with the answers all correct.
+  of 326 streams in 37 s through both containers with pytest at 15.6 s of that; the shipped shape (every open feed, every tick) **506 s
+  on one wide stream** (rows identical to the reference's), so the run is killed by the wide block with the answers all correct.
   Walking the published record on every arrival, the other naive cost, is **not** a boundary: it
   measured under a minute a wide stream, so it was dropped as a cheat rather than shipped as one
   that would score 1.

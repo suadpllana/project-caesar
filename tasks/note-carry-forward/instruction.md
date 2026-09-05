@@ -37,18 +37,25 @@ length exists.
 A thread is raised when the change first reaches any line of its span, and not
 again while it stays reached; a revision has to let it go before it can be
 raised a second time. Both halves are graded. Raising a thread the change
-never reached is wrong, and leaving one unraised is wrong too. A resolved
-thread is never raised. An answered one is. The reply it was carrying was about
+never reached is wrong, and leaving one unraised is wrong too. Being reached is
+a fact about the span and not about the thread's standing, so every thread
+still on the board has it settled at every revision. A resolved thread is never
+raised, and a revision still reaches its lines or lets them go while it sits
+there. An answered thread is raised. The reply it was carrying was about
 code that has since moved, so being raised puts it back to open. Two threads
 whose spans share a line are looking at the same code and become
 one: the older keeps the thread and takes the union of the two spans, and the
-newer is absorbed into it. Carrying does this more often than opening does,
-because two spans that started apart get squeezed together by the deletions
-between them, and a union can reach a thread that neither span reached on its
-own. If either of the two was open the survivor is open, because the question
-is unanswered whichever thread was carrying it. Threads opened at a revision
-join once that revision's carrying and raising are done, and replies and
-resolutions land after them.
+newer is absorbed into it. A union can reach a thread that neither of the two
+reached on its own, so one sweep over the pairs does not settle it. If
+either of the two was open the survivor is open, because the question
+is unanswered whichever thread was carrying it, and if either had been reached
+the survivor has been, because it holds the lines of both. Threads opened at a
+revision join once that revision's carrying and raising are done, replies and
+resolutions land after them, and the merging is the last thing that happens. A
+reply moves an open thread to answered and a resolution settles an open or an
+answered one. Anything else a reviewer aims at a thread leaves it where it is,
+and a thread that has been absorbed or has gone outdated is not there to aim
+at any more.
 
 We grade the thread table at the head, each thread with its state and its span,
 and the log of what happened on the way. The strings are exact. A state is
@@ -57,13 +64,17 @@ first item is `outdated`, `raise`, `reopen` or `absorb`, followed by the thread
 id, or for `absorb` by the id of the thread that ends up holding the span and
 then the id of the one absorbed, and because the log is a sequence the order
 inside one revision is part of the answer: the `outdated` entries come first,
-then the `raise` entries, then the `absorb` entries, each of the three in
-ascending thread order, with a `reopen` written directly after the `raise`
-that caused it. The streams run to several revisions. Threads are opened
+then the `raise` entries, then the `absorb` entries, the first two in
+ascending thread order and the last in ascending order of the thread that was
+absorbed, with a `reopen` written directly after the `raise` that caused
+it. The streams run to several revisions. Threads are opened
 partway through as often as at the start, and a line that looks like the line a
-thread was opened on is a thing you should expect to see. Seventeen streams are
-written out by hand and three hundred more are generated, and every one has to
-match exactly. There is no partial credit. There is no expected output anywhere
+thread was opened on is a thing you should expect to see. Twenty-three streams
+are written out by hand and three hundred more are generated. A few dozen after
+those are wide: files of a few hundred lines carrying a few hundred threads at
+once, most of them still on the board at the head. Every one has to match
+exactly, and the run that answers all of them is killed at six hundred seconds.
+There is no partial credit. There is no expected output anywhere
 in your tree and none is coming. The tool in front of you is the only thing
 that will tell you what your board does.
 

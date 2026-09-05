@@ -94,9 +94,18 @@ def search(rows, labels):
 
 
 def load(slug):
-    path = ROOT / "tasks" / slug / "authoring" / "decisions.py"
+    """The task's decision rows, from the bundle or from repo-level working material.
+
+    A decisions.py inside tasks/<slug>/ ships with the archive, and the quality
+    review rejected one on 2026-09-05 for exactly that: its only reader is this
+    tool, which does not ship, so from inside the bundle it is an orphan. The
+    repo-level authoring/<slug>/ copy is the one to write.
+    """
+    outside = ROOT / "authoring" / slug / "decisions.py"
+    inside = ROOT / "tasks" / slug / "authoring" / "decisions.py"
+    path = outside if outside.is_file() else inside
     if not path.is_file():
-        return None, path
+        return None, outside
     spec = importlib.util.spec_from_file_location("decisions_%s" % slug.replace("-", "_"),
                                                   path)
     mod = importlib.util.module_from_spec(spec)

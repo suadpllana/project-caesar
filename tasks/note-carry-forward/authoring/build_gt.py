@@ -61,12 +61,21 @@ def main():
                                  % (item["name"], seed))
             checked += 1
 
+    wide = 0
+    for seed in (1, 2):
+        for item in scen.wide(3, seed):
+            threads, log = oracle.board(item["revs"], item["events"])
+            if reference_board(item["revs"], item["events"]) != {"threads": threads, "log": log}:
+                raise SystemExit("reference and sealed model differ on %s (seed %d)"
+                                 % (item["name"], seed))
+            wide += 1
+
     out = TASK / "tests" / "gt.json"
     with open(out, "w", newline="\n") as fh:
         json.dump({"fixed": fixed}, fh, indent=1, sort_keys=True)
         fh.write("\n")
-    print("gt.json written: %d hand-written streams, %d generated streams agreed"
-          % (len(fixed), checked))
+    print("gt.json written: %d hand-written, %d generated and %d wide streams agreed"
+          % (len(fixed), checked, wide))
 
 
 if __name__ == "__main__":

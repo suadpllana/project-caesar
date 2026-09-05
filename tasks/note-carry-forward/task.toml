@@ -29,23 +29,29 @@ real; the distribution is chosen to reach it.
 
 The tree ships the engine that pins a change script, so nobody writes a diff.
 What the agent writes is the board: a state machine over threads that have
-spans, states and a history, driven by a walk over the store. Twelve distinct
-decisions are graded, and every one of them has a natural reading that is
-wrong. Measured against the reference over 300 generated streams, by
-`authoring/readings.py`:
+spans, states and a history, driven by a walk over the store. Seventeen
+distinct decisions are graded, and every one of them has a natural reading that
+is wrong. Measured against the reference over 300 generated streams, by
+`authoring/readings.py`, which also names the hand-written stream that
+separates each one:
 
-  the mapping rebuilt from an ordinary LCS walk          91%
-  the mapping taken from the standard library's matcher  93%
-  a change read as the lines the script added            91%
-  merging on equal spans instead of on overlap           82%
-  an outdated thread dropped off the board               68%
-  the older thread keeping its own span, not the union   66%
-  the whole span required to be inside the change        51%
-  raising every revision the thread stays caught         49%
-  merging in one pass instead of to a fixed point        47%
-  the merged thread not dragged open by an open half     43%
-  a resolved thread raised along with the rest           27%
-  an answered thread not reopened when it is raised      24%
+  the mapping taken from the standard library's matcher   93%
+  the mapping rebuilt from an ordinary LCS walk           91%
+  a change read as the lines the script added             91%
+  merging on equal spans instead of on overlap            82%
+  an outdated thread dropped off the board                68%
+  the older thread keeping its own span, not the union    66%
+  the whole span required to be inside the change         51%
+  raising every revision the thread stays caught          49%
+  merging in one pass instead of to a fixed point         47%
+  the merged thread not dragged open by an open half      43%
+  a resolved thread raised along with the rest            25%
+  an answered thread not reopened when it is raised       24%
+  talk aimed at an absorbed thread landing on its owner   18%
+  merging before the replies rather than after them       13%
+  a resolved thread no longer tracked as reached or let go 4%
+  a reply moving a resolved thread back to answered        4%
+  the merged thread not inheriting either half's reach     0.3%
 
 Four of those need something a board cannot get from the revision in front of
 it. Raising is edge triggered, so it needs the previous revision's verdict for
@@ -54,11 +60,39 @@ fixed point, because a union reaches threads neither half reached. And the
 mapping has to come off the script the tool settled rather than any equally
 short one, which is only visible on files that repeat themselves.
 
-The two that are hardest to see are the last two. A one-pass merge is right on
-every stream where no union reaches a third thread, which is most of the ones a
-person writes out by hand; and a rebuilt mapping agrees with the tool about how
-many lines survived and disagrees about which, so every count a solver checks
-comes out right.
+The two that are hardest to see are the mapping and the fixed point. A one-pass
+merge is right on every stream where no union reaches a third thread, which is
+most of the ones a person writes out by hand; and a rebuilt mapping agrees with
+the tool about how many lines survived and disagrees about which, so every
+count a solver checks comes out right.
+
+The last five in that table move too little of the generated set to be caught
+by it reliably, so each is pinned by a hand-written stream instead and ships as
+a cheat that scores 0. That is deliberate: a reading nobody can be caught for
+is a coin flip under all-or-nothing grading rather than a test of anything, and
+every rule those five settle is stated in the brief.
+
+Correctness is not the whole of it, and the second half is where the plan has
+to change rather than be patched at the edges. Which lines a change reaches is
+a fact about the pair of revisions and not about the thread being asked, and
+every thread still on the board is asked at every revision. A board that
+settles that question again for each thread is right on every stream and pays
+for the whole edit script once per thread instead of once per revision. The
+wide streams are where that stops being affordable: a file of a few hundred
+lines with a thread on every fourth one, so a few hundred threads sit on the
+board at once and most of them are still there at the head. Measured, one wide
+stream settles in about 1.4 seconds for a board that works the pair out once a
+revision and about 58 seconds for one that works it out per thread - a factor
+of forty that does not depend on the machine - and the run that answers all of
+them is killed at six hundred seconds.
+
+The instruction states both the limit and the scale, because a kill nobody was
+told about is an alignment defect rather than difficulty. What it does not
+state is where the redundancy is. `cheat/cheat-rule-groups-per-thread.sh` is
+the naive board: every answer it gives is right, and it never reports at all.
+Two of the six `ok-*` variants settle the pair in different ways and both score
+1, so what is graded is that the pair is settled once for the revision, not one
+particular way of writing that down.
 """
 
 solution_explanation = """
@@ -89,9 +123,10 @@ verification_explanation = """
 Graded, all or nothing: the live note table at the head of every stream, and
 the ordered log of retirements, raises and absorptions on the way there.
 
-Seventeen streams are written out by hand, one per rule and one per corner where two
-of them meet. Three hundred more are generated from a seed the run is handed,
-so the streams a submission is graded on are not the streams it was written
+Twenty-three streams are written out by hand, one per rule and one per corner where
+two of them meet. Three hundred more are generated from a seed the run is handed,
+and thirty-six wide ones after those, from the same seed, so the streams a
+submission is graded on are not the streams it was written
 against, and those are settled at grading time by `tests/oracle.py` -- a
 second model of the rule, written forwards where the environment's engine
 works backwards, sharing no code with either the environment or the reference.

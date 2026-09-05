@@ -41,7 +41,9 @@ def main():
     import scen
 
     seed = int(os.environ.get("RUN_SEED", "0"))
-    streams = list(scen.FIXED) + scen.generated(int(os.environ.get("RUN_COUNT", "300")), seed)
+    streams = (list(scen.FIXED)
+               + scen.generated(int(os.environ.get("RUN_COUNT", "300")), seed)
+               + scen.wide(int(os.environ.get("RUN_WIDE", "36")), seed))
     report = {"seed": seed, "boards": collect(app, streams)}
     with os.fdopen(int(os.environ["OUT_FD"]), "w") as fh:
         fh.write(json.dumps(report))

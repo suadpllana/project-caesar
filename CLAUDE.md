@@ -119,7 +119,8 @@ none has ever been checked for.
 | `pair-hold-reclaim` | Software / Systems | 27 | 8 | 14400 s | 8 h |
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
-| `note-carry-forward` | Software / Algorithms | 14 | 6 | 14400 s | 7 h |
+| `note-carry-forward` | Software / Algorithms | 24 | 7 | 14400 s | 7 h |
+| `permit-strand-relay` | Software / Systems | 23 | 8 | 14400 s | 8 h |
 | `focus-return-point` | Software / Frontend | 27 | 13 | 14400 s | 8 h |
 
 **`focus-return-point` is the sixteenth task, built 2026-09-05 from a proposal the owner
@@ -135,6 +136,14 @@ lazy per-screen record cannot resolve without chaining through the dead screen's
 What it turned up is in "Twelve findings from a task built in one session, with the self-probe
 replacing the three-agent probe" below. **Gates NOT run: the three-agent easiness probe** (the
 owner's rule is that the session solves its own task instead), and no pipeline gate.
+
+**`permit-strand-relay` cleared the structural check, the AI screen, the similarity screen and
+reference verification on 2026-09-05, and failed the quality review on `no extraneous files` -
+three files under `authoring/`, and nothing else in the rubric.** It is the second bundle here
+to lose that criterion in two days and the fix is now a gate, `tools/extraneouscheck.py`, which
+is validated in both directions and reports three other bundles as latent. The entry is "The
+extraneous-files rejection" below. Read it before packaging anything, because two of the three
+classes it names are in tooling every task here copies.
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and initially failed the quality review on `category and
@@ -742,6 +751,199 @@ streams, `textcheck` clean against all three briefs that cleared the AI screen (
 `deadfieldcheck`, `catcheck`, `structcheck`, `hintcheck` and `zipcheck` clean. **The easiness
 probe has not been run since the rebuild.**
 
+### The easiness rejection at 2 of 3, and the second measured C3 repair (2026-09-05)
+
+`note-carry-forward` cleared the structural check, the AI screen, the similarity screen,
+reference verification **and the quality review** - so the `difficult` and
+`test instruction alignment` repairs of the day before both held - and came back **2 of 3**
+from the easiness probe. The three trajectories are in `probes/note-carry-forward/round2-*.md`.
+
+**Attribution, mechanically, before any repair.** `leakcheck` is quiet on all three, so not
+mode A. All three read the whole tree in **one** tool call, ran the driver, wrote both files in
+one go and confirmed on a hand-made stream of their own: **mode C**, five or six tool calls
+each. Held against `docs/DIFFICULTY.md` the bundle had prong A working and neither B nor C.
+Prong B fails for a reason that file states outright and that is worth quoting whenever an
+environment is small: *"Spreading facts across seven files withholds nothing if the whole
+system is 500 lines - at that size distributed just means adjacent."* This environment is 200
+lines, and the trajectories show exactly that, one `cat` of everything.
+
+**Read the judgment calls the agents flag. They separate difficulty from defect.** Two of the
+three flagged the same thing - a lone deletion produces no change group under `grp.spans`, so
+it does not raise - and both derived it correctly from the frozen code. That is prong A doing
+its job and it should be left alone. The third flagged something else and it was a **defect**:
+the carry maps kept lines one to one, so it **cannot** bring two spans into each other, and the
+brief said it could ("two spans that started apart get squeezed together by the deletions
+between them"). A false statement about the mechanism, in the brief, wasting the one agent who
+noticed. Only a union brings spans together. **When a trajectory says "one judgment call to
+flag", read it as a bug report about the brief first and a difficulty signal second.**
+
+**Profile before choosing the resource gate. The obvious quadratic was not the cost.** The
+merge runs to a fixed point by hunting pairs, which looks like the O(T^3) to attack. Measured
+on a stream with 150 threads: 61020 `merges` calls cost **0.012s**, because threads collapse
+into one group and the scan finds its pair immediately. The real cost was elsewhere and it was
+overwhelming - `pin.table` was **31.1s of 34.0s**, because `rule.touched` calls the whole edit
+script **once per thread per revision** where `rule.kept` calls it once per revision. 262 edit
+scripts where 8 would do. Twenty minutes with `cProfile` moved the design; a paragraph of
+reasoning about big-O would have sent it to the wrong place.
+
+**The repair is the recipe `docs/DIFFICULTY.md` already names**, and this is its second
+measured use after `alias-settle-report`. The invariant is real and semantic rather than a
+memo dressed up: which lines a change reaches is a fact about the **pair of revisions**, not
+about the thread being asked, and every thread still on the board is asked at every revision.
+The reference settles it once for the pair. A `wide` family goes into the sealed generator -
+files of a few hundred lines with a thread on every fourth one, so a few hundred threads sit on
+the board at once and most are still there at the head - and the brief states the limit and the
+scale, because a kill nobody was told about is an alignment defect rather than difficulty.
+
+Measured on this host, and the ratio is the part that does not depend on the machine:
+
+| | one wide stream | 36 of them, the shipped count |
+|---|---|---|
+| reference, pair settled once a revision | 1.4 s | **52.6 s** run |
+| the sealed oracle, at grading time | 2.8 s | **103.1 s** |
+| the naive board, pair settled per thread | 58 s | **still going at 627 s** |
+
+So the reference has **11.4x** under the run's 600 s kill and the whole verify has **5.8x**
+under the 900 s timeout, while the naive board is about 3.5x over the kill. Note which
+direction each margin protects: a slower graded host risks the **reference** failing, which is
+a rejection, so that is the margin to buy; a faster host only lets the naive board through,
+which costs nothing worse than the task staying as easy as it already is. Size for the first.
+
+Four things that would each have cost a round trip:
+
+- **Every cheat aimed at a rule has to survive the resource gate.** A rule cheat that also
+  blows the budget is caught by the empty report rather than by the rule it gets wrong, and
+  `cheat_report.py`'s per-cheat expectation quietly becomes meaningless. All fifteen rule
+  cheats therefore keep settling the pair once; only `cheat-rule-groups-per-thread` gives that
+  up, because giving it up is what that cheat is. It is checked in both directions: with the
+  wide block switched off it scores **1** on all seven tests, which is what says the gate
+  grades cost and not correctness.
+- **A killed run has to fail legibly.** `_report()` did `json.loads` on a file the killed run
+  never wrote, so pytest reported "2 passed, 5 errors" with no reason - a fixture error, not an
+  assertion, and `test_the_board_ran_at_all` never ran at all. Reading the report defensively
+  turns that into `the run produced no boards`. The grader's own docstring already claimed it
+  treated that file as hostile input; it did not.
+- **"Ascending thread order" does not decide a three-item tuple.** The `absorb` entries carry
+  the survivor and the absorbed, and ordering by the survivor instead moves **31 of 300**
+  streams with no fixture catching it. That is the sixth undecided corner found on this bundle
+  and very likely what the one failing agent lost on - the trajectory that solved it names the
+  sort key explicitly and the other two do not mention it. Whenever a graded log entry has more
+  than one id in it, say which one orders it.
+- **A number in the brief went stale through a whole submission.** It said "Seventeen streams
+  are written out by hand" when there were 22, because the previous round added five fixtures
+  and did not re-read the brief. `hintcheck` re-reads counters against `gt.json` for other
+  tasks and there is no such check here. Grep the brief for every number after every change to
+  the graded set.
+
+**What was deliberately not done.** The mechanism was not changed and the brief was not
+rewritten. It has cleared the AI screen once, and six AI-check rejections in this file say a
+rewrite by the same author is close to a coin flip with bad odds. The edits are two fairness
+corrections, one stale number, and the two sentences stating the limit and the scale.
+
+### The wall two criteria make together, and the only half of it that is fixable (2026-09-05)
+
+`note-carry-forward` went back and failed the quality review on **two** blocking criteria at
+once, and the pair is the finding. `difficult` says the brief hands over every rule.
+`test instruction alignment` says the brief leaves corners undecided that the graded streams
+exercise. **Those two notes pull in opposite directions on the same sentences**, and any task
+whose graded artifact is a deterministic transducer under a stated rule will eventually get
+both, because fairness requires the rule to be complete and a complete rule is an
+implementation. Recognise the pair early: the alignment half is real, mechanical and worth
+fixing; the `difficult` half is not reachable from the brief, and this is the fourth round on
+it for one mechanism (fail, pass, fail, fail), with the reviewer calling it a "borderline
+call" both times it was named.
+
+**The alignment half, and the number that matters: the reviewer named three corners and there
+were five.** Do not fix only the ones in the note - a rejection names an example, not a scope,
+for the fourth time in this file. Sweeping the state machine's decision points one at a time
+turned up two more, and the larger of the two moved more of the set than two of the three that
+were named. Measured against the reference over 300 generated streams, with none of the five
+separated by any of the seventeen hand-written fixtures:
+
+| corner the brief did not settle | moves | named by the reviewer |
+|---|---|---|
+| talk aimed at an absorbed thread lands on its owner | 18.3% | no |
+| merging runs before the replies rather than after | 12.7% | yes |
+| a resolved thread stops being tracked as reached | 4.0% | yes |
+| a reply moves a resolved thread back to answered | 3.7% | no |
+| the merged thread keeps its own reach, not either half's | 0.3% | yes |
+
+**Two of the five were closed without adding a sentence, and that is the technique worth
+copying when `difficult` is the other criterion.** They were not really undecided: the
+reference carried two *unstated exceptions* to rules the brief already stated. It stopped
+settling whether a change reached a thread once that thread was resolved, and a merge threw
+away the absorbed half's reach - while the brief said "a revision has to let it go before it
+can be raised a second time" and "the older takes the union", with no exception anywhere.
+Removing both exceptions made the reference uniform and made the brief correct as it already
+stood. **When a corner is unstated, ask first whether the reference is the thing that is
+irregular.** Legislating an exception costs prose on a task that is already being told it says
+too much; deleting one costs nothing and reads better to the next reviewer.
+
+Only the event order and what a reply does to a thread that is not open needed new prose,
+about sixty words, and `textcheck` stayed clean against all three briefs that cleared the AI
+screen (burstiness 0.857) with `structcheck` and `hintcheck` clean.
+
+**A fixture can grade nothing and say in its own name that it grades something.**
+`raise-on-one-line-of-the-span` produced an **empty log**, byte-identical to
+`no-raise-when-the-change-misses`, the fixture it exists to contrast with - the reviewer
+caught it and no gate here did. The cause generalises past this task: its change was a lone
+replacement of the one line of the span the change reached, so that line fell out of the span
+during the carry and there was nothing left to reach. Underneath that sits a fact about the
+shipped engine nobody had written down: **a lone deletion produces no change group at all**,
+because `grp.spans` seeds a group on an edit and only fills it from added lines and the kept
+lines between two nearby edit runs. A raise therefore needs the group to reach a *kept* line
+of the span, which only happens where two edits sit within the context window of each other.
+The replacement fixture does that and leaves two lines of the span outside the group.
+
+**So: assert that every fixture separates the reading its name claims, mechanically, and make
+it a gate.** `authoring/readings.py` now fails a reading that neither moves a tenth of the
+generated set nor is separated by a **named** hand-written stream, and prints the fixture
+beside each row. Seventeen readings, all seventeen pinned. The fixture route is the stronger
+of the two, per the alias-settle-report entry above: a rare reading caught by a named stream
+fails with the rule written on it instead of surfacing as "n of 300 wrong", so the
+tenth-of-the-set floor is about readings nothing pins, not about rarity by itself.
+
+Three smaller things, each of which would have cost a round trip:
+
+- **`authoring/` DOES ship, including the scratch you write this session.** The 2026-09-04
+  entry below says so and it is easy to half-remember as "only `variants/` ships": the archive
+  carries all nineteen `authoring/` entries. A host emulation written this session hardcoded
+  an absolute Git-for-Windows path to `bash.exe`, which is exactly the hardcoded-path class
+  that failed `no extraneous files` on this bundle in September. It now resolves a shell by
+  probing and falls back to `PATH`. **Corrected 2026-09-05: that fix was one file wide and the
+  defect was one directory wide.** `authoring/cheat_report.py`, beside it, still carried
+  `CA = pathlib.Path("/root/.ccr/ca-bundle.crt")` with no override, which is the same class and
+  is what `permit-strand-relay` was rejected for the next day. Found by `tools/extraneouscheck.py`
+  and fixed in the tree; **this bundle needs repackaging before it goes back.** When a hardcoded
+  path turns up, grep the whole `authoring/` directory rather than repairing the file that was
+  named.
+- **A variant template goes stale the same way a hand-copied variant does.**
+  `make_variants.py` builds `ok-merge-by-components` by replacing `_merge` wholesale with a
+  literal body, so the moment the reference's `_merge` changed, that variant was a correct
+  implementation of the *old* rule and scored 0. `make_variants.py` exists precisely to stop
+  variants drifting, and it drifted, because the override is a literal rather than a
+  transformation. **Any variant that replaces a whole method has this defect latent**; the
+  symptom is one variant failing immediately after a reference change, and per the playbook
+  the first question is which sentence separates it - here the newly stated one did, so the
+  template was genuinely wrong and fixing it was right.
+- **A docker-less host can still run the two-image trial's whole content.**
+  `tasks/note-carry-forward/authoring/trial.py` stages the tree the way `tests/Dockerfile`
+  stages it (`pristine` beside `tests/`, not inside), runs the real `tests/runner.py` in a
+  **subprocess**, and grades with the real `tests/test_outputs.py` under pytest - rewriting
+  exactly three absolute path constants and refusing to run if any of the three no longer
+  matches, so it cannot quietly grade a different file than the one that ships. It is the
+  reusable one for any kit-layout bundle. It does **not** cover the privilege drop, the
+  root-owned reward channel, the root-only ground truth or `reap.py`.
+
+**Gates after the repair:** trial `--all` **24 of 24** (oracle 1, nop 0, twenty-two cheats 0),
+trial `--variants` **4/4**, every rule cheat caught by `test_the_fixed_streams_match_the_rule`
+so the hand-written set separates it rather than only the generated block,
+`cheat-probe-rewrite-frozen` caught by the executed-tree check and by nothing else,
+`build_gt` proving the reference against the sealed oracle on 22 hand-written and 360
+generated streams, `readings` 17/17 pinned, and `simcheck`, `solvecheck`, `deadfieldcheck`,
+`catcheck`, `structcheck`, `hintcheck`, `zipcheck` and `preflight` clean. **Not run: the
+three-agent easiness probe, and anything needing docker.**
+
 ### The easiness rejection: an unused import is an arrow, and a stated spec is transcription (2026-09-04)
 
 `note-carry-forward` cleared the quality review and came back **3 of 3** from the easiness
@@ -981,6 +1183,128 @@ against `guard-mark-unwind` and carrying only the length artifact against the ot
 `zipcheck` clean. **Not run: the three-agent easiness probe, and `tiecheck` (no graded
 comparison here can come down to a name a submission chose; tree order is total and the only
 literal is `none`, which the brief states).**
+
+## The extraneous-files rejection: a shipped file has to be reachable from inside the zip (2026-09-05)
+
+`permit-strand-relay` cleared four gates on its first submission - the structural check, the AI
+screen, the similarity screen and reference verification - and failed the quality review on one
+blocking criterion, `no extraneous files`, with every other row passing. The note named three
+files, all under `authoring/`, and each is a class rather than an accident:
+
+| the file | why it is cruft |
+|---|---|
+| `authoring/decisions.py` | its only reader is `tools/onelinecheck.py`, which does not ship |
+| `authoring/gen.py` | byte-identical to `tests/gen.py`, 2153 bytes, same sha256 |
+| `authoring/trial.py` | `CA = "/root/.ccr/ca-bundle.crt"`, an author-local path |
+
+**The reviewer explicitly accepted the rest of `authoring/`** - "gt derivation, variants, cheat
+generation" and the `cheat/` probes - "as defensible reviewer tooling". So the rule is not that
+`authoring/` is cruft, and a session that reads this rejection as "stop shipping the gates" will
+delete the thing that makes the bundle auditable. The rule is narrower and it is mechanical:
+
+> **A shipped file must be reachable from inside the bundle, must not be a copy of another
+> shipped file, and must not name a path that exists only on the machine that wrote it.**
+
+The first clause is the one nobody here had thought about. Every session runs its checks from the
+repo, where `tools/onelinecheck.py` sits next to the task, so a `decisions.py` that only that tool
+reads looks connected. From inside the archive - which is all a reviewer sees - it is an orphan
+with no caller and no way to run it. **Ask of every file you add to a bundle: who reads this,
+and do they ship?**
+
+### The repair, and the shape of the diff
+
+Four files, and the archive went from 112 entries to 110:
+
+- `decisions.py` moved to `authoring/permit-strand-relay/decisions.py` **at the repo root**, out
+  of the bundle, and `tools/onelinecheck.py` now looks there first and falls back to the old
+  in-bundle path. The mode-B screen still runs (`no exact rule at depth <= 2` on both graded
+  decisions) and nothing ships for it. That location is where the next task's `decisions.py`
+  should be written.
+- `gen.py` deleted. It was never even imported: every consumer does `sys.path.insert(0, HERE)`
+  and then `sys.path.insert(0, ROOT/"tests")`, and the second insert wins, so `import gen` was
+  already resolving `tests/gen.py`. The one exception was `variant_check.py`, which inserted only
+  `HERE`, so it got the one line the deletion required.
+- `trial.py` takes its CA from `CAESAR_CA_BUNDLE`, `REQUESTS_CA_BUNDLE`, `PIP_CERT` or
+  `SSL_CERT_FILE` and injects nothing when none is set. A dead `re.match` whose result was
+  assigned and never read went with it.
+
+**`tests/gt.json` came back byte-identical after `build_gt.py`, from the tree and again from the
+extracted archive**, which is the proof that the repair touched nothing graded. Everything else in
+the bundle is byte-identical to the rejected one; a file-by-file diff of the archive reports
+exactly two removals and two changes, and 109 files unchanged.
+
+### The gate, and what it found in the rest of the repo
+
+`tools/extraneouscheck.py` is the mechanical version and it is in the gate list. Validated in
+both directions, which is the rule for a new check: it names **exactly the reviewer's three
+findings and nothing else** on a reconstruction of the rejected bundle, and it is clean on every
+bundle here that has cleared a quality review - `guard-mark-unwind` and
+`typeahead-query-controller` (nine gates), `share-register-screen` (the whole pipeline),
+`alias-settle-report`, `delta-view-retraction`, `checkpoint-resume-drift`, `turn-seam-alignment`,
+`earliest-change-script`, `lock-priority-unwind`, `pair-hold-reclaim`.
+
+It then reported three bundles that are **latent for this exact rejection if they go back as they
+stand**:
+
+| bundle | finding |
+|---|---|
+| `note-carry-forward` | `authoring/cheat_report.py` carried the same `/root/.ccr/ca-bundle.crt` constant. **Fixed in the tree this session; that bundle needs repackaging before it is resubmitted.** |
+| `grant-spread-order` | `authoring/decisions.py` and `authoring/readings.py`, both orphans |
+| `segment-merge-horizon` | `authoring/decisions.py`, orphan |
+
+The `note-carry-forward` row is the interesting one and it is standing-policy item 1 arriving
+twice. That bundle **already lost `no extraneous files` on 2026-09-04** for a hardcoded
+Git-for-Windows path, and the entry above records the fix - "it now resolves a shell by probing
+and falls back to `PATH`". The fix was applied to `trial.py` and the identical constant in
+`cheat_report.py`, in the same directory, was left standing. **A rejection note names an example,
+not a scope, for the fifth time in this file** - and this time the scope was one directory wide.
+
+### Two calibrations the check needed, both of which would otherwise have made it lie
+
+- **Measure the archive, not the tree.** The first version reported `STATE.md`, every `.pyc` and
+  every empty `__init__.py` on `guard-mark-unwind`, which cleared all nine gates - because
+  `package.py` drops all of those and the checker was walking the working tree. It now applies
+  `preflight.EXCLUDE_*` before it looks at anything. A gate that fails a bundle the pipeline
+  passed is standing-policy item 5, and this one was born with it.
+- **`is_file()` is not an override.** The rejected `trial.py` *was* guarded - `if not
+  os.path.isfile(CA): return dst` - so it never crashed anywhere; it just meant no other machine
+  could ever name its own. Meanwhile `rollout-cache-coherence` and `bucket-seal-lag` carry
+  `C:\Program Files\Git\bin\bash.exe` as one candidate among several with a `shutil.which`
+  fallback, which is a probe and is fine. The check therefore asks whether an environment
+  variable or a `PATH` lookup sits **in the same scope** as the path, and that single distinction
+  is what separates the four true positives from the four false ones.
+
+### Three smaller things
+
+- **The task was carried as an attachment and no checker here could see it.** `permit-strand-relay`
+  was never in `tasks/`, so `simcheck`, `preflight`, `solvecheck` and the rest had never run on it
+  once, in three gates' worth of submissions. It is in the repo now. This is the
+  `earliest-change-script` lesson verbatim and it has now cost two tasks: **the first move on any
+  bundle that arrives as a zip is to extract it into `tasks/<slug>/`.**
+- **The uploaded zip vanished from `Downloads` mid-session**, so the both-directions validation ran
+  against a reconstruction (the repaired tree with the three files put back). Faithful for those
+  three, and worth knowing: extract an attachment into the repo before doing anything else, or the
+  evidence is gone when you want it.
+- **`preflight` errors on a missing `STATE.md`, and a bundle that comes back from the pipeline
+  never has one**, because `package.py` drops it. Write a fresh short one and note that the four
+  `STATE_REQUIRED` lines are matched on the **first colon of a single line** and need three words
+  after it - `Estimated solves out of 8: 1` fails, `1 of 8, designed for the bottom of the band`
+  passes.
+
+**Gates run, all from the tree and the load-bearing ones again from the extracted archive:**
+`prove` 300 streams 0 disagreements, `audit` 24 states and 7 variants agreeing, `variant_check`
+7/7 on 200 streams, `readingcheck` 11 readings all separated by the enumerated set, `tiecheck` 424
+streams with 0 double rows and the mirror variant agreeing, `determinism` identical across 5 hash
+seeds, `build_gt` byte-identical, `shipped` 9 of 24 enumerated and 0 of 300 generated, and
+`extraneouscheck`, `solvecheck`, `deadfieldcheck`, `catcheck`, `hintcheck`, `structcheck`,
+`simcheck`, `onelinecheck`, `zipcheck` and `preflight` clean. `zipfix` was needed as always on
+this host, and the rebuilt archive's entry metadata is field-for-field identical in kind to
+`guard-mark-unwind.zip`.
+
+**Gates NOT run: docker is absent on this host, so the two-image trial did not run** - the 23
+cheats, the privilege drop, the root-owned reward channel, the root-only ground truth and
+`reap.py` are all unexercised. The three-agent easiness probe has never been run on this bundle.
+
 
 ## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
 
@@ -2347,6 +2671,12 @@ And the cheapest thing that can be done to the six tasks nobody has screened at 
 one is an hour and it is the only mode-B screen that works **before** a probe is spent. Five
 of those six also fail `structcheck.py` on the backtick rule and are latent for the
 concision rejection.
+
+**Write it at `authoring/<slug>/decisions.py` in the repo root, not inside the bundle.**
+`onelinecheck.py` looks there first as of 2026-09-05. A `decisions.py` inside `tasks/<slug>/`
+ships in the archive with no reader in it, and that is one of the three files the quality
+review rejected `permit-strand-relay` for; `grant-spread-order` and `segment-merge-horizon`
+still carry theirs in the bundle and are latent for the same finding.
 
 ## The playbook: fixing a task that fails the easiness probe
 
@@ -4538,11 +4868,23 @@ python3 tools/catcheck.py <slug>                does the declared category descr
                                                 vocabulary is absent from environment/ and
                                                 present in the prose, which is what failed
                                                 the quality review on 2026-09-04
+python3 tools/extraneouscheck.py <slug>         does the bundle ship anything nothing in
+                                                the bundle uses? An authoring/ module whose
+                                                only reader is a tools/ script, a copy of a
+                                                file that ships elsewhere, an author-local
+                                                path the next host cannot override. That is
+                                                the whole of the 2026-09-05 quality-review
+                                                rejection; --all reports every task here
 python3 tools/readingcheck.py <slug>            does the enumerated set separate the wrong
                                                 readings, or merely cover the rules? Needs
                                                 the task to ship authoring/readings.py; it
                                                 prints a shrunk counterexample to add as a
                                                 case when the set is blind
+python3 tasks/<slug>/authoring/trial.py --all    the two-image trial emulated where docker
+                                                is absent: real runner in a subprocess, real
+                                                test_outputs.py under pytest. --wide and
+                                                --kill scale the resource gate down for
+                                                iteration; the shipped numbers are 36 and 600
 python3 tools/ecs_trial.py --all                earliest-change-script only: the real
                                                 two-image trial, oracle 1 and everything
                                                 else 0
@@ -4710,6 +5052,9 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `solvecheck.py` clean: solve.sh copies the reference, it does not inline it, and the
   reference exists in exactly one place in the bundle.
 - `deadfieldcheck.py` clean: nothing in the environment is written and never read.
+- `extraneouscheck.py` clean: every shipped file is reachable from inside the bundle, is not a
+  copy of another shipped file, and names no path the next host cannot override. A file whose
+  only reader lives in `tools/` belongs in `authoring/<slug>/` at the repo root, not in the zip.
 - `catcheck.py` clean: the declared category is evidenced by the shipped environment and not
   only by the story the brief is set in.
 - `readingcheck.py` clean: every wrong reading in `authoring/readings.py` is separated by an

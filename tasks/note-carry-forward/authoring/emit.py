@@ -56,21 +56,55 @@ DIFFLIB_KEPT = """def kept(before, after):
                 out[i1 + d] = j1 + d
     return out"""
 
-TOUCHED_BODY = """def touched(span, before, after):
-    for chunk in grp.spans(before, after):
+TOUCHED_BODY = """_SETTLED = {}
+
+
+def touched(span, before, after):
+    key = (tuple(before), tuple(after))
+    chunks = _SETTLED.get(key)
+    if chunks is None:
+        _SETTLED.clear()
+        chunks = _SETTLED[key] = grp.spans(before, after)
+    for chunk in chunks:
         if span & chunk:
             return True
     return False"""
 
-TOUCHED_ALL = """def touched(span, before, after):
+# Every cheat aimed at a rule has to finish the wide streams, or the run is
+# killed, no report comes back at all, and the cheat is caught by the emptiness
+# of the report rather than by the rule it gets wrong. So each of these keeps
+# settling the pair once; only PER_THREAD below gives that up, because giving
+# it up is what that cheat is.
+TOUCHED_ALL = """_SETTLED = {}
+
+
+def touched(span, before, after):
+    key = (tuple(before), tuple(after))
+    chunks = _SETTLED.get(key)
+    if chunks is None:
+        _SETTLED.clear()
+        chunks = _SETTLED[key] = grp.spans(before, after)
     reached = set()
-    for chunk in grp.spans(before, after):
+    for chunk in chunks:
         reached |= chunk
     return bool(span) and span <= reached"""
 
-TOUCHED_ADDED = """def touched(span, before, after):
-    landed = set(kept(before, after).values())
+TOUCHED_ADDED = """_SETTLED = {}
+
+
+def touched(span, before, after):
+    key = (tuple(before), tuple(after))
+    landed = _SETTLED.get(key)
+    if landed is None:
+        _SETTLED.clear()
+        landed = _SETTLED[key] = set(kept(before, after).values())
     return bool(span - landed)"""
+
+PER_THREAD = """def touched(span, before, after):
+    for chunk in grp.spans(before, after):
+        if span & chunk:
+            return True
+    return False"""
 
 MERGES_BODY = """def merges(one, other):
     return bool(one & other)"""
@@ -86,19 +120,43 @@ OUTDATE_BLOCK = ('            for thread in sorted(gone, key=lambda t: t["id"]):
                  '                log.append(("outdated", thread["id"]))\n')
 
 RAISE_BLOCK = ('                now = rule.touched(thread["span"], before, after)\n'
-               '                if now and not caught.get(thread["id"], False):\n')
+               '                if thread["state"] != "resolved":\n'
+               '                    if now and not caught.get(thread["id"], False):\n')
 
-REOPEN_BLOCK = ('                    if thread["state"] == "answered":\n'
-                '                        thread["state"] = "open"\n'
-                '                        log.append(("reopen", thread["id"]))\n')
+REOPEN_BLOCK = ('                        if thread["state"] == "answered":\n'
+                '                            thread["state"] = "open"\n'
+                '                            log.append(("reopen", thread["id"]))\n')
 
-SKIP_BLOCK = ('                if thread["state"] not in ("open", "answered"):\n'
-              '                    continue\n')
+RESOLVED_GUARD = '                if thread["state"] != "resolved":\n'
+
+TRACK_BLOCK = ('            for thread in sorted(threads, key=lambda t: t["id"]):\n'
+               '                if thread["state"] == "outdated":\n'
+               '                    continue\n')
+
+REACH_INHERIT = ('            if caught.pop(taken["id"], False):\n'
+                 '                caught[owner["id"]] = True\n')
+
+ORDER_FIRST = ('        self._talk(threads, talk.get(0, []))\n'
+               '        self._merge(threads, caught, log)\n')
+
+ORDER_LOOP = ('            self._talk(threads, talk.get(step, []))\n'
+              '            self._merge(threads, caught, log)\n')
+
+TALK_BLOCK = ('            if kind == "reply" and thread["state"] == "open":\n'
+              '                thread["state"] = "answered"\n')
+
+TALK_LOOKUP = '        by_id = dict((t["id"], t) for t in threads)\n'
 
 UNION_LINE = '            owner["span"] |= taken["span"]\n'
 DRAG_BLOCK = ('            if taken["state"] == "open":\n'
               '                owner["state"] = "open"\n')
 LOOP_TAIL = '            done.append((taken["id"], owner["id"]))'
+
+ABSORB_ORDER = ('                for taken_id in sorted(held):\n'
+                '                    owner_id = held[taken_id]\n'
+                '                    while owner_id in held:\n'
+                '                        owner_id = held[owner_id]\n'
+                '                    log.append(("absorb", owner_id, taken_id))\n')
 
 SWAPS = [
     ("textbook-backtrace", "rule",
@@ -123,10 +181,31 @@ SWAPS = [
      "untouched and still be inside it.",
      TOUCHED_BODY, TOUCHED_ADDED),
     ("merge-on-equal-spans", "rule",
-     "Merge two threads only when their spans are the same. Carrying squeezes "
-     "spans that were opened apart into one another far more often than it "
-     "makes them equal.",
+     "Merge two threads only when their spans are the same. Two threads share "
+     "a line far more often than they hold the same lines, and a union that "
+     "reaches a third thread is not equal to anything.",
      MERGES_BODY, MERGES_EQUAL),
+    ("groups-per-thread", "rule",
+     "Settle which lines the change reaches again for every thread on the "
+     "board instead of once for the pair of revisions. Every answer it gives "
+     "is right. It pays the whole edit script per thread, so on the streams "
+     "that carry a few hundred threads at once the run is killed before it "
+     "reports anything.",
+     TOUCHED_BODY, PER_THREAD),
+    ("absorb-ordered-by-owner", "board",
+     "Order the absorb entries of a revision by the thread that ends up "
+     "holding the span rather than by the one absorbed. Both are ascending "
+     "thread order; they are not the same sequence when one revision absorbs "
+     "into two different threads.",
+     ABSORB_ORDER,
+     '                rows = []\n'
+     '                for taken_id in held:\n'
+     '                    owner_id = held[taken_id]\n'
+     '                    while owner_id in held:\n'
+     '                        owner_id = held[owner_id]\n'
+     '                    rows.append((owner_id, taken_id))\n'
+     '                for owner_id, taken_id in sorted(rows):\n'
+     '                    log.append(("absorb", owner_id, taken_id))\n'),
     ("raise-every-revision", "board",
      "Ask the reviewer again every revision the thread spends caught in a "
      "change. It is raised when the change first reaches it; while it stays "
@@ -141,9 +220,49 @@ SWAPS = [
     ("raise-resolved-threads", "board",
      "Raise a resolved thread along with the rest. It has been settled and "
      "nobody is waiting on it.",
-     SKIP_BLOCK,
-     '                if thread["state"] == "outdated":\n'
+     RESOLVED_GUARD, '                if thread["state"] != "outdated":\n'),
+    ("resolved-stops-tracking", "board",
+     "Stop settling whether the change reaches a thread once it is resolved. "
+     "Being reached is a fact about the span rather than about the thread's "
+     "standing, and the verdict a resolved revision leaves behind is what a "
+     "later raise is measured against once a merge has dragged it open again.",
+     TRACK_BLOCK,
+     '            for thread in sorted(threads, key=lambda t: t["id"]):\n'
+     '                if thread["state"] in ("outdated", "resolved"):\n'
      '                    continue\n'),
+    ("reply-revives-a-resolved-thread", "board",
+     "Let a reply move a resolved thread back to answered. A reply moves an "
+     "open thread and nothing else; a settled thread stays settled until the "
+     "change comes back to it.",
+     TALK_BLOCK,
+     '            if kind == "reply" and thread["state"] in ("open", "resolved"):\n'
+     '                thread["state"] = "answered"\n'),
+    ("talk-follows-the-absorbed", "board",
+     "Land a reply or a resolution aimed at an absorbed thread on whoever "
+     "holds its span now. The absorbed thread is not on the board any more, so "
+     "there is nothing there to aim at.",
+     (TALK_LOOKUP, UNION_LINE),
+     ('        by_id = dict((t["id"], t) for t in threads)\n'
+      '        for holder in threads:\n'
+      '            for gone in holder.get("ate", ()):\n'
+      '                by_id.setdefault(gone, holder)\n',
+      '            owner.setdefault("ate", set()).add(taken["id"])\n'
+      '            owner["ate"] |= taken.get("ate", set())\n'
+      '            owner["span"] |= taken["span"]\n')),
+    ("merge-keeps-own-reach", "board",
+     "Let the survivor of a merge keep its own verdict about being reached "
+     "rather than taking it from either half. It holds the union of the two "
+     "spans, so a change that reached either has reached what it now holds.",
+     REACH_INHERIT, '            caught.pop(taken["id"], None)\n'),
+    ("merge-before-talk", "board",
+     "Merge before the replies and resolutions land instead of after them. A "
+     "resolve that arrives at a revision is what the open half then drags back "
+     "open, and merging first settles the state before the resolve is heard.",
+     (ORDER_FIRST, ORDER_LOOP),
+     ('        self._merge(threads, caught, log)\n'
+      '        self._talk(threads, talk.get(0, []))\n',
+      '            self._merge(threads, caught, log)\n'
+      '            self._talk(threads, talk.get(step, []))\n')),
     ("outdated-leaves-the-board", "board",
      "Drop a thread whose span has emptied instead of leaving it on the board "
      "outdated. The log still says what happened, and the table is shorter by "
@@ -188,18 +307,27 @@ def emit_swaps():
     made = []
     for name, which, why, old, new in SWAPS:
         board, rule = BOARD, RULE
-        if which == "board":
-            if old not in board:
-                raise SystemExit("anchor did not match for %s" % name)
-            if old == new:
-                raise SystemExit("swap is a no-op for %s" % name)
-            board = board.replace(old, new, 1)
-        else:
-            if old not in rule:
-                raise SystemExit("anchor did not match for %s" % name)
-            if old == new:
-                raise SystemExit("swap is a no-op for %s" % name)
-            rule = rule.replace(old, new, 1)
+        # A decision the reference spells out in more than one place takes a
+        # tuple of anchors, because a cheat that swaps one of the two sites is
+        # not that reading -- it is a board that contradicts itself, and the
+        # stream that separates the reading may only reach the site left alone.
+        olds = old if isinstance(old, tuple) else (old,)
+        news = new if isinstance(new, tuple) else (new,)
+        if len(olds) != len(news):
+            raise SystemExit("anchor and replacement counts differ for %s" % name)
+        for one, other in zip(olds, news):
+            if which == "board":
+                if one not in board:
+                    raise SystemExit("anchor did not match for %s" % name)
+                if one == other:
+                    raise SystemExit("swap is a no-op for %s" % name)
+                board = board.replace(one, other, 1)
+            else:
+                if one not in rule:
+                    raise SystemExit("anchor did not match for %s" % name)
+                if one == other:
+                    raise SystemExit("swap is a no-op for %s" % name)
+                rule = rule.replace(one, other, 1)
         made.append(shell("cheat-rule-%s.sh" % name, why, board, rule))
     return made
 

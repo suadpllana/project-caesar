@@ -33,9 +33,13 @@ it, raises it or merges it.
 
 The raise is edge triggered, and it is about the span. A thread is raised when
 the change first reaches any line it holds, and not again while it stays
-caught, so the answer needs the previous revision's verdict. A resolved thread
-is never raised. An answered one is, and the reply it was carrying is stale
-the moment that happens, so it goes back to open.
+caught, so the answer needs the previous revision's verdict. Being reached is
+a fact about the span rather than about the thread's standing, so every thread
+still on the board has it settled, resolved ones included: a resolved thread
+is never raised, but a revision still reaches its lines or lets them go, and
+that verdict is what a later raise is measured against once a merge has
+dragged it open again. An answered thread is raised, and the reply it was
+carrying is stale the moment that happens, so it goes back to open.
 
 Threads opened at this revision join next, on the span they were opened with.
 
@@ -44,7 +48,9 @@ share a line are looking at the same code, so the older takes the union and
 the newer is absorbed. The union can reach a third thread that neither half
 reached on its own, which is why one pass is not enough, and a thread that is
 open drags the merged thread open with it: the reviewer has an unanswered
-question about that code either way. What comes out of it does not depend on
+question about that code either way. The same follows for being reached, for
+the same reason it follows for the span: the survivor holds the union, so a
+change that reached either half has reached what the survivor now holds. What comes out of it does not depend on
 the order the pairs are found in: the spans settle into the connected groups of
 the overlap graph and the oldest id in each group owns it. The log says so too.
 It is ordered by the thread that was absorbed, and it names the thread that
@@ -93,14 +99,15 @@ class Board(object):
                 caught.pop(thread["id"], None)
                 log.append(("outdated", thread["id"]))
             for thread in sorted(threads, key=lambda t: t["id"]):
-                if thread["state"] not in ("open", "answered"):
+                if thread["state"] == "outdated":
                     continue
                 now = rule.touched(thread["span"], before, after)
-                if now and not caught.get(thread["id"], False):
-                    log.append(("raise", thread["id"]))
-                    if thread["state"] == "answered":
-                        thread["state"] = "open"
-                        log.append(("reopen", thread["id"]))
+                if thread["state"] != "resolved":
+                    if now and not caught.get(thread["id"], False):
+                        log.append(("raise", thread["id"]))
+                        if thread["state"] == "answered":
+                            thread["state"] = "open"
+                            log.append(("reopen", thread["id"]))
                 caught[thread["id"]] = now
             self._join(threads, caught, opened.get(step, []))
             self._talk(threads, talk.get(step, []))
@@ -150,7 +157,8 @@ class Board(object):
             if taken["state"] == "open":
                 owner["state"] = "open"
             threads.remove(taken)
-            caught.pop(taken["id"], None)
+            if caught.pop(taken["id"], False):
+                caught[owner["id"]] = True
             done.append((taken["id"], owner["id"]))
 ENDBOARD
 cat > "${APP_DIR}/note/rule.py" <<'ENDRULE'
@@ -168,9 +176,16 @@ change is not the lines the script added either. It reaches across the kept
 lines that sit between its runs, which is what `grp.spans` settles.
 
 `merges` is overlap, not equality. Two threads that share a single line are
-looking at the same code and become one; carrying makes that happen far more
-often than opening does, because two spans that started apart can be squeezed
-together by the deletions between them.
+looking at the same code and become one. The carry maps kept lines one to one,
+so it can never bring two spans into each other; what does is a union, which
+can reach a third thread neither half reached, and that is why one sweep over
+the pairs does not settle it.
+
+Which lines a change reaches is a fact about the pair of revisions and not
+about the thread being asked about, so it is settled once for the pair and
+answered from there. Every thread still on the board is asked at every
+revision, and a board that settles it again for each of them pays for the
+whole edit script once per thread instead of once per revision.
 """
 
 from scr import grp, pin
@@ -184,8 +199,16 @@ def kept(before, after):
     return out
 
 
+_SETTLED = {}
+
+
 def touched(span, before, after):
-    for chunk in grp.spans(before, after):
+    key = (tuple(before), tuple(after))
+    chunks = _SETTLED.get(key)
+    if chunks is None:
+        _SETTLED.clear()
+        chunks = _SETTLED[key] = grp.spans(before, after)
+    for chunk in chunks:
         if span & chunk:
             return True
     return False

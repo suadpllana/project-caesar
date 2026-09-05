@@ -1132,9 +1132,23 @@ Two smaller things:
   six.** Circular, exactly as the playbook warns. They are stripped to the agent's words
   now, and quiet.
 
-**Gates:** in the entry below this one, re-run on this version; the numbers are in the
-"Round three" paragraph of the task's STATE.md and in the commit that carries this entry.
-ROUND3_GATES
+**Gates on this version:** `build_gt` proved on 30 enumerated and 400 generated streams
+(6 wide), `prove` 300/0, `audit` 30 states and 8 variants agreeing, `variant_check` 8/8 on
+199 small and 2 wide streams, `readingcheck` 15/15 separated (the four new readings move
+88.8%, 62.7%, 34.6% and 25.1% of generated streams), `tiecheck` 330 streams 0 clashes,
+`determinism` identical across 5 hash seeds, `field_report` no dead field, `shipped` 12 of
+30 enumerated and 0 of 295 generated, `leakcheck` quiet on all three trajectories,
+`textcheck` clean against all three passing briefs (burstiness 0.840 after two short
+verdicts were put back - the first cut of the new sentences took it to 0.820 and a FIX
+against `rollout-cache-coherence`), `structcheck`, `hintcheck`, `solvecheck`,
+`deadfieldcheck`, `catcheck`, `extraneouscheck`, `simcheck` (clear on both axes),
+`preflight` (no errors), `zipcheck` and `zipfix --check` on the 118-entry archive all
+clean. Real two-image trial: ROUND3_TRIAL.
+
+**Not run:** the three-agent easiness probe, per the owner's no-subagents rule. The
+estimate in STATE.md stands at 2 of 8; the discovery is meant to take easiness from 2 of 3
+to at most 1 of 3, and the honest statement of the risk is that a fact stated in one
+sentence is still a sentence, and the strongest agents may connect it on sight.
 
 ## The 0-of-11 rejection: one coin-flip corner, and a transducer with nothing left to derive (2026-09-05)
 

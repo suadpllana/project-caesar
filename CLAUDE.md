@@ -49,6 +49,131 @@ tasks/reaction-network-reconstruction` brings it back. Its STATE.md is not worth
 recovering on its own; the self-confirmation post mortem it held is summarised in "The
 too-easy failure mode" below, which is the version that matters.
 
+## Two levers retired by measurement, and the one that replaced them (2026-09-06)
+
+`scope-hold-release` is the sixteenth task, built this session, and it exists because two
+earlier seeds were killed by twenty minutes of measurement each. Both kills are worth more
+than the task, because each retires a lever this file had been recommending.
+
+**Seed one, a coverage question over causal metadata: the fast path was real and worthless.**
+Naive context reconstruction against an indexed one, same answers on every run:
+
+| script length | naive | indexed | ratio |
+|---|---|---|---|
+| 8 000 | 0.33 s | 0.01 s | 33x |
+| 20 000 | 3.40 s | 0.03 s | 113x |
+| 40 000 | 58.9 s | 0.07 s | 840x |
+
+An 840x gap that buys nothing, because the collapse is "store a log index instead of a copy
+of the set" - a representation choice any competent engineer makes before the second draft,
+not an invariant of a stated family. That is `permit-strand-relay`'s rule measured from a new
+direction: **a resource boundary discriminates only when the fast path is an insight the
+agent has to find after building the slow one.**
+
+**Seed two, reachability over interleavings with an independence decomposition: the fast path
+was non-trivial and does not exist.** The decomposition only pays if the shared-resource
+components stay small. Measured, largest component over 20 seeds per setting:
+
+| branches | steps | pools | alias rate | largest component |
+|---|---|---|---|---|
+| 8 | 5 | 3 | 0.35 | 8 of 8, every seed |
+| 10 | 5 | 3 | 0.35 | 10 of 10, every seed |
+| 10 | 6 | 4 | 0.35 | 10 of 10, every seed |
+| 10 | 5 | 8 | 0.15 | 10 of 10, every seed |
+| 12 | 5 | 12 | 0.10 | 12 of 12, every seed |
+
+One component spanning every branch, in 100 of 100 workflows, including the sparsest pooling
+that still looks like a pipeline. Branches sharing resources at random form a giant component
+far below the density a real system has, so "factorised" degenerates to "exact" and there is
+no gap to time - three timing runs sat for 200 s without printing their factorised line.
+**Independence decomposition is vacuous on shared-resource systems, and it fails silently:
+the algorithm is correct, the partition is just always trivial.** Same shape as the already
+recorded "a fixed point over unions of disjoint blocks is always vacuous". The general rule:
+**any design whose fast path is "partition by shared X and work per part" must have the
+partition sizes measured before the design is believed.**
+
+Read those two beside `alias-settle-report`, the one measured C3 success, and the honest
+summary is that its collapse family was **engineered into the generator** ("25-30 keys, no
+differences") rather than found in the domain - which then runs into `permit-strand-relay`'s
+"a stated scale is a stated method". Disclose the family and you leak the collapse; withhold
+it and the runtime kill is an alignment defect. **Do not reach for a resource boundary again
+without a measured fast path that is an insight.**
+
+### The lever that replaced them: an unfalsifiable corner needs a frozen-code witness
+
+The first design on the surviving lever was **rejected in review as a guess-the-spec trap**,
+and the rejection was right: the brief withheld the load-bearing rule and nothing in the
+readable environment supplied it. `docs/DIFFICULTY.md` forbids exactly that - "none of them
+relies on secrecy". The line that separates a fair task from a guessing game is not
+brief-versus-hidden, it is **the graded distinction must be derivable from non-editable code
+while the requirement it serves is stated plainly**.
+
+The repair, and it is the measurement that made the task shippable: **state the rule and keep
+the derivation.** Measured on 600 generated streams before any task code was written:
+
+| solver | shipped cases | graded corner |
+|---|---|---|
+| shipped bug (owner = active scope) | wrong 20/600 | wrong 385/600 |
+| natural local fix for the one visible divergence | wrong **0**/600 | wrong 380/600 |
+| **told the ownership rule outright**, capture taken at invocation | wrong **0**/600 | wrong **600/600** |
+
+The third row is the one to keep. **Stating the load-bearing rule cost nothing**, because
+*where* the capture is taken is a separate fact, observable only through frozen behaviour
+(a factory invoked from two nested scopes hands back the same dependency instance), and no
+shipped case exercises it. Fairness in the requirement, difficulty in the derivation, both
+measured rather than argued.
+
+Two things that generalise past this task:
+
+- **Before building on a corner, measure whether the natural local fix for the visible defect
+  also fixes the corner.** Here it does not: fixing everything visible leaves 38.3% of the
+  graded set wrong. If it had, the task would have been dead and no amount of prose would
+  have saved it.
+- **Every other divergence must be closed by a stated rule, or the easy one drags the hard one
+  out.** The first cut had a captive-dependency path diverging on 13.8% of ordinary workloads;
+  closing it by stating the refusal rule is what left the capture as the only separator.
+
+### `tools/forgecheck.py` was blind to tooling the pipeline told us to move
+
+Standing-policy item 2. `forgecheck` looks only at `tasks/<slug>/authoring/cheat_report.py`,
+so a bundle that obeys the 2026-09-05 extraneous-files rejection - tooling at
+`authoring/<slug>/` in the repo root - reports **FAIL no authoring/cheat_report.py to grade
+them with** while carrying a perfectly good answer-key probe. Fixed with the same root
+fallback `onelinecheck` was given, validated in both directions: clean on
+`scope-hold-release` (tooling at the root) and still clean on `delta-view-retraction`
+(tooling in the bundle).
+
+### The bundle
+
+Software / Systems. The graded artifact is a **teardown ledger with attribution** - which
+scope owned each instance, the order within a scope, the name that pulled it in, and the
+refusals - which `simcheck` reports as conceptually clear of every earlier task. The
+discovery is that an instance is owned by the scope its holder was **built** in rather than
+the scope that invoked the factory, and the second discovery is that the capture must be
+threaded through nested resolution, because a dependency under a singleton belongs to the
+root however deep it sits and the natural single-scope implementation of the first answer
+gets that wrong.
+
+**Gates run:** host-emulation trial `--all` **18 of 18, 0 unexpected** (oracle 1, nop 0, three
+variants 1, thirteen cheats 0), each attestation probe caught by its own layer and nothing
+else; `build_gt` proving the reference against the sealed oracle on 13 named cases and 400
+generated streams; `readings` 4 of 4 pinned by **named** cases; `onelinecheck` **no exact rule
+at depth <= 2 on either graded decision**; `deadfieldcheck` (which caught a real unread field,
+`Reg.nm`, and an unused parameter beside it), `solvecheck`, `catcheck`, `hintcheck`,
+`structcheck`, `extraneouscheck`, `forgecheck`, `zipcheck` and `preflight` clean; `textcheck`
+clean against `guard-mark-unwind` and `grant-spread-order`, one burstiness finding against
+`rollout-cache-coherence` (0.820 vs 0.929). `simcheck` leaves two HIGH findings on
+`environment/Dockerfile` at 0.600, inside the range `guard-mark-unwind` carried through all
+nine gates, and both are against untracked tasks the pipeline has never seen.
+
+**Gates NOT run: docker is absent on this host**, so the real two-image trial, the privilege
+drop, the root-owned reward channel, the root-only ground truth and `reap.py` are all
+unexercised - the reward probes are graded by the emulation, which proves the grader rejects
+them and not that the sandbox contains them. The three-agent easiness probe was not run, per
+the owner's no-subagents rule, and a genuine cold self-solve was impossible because the same
+session designed the mechanism; the three-row table above is what stands in its place, and it
+is stronger evidence than a self-probe the author would contaminate.
+
 ## Work in flight, and how main moves
 
 **`main` is pushed to directly here.** The task owner asked for that on 2026-09-01, and
@@ -121,6 +246,7 @@ none has ever been checked for.
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
 | `note-carry-forward` | Software / Algorithms | 24 | 7 | 14400 s | 7 h |
 | `permit-strand-relay` | Software / Systems | 23 | 8 | 14400 s | 8 h |
+| `scope-hold-release` | Software / Systems | 13 | 6 | 14400 s | 8 h |
 
 **`permit-strand-relay` then cleared the quality review and came back 0 of 3 from the easiness
 probe and 0 of 8 from the difficulty probe on 2026-09-05, "unsolvable as specified".** Eleven

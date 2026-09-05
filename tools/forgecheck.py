@@ -27,6 +27,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import pathlib
 import subprocess
 import sys
 from pathlib import Path
@@ -96,9 +97,18 @@ def main(argv: list[str]) -> int:
         return 1
     print("   forgery probes carrying ground truth: %s" % ", ".join(carriers))
 
-    reporter = task / "authoring" / "cheat_report.py"
-    if not reporter.is_file():
-        print("   FAIL no authoring/cheat_report.py to grade them with")
+    # The quality review blocked shipped authoring tooling on 2026-09-05, so a bundle's
+    # cheat_report may legitimately live at authoring/<slug>/ in the repo root instead.
+    root = pathlib.Path(__file__).resolve().parent.parent
+    reporter = None
+    for cand in (root / "authoring" / task.name / "cheat_report.py",
+                 task / "authoring" / "cheat_report.py"):
+        if cand.is_file():
+            reporter = cand
+            break
+    if reporter is None:
+        print("   FAIL no cheat_report.py to grade them with, in the bundle or at")
+        print("        authoring/%s/ in the repo root" % task.name)
         return 1
     proc = subprocess.run([sys.executable, str(reporter)], cwd=str(task),
                           capture_output=True, text=True, timeout=3600)

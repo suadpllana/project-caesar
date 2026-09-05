@@ -1143,7 +1143,7 @@ verdicts were put back - the first cut of the new sentences took it to 0.820 and
 against `rollout-cache-coherence`), `structcheck`, `hintcheck`, `solvecheck`,
 `deadfieldcheck`, `catcheck`, `extraneouscheck`, `simcheck` (clear on both axes),
 `preflight` (no errors), `zipcheck` and `zipfix --check` on the 118-entry archive all
-clean. Real two-image trial: ROUND3_TRIAL.
+clean. Real two-image trial on this host: **oracle 1 (41 s through both containers), nop 0 (the shipped tree killed at 601 s), 8 of 8 variants 1, 27 of 27 cheats 0**, each attestation probe and the slow cheat caught by its own layer and nothing else, and `forgecheck` 27 cheats 0 unexpected with the answer-key probe recognised.
 
 **Not run:** the three-agent easiness probe, per the owner's no-subagents rule. The
 estimate in STATE.md stands at 2 of 8; the discovery is meant to take easiness from 2 of 3

@@ -100,4 +100,5 @@ against three passing briefs, `structcheck` and `hintcheck` clean.
 ## Gates NOT run
 
 The three-agent easiness probe (the owner's rule: no subagents). The real two-image
-trial DID run here: oracle 1, nop 0 (killed at 601 s), 7 variants 1, 23 cheats 0.
+trial DID run here on the round-three version: oracle 1, nop 0 (killed at 601 s), 8 variants
+1, 27 cheats 0.

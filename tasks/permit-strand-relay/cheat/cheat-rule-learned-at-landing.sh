@@ -139,7 +139,7 @@ def seen(st, when, level, dflt):
         return dflt
     mark = st.setdefault("mark", {})
     at = mark.get(level, 0)
-    while at < len(rack) and rack[at][0] <= when - 2 * LAG:
+    while at < len(rack) and rack[at][0] <= when - LAG:
         at += 1
     mark[level] = at
     return dflt if at == 0 else rack[at - 1][1]
@@ -208,9 +208,8 @@ def plan(st, bk, when):
         if seat is None:
             continue
         value = ceiling(st, bk, when, level)
-        spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
         if value > seat:
-            if value - spent >= THR or owed(st, bk, when, level, value):
+            if value - seat >= THR or owed(st, bk, when, level, value):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))

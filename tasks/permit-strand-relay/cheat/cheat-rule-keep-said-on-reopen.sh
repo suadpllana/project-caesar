@@ -5,14 +5,16 @@ APP="${APP_DIR:-/app}"
 cat > "${APP}/pol/adm.py" <<'CHEATEOF'
 """Was this arrival one the producer was entitled to send?
 
-Entitlement is measured against what that producer has learned, never against
-the ceiling standing here now. The two differ for LAG ticks after every grant
-and after every pull, and judging against the ceiling we hold turns rows the
-producer was told it could send into faults.
+Entitlement is measured against what that producer had learned when it sent
+the batch, never against the ceiling standing here now. A batch lands LAG ticks
+after it leaves, and a figure takes LAG ticks to arrive, so the two differ for
+2 * LAG ticks after every grant and after every pull, and judging against the
+ceiling we hold turns rows the producer was told it could send into faults.
 
 A feed that has been abandoned is still sending for LAG ticks, because the
-teardown takes that long to reach it. Those rows are charged to the link and
-discarded; after the window closes they are a fault.
+teardown takes that long to reach it, and what it sent is still landing for
+LAG ticks after that. Those rows are charged to the link and discarded; after
+the window closes they are a fault.
 
 An accepted batch moves the feed's spent total and its idle clock, and moves
 the link's spent total, so both are marked for the end of the tick. A batch
@@ -29,7 +31,7 @@ def verdict(st, bk, when, fd, rows):
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"
@@ -82,9 +84,11 @@ the learning window afterwards. Those rows are spent against the link for
 ever, so unless the link's drained total counts them the link ceiling can never
 come back up and every other feed on it starves.
 
-`note` and `seen` are the record of what we have published. A producer acts on
-the last ceiling it has learned, which is the last one emitted at or before
-`when - LAG`; the book only keeps the ceiling standing right now, which is a
+`note` and `seen` are the record of what we have published. A batch landing now
+left its producer LAG ticks ago, and that producer was acting on the last
+ceiling it had learned by then, which is the last one we emitted at or before
+`when - 2 * LAG`: LAG ticks for the figure to reach it, LAG more for its batch
+to reach us. The book only keeps the ceiling standing right now, which is a
 different number whenever a grant or a pull is in flight. `opened` throws the
 record away for a feed that has been reopened, because a ceiling published to
 the previous generation says nothing about what the new producer has been
@@ -133,7 +137,7 @@ def seen(st, when, level, dflt):
         return dflt
     mark = st.setdefault("mark", {})
     at = mark.get(level, 0)
-    while at < len(rack) and rack[at][0] <= when - LAG:
+    while at < len(rack) and rack[at][0] <= when - 2 * LAG:
         at += 1
     mark[level] = at
     return dflt if at == 0 else rack[at - 1][1]

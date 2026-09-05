@@ -8,9 +8,11 @@ the learning window afterwards. Those rows are spent against the link for
 ever, so unless the link's drained total counts them the link ceiling can never
 come back up and every other feed on it starves.
 
-`note` and `seen` are the record of what we have published. A producer acts on
-the last ceiling it has learned, which is the last one emitted at or before
-`when - LAG`; the book only keeps the ceiling standing right now, which is a
+`note` and `seen` are the record of what we have published. A batch landing now
+left its producer LAG ticks ago, and that producer was acting on the last
+ceiling it had learned by then, which is the last one we emitted at or before
+`when - 2 * LAG`: LAG ticks for the figure to reach it, LAG more for its batch
+to reach us. The book only keeps the ceiling standing right now, which is a
 different number whenever a grant or a pull is in flight. `opened` throws the
 record away for a feed that has been reopened, because a ceiling published to
 the previous generation says nothing about what the new producer has been
@@ -61,7 +63,7 @@ def seen(st, when, level, dflt):
         return dflt
     mark = st.setdefault("ptr", {})
     at = mark.get(level, 0)
-    while at < len(rack) and rack[at][0] <= when - LAG:
+    while at < len(rack) and rack[at][0] <= when - 2 * LAG:
         at += 1
     mark[level] = at
     return dflt if at == 0 else rack[at - 1][1]

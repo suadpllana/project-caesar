@@ -29,7 +29,7 @@ def seen(st, when, level, dflt):
     rack = st.get("said", {}).get(level)
     if not rack:
         return dflt
-    idx = bisect.bisect_right(rack[0], when - LAG)
+    idx = bisect.bisect_right(rack[0], when - 2 * LAG)
     return dflt if idx == 0 else rack[1][idx - 1]
 
 
@@ -59,7 +59,7 @@ def note(st, when, level, value):
 def seen(st, when, level, dflt):
     known = st.setdefault("known", {})
     rack = st.get("said", {}).get(level) or []
-    while rack and rack[0][0] <= when - LAG:
+    while rack and rack[0][0] <= when - 2 * LAG:
         known[level] = rack.pop(0)[1]
     return known.get(level, dflt)
 
@@ -170,7 +170,7 @@ IDENTITY_VERDICT = '''def verdict(st, bk, when, fd, rows):
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             st["late"] = rows
@@ -220,7 +220,7 @@ COUNT_VERDICT = '''def verdict(st, bk, when, fd, rows):
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"

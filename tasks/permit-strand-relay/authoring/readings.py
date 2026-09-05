@@ -91,7 +91,7 @@ JUDGE_ON_HELD = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd
     room = bk.pub.get(LINK, 0)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"
@@ -127,7 +127,7 @@ OWE_BELIEF_ON_LINK = [
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 st["lback"] = st.get("lback", 0) + rows
                 tear.touch(st, LINK)
@@ -167,7 +167,7 @@ OVER_NOT_SCHEDULED = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, whe
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"
@@ -181,7 +181,15 @@ OVER_NOT_SCHEDULED = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, whe
     return "ok"
 ''')
 
+LEARNED_AT_LANDING = ('tear.py', '    while at < len(rack) and rack[at][0] <= when - 2 * LAG:', '\n',
+                      '    while at < len(rack) and rack[at][0] <= when - LAG:')
+
+GAP_OF_THREE = ('adm.py', '        if shut is not None and when - shut < 2 * LAG:', '\n',
+                '        if shut is not None and when - shut < LAG:')
+
 READINGS = {
+    "learned-at-landing": [LEARNED_AT_LANDING],
+    "gap-of-three": [GAP_OF_THREE],
     "owe-from-charge": [OWE_FROM_CHARGE],
     "owe-belief-on-link": OWE_BELIEF_ON_LINK,
     "refused-kept-on-reopen": [REFUSED_KEPT_ON_REOPEN],

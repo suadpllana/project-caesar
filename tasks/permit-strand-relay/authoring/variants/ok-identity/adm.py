@@ -1,13 +1,15 @@
 """Was this arrival one the producer was entitled to send?
 
-Entitlement is measured against what that producer has learned, never against
-the ceiling standing here now. The two differ for LAG ticks after every grant
-and after every pull, and judging against the ceiling we hold turns rows the
-producer was told it could send into faults.
+Entitlement is measured against what that producer had learned when it sent
+the batch, never against the ceiling standing here now. A batch lands LAG ticks
+after it leaves, and a figure takes LAG ticks to arrive, so the two differ for
+2 * LAG ticks after every grant and after every pull, and judging against the
+ceiling we hold turns rows the producer was told it could send into faults.
 
 A feed that has been abandoned is still sending for LAG ticks, because the
-teardown takes that long to reach it. Those rows are charged to the link and
-discarded; after the window closes they are a fault.
+teardown takes that long to reach it, and what it sent is still landing for
+LAG ticks after that. Those rows are charged to the link and discarded; after
+the window closes they are a fault.
 
 An accepted batch moves the feed's spent total and its idle clock, and moves
 the link's spent total, so both are marked for the end of the tick. A batch
@@ -24,7 +26,7 @@ def verdict(st, bk, when, fd, rows):
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             st["late"] = rows

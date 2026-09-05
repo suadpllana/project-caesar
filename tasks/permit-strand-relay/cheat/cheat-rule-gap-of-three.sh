@@ -31,7 +31,7 @@ def verdict(st, bk, when, fd, rows):
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < 2 * LAG:
+        if shut is not None and when - shut < LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"
@@ -208,9 +208,8 @@ def plan(st, bk, when):
         if seat is None:
             continue
         value = ceiling(st, bk, when, level)
-        spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
         if value > seat:
-            if value - spent >= THR or owed(st, bk, when, level, value):
+            if value - seat >= THR or owed(st, bk, when, level, value):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))

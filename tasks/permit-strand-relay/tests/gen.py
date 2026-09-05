@@ -32,7 +32,7 @@ def stream(nonce, idx):
             at = rng.randint(8, max(9, ticks - 16))
             shut[fd] = at
             if rng.random() < 0.5:
-                back[fd] = at + rng.randint(3, 9)
+                back[fd] = at + rng.randint(6, 12)
     for fd in feeds:
         out = 0
         when = rng.randint(0, 3)
@@ -103,7 +103,7 @@ def wide(nonce, idx):
             at = start + span + rng.randint(0, 4)
             ev.append([at, "x", fd, 0])
             if rng.random() < 0.5:
-                back = at + rng.randint(3, 9)
+                back = at + rng.randint(6, 12)
                 if back < ticks:
                     ev.append([back, "o", fd, 0])
                     burst = rng.randint(1, 3)

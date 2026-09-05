@@ -4,8 +4,9 @@ The machine drives a book through hooks and asks a policy four questions. This
 walks the plan in one pass and keeps its own tables, so agreement between the
 two is evidence that the rules pin one answer rather than evidence that one
 implementation was copied twice. It has to finish a wide stream too, so it
-keeps a heap of idle deadlines and looks up what a producer has learned by
-bisection rather than by walking the whole record.
+keeps a heap of idle deadlines and looks up what a producer had learned when
+it sent a batch - two lags before the batch lands - by bisection rather than by
+walking the whole record.
 """
 
 import bisect
@@ -50,7 +51,7 @@ def settle(plan):
         ats = told_at.get(level)
         if not ats:
             return base
-        idx = bisect.bisect_right(ats, when - LAG)
+        idx = bisect.bisect_right(ats, when - 2 * LAG)
         return base if idx == 0 else told_of[level][idx - 1]
 
     for fd in sorted(int(x) for x in plan["feeds"]):
@@ -69,7 +70,7 @@ def settle(plan):
                 room = learned(LINK, when)
                 if shut.get(fd, 0) is not None:
                     was = shut.get(fd)
-                    if was is not None and when - was < LAG and lsnt + count <= room:
+                    if was is not None and when - was < 2 * LAG and lsnt + count <= room:
                         lsnt += count
                         gone += count
                         poke.add(LINK)

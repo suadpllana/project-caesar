@@ -203,14 +203,14 @@ RULES_EXTRA = {
     room = tear.seen(st, when, LINK, WINL)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut <= LAG:
+        if shut is not None and when - shut <= 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"
         return "over"
-    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF):
-        return "over"
-    if bk.lsnt + rows > room:
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
     tear.touch(st, fd)
     tear.touch(st, LINK)

@@ -4,6 +4,35 @@ Working memory. Never ships - `package.py` drops it. Rewritten 2026-09-05 after 
 easiness probe (0 of 3) and the difficulty probe (0 of 8, "unsolvable as specified")
 both came back on the same bundle.
 
+## Round three, 2026-09-05: easiness 2 of 3 on the boundary version
+
+All three trajectories (in `probes/permit-strand-relay/round2-*.md`) wrote the event-driven
+schedule on sight because the brief states the wide-stream scale, in four tool calls
+each, and timed a synthetic wide stream at 1.3 s. The boundary bought nothing; the one loss
+was a schedule corner (the idle deadline of feeds the stream never touches, most likely).
+The repair is a second discovery the brief states as a fact and never as a rule: a batch we
+turn away is still sent as far as its producer knows, so the small-grant test - "unable to
+send five rows" - goes by the producer's count (charged plus refused), which the book does
+not keep, resets on reopen, does not apply to the link, and makes an `over` a scheduling
+trigger. All three trajectories kept the shipped `owed()` (the book's charge). The reading
+moves 262 of 295 generated streams; four enumerated cases pin the four sub-readings.
+
+## Round four, 2026-09-05: easiness 3 of 3, and the ceiling measured locally
+
+The belief fact sat beside the obligation with the link contrast after it, and all three
+pipeline agents read it as the rule (`probes/permit-strand-relay/round3-*.md`). This
+round: rows take the same three ticks to land as figures take to arrive (admission is
+against what the producer had learned when it sent, six ticks before landing; the gap is
+six ticks; neither number is stated), and the belief fact moved to the refusals paragraph
+with the contrast sentence gone. Then, for the first time on this task, cold agents were
+run locally against sealed copies: two of two solved the round-three version (calibrating
+the local probe against the pipeline's 3 of 3), and three of three solved this version,
+deriving the six, the gap and the belief rule in six tool calls each, one fuzzing its fast
+policy against a naive one over 4000 streams. See CLAUDE.md, "The ceiling, measured with
+cold agents". This is the hardest fair version of the mechanism and it is expected to be
+solved 3 of 3; the two ways past that are a decided-by-nobody corner (a lottery the
+quality review rejects) or a different mechanism.
+
 ## Current stage
 
 `Stage 8 - resubmission`, after a fairness repair and a resource boundary.
@@ -65,7 +94,8 @@ plus the store the stream leaves behind.
 - My own attack on the plan (my first plan, and where it is wrong): mark levels dirty on
   events and publish for those; wrong because the idle pull-back fires with no event on
   the feed, for every feed the book armed, including the ones the stream never touches.
-- Estimated solves out of 8: 2 of 8, designed for the lower half of the band.
+- Estimated solves out of 8: 2 of 8, designed for the lower half of the band; the belief
+  discovery is what is meant to take the easiness probe from 2 of 3 to at most 1 of 3.
 
 ## Verifier contract (frozen)
 
@@ -86,4 +116,5 @@ against three passing briefs, `structcheck` and `hintcheck` clean.
 ## Gates NOT run
 
 The three-agent easiness probe (the owner's rule: no subagents). The real two-image
-trial DID run here: oracle 1, nop 0 (killed at 601 s), 7 variants 1, 23 cheats 0.
+trial DID run here on the round-three version: oracle 1, nop 0 (killed at 601 s), 8 variants
+1, 27 cheats 0.

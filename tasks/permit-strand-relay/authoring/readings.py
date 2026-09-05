@@ -76,9 +76,10 @@ PULL_AS_DELTA = ('emit.py', '    for level in sorted(look):', '    st["dirty"] =
 NO_LATE_WINDOW = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd, rows):
     if not bk.up(fd):
         return "over"
-    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF):
-        return "over"
-    if bk.lsnt + rows > tear.seen(st, when, LINK, WINL):
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) \\
+            or bk.lsnt + rows > tear.seen(st, when, LINK, WINL):
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
     tear.touch(st, fd)
     tear.touch(st, LINK)
@@ -90,14 +91,14 @@ JUDGE_ON_HELD = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd
     room = bk.pub.get(LINK, 0)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"
         return "over"
-    if bk.snt[fd] + rows > bk.pub.get(fd, 0):
-        return "over"
-    if bk.lsnt + rows > room:
+    if bk.snt[fd] + rows > bk.pub.get(fd, 0) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
     tear.touch(st, fd)
     tear.touch(st, LINK)
@@ -116,7 +117,83 @@ KEEP_SAID_ON_REOPEN = ('tear.py', 'def opened(', '\n\n\ndef window(', '''def ope
     due(st, fd, when + IDLE)
 ''')
 
+OWE_FROM_CHARGE = ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
+    spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
+    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+''')
+
+OWE_BELIEF_ON_LINK = [
+    ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd, rows):
+    room = tear.seen(st, when, LINK, WINL)
+    if not bk.up(fd):
+        shut = bk.shut.get(fd)
+        if shut is not None and when - shut < 2 * LAG:
+            if bk.lsnt + rows > room:
+                st["lback"] = st.get("lback", 0) + rows
+                tear.touch(st, LINK)
+                return "over"
+            return "late"
+        st["lback"] = st.get("lback", 0) + rows
+        tear.touch(st, LINK)
+        return "over"
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        st["lback"] = st.get("lback", 0) + rows
+        tear.touch(st, fd)
+        tear.touch(st, LINK)
+        return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
+    return "ok"
+'''),
+    ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
+    if level == LINK:
+        spent = bk.lsnt + st.get("lback", 0)
+    else:
+        spent = tear.belief(st, bk, level)
+    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+'''),
+]
+
+REFUSED_KEPT_ON_REOPEN = ('tear.py', 'def opened(', '\n\n\ndef window(', '''def opened(st, bk, when, fd):
+    st.setdefault("said", {}).pop(fd, None)
+    st.setdefault("mark", {}).pop(fd, None)
+    touch(st, fd)
+    due(st, fd, when + IDLE)
+''')
+
+OVER_NOT_SCHEDULED = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd, rows):
+    room = tear.seen(st, when, LINK, WINL)
+    if not bk.up(fd):
+        shut = bk.shut.get(fd)
+        if shut is not None and when - shut < 2 * LAG:
+            if bk.lsnt + rows > room:
+                return "over"
+            return "late"
+        return "over"
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
+    return "ok"
+''')
+
+LEARNED_AT_LANDING = ('tear.py', '    while at < len(rack) and rack[at][0] <= when - 2 * LAG:', '\n',
+                      '    while at < len(rack) and rack[at][0] <= when - LAG:')
+
+GAP_OF_THREE = ('adm.py', '        if shut is not None and when - shut < 2 * LAG:', '\n',
+                '        if shut is not None and when - shut < LAG:')
+
 READINGS = {
+    "learned-at-landing": [LEARNED_AT_LANDING],
+    "gap-of-three": [GAP_OF_THREE],
+    "owe-from-charge": [OWE_FROM_CHARGE],
+    "owe-belief-on-link": OWE_BELIEF_ON_LINK,
+    "refused-kept-on-reopen": [REFUSED_KEPT_ON_REOPEN],
+    "over-not-scheduled": [OVER_NOT_SCHEDULED],
     "drain-taken-only": [DRAIN_TAKEN_ONLY],
     "feed-drain-shed": [FEED_DRAIN_SHED],
     "owe-from-learned": [OWE_FROM_LEARNED],

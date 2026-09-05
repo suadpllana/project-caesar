@@ -1,0 +1,24 @@
+screen home
+w h1 home foc
+w h2 home foc
+w h3 home foc grp=g
+w h4 home foc grp=g sel
+w h5 home foc
+screen edit
+w e1 edit foc
+w e2 edit foc
+screen warn
+w n1 warn foc
+push home
+tab
+tab
+push edit
+tab
+push warn
+want e1
+pop edit
+pop warn
+tab
+hide h1
+tab
+back

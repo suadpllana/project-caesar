@@ -1,0 +1,202 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/ui/focus.py",
+  "/app/ui/keep.py",
+  "/app/ui/reach.py",
+  "/app/ui/mem.py",
+]
+
+[task]
+name = "afterquery/focus-return-point"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: the engineer who owns the focus controller of a UI toolkit or
+the dialog primitive of a design system. Browser engines carry a sequential focus
+navigation starting point for exactly the bug this task is built on, and every toolkit
+that reimplements modal restore-on-close gets nested and out-of-order closes wrong at
+least once before it gets them right.
+
+The graded data is synthetic: widget trees of ten to forty widgets over three to five
+screens, with integer-style ids and flags, driven by scripts of twenty to sixty events.
+The tree shapes are ordinary. The scripts are far denser in mutation-under-focus than any
+real session, because that density is the condition under which the question has more
+than one defensible answer, and that is a deliberate distortion rather than a fair sample
+of what users do.
+
+The tree is a working toolkit whose focus policy is coherent and wrong in the way most
+real ones are. It keeps a stack of restore targets, converts a lost target into "start
+from the top", drops a request it cannot honour now, and asks each widget about its own
+flags. Four of the corrections are stated rules with a legible failure. The two that
+carry the difficulty are not.
+
+The first is that every deferred landing - a screen's return target, a request kept for a
+screen that is not on top, the place focus was lost from - is a question about the tree
+at the moment the landing happens and never earlier. The brief states the outcomes: a
+widget disabled under a push and enabled again before the pop takes focus back, a request
+whose widget is hidden and shown again is honoured, a dropped widget's place does not move
+when siblings are added. The natural implementation converts a target the moment it is
+disturbed, because that is when the event arrives, and it is right on every script where
+nothing is undone before the return.
+
+The second invalidates the natural implementation of the first. A screen can be popped
+while others stand above it, and the screen above then holds a target inside a screen
+that no longer exists. A stack of return targets pops the wrong one, and a per-screen
+record that resolves targets lazily still has nowhere to go once the target's screen is
+gone. What works is one resolver in which a dropped widget's place chains to its
+container's place, a container's to its container's, and a dead screen's root to that
+screen's own return, so that a return through an out-of-order pop and a return through a
+dropped row are the same walk. Nothing in the tree suggests that shape, and the case that
+exposes it needs three screens up, the middle one gone, and only then the top popped -
+which the generated scripts do in about a fifth of cases and the hand-written set in
+three.
+
+The interactions are the rest of the work. Twelve decisions are graded, and four of them
+need something no single event supplies: the widget focus stood on when a screen went up,
+the latest request made while a screen was below, the place a widget stood at when it was
+dropped, and the descendant a composite last saw focus on. A submission that fixes the
+four legible rules and leaves the stack in place passes the shipped scripts and most of
+the enumerated set, and fails a fifth of the generated one.
+
+There is no oracle for any of it. The toolkit prints whatever trail its policy produces,
+the environment ships no expected output, and the graded set is three hundred scripts
+generated inside the verifier from a nonce made after the agent has finished. The
+identifiers are in the register of ordinary internal code rather than self-describing:
+the four editable files carry names like keep, mem and reach, and the meaning of a field
+has to be recovered from what reads it. That is a design choice, so that the runtime's
+model is built from behaviour rather than read off labels.
+"""
+
+solution_explanation = """
+The reference is about a hundred and sixty lines across four files and is written from
+the requirements backwards. Reachability is a walk up the ancestors; the stops are the
+pre-order of the screen on top with composites collapsed to one stop and groups to their
+selected member; a composite's memory is a reference, checked for being still inside and
+still focusable at the moment it is used.
+
+The part that carries the design is keep.py. Three records are kept and none is resolved
+when it is written: the landing each screen went up over, the latest request per screen
+made while it was not on top, and the place focus was last lost from. A landing is a
+widget or a point. A widget that is gone becomes the point it stood at; a point whose
+container is gone becomes the container's point; the point of a dead screen's root is
+that screen's own return. One loop walks that chain against the tree as it is at the
+moment a landing is needed, and every deferred rule in the brief - the re-enabled target,
+the re-shown request, the place that does not move, the out-of-order pop - falls out of
+it with no special case. The policy in focus.py then does one thing after any change to
+the tree: asks whether the widget holding focus can still hold it, and if not records it
+as the place focus was lost from.
+
+Four alternative correct implementations are kept in the authoring directory and all
+score 1: the chain resolved recursively instead of by a loop, every widget of a dropped
+subtree recorded at the drop instead of read off the detached parent later, a screen
+popped out of order splicing its return into the screen above at that moment, and points
+carried as a small class instead of a tuple. All four agree event for event with the
+reference and with the sealed model.
+"""
+
+verification_explanation = """
+The rebuilt toolkit is driven over every script and graded on one thing, exactly, with
+no partial credit: the trail, meaning which widget holds focus after each event, or none.
+The trail is written by ui/core.py, which is not an editable artifact, from the focus the
+core holds after the policy has answered, so it records what the toolkit did rather than
+what a submission says it did.
+
+Expected trails come from tests/oracle.py, a second implementation written from the rules
+that shares no code with the tree: flat dictionaries keyed by id instead of linked nodes,
+every position recorded at the drop instead of read back later, recursion instead of a
+loop. The reference and the model agree on every event of the enumerated set and of many
+hundreds of generated scripts, and the enumerated set's trails were also derived by hand
+from the rules before either implementation produced them; the ground-truth builder
+refuses to write a trail the three readings do not share.
+
+Two script sets are driven. The enumerated set is forty-five scripts, one per rule, each
+named for the reading it exists to fail and covering the must-still-work side of every
+fence. The other three hundred are generated inside the verifier from a nonce made from
+/dev/urandom after the agent has finished, and their expected trails are produced by the
+sealed model after the run. Those scripts did not exist when the submission was written,
+so there is no table to paste. The answer-key probe in the cheat suite is the shipped
+policy replaying the recorded trail of every enumerated case it recognises: it passes all
+forty-five and scores 0.
+
+Because the verifier executes agent code, four things are attested. The executed tree
+outside the four declared artifacts is byte-identical to the pristine copy, with the
+number of files compared asserted. Every frozen function is digested as it existed in
+the running interpreter, at import and after each script, against digests compiled from
+the pristine sources. Trail rows are appended by a closure the runner owns that refuses
+any caller other than the core's own step, and the interpreter's own count of entries
+into that step, kept in the runner through sys.monitoring, has to equal the number of
+rows and still have been armed when each script ended. The report carries the run nonce.
+The run happens as an unprivileged uid in its own session under a hard timeout, in a tree
+it cannot write, reporting into a descriptor root opened before the privilege drop; the
+reward channel, the ground truth, the model and the grader are root-only.
+
+Deliberately not graded: how a policy stores its records, how many times it consults the
+tree, how it represents a point, whether it resolves a chain iteratively or recursively,
+and how often its own entry point is entered. Four alternative correct implementations
+must score 1.
+
+Twenty-seven cheats score 0. Eighteen are the reference with exactly one decision made the
+way a solver who missed one piece would make it, generated by swapping an anchored block
+of the reference source: reachability asked of the widget alone, every group member a
+stop, selection ignored, a composite entered at its first descendant, entered backwards
+at its last, memory learning only from arrows, arrows wrapping, auto ignored, a request
+for a screen below dropped, the first such request kept instead of the latest, an
+unreachable held request skipped in favour of the return, a request held before the push
+ignored by it, a return target forgotten the moment it is disturbed, a return through a
+dead screen resolving to nothing, focus lost to a mutation starting from the top, a point
+whose container is gone resolving to nothing, a dropped widget's place anchored on the
+sibling before it, and a request forcing focus onto a widget that cannot take it. Five
+are reward probes built on the shipped tree: a double-forked late reward write, a planted
+report, a read of the answers, a rewrite of the frozen core, a sweep of the filesystem.
+Three are attestation probes built on the reference with every trail right and one layer
+interfered with - the instrumentation disarmed from inside the policy, the frozen step
+rebound at import, an extra row pushed through the sink - each caught by its own layer
+and by nothing else. One is the answer-key probe.
+"""
+
+category = "Software"
+subcategory = "Frontend"
+
+tags = [
+  "focus-management",
+  "modal-dialogs",
+  "tree-mutation",
+  "deferred-resolution",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I maintain the focus and keyboard-navigation layer of an internal terminal toolkit our
+operations consoles are built on, and before that the dialog primitives of a web design
+system. The bug this task is built from is the one every such component ships with at
+least once: a modal closes, the thing that opened it has been removed or disabled in the
+meantime, and focus lands on the document root, so the next Tab starts from the top of
+the page and a keyboard user is lost. The fix everyone writes first - remember the opener,
+restore it if it still exists - is right in every case you would think to test and wrong
+the moment the opener is disabled and re-enabled under the modal, or two modals close in
+the wrong order, or the opener sat inside a row that was removed. Browsers keep a
+starting point in the tree for exactly this reason, and every toolkit that does not
+copies the bug.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

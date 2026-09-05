@@ -120,6 +120,21 @@ none has ever been checked for.
 | `bucket-seal-lag` | Software / Data engineering | 26 | 12 | 14400 s | 8 h |
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
 | `note-carry-forward` | Software / Algorithms | 14 | 6 | 14400 s | 7 h |
+| `focus-return-point` | Software / Frontend | 27 | 13 | 14400 s | 8 h |
+
+**`focus-return-point` is the sixteenth task, built 2026-09-05 from a proposal the owner
+accepted, and it has not been through the pipeline.** It is the first here in Frontend to grade
+a runtime rather than a network race, and its graded artifact is a **focus trail**: which widget
+holds the cursor after every event of a script, in a synthetic terminal toolkit with modal
+screens, composites, groups and tree mutations under focus. `simcheck` reports it conceptually
+clear of every earlier task. The difficulty is that every deferred landing (a screen's return
+target, a request held for a screen below, the place focus was lost from) is a question about
+the tree at the moment the landing happens, and a screen popped out of order leaves the screen
+above holding a target inside a screen that no longer exists, which a stack pops wrongly and a
+lazy per-screen record cannot resolve without chaining through the dead screen's own return.
+What it turned up is in "Twelve findings from a task built in one session, with the self-probe
+replacing the three-agent probe" below. **Gates NOT run: the three-agent easiness probe** (the
+owner's rule is that the session solves its own task instead), and no pipeline gate.
 
 **`alias-settle-report` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-04, and initially failed the quality review on `category and
@@ -858,6 +873,114 @@ submitted and probed carried the new rule and no `authoring/` directory at all**
 copy was never regenerated. The stale variant is deleted; that bundle has had no working
 alternative-correct-implementation check against its current rule, which is the gate the run
 audit applies, and it would need one rebuilt before it ever went back.
+
+## Twelve findings from a task built in one session, with the self-probe replacing the three-agent probe (2026-09-05)
+
+All from building `focus-return-point`. The first three are about the method the owner set on
+2026-09-04 (no subagents; the session solves its own task cold), and they say it works as a
+coverage walk even when the solver is the author.
+
+1. **The self-probe found four undecided rules before any probe was spent, and every one would
+   have been a guess.** Walking the brief as a solver, four neighbouring cases had no sentence
+   deciding them: `back` pressed inside a composite (the mirror reading lands on the composite
+   itself, the reference goes to the stop before it); a push made while nothing held focus (the
+   brief only said focus returns "to the widget that had it"); the out-of-order sentence written
+   as a counterfactual, which disagrees with the rules when a held request's widget is toggled
+   between the two pops; and whether groups and composites overlap. All four are now stated
+   requirements with an enumerated case each, and the trails were derived by hand before either
+   implementation ran. The author cannot play a cold solver, but the author can walk every
+   neighbouring case of every rule, and that is the part of the probe that has cost this repo the
+   most rounds.
+
+2. **The "first plan" is gradeable without a probe: build it from the cheat swaps.** The natural
+   implementation (return targets forgotten when disturbed, a stack for screens, focus lost to
+   the top of the form) is the reference with three swaps combined. Through the real grader it
+   scores 0 on three rule sweeps plus the generated set, and each swap on its own moves 63%, 26%
+   and 32% of generated scripts. That is the ablation table the playbook asks for, obtained
+   before packaging rather than after a rejection.
+
+3. **Hand-derived expected trails are the third reading, and the ground-truth builder refuses
+   without them.** Both implementations here have one author, so their agreeing proves only that
+   the author read the rules the same way twice. `authoring/handcheck.py` holds 45 trails written
+   out by hand from the brief, row by row, and `build_gt.py` writes nothing unless reference,
+   model and hand agree. The reviewer of the proposal asked for exactly this and it took an hour.
+
+4. **A discovery is only as strong as the distribution that exercises it, measured again: the
+   chain through a dead screen occurred in 0.7% of generated scripts** until the generator got a
+   dedicated pattern (three screens up, the middle one popped, then the top). After it, 43%. The
+   instrument is an instrumented copy of the sealed model (`authoring/coverage.py`) that counts
+   each deferred situation per script; it is ten minutes to write and it is the number the
+   difficulty argument rests on. Do not cite a reading's share until the generator has been
+   measured for the situation the reading depends on.
+
+5. **The coverage script staged an app directory as if it were a flat policy directory, ran the
+   shipped tree for every reading, and reported 95.0% for all eighteen.** Eighteen identical
+   numbers is the signature of a hollow gate, and it is the fourth instance of that class in this
+   file. A measurement that comes back the same for every subject has measured none of them.
+
+6. **A probe wrapped in `try/except` around the layer it attacks is a correct submission.** The
+   extra-rows probe called the runner's sink, which refused it, and swallowed the refusal: reward
+   1, and it looked like the sink was dead. The sink was working. Remove the `try`, let the
+   refusal propagate, and the probe faults on every script, which is the layer firing.
+
+7. **A probe that imports `ui.core` from inside a module `ui.core` imports never runs**, the
+   third instance of "a cheat that dies before the layer it was aimed at has been rejected by
+   nothing" (NameError, ImportError, and now a circular import). Rebind lazily, from a
+   constructor that runs after the package is loaded, and read *which* test fired: the
+   fingerprint probe was being caught by the faults test, not by the fingerprint.
+
+8. **A wrong reading can loop forever.** A request that leaks focus onto a screen below records
+   a return target inside the screen about to be pushed, and the resolver chases it in a circle.
+   The in-process runner used by `readingcheck` and `coverage` now runs under a five-second
+   alarm; the reading was dropped, since the brief states requests for other screens are kept.
+   A hang in the host trial costs the full 600 s kill and reads as a stalled gate.
+
+9. **The policy-entry tally was a run-audit exposure and is not graded.** Counting entries into
+   the editable `Pol.on` and requiring one per event would fail a correct policy that re-enters
+   its own entry point. Only entries into the frozen `Ui.step` are compared to the row count;
+   the frozen functions are fingerprinted anyway, so the extra tally bought nothing.
+
+10. **`pkill -f <script>` from the same shell that relaunches `<script>` kills the shell**, exit
+    144, twice in one session, because the relaunch line is in the shell's own command line.
+    Kill in one command and relaunch in the next.
+
+11. **The working directory persists between commands, and `cd ../..` in one of them wrote
+    `task.toml` into the repo root**, where `docker_trial2.py` could not find the artifact list
+    and died before building. Use absolute paths in every command that writes a file.
+
+12. **The Docker daemon died mid-session** (a killed shell took it down) and the trial log said
+    "Cannot connect to the Docker daemon" three lines from the end. Check `docker info` before
+    reading any trial log as a result.
+
+Two non-findings, recorded so nobody rebuilds them:
+
+- **Equal-length type-token ratio is in range**: 0.312 on the first 780 words against 0.317 for
+  `earliest-change-script`, which passed the AI screen; the 0.256 `textcheck` reports is the
+  1170-word length artifact already documented on 2026-09-02.
+- **`environment/Dockerfile` at 0.596 against one bundle** is this repo's baseline after five
+  honest forms; the rest of the plumbing was written fresh and `simcheck` reports no other file
+  near any bundle.
+
+Measured, over 300 generated scripts, share each wrong reading moves: held request dropped 84%,
+request held before the push ignored 77%, request forcing focus 72%, return forgotten eagerly
+63%, reachability asked of the widget alone 62%, every group member a stop 49%, auto ignored
+42%, first held request kept 37%, focus lost to the top 32%, selection ignored 30%, container
+chain missing 30%, backwards entry at the last child 26%, dead-screen chain missing 26%, held
+request skipped when unreachable 16%, place anchored on a sibling 13%, memory from arrows only
+12%, arrows wrapping 12%, composite entered at first child 12%.
+
+**Gates run:** real two-image trial (see the handover for the count), host emulation 27 cheats 0
+with oracle 1 and nop 0, four variants 1 through both, `build_gt` proving the reference against
+the sealed model on 360 generated scripts and the hand-derived trails, `fuzz` 300 clean,
+`determinism` identical across four hash seeds, `readingcheck` all 18 separated, `coverage`
+every reading above a tenth, `cheat_report` naming the catching test per cheat with the
+attestation probes caught by their own layer only, `forgecheck`, `solvecheck`,
+`deadfieldcheck`, `catcheck`, `hintcheck`, `structcheck`, `onelinecheck` (the pop landing has
+no rule at depth 2), `simcheck` conceptually clear, `preflight` no errors, `textcheck` clean
+against `guard-mark-unwind` and carrying only the length artifact against the other two,
+`zipcheck` clean. **Not run: the three-agent easiness probe, and `tiecheck` (no graded
+comparison here can come down to a name a submission chose; tree order is total and the only
+literal is `none`, which the brief states).**
 
 ## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
 

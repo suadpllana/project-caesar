@@ -2,10 +2,11 @@
 
 Three families. A rule cheat is the reference with exactly one decision made
 the other way, so it exercises the scenario set rather than the verifier - the
-swap is refused if it changes nothing. An isolation probe is built on the
-SHIPPED tree, because a probe built on the reference does the real work and
-scores 1 for honest reasons, which proves nothing about the layer it was aimed
-at. An attestation probe is the opposite: the reference, every answer correct,
+swap is refused if it changes nothing. An isolation probe is built on a
+tree that is wrong on values, because a probe built on the reference does the
+real work and scores 1 for honest reasons, which proves nothing about the layer
+it was aimed at - and not on the shipped tree, which never finishes a wide
+stream and would be rejected by the kill instead of by the layer. An attestation probe is the opposite: the reference, every answer correct,
 with one attestation interfered with, so it can only be rejected by the layer
 it attacks.
 
@@ -277,11 +278,18 @@ def main():
                            "every answer right, killed on the first wide stream",
                            read(scratch)))
 
-    ship = read(SHIP)
+    # The isolation probes sit on a tree that is wrong on values and finishes
+    # the run: the reference with the link's drained total counting only drawn
+    # rows. The shipped tree would do as a base for the values, but it asks
+    # about every feed on every tick and is killed by the wide streams, so a
+    # probe built on it would be rejected by the kill and never reach the
+    # layer it attacks.
+    build_tree.build(scratch, readings.READINGS["drain-taken-only"])
+    ship = read(scratch)
     for name, blob in (("privileges", PRIV), ("reward-daemon", DAEMON),
                        ("plant-report", PLANT), ("sweep", SWEEP)):
         made.append(script("probe-" + name,
-                           "isolation probe, built on the shipped tree",
+                           "isolation probe, built on a wrong tree that finishes",
                            prepend(ship, "adm.py", blob)))
 
     ref = read(REF)

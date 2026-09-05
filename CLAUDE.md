@@ -1165,7 +1165,7 @@ Three smaller things, each of which cost real time:
 across 5 hash seeds, `field_report` no dead field, `shipped` 11 of 26 enumerated and 0 of 295
 generated, `textcheck` clean against all three passing briefs, `structcheck`, `hintcheck`,
 `solvecheck`, `deadfieldcheck`, `catcheck`, `extraneouscheck`, `simcheck` (clear on both axes)
-and `preflight` (no errors) clean. Real two-image trial: TRIAL_SUMMARY.
+and `preflight` (no errors) clean. Real two-image trial on this host with docker up: **oracle 1 (37 s through both containers), nop 0 (the shipped tree killed at 601 s, `the run produced no report`), 7 of 7 variants 1, 23 of 23 cheats 0**, each attestation probe and the slow cheat caught by its own layer and nothing else. `zipcheck` and `zipfix --check` clean on the 110-entry archive.
 
 **Gates NOT run:** the three-agent easiness probe (the owner's rule: no subagents), and
 `onelinecheck` reported nothing for either decision. The honest expectation is written in

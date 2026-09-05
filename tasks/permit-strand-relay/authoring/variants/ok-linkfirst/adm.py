@@ -38,6 +38,6 @@ def verdict(st, bk, when, fd, rows):
         tear.due(st, fd, when + IDLE)
         return "ok"
     shut = bk.shut.get(fd)
-    if shut is None or when - shut >= LAG:
+    if shut is None or when - shut >= 2 * LAG:
         return "over"
     return "late"

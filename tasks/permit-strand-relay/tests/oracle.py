@@ -27,7 +27,7 @@ def settle(plan):
     told_at = {LINK: []}
     told_of = {LINK: []}
     seat = {LINK: WINL}
-    snt, tkn, park, last, shut = {}, {}, {}, {}, {}
+    snt, tkn, park, last, shut, back = {}, {}, {}, {}, {}, {}
     clock = []
     lsnt = 0
     ltkn = 0
@@ -42,6 +42,7 @@ def settle(plan):
         seat[fd] = WINF
         told_at[fd] = []
         told_of[fd] = []
+        back[fd] = 0
         heapq.heappush(clock, (when + IDLE, fd))
 
     def learned(level, when):
@@ -76,6 +77,8 @@ def settle(plan):
                     else:
                         rows.append(("over", when, fd, count))
                 elif snt[fd] + count > learned(fd, when) or lsnt + count > room:
+                    back[fd] += count
+                    poke.add(fd)
                     rows.append(("over", when, fd, count))
                 else:
                     snt[fd] += count
@@ -120,7 +123,7 @@ def settle(plan):
             else:
                 span = FLOOR if when - last[level] >= IDLE else WINF
                 value = tkn[level] + span
-                spent = snt[level]
+                spent = snt[level] + back[level]
             here = seat[level]
             if value > here:
                 due = here - spent < MINB and value - spent >= MINB

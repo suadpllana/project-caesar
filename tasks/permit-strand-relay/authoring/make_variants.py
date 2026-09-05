@@ -33,6 +33,15 @@ def seen(st, when, level, dflt):
     return dflt if idx == 0 else rack[1][idx - 1]
 
 
+def sent(st, fd, rows):
+    back = st.setdefault("back", {})
+    back[fd] = back.get(fd, 0) + rows
+
+
+def belief(st, bk, fd):
+    return bk.snt.get(fd, 0) + st.get("back", {}).get(fd, 0)
+
+
 def touch(st, level):
     st.setdefault("dirty", set()).add(level)
 
@@ -55,6 +64,15 @@ def seen(st, when, level, dflt):
     return known.get(level, dflt)
 
 
+def sent(st, fd, rows):
+    back = st.setdefault("back", {})
+    back[fd] = back.get(fd, 0) + rows
+
+
+def belief(st, bk, fd):
+    return bk.snt.get(fd, 0) + st.get("back", {}).get(fd, 0)
+
+
 def touch(st, level):
     st.setdefault("dirty", set()).add(level)
 
@@ -66,6 +84,7 @@ def due(st, fd, when):
 PRUNED_OPENED = '''def opened(st, bk, when, fd):
     st.setdefault("said", {}).pop(fd, None)
     st.setdefault("known", {}).pop(fd, None)
+    st.setdefault("back", {}).pop(fd, None)
     touch(st, fd)
     due(st, fd, when + IDLE)
 '''
@@ -157,9 +176,9 @@ IDENTITY_VERDICT = '''def verdict(st, bk, when, fd, rows):
             st["late"] = rows
             return "late"
         return "over"
-    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF):
-        return "over"
-    if bk.lsnt + rows > room:
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
     st["held"] = st.get("held", 0) + rows
     tear.touch(st, fd)
@@ -178,9 +197,14 @@ IDENTITY_SHED = '''def shed(st, bk, when, fd, rows):
 
 LINK_FIRST = '''def verdict(st, bk, when, fd, rows):
     if bk.lsnt + rows > tear.seen(st, when, LINK, WINL):
+        if bk.up(fd):
+            tear.sent(st, fd, rows)
+            tear.touch(st, fd)
         return "over"
     if bk.up(fd):
         if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF):
+            tear.sent(st, fd, rows)
+            tear.touch(st, fd)
             return "over"
         tear.touch(st, fd)
         tear.touch(st, LINK)
@@ -192,9 +216,41 @@ LINK_FIRST = '''def verdict(st, bk, when, fd, rows):
     return "late"
 '''
 
+COUNT_VERDICT = '''def verdict(st, bk, when, fd, rows):
+    room = tear.seen(st, when, LINK, WINL)
+    if not bk.up(fd):
+        shut = bk.shut.get(fd)
+        if shut is not None and when - shut < LAG:
+            if bk.lsnt + rows > room:
+                return "over"
+            return "late"
+        return "over"
+    told = st.setdefault("told", {})
+    told[fd] = told.get(fd, 0) + rows
+    tear.touch(st, fd)
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        return "over"
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
+    return "ok"
+'''
+
+COUNT_OWED = '''def owed(st, bk, when, level, value):
+    spent = bk.lsnt if level == LINK else st.get("told", {}).get(level, 0)
+    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+'''
+
+COUNT_OPENED = '''def opened(st, bk, when, fd):
+    st.setdefault("said", {}).pop(fd, None)
+    st.setdefault("mark", {}).pop(fd, None)
+    st.setdefault("told", {}).pop(fd, None)
+    touch(st, fd)
+    due(st, fd, when + IDLE)
+'''
+
 RENAMED = [
     ("gone", "sunk"), ("said", "told"), ("mark", "ptr"), ("dirty", "moved"),
-    ("due", "alarm"), ("boot", "began"),
+    ("due", "alarm"), ("boot", "began"), ("back", "refused"),
 ]
 
 VARIANTS = {
@@ -221,6 +277,11 @@ VARIANTS = {
     "ok-linkfirst": {
         "adm.py": [("VERDICT_BLOCK", LINK_FIRST)],
     },
+    "ok-count": {
+        "adm.py": [("VERDICT_BLOCK", COUNT_VERDICT)],
+        "emit.py": [("OWED_BLOCK", COUNT_OWED)],
+        "tear.py": [("OPENED_BLOCK", COUNT_OPENED)],
+    },
 }
 
 ANCHORS = {
@@ -230,6 +291,7 @@ ANCHORS = {
     "TOUCH_BLOCK": ("def touch(", None),
     "TOOK_BLOCK": ("def took(", None),
     "PLAN_BLOCK": ("def plan(", None),
+    "OWED_BLOCK": ("def owed(", "\n\n\ndef plan("),
     "VERDICT_BLOCK": ("def verdict(", None),
     "IMPORT": ("from lnk.book import", "from lnk.book import"),
 }

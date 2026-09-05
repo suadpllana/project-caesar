@@ -19,8 +19,8 @@ coherent rather than broken: it returns permit when the consumer draws rows off,
 an arrival against the ceiling standing here now, and holds a raise back until it clears
 the threshold. That is the shape of every receiver-side window anyone has written up,
 because on one level with one producer it is right, so it is also the shape a frontier
-agent reconstructs from its prior. Ten corrections are needed across four files, and the
-last of them is not a rule at all.
+agent reconstructs from its prior. Eleven corrections are needed across four files, and
+the two that carry the task are not rules a careful reader transcribes.
 
 The first is that the link finishes with rows nobody ever draws. A feed can be torn down
 with rows still parked on it, those rows are thrown away, and they were charged to the
@@ -30,90 +30,106 @@ the shipped tree on /app/cases/strand.json and three teardowns of thirty-nine ro
 one hundred and seventeen of the link's one hundred and twenty beyond reach: from tick 16
 the surviving feed cannot land a batch of twelve for the rest of the stream while every
 holding area is empty. The same rows arrive for three ticks after a teardown, because the
-teardown takes that long to reach the producer, and those count too.
+teardown takes that long to reach the producer, and those count too. An arrival is judged
+against what its producer has learned, which is the figure published three ticks ago and
+not the one the book holds now, and nothing in the environment records the published
+history: a policy that wants it has to have been keeping it.
 
-The second is that an arrival is judged against what its producer has learned, which is
-the figure published three ticks ago and not the one the book holds now, and nothing in
-the environment records the published history: a policy that wants it has to have been
-keeping it. Eight more decisions are stated outright and interact with those two: which
-arrivals are faults and which are the doomed traffic inside a teardown window, that both
-levels are charged and either can refuse, that a reopened feed is a fresh run whose
-totals restart while the link's never do, that a ceiling is absolute and monotone except
-for the idle pull-back, that the pull-back is the floor above what the level has finished
-with, and that the obligation to publish under the threshold counts a figure still on its
-way. Measured against the reference over three hundred generated streams, counting only
-drawn rows moves 92 per cent of them, judging against the standing figure 95 per cent, and
-measuring the obligation against the learned figure instead of the published one 93 per
-cent.
+The second is the one the brief states as a fact about producers and never as a rule
+about the relay. A ceiling has to be published below the threshold when withholding it
+would leave a producer unable to send its smallest batch while rows are free, and whether
+a producer can send is a question about what it has learned and what it believes it has
+spent. A batch the relay turns away is still sent as far as its producer knows, because
+nothing tells it otherwise, so the producer's count runs ahead of the book's by every
+refused row, and the shipped small-grant test - which reads the book's charge and is
+otherwise right - publishes when no producer is stuck and stays silent when one is. The
+fix needs a count the book does not keep, kept from the verdicts the policy itself hands
+back; it has to start again for a reopened feed, whose producer is new; it does not apply
+to the link, which no producer can see the whole of; and it makes a refused batch a
+moment at which a figure can fall due with nothing else happening on that feed. Measured
+against the reference over three hundred generated streams, reading the obligation off
+the book's charge moves 89 per cent of them, and the streams a policy can build for
+itself say nothing about it, because a relay that publishes a tick late looks exactly
+like one that publishes on time.
 
-The third is the one that separates a policy that is right from one that is right and
-finishes. Five of the three hundred generated streams are wide: seven to nine thousand
-feeds over more than a hundred thousand ticks, each feed busy for a short stretch and
-silent otherwise, with a few sharing the link at any moment. The machine asks the policy
-what to publish at the end of every tick, and the policy that answers by looking at every
-open feed - the shipped tree's shape, and the natural one - does work in proportion to
-feeds times ticks. On this hardware that is eight and a half minutes for one wide stream
-with every row of its answer right, and there are five of them; the whole run of three
-hundred and twenty-six streams is killed at ten minutes. A level's figure can
-only move when rows land on it or leave it, when it is reopened, or when its idle clock
-runs out, and the reference answers for exactly those levels, which puts the wide block at
-about three seconds a stream and the whole run under a minute. Walking the published record
-on every arrival is a second way to lose the same stream once the link has published
-tens of thousands of figures. The brief states the scale and the ten-minute limit; it does
-not say what to keep or how.
+The third separates a policy that is right from one that is right and finishes. Five of
+the three hundred generated streams are wide: nine to eleven thousand feeds over a
+hundred and fifty to a hundred and seventy thousand ticks, each feed busy for a short
+stretch and silent otherwise, with a few sharing the link at any moment. The machine asks
+the policy what to publish at the end of every tick, and the policy that answers by
+looking at every open feed - the shipped tree's shape - does work in proportion to feeds
+times ticks: on this hardware that is eight and a half minutes for one wide stream with
+every row of its answer right, and there are five of them; the whole run of three hundred
+and thirty streams is killed at ten minutes. A level's figure can only move when rows land
+on it, leave it, or are refused from it, when it is reopened, or when its idle clock runs
+out - including the clock of every feed the stream never touches, which the relay has to
+have wound at the start - and the reference answers for exactly those levels, which puts
+the wide block at about three seconds a stream and the whole run under a minute. The brief
+states the scale and the ten-minute limit; it does not say what to keep or how.
 
-The shipped tree already produces the right answer on nine of the twenty-six enumerated
-streams, which are the fences that must keep working, and on none of the generated ones.
+Eight more decisions are stated outright and interact with those three: which arrivals
+are faults and which are the doomed traffic inside a teardown window, that both levels
+are charged and either can refuse, that a reopened feed is a fresh run whose totals
+restart while the link's never do, that a ceiling is absolute and monotone except for the
+idle pull-back, that the pull-back is the floor above what the level has finished with,
+and that the obligation counts a figure still on its way. The shipped tree already
+produces the right answer on eleven of the thirty enumerated streams, which are the
+fences that must keep working, and on none of the generated ones.
 
 The graded data is synthetic: integer row counts on three to six feeds over forty to
 ninety ticks for the ordinary streams, with arrivals paced against a notional outstanding
-count so most of them are legal, and thousands of feeds each active for a few dozen ticks
-for the wide ones. That is not a fair sample of a production link, which carries
-thousands of streams with jittered timing and real payloads, and where a teardown with
-rows still parked is rare. Here it is frequent on purpose, because it is the condition
-under which the accounting question has more than one defensible answer. Identifiers in
-the shipped tree are degraded to the register of real legacy code - snt, ltkn, pub, shut,
-adm, rtn - which is uniform rather than noise and never misdescribes what it holds, so
-what a thing is stays recoverable from what calls it and what its value flows into, and
-only the shortcut of reading it off the name is gone.
+count so most of them are legal and a few are not, and thousands of feeds each active for
+a few dozen ticks for the wide ones. That is not a fair sample of a production link, which
+carries thousands of streams with jittered timing and real payloads, and where a teardown
+with rows still parked is rare. Here it is frequent on purpose, because it is the
+condition under which the accounting question has more than one defensible answer.
+Identifiers in the shipped tree are degraded to the register of real legacy code - snt,
+ltkn, pub, shut, adm, rtn - which is uniform rather than noise and never misdescribes what
+it holds, so what a thing is stays recoverable from what calls it and what its value flows
+into, and only the shortcut of reading it off the name is gone.
 
 Who does this for a living: an engineer who owns the credit accounting of a multiplexed
 transport or ingest link, and who gets paged when throughput decays to nothing with no
 error logged anywhere."""
 
-solution_explanation = """The reference rewrites the four policy files and adds two things the shipped tree had
-nowhere to put: the policy's own record of what it has published, and a schedule of
-which levels are worth asking about when a tick ends.
+solution_explanation = """The reference rewrites the four policy files and adds three things the shipped tree had
+nowhere to put: the policy's own record of what it has published, the producer's side of
+the ledger, and a schedule of which levels are worth asking about when a tick ends.
 
-/app/pol/tear.py keeps both. shed accumulates, at the link, every row that leaves
+/app/pol/tear.py keeps all three. shed accumulates, at the link, every row that leaves
 without being drawn - the batches parked on a feed when it is abandoned and the rows that
 land inside the teardown window afterwards. note and seen are the published history: a
 producer acts on the last ceiling emitted at or before three ticks ago, looked up through
 a cursor per level because ticks only move forward, and opened throws a feed's history
 away when it is reopened, because a ceiling published to the previous run says nothing
-about what the new producer has been told. touch marks a level whose figure may have
-moved and due books a feed's idle deadline, and the machine's own hooks are the only
-places either is called from: an accepted arrival, a draw, a shed and a reopen.
+about what the new producer has been told. sent and belief are what a producer believes
+it has spent: what the book charged plus every batch the policy turned away, because the
+producer never hears of a refusal, and opened forgets that too. touch marks a level whose
+figure may have moved and due books a feed's idle deadline, and the machine's own hooks
+are the only places either is called from: an accepted arrival, a refused one, a draw, a
+shed and a reopen.
 
 /app/pol/rtn.py makes the link's drained total the rows drawn plus the rows shed, while
 a feed's stays the rows drawn, since an abandoned feed has no ceiling left to publish;
 its took hook is where a draw marks the feed and the link. /app/pol/adm.py judges every
-arrival against what that producer has learned at both levels, and treats a feed inside
-its teardown window as still sending: those rows are charged to the link and discarded
-rather than parked. /app/pol/emit.py publishes when the raise clears the threshold or
-when the obligation bites, measures the obligation against the figure already published
-and what has been spent, and asks only about the levels touched during the tick and the
+arrival against what that producer has learned at both levels, treats a feed inside its
+teardown window as still sending - those rows are charged to the link and discarded
+rather than parked - and records what it refuses. /app/pol/emit.py publishes when the
+raise clears the threshold or when the obligation bites, measures the obligation against
+the figure already published and what the producer believes it has spent - the book's
+own charge for the link - and asks only about the levels touched during the tick and the
 feeds whose idle clock runs out on it, booking every feed's first deadline when the
 stream starts.
 
 That is the order a real expert works in, because the symptom points at the link and
-the link points at the discarded rows, then at what each producer was told, and only a
-wide stream says that the policy asking about every feed every tick will never finish.
-Seven alternative correct implementations ship under authoring/variants/, each building
-one quantity a different way - the history looked up by bisection or pruned as it is
-learned, the deadlines in a heap or in one queue with the touched levels, the drained
-total taken from the identity between what the link was charged and what it still holds
-- and all seven reach identical rows, on the wide streams included."""
+the link points at the discarded rows, then at what each producer was told, then at what
+each producer thinks it has done, and only a wide stream says that the policy asking about
+every feed every tick will never finish. Eight alternative correct implementations ship
+under authoring/variants/, each building one quantity a different way - the history
+looked up by bisection or pruned as it is learned, the deadlines in a heap or in one queue
+with the touched levels, the drained total taken from the identity between what the link
+was charged and what it still holds, the producer's count kept whole instead of as charge
+plus refusals - and all eight reach identical rows, on the wide streams included."""
 
 verification_explanation = """Every stream is graded all or nothing on the ordered rows the relay emitted - grant and
 pull with the level and the absolute ceiling, over and late with the feed and the row
@@ -127,22 +143,25 @@ producer has learned three ticks later, so by induction on the tick the whole lo
 deterministic function of the stream. That is checked rather than asserted: a sealed model
 in tests/oracle.py, written as a single pass over the plan and sharing no code with the
 machine or the policy, reproduces every row, and build_gt.py refuses to write a ground
-truth until it agrees on all twenty-six enumerated streams and four hundred generated
-ones, wide ones included. Seven independent correct implementations agree bit for bit on
-two hundred more. Order inside a tick is not graded because it is not the policy's to
-choose: the machine sorts what the policy hands it before anything is appended.
+truth until it agrees on all thirty enumerated streams and four hundred generated ones,
+wide ones included. Eight independent correct implementations agree bit for bit on two
+hundred more. Order inside a tick is not graded because it is not the policy's to choose:
+the machine sorts what the policy hands it before anything is appended.
 
-Twenty-six enumerated streams carry the answers in tests/gt.json and are aimed one per
-rule, including the states where two readings could disagree - a teardown and an idle
-pull-back on one tick, an arrival on the last tick of a learning window, an obligation
-firing under the threshold, an obligation grant with drained rows moving behind it, a
-draw inside the window after a pull-back. Three hundred more are built inside the
-verifier from a nonce drawn from /dev/urandom after the agent has stopped, and are
-recomputed by the sealed model rather than looked up, so no answer key can cover them.
-Every sixtieth of those is wide, so the resource gate cannot be planned around from the
-visible examples: the sandboxed run has six hundred seconds for the whole set, the
-reference uses under a minute of it, and a policy that asks about every feed on every
-tick is killed on the first wide stream and grades as a run that produced no report.
+Thirty enumerated streams carry the answers in tests/gt.json and are aimed one per rule,
+including the states where two readings could disagree - a teardown and an idle pull-back
+on one tick, an arrival on the last tick of a learning window, an obligation firing under
+the threshold, an obligation grant with drained rows moving behind it, a draw inside the
+window after a pull-back, a refused batch that leaves its producer believing it is stuck,
+a refused batch on one feed and the link's own count, a reopened feed whose new producer
+has refused nothing, a refused batch that is the only thing to happen on its feed that
+tick. Three hundred more are built inside the verifier from a nonce drawn from
+/dev/urandom after the agent has stopped, and are recomputed by the sealed model rather
+than looked up, so no answer key can cover them. Every sixtieth of those is wide, so the
+resource gate cannot be planned around from the visible examples: the sandboxed run has
+six hundred seconds for the whole set, the reference uses under a minute of it, and a
+policy that asks about every feed on every tick is killed on the wide block and grades as
+a run that produced no report.
 
 Because the rows come back from the process that ran the submission, four things are
 required of them beyond being right. Every row was appended through the machine's own
@@ -152,13 +171,13 @@ or above what the streams require. Every frozen function still carries the bytec
 compiled from the pristine sources, checked against a baseline the grader compiles itself
 from files the run cannot write, which is what catches a rebinding done at import time
 before the run's own fingerprints are taken. And the executed tree is byte for byte the
-shipped tree outside the four declared policy files. Twenty-five cheats score 0 in the
+shipped tree outside the four declared policy files. Twenty-seven cheats score 0 in the
 real two-image trial, including four attestation probes that are the reference with every
 answer correct and one of those layers interfered with - each caught by its own layer and
-by nothing else - two that are the reference with its schedule given up and are killed on
-the first wide stream, and one probe that carries gt.json's own bytes, replays the
-recorded ledger to work out which enumerated stream is running, is right on all
-twenty-six of them, and still scores 0."""
+by nothing else - one that is the reference with its schedule given up and is killed by
+the wide block, and one probe that carries gt.json's own bytes, replays the recorded
+ledger to work out which enumerated stream is running, is right on all thirty of them,
+and still scores 0."""
 
 category = "Software"
 subcategory = "Systems"

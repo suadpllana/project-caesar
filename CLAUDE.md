@@ -1071,6 +1071,71 @@ copy was never regenerated. The stale variant is deleted; that bundle has had no
 alternative-correct-implementation check against its current rule, which is the gate the run
 audit applies, and it would need one rebuilt before it ever went back.
 
+## The 2-of-3 on the boundary version: a stated scale is a stated method (2026-09-05)
+
+`permit-strand-relay` went back with the obligation corner decided and the wide-stream
+boundary, and came back **2 of 3** from the easiness probe. The three trajectories are in
+`probes/permit-strand-relay/round2-*.md`, the agents' own words only. Read the tool-call
+count first: **four each**. One `cat` of the tree, one write of all four files, one
+hand-built gap stream, one synthetic wide stream timed at 1.2 to 1.4 s. Every agent, the
+one that lost included, wrote the event-driven schedule on sight, because the brief
+states the scale and a strong agent treats a stated scale as a stated method. **The
+boundary added nothing here.** `leakcheck` is quiet on all three, so it is mode C again,
+and the one loss was a schedule corner, almost certainly the idle deadline of feeds the
+stream never touches: the two that solved both flag "pulled at tick 7 with nothing
+accepted since the start" as a judgment call, the third does not mention it.
+
+**Why the alias-settle-report recipe did not carry here, said plainly.** That boundary
+needed an insight (a closure that only holds without bars) and its agents had already
+committed to the exponential search before the brief told them the scale. This one needs
+a technique (ask only about what changed, plus a timer wheel) and the brief tells the
+agent the scale before it has written a line, so it never writes the naive version at
+all. **A resource boundary discriminates only when the fast path is an insight the agent
+has to find after building the slow one.** A wheel is not that. Measure the boundary
+against the strongest agent, not against the shipped tree.
+
+**The repair is the task's own thesis, applied to `spent` instead of to `learned`.** The
+brief already said the receiver must reason about what the far end has been told. It now
+adds one fact - "a batch we turn away is still sent as far as its producer knows" - and
+says the link's test goes by our own count because no producer can see the whole link.
+It never says what that does to the small-grant test. What it does: "unable to send five
+rows" is about the producer, so the test goes by the producer's count, which is the
+book's charge **plus every refused row**; the book keeps no such count, so the policy
+keeps it from its own verdicts; it starts again for a reopened feed; and a refused batch
+becomes a tick on which a figure can fall due with nothing else happening on that feed,
+so `over` is a scheduling trigger where before it touched nothing. All three trajectories
+kept the shipped `owed()` untouched. Measured over 295 generated streams, the shipped
+reading (the book's charge) moves **262**; four enumerated cases pin the four halves
+(`owe-believes-refused`, `owe-link-own-count`, `reopen-forgets-refused`,
+`over-alone-earns-grant`), and each is separated by the case named for it, checked
+mechanically before the case was kept.
+
+It is regular: no cascade, because the standing-figure half of the test closes it, and
+the sealed oracle agrees on every enumerated and generated stream including the wide ones.
+It is prong C: a relay that publishes a tick late looks exactly like one that publishes on
+time to any stream the agent builds for itself. And it is the second-discovery shape:
+finding it invalidates the natural implementation of the obligation the agents had, not a
+rule beside it.
+
+Two smaller things:
+
+- **A variant's override goes stale the moment the reference grows a new state key.**
+  `ok-pruned` overrides `opened()` to forget its own pruned history, and after the belief
+  change it therefore kept the refused count across a reopen - it became the
+  `refused-kept-on-reopen` reading and disagreed on 38 of 120 streams. The override that
+  replaces a whole function has this latent every time the reference's version of that
+  function changes; the symptom is one variant failing right after a reference edit, and
+  the question is which sentence separates it. Two other overrides swallowed the new
+  helpers by replacing "from `def note(` to end of file". Grep every override anchor after
+  any reference change.
+- **The trajectory files carried the brief verbatim, and `leakcheck` reported a leak on all
+  six.** Circular, exactly as the playbook warns. They are stripped to the agent's words
+  now, and quiet.
+
+**Gates:** in the entry below this one, re-run on this version; the numbers are in the
+"Round three" paragraph of the task's STATE.md and in the commit that carries this entry.
+ROUND3_GATES
+
 ## The 0-of-11 rejection: one coin-flip corner, and a transducer with nothing left to derive (2026-09-05)
 
 `permit-strand-relay` cleared the quality review on its repackaged bundle and came back **0 of 3**

@@ -208,9 +208,9 @@ RULES_EXTRA = {
                 return "over"
             return "late"
         return "over"
-    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF):
-        return "over"
-    if bk.lsnt + rows > room:
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
     tear.touch(st, fd)
     tear.touch(st, LINK)

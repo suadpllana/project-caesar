@@ -11,7 +11,9 @@ discarded; after the window closes they are a fault.
 
 An accepted batch moves the feed's spent total and its idle clock, and moves
 the link's spent total, so both are marked for the end of the tick. A batch
-turned away moves nothing.
+turned away moves neither permit - but its producer does not know it was turned
+away and counts the rows as sent, so the feed's own picture of what it can
+still send has moved, and the feed is marked as well.
 """
 
 from lnk.book import IDLE, LAG, LINK, WINF, WINL
@@ -27,9 +29,9 @@ def verdict(st, bk, when, fd, rows):
                 return "over"
             return "late"
         return "over"
-    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF):
-        return "over"
-    if bk.lsnt + rows > room:
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
     tear.touch(st, fd)
     tear.touch(st, LINK)

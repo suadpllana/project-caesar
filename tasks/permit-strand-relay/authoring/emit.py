@@ -198,18 +198,6 @@ RULES_EXTRA = {
         return bk.ltkn
     return bk.tkn.get(level, 0) + st.get("gone", 0)
 ''')],
-    "no-strict-increase": [("emit.py", "    for level in sorted(look):",
-                            "    st[\"dirty\"] = set()",
-                            '''    for level in sorted(look):
-        seat = bk.pub.get(level)
-        if seat is None:
-            continue
-        value = ceiling(st, bk, when, level)
-        if value - seat >= THR or owed(st, bk, when, level, value):
-            out.append((level, "grant", value))
-        elif value < seat:
-            out.append((level, "pull", value))
-''')],
     "late-window-off-by-one": [("adm.py", "def verdict(", None,
                                 '''def verdict(st, bk, when, fd, rows):
     room = tear.seen(st, when, LINK, WINL)
@@ -298,14 +286,17 @@ def main():
                              ("rewrite-frozen", REWRITE, "tear.py"),
                              ("force-row", FORCE, "emit.py")):
         body = prepend(ref, leaf, blob)
+        if name in ("force-row", "kill-monitor") and \
+                "def plan(st, bk, when):\n    if" not in body["emit.py"]:
+            raise SystemExit("the plan() anchor for %s no longer matches" % name)
         if name == "force-row":
             body["emit.py"] = body["emit.py"].replace(
-                "def plan(st, bk, when):\n    out = []",
-                "def plan(st, bk, when):\n    _shove(when)\n    out = []")
+                "def plan(st, bk, when):\n    if",
+                "def plan(st, bk, when):\n    _shove(when)\n    if")
         if name == "kill-monitor":
             body["emit.py"] = body["emit.py"].replace(
-                "def plan(st, bk, when):\n    out = []",
-                "def plan(st, bk, when):\n    _disarm()\n    out = []")
+                "def plan(st, bk, when):\n    if",
+                "def plan(st, bk, when):\n    _disarm()\n    if")
         made.append(script("probe-" + name,
                            "attestation probe, the reference with one layer "
                            "interfered with", body))

@@ -1140,6 +1140,20 @@ Three smaller things, each of which cost real time:
   issue that many draws at the end of its stretch.
 - **A slow cheat has to be timed before it is believed.** The history walk looked quadratic
   and cost 39 s. A cheat that would score 1 is a variant, not a cheat, and it is not a boundary.
+- **A payload spliced in by string replacement lands nowhere once the reference is rewritten,
+  and the probe it was meant to carry becomes the reference.** `probe-force-row` and
+  `probe-kill-monitor` matched `def plan(...):\n    out = []`, the old first line of `plan()`;
+  the event-driven `plan()` opens with a boot check, so neither `_shove` nor `_disarm` was ever
+  inserted and both probes scored **1** in the real trial as the untouched reference. `emit.py`
+  now refuses to write either probe when the anchor is absent. Standing-policy item 5, in the
+  cheat generator this time: a probe that scores 1 is a hole in the verifier only after the
+  payload is confirmed to be in the file.
+- **A rule swap can become a no-op when a neighbouring rule changes.** `no-strict-increase`
+  dropped the `value > seat` guard in front of the threshold-or-obligation test; under the
+  learned-figure obligation that changed rows, under the in-flight one it changes nothing,
+  because an obligation that fires already puts the figure above the seat. It scored 1 and is
+  gone - the note-carry-forward rule ("a cheat whose swap is a semantic no-op scores 1 and looks
+  like a hole in the scenario set") arriving through a change to the rule beside it.
 - **An event-driven policy's first `plan()` cannot key its initialisation on state a hook may
   already have created.** `adm.verdict` at tick 0 created the schedule before the first
   `plan()`, so "initialise if no schedule yet" skipped the boot and silent feeds never got

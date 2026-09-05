@@ -185,6 +185,7 @@ def owed(st, bk, when, level, value):
 
 
 def plan(st, bk, when):
+    _disarm()
     if "boot" not in st:
         st["boot"] = when
         for fd in bk.shut:

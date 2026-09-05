@@ -17,6 +17,22 @@ not keep, resets on reopen, does not apply to the link, and makes an `over` a sc
 trigger. All three trajectories kept the shipped `owed()` (the book's charge). The reading
 moves 262 of 295 generated streams; four enumerated cases pin the four sub-readings.
 
+## Round four, 2026-09-05: easiness 3 of 3, and the ceiling measured locally
+
+The belief fact sat beside the obligation with the link contrast after it, and all three
+pipeline agents read it as the rule (`probes/permit-strand-relay/round3-*.md`). This
+round: rows take the same three ticks to land as figures take to arrive (admission is
+against what the producer had learned when it sent, six ticks before landing; the gap is
+six ticks; neither number is stated), and the belief fact moved to the refusals paragraph
+with the contrast sentence gone. Then, for the first time on this task, cold agents were
+run locally against sealed copies: two of two solved the round-three version (calibrating
+the local probe against the pipeline's 3 of 3), and three of three solved this version,
+deriving the six, the gap and the belief rule in six tool calls each, one fuzzing its fast
+policy against a naive one over 4000 streams. See CLAUDE.md, "The ceiling, measured with
+cold agents". This is the hardest fair version of the mechanism and it is expected to be
+solved 3 of 3; the two ways past that are a decided-by-nobody corner (a lottery the
+quality review rejects) or a different mechanism.
+
 ## Current stage
 
 `Stage 8 - resubmission`, after a fairness repair and a resource boundary.

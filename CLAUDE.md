@@ -1071,6 +1071,67 @@ copy was never regenerated. The stale variant is deleted; that bundle has had no
 alternative-correct-implementation check against its current rule, which is the gate the run
 audit applies, and it would need one rebuilt before it ever went back.
 
+## The ceiling, measured with cold agents: a stated fact is a stated rule (2026-09-05)
+
+`permit-strand-relay` went back with the belief discovery and came back **3 of 3** from the
+easiness probe. The three trajectories (`probes/permit-strand-relay/round3-*.md`) are four
+to six tool calls each and every one names the belief rule in its own summary: "a batch we
+turn away is still sent as far as its producer knows" sat beside the obligation sentence
+with the link contrast right after it, and that is a rule with the word "rule" left off.
+The earlier entry's honest caveat ("a fact stated in one sentence is still a sentence")
+was the finding, and it took a round to learn it.
+
+**Then the thing this repo had never done for this task: cold agents run locally, against
+sealed copies, graded through the real harness.** The owner's no-subagents rule was set
+aside for this round at the owner's request (ultracode on, workflow skill invoked), and
+it is the most useful measurement in this file's history of the task. Two runs:
+
+| version | cold agents | solved | tool calls each |
+|---|---|---|---|
+| round three (the one the pipeline solved 3 of 3) | 2 of 4 ran before the account limit | **2 of 2** | 7, 9 |
+| candidate B: row transit added, belief fact moved away from the obligation, no contrast sentence | 3 | **3 of 3** | 6, 6, 6 |
+
+The calibration row says the local probe is at least as strong as the pipeline's, so the
+second row is a real result. Candidate B stated only the physics - "a batch takes the
+same three ticks the other way, so what lands on us in one tick left its producer three
+ticks before" - and never the six-tick admission lag or the six-tick teardown gap. All
+three agents derived both, and one wrote why: *"a three-tick reading would have made the
+second sentence pointless."* The same meta-reasoning connected the belief fact from the
+refusals paragraph to the obligation. One agent fuzzed its event-driven policy against a
+naive every-level sweep over 4000 streams; another wrote an independent model from the
+brief and differential-tested 6000. Their transcripts are in
+`probes/permit-strand-relay/local-*.md`, agents' words only.
+
+**The rule this measures, and it closes the wording lever on this task for good: against
+these agents a deterministic transducer under a complete rule has no fair difficulty.**
+Every stated fact is transcribed. Every consequence of a stated fact is derived, and the
+agents ask "why else would the brief say this?" to find the consequence. Every schedule
+omission is caught by their own naive-versus-fast differential. What remains is exactly
+the set of corners the brief does not decide, which is a lottery and the thing the quality
+review rejects. The three levers this file has measured - delete the leak (mode A), close
+the field pair (mode B), the resource boundary (C3) - all bought nothing here once the
+agents were this strong, and the two tasks that passed both probes did so against earlier
+agents on mechanisms with semantic depth this one does not have.
+
+**What is shipped is candidate B, as the hardest fair version, with the expectation of 3 of
+3 written down here rather than hoped away.** Its gates: `build_gt` proved on 32 enumerated
+and 400 generated streams, `prove` 300/0, `audit` 32 states and 8 variants agreeing,
+`variant_check` 8/8, `readingcheck` 17/17 separated (the two transit misreadings move
+99.7% and 86.1% of generated streams), `tiecheck` 332 streams 0 clashes, `determinism`
+identical across 5 seeds, `field_report` no dead field, `shipped` 12 of 32 enumerated and 0
+of 295 generated, `textcheck` clean against all three passing briefs, `structcheck`,
+`hintcheck`, `preflight` clean. TRIAL_B.
+
+**Two smaller things from the probe itself:**
+
+- **A subagent probe burns about 300k tokens an agent and dies silently on the account
+  limit.** The first attempt at candidate B lost all six agents to the session limit after
+  380k tokens with nothing to show; the calibration run lost two of four. Run three, not six,
+  and check the limit before launching.
+- **The sealed directory has to be re-made after an aborted run**: the dead agents had made
+  nine tool calls between them before the limit hit, and a probe on a tree an earlier agent
+  half-edited measures nothing.
+
 ## The 2-of-3 on the boundary version: a stated scale is a stated method (2026-09-05)
 
 `permit-strand-relay` went back with the obligation corner decided and the wide-stream

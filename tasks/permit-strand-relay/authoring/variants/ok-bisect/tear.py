@@ -23,16 +23,14 @@ it is worth asking about; a policy that asks about every feed on every tick
 does work in proportion to feeds times ticks and never finishes a wide stream.
 """
 
+import bisect
+
 from lnk.book import IDLE, FLOOR, LAG, WINF
 
 
 def shed(st, bk, when, fd, rows):
-    if st.get("late") == rows:
-        st["late"] = None
-    else:
-        st["held"] = st.get("held", 0) - rows
+    st["gone"] = st.get("gone", 0) + rows
     touch(st, -1)
-
 
 
 def opened(st, bk, when, fd):
@@ -49,19 +47,17 @@ def window(st, bk, when, fd):
 
 
 def note(st, when, level, value):
-    st.setdefault("said", {}).setdefault(level, []).append((when, value))
+    rack = st.setdefault("said", {}).setdefault(level, ([], []))
+    rack[0].append(when)
+    rack[1].append(value)
 
 
 def seen(st, when, level, dflt):
     rack = st.get("said", {}).get(level)
     if not rack:
         return dflt
-    mark = st.setdefault("mark", {})
-    at = mark.get(level, 0)
-    while at < len(rack) and rack[at][0] <= when - LAG:
-        at += 1
-    mark[level] = at
-    return dflt if at == 0 else rack[at - 1][1]
+    idx = bisect.bisect_right(rack[0], when - LAG)
+    return dflt if idx == 0 else rack[1][idx - 1]
 
 
 def touch(st, level):

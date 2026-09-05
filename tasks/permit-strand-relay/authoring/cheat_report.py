@@ -19,13 +19,16 @@ import trial
 # The layer each attestation probe attacks, and the tests that layer owns.
 # Disarming the interpreter's counter takes its floor down with it, so both
 # belong to one layer; anything outside the set means the probe was rejected
-# for a reason other than the one it was built to exercise.
+# for a reason other than the one it was built to exercise. The slow cheat has
+# every answer right and is rejected by the kill alone: the report fixture says
+# the run produced nothing, and no graded test gets to run.
 OWN = {
     "probe-kill-monitor": ("test_the_instrumentation_was_armed",
                            "test_the_frozen_calls_were_actually_made"),
     "probe-rebind-frozen": ("test_the_frozen_machine_was_the_one_we_shipped",),
     "probe-rewrite-frozen": ("test_the_executed_tree_was_the_one_we_shipped",),
     "probe-force-row": ("test_no_row_was_offered_by_the_policy",),
+    "slow-every-feed": ("the_run_produced_no_report",),
 }
 
 

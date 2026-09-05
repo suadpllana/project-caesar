@@ -27,12 +27,8 @@ from lnk.book import IDLE, FLOOR, LAG, WINF
 
 
 def shed(st, bk, when, fd, rows):
-    if st.get("late") == rows:
-        st["late"] = None
-    else:
-        st["held"] = st.get("held", 0) - rows
+    st["gone"] = st.get("gone", 0) + rows
     touch(st, -1)
-
 
 
 def opened(st, bk, when, fd):
@@ -65,8 +61,8 @@ def seen(st, when, level, dflt):
 
 
 def touch(st, level):
-    st.setdefault("dirty", set()).add(level)
+    st.setdefault("ask", {}).setdefault(st.get("now", 0), set()).add(level)
 
 
 def due(st, fd, when):
-    st.setdefault("due", {}).setdefault(when, []).append(fd)
+    st.setdefault("ask", {}).setdefault(when, set()).add(fd)

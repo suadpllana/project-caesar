@@ -8,9 +8,13 @@ producer was told it could send into faults.
 A feed that has been abandoned is still sending for LAG ticks, because the
 teardown takes that long to reach it. Those rows are charged to the link and
 discarded; after the window closes they are a fault.
+
+An accepted batch moves the feed's spent total and its idle clock, and moves
+the link's spent total, so both are marked for the end of the tick. A batch
+turned away moves nothing.
 """
 
-from lnk.book import LAG, LINK, WINF, WINL
+from lnk.book import IDLE, LAG, LINK, WINF, WINL
 from pol import tear
 
 
@@ -27,4 +31,7 @@ def verdict(st, bk, when, fd, rows):
         return "over"
     if bk.lsnt + rows > room:
         return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
     return "ok"

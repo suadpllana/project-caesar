@@ -1,5 +1,5 @@
 from lnk.book import Book, LINK
-from pol import adm, emit, tear
+from pol import adm, emit, rtn, tear
 
 
 class Mach(object):
@@ -15,7 +15,7 @@ class Mach(object):
                 if op == "a":
                     self.arrive(when, fd, rows)
                 elif op == "t":
-                    self.take(fd)
+                    self.take(when, fd)
                 elif op == "x":
                     self.shut(when, fd)
                 elif op == "o":
@@ -37,9 +37,12 @@ class Mach(object):
         else:
             raise ValueError("verdict")
 
-    def take(self, fd):
-        if self.bk.up(fd):
-            self.bk.draw(fd)
+    def take(self, when, fd):
+        if not self.bk.up(fd):
+            return
+        rows = self.bk.draw(fd)
+        if rows:
+            rtn.took(self.st, self.bk, when, fd, rows)
 
     def shut(self, when, fd):
         if not self.bk.up(fd):

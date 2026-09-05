@@ -125,7 +125,9 @@ def report():
     assert os.path.exists(REPORT), "the run produced no report at " + REPORT
     with open(REPORT) as fh:
         body = fh.read()
-    assert body.strip(), "the run produced an empty report"
+    assert body.strip(), ("the run produced an empty report: it was killed at "
+                          "the wall clock before it finished every stream, or "
+                          "it crashed before writing")
     blob = json.loads(body)
     assert isinstance(blob, dict), "the report is not an object"
     assert int(blob.get("nonce", -1)) == int(os.environ["RUN_NONCE"]), \

@@ -23,16 +23,14 @@ it is worth asking about; a policy that asks about every feed on every tick
 does work in proportion to feeds times ticks and never finishes a wide stream.
 """
 
+import heapq
+
 from lnk.book import IDLE, FLOOR, LAG, WINF
 
 
 def shed(st, bk, when, fd, rows):
-    if st.get("late") == rows:
-        st["late"] = None
-    else:
-        st["held"] = st.get("held", 0) - rows
+    st["gone"] = st.get("gone", 0) + rows
     touch(st, -1)
-
 
 
 def opened(st, bk, when, fd):
@@ -69,4 +67,4 @@ def touch(st, level):
 
 
 def due(st, fd, when):
-    st.setdefault("due", {}).setdefault(when, []).append(fd)
+    heapq.heappush(st.setdefault("clock", []), (when, fd))

@@ -16,7 +16,7 @@ import harness
 def main():
     count = int(sys.argv[1]) if len(sys.argv) > 1 else 400
     nonce = int(sys.argv[2]) if len(sys.argv) > 2 else 991
-    streams = gen.batch(nonce, count)
+    streams = gen.small(nonce, count) + [p for p in gen.batch(nonce, count) if gen.is_wide(p and int(p["name"][1:]))][:2]
     base = harness.drive(streams, os.path.join(ROOT, "solution"))
     if "__fault__" in base:
         print("reference fault\n" + base["__fault__"])

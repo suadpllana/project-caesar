@@ -36,7 +36,6 @@ def verdict(st, bk, when, fd, rows):
         return "over"
     if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
         tear.sent(st, fd, rows)
-        tear.touch(st, fd)
         return "over"
     tear.touch(st, fd)
     tear.touch(st, LINK)
@@ -68,7 +67,7 @@ def took(st, bk, when, fd, rows):
 
 def drained(st, bk, level):
     if level == LINK:
-        return bk.ltkn
+        return bk.ltkn + st.get("gone", 0)
     return bk.tkn.get(level, 0)
 CHEATEOF
 cat > "${APP}/pol/tear.py" <<'CHEATEOF'

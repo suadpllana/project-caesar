@@ -17,6 +17,12 @@ the previous generation says nothing about what the new producer has been
 told. The lookup keeps a cursor per level: ticks only move forward, so nothing
 older than the cursor is ever asked about again.
 
+`sent` and `belief` are the producer's side of the ledger. A batch we turn away
+is still sent as far as its producer knows, so what that producer believes it
+has spent is what we charged plus what we refused, and the small-grant test has
+to go by that figure and not by the book's. A reopened feed has a new producer,
+whose count starts from nothing.
+
 `touch` and `due` are the schedule. A level's figure can only move when rows
 land on it, leave it, or its idle clock runs out, so those are the only moments
 it is worth asking about; a policy that asks about every feed on every tick
@@ -34,6 +40,7 @@ def shed(st, bk, when, fd, rows):
 def opened(st, bk, when, fd):
     st.setdefault("told", {}).pop(fd, None)
     st.setdefault("ptr", {}).pop(fd, None)
+    st.setdefault("refused", {}).pop(fd, None)
     touch(st, fd)
     due(st, fd, when + IDLE)
 
@@ -58,6 +65,15 @@ def seen(st, when, level, dflt):
         at += 1
     mark[level] = at
     return dflt if at == 0 else rack[at - 1][1]
+
+
+def sent(st, fd, rows):
+    back = st.setdefault("refused", {})
+    back[fd] = back.get(fd, 0) + rows
+
+
+def belief(st, bk, fd):
+    return bk.snt.get(fd, 0) + st.get("refused", {}).get(fd, 0)
 
 
 def touch(st, level):

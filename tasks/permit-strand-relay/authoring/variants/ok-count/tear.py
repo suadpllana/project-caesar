@@ -39,8 +39,8 @@ def shed(st, bk, when, fd, rows):
 
 def opened(st, bk, when, fd):
     st.setdefault("said", {}).pop(fd, None)
-    st.setdefault("known", {}).pop(fd, None)
-    st.setdefault("back", {}).pop(fd, None)
+    st.setdefault("mark", {}).pop(fd, None)
+    st.setdefault("told", {}).pop(fd, None)
     touch(st, fd)
     due(st, fd, when + IDLE)
 
@@ -57,11 +57,15 @@ def note(st, when, level, value):
 
 
 def seen(st, when, level, dflt):
-    known = st.setdefault("known", {})
-    rack = st.get("said", {}).get(level) or []
-    while rack and rack[0][0] <= when - LAG:
-        known[level] = rack.pop(0)[1]
-    return known.get(level, dflt)
+    rack = st.get("said", {}).get(level)
+    if not rack:
+        return dflt
+    mark = st.setdefault("mark", {})
+    at = mark.get(level, 0)
+    while at < len(rack) and rack[at][0] <= when - LAG:
+        at += 1
+    mark[level] = at
+    return dflt if at == 0 else rack[at - 1][1]
 
 
 def sent(st, fd, rows):

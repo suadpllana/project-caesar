@@ -68,7 +68,7 @@ def took(st, bk, when, fd, rows):
 
 def drained(st, bk, level):
     if level == LINK:
-        return bk.ltkn
+        return bk.ltkn + st.get("gone", 0)
     return bk.tkn.get(level, 0)
 CHEATEOF
 cat > "${APP}/pol/tear.py" <<'CHEATEOF'
@@ -187,8 +187,9 @@ def ceiling(st, bk, when, level):
 
 
 def owed(st, bk, when, level, value):
-    spent = bk.lsnt if level == LINK else tear.belief(st, bk, level)
+    spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
     return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+
 
 
 def plan(st, bk, when):

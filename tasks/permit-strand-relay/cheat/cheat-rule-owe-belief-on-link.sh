@@ -31,12 +31,18 @@ def verdict(st, bk, when, fd, rows):
         shut = bk.shut.get(fd)
         if shut is not None and when - shut < LAG:
             if bk.lsnt + rows > room:
+                st["lback"] = st.get("lback", 0) + rows
+                tear.touch(st, LINK)
                 return "over"
             return "late"
+        st["lback"] = st.get("lback", 0) + rows
+        tear.touch(st, LINK)
         return "over"
     if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
         tear.sent(st, fd, rows)
+        st["lback"] = st.get("lback", 0) + rows
         tear.touch(st, fd)
+        tear.touch(st, LINK)
         return "over"
     tear.touch(st, fd)
     tear.touch(st, LINK)
@@ -68,7 +74,7 @@ def took(st, bk, when, fd, rows):
 
 def drained(st, bk, level):
     if level == LINK:
-        return bk.ltkn
+        return bk.ltkn + st.get("gone", 0)
     return bk.tkn.get(level, 0)
 CHEATEOF
 cat > "${APP}/pol/tear.py" <<'CHEATEOF'
@@ -187,8 +193,12 @@ def ceiling(st, bk, when, level):
 
 
 def owed(st, bk, when, level, value):
-    spent = bk.lsnt if level == LINK else tear.belief(st, bk, level)
+    if level == LINK:
+        spent = bk.lsnt + st.get("lback", 0)
+    else:
+        spent = tear.belief(st, bk, level)
     return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+
 
 
 def plan(st, bk, when):

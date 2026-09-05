@@ -27,8 +27,9 @@ def ceiling(st, bk, when, level):
 
 
 def owed(st, bk, when, level, value):
-    spent = bk.lsnt if level == LINK else tear.belief(st, bk, level)
+    spent = bk.lsnt if level == LINK else st.get("told", {}).get(level, 0)
     return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+
 
 
 def plan(st, bk, when):
@@ -36,8 +37,8 @@ def plan(st, bk, when):
         st["boot"] = when
         for fd in bk.shut:
             tear.due(st, fd, bk.last.get(fd, when) + IDLE)
-    look = st.get("ask", {}).pop(when, set())
-    st["now"] = when + 1
+    look = st.get("dirty") or set()
+    look.update(st.get("due", {}).pop(when, ()))
     out = []
     for level in sorted(look):
         seat = bk.pub.get(level)
@@ -49,6 +50,7 @@ def plan(st, bk, when):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))
+    st["dirty"] = set()
     for level, _, value in out:
         tear.note(st, when, level, value)
     return out

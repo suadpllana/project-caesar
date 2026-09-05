@@ -29,11 +29,11 @@ def verdict(st, bk, when, fd, rows):
                 return "over"
             return "late"
         return "over"
-    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
-        tear.sent(st, fd, rows)
-        tear.touch(st, fd)
-        return "over"
+    told = st.setdefault("told", {})
+    told[fd] = told.get(fd, 0) + rows
     tear.touch(st, fd)
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        return "over"
     tear.touch(st, LINK)
     tear.due(st, fd, when + IDLE)
     return "ok"

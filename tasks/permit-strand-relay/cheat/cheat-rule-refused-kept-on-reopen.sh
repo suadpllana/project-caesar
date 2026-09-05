@@ -68,7 +68,7 @@ def took(st, bk, when, fd, rows):
 
 def drained(st, bk, level):
     if level == LINK:
-        return bk.ltkn
+        return bk.ltkn + st.get("gone", 0)
     return bk.tkn.get(level, 0)
 CHEATEOF
 cat > "${APP}/pol/tear.py" <<'CHEATEOF'
@@ -114,9 +114,9 @@ def shed(st, bk, when, fd, rows):
 def opened(st, bk, when, fd):
     st.setdefault("said", {}).pop(fd, None)
     st.setdefault("mark", {}).pop(fd, None)
-    st.setdefault("back", {}).pop(fd, None)
     touch(st, fd)
     due(st, fd, when + IDLE)
+
 
 
 def window(st, bk, when, fd):

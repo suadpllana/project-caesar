@@ -10,6 +10,17 @@
    "w1",
    "w1"
   ],
+  "comp-back-from-dropped-place": [
+   "w1",
+   "w2",
+   "w3",
+   "w2",
+   "none",
+   "w1",
+   "w3",
+   "none",
+   "w1"
+  ],
   "comp-back-lands-on-memory": [
    "w1",
    "w2",

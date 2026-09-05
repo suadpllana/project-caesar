@@ -143,6 +143,12 @@ SWAPS = (
      "        self.gone[nd] = (nd.par, nd.par.kids[at - 1] if at > 0 else None)\n",
      "the place of a dropped widget is kept as 'after the sibling before it', so it moves "
      "when that sibling goes or when something is inserted before it"),
+    ("place-inside-composite-reenters", "focus.py",
+     "            c = p if \"comp\" in p.fl else reach.within(p)\n"
+     "            hi = at[c] if c is not None and c in at else pos\n",
+     "            hi = pos\n",
+     "going back from the place of a dropped widget inside a composite lands on the "
+     "composite itself and re-enters it, instead of on the last stop before it"),
     ("want-forces-focus", "focus.py",
      "        if nd.scr is reach.top(ui):\n            if reach.can(ui, nd):\n                self.put(ui, nd)\n",
      "        if nd.scr is reach.top(ui):\n            self.put(ui, nd)\n",

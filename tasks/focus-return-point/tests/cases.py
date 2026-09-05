@@ -701,3 +701,21 @@ show a3
 pop c
 tab
 """)
+
+case("comp-back-from-dropped-place", """
+screen m
+w w1 m foc
+w c m comp
+w w2 c foc
+w w3 c foc
+w w4 m foc
+push m
+tab
+next
+prev
+drop w2
+back
+tab
+drop w3
+back
+""")

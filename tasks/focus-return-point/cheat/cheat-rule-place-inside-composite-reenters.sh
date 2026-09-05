@@ -1,6 +1,6 @@
 #!/bin/bash
-# cheat: return-forgotten-eagerly
-# a return record or held request is forgotten the moment its widget is disturbed, so a widget re-enabled before the return is not restored
+# cheat: place-inside-composite-reenters
+# going back from the place of a dropped widget inside a composite lands on the composite itself and re-enters it, instead of on the last stop before it
 set -euo pipefail
 mkdir -p /app/ui
 cat > /app/ui/focus.py <<'PYEOF'
@@ -57,13 +57,6 @@ class Pol:
         return ui.fo if ui.fo is not None else self.keep.orig
 
     def check(self, ui):
-        for s, t in list(self.keep.ret.items()):
-            if isinstance(t, Nd) and not (reach.alive(ui, t) and
-                                          not (t.fl & set(reach.BLOCK))):
-                self.keep.ret[s] = None
-        for s, t in list(self.keep.held.items()):
-            if not (reach.alive(ui, t) and not (t.fl & set(reach.BLOCK))):
-                self.keep.held.pop(s)
         if ui.fo is not None and not reach.can(ui, ui.fo):
             self.lose(ui, ui.fo)
 
@@ -138,8 +131,7 @@ class Pol:
                 pos = max(at[n] for n in ordr if n is p or reach.under(n, p)) + 1
             # A place inside a composite stands where the composite stands going back,
             # exactly as a widget inside one does.
-            c = p if "comp" in p.fl else reach.within(p)
-            hi = at[c] if c is not None and c in at else pos
+            hi = pos
             pick = ([s for s in st if at[s] >= pos] if d > 0 else
                     [s for s in st if at[s] < hi])
         else:

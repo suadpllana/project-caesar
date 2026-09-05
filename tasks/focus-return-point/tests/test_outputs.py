@@ -9,7 +9,7 @@ widget holds focus after each event, or `none`. The trail is written by ui/core.
 is not an editable artifact, from the focus the core holds after the policy has answered,
 so it records what the toolkit did rather than what a submission says it did.
 
-TWO SCRIPT SETS. The enumerated set in cases.py is 45 scripts, one per rule, each named
+TWO SCRIPT SETS. The enumerated set in cases.py is 46 scripts, one per rule, each named
 for the reading it exists to fail, and its expected trails are in gt.json - which were
 derived by hand from the rules before either implementation existed (authoring/handcheck.py
 carries those literals and build_gt.py refuses to write a ground truth that differs). The
@@ -65,7 +65,8 @@ GROUPS = ("group-selected-is-the-stop", "group-none-selected", "group-selected-u
           "group-unselected-holds-focus", "pick-keeps-focus")
 COMPOSITES = ("comp-is-one-stop", "comp-back-lands-on-memory", "comp-memory-from-request",
               "comp-memory-gone", "comp-arrows-do-not-wrap", "comp-empty-is-no-stop",
-              "want-inside-composite", "comp-keys-leave-it")
+              "want-inside-composite", "comp-keys-leave-it",
+              "comp-back-from-dropped-place")
 SCREENS = ("push-lands-on-auto", "push-without-auto", "push-nothing-to-take",
            "pop-restores-the-widget", "pop-restores-lazily", "pop-target-still-unreachable",
            "pop-target-dropped", "pop-the-last-screen", "push-over-nothing")

@@ -63,6 +63,7 @@ EXPECT = {
     "comp-keys-leave-it": "w1 w2 w3 w1 w3 none w1 w2 none w4",
     "push-over-nothing": "w1 w2 none d1 none w3 w3 w2",
     "pop-out-of-order-with-held": "a1 b1 c1 c1 c1 c1 c1 a3 a1",
+    "comp-back-from-dropped-place": "w1 w2 w3 w2 none w1 w3 none w1",
 }
 
 

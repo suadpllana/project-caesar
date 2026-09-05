@@ -113,14 +113,14 @@ hundreds of generated scripts, and the enumerated set's trails were also derived
 from the rules before either implementation produced them; the ground-truth builder
 refuses to write a trail the three readings do not share.
 
-Two script sets are driven. The enumerated set is forty-five scripts, one per rule, each
+Two script sets are driven. The enumerated set is forty-six scripts, one per rule, each
 named for the reading it exists to fail and covering the must-still-work side of every
 fence. The other three hundred are generated inside the verifier from a nonce made from
 /dev/urandom after the agent has finished, and their expected trails are produced by the
 sealed model after the run. Those scripts did not exist when the submission was written,
 so there is no table to paste. The answer-key probe in the cheat suite is the shipped
 policy replaying the recorded trail of every enumerated case it recognises: it passes all
-forty-five and scores 0.
+forty-six and scores 0.
 
 Because the verifier executes agent code, four things are attested. The executed tree
 outside the four declared artifacts is byte-identical to the pristine copy, with the

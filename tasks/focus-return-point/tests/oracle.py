@@ -179,7 +179,9 @@ class Sim:
                 edge = pos[row[i]]
             else:
                 edge = pos[self.preorder(p)[-1]] + 1
-            cand = [s for s in st if pos[s] >= edge] if fwd else [s for s in st if pos[s] < edge]
+            c = p if "comp" in self.fl.get(p, set()) else self.comp_of(p)
+            back_edge = pos[c] if c is not None and c in pos else edge
+            cand = [s for s in st if pos[s] >= edge] if fwd else [s for s in st if pos[s] < back_edge]
         else:
             cand = []
         if not cand:

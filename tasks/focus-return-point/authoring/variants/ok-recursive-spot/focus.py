@@ -123,8 +123,12 @@ class Pol:
                 pos = at[p.kids[i]]
             else:
                 pos = max(at[n] for n in ordr if n is p or reach.under(n, p)) + 1
+            # A place inside a composite stands where the composite stands going back,
+            # exactly as a widget inside one does.
+            c = p if "comp" in p.fl else reach.within(p)
+            hi = at[c] if c is not None and c in at else pos
             pick = ([s for s in st if at[s] >= pos] if d > 0 else
-                    [s for s in st if at[s] < pos])
+                    [s for s in st if at[s] < hi])
         else:
             pick = st if d > 0 else st[::-1]
             pick = [pick[0]]

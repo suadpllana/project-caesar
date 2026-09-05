@@ -121,7 +121,7 @@ none has ever been checked for.
 | `alias-settle-report` | Software / Algorithms | 26 | 13 | 14400 s | 8 h |
 | `note-carry-forward` | Software / Algorithms | 24 | 7 | 14400 s | 7 h |
 | `permit-strand-relay` | Software / Systems | 23 | 8 | 14400 s | 8 h |
-| `focus-return-point` | Software / Frontend | 27 | 13 | 14400 s | 8 h |
+| `focus-return-point` | Software / Frontend | 28 | 13 | 14400 s | 8 h |
 
 **`focus-return-point` is the sixteenth task, built 2026-09-05 from a proposal the owner
 accepted, and it has not been through the pipeline.** It is the first here in Frontend to grade
@@ -1076,6 +1076,37 @@ copy was never regenerated. The stale variant is deleted; that bundle has had no
 alternative-correct-implementation check against its current rule, which is the gate the run
 audit applies, and it would need one rebuilt before it ever went back.
 
+## The alignment rejection: the reference honoured a stated rule for a widget and not for a place (2026-09-05)
+
+`focus-return-point` cleared everything up to the quality review on its first submission and
+failed one blocking criterion, `test instruction alignment`. The reviewer's note, in full:
+
+> The instruction says: 'From a widget or a place inside a composite, tab goes to the first
+> stop after the composite and back to the last stop before it', and defines a dropped
+> widget's place as its container plus position. The reference and oracle honour this only
+> for a widget still in the tree: with comp c{w2,w3} between w1 and w4, focus on w2, 'hide
+> w2; back' yields w1 but 'drop w2; back' yields w3 (they land on the composite itself and
+> re-enter it). No enumerated case covers this, but the generated set does: an implementation
+> that follows the instruction literally passes all 45 enumerated cases and fails 27 of 300
+> generated scripts (reward 0; ~8% of scripts across 900 sampled nonces).
+
+Right, and the shape is worth naming because it is new here: **the brief was correct and both
+implementations were wrong in the same place**, so the hand-derived trails, the sealed model
+and the reference all agreed and no gate could see it. The rule "a place inside a composite
+stands where the composite stands" was written into the brief by the self-probe, applied to
+the widget-origin branch of `walk` (which already had `within(r)`), and never applied to the
+point-origin branch beside it, where `back` took the last stop before the *point* and the
+composite itself qualified. The oracle carried the same omission because it was written to
+the same reading. **When a sentence in the brief is added late, grep both implementations for
+every branch the sentence governs, not the one you were looking at when you wrote it.**
+
+The reviewer's instrument is the one to copy: **implement the brief literally, as a third
+party would, and grade it.** A literal implementation that scores 0 has found either a
+verifier bug or a brief bug, and either one is this criterion. The fix here was four lines in
+the reference and four in the model, one enumerated case (`comp-back-from-dropped-place`,
+hand-derived first), one cheat that ships the old behaviour so the failure names the rule,
+and a byte-identical ground truth on the other 45 cases.
+
 ## Twelve findings from a task built in one session, with the self-probe replacing the three-agent probe (2026-09-05)
 
 All from building `focus-return-point`. The first three are about the method the owner set on
@@ -1103,7 +1134,7 @@ coverage walk even when the solver is the author.
 
 3. **Hand-derived expected trails are the third reading, and the ground-truth builder refuses
    without them.** Both implementations here have one author, so their agreeing proves only that
-   the author read the rules the same way twice. `authoring/handcheck.py` holds 45 trails written
+   the author read the rules the same way twice. `authoring/handcheck.py` holds 46 trails written
    out by hand from the brief, row by row, and `build_gt.py` writes nothing unless reference,
    model and hand agree. The reviewer of the proposal asked for exactly this and it took an hour.
 

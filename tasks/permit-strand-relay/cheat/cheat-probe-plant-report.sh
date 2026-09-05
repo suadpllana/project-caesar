@@ -31,10 +31,17 @@ cat > "${APP}/pol/rtn.py" <<'CHEATEOF'
 from lnk.book import LINK
 
 
+def took(st, bk, when, fd, rows):
+    tally = st.setdefault("took", {})
+    tally[fd] = tally.get(fd, 0) + rows
+    tally[LINK] = tally.get(LINK, 0) + rows
+
+
 def drained(st, bk, level):
+    tally = st.get("took", {})
     if level == LINK:
-        return bk.ltkn
-    return bk.tkn.get(level, 0) + st.get("lost", {}).get(level, 0)
+        return tally.get(LINK, 0)
+    return tally.get(level, 0) + st.get("lost", {}).get(level, 0)
 CHEATEOF
 cat > "${APP}/pol/tear.py" <<'CHEATEOF'
 from lnk.book import IDLE, FLOOR, WINF
@@ -47,6 +54,7 @@ def shed(st, bk, when, fd, rows):
 
 def opened(st, bk, when, fd):
     st.setdefault("lost", {}).pop(fd, None)
+    st.setdefault("took", {}).pop(fd, None)
 
 
 def window(st, bk, when, fd):

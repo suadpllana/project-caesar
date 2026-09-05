@@ -2,17 +2,18 @@
 
 A ceiling is drained plus the level's window, so it moves only when rows drain.
 We publish it when the raise clears the threshold, and we publish it below the
-threshold when withholding it would leave a producer unable to send its
-smallest batch while rows are free.
+threshold when the figure already published - the one on its way, if one is -
+would still leave the producer unable to send its smallest batch while the new
+figure would let it. Every ceiling published is recorded, because nothing else
+remembers it.
 
-That second test is about the producer, so it is measured against what the
-producer has learned and what it has spent - not against the ceiling standing
-here, which is the number the book happens to hold and which a grant already in
-flight has already moved past. Every ceiling published is recorded, because
-nothing else remembers it.
+Only the levels that could have moved are asked: the ones rows landed on or
+left during the tick, the ones the machine reopened, and the ones whose idle
+clock runs out on this tick. The first call schedules the clock for every feed
+the book armed at the start.
 """
 
-from lnk.book import LINK, MINB, THR, WINF, WINL
+from lnk.book import IDLE, LINK, MINB, THR, WINF, WINL
 from pol import rtn, tear
 
 
@@ -23,16 +24,19 @@ def ceiling(st, bk, when, level):
 
 
 def owed(st, bk, when, level, value):
-    if level == LINK:
-        spent, dflt = bk.lsnt, WINL
-    else:
-        spent, dflt = bk.snt.get(level, 0), WINF
-    return tear.seen(st, when, level, dflt) - spent < MINB and value - spent >= MINB
+    spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
+    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
 
 
 def plan(st, bk, when):
+    if "boot" not in st:
+        st["boot"] = when
+        for fd in bk.shut:
+            tear.due(st, fd, bk.last.get(fd, when) + IDLE)
+    look = st.get("dirty") or set()
+    look.update(st.get("due", {}).pop(when, ()))
     out = []
-    for level in [LINK] + bk.open():
+    for level in sorted(look):
         seat = bk.pub.get(level)
         if seat is None:
             continue
@@ -42,6 +46,7 @@ def plan(st, bk, when):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))
+    st["dirty"] = set()
     for level, _, value in out:
         tear.note(st, when, level, value)
     return out

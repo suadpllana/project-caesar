@@ -3,8 +3,13 @@
 The machine drives a book through hooks and asks a policy four questions. This
 walks the plan in one pass and keeps its own tables, so agreement between the
 two is evidence that the rules pin one answer rather than evidence that one
-implementation was copied twice.
+implementation was copied twice. It has to finish a wide stream too, so it
+keeps a heap of idle deadlines and looks up what a producer has learned by
+bisection rather than by walking the whole record.
 """
+
+import bisect
+import heapq
 
 WINF = 40
 WINL = 120
@@ -19,9 +24,11 @@ LINK = -1
 def settle(plan):
     ticks = int(plan["ticks"])
     rows = []
-    told = {LINK: []}
+    told_at = {LINK: []}
+    told_of = {LINK: []}
     seat = {LINK: WINL}
     snt, tkn, park, last, shut = {}, {}, {}, {}, {}
+    clock = []
     lsnt = 0
     ltkn = 0
     gone = 0
@@ -33,15 +40,17 @@ def settle(plan):
         last[fd] = when
         shut[fd] = None
         seat[fd] = WINF
-        told[fd] = []
+        told_at[fd] = []
+        told_of[fd] = []
+        heapq.heappush(clock, (when + IDLE, fd))
 
     def learned(level, when):
         base = WINL if level == LINK else WINF
-        out = base
-        for at, value in told.get(level, ()):
-            if at <= when - LAG:
-                out = value
-        return out
+        ats = told_at.get(level)
+        if not ats:
+            return base
+        idx = bisect.bisect_right(ats, when - LAG)
+        return base if idx == 0 else told_of[level][idx - 1]
 
     for fd in sorted(int(x) for x in plan["feeds"]):
         arm(fd, 0)
@@ -53,6 +62,7 @@ def settle(plan):
              int(item[3]) if len(item) > 3 else 0))
 
     for when in range(ticks):
+        poke = set()
         for op, fd, count in byte.get(when, []):
             if op == "a":
                 room = learned(LINK, when)
@@ -61,6 +71,7 @@ def settle(plan):
                     if was is not None and when - was < LAG and lsnt + count <= room:
                         lsnt += count
                         gone += count
+                        poke.add(LINK)
                         rows.append(("late", when, fd, count))
                     else:
                         rows.append(("over", when, fd, count))
@@ -71,11 +82,16 @@ def settle(plan):
                     lsnt += count
                     park[fd].append(count)
                     last[fd] = when
+                    heapq.heappush(clock, (when + IDLE, fd))
+                    poke.add(fd)
+                    poke.add(LINK)
             elif op == "t":
                 if shut.get(fd, 0) is None and park[fd]:
                     got = park[fd].pop(0)
                     tkn[fd] += got
                     ltkn += got
+                    poke.add(fd)
+                    poke.add(LINK)
             elif op == "x":
                 if shut.get(fd, 0) is None:
                     stuck = sum(park[fd])
@@ -84,13 +100,18 @@ def settle(plan):
                     seat.pop(fd, None)
                     if stuck:
                         gone += stuck
+                        poke.add(LINK)
                         rows.append(("drop", when, fd, stuck))
             elif op == "o":
                 if shut.get(fd, 0) is not None:
                     arm(fd, when)
+                    poke.add(fd)
+
+        while clock and clock[0][0] <= when:
+            poke.add(heapq.heappop(clock)[1])
 
         want = []
-        for level in [LINK] + [f for f in sorted(shut) if shut[f] is None]:
+        for level in poke:
             if level not in seat:
                 continue
             if level == LINK:
@@ -102,15 +123,15 @@ def settle(plan):
                 spent = snt[level]
             here = seat[level]
             if value > here:
-                due = (learned(level, when) - spent < MINB
-                       and value - spent >= MINB)
+                due = here - spent < MINB and value - spent >= MINB
                 if value - here >= THR or due:
                     want.append((level, "grant", value))
             elif value < here:
                 want.append((level, "pull", value))
         for level, kind, value in sorted(set(want)):
             seat[level] = value
-            told.setdefault(level, []).append((when, value))
+            told_at[level].append(when)
+            told_of[level].append(value)
             rows.append((kind, when, level, value))
 
     left = dict((fd, sum(park[fd])) for fd in sorted(shut) if shut[fd] is None)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# attestation probe, the reference with one layer interfered with
+# the reference with one decision made the other way
 set -euo pipefail
 APP="${APP_DIR:-/app}"
 cat > "${APP}/pol/adm.py" <<'CHEATEOF'
@@ -42,17 +42,6 @@ def verdict(st, bk, when, fd, rows):
     return "ok"
 CHEATEOF
 cat > "${APP}/pol/rtn.py" <<'CHEATEOF'
-import lnk.book as _bk
-
-_real = _bk.Book.close
-
-
-def _quiet(self, when, fd):
-    return _real(self, when, fd)
-
-
-_bk.Book.close = _quiet
-
 """What a level has drained: rows whose permit is never needed again.
 
 For a feed that is only the rows the consumer took, because a feed that is
@@ -177,8 +166,12 @@ def ceiling(st, bk, when, level):
 
 
 def owed(st, bk, when, level, value):
-    spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
-    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+    if level == LINK:
+        spent, dflt = bk.lsnt, WINL
+    else:
+        spent, dflt = bk.snt.get(level, 0), WINF
+    return tear.seen(st, when, level, dflt) - spent < MINB and value - spent >= MINB
+
 
 
 def plan(st, bk, when):

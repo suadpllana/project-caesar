@@ -8,6 +8,7 @@ def shed(st, bk, when, fd, rows):
 
 def opened(st, bk, when, fd):
     st.setdefault("lost", {}).pop(fd, None)
+    st.setdefault("took", {}).pop(fd, None)
 
 
 def window(st, bk, when, fd):

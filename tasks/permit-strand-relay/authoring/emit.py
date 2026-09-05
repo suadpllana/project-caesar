@@ -197,10 +197,9 @@ RULES_EXTRA = {
         return bk.ltkn
     return bk.tkn.get(level, 0) + st.get("gone", 0)
 ''')],
-    "no-strict-increase": [("emit.py", "def plan(", None,
-                            '''def plan(st, bk, when):
-    out = []
-    for level in [LINK] + bk.open():
+    "no-strict-increase": [("emit.py", "    for level in sorted(look):",
+                            "    st[\"dirty\"] = set()",
+                            '''    for level in sorted(look):
         seat = bk.pub.get(level)
         if seat is None:
             continue
@@ -209,9 +208,6 @@ RULES_EXTRA = {
             out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))
-    for level, _, value in out:
-        tear.note(st, when, level, value)
-    return out
 ''')],
     "late-window-off-by-one": [("adm.py", "def verdict(", None,
                                 '''def verdict(st, bk, when, fd, rows):
@@ -227,7 +223,34 @@ RULES_EXTRA = {
         return "over"
     if bk.lsnt + rows > room:
         return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
     return "ok"
+''')],
+}
+
+# The slow cheat: every answer right, and the run killed by the wide streams,
+# because it asks about every feed on every tick. Walking the published record
+# on every arrival is NOT here: measured, it costs a wide stream well under a
+# minute and a correct-but-slower implementation is not a cheat.
+SLOW = {
+    "slow-every-feed": [("emit.py", "def plan(", None,
+                         '''def plan(st, bk, when):
+    out = []
+    for level in [LINK] + bk.open():
+        seat = bk.pub.get(level)
+        if seat is None:
+            continue
+        value = ceiling(st, bk, when, level)
+        if value > seat:
+            if value - seat >= THR or owed(st, bk, when, level, value):
+                out.append((level, "grant", value))
+        elif value < seat:
+            out.append((level, "pull", value))
+    for level, _, value in out:
+        tear.note(st, when, level, value)
+    return out
 ''')],
 }
 
@@ -247,6 +270,11 @@ def main():
         build_tree.build(scratch, every[name])
         made.append(script("rule-" + name,
                            "the reference with one decision made the other way",
+                           read(scratch)))
+    for name in sorted(SLOW):
+        build_tree.build(scratch, SLOW[name])
+        made.append(script(name, "the reference with its schedule given up: "
+                           "every answer right, killed on the first wide stream",
                            read(scratch)))
 
     ship = read(SHIP)

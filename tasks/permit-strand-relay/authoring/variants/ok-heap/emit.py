@@ -13,6 +13,8 @@ clock runs out on this tick. The first call schedules the clock for every feed
 the book armed at the start.
 """
 
+import heapq
+
 from lnk.book import IDLE, LINK, MINB, THR, WINF, WINL
 from pol import rtn, tear
 
@@ -29,12 +31,14 @@ def owed(st, bk, when, level, value):
 
 
 def plan(st, bk, when):
-    if "began" not in st:
-        st["began"] = when
+    if "boot" not in st:
+        st["boot"] = when
         for fd in bk.shut:
             tear.due(st, fd, bk.last.get(fd, when) + IDLE)
-    look = st.get("moved") or set()
-    look.update(st.get("alarm", {}).pop(when, ()))
+    look = st.get("dirty") or set()
+    clock = st.get("clock") or []
+    while clock and clock[0][0] <= when:
+        look.add(heapq.heappop(clock)[1])
     out = []
     for level in sorted(look):
         seat = bk.pub.get(level)
@@ -46,7 +50,7 @@ def plan(st, bk, when):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))
-    st["moved"] = set()
+    st["dirty"] = set()
     for level, _, value in out:
         tear.note(st, when, level, value)
     return out

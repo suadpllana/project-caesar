@@ -1202,9 +1202,9 @@ chain missing 30%, backwards entry at the last child 26%, dead-screen chain miss
 request skipped when unreachable 16%, place anchored on a sibling 13%, memory from arrows only
 12%, arrows wrapping 12%, composite entered at first child 12%.
 
-**Gates run:** real two-image trial **29/29** (oracle 1, nop 0, twenty-seven cheats 0) with the
-verifier image's `sys.monitoring` path exercised, `--variants` 4/4 variants scored 1 on the same images, host
-emulation 27 cheats 0 with oracle 1 and nop 0, four variants 1 through both, `build_gt` proving the reference against
+**Gates run (after the alignment repair):** real two-image trial **30/30** (oracle 1, nop 0,
+twenty-eight cheats 0) with the verifier image's `sys.monitoring` path exercised, `--variants`
+4/4 variants scored 1 on the same images, host emulation 28 cheats 0 with oracle 1 and nop 0, four variants 1 through both, `build_gt` proving the reference against
 the sealed model on 360 generated scripts and the hand-derived trails, `fuzz` 300 clean,
 `determinism` identical across four hash seeds, `readingcheck` all 18 separated, `coverage`
 every reading above a tenth, `cheat_report` naming the catching test per cheat with the

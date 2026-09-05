@@ -13,9 +13,9 @@ integrity probe that needs a POSIX the host does not have. A probe that faults
 because `os.fork` is missing has been rejected by nothing, so those are
 reported as `skipped (host)` rather than as a pass.
 
-    python3 authoring/trial.py --all
-    python3 authoring/trial.py --variants
-    python3 authoring/trial.py --only cheat-rule-merge-before-talk.sh
+    python3 authoring/note-carry-forward/trial.py --all
+    python3 authoring/note-carry-forward/trial.py --variants
+    python3 authoring/note-carry-forward/trial.py --only cheat-rule-merge-before-talk.sh
 
 Each row prints as it is decided, so a harness that dies leaves evidence of how
 far it got rather than an empty table that reads as a clean sweep.
@@ -29,7 +29,8 @@ import subprocess
 import sys
 import tempfile
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+HERE = pathlib.Path(__file__).resolve().parent
+TASK = HERE.parent.parent / "tasks" / HERE.name
 ARTIFACTS = ("note/board.py", "note/rule.py")
 
 
@@ -91,7 +92,7 @@ def apply_subject(root, subject):
         return
     if kind == "variant":
         for rel in ARTIFACTS:
-            src = TASK / "authoring" / "variants" / ref / pathlib.Path(rel).name
+            src = HERE / "variants" / ref / pathlib.Path(rel).name
             if src.exists():
                 shutil.copy(src, root / "app" / rel)
         return
@@ -153,7 +154,7 @@ def run_once(root, seed, count, wide, kill):
 def subjects(args):
     out = []
     if args.variants:
-        for path in sorted((TASK / "authoring" / "variants").iterdir()):
+        for path in sorted((HERE / "variants").iterdir()):
             if path.is_dir():
                 out.append((path.name, ("variant", path.name), 1))
         return out

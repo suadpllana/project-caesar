@@ -21,6 +21,17 @@ place. So the rule is not "authoring/ is cruft". It is narrower and mechanical:
 
 WHAT IT LOOKS FOR
 
+  UNREFERENCED  a file under authoring/ that nothing OUTSIDE authoring/ names.
+             Added 2026-09-05 after `note-carry-forward` lost this criterion a
+             second time, on a bundle this checker had called clean. The
+             reviewer's rule is stronger than ORPHAN below: "development tooling
+             referenced by nothing in the build, run, solve or verify path". Being
+             runnable is not a defence and neither is being imported by the
+             authoring script next door - that is a closed loop that ships. The
+             two files spared were the two named from outside: build_gt.py, in the
+             test_outputs.py docstring because it derives gt.json, and readings.py,
+             in task.toml. Reported as exposure rather than as a failure, because
+             the same shape passed on three other bundles: see the note in check().
   ORPHAN     a module under authoring/ that nothing in the bundle imports and
              that cannot be run either - no __main__ guard and no module-level
              work. A runnable gate is fine however lonely it is; a library whose
@@ -159,21 +170,70 @@ def orphans(task: Path, files):
     return out
 
 
+def unreferenced(task: Path, files):
+    """Shipped authoring/ material the build, run, solve or verify path never names.
+
+    This is the rule the `note-carry-forward` reviewer applied on 2026-09-05, and
+    it is strictly stronger than ORPHAN below, which excuses anything with a
+    __main__ guard on the grounds that a runnable gate earns its place. That
+    excuse is what let five development scripts through: trial.py, cheat_report.py,
+    sync.py, emit.py and make_variants.py are all runnable and all reachable from
+    each other, and from inside the archive not one of them is reached by anything
+    that builds, runs, solves or verifies the task. The reviewer's words were
+    "development tooling referenced by nothing in the build, run, solve or verify
+    path", and the two files it spared were the two that are named from outside
+    authoring/: build_gt.py, named in the test_outputs.py docstring because it
+    derives gt.json, and readings.py, named in task.toml.
+
+    So the reference has to come from outside authoring/. An authoring script
+    importing its neighbour is not reachability, it is a closed loop that ships.
+    """
+    home = task / "authoring"
+    if not home.is_dir():
+        return []
+    blob = []
+    for p in files:
+        if p.relative_to(task).as_posix().startswith("authoring/"):
+            continue
+        if p.suffix in TEXT or p.suffix == "":
+            try:
+                blob.append(p.read_text(encoding="utf-8", errors="replace"))
+            except OSError:
+                pass
+    blob = "\n".join(blob)
+    why = "nothing in the build, run, solve or verify path names it"
+    out = []
+    for p in sorted(home.glob("*.py")):
+        named = re.search(r"authoring/%s\b" % re.escape(p.name), blob) or re.search(
+            r"(?:^|[^\w.])(?:import\s+%s\b|from\s+%s\s)" % (p.stem, p.stem), blob, re.M)
+        if not named:
+            out.append("UNREFERENCED authoring/%s: %s" % (p.name, why))
+    variants = home / "variants"
+    if variants.is_dir():
+        for d in sorted(x for x in variants.iterdir() if x.is_dir()):
+            rel = "authoring/variants/%s" % d.name
+            if rel not in blob:
+                out.append("UNREFERENCED %s: %s" % (rel, why))
+    return out
+
+
 def duplicates(task: Path, files):
     """A development copy of a file that already ships somewhere else.
 
     Only copies under authoring/ count. The rest of the identical pairs in a
     bundle are load-bearing: tests/pristine mirrors environment/app_src by
     definition, a solution file matching the shipped one is an artifact that
-    needs no change, and two build contexts want the same .dockerignore. A
-    variant is the reference with one decision changed, so its other files are
-    identical by construction and reporting them teaches you to ignore this.
+    needs no change, and two build contexts want the same .dockerignore.
+
+    A variant used to be excused here, on the grounds that it is the reference
+    with one decision changed so its other files are identical by construction.
+    The `note-carry-forward` reviewer named "the five authoring/variants/ copies
+    of the solution" in the finding that blocked the bundle, so the exemption is
+    gone: being a copy by construction is the objection, not a defence.
     """
     by = defaultdict(list)
     for p in files:
         rel = p.relative_to(task).as_posix()
-        if rel.startswith("authoring/variants/"):
-            continue
         by[hashlib.sha256(p.read_bytes()).hexdigest()].append(rel)
     out = []
     for group in by.values():
@@ -256,14 +316,25 @@ def check(slug: str) -> int:
         print("== %s\n   no such task" % slug)
         return 2
     files = list(shipped(task))
-    found = (scratch(task, files) + orphans(task, files)
-             + duplicates(task, files) + hostpaths(task, files))
+    dupes = duplicates(task, files)
+    variant_dupes = [d for d in dupes if "authoring/variants/" in d]
+    blocking = (scratch(task, files) + orphans(task, files)
+                + [d for d in dupes if d not in variant_dupes] + hostpaths(task, files))
+    exposure = unreferenced(task, files) + variant_dupes
     print("== %s" % slug)
-    for line in found:
+    for line in blocking:
         print("   " + line)
-    if not found:
+    if exposure:
+        print("   -- exposure: development tooling in the archive (%d) --" % len(exposure))
+        for line in exposure:
+            print("   " + line)
+        print("   note: this criterion has run-to-run variance. Variants and authoring")
+        print("   scripts passed the quality review on guard-mark-unwind, share-register-")
+        print("   screen and permit-strand-relay, and BLOCKED note-carry-forward on")
+        print("   2026-09-05. Clearing it is the safest shape; it is not proof of failure.")
+    if not blocking and not exposure:
         print("   clean: every shipped file is reachable, distinct and host-free")
-    return 1 if found else 0
+    return 1 if blocking else 0
 
 
 def main(argv):

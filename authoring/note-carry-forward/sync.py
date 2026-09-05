@@ -7,7 +7,8 @@ has nothing to do with the rule.
 import pathlib
 import shutil
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+HERE = pathlib.Path(__file__).resolve().parent
+TASK = HERE.parent.parent / "tasks" / HERE.name
 SRC = TASK / "environment" / "app_src"
 DST = TASK / "tests" / "pristine"
 

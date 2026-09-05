@@ -892,7 +892,10 @@ Three smaller things, each of which would have cost a round trip:
 
 - **`authoring/` DOES ship, including the scratch you write this session.** The 2026-09-04
   entry below says so and it is easy to half-remember as "only `variants/` ships": the archive
-  carries all nineteen `authoring/` entries. A host emulation written this session hardcoded
+  carries all nineteen `authoring/` entries. **Corrected 2026-09-05: it now carries two**, after
+  a quality review blocked the other seventeen as development tooling; the rest live in
+  `authoring/note-carry-forward/` at the repo root. The lesson is unchanged and sharper - whatever
+  is under `authoring/` ships, so the question is whether it should be there at all. A host emulation written this session hardcoded
   an absolute Git-for-Windows path to `bash.exe`, which is exactly the hardcoded-path class
   that failed `no extraneous files` on this bundle in September. It now resolves a shell by
   probing and falls back to `PATH`. **Corrected 2026-09-05: that fix was one file wide and the
@@ -1043,6 +1046,12 @@ scratch, or make it a real check. `authoring/variants/` is not extraneous and sh
 cut for this: `guard-mark-unwind` and `share-register-screen` both ship variants and both
 cleared this review.
 
+**Corrected 2026-09-05: the variants claim is now falsified for this bundle.** A later reviewer
+blocked `no extraneous files` naming "the five `authoring/variants/` copies of the solution"
+outright. Shipped variants have now been accepted by three quality reviews and blocked by one, so
+the sentence above is a statement about odds rather than about safety - see "The same rejection, a
+stricter rule" below, where they move to `authoring/<slug>/` at the repo root and keep running.
+
 One regression caught while fixing the above, and it is the same one twice: regenerating the
 cheats moved the executed-tree probe's payload back into the agent container, where it rewrites
 `/app/scr/grp.py` - a path `test.sh` never copies into the work tree - so it scored 1 while
@@ -1081,6 +1090,14 @@ delete the thing that makes the bundle auditable. The rule is narrower and it is
 
 > **A shipped file must be reachable from inside the bundle, must not be a copy of another
 > shipped file, and must not name a path that exists only on the machine that wrote it.**
+
+> **SUPERSEDED 2026-09-05 by the note-carry-forward rejection, one day later.** A different
+> reviewer applied a strictly stronger reachability rule - **named from the build, run, solve or
+> verify path** - and blocked `trial.py`, `cheat_report.py`, `sync.py`, `emit.py`,
+> `make_variants.py` and all five `variants/` on exactly the material this reviewer called
+> defensible. Read "The same rejection, a stricter rule" below before trusting the paragraph
+> above: the two notes disagree, both are real, and the shape that satisfies both is the one to
+> ship.
 
 The first clause is the one nobody here had thought about. Every session runs its checks from the
 repo, where `tools/onelinecheck.py` sits next to the task, so a `decisions.py` that only that tool
@@ -1125,7 +1142,7 @@ stand**:
 
 | bundle | finding |
 |---|---|
-| `note-carry-forward` | `authoring/cheat_report.py` carried the same `/root/.ccr/ca-bundle.crt` constant. **Fixed in the tree this session; that bundle needs repackaging before it is resubmitted.** |
+| `note-carry-forward` | `authoring/cheat_report.py` carried the same `/root/.ccr/ca-bundle.crt` constant. **Fixed in the tree this session; that bundle needs repackaging before it is resubmitted.** It was not repackaged, the stale archive went back, and it was rejected on 2026-09-05 - though on the reachability rule below rather than on this path. **A fix that is not repackaged is not a fix.** |
 | `grant-spread-order` | `authoring/decisions.py` and `authoring/readings.py`, both orphans |
 | `segment-merge-horizon` | `authoring/decisions.py`, orphan |
 
@@ -1181,6 +1198,121 @@ this host, and the rebuilt archive's entry metadata is field-for-field identical
 **Gates NOT run: docker is absent on this host, so the two-image trial did not run** - the 23
 cheats, the privilege drop, the root-owned reward channel, the root-only ground truth and
 `reap.py` are all unexercised. The three-agent easiness probe has never been run on this bundle.
+
+## The same rejection, a stricter rule: reachable from the build path, not from the bundle (2026-09-05)
+
+`note-carry-forward` went back the next day and **failed the quality review on `no extraneous
+files`, the same criterion, with every other row passing** - and on material the
+`permit-strand-relay` reviewer had explicitly called defensible one day earlier. This is the
+second time this bundle has lost this criterion and the third time this repo has. The note:
+
+> `cheat/` and `authoring/build_gt.py` (derives gt.json) and `readings.py` (cited in the metadata)
+> are defensible, but `authoring/trial.py` (a host emulation harness with Windows Git-bash path
+> probing), `authoring/cheat_report.py` (docker harness with an author-machine CA-bundle path),
+> `authoring/sync.py`, `emit.py`, `make_variants.py` and the five `authoring/variants/` copies of
+> the solution are **development tooling referenced by nothing in the build, run, solve or verify
+> path**.
+
+**Read the last clause, not the parentheses.** The instinct is to fix the two paths it names -
+and both were already fixed in the tree, one of them by the previous session. The paths are
+colour. The finding is the reachability rule, and it is strictly stronger than the one this file
+wrote down on 2026-09-04:
+
+| rule | source | what it excuses |
+|---|---|---|
+| reachable **from inside the bundle** | `permit-strand-relay`, 2026-09-04 | an authoring script imported by the authoring script next door, and anything with a `__main__` guard |
+| named from the **build, run, solve or verify path** | `note-carry-forward`, 2026-09-05 | only what a shipped non-`authoring/` file names |
+
+The second rule predicts the two survivors exactly: `build_gt.py` is named in the
+`tests/test_outputs.py` docstring because it derives `gt.json`, and `readings.py` is named in
+`task.toml`. Nothing else in `authoring/` was named from outside `authoring/`. **A closed loop of
+scripts that import each other is not reachability; it is a closed loop that ships.**
+
+### The gate said clean, which is standing-policy item 2
+
+`tools/extraneouscheck.py` was written the day before for this exact criterion, ran on this
+bundle, and **reported it clean**. It missed five scripts because its ORPHAN rule says in as many
+words that "a runnable gate is fine however lonely it is", and all five have `__main__` guards; it
+missed the variants because `duplicates()` excluded `authoring/variants/` on purpose, reasoning
+that a variant is identical to the reference by construction. The reviewer named that construction
+as the objection.
+
+Both are fixed. `UNREFERENCED` requires a name from outside `authoring/`, and the variants
+exemption is gone. Validated in both directions on the real artifacts: on the rejected archive it
+names all five scripts and reaches all five variants while **sparing exactly `build_gt.py` and
+`readings.py`**, and it is clean on the repaired tree.
+
+**But it now fires on bundles the pipeline passed, so it reports as exposure rather than as
+failure.** `guard-mark-unwind` scores 15, `share-register-screen` 20 and `permit-strand-relay` 25
+under the strict rule, and all three cleared this criterion. That is standing-policy item 5 and it
+is not a bug in the checker - it is the measurement. Three quality reviews accepted shipped
+variants and authoring scripts; one blocked them. **This criterion has run-to-run variance, like
+the backtick finding before it, so treat a clean run as removed exposure and never as a verdict.**
+`note-carry-forward` is now the only bundle in this repo at zero.
+
+### The repair, and where the tooling went
+
+Five scripts and `variants/` moved to **`authoring/note-carry-forward/` at the repo root**, which
+is the location the `permit-strand-relay` repair already established for `decisions.py`. Each
+resolves the bundle from its own location instead of `parent.parent`:
+
+    HERE = pathlib.Path(__file__).resolve().parent
+    TASK = HERE.parent.parent / "tasks" / HERE.name
+
+so the slug is derived rather than hardcoded and every gate still runs from the repo. The archive
+went from 79 entries to 58. **Nothing graded moved: `build_gt.py` rewrote `tests/gt.json`
+byte-identical, and `make_variants.py` rewrote all fifteen variant files byte-identical**, which
+is the proof the repair was layout.
+
+### Two stale artifacts the repair uncovered, both invisible until something was regenerated
+
+- **The shipped answer-key probe was one stream behind the graded set.**
+  `cheat-forge-answer-key.sh` carried 22 hand-written streams where `scen.FIXED` has 23; it was
+  generated before `absorbs-ordered-by-the-one-absorbed` was added by the tie-break repair and
+  never regenerated. It still scored 0, so no gate complained. **A forge probe that does not cover
+  every enumerated case proves nothing about what holding the answers buys** - `forgecheck` checks
+  that the probe carries `gt.json`'s bytes, not that it carries all of them. Regenerating fixed it,
+  and that one file was the only difference in the whole `cheat/` sweep.
+- **`task.toml`'s readings table went stale in the same way the brief did in September.** It said
+  "Seventeen distinct decisions are graded" and listed seventeen rows; `readings.py` measures
+  **eighteen**, and `absorb-ordered-by-owner` (10.3% of 300 streams) was missing from the table.
+  The metadata also cited `authoring/variants/ok-merge-by-components` and "six `ok-*` variants"
+  when there are five. **`hintcheck` re-reads counters out of `gt.json` for the brief and nothing
+  re-reads `task.toml` at all**, so every number in the metadata is unchecked. Grep it after any
+  change to the graded set, and never leave it citing a path that no longer ships.
+
+### The two questions to ask before packaging anything
+
+1. **For every file under `authoring/`, which shipped file outside `authoring/` names it?** If the
+   honest answer is none, it is development tooling and it belongs in `authoring/<slug>/` at the
+   repo root. That is one grep and it is the whole of this rejection.
+2. **When a generator stops shipping, has anything it generates gone stale?** Run every generator
+   and diff. Two of the three artifacts came back byte-identical here, which is what made the
+   third one legible as a defect rather than as noise.
+
+**Gates after the repair, all from the moved tooling at the repo root:** host-emulation trial
+`--all` **26 of 26, 0 unexpected** (oracle 1, nop 0, twenty-four cheats 0), with every rule cheat
+caught by `test_the_fixed_streams_match_the_rule` so the hand-written set separates it,
+`cheat-rule-groups-per-thread` caught by `test_the_board_ran_at_all` because the run is killed
+rather than by any rule, and `cheat-probe-rewrite-frozen` caught by the executed-tree check and by
+nothing else; trial `--variants` **5 of 5 score 1**, which is what proves the move did not break
+the run-audit gate; `build_gt` reproving the reference against the sealed oracle on 23
+hand-written, 360 generated and 6 wide streams and writing `gt.json` **byte-identical**;
+`make_variants` rewriting all fifteen variant files **byte-identical**; the reference scoring 1
+again at the shipped scale the reduced trial does not reach (36 wide streams, killed at 600 s);
+`readings` 18 of 18 pinned;
+`textcheck` clean against all three briefs that cleared the AI screen; and `extraneouscheck`,
+`solvecheck`, `deadfieldcheck`, `catcheck`, `hintcheck`, `structcheck`, `simcheck` and `preflight`
+clean, with no unused import in either editable artifact.
+
+**Gates NOT run, and the handover has to say so.** Docker is absent on this host, so the real
+two-image trial did not run: the privilege drop, the root-owned reward channel, the root-only
+ground truth and `reap.py` are unexercised, and `cheat-probe-sweep.sh` calls `os.getuid()`, which
+does not exist on Windows - **that probe is rejected by nothing here** and it is slow enough to
+read as a hung gate, because `os.walk("/")` is the whole drive. The three-agent easiness probe has
+never been run on this bundle. `simcheck` still reports two HIGH findings against
+`permit-strand-relay` (`tests/test.sh` 0.565, `environment/Dockerfile` 0.568), both below the
+numbers `guard-mark-unwind` carried through all nine gates.
 
 ## The easiness rejection on a task built the day after the law that forbids it (2026-09-04)
 
@@ -4744,13 +4876,17 @@ python3 tools/catcheck.py <slug>                does the declared category descr
                                                 vocabulary is absent from environment/ and
                                                 present in the prose, which is what failed
                                                 the quality review on 2026-09-04
-python3 tools/extraneouscheck.py <slug>         does the bundle ship anything nothing in
-                                                the bundle uses? An authoring/ module whose
-                                                only reader is a tools/ script, a copy of a
-                                                file that ships elsewhere, an author-local
-                                                path the next host cannot override. That is
-                                                the whole of the 2026-09-05 quality-review
-                                                rejection; --all reports every task here
+python3 tools/extraneouscheck.py <slug>         does the bundle ship anything the build, run,
+                                                solve or verify path never names? An authoring/
+                                                module nothing outside authoring/ names, a copy
+                                                of a file that ships elsewhere, an author-local
+                                                path the next host cannot override. That is the
+                                                whole of both 2026-09-05 quality-review
+                                                rejections; --all reports every task here.
+                                                UNREFERENCED prints as exposure rather than as
+                                                failure: three bundles that passed this criterion
+                                                would fire on it, so a clean run is removed
+                                                exposure and never a verdict
 python3 tools/readingcheck.py <slug>            does the enumerated set separate the wrong
                                                 readings, or merely cover the rules? Needs
                                                 the task to ship authoring/readings.py; it
@@ -4928,9 +5064,11 @@ one, and zero solves of eight is a rejection, not a triumph.
 - `solvecheck.py` clean: solve.sh copies the reference, it does not inline it, and the
   reference exists in exactly one place in the bundle.
 - `deadfieldcheck.py` clean: nothing in the environment is written and never read.
-- `extraneouscheck.py` clean: every shipped file is reachable from inside the bundle, is not a
-  copy of another shipped file, and names no path the next host cannot override. A file whose
-  only reader lives in `tools/` belongs in `authoring/<slug>/` at the repo root, not in the zip.
+- `extraneouscheck.py` clean: every shipped file is **named by something outside `authoring/`**,
+  is not a copy of another shipped file, and names no path the next host cannot override. A file
+  whose only reader lives in `tools/`, or in `authoring/` beside it, belongs in
+  `authoring/<slug>/` at the repo root, not in the zip. Ship only what derives a graded artifact
+  or is cited in `task.toml`; the generators, the host emulation and the variants run from there.
 - `catcheck.py` clean: the declared category is evidenced by the shipped environment and not
   only by the story the brief is set in.
 - `readingcheck.py` clean: every wrong reading in `authoring/readings.py` is separated by an

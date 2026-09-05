@@ -29,7 +29,7 @@ real; the distribution is chosen to reach it.
 
 The tree ships the engine that pins a change script, so nobody writes a diff.
 What the agent writes is the board: a state machine over threads that have
-spans, states and a history, driven by a walk over the store. Seventeen
+spans, states and a history, driven by a walk over the store. Eighteen
 distinct decisions are graded, and every one of them has a natural reading that
 is wrong. Measured against the reference over 300 generated streams, by
 `authoring/readings.py`, which also names the hand-written stream that
@@ -49,6 +49,7 @@ separates each one:
   an answered thread not reopened when it is raised       24%
   talk aimed at an absorbed thread landing on its owner   18%
   merging before the replies rather than after them       13%
+  the absorb log ordered by the surviving thread          10%
   a resolved thread no longer tracked as reached or let go 4%
   a reply moving a resolved thread back to answered        4%
   the merged thread not inheriting either half's reach     0.3%
@@ -66,7 +67,7 @@ most of the ones a person writes out by hand; and a rebuilt mapping agrees with
 the tool about how many lines survived and disagrees about which, so every
 count a solver checks comes out right.
 
-The last five in that table move too little of the generated set to be caught
+The last six in that table move too little of the generated set to be caught
 by it reliably, so each is pinned by a hand-written stream instead and ships as
 a cheat that scores 0. That is deliberate: a reading nobody can be caught for
 is a coin flip under all-or-nothing grading rather than a test of anything, and
@@ -90,7 +91,7 @@ The instruction states both the limit and the scale, because a kill nobody was
 told about is an alignment defect rather than difficulty. What it does not
 state is where the redundancy is. `cheat/cheat-rule-groups-per-thread.sh` is
 the naive board: every answer it gives is right, and it never reports at all.
-Two of the six `ok-*` variants settle the pair in different ways and both score
+Two alternative correct boards settle the pair in different ways and both score
 1, so what is graded is that the pair is settled once for the revision, not one
 particular way of writing that down.
 """
@@ -115,7 +116,7 @@ thread taking the union.
 The merge outcome does not depend on the order the pairs are found in - the
 spans settle into the connected groups of the overlap graph - and the log names
 the thread that ends up holding each span, so a board that merges by components
-writes the same log. `authoring/variants/ok-merge-by-components` is that board
+writes the same log. One of the alternative correct boards does exactly that,
 and it scores 1.
 """
 

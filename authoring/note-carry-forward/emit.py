@@ -13,7 +13,8 @@ import json
 import pathlib
 import sys
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+HERE = pathlib.Path(__file__).resolve().parent
+TASK = HERE.parent.parent / "tasks" / HERE.name
 BOARD = (TASK / "solution" / "board.py").read_text()
 RULE = (TASK / "solution" / "rule.py").read_text()
 

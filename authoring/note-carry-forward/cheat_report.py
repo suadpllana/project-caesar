@@ -9,7 +9,7 @@ nothing and the next session deletes the probe as noise.
 Self-contained: it builds the two images out of this bundle and drives docker
 itself.
 
-    python3 authoring/cheat_report.py
+    python3 authoring/note-carry-forward/cheat_report.py
 """
 import os
 import pathlib
@@ -19,7 +19,8 @@ import subprocess
 import sys
 import tempfile
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+HERE = pathlib.Path(__file__).resolve().parent
+TASK = HERE.parent.parent / "tasks" / HERE.name
 SLUG = TASK.name
 ENV_IMG = "%s-env:report" % SLUG
 TEST_IMG = "%s-test:report" % SLUG

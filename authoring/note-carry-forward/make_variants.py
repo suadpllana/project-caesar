@@ -1,4 +1,4 @@
-"""Generate authoring/variants/ from the reference plus one declared override.
+"""Generate the variants/ beside this file from the reference plus one declared override.
 
 A variant is a correct board that made a different implementation choice, and
 each has to score 1. Hand-copied variants go stale the moment the reference
@@ -7,7 +7,8 @@ so they are written from the reference here instead.
 """
 import pathlib
 
-TASK = pathlib.Path(__file__).resolve().parent.parent
+HERE = pathlib.Path(__file__).resolve().parent
+TASK = HERE.parent.parent / "tasks" / HERE.name
 BOARD = (TASK / "solution" / "board.py").read_text()
 RULE = (TASK / "solution" / "rule.py").read_text()
 
@@ -114,7 +115,7 @@ OVERRIDES = {
 
 
 def main():
-    root = TASK / "authoring" / "variants"
+    root = HERE / "variants"
     for name, overrides in OVERRIDES.items():
         for fname, text in overrides.items():
             base = BOARD if fname == "board.py" else RULE

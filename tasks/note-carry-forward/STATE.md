@@ -18,7 +18,7 @@ nothing. There is no work counter anywhere in this task and no timing budget.
 - event order inside one revision is part of the contract and is stated in the
   brief. The absorb log names the thread that **ends up** holding the span, so
   a board that merges by connected components writes the same log as one that
-  hunts pairs; `authoring/variants/ok-merge-by-components` is that board and it
+  hunts pairs; the `ok-merge-by-components` variant is that board and it
   scores 1. Without that the log would grade a procedure rather than a result.
 
 ## Difficulty argument
@@ -113,8 +113,13 @@ quality`, `instruction concision`, `no extraneous files`. The fixes:
   self-contained; `cheat_report.py` no longer imports anything outside the
   bundle.
 
-`authoring/variants/` stays: `guard-mark-unwind` and `share-register-screen`
-both ship variants and both cleared this review.
+**Superseded 2026-09-05.** A second `no extraneous files` rejection named the
+five `authoring/variants/` copies of the solution, plus `trial.py`,
+`cheat_report.py`, `sync.py`, `emit.py` and `make_variants.py`, as development
+tooling nothing in the build, run, solve or verify path names. All of it moved
+to `authoring/note-carry-forward/` at the repo root and still runs from there.
+The bundle now ships `build_gt.py` (named in the test_outputs.py docstring) and
+`readings.py` (named in task.toml), which are the two the reviewer spared.
 
 ## Gates run (2026-09-04, Linux sandbox, Docker up)
 
@@ -186,8 +191,8 @@ does not move this criterion, and the alignment repair pushes it the wrong way.
 
 ### Gates
 
-Host emulation only - docker is absent on this host, so `authoring/trial.py`
-was written for it. It stages the tree the way `tests/Dockerfile` does
+Host emulation only - docker is absent on this host, so
+`authoring/note-carry-forward/trial.py` was written for it. It stages the tree the way `tests/Dockerfile` does
 (`pristine` beside `tests/`), runs the real `tests/runner.py` in a subprocess
 and grades with the real `tests/test_outputs.py` under pytest 9.1.1.
 

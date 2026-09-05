@@ -7,6 +7,10 @@ than a decision, and it is either dropped or the generator is tuned until the
 state it turns on is common. And every reading must be separated by the
 enumerated set, so a wrong answer names the rule instead of surfacing as a
 count of random streams.
+
+Every reading keeps the reference's schedule, so it is caught by the rule it
+gets wrong and never by the resource gate; the two readings that give the
+schedule up live in emit.py as the slow cheats.
 """
 
 DRAIN_TAKEN_ONLY = ('rtn.py', 'def drained(', None, '''def drained(st, bk, level):
@@ -21,31 +25,20 @@ FEED_DRAIN_SHED = ('rtn.py', 'def drained(', None, '''def drained(st, bk, level)
     return bk.tkn.get(level, 0) + st.get("gone", 0)
 ''')
 
-LINK_DRAIN_RESETS = ('rtn.py', 'def drained(', None, '''def drained(st, bk, level):
-    if level == LINK:
-        return bk.ltkn + st.get("gone", 0) - st.get("wiped", 0)
-    return bk.tkn.get(level, 0)
-''')
-
-OWE_FROM_HELD = ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
-    if level == LINK:
-        spent = bk.lsnt
-    else:
-        spent = bk.snt.get(level, 0)
-    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
-''')
-
-OWE_IGNORES_FREE = ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
+OWE_FROM_LEARNED = ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
     if level == LINK:
         spent, dflt = bk.lsnt, WINL
     else:
         spent, dflt = bk.snt.get(level, 0), WINF
-    return tear.seen(st, when, level, dflt) - spent < MINB
+    return tear.seen(st, when, level, dflt) - spent < MINB and value - spent >= MINB
 ''')
 
-THR_ON_SPENT = ('emit.py', 'def plan(', None, '''def plan(st, bk, when):
-    out = []
-    for level in [LINK] + bk.open():
+OWE_IGNORES_FREE = ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
+    spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
+    return bk.pub.get(level, 0) - spent < MINB
+''')
+
+THR_ON_SPENT = ('emit.py', '    for level in sorted(look):', '    st["dirty"] = set()', '''    for level in sorted(look):
         seat = bk.pub.get(level)
         if seat is None:
             continue
@@ -56,14 +49,9 @@ THR_ON_SPENT = ('emit.py', 'def plan(', None, '''def plan(st, bk, when):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))
-    for level, _, value in out:
-        tear.note(st, when, level, value)
-    return out
 ''')
 
-EMIT_DEAD_FEEDS = ('emit.py', 'def plan(', None, '''def plan(st, bk, when):
-    out = []
-    for level in [LINK] + sorted(bk.shut):
+EMIT_DEAD_FEEDS = ('emit.py', '    for level in sorted(look):', '    st["dirty"] = set()', '''    for level in sorted(look):
         seat = bk.pub.get(level, 0)
         value = ceiling(st, bk, when, level)
         if value > seat:
@@ -71,14 +59,9 @@ EMIT_DEAD_FEEDS = ('emit.py', 'def plan(', None, '''def plan(st, bk, when):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", value))
-    for level, _, value in out:
-        tear.note(st, when, level, value)
-    return out
 ''')
 
-PULL_AS_DELTA = ('emit.py', 'def plan(', None, '''def plan(st, bk, when):
-    out = []
-    for level in [LINK] + bk.open():
+PULL_AS_DELTA = ('emit.py', '    for level in sorted(look):', '    st["dirty"] = set()', '''    for level in sorted(look):
         seat = bk.pub.get(level)
         if seat is None:
             continue
@@ -88,18 +71,19 @@ PULL_AS_DELTA = ('emit.py', 'def plan(', None, '''def plan(st, bk, when):
                 out.append((level, "grant", value))
         elif value < seat:
             out.append((level, "pull", seat - value))
-    for level, _, value in out:
-        tear.note(st, when, level, value)
-    return out
 ''')
 
 NO_LATE_WINDOW = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd, rows):
     if not bk.up(fd):
         return "over"
-    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF):
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) \\
+            or bk.lsnt + rows > tear.seen(st, when, LINK, WINL):
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
-    if bk.lsnt + rows > tear.seen(st, when, LINK, WINL):
-        return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
     return "ok"
 ''')
 
@@ -107,31 +91,112 @@ JUDGE_ON_HELD = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd
     room = bk.pub.get(LINK, 0)
     if not bk.up(fd):
         shut = bk.shut.get(fd)
-        if shut is not None and when - shut < LAG:
+        if shut is not None and when - shut < 2 * LAG:
             if bk.lsnt + rows > room:
                 return "over"
             return "late"
         return "over"
-    if bk.snt[fd] + rows > bk.pub.get(fd, 0):
+    if bk.snt[fd] + rows > bk.pub.get(fd, 0) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        tear.touch(st, fd)
         return "over"
-    if bk.lsnt + rows > room:
-        return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
     return "ok"
 ''')
 
 LATE_NOT_SHED = ('tear.py', 'def shed(', '\n\n\ndef opened(', '''def shed(st, bk, when, fd, rows):
     if bk.shut.get(fd) == when:
         st["gone"] = st.get("gone", 0) + rows
+    touch(st, -1)
 ''')
 
 KEEP_SAID_ON_REOPEN = ('tear.py', 'def opened(', '\n\n\ndef window(', '''def opened(st, bk, when, fd):
-    return None
+    touch(st, fd)
+    due(st, fd, when + IDLE)
 ''')
 
+OWE_FROM_CHARGE = ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
+    spent = bk.lsnt if level == LINK else bk.snt.get(level, 0)
+    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+''')
+
+OWE_BELIEF_ON_LINK = [
+    ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd, rows):
+    room = tear.seen(st, when, LINK, WINL)
+    if not bk.up(fd):
+        shut = bk.shut.get(fd)
+        if shut is not None and when - shut < 2 * LAG:
+            if bk.lsnt + rows > room:
+                st["lback"] = st.get("lback", 0) + rows
+                tear.touch(st, LINK)
+                return "over"
+            return "late"
+        st["lback"] = st.get("lback", 0) + rows
+        tear.touch(st, LINK)
+        return "over"
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        st["lback"] = st.get("lback", 0) + rows
+        tear.touch(st, fd)
+        tear.touch(st, LINK)
+        return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
+    return "ok"
+'''),
+    ('emit.py', 'def owed(', '\n\n\ndef plan(', '''def owed(st, bk, when, level, value):
+    if level == LINK:
+        spent = bk.lsnt + st.get("lback", 0)
+    else:
+        spent = tear.belief(st, bk, level)
+    return bk.pub.get(level, 0) - spent < MINB and value - spent >= MINB
+'''),
+]
+
+REFUSED_KEPT_ON_REOPEN = ('tear.py', 'def opened(', '\n\n\ndef window(', '''def opened(st, bk, when, fd):
+    st.setdefault("said", {}).pop(fd, None)
+    st.setdefault("mark", {}).pop(fd, None)
+    touch(st, fd)
+    due(st, fd, when + IDLE)
+''')
+
+OVER_NOT_SCHEDULED = ('adm.py', 'def verdict(', None, '''def verdict(st, bk, when, fd, rows):
+    room = tear.seen(st, when, LINK, WINL)
+    if not bk.up(fd):
+        shut = bk.shut.get(fd)
+        if shut is not None and when - shut < 2 * LAG:
+            if bk.lsnt + rows > room:
+                return "over"
+            return "late"
+        return "over"
+    if bk.snt[fd] + rows > tear.seen(st, when, fd, WINF) or bk.lsnt + rows > room:
+        tear.sent(st, fd, rows)
+        return "over"
+    tear.touch(st, fd)
+    tear.touch(st, LINK)
+    tear.due(st, fd, when + IDLE)
+    return "ok"
+''')
+
+LEARNED_AT_LANDING = ('tear.py', '    while at < len(rack) and rack[at][0] <= when - 2 * LAG:', '\n',
+                      '    while at < len(rack) and rack[at][0] <= when - LAG:')
+
+GAP_OF_THREE = ('adm.py', '        if shut is not None and when - shut < 2 * LAG:', '\n',
+                '        if shut is not None and when - shut < LAG:')
+
 READINGS = {
+    "learned-at-landing": [LEARNED_AT_LANDING],
+    "gap-of-three": [GAP_OF_THREE],
+    "owe-from-charge": [OWE_FROM_CHARGE],
+    "owe-belief-on-link": OWE_BELIEF_ON_LINK,
+    "refused-kept-on-reopen": [REFUSED_KEPT_ON_REOPEN],
+    "over-not-scheduled": [OVER_NOT_SCHEDULED],
     "drain-taken-only": [DRAIN_TAKEN_ONLY],
     "feed-drain-shed": [FEED_DRAIN_SHED],
-    "owe-from-held": [OWE_FROM_HELD],
+    "owe-from-learned": [OWE_FROM_LEARNED],
     "owe-ignores-free": [OWE_IGNORES_FREE],
     "thr-on-spent": [THR_ON_SPENT],
     "emit-dead-feeds": [EMIT_DEAD_FEEDS],

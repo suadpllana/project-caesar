@@ -19,7 +19,7 @@ import readings
 
 def main():
     count = int(sys.argv[1]) if len(sys.argv) > 1 else 400
-    streams = gen.batch(31337, count)
+    streams = gen.small(31337, count)
     fixed = [cases.SETS[k] for k in sorted(cases.SETS)]
     base_g = harness.drive(streams, os.path.join(ROOT, "solution"))
     base_f = harness.drive(fixed, os.path.join(ROOT, "solution"))

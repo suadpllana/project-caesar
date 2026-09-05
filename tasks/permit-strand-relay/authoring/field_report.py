@@ -34,7 +34,7 @@ def split(run):
 
 def main():
     wide = int(sys.argv[1]) if len(sys.argv) > 1 else 250
-    streams = [cases.SETS[k] for k in sorted(cases.SETS)] + gen.batch(64064, wide)
+    streams = [cases.SETS[k] for k in sorted(cases.SETS)] + gen.small(64064, wide)
     base = harness.drive(streams, os.path.join(ROOT, "solution"))
     score = dict((k, 0) for k in KINDS)
     score["park"] = 0

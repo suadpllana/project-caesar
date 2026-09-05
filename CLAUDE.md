@@ -122,6 +122,16 @@ none has ever been checked for.
 | `note-carry-forward` | Software / Algorithms | 24 | 7 | 14400 s | 7 h |
 | `permit-strand-relay` | Software / Systems | 23 | 8 | 14400 s | 8 h |
 
+**`permit-strand-relay` then cleared the quality review and came back 0 of 3 from the easiness
+probe and 0 of 8 from the difficulty probe on 2026-09-05, "unsolvable as specified".** Eleven
+agents, and all three easiness trajectories transcribed the whole brief into the reference in
+one write and lost on ONE undecided corner - and the reference was the irregular side of it.
+The repair is a fairness fix plus the resource-boundary recipe; the entry is "The 0-of-11
+rejection: one coin-flip corner, and a transducer with nothing left to derive" below. Read it
+before touching a probe rejection whose trajectories show one-shot writes, because the number
+that mattered was not the score but that the reconstructed submission failed 283 of 300 streams
+on a single sentence.
+
 **`permit-strand-relay` cleared the structural check, the AI screen, the similarity screen and
 reference verification on 2026-09-05, and failed the quality review on `no extraneous files` -
 three files under `authoring/`, and nothing else in the rubric.** It is the second bundle here
@@ -1069,6 +1079,247 @@ submitted and probed carried the new rule and no `authoring/` directory at all**
 copy was never regenerated. The stale variant is deleted; that bundle has had no working
 alternative-correct-implementation check against its current rule, which is the gate the run
 audit applies, and it would need one rebuilt before it ever went back.
+
+## The ceiling, measured with cold agents: a stated fact is a stated rule (2026-09-05)
+
+`permit-strand-relay` went back with the belief discovery and came back **3 of 3** from the
+easiness probe. The three trajectories (`probes/permit-strand-relay/round3-*.md`) are four
+to six tool calls each and every one names the belief rule in its own summary: "a batch we
+turn away is still sent as far as its producer knows" sat beside the obligation sentence
+with the link contrast right after it, and that is a rule with the word "rule" left off.
+The earlier entry's honest caveat ("a fact stated in one sentence is still a sentence")
+was the finding, and it took a round to learn it.
+
+**Then the thing this repo had never done for this task: cold agents run locally, against
+sealed copies, graded through the real harness.** The owner's no-subagents rule was set
+aside for this round at the owner's request (ultracode on, workflow skill invoked), and
+it is the most useful measurement in this file's history of the task. Two runs:
+
+| version | cold agents | solved | tool calls each |
+|---|---|---|---|
+| round three (the one the pipeline solved 3 of 3) | 2 of 4 ran before the account limit | **2 of 2** | 7, 9 |
+| candidate B: row transit added, belief fact moved away from the obligation, no contrast sentence | 3 | **3 of 3** | 6, 6, 6 |
+
+The calibration row says the local probe is at least as strong as the pipeline's, so the
+second row is a real result. Candidate B stated only the physics - "a batch takes the
+same three ticks the other way, so what lands on us in one tick left its producer three
+ticks before" - and never the six-tick admission lag or the six-tick teardown gap. All
+three agents derived both, and one wrote why: *"a three-tick reading would have made the
+second sentence pointless."* The same meta-reasoning connected the belief fact from the
+refusals paragraph to the obligation. One agent fuzzed its event-driven policy against a
+naive every-level sweep over 4000 streams; another wrote an independent model from the
+brief and differential-tested 6000. Their transcripts are in
+`probes/permit-strand-relay/local-*.md`, agents' words only.
+
+**The rule this measures, and it closes the wording lever on this task for good: against
+these agents a deterministic transducer under a complete rule has no fair difficulty.**
+Every stated fact is transcribed. Every consequence of a stated fact is derived, and the
+agents ask "why else would the brief say this?" to find the consequence. Every schedule
+omission is caught by their own naive-versus-fast differential. What remains is exactly
+the set of corners the brief does not decide, which is a lottery and the thing the quality
+review rejects. The three levers this file has measured - delete the leak (mode A), close
+the field pair (mode B), the resource boundary (C3) - all bought nothing here once the
+agents were this strong, and the two tasks that passed both probes did so against earlier
+agents on mechanisms with semantic depth this one does not have.
+
+**What is shipped is candidate B, as the hardest fair version, with the expectation of 3 of
+3 written down here rather than hoped away.** Its gates: `build_gt` proved on 32 enumerated
+and 400 generated streams, `prove` 300/0, `audit` 32 states and 8 variants agreeing,
+`variant_check` 8/8, `readingcheck` 17/17 separated (the two transit misreadings move
+99.7% and 86.1% of generated streams), `tiecheck` 332 streams 0 clashes, `determinism`
+identical across 5 seeds, `field_report` no dead field, `shipped` 12 of 32 enumerated and 0
+of 295 generated, `textcheck` clean against all three passing briefs, `structcheck`,
+`hintcheck`, `preflight` clean. TRIAL_B.
+
+**Two smaller things from the probe itself:**
+
+- **A subagent probe burns about 300k tokens an agent and dies silently on the account
+  limit.** The first attempt at candidate B lost all six agents to the session limit after
+  380k tokens with nothing to show; the calibration run lost two of four. Run three, not six,
+  and check the limit before launching.
+- **The sealed directory has to be re-made after an aborted run**: the dead agents had made
+  nine tool calls between them before the limit hit, and a probe on a tree an earlier agent
+  half-edited measures nothing.
+
+## The 2-of-3 on the boundary version: a stated scale is a stated method (2026-09-05)
+
+`permit-strand-relay` went back with the obligation corner decided and the wide-stream
+boundary, and came back **2 of 3** from the easiness probe. The three trajectories are in
+`probes/permit-strand-relay/round2-*.md`, the agents' own words only. Read the tool-call
+count first: **four each**. One `cat` of the tree, one write of all four files, one
+hand-built gap stream, one synthetic wide stream timed at 1.2 to 1.4 s. Every agent, the
+one that lost included, wrote the event-driven schedule on sight, because the brief
+states the scale and a strong agent treats a stated scale as a stated method. **The
+boundary added nothing here.** `leakcheck` is quiet on all three, so it is mode C again,
+and the one loss was a schedule corner, almost certainly the idle deadline of feeds the
+stream never touches: the two that solved both flag "pulled at tick 7 with nothing
+accepted since the start" as a judgment call, the third does not mention it.
+
+**Why the alias-settle-report recipe did not carry here, said plainly.** That boundary
+needed an insight (a closure that only holds without bars) and its agents had already
+committed to the exponential search before the brief told them the scale. This one needs
+a technique (ask only about what changed, plus a timer wheel) and the brief tells the
+agent the scale before it has written a line, so it never writes the naive version at
+all. **A resource boundary discriminates only when the fast path is an insight the agent
+has to find after building the slow one.** A wheel is not that. Measure the boundary
+against the strongest agent, not against the shipped tree.
+
+**The repair is the task's own thesis, applied to `spent` instead of to `learned`.** The
+brief already said the receiver must reason about what the far end has been told. It now
+adds one fact - "a batch we turn away is still sent as far as its producer knows" - and
+says the link's test goes by our own count because no producer can see the whole link.
+It never says what that does to the small-grant test. What it does: "unable to send five
+rows" is about the producer, so the test goes by the producer's count, which is the
+book's charge **plus every refused row**; the book keeps no such count, so the policy
+keeps it from its own verdicts; it starts again for a reopened feed; and a refused batch
+becomes a tick on which a figure can fall due with nothing else happening on that feed,
+so `over` is a scheduling trigger where before it touched nothing. All three trajectories
+kept the shipped `owed()` untouched. Measured over 295 generated streams, the shipped
+reading (the book's charge) moves **262**; four enumerated cases pin the four halves
+(`owe-believes-refused`, `owe-link-own-count`, `reopen-forgets-refused`,
+`over-alone-earns-grant`), and each is separated by the case named for it, checked
+mechanically before the case was kept.
+
+It is regular: no cascade, because the standing-figure half of the test closes it, and
+the sealed oracle agrees on every enumerated and generated stream including the wide ones.
+It is prong C: a relay that publishes a tick late looks exactly like one that publishes on
+time to any stream the agent builds for itself. And it is the second-discovery shape:
+finding it invalidates the natural implementation of the obligation the agents had, not a
+rule beside it.
+
+Two smaller things:
+
+- **A variant's override goes stale the moment the reference grows a new state key.**
+  `ok-pruned` overrides `opened()` to forget its own pruned history, and after the belief
+  change it therefore kept the refused count across a reopen - it became the
+  `refused-kept-on-reopen` reading and disagreed on 38 of 120 streams. The override that
+  replaces a whole function has this latent every time the reference's version of that
+  function changes; the symptom is one variant failing right after a reference edit, and
+  the question is which sentence separates it. Two other overrides swallowed the new
+  helpers by replacing "from `def note(` to end of file". Grep every override anchor after
+  any reference change.
+- **The trajectory files carried the brief verbatim, and `leakcheck` reported a leak on all
+  six.** Circular, exactly as the playbook warns. They are stripped to the agent's words
+  now, and quiet.
+
+**Gates on this version:** `build_gt` proved on 30 enumerated and 400 generated streams
+(6 wide), `prove` 300/0, `audit` 30 states and 8 variants agreeing, `variant_check` 8/8 on
+199 small and 2 wide streams, `readingcheck` 15/15 separated (the four new readings move
+88.8%, 62.7%, 34.6% and 25.1% of generated streams), `tiecheck` 330 streams 0 clashes,
+`determinism` identical across 5 hash seeds, `field_report` no dead field, `shipped` 12 of
+30 enumerated and 0 of 295 generated, `leakcheck` quiet on all three trajectories,
+`textcheck` clean against all three passing briefs (burstiness 0.840 after two short
+verdicts were put back - the first cut of the new sentences took it to 0.820 and a FIX
+against `rollout-cache-coherence`), `structcheck`, `hintcheck`, `solvecheck`,
+`deadfieldcheck`, `catcheck`, `extraneouscheck`, `simcheck` (clear on both axes),
+`preflight` (no errors), `zipcheck` and `zipfix --check` on the 118-entry archive all
+clean. Real two-image trial on this host: **oracle 1 (41 s through both containers), nop 0 (the shipped tree killed at 601 s), 8 of 8 variants 1, 27 of 27 cheats 0**, each attestation probe and the slow cheat caught by its own layer and nothing else, and `forgecheck` 27 cheats 0 unexpected with the answer-key probe recognised.
+
+**Not run:** the three-agent easiness probe, per the owner's no-subagents rule. The
+estimate in STATE.md stands at 2 of 8; the discovery is meant to take easiness from 2 of 3
+to at most 1 of 3, and the honest statement of the risk is that a fact stated in one
+sentence is still a sentence, and the strongest agents may connect it on sight.
+
+## The 0-of-11 rejection: one coin-flip corner, and a transducer with nothing left to derive (2026-09-05)
+
+`permit-strand-relay` cleared the quality review on its repackaged bundle and came back **0 of 3**
+on easiness and **0 of 8** on difficulty, the difficulty note reading "unsolvable as specified".
+Three easiness trajectories were supplied; they are in `probes/permit-strand-relay/`. Read the
+runtimes first, as always: 9 to 14 tool calls each, one `cat` of the whole tree, one write of
+`rtn.py`, then a self-built fuzzer against a self-built model to green. Every agent was
+confident and finished early. That is not "too hard"; that is eleven agents deciding they were
+done, and the score alone would have sent this session hunting for a hint to add.
+
+**Attribution, mechanically.** All three trajectories transcribe every rule the brief states -
+the learned-figure history for admission, shed rows counted at the link, the three-tick late
+window, the reopen reset - and all three name their judgment calls. Trajectory 3 names the
+one that decided it: *"The small-grant rule compares against the standing figure, not the
+learned one. Using the learned one would cascade tiny grants for three ticks."* The reference
+measured that obligation against the figure the producer had **learned**, and it does cascade:
+`grep` of `gt.json` finds seven follow-on grants within two ticks of an obligation grant, raises
+of 8 to 18 rows against a threshold of 20. Reconstructed as the reference with the shipped
+`owed()` (the standing figure) and graded:
+
+| the reconstructed submission | enumerated | generated |
+|---|---|---|
+| reference with the obligation measured against the standing figure | 6 of 24 wrong | **283 of 300 wrong** |
+
+One sentence - "when the producer cannot yet send five rows" - read two defensible ways, with
+the shipped code and common sense both on the side the reference was not. That is a coin flip
+that nearly every agent calls the same way, which is how a fair-looking brief goes 0 of 11.
+**A corner where the reference is the irregular reading is worse than a coin flip: it is a
+trap that punishes the careful.** Per the note-carry-forward entry, ask first whether the
+reference is the thing that is irregular; here it was, and the repair was to make the
+obligation count a figure already published (in flight or not), which never cascades, matches
+the shipped `owed()` so it is no longer an arrow, and is stated in the brief in requirement form.
+Two enumerated cases pin it (`owe-in-flight`, `owe-after-pull`) and the old reading ships as
+`cheat-rule-owe-from-learned`, moving 92.5% of generated streams.
+
+**Then the honest measurement: with that corner decided, the task is transcription.** The
+STATE.md difficulty argument said the published history had to be *derived*; the brief states
+it ("A producer acts only on a ceiling it has already learned about. Learning takes three
+ticks.") because fairness requires it, and every trajectory wrote it in its first file. Deciding
+the corner alone would have sent it to 3 of 3 and 8 of 8. The only lever this file has measured
+to pass both probes on a fully specified transducer is the semantic resource boundary
+("Verified recovery", alias-settle-report), so that is what went in:
+
+- Five of the 300 generated streams are **wide**: 9000-11000 feeds over 150k-170k ticks, each
+  feed busy for a few dozen ticks, a few sharing the link at any moment, every feed drained
+  before its stretch ends so nothing strands the link. The machine now tells the policy about
+  draws (`Mach.take` calls `rtn.took`, which the shipped tree uses for its own tally, so it is not
+  an unused hook). The reference asks only about the levels touched during the tick and the feeds
+  whose idle clock runs out on it - and books that clock for every feed the book armed at tick 0,
+  which is the trap: **the idle pull-back fires for thousands of feeds the stream never touches,
+  with no event to hang it on.** The sealed oracle is event-driven too (a heap and bisection,
+  sharing nothing with the reference's buckets and cursors).
+- Measured on this host: reference 2.5-2.9 s a wide stream, 13.9 s for the five, the whole run
+  of 326 streams in 37 s through both containers with pytest at 15.6 s of that; the shipped shape (every open feed, every tick) **506 s
+  on one wide stream** (rows identical to the reference's), so the run is killed by the wide block with the answers all correct.
+  Walking the published record on every arrival, the other naive cost, is **not** a boundary: it
+  measured under a minute a wide stream, so it was dropped as a cheat rather than shipped as one
+  that would score 1.
+- The brief states the scale and the ten-minute kill on two processors and nothing about the
+  method, per the recipe.
+
+Three smaller things, each of which cost real time:
+
+- **A wide generator has to drain what it parks, or the link dies and every row is an `over`.**
+  The first cut left reopened feeds' bursts parked for ever; 1500 of them exhausted the link's
+  120 rows and 90% of the rows were refusals, which grades nothing. Count arrivals per feed and
+  issue that many draws at the end of its stretch.
+- **A slow cheat has to be timed before it is believed.** The history walk looked quadratic
+  and cost 39 s. A cheat that would score 1 is a variant, not a cheat, and it is not a boundary.
+- **A payload spliced in by string replacement lands nowhere once the reference is rewritten,
+  and the probe it was meant to carry becomes the reference.** `probe-force-row` and
+  `probe-kill-monitor` matched `def plan(...):\n    out = []`, the old first line of `plan()`;
+  the event-driven `plan()` opens with a boot check, so neither `_shove` nor `_disarm` was ever
+  inserted and both probes scored **1** in the real trial as the untouched reference. `emit.py`
+  now refuses to write either probe when the anchor is absent. Standing-policy item 5, in the
+  cheat generator this time: a probe that scores 1 is a hole in the verifier only after the
+  payload is confirmed to be in the file.
+- **A rule swap can become a no-op when a neighbouring rule changes.** `no-strict-increase`
+  dropped the `value > seat` guard in front of the threshold-or-obligation test; under the
+  learned-figure obligation that changed rows, under the in-flight one it changes nothing,
+  because an obligation that fires already puts the figure above the seat. It scored 1 and is
+  gone - the note-carry-forward rule ("a cheat whose swap is a semantic no-op scores 1 and looks
+  like a hole in the scenario set") arriving through a change to the rule beside it.
+- **An event-driven policy's first `plan()` cannot key its initialisation on state a hook may
+  already have created.** `adm.verdict` at tick 0 created the schedule before the first
+  `plan()`, so "initialise if no schedule yet" skipped the boot and silent feeds never got
+  their idle deadline - 2 of 24 enumerated and 1 of 295 generated wrong. Key it on a flag.
+
+**Gates run:** `build_gt` proved on 26 enumerated and 400 generated (6 wide), `prove` 300/0,
+`audit` 26 states and 7 variants agreeing, `variant_check` 7/7 on 199 small and 2 wide streams,
+`readingcheck` 11/11 separated, `tiecheck` 326 streams 0 clashes, `determinism` identical
+across 5 hash seeds, `field_report` no dead field, `shipped` 11 of 26 enumerated and 0 of 295
+generated, `textcheck` clean against all three passing briefs, `structcheck`, `hintcheck`,
+`solvecheck`, `deadfieldcheck`, `catcheck`, `extraneouscheck`, `simcheck` (clear on both axes)
+and `preflight` (no errors) clean. Real two-image trial on this host with docker up: **oracle 1 (37 s through both containers), nop 0 (the shipped tree killed at 601 s, `the run produced no report`), 7 of 7 variants 1, 23 of 23 cheats 0**, each attestation probe and the slow cheat caught by its own layer and nothing else. `zipcheck` and `zipfix --check` clean on the 110-entry archive.
+
+**Gates NOT run:** the three-agent easiness probe (the owner's rule: no subagents), and
+`onelinecheck` reported nothing for either decision. The honest expectation is written in
+STATE.md: 2 of 8, because the boundary is the only thing standing between a transcription and
+a pass, and the measured precedent for that lever is one task.
 
 ## The extraneous-files rejection: a shipped file has to be reachable from inside the zip (2026-09-05)
 

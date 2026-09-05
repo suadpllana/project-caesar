@@ -5,7 +5,7 @@ sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(ROOT, "tests"))
 import cases, gen, harness
 
 fixed = [cases.SETS[k] for k in sorted(cases.SETS)]
-streams = gen.batch(31337, 300)
+streams = gen.small(31337, 300)
 ref_f = harness.drive(fixed, os.path.join(ROOT, "solution"))
 ref_g = harness.drive(streams, os.path.join(ROOT, "solution"))
 shp_f = harness.drive(fixed)

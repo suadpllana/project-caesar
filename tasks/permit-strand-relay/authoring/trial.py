@@ -129,6 +129,8 @@ def failed(log):
         hit = re.match(r"FAILED\s+[^:]*::([A-Za-z0-9_]+)", line.strip())
         if hit:
             names.add(hit.group(1))
+    if "the run produced an empty report" in log:
+        names.add("the_run_produced_no_report")
     return sorted(names)
 
 

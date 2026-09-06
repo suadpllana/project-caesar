@@ -1,0 +1,2 @@
+def cycle(h):
+    return [], [], []

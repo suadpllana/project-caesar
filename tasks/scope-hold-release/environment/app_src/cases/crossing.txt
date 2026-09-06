@@ -1,0 +1,21 @@
+r hub trans note mk
+r note trans . .
+r mk scoped pack,loose .
+r pack trans leaf . job
+r leaf trans . . . . flush
+r loose trans . .
+r flush trans . .
+r app sing boot .
+r boot trans . .
+o open job
+o open
+o resolve hub
+o open job
+o invoke mk
+o close
+o open call
+o invoke mk
+o resolve app
+o close
+o close
+o close

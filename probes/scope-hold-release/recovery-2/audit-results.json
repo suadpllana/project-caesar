@@ -1,0 +1,6158 @@
+{
+  "reference": {
+    "fixed_wrong": [],
+    "generated_wrong": 0,
+    "first": null,
+    "visible": {
+      "crossing.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "nop": {
+    "fixed_wrong": [
+      "scoped-reentry-in-one-scope",
+      "teardown-runs-back-to-front",
+      "chain-under-a-singleton-goes-to-root",
+      "invoke-before-the-holder-exists",
+      "a-nested-close-leaves-the-parent-alone",
+      "wrapping-follows-reverse-allocation-order",
+      "held-across-one-scope",
+      "held-across-two-scopes-running",
+      "held-and-invoked-where-it-was-made",
+      "a-transient-holder-still-carries-its-scope",
+      "the-mark-is-looked-for-from-where-the-work-is-charged",
+      "two-parting-calls-run-in-teardown-order"
+    ],
+    "generated_wrong": 972,
+    "first": {
+      "seed": "recovery2-0",
+      "rows": [
+        [
+          "n0",
+          1,
+          [
+            "n1",
+            "n2"
+          ],
+          [
+            "n2"
+          ],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n1",
+          2,
+          [
+            "n5"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          1,
+          [
+            "n4",
+            "n6"
+          ],
+          [],
+          "call",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          0,
+          [
+            "n4"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n5",
+          2,
+          [
+            "n6"
+          ],
+          [],
+          "job",
+          "",
+          ""
+        ],
+        [
+          "n6",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n0"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "close"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "resolve",
+          "n6"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ],
+        [
+          "torn",
+          "n5",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n0",
+          "1",
+          "n0"
+        ]
+      ],
+      "got": [
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ],
+        [
+          "torn",
+          "n0",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n5",
+          "1",
+          "n0"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "mk",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "pack",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "loose",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "boot",
+            "4",
+            "app"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "2",
+            "flush"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "pool",
+            "1",
+            "app"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "completion-order": {
+    "fixed_wrong": [
+      "scoped-reentry-in-one-scope",
+      "teardown-runs-back-to-front",
+      "a-nested-close-leaves-the-parent-alone",
+      "wrapping-follows-reverse-allocation-order",
+      "held-across-one-scope",
+      "held-across-two-scopes-running",
+      "held-and-invoked-where-it-was-made",
+      "a-transient-holder-still-carries-its-scope",
+      "the-mark-is-looked-for-from-where-the-work-is-charged"
+    ],
+    "generated_wrong": 641,
+    "first": {
+      "seed": "recovery2-0",
+      "rows": [
+        [
+          "n0",
+          1,
+          [
+            "n1",
+            "n2"
+          ],
+          [
+            "n2"
+          ],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n1",
+          2,
+          [
+            "n5"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          1,
+          [
+            "n4",
+            "n6"
+          ],
+          [],
+          "call",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          0,
+          [
+            "n4"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n5",
+          2,
+          [
+            "n6"
+          ],
+          [],
+          "job",
+          "",
+          ""
+        ],
+        [
+          "n6",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n0"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "close"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "resolve",
+          "n6"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ],
+        [
+          "torn",
+          "n5",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n0",
+          "1",
+          "n0"
+        ]
+      ],
+      "got": [
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ],
+        [
+          "torn",
+          "n0",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n5",
+          "1",
+          "n0"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "inherit-marked-owner": {
+    "fixed_wrong": [],
+    "generated_wrong": 72,
+    "first": {
+      "seed": "recovery2-7",
+      "rows": [
+        [
+          "n0",
+          2,
+          [
+            "n5"
+          ],
+          [],
+          "call",
+          "",
+          "n3"
+        ],
+        [
+          "n1",
+          0,
+          [
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          2,
+          [],
+          [
+            "n4"
+          ],
+          "job",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          2,
+          [
+            "n4",
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          1,
+          [
+            "n5",
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          "n3"
+        ],
+        [
+          "n5",
+          2,
+          [
+            "n6"
+          ],
+          [],
+          "call",
+          "n6",
+          ""
+        ],
+        [
+          "n6",
+          2,
+          [],
+          [],
+          "job",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n2"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n4",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n2",
+          "1",
+          "n2"
+        ]
+      ],
+      "got": [
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n4",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n2",
+          "1",
+          "n2"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "leaf",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "recursive-admission": {
+    "fixed_wrong": [],
+    "generated_wrong": 334,
+    "first": {
+      "seed": "recovery2-0",
+      "rows": [
+        [
+          "n0",
+          1,
+          [
+            "n1",
+            "n2"
+          ],
+          [
+            "n2"
+          ],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n1",
+          2,
+          [
+            "n5"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          1,
+          [
+            "n4",
+            "n6"
+          ],
+          [],
+          "call",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          0,
+          [
+            "n4"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n5",
+          2,
+          [
+            "n6"
+          ],
+          [],
+          "job",
+          "",
+          ""
+        ],
+        [
+          "n6",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n0"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "close"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "resolve",
+          "n6"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ],
+        [
+          "torn",
+          "n5",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n0",
+          "1",
+          "n0"
+        ]
+      ],
+      "got": [
+        [
+          "refused",
+          "n0",
+          "1"
+        ],
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "invoke-active-charge": {
+    "fixed_wrong": [
+      "held-across-one-scope",
+      "held-across-two-scopes-running",
+      "a-transient-holder-still-carries-its-scope",
+      "the-mark-is-looked-for-from-where-the-work-is-charged"
+    ],
+    "generated_wrong": 344,
+    "first": {
+      "seed": "recovery2-2",
+      "rows": [
+        [
+          "n0",
+          0,
+          [
+            "n3"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n1",
+          2,
+          [
+            "n6"
+          ],
+          [
+            "n2"
+          ],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          1,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          0,
+          [
+            "n5",
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          0,
+          [
+            "n6",
+            "n7"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n5",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n6",
+          1,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n7",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n1"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "resolve",
+          "n1"
+        ],
+        [
+          "open",
+          "call"
+        ],
+        [
+          "resolve",
+          "n3"
+        ],
+        [
+          "resolve",
+          "n0"
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "resolve",
+          "n3"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "refused",
+          "n3",
+          "3"
+        ],
+        [
+          "refused",
+          "n0",
+          "3"
+        ],
+        [
+          "refused",
+          "n3",
+          "3"
+        ],
+        [
+          "torn",
+          "n2",
+          "2",
+          "n2"
+        ],
+        [
+          "torn",
+          "n6",
+          "2",
+          "n1"
+        ],
+        [
+          "torn",
+          "n1",
+          "2",
+          "n1"
+        ],
+        [
+          "torn",
+          "n2",
+          "1",
+          "n2"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n1"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n1"
+        ]
+      ],
+      "got": [
+        [
+          "refused",
+          "n3",
+          "3"
+        ],
+        [
+          "refused",
+          "n0",
+          "3"
+        ],
+        [
+          "refused",
+          "n3",
+          "3"
+        ],
+        [
+          "torn",
+          "n2",
+          "3",
+          "n2"
+        ],
+        [
+          "torn",
+          "n6",
+          "2",
+          "n1"
+        ],
+        [
+          "torn",
+          "n1",
+          "2",
+          "n1"
+        ],
+        [
+          "torn",
+          "n2",
+          "2",
+          "n2"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n1"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n1"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "loose",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "pack",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "3",
+            "mk"
+          ],
+          [
+            "torn",
+            "flush",
+            "2",
+            "flush"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "bind-holder-owner": {
+    "fixed_wrong": [],
+    "generated_wrong": 7,
+    "first": {
+      "seed": "recovery2-259",
+      "rows": [
+        [
+          "n0",
+          1,
+          [
+            "n4"
+          ],
+          [],
+          "call",
+          "",
+          ""
+        ],
+        [
+          "n1",
+          2,
+          [
+            "n5"
+          ],
+          [],
+          "call",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          2,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          2,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          0,
+          [
+            "n6"
+          ],
+          [],
+          "",
+          "n5",
+          ""
+        ],
+        [
+          "n5",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n6",
+          1,
+          [],
+          [
+            "n0"
+          ],
+          "call",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "call"
+        ],
+        [
+          "resolve",
+          "n6"
+        ],
+        [
+          "resolve",
+          "n4"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n4"
+        ],
+        [
+          "resolve",
+          "n3"
+        ],
+        [
+          "resolve",
+          "n6"
+        ],
+        [
+          "close"
+        ],
+        [
+          "invoke",
+          "n0"
+        ],
+        [
+          "resolve",
+          "n1"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "refused",
+          "n4",
+          "1"
+        ],
+        [
+          "refused",
+          "n4",
+          "2"
+        ],
+        [
+          "torn",
+          "n3",
+          "2",
+          "n3"
+        ],
+        [
+          "refused",
+          "n0",
+          "1"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n1"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n6"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n6"
+        ]
+      ],
+      "got": [
+        [
+          "refused",
+          "n4",
+          "1"
+        ],
+        [
+          "refused",
+          "n4",
+          "2"
+        ],
+        [
+          "torn",
+          "n3",
+          "2",
+          "n3"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n1"
+        ],
+        [
+          "torn",
+          "n0",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n6"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n6"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "reject-dead-token": {
+    "fixed_wrong": [],
+    "generated_wrong": 9,
+    "first": {
+      "seed": "recovery2-194",
+      "rows": [
+        [
+          "n0",
+          2,
+          [
+            "n2",
+            "n6",
+            "n7"
+          ],
+          [],
+          "",
+          "",
+          "n7"
+        ],
+        [
+          "n1",
+          2,
+          [
+            "n3",
+            "n4"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          2,
+          [
+            "n6",
+            "n7"
+          ],
+          [
+            "n3"
+          ],
+          "",
+          "n7",
+          ""
+        ],
+        [
+          "n3",
+          1,
+          [
+            "n5"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          1,
+          [
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n5",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n6",
+          0,
+          [
+            "n7"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n7",
+          2,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "call"
+        ],
+        [
+          "resolve",
+          "n2"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "invoke",
+          "n3"
+        ],
+        [
+          "invoke",
+          "n3"
+        ],
+        [
+          "invoke",
+          "n3"
+        ],
+        [
+          "resolve",
+          "n2"
+        ],
+        [
+          "invoke",
+          "n3"
+        ],
+        [
+          "close"
+        ],
+        [
+          "invoke",
+          "n3"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "torn",
+          "n3",
+          "2",
+          "n3"
+        ],
+        [
+          "torn",
+          "n7",
+          "2",
+          "n2"
+        ],
+        [
+          "torn",
+          "n7",
+          "2",
+          "n2"
+        ],
+        [
+          "torn",
+          "n2",
+          "2",
+          "n2"
+        ],
+        [
+          "torn",
+          "n3",
+          "1",
+          "n3"
+        ],
+        [
+          "torn",
+          "n7",
+          "1",
+          "n2"
+        ],
+        [
+          "torn",
+          "n7",
+          "1",
+          "n2"
+        ],
+        [
+          "torn",
+          "n2",
+          "1",
+          "n2"
+        ]
+      ],
+      "got": [
+        [
+          "torn",
+          "n3",
+          "2",
+          "n3"
+        ],
+        [
+          "torn",
+          "n7",
+          "2",
+          "n2"
+        ],
+        [
+          "torn",
+          "n7",
+          "2",
+          "n2"
+        ],
+        [
+          "torn",
+          "n2",
+          "2",
+          "n2"
+        ],
+        [
+          "refused",
+          "n3",
+          "1"
+        ],
+        [
+          "torn",
+          "n3",
+          "1",
+          "n3"
+        ],
+        [
+          "torn",
+          "n7",
+          "1",
+          "n2"
+        ],
+        [
+          "torn",
+          "n7",
+          "1",
+          "n2"
+        ],
+        [
+          "torn",
+          "n2",
+          "1",
+          "n2"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "xhigh-n8-reported-homes": {
+    "fixed_wrong": [],
+    "generated_wrong": 72,
+    "first": {
+      "seed": "recovery2-7",
+      "rows": [
+        [
+          "n0",
+          2,
+          [
+            "n5"
+          ],
+          [],
+          "call",
+          "",
+          "n3"
+        ],
+        [
+          "n1",
+          0,
+          [
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          2,
+          [],
+          [
+            "n4"
+          ],
+          "job",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          2,
+          [
+            "n4",
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          1,
+          [
+            "n5",
+            "n6"
+          ],
+          [],
+          "",
+          "",
+          "n3"
+        ],
+        [
+          "n5",
+          2,
+          [
+            "n6"
+          ],
+          [],
+          "call",
+          "n6",
+          ""
+        ],
+        [
+          "n6",
+          2,
+          [],
+          [],
+          "job",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n2"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "invoke",
+          "n4"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n4",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n2",
+          "1",
+          "n2"
+        ]
+      ],
+      "got": [
+        [
+          "torn",
+          "n6",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n4",
+          "1",
+          "n4"
+        ],
+        [
+          "torn",
+          "n2",
+          "1",
+          "n2"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "leaf",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "xhigh-AtT-reported-core": {
+    "fixed_wrong": [
+      "scoped-reentry-in-one-scope",
+      "teardown-runs-back-to-front",
+      "a-nested-close-leaves-the-parent-alone",
+      "wrapping-follows-reverse-allocation-order",
+      "held-across-one-scope",
+      "held-across-two-scopes-running",
+      "held-and-invoked-where-it-was-made",
+      "a-transient-holder-still-carries-its-scope",
+      "the-mark-is-looked-for-from-where-the-work-is-charged"
+    ],
+    "generated_wrong": 762,
+    "first": {
+      "seed": "recovery2-0",
+      "rows": [
+        [
+          "n0",
+          1,
+          [
+            "n1",
+            "n2"
+          ],
+          [
+            "n2"
+          ],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n1",
+          2,
+          [
+            "n5"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n2",
+          1,
+          [
+            "n4",
+            "n6"
+          ],
+          [],
+          "call",
+          "",
+          ""
+        ],
+        [
+          "n3",
+          0,
+          [
+            "n4"
+          ],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n4",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ],
+        [
+          "n5",
+          2,
+          [
+            "n6"
+          ],
+          [],
+          "job",
+          "",
+          ""
+        ],
+        [
+          "n6",
+          0,
+          [],
+          [],
+          "",
+          "",
+          ""
+        ]
+      ],
+      "ops": [
+        [
+          "open",
+          "job"
+        ],
+        [
+          "resolve",
+          "n0"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "open",
+          ""
+        ],
+        [
+          "close"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "open",
+          "job"
+        ],
+        [
+          "invoke",
+          "n2"
+        ],
+        [
+          "resolve",
+          "n6"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ],
+        [
+          "close"
+        ]
+      ],
+      "error": null,
+      "want": [
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ],
+        [
+          "torn",
+          "n5",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n1",
+          "1",
+          "n0"
+        ],
+        [
+          "torn",
+          "n0",
+          "1",
+          "n0"
+        ]
+      ],
+      "got": [
+        [
+          "refused",
+          "n0",
+          "1"
+        ],
+        [
+          "refused",
+          "n2",
+          "2"
+        ],
+        [
+          "refused",
+          "n2",
+          "5"
+        ]
+      ]
+    },
+    "visible": {
+      "crossing.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "mk",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "loose",
+            "2",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "note",
+            "2",
+            "hub"
+          ],
+          [
+            "torn",
+            "pack",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "leaf",
+            "1",
+            "mk"
+          ]
+        ]
+      },
+      "handover.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "mk",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "seat",
+            "1",
+            "mk"
+          ],
+          [
+            "torn",
+            "hub",
+            "1",
+            "hub"
+          ]
+        ]
+      },
+      "nested.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "tmp",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "tmp"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "parting.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "flush",
+            "1",
+            "flush"
+          ]
+        ]
+      },
+      "pinned.txt": {
+        "wrong": false,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "unit",
+            "2",
+            "unit"
+          ],
+          [
+            "torn",
+            "bill",
+            "1",
+            "unit"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "log"
+          ]
+        ]
+      },
+      "plain.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wide.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "job",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "2",
+            "job"
+          ],
+          [
+            "torn",
+            "job",
+            "1",
+            "job"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "job"
+          ]
+        ]
+      },
+      "wrapped.txt": {
+        "wrong": true,
+        "error": null,
+        "want": [
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ]
+        ],
+        "got": [
+          [
+            "torn",
+            "skin",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "core",
+            "1",
+            "skin"
+          ],
+          [
+            "torn",
+            "log",
+            "1",
+            "skin"
+          ]
+        ]
+      }
+    }
+  },
+  "runtime": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "host_reference_grader": {
+    "test_the_run_produced_a_report": "pass",
+    "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+    "test_the_executed_tree_was_the_one_we_shipped": "pass",
+    "test_the_named_ground_truth_matches_the_rules": "pass",
+    "test_the_named_cases_match_the_rules": "pass",
+    "test_the_generated_streams_match_the_rules": "pass"
+  },
+  "host_nop_grader": {
+    "test_the_run_produced_a_report": "pass",
+    "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+    "test_the_executed_tree_was_the_one_we_shipped": "pass",
+    "test_the_named_ground_truth_matches_the_rules": "pass",
+    "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: scoped-reentry-in-one-scope, teardown-runs-back-to-front, chain-under-a-singleton-goes-to-root, invoke-before-the-holder-exists, a-nested-close-leaves-the-parent-alone, wrapping-follows-reverse-allocation-order, held-across-one-scope, held-across-two-scopes-running, held-and-invoked-where-it-was-made, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged, two-parting-calls-run-in-teardown-order",
+    "test_the_generated_streams_match_the_rules": "AssertionError: 236 of 300 generated streams came back wrong, first g0000"
+  },
+  "host_cheat_graders": {
+    "cheat-rule-capture-at-invocation.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: held-across-one-scope, held-across-two-scopes-running, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 81 of 300 generated streams came back wrong, first g0000"
+    },
+    "cheat-rule-capture-innermost-live.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: held-across-one-scope, held-across-two-scopes-running, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 81 of 300 generated streams came back wrong, first g0000"
+    },
+    "cheat-rule-chain-under-singleton-ignored.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: chain-under-a-singleton-goes-to-root",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 184 of 300 generated streams came back wrong, first g0000"
+    },
+    "cheat-rule-completion-order.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: scoped-reentry-in-one-scope, teardown-runs-back-to-front, a-nested-close-leaves-the-parent-alone, wrapping-follows-reverse-allocation-order, held-across-one-scope, held-across-two-scopes-running, held-and-invoked-where-it-was-made, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 146 of 300 generated streams came back wrong, first g0000"
+    },
+    "cheat-rule-cycle-blind.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-cycle-is-refused, a-cycle-through-a-wrapper-is-refused",
+      "test_the_generated_streams_match_the_rules": "pass"
+    },
+    "cheat-rule-inherit-marked-home.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "pass",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 12 of 300 generated streams came back wrong, first g0026"
+    },
+    "cheat-rule-mark-from-the-active-scope.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: the-mark-is-looked-for-from-where-the-work-is-charged",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 11 of 300 generated streams came back wrong, first g0050"
+    },
+    "cheat-rule-mark-not-required.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-pinned-name-with-no-mark-in-reach-is-refused, a-parting-call-with-nowhere-to-land-is-refused",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 137 of 300 generated streams came back wrong, first g0001"
+    },
+    "cheat-rule-mark-taken-from-the-outermost.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: the-nearest-mark-wins-over-an-outer-one",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 26 of 300 generated streams came back wrong, first g0002"
+    },
+    "cheat-rule-parting-call-into-the-closing-scope.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-parting-call-lands-outside-the-scope-that-is-going, a-parting-call-with-nowhere-to-land-is-refused, two-parting-calls-run-in-teardown-order",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 54 of 300 generated streams came back wrong, first g0005"
+    },
+    "cheat-rule-refusal-direct-only.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: refusal-follows-the-whole-chain",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 16 of 300 generated streams came back wrong, first g0002"
+    },
+    "cheat-rule-teardown-front-to-back.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: scoped-reentry-in-one-scope, teardown-runs-back-to-front, invoke-before-the-holder-exists, a-nested-close-leaves-the-parent-alone, wrapping-follows-reverse-allocation-order, held-across-one-scope, held-across-two-scopes-running, held-and-invoked-where-it-was-made, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged, two-parting-calls-run-in-teardown-order",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 213 of 300 generated streams came back wrong, first g0000"
+    },
+    "cheat-forge-answer-key.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "pass",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 298 of 300 generated streams came back wrong, first g0000"
+    },
+    "cheat-probe-patch-seal.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "AssertionError: wire/core.py was not the shipped module",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "pass",
+      "test_the_generated_streams_match_the_rules": "pass"
+    },
+    "cheat-probe-rewrite-frozen.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "AssertionError: wire\\core.py was modified",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "pass",
+      "test_the_generated_streams_match_the_rules": "pass"
+    }
+  }
+}

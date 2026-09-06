@@ -1,0 +1,12 @@
+r app sing cfg .
+r cfg sing pool .
+r pool trans . .
+r job scoped log .
+r log scoped . .
+o open
+o resolve app
+o resolve job
+o open
+o resolve job
+o close
+o close

@@ -53,10 +53,15 @@ DEFAULT_ROUNDS = 400
 
 
 def load(task: Path):
-    spec_path = task / "authoring" / "readings.py"
+    # A readings.py inside tasks/<slug>/ ships with the archive and is an orphan from
+    # inside it, which is what the quality review rejected on 2026-09-05 and what
+    # onelinecheck.py already avoids. Prefer the repo-level authoring/<slug>/ copy.
+    spec_path = REPO / "authoring" / task.name / "readings.py"
+    if not spec_path.is_file():
+        spec_path = task / "authoring" / "readings.py"
     if not spec_path.is_file():
         return None
-    sys.path.insert(0, str(task / "authoring"))
+    sys.path.insert(0, str(spec_path.parent))
     sys.path.insert(0, str(task / "tests"))
     spec = importlib.util.spec_from_file_location("readings", spec_path)
     mod = importlib.util.module_from_spec(spec)

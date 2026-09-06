@@ -1,0 +1,120 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/cyc/keep.py",
+]
+
+[task]
+name = "afterquery/reach-pair-sweep"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana14@gmail.com"
+
+difficulty_explanation = """
+The step that breaks a frontier agent is the order of two retention passes and the fact that
+they are mutually recursive. Retaining the value of a weak key-value pair only when its key is
+retained forces a fixed point: a value pulled in can be the key of another pair, so one sweep of
+the pair table is not enough. Almost every agent gets that far. What follows is where the plans
+break. An object that is unreachable but still has an unrun finalizer is kept for this cycle
+together with everything it reaches, and that keeping adds roots AFTER the pair fixed point has
+already converged, so it re-opens it. Once the two are looped together, "retained" stops being
+one predicate: an object kept only so a finalizer can run is not reachable, so a weak reference
+to it must still clear, while a pair whose key is kept that way does retain its value. Every
+decision an implementation already took against a single retained set has to be re-derived
+against the right one of the two, which is a replan rather than a patch.
+
+There is no oracle to check any of this against. The collector does not ship, so the runtime
+prints nothing until the agent writes one, and there is no reference behaviour to diff against
+or hill-climb on. Measured against a shaped population, the wrong readings are also quiet:
+settling the pair table in a single sweep changes under 4% of unshaped programs, and settling
+the finalizer queue after keeping changes about 2.5%, so ordinary testing gives almost no signal.
+
+The data is synthetic: heap programs over integer ids, with allocate, store, drop, frame open
+and close, collect and run-a-finalizer ops, plus generated mutation streams. Real heaps are
+millions of objects where ours are tens, and pair and finalizer configurations are concentrated
+far above their natural rate, because in the wild they are rare and are exactly where this class
+of bug lives. The shape is faithful; the density is deliberately adversarial.
+
+The environment is small on purpose and does not claim difficulty from file count: the runtime is
+four short modules and the work is one function. Identifiers are deliberately in a legacy
+register - `hp`, `ob`, `fl`, `fz`, `wk`, `pr`, `qu`, `rn` - so meaning has to come from what
+calls a field and what breaks when it is wrong, rather than from reading it off the name. That
+is a design choice, not sloppiness, and no name misdescribes what it holds.
+
+This is what runtime engineers on a language implementation do: weak maps, finalizer queues and
+resurrection are where collector bugs concentrate, and the symptom is an object freed while
+something still points at it, surfacing far away as corruption.
+"""
+
+solution_explanation = """
+The reference settles three sets in a fixed order, because each changes what the next may look
+at. First, what the open frames reach: fields to a fixed point, and a pair's value once its key
+is in the set, rescanning the pair table until a sweep adds nothing. Second, the finalizer queue,
+taken against that set alone and before any keeping is granted, so an object reachable only from
+another finalizable object is still queued this cycle. Third, what is kept only to run a queued
+finalizer: those objects and their closures, following pair values the same way, and blocked from
+anything already reached so the two sets stay distinct. Weak clearing is then tested against the
+first set only, and release is everything in neither.
+
+An expert works in that order because it is forced by the rules rather than chosen: each pass
+consumes the previous one's answer, and the split between reachable and merely-kept is what makes
+weak clearing and pair retention answer to different sets. The same contract is implemented two
+further ways in the authoring set, one painting colours from a worklist over a key-indexed pair
+table and one iterating in rounds over the whole object set, to show the shape is not the point.
+"""
+
+verification_explanation = """
+Only `/app/cyc/keep.py` is taken from the agent. The verifier overlays it onto its own pristine
+copy of the runtime, so nothing else the agent may have touched can change what a program prints,
+and the record is compared line for line.
+
+Correct is defined twice over. Sixteen hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the verifier was
+written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so a
+drifted model cannot quietly redefine correct. Three hundred and twenty further programs are
+generated inside the verifier from a nonce drawn after the agent has finished, across four
+families that deliberately seed the retention cascade and the resurrection sequence, and checked
+against that model. A submission cannot have seen them, so memorising the shipped example or
+forging records from an answer key both fail; both are in the cheat set and both score 0.
+
+Passing therefore means the collector settles both fixed points, in the right order, with the two
+retained sets kept apart - on programs it never saw. Grading is all-or-nothing and the fences run
+both ways: releasing too much fails the ordinary cases, releasing too little fails the plain drop.
+Three independently written correct collectors all score 1, including one that is the reference
+with every identifier mechanically renamed, so implementation and naming are not being graded.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "reachability-tracing",
+  "weak-references",
+  "key-value-weak-pairs",
+  "finalizer-resurrection",
+  "fixed-point-iteration",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+DRAFT - needs the contributor's own words before submission.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 900.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

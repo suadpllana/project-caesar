@@ -1,0 +1,10 @@
+new 1
+new 2
+new 3 fin c
+weak w1 1
+slot a 1
+pair 1 2
+collect
+runfin
+slot a -
+collect

@@ -1,0 +1,62 @@
+"""The collector.
+
+Three sets, settled in a fixed order, because each one changes what the next may look at.
+
+`live`   what the open frames reach. A pair's value joins only once its key is already in the
+         set, so adding a value can make some later pair's key present and the walk has to be
+         run again until nothing moves. One sweep of the pair table is not enough.
+
+`hold`   what is kept only so a queued finalizer can run: the finalizable objects and whatever
+         they reach. It follows pair values the same way, keyed off `hold` itself, so this is a
+         second fixed point that opens only after `live` has closed. Objects already in `live`
+         are blocked out of it - they are kept for a better reason.
+
+The order matters twice. `qd` is settled against `live` alone, before `hold` exists, so an
+object reachable only from another finalizable object is still finalized this cycle. And weak
+references are cleared against `live` alone, never against `live | hold`: being kept to run a
+finalizer is not being reachable, which is the whole point of the split.
+"""
+
+
+def _reach(h, seed, blocked):
+    got = set()
+    st = list(seed)
+    while st:
+        i = st.pop()
+        if i in got or i in blocked or i not in h.ob:
+            continue
+        got.add(i)
+        for v in h.ob[i].fl.values():
+            if v is not None:
+                st.append(v)
+    return got
+
+
+def _close(h, seed, blocked):
+    got = _reach(h, seed, blocked)
+    while True:
+        add = [v for k, v in h.pr
+               if k in got and v in h.ob and v not in got and v not in blocked]
+        if not add:
+            return got
+        got |= _reach(h, add, blocked)
+
+
+def cycle(h):
+    rt = set()
+    for f in h.fr:
+        for v in f.values():
+            if v is not None and v in h.ob:
+                rt.add(v)
+    live = _close(h, rt, set())
+
+    qd = sorted(i for i in h.ob
+                if i not in live and h.ob[i].fz is not None
+                and i not in h.rn and i not in h.qu)
+
+    hold = _close(h, set(h.qu) | set(qd), live)
+
+    cl = [n for n, w in h.wk.items() if not w.c and w.t not in live]
+
+    rl = sorted(i for i in h.ob if i not in live and i not in hold)
+    return cl, qd, rl

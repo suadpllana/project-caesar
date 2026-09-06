@@ -40,3 +40,35 @@ Two findings the models caught in the reference itself: an occurrence cache that
 first index it found missed a longer stop completing later but starting earlier, and a
 backward character scan disagreed with a forward one on a malformed lead byte. Both were
 invisible to 1200 random requests until a stop pool containing the shape was added.
+
+## Lessons, measured (2026-09-06, `reach-pair-sweep`)
+
+- **A mechanical variant that renames nothing proves nothing, and says so quietly.**
+  `make_variants.py` built the mirror with a regex whose `\b` had been written into the file as
+  a literal backspace byte (`\x08`) by an earlier patch. It matched nothing, so no identifier was
+  renamed, the "still carries reference names" guard found nothing to complain about, and the
+  mirror shipped as the reference with its docstring stripped - scoring 1 for the wrong reason.
+  Two rules follow: a rename must assert it fired (`re.subn`, count > 0, fail on zero), and
+  never patch Python escapes through a shell heredoc. Three separate edits in this session wrote
+  `\x08` or a raw newline into source that way before the fourth used line-index replacement.
+- **Ask what a wrong reading moves before believing your estimate.** The proposal put the
+  pair-table-swept-once reading at ~35% of cases. Measured on 600 unshaped programs it moved
+  3.7% - a tenfold error, and in the safe direction only by luck. The shaped `chain` family
+  lifts it to 42.5%. A generated population that is not deliberately shaped around the mechanism
+  does not exercise it, and the estimate you would have shipped is the one nobody checks.
+- **The worked example is an oracle unless you measure that it is not.** The brief needs one
+  record printed verbatim or a format slip fails every case for a reason that is not the task.
+  Of 16,361 candidate programs showing all four line kinds, 184 decide none of the six wrong
+  readings; `progs/small.txt` is the smallest. Search for the example, do not choose it.
+- **`readingcheck` looked for `readings.py` inside the task folder, where `extraneouscheck` and
+  `onelinecheck` both say it must not live.** Two tools in this kit disagreed. `readingcheck`
+  now prefers `authoring/<slug>/readings.py` and falls back to the task-local path.
+- **CRLF again, and again in the file no gate reads as text.** `build_gt.py` wrote `gt.json`
+  with `write_text` and no `newline=`, so Windows made it CRLF and only `zipcheck` on the built
+  archive caught it. Every generator that writes a shipped file now pins `newline="\n"` and
+  asserts no `\r` survives.
+- **The self-probe cannot be run by the author who wrote the model first.** The order here was
+  brief, then sealed model, then environment - so by build time both discoveries were already in
+  hand and a cold solve would have measured memory. It is recorded as not run, with the reading
+  separations and the no-oracle property standing in its place. A self-probe reported as passed
+  by a contaminated author is worse than no self-probe.

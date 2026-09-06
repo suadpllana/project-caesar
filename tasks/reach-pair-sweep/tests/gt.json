@@ -1,0 +1,54 @@
+{
+  "all-live": [],
+  "chain": [],
+  "chain-live": [],
+  "comes-back": [
+    "fin 1",
+    "ran 1",
+    "rel 1"
+  ],
+  "dead-key": [
+    "rel 1",
+    "rel 2"
+  ],
+  "empty-roots": [
+    "rel 1",
+    "rel 2"
+  ],
+  "frames": [
+    "rel 2"
+  ],
+  "hold-closure": [
+    "fin 1"
+  ],
+  "hold-pair": [
+    "fin 1"
+  ],
+  "no-requeue": [
+    "fin 1"
+  ],
+  "plain-drop": [
+    "rel 2",
+    "rel 1"
+  ],
+  "queue-first": [
+    "fin 1",
+    "fin 2"
+  ],
+  "quiet-fin": [
+    "fin 1",
+    "ran 1",
+    "rel 1"
+  ],
+  "stays-clear": [
+    "clr w",
+    "fin 1",
+    "ran 1",
+    "rel 1"
+  ],
+  "weak-live": [],
+  "weak-on-held": [
+    "clr w",
+    "fin 1"
+  ]
+}

@@ -1,0 +1,163 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/wire/own.py",
+  "/app/wire/pin.py",
+  "/app/wire/hold.py",
+  "/app/wire/gate.py",
+  "/app/wire/tear.py",
+  "/app/wire/shut.py",
+  "/app/wire/plan.py",
+]
+
+[task]
+name = "afterquery/scope-hold-release"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: a platform engineer who owns the dependency container every
+other team registers services in, and who has to answer for a disposal that ran too early
+or never ran at all. The graded data is synthetic. A stream is a registration table of
+short opaque names with declared lifetimes plus a list of scope opens, closes, resolutions
+and factory invocations; nothing real is constructed and nothing is really disposed. That
+is not a fair sample of a production container, where graphs are far wider and most of the
+registrations are dull. What it does reproduce faithfully is the one condition that makes
+the question hard, which is a capture that outlives the scope it was taken in.
+
+The tree is a working container with wrong ownership and teardown decisions. It charges
+factory work to a currently open scope and tears instances down in forward allocation
+order. Correcting it requires separating the scope used for construction and caching,
+the scope captured by a factory token, and the scope responsible for teardown.
+
+Four of the seven editable files are wrong and the rules they break interact: ownership
+follows a capture, marks pin a registration to a scope that has to be found from where the
+work was charged, and a wrapper is torn after what it wraps. The shipped refusal and parting
+policies already satisfy their rules and have to stay that way while the ownership path changes.
+
+The instruction states the observable rules, including reverse allocation rather than
+reverse completion order. The difficult boundary is that singleton ancestry propagates
+root ownership, while a mark changes only one instance's teardown owner. Treating both
+as ordinary parent-owner inheritance looks coherent and survives the 22 named cases,
+but an isolated implementation of that reading disagreed on 72 of 1,200 generated streams.
+Charging factory work to the invocation scope disagreed on 344 of the same streams.
+These are host differential measurements of modeled decisions, not frontier solve rates.
+Eight runnable input fixtures include a compound stream with nested marks, factory reuse,
+singleton ancestry and parting calls; expected traces remain verifier-side.
+
+The natural single-scope implementation breaks these interactions. Reusing a cached
+instance preserves its cause and owner, resolving a cached holder can still replace its
+factory token, and marked ownership does not alter the build-scope cache key. Admission
+applies to the requested name while cycle detection follows its graph. Extending every
+admission check recursively rejects legitimate streams. The agent has to preserve these
+boundaries while repairing capture, ancestry, mark lookup and teardown together.
+
+The container ships with no comments anywhere and its identifiers are in the register of
+ordinary internal code rather than self-describing ones. That is deliberate: the token
+table, the scope stack and the pull-in chain recorded by the core have to be recovered by
+reading behaviour instead of by reading names.
+"""
+
+solution_explanation = """
+The reference is four small files. Two of them carry the work.
+
+wire/hold.py records the scope a factory token was minted in and hands it back when the
+token is fired. The mint happens on each successful explicit holder resolution, so the
+scope recorded is that resolution's build scope, independently of the holder's teardown
+owner. Later invocation is charged there no matter how many scopes have opened since.
+
+wire/own.py settles the home of every instance a call created. The core reports each
+creation with the instance that pulled it in, so the file walks that chain upward and
+sends anything standing under a singleton to the root. For other instances, a mark selects
+the nearest matching ancestor of the charge, or root if none matches; an unmarked instance
+belongs to the charged scope. A marked parent's ownership is not inherited.
+
+wire/pin.py finds the scope a marked registration belongs to by walking the chain above
+the scope the work was charged to, nearest first. wire/tear.py reverses allocation order
+within a scope, which puts wrapped allocations before their wrapper. The shipped wire/gate.py
+already checks admission at the request boundary, and wire/shut.py already
+lands a parting call outside the scope being closed. The reference leaves both of those files
+and wire/plan.py unchanged.
+
+Four alternative correct implementations are kept outside the bundle:
+the capture held as a scope-to-token index instead of a token-to-scope map, the teardown
+ordered by descending allocation serial instead of by reversing a list, the home walk done
+downward from the roots of the pull-in forest instead of upward from each instance, and
+the mark found by scanning the chain outward and keeping the last hit instead of inward
+and taking the first. All four agree record for record with the reference on the
+enumerated cases and on twelve hundred generated streams in the host-side semantic harness.
+"""
+
+verification_explanation = """
+The container is driven over twenty-two named cases and three hundred streams the verifier
+builds from a nonce minted after the agent has finished, and it is graded on one thing
+with no partial credit: the dump, record for record, in order.
+
+The dump comes out of the submitted policy running over the frozen core, which assigns
+instance identity and reports what pulled in what. A policy that fabricates records still has
+to reproduce every exact result for streams generated from the run-time nonce. The grader
+runs as root after the submitted run has been reaped and never executes agent code.
+
+Expected results for the named cases come from tests/oracle.py, a sealed second
+implementation written from the specification rather than from the tree, sharing no code
+with the reference: where the reference threads a capture through a driver built on
+wire.core, the oracle replays the stream with its own instance tables and emits each
+scope's teardown by descending serial. The reference is proved against it on the named
+cases and 1,200 generated streams in host validation. The three hundred graded streams are
+re-derived through the oracle inside the grader, so nothing a
+submission returns is compared against a number it could have read.
+
+Two attestations sit under that. The sealed modules are fingerprinted against digests the
+grader derives by compiling the pristine sources, so rebinding a core function is caught
+even when it happens at import time before any run-time digest is taken. And the executed
+tree is compared file by file against the pristine copy after the run, with the count of
+files compared asserted before any comparison is believed, so a probe that rewrites a
+frozen module on disk is caught by that check. The cheat suite carries one probe per
+attestation, each built on the reference so that every answer it returns is correct.
+The host worker/grader checks pass for the reference; Linux isolation and full container
+cheat execution require a Docker-capable validation host.
+"""
+
+category = "Software"
+subcategory = "Systems"
+
+tags = [
+  "object-lifetimes",
+  "scope-capture",
+  "teardown-ordering",
+  "dependency-graphs",
+  "refusal-rules",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I have owned the wiring layer of a service platform where every team registered their own
+components, and the two incidents that cost the most were both this: a long-lived
+component holding a factory, calling it during a later request, and the object it built
+being torn down with a scope that had nothing to do with it. The first time it showed up
+as a connection being closed underneath a background worker, and it took a week, because
+every test we had resolved things directly and every one of them passed. The second time
+was the same bug reached through a decorator. What I took from both is that the ownership
+rule is easy to state and almost nobody implements the capture where it actually happens,
+and that the failure is invisible to any test you would think to write, because it needs a
+scope opened after the holder was built.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

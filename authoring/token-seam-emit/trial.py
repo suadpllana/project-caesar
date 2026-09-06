@@ -18,6 +18,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 
@@ -67,9 +68,9 @@ def main(argv):
 
     task = os.path.abspath(a.task)
     tests = os.path.join(task, "tests")
-    work = os.path.join(task, ".trial")
-    shutil.rmtree(work, ignore_errors=True)
-    os.makedirs(work)
+    # Scratch never lands inside the bundle: package.py ships what it finds, and a
+    # previous run's .trial/ put 370 stray files in the zip.
+    work = tempfile.mkdtemp(prefix="tse-trial-")
     lab = os.path.join(work, "lab")
     os.makedirs(os.path.join(lab, "out"))
     nonce = a.nonce or ("host-%d" % int(time.time()))

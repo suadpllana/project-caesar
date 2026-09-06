@@ -16,7 +16,7 @@ An end-of-stream piece below the floor carries no text and the request carries o
 
 Four things have to keep working and we grade them as hard as the rest. A request with no stop strings releases every complete character the moment it is complete, and a request with a floor and no stop strings is not held back by the floor at all. A request whose stop strings never occur reaches its cap and ends on `length` with everything sent. And a request whose text ends on a live partial that can no longer grow into any stop string releases that text rather than holding it.
 
-The requests we grade are bigger than the ones in your tree. Some run to about forty thousand tokens. The whole graded set has to finish inside nine hundred seconds, so per-step work that grows with how much text the request has already produced will not get there however right its answers are.
+The requests we grade are bigger than the ones in your tree. Some run to about forty thousand tokens. The whole graded set has to finish inside six hundred seconds, so per-step work that grows with how much text the request has already produced will not get there however right its answers are.
 
 We grade the `em` and `fi` lines, in order, exactly, with no partial credit. We grade the requests in `/app/reqs`, a harder set you have not seen, and several hundred generated ones besides, so a rule that happens to fit the requests in front of you will not carry. There is no expected output in your tree and none is coming. The server is the only thing that will tell you what your rules do.
 

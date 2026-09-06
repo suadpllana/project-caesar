@@ -121,17 +121,38 @@ tags = [
 
 expert_time_estimate_hours = 8
 
-relevant_experience = ""
+relevant_experience = """
+I run the serving side for a model training group - the part that turns a stream of token ids
+back into text on a socket - so the bugs that cost me most are the ones where something we
+have already sent turns out to have been wrong to send. The one this task is built from cost
+a week. We stream partial output to clients as it decodes, and a client can set a stop string
+and also a minimum number of tokens it wants out of us before we are allowed to end the
+request. Those two settings look independent. They are not. The hold-back everyone writes
+first is a bounded one: keep back enough bytes that a character cannot be cut in half and a
+stop string cannot straddle the boundary, send everything in front of it. That is right for
+every request without a floor, and it is what every incremental detokenizer I have read the
+source of does. With a floor it is unsound, because we still match against everything we have
+accumulated and the floor only decides whether an occurrence we have already found is allowed
+to end the request. So an occurrence that finished while the floor was still suppressing us is
+sitting there in the text, everything from where it starts should never have gone out, and the
+hold-back is not a suffix any more - it is pinned, and on a bad request nothing at all may
+leave until the floor lifts. Nothing crashed. A few clients got a handful of extra bytes ahead
+of the truncation point, which reads as a timing artifact until you line the transcripts up
+side by side. The second half was worse and took the rest of the week: I had remembered the
+first occurrence the matcher found and stopped looking, which is wrong whenever a longer stop
+string completes later than a shorter one but starts before it, so the index I was holding had
+to keep moving backwards.
+"""
 
 [verifier]
-timeout_sec = 1800.0
+timeout_sec = 900.0
 environment_mode = "separate"
 
 [agent]
 timeout_sec = 14400.0
 
 [environment]
-build_timeout_sec = 600.0
+build_timeout_sec = 900.0
 cpus = 2
 memory_mb = 4096
 storage_mb = 10240

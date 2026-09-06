@@ -48,7 +48,7 @@ install -d -o probe -g probe -m 700 /lab/out
 set +e
 setsid --wait env HOME=/lab/out TMPDIR=/lab/out PYTHONDONTWRITEBYTECODE=1 \
     setpriv --reuid=1003 --regid=1003 --clear-groups \
-    timeout --signal=KILL 900 \
+    timeout --signal=KILL 600 \
     python /tests/runner.py /lab/tree /lab/req /lab/out/rows.txt
 python /tests/reap.py 1003
 set -e

@@ -29,6 +29,13 @@ Four defects found by local gates before submission, each with the number that f
   its filename and address, so any function containing a generator expression hashed
   differently every run and failed the reference. Recurse into nested code instead.
 
+- **Authoring scratch inside the task folder ships.** `package.py` zipped `.trial/` and
+  `.cheats/` from an authoring run still in flight: 455 entries instead of 70, and
+  `zipcheck` caught it only because the stray files were newer than the zip. Every
+  authoring script now writes to `tempfile.mkdtemp` outside the bundle. Related: `zipcheck`
+  rejects CRLF in `.py` and `.json`, not only in `.sh`, and Git normalising on commit hides
+  it because the working copy is what gets zipped.
+
 Two findings the models caught in the reference itself: an occurrence cache that froze the
 first index it found missed a longer stop completing later but starting earlier, and a
 backward character scan disagreed with a forward one on a malformed lead byte. Both were

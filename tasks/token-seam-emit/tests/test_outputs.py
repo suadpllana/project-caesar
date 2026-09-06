@@ -75,7 +75,7 @@ FROZEN = (
     ("strm.req", "gate"),
     ("strm.req", "hx"),
 )
-RUN_LIMIT_SECS = 900.0
+RUN_LIMIT_SECS = 600.0
 
 
 # ---------------------------------------------------------------- loading the run

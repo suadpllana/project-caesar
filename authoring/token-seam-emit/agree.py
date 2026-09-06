@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 PROBE = r'''
 import os, sys
@@ -74,9 +75,7 @@ def main(argv):
         return 2
     task = os.path.abspath(argv[0])
     count = int(argv[1]) if len(argv) > 1 else 1000
-    work = os.path.join(task, ".agree")
-    shutil.rmtree(work, ignore_errors=True)
-    os.makedirs(work)
+    work = tempfile.mkdtemp(prefix="tse-agree-")
     tree = os.path.join(work, "tree")
     shutil.copytree(os.path.join(task, "environment", "app_src"), tree)
     for f in sorted(os.listdir(os.path.join(task, "solution"))):

@@ -15,6 +15,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 PROBE = r'''
 import json, os, sys
@@ -45,9 +46,7 @@ def main(argv):
         return 2
     task = os.path.abspath(argv[0])
     tests = os.path.join(task, "tests")
-    work = os.path.join(task, ".gt")
-    shutil.rmtree(work, ignore_errors=True)
-    os.makedirs(work)
+    work = tempfile.mkdtemp(prefix="tse-gt-")
 
     tree = os.path.join(work, "tree")
     shutil.copytree(os.path.join(task, "environment", "app_src"), tree)

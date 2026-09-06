@@ -311,8 +311,7 @@ def main(argv):
         return 2
     task = argv[0]
     count = int(argv[1]) if len(argv) > 1 else 400
-    work = os.path.join(task, ".readings")
-    os.makedirs(work, exist_ok=True)
+    work = tempfile.mkdtemp(prefix="tse-readings-")
     cases = os.path.join(work, "cases")
     os.makedirs(cases, exist_ok=True)
     tests = os.path.join(task, "tests")

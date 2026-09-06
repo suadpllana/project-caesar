@@ -22,6 +22,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 # Which test each attestation probe has to be caught by.
 OWNED = {
@@ -74,9 +75,7 @@ def main(argv):
         return 2
     cheats = sorted(f for f in os.listdir(os.path.join(task, "cheat"))
                     if f.endswith(".sh"))
-    work = os.path.join(task, ".cheats")
-    shutil.rmtree(work, ignore_errors=True)
-    os.makedirs(work)
+    work = tempfile.mkdtemp(prefix="tse-cheats-")
 
     bad = []
     print("%-34s %6s  %s" % ("cheat", "reward", "caught by"))

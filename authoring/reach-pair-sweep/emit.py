@@ -212,10 +212,10 @@ def main():
         if old not in src:
             raise SystemExit("override %r no longer matches the reference" % name)
         (OUT / ("read-%s.py" % name)).write_text(HEAD + src.replace(old, new, 1),
-                                                 encoding="utf-8")
+                                                 encoding="utf-8", newline="\n")
     for name, body in sorted(ADVERSARIAL.items()):
-        (OUT / ("%s.py" % name)).write_text(HEAD + body.lstrip("\n"), encoding="utf-8")
-    (OUT / "forge-from-gt.py").write_text(HEAD + _forge().lstrip("\n"), encoding="utf-8")
+        (OUT / ("%s.py" % name)).write_text(HEAD + body.lstrip("\n"), encoding="utf-8", newline="\n")
+    (OUT / "forge-from-gt.py").write_text(HEAD + _forge().lstrip("\n"), encoding="utf-8", newline="\n")
 
     files = sorted(p.name for p in OUT.glob("*.py"))
     print("wrote %d cheats:" % len(files))

@@ -44,7 +44,7 @@ def mirror():
     left = [n for n in RENAME if re.search(r"(?<![.\w])" + re.escape(n) + r"\b", src)]
     if left:
         raise SystemExit("mirror still carries reference names: %s" % left)
-    (OUT / "mirror.py").write_text(src, encoding="utf-8")
+    (OUT / "mirror.py").write_text(src, encoding="utf-8", newline="\n")
     return src, fired
 
 

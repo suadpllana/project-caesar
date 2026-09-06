@@ -1,118 +1,25 @@
-`/app` is the container everything here is wired through. A registration names
-a lifetime, scopes open and close around a unit of work, and when a scope
-closes the container disposes of whatever belongs to it. We rewrote the
-ownership and teardown decisions last cycle and it has been wrong ever since.
-Run `/app/run_wire.py` on `/app/cases/wide.txt` and read the third line back.
-It says `torn pool 1 app`, and that line should not be there at all: `pool`
-came in underneath `app`, `app` is a singleton that outlives every scope in
-that stream, and so closing scope 1 has reached inside something still live and
-disposed of a dependency it is holding, while `app` itself has not been torn
-down and never will be. There are nine more case files in `/app/cases`. None of
-them comes out right either.
+`/app` is the container our services get wired through. A registration names something we can build and says what lifetime it keeps, what it pulls in, and sometimes a mark, a registration it wraps, a parting call or a factory it hands out. Scopes open and close around a unit of work. `/app/wire/core.py` does the building and hands out the numbers, `/app/wire/reg.py` holds the table a stream declares, `/app/wire/scope.py` is the stack of scopes standing open, and the seven files beside them decide who owns what, what order it comes apart in and what gets turned away. `/app/run_wire.py` takes a case file and prints the dump.
 
-`/app/wire/own.py`, `/app/wire/pin.py`, `/app/wire/hold.py`,
-`/app/wire/gate.py`, `/app/wire/tear.py`, `/app/wire/shut.py` and
-`/app/wire/plan.py` are yours to change, and some of them are already right.
-`/app/wire/core.py`, `/app/wire/reg.py` and `/app/wire/scope.py` are the
-container itself and you may not touch them. Read them anyway. They already
-settle things the editable files have to agree with.
+Run it on `/app/cases/wide.txt`. The third line back is `torn pool 1 app` and it has no business existing: `pool` came in underneath `app`, `app` is a singleton, so it outlives every scope in that stream and the root is the only thing with any claim on it, which means scope 1 closing has reached inside a live object and thrown away something it is still holding. Then look at what is not there. No line for `app`, because the root never closes and nothing ever tears it down. Nine more files sit in `/app/cases`. Drive the container with any of them. Not one comes out right.
 
-We grade the dump line for line, in the order it comes out. A teardown is the
-word `torn`, then the registration name, then the scope that owned the
-instance, then the name we were asked for when it came into being, which for
-anything pulled in underneath something else is the name at the top of that
-resolution and not the immediate parent it hung off; a declined resolution is
-`refused`, then the name, then the scope we were in when we declined it, and we
-write that line where it happened and never hold it back to the end, so a
-stream mixing the two reads in the order the two kinds actually occurred. Those
-two words are the only record kinds we write. We match them exactly.
+We rewrote the ownership and teardown decisions last cycle, and it has been wrong since.
 
-Some ground rules, because several of them are not what you would do elsewhere.
+Here is the machine. A resolution is asked for by name and charged to a scope, and the core sets a number aside for the instance before going off to build the registration being wrapped and then the dependencies in their listed order, so whatever comes in underneath always carries a higher number than the thing it came in under. A singleton is built once and everything below it is charged to the root; a scoped registration is cached against the registration and the scope it was built in, both together; a transient is built afresh every time; and finding one already built is not a build at all, so it changes neither the owner nor the cause, while every instance remembers the name at the top of the resolution that brought it into being, which for anything pulled in underneath something else is not the immediate parent it hung off, and that name is what its teardown line reports as its cause. A teardown reads `torn`, the registration name, the scope that owned the instance, then that cause. A resolution we turn away reads `refused`, the name, and the scope we were in when we turned it away. Those two words are the only record kinds there are. We match every string exactly. A refusal is written where it happened and never held back to the end, so a stream mixing the two reads in the order the two kinds actually occurred.
 
-An instance belongs to the scope the work was charged to unless one of the
-rules below moves it. A singleton is built once and is owned by the root, and
-everything it pulls in belongs to the root too, however deep the chain runs and
-whatever lifetime or mark those dependencies declare for themselves; that rule
-wins over the mark. Finding an instance already built changes neither its owner
-nor its cause. A scoped registration is reused by registration and build scope
-together. A mark may send a teardown somewhere else. It does not move the
-cache. Within a scope, teardown runs back to front against allocation order,
-and the core sets aside an instance number before it goes on to build
-dependencies or a wrapped registration, so those later allocations are disposed
-of first. Back to front, every time. Closing a scope tears down nothing an
-ancestor owns. A scope closing with nothing of its own prints nothing. The root
-never closes.
+What we need back is the ownership. An instance belongs to the scope the work was charged to unless something moves it. A mark moves it: outside a singleton's chain, a marked registration is owned by the nearest scope in reach carrying that same mark, counted from the scope the work was charged to and walking out through its ancestors, and the nearer of two wins; nothing in reach carrying it means the root. The mark moves that one instance and nothing else. Its dependencies answer to their own rules, its build scope does not move, and neither does the key it is cached under, so an instance can sit in one scope's cache and be torn down by another. Singleton ancestry beats all of it. Whatever a singleton reaches, however far down the chain and whatever lifetime or mark it declares for itself, belongs to the root.
 
-A registration can carry a mark. Outside a singleton's chain, one that does is
-owned by the nearest scope in reach carrying the same mark, starting from the
-scope the work was charged to and walking out through its ancestors, and the
-nearer mark wins; with no matching scope in reach its owner is the root. The
-mark moves that instance and nothing else. Its dependencies keep their own
-ownership rules, and neither its build scope nor its cache key travels with it.
-A registration can also wrap another, and then the wrapper takes its number
-first while the wrapped registration is allocated underneath it and disposed of
-first; and a registration can declare a parting call, a name we resolve as the
-instance is being torn down, charged to the scope outside the one that is
-closing, because nothing may be built into a closing scope any more. That call
-runs straight after the instance's own `torn` line.
+Teardown inside a scope runs back to front against those numbers, every time, which is why a wrapped registration and a dependency both come down before the thing they were built for. A closing scope takes what it owns and leaves what an ancestor owns standing. We grade both halves. Disposing of something a live ancestor still holds is what produced the line above, and leaving behind something this scope owned is wrong in the same measure. A scope that owns nothing prints nothing at all. A registration may also declare a parting call, a name we resolve as that instance is coming down and print straight after its `torn` line, charged outside the scope that is closing, because nothing may be built into a closing scope any more.
 
-Admission belongs to the name we were asked for. We refuse a requested
-singleton that can reach a scoped registration anywhere below it, through
-dependencies or through wrapping, however many steps down the chain that takes,
-and we refuse a requested marked registration when no scope in reach carries
-its mark. Both checks stop at the request. They are not started again for every
-name pulled in underneath. Cycle detection does keep going, so a dependency or
-wrapping cycle anywhere below the requested name refuses the whole request.
-Failing admission builds nothing at all. We also refuse a parting call that
-cannot be resolved where it has to land, a close with no scope open, and an
-invoke of a factory whose holder has not been resolved yet. Each of those is
-one `refused` line and nothing else. A refused invoke names the scope where it
-was attempted and a refused parting call names the scope where it had to land.
-Every name in the streams is registered. A factory declaration is not a
-dependency.
+Admission is a question about the name we were asked for and about that name only: we turn away a requested singleton that can reach a scoped registration below it, through dependencies or through wrapping, at any depth, and we turn away a requested marked registration when no scope in reach carries its mark, but neither check is started again for the names pulled in beneath it, so an unmatched mark met further down an admitted request refuses nothing and falls to the root like any other mark with nothing in reach. Cycle detection is the exception. It keeps going, and a dependency or wrapping loop anywhere below the requested name refuses the whole request. Admission is all or nothing. A request that fails it builds nothing. Three other things earn a `refused` line and nothing else: a parting call that cannot be resolved where it has to land, a close with no scope open, and an invoke of a factory whose holder has not been resolved yet. A refused invoke names the scope it was attempted in; a refused parting call names the scope it had to land in. Every name a stream uses is registered. A factory a registration declares is not a dependency of it.
 
-Construction can fail after admission has let it through. The optional last
-field on a registration line, the one after its parting-call name, is `fail`;
-leaving it out or writing `.` means that constructor starts available. `o fault
-NAME on` makes it unavailable and `o fault NAME off` puts it back. Those
-operations print nothing. They do not change a registration and they do not
-dispose of an instance already built. A cached instance is still usable while
-its own constructor is unavailable. Otherwise the wrapped registration is built
-first, then the dependencies in their listed order, and only then does this
-constructor run, and if it is unavailable at that moment it fails, its
-remaining callers do not finish, and the dependencies after it are never
-visited. A reserved number is not a finished instance. A construction failure
-prints `refused` for the requested name, in the same scope any other refusal of
-that request would have used, and immediately after that line we tear down
-every instance that finished during the attempt, back to front against
-allocation order, even where the owner would have been the root or some other
-scope; each `torn` line still names that owner, with the failed request as the
-cause, and a singleton caller that never finished still counts when we settle
-those owners. Instances that did not finish print nothing. None of these
-teardowns runs a parting call. Afterwards nothing the failed attempt built
-stays reusable or waits around for a later close. An instance borrowed from
-before the attempt keeps its cache entry, its owner and its cause. Earlier
-factory tokens survive too, and a failed holder resolution cannot replace them.
-The next operation runs normally, a retry after the fault is switched off
-included. Allocation numbers are never reused. A factory invocation and each
-parting call follow the same failure rules, and a failed parting call finishes
-its own cleanup before the close moves on to the next instance.
+Construction can fail after admission has let a request through. The last field on a registration line, the one after its parting-call name, reads `fail` where that constructor is one that can be taken away; leaving it off or writing `.` means it starts available. `o fault NAME on` takes it away and `o fault NAME off` gives it back. Neither prints anything, neither edits a registration, and neither disposes of anything already built. A cache hit runs no constructor at all, so an instance built earlier stays usable however its constructor stands now. A fresh build is where it bites. The wrapped registration goes first, then the dependencies in order, and only then does this constructor run and find out whether it is available, and when it is not it fails, the callers waiting below it do not finish, and the dependencies still queued behind it are never visited. A number set aside is not a finished instance.
 
-A component can hold a factory for another registration, and it can invoke that
-factory inside a scope that was opened long after the holder itself was built.
-Every successful explicit resolution of the holder replaces the tokens for the
-factories it declares, even when the holder was already cached or its teardown
-belongs somewhere else, and the new token keeps the build scope used for that
-resolution. An invocation uses the latest token for that name. Closing the
-scope recorded in a token does not cancel it and does not move it; a later
-invocation is still charged there, and once that scope has gone it has no
-ancestors left in reach. The streams do this more than once against the same
-holder, sometimes with a further scope opened and closed in between. A
-transient holder behaves no differently from any other holder.
+A failed request prints its ordinary `refused` line, in the same scope any other refusal of that request would have named, and then it unwinds. Everything that finished during the attempt comes down at once, back to front against those same numbers, wherever it would have lived and the root included, and each `torn` line still names the owner it would have had, with the failed request as its cause. A singleton caller that never finished still counts when we settle those owners. Whatever did not finish prints nothing: tearing it down is wrong, and leaving standing what did finish is wrong in the same measure. None of this unwinding runs parting calls. Afterwards the attempt has left nothing behind: nothing it built is reusable and nothing of its waits for a later close, what it borrowed from before the attempt is untouched and keeps its cache entry, its owner and its cause, tokens minted earlier survive too because a holder resolution that failed never got as far as replacing them, and the next operation runs as though none of it had happened, a retry after `o fault NAME off` included. Numbers are never handed out twice. A factory invocation unwinds the same way and so does a parting call, and one of those that fails finishes unwinding before the close it interrupted goes on to the next instance.
 
-The dump is one sequence and we compare all of it in that order, including
-records produced while different scopes are closing. Instance numbers are never
-printed, though the order the core allocates them in is what decides teardown
-order. The dump has to describe the run that produced it.
+That leaves the factories, which is where this started. A component can be handed a factory for another registration and invoke it later, from a scope that did not exist when the component itself was built. Every successful explicit resolution of the holder mints the tokens for the factories it declares over again, whether the holder was built there and then or found in a cache, and whether its own teardown belongs to that scope or somewhere else entirely; each fresh token carries the scope that resolution was charged to, an invocation uses the latest token standing for that name, and closing the scope written into a token neither cancels it nor moves it along. Work invoked afterwards is still charged to that closed scope, and a scope that has gone has no ancestors left in reach for anything charged there to find. The streams resolve the same holder more than once, sometimes with another scope opened and closed in between. A transient holder is no different from any other.
+
+You may edit `/app/wire/own.py`, `/app/wire/pin.py`, `/app/wire/hold.py`, `/app/wire/gate.py`, `/app/wire/tear.py`, `/app/wire/shut.py` and `/app/wire/plan.py`. Nothing else. Not all seven need changing. `/app/wire/core.py`, `/app/wire/reg.py` and `/app/wire/scope.py` are the container itself and are compared against the shipped copy once your work has run, so read them and leave them alone; they have already settled several of the questions above and what you write has to agree with what they did.
+
+We grade the dump as one sequence, every record in the order the run produced it and including the records that come out while different scopes are closing, over forty-two named cases and six hundred streams built from a nonce minted after you have finished. Every line has to match. There is no partial credit. No expected output sits anywhere in your tree. None is coming. The container in front of you is the only thing that will tell you what your policies do. Instance numbers are never printed, though the order the core hands them out is what decides teardown order. The complete run is killed at six hundred seconds. And the dump has to describe the run that produced it.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

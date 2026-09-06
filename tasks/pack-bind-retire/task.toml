@@ -1,0 +1,173 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/hst/vw.py",
+  "/app/hst/bd.py",
+  "/app/hst/ld.py",
+  "/app/hst/rt.py",
+  "/app/hst/od.py",
+]
+
+[task]
+name = "afterquery/pack-bind-retire"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer who owns the extension loader in a long-running
+host - an editor, a mixing desk, a database with loadable extensions. The bugs it is built
+from are the ones every such host eventually has: two extensions calling the same helper
+land on two different implementations after a hot reload, and the host either keeps
+something mapped that nothing can reach any more or drops something a caller was still
+going to need.
+
+The graded data is synthetic. A script is a few dozen events over five to seven packs
+declaring what they provide, require and need, and the density of drop-then-load-again with
+a record still held is far higher than an ordinary session would show. That is deliberate:
+reloading is the condition under which a name has more than one defensible meaning, and a
+realistic corpus of packs that load once and stay would make almost every script trivial.
+The mechanism is real; the distribution is chosen to reach it.
+
+The tree is a working loader with one central name-to-provider map, which is the shape a
+frontier agent reconstructs from its prior and the shape almost every plugin host is written
+around. It is not repairable. A name here means different residents for different askers and
+for the same asker at different moments, so the structure has to be inverted rather than
+fixed, and the thing that replaces it is half frozen and half live: the needs half is bound
+to the residents that stood when the asker was created and never moves again, while the open
+half is whatever is open at the instant of the lookup. Both natural implementations of that
+are wrong on opposite cases. Snapshot the whole view at load and a pack cannot see anything
+opened afterwards. Rebuild the whole view at every lookup and a pack follows its own
+dependency to a resident that replaced the one it was built against, and stops being able to
+see one that has been dropped but is still resident.
+
+Retention is the same problem wearing different clothes, and it cannot be solved first. A
+resident is kept while any resident can still use it, which counts requires that have not
+been used yet, so the closure runs over resolutions in views that only exist once the view
+is right - and residents that have been dropped are askers too, so the closure has to run
+from the standing residents outward rather than counting who points at each resident. A
+count is right until two dropped residents point at each other. Measured against the
+reference over 300 generated scripts by `authoring/pack-bind-retire/readings.py`, which also
+names the hand-written script that separates each one: keeping by count moves 92 per cent of
+scripts, one table for everyone 57 per cent, treating a record as a cache 52 per cent, no
+promotion 50 per cent, weak names keeping their provider 32 per cent, following needs live
+by pack name 27 per cent, walking needs deep 27 per cent, the open list before the needs 25
+per cent, resolving the closure over kept residents only 15 per cent, retention by records
+alone 15 per cent, and a dropped resident left visible 12 per cent. Every one of those is
+impeccable on a host where nothing is ever dropped, which is what every worked example of a
+plugin loader looks like.
+
+There is no oracle for any of it. The host runs whatever rules it is given and prints a
+plausible ledger for every wrong reading; the tree ships no expected output; the instruction
+states requirements without stating how to satisfy them; and the graded set is three hundred
+scripts generated inside the verifier from a nonce made after the agent has finished, so a
+rule fitted to the scripts in the tree carries no information about the rest. The loader
+ships with no comments anywhere in it and its identifiers are in the register of ordinary
+internal code rather than self-describing ones, which is deliberate: what a view is, what a
+record is for, and what keeps a resident mapped have to be recovered by reading behaviour
+rather than by reading names.
+"""
+
+solution_explanation = """
+The reference replaces all five declared modules, and the shape of the repair is the answer:
+the central map goes, and what replaces it is per resident.
+
+A resident's view is built once as two halves. The frozen half is the residents its needs
+stood at when it was created, walked breadth-first from its declared needs, and it is stored
+on the resident. The live half is the open list read at the instant of the lookup. A
+resolution walks itself, then the frozen half, then the live half, skipping residents that
+have been released, and takes the first pack that provides the name. A use consults the
+asker's own records first and writes one if there is none, so a name a resident has already
+asked for never moves again even when a nearer provider arrives.
+
+Loading brings a pack's needs up before the pack, each need's own needs before it, which is
+what fixes the numbering; a pack that already stands is not created again, and asking for it
+open when it stands privately only puts it on the open list. The names a pack uses as it
+loads are used at the moment that resident is created, in the view that exists then, which
+is why a need cannot see the pack that pulled it in.
+
+Retention is a closure rather than a count. Start from the residents that still stand, and
+for each kept resident follow every strong name it requires - to the resident it recorded if
+it has one, and otherwise to whatever that name resolves to in its view as things stand
+before anything is released. Everything outside the closure goes at once, newest first,
+which is what collects two dropped residents that point at each other and what keeps one that
+nothing has called yet but something could still call. Weak names carry no claim, so a weakly
+held provider goes and the record that named it stays behind pointing at a number that is no
+longer there. That is how a practitioner writes it, and for the same reason: a loader that
+keeps a reference count leaks every cycle, and one that counts only calls already made
+unmaps something a caller was about to need.
+"""
+
+verification_explanation = """
+The graded artifact is the residency ledger and nothing else: for every event, the residents
+a load created, what every use resolved to, the resident a drop ended, and the residents
+released afterwards with their order. It is compared exactly and all-or-nothing.
+
+Two independent implementations produce the expected rows. The reference runs inside the
+host; the model in tests/model.py was written from the contract rather than from the
+reference and shares no code with it - declarations are parallel dictionaries rather than
+objects, a view is rebuilt by concatenation at every lookup, and the kept set is found by
+relaxing a claim graph until it stops growing. Both agree on every enumerated and generated
+script checked during authoring, and the enumerated scripts are additionally compared against
+a sealed ground truth that the build refuses to write unless both implementations agree row
+for row.
+
+Passing cannot be arranged without doing the work, and nothing about how the ledger was
+computed is inspected. The scripts that decide the grade are generated inside the verifier
+from a nonce created after the agent has finished, so an answer key is worth nothing: a cheat
+compiled from the entire ground truth for the enumerated scripts scores zero. What remains is
+mechanical and invisible to any correct submission. The executed tree outside the five
+declared artifacts must be byte-identical to the pristine copy, and the comparison asserts how
+many files it found before comparing any of them. The reward is root-owned, locked and
+defaulted to zero before any submitted code is loaded; the run happens under an unprivileged
+uid in its own session behind a wall clock set far above what the work needs, so it catches a
+hang rather than gating on speed; its survivors are killed by walking /proc; and grading runs
+afterwards as root without importing anything the submission wrote.
+"""
+
+category = "Software"
+
+subcategory = "Systems"
+
+tags = [
+  "symbol-resolution",
+  "scope-chains",
+  "late-binding",
+  "reachability-closure",
+  "lifetime-management",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I look after the extension loader in a host that stays up for days at a time, and the class
+of bug this task is built from is the one I have spent the most hours on. Extensions declare
+what they provide and what they need, we load them on demand, and a name gets resolved the
+first time somebody asks for it. The report that started it was two extensions calling what
+should have been the same helper and getting different behaviour, and it turned out both were
+right: one had been loaded while an older provider was still up and had kept it, the other
+asked after we reloaded and got the new one. Everybody who writes one of these starts with a
+single table of name to provider, because with one set of extensions loaded once that table
+is correct, and it is what every loader I had read the source of does. It is not fixable. The
+answer a name has belongs to whoever is asking and to when they asked, and once I had that
+the second half took the rest of the week: I was keeping a provider mapped by counting the
+calls that had already resolved to it, which unmaps something a caller is about to need and
+never unmaps two extensions that hold each other. What keeps something mapped is that
+somebody can still reach it, including through a name nobody has asked for yet, and a count
+cannot express that.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+gpus = 0

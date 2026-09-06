@@ -1,0 +1,21 @@
+pk shell
+rq draw
+rq store
+nd paint
+nd disk
+st draw
+pk paint
+pv draw
+pv blit
+rq store
+pk disk
+pv store
+pv flush
+pk theme
+pv draw
+ld theme open
+ld shell open
+us shell draw
+us shell store
+dp theme
+us paint store

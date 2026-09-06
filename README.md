@@ -28,6 +28,11 @@ procedure in [`RAISE-DIFFICULTY.md`](RAISE-DIFFICULTY.md). It diagnoses the winn
 requires a semantic replan, and does not allow the task to be called ready until the external probe
 passes.
 
+Built and gated locally, not yet through the pipeline:
+
+- `token-seam-emit`
+- `pack-bind-retire`
+
 ## Layout
 
 ```text

@@ -164,6 +164,17 @@ class Trial:
         return out
 
 
+def variant_root(task: Path) -> Path:
+    """Where the variants live.
+
+    A variants/ directory inside tasks/<slug>/ ships in the archive with no reader in it,
+    which is the finding the quality review rejected a bundle for on 2026-09-05. The
+    repo-level authoring/<slug>/ copy is the one to write, so it wins when both exist.
+    """
+    outside = ROOT / "authoring" / task.name / "variants"
+    return outside if outside.is_dir() else task / "authoring" / "variants"
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
         print(__doc__)
@@ -181,11 +192,11 @@ def main(argv: list[str]) -> int:
     if what == "--dir":
         d = Path(argv[3])
         if not d.is_absolute():
-            d = t.task / d
+            d = d if d.is_dir() else t.task / d
         return 0 if t.run("variant: " + d.name, t.from_dir(d), 1) else 1
     if what == "--variants":
         res = []
-        for d in sorted((t.task / "authoring" / "variants").iterdir()):
+        for d in sorted(variant_root(t.task).iterdir()):
             if d.is_dir() and d.name.startswith("ok-"):
                 res.append(t.run("variant: " + d.name, t.from_dir(d), 1))
         print("%d/%d variants scored 1" % (sum(res), len(res)))

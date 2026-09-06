@@ -53,10 +53,18 @@ DEFAULT_ROUNDS = 400
 
 
 def load(task: Path):
-    spec_path = task / "authoring" / "readings.py"
+    """The task's readings, from repo-level working material or from the bundle.
+
+    A readings.py inside tasks/<slug>/ ships with the archive and has no reader in it,
+    which is the finding the quality review rejected a bundle for on 2026-09-05. The
+    repo-level authoring/<slug>/ copy is the one to write, so it is looked for first -
+    the same order onelinecheck.py uses for decisions.py.
+    """
+    outside = REPO / "authoring" / task.name / "readings.py"
+    spec_path = outside if outside.is_file() else task / "authoring" / "readings.py"
     if not spec_path.is_file():
         return None
-    sys.path.insert(0, str(task / "authoring"))
+    sys.path.insert(0, str(spec_path.parent))
     sys.path.insert(0, str(task / "tests"))
     spec = importlib.util.spec_from_file_location("readings", spec_path)
     mod = importlib.util.module_from_spec(spec)

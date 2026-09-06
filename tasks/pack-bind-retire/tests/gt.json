@@ -1,0 +1,198 @@
+{
+ "boot": [
+  "boot 1 ld theme 1",
+  "boot 1 rl -",
+  "boot 2 ld shell 2 3 4",
+  "boot 2 rl -",
+  "boot 3 us shell draw 2",
+  "boot 3 rl -",
+  "boot 4 us shell store 3",
+  "boot 4 rl -",
+  "boot 5 dp theme 1",
+  "boot 5 rl 1",
+  "boot 6 us paint store none",
+  "boot 6 rl -"
+ ],
+ "chain": [
+  "chain 1 ld raw 1",
+  "chain 1 rl -",
+  "chain 2 ld hub 2 3",
+  "chain 2 rl -",
+  "chain 3 us hub feed 2",
+  "chain 3 us src codec 1",
+  "chain 3 rl -",
+  "chain 4 dp raw 1",
+  "chain 4 rl -",
+  "chain 5 us src probe none",
+  "chain 5 rl -",
+  "chain 6 dp hub 3",
+  "chain 6 rl 3"
+ ],
+ "drop-hides": [
+  "drop-hides 1 ld p 1",
+  "drop-hides 1 rl -",
+  "drop-hides 2 ld h 2",
+  "drop-hides 2 rl -",
+  "drop-hides 3 ld o 3",
+  "drop-hides 3 rl -",
+  "drop-hides 4 dp p 1",
+  "drop-hides 4 rl -",
+  "drop-hides 5 us o v none",
+  "drop-hides 5 rl -"
+ ],
+ "keep-among-kept": [
+  "keep-among-kept 1 ld o 1",
+  "keep-among-kept 1 rl -",
+  "keep-among-kept 2 ld h 2 3",
+  "keep-among-kept 2 rl -",
+  "keep-among-kept 3 dp p 2",
+  "keep-among-kept 3 rl -"
+ ],
+ "keep-cycle": [
+  "keep-cycle 1 ld x 1",
+  "keep-cycle 1 rl -",
+  "keep-cycle 2 ld y 2",
+  "keep-cycle 2 rl -",
+  "keep-cycle 3 us x p2 2",
+  "keep-cycle 3 rl -",
+  "keep-cycle 4 us y p1 1",
+  "keep-cycle 4 rl -",
+  "keep-cycle 5 dp x 1",
+  "keep-cycle 5 rl -",
+  "keep-cycle 6 dp y 2",
+  "keep-cycle 6 rl 2 1"
+ ],
+ "keep-unused": [
+  "keep-unused 1 ld h 1 2",
+  "keep-unused 1 rl -",
+  "keep-unused 2 dp p 1",
+  "keep-unused 2 rl -",
+  "keep-unused 3 dp h 2",
+  "keep-unused 3 rl 2 1"
+ ],
+ "keep-weak": [
+  "keep-weak 1 ld h 1 2",
+  "keep-weak 1 rl -",
+  "keep-weak 2 dp p 1",
+  "keep-weak 2 rl 1",
+  "keep-weak 3 us h w 1",
+  "keep-weak 3 rl -"
+ ],
+ "make-order": [
+  "make-order 1 ld app 1 2",
+  "make-order 1 rl -",
+  "make-order 2 us app draw 1",
+  "make-order 2 rl -",
+  "make-order 3 dp core 1",
+  "make-order 3 rl -",
+  "make-order 4 dp app 2",
+  "make-order 4 rl 2 1"
+ ],
+ "nested-start": [
+  "nested-start 1 ld top 1 2 3",
+  "nested-start 1 rl -",
+  "nested-start 2 us top s 2",
+  "nested-start 2 rl -",
+  "nested-start 3 us mid t 1",
+  "nested-start 3 rl -"
+ ],
+ "promote": [
+  "promote 1 ld lib 1",
+  "promote 1 rl -",
+  "promote 2 ld one 2",
+  "promote 2 rl -",
+  "promote 3 us one svc none",
+  "promote 3 rl -",
+  "promote 4 ld lib -",
+  "promote 4 rl -",
+  "promote 5 ld two 3",
+  "promote 5 rl -",
+  "promote 6 us two svc 1",
+  "promote 6 rl -"
+ ],
+ "reach-out": [
+  "reach-out 1 ld a 1 2 3",
+  "reach-out 1 rl -",
+  "reach-out 2 us a x 2",
+  "reach-out 2 us b y 1",
+  "reach-out 2 rl -",
+  "reach-out 3 us a zz bad",
+  "reach-out 3 rl -",
+  "reach-out 4 dp a 3",
+  "reach-out 4 rl 3",
+  "reach-out 5 us a x off",
+  "reach-out 5 rl -"
+ ],
+ "record-sticks": [
+  "record-sticks 1 ld a 1",
+  "record-sticks 1 rl -",
+  "record-sticks 2 ld h 2",
+  "record-sticks 2 rl -",
+  "record-sticks 3 us h v 1",
+  "record-sticks 3 rl -",
+  "record-sticks 4 dp a 1",
+  "record-sticks 4 rl -",
+  "record-sticks 5 ld b 3",
+  "record-sticks 5 rl -",
+  "record-sticks 6 us h v 1",
+  "record-sticks 6 rl -"
+ ],
+ "start-early": [
+  "start-early 1 ld p 1 2",
+  "start-early 1 rl -",
+  "start-early 2 us q k none",
+  "start-early 2 rl -"
+ ],
+ "swap": [
+  "swap 1 ld editor 1 2",
+  "swap 1 rl -",
+  "swap 2 dp tools 1",
+  "swap 2 rl -",
+  "swap 3 ld tools 3",
+  "swap 3 rl -",
+  "swap 4 ld fast 4",
+  "swap 4 rl -",
+  "swap 5 us editor fmt 1",
+  "swap 5 rl -",
+  "swap 6 us editor lint 1",
+  "swap 6 rl -",
+  "swap 7 dp editor 2",
+  "swap 7 rl 2 1"
+ ],
+ "view-deep": [
+  "view-deep 1 ld p 1 2 3 4",
+  "view-deep 1 rl -",
+  "view-deep 2 us p z 3",
+  "view-deep 2 rl -"
+ ],
+ "view-needs-first": [
+  "view-needs-first 1 ld z 1",
+  "view-needs-first 1 rl -",
+  "view-needs-first 2 ld a 2 3",
+  "view-needs-first 2 rl -",
+  "view-needs-first 3 us a svc 2",
+  "view-needs-first 3 rl -"
+ ],
+ "view-reload": [
+  "view-reload 1 ld host 1 2",
+  "view-reload 1 rl -",
+  "view-reload 2 dp plug 1",
+  "view-reload 2 rl -",
+  "view-reload 3 ld plug 3",
+  "view-reload 3 rl -",
+  "view-reload 4 us host aux 1",
+  "view-reload 4 rl -",
+  "view-reload 5 us host svc 1",
+  "view-reload 5 rl -",
+  "view-reload 6 dp host 2",
+  "view-reload 6 rl 2 1"
+ ],
+ "view-self": [
+  "view-self 1 ld o 1",
+  "view-self 1 rl -",
+  "view-self 2 ld s 2",
+  "view-self 2 rl -",
+  "view-self 3 us s w 2",
+  "view-self 3 rl -"
+ ]
+}

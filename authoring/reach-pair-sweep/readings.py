@@ -26,55 +26,34 @@ import cases  # noqa: E402
 import gen  # noqa: E402
 import model  # noqa: E402
 
-# Each entry is one semantic change against solution/keep.py: (old, new).
+# Each entry is one semantic change against solution/keep.py: (old, new). They are rewritten
+# whenever the reference changes shape - these are stated against the key-indexed worklist.
 OVERRIDES = {
-    # the pair table is swept once instead of until a sweep adds nothing
-    "pair-once": ("""    got = _reach(h, seed, blocked)
-    while True:
-        add = [v for k, v in h.pr
-               if k in got and v in h.ob and v not in got and v not in blocked]
-        if not add:
-            return got
-        got |= _reach(h, add, blocked)""",
-                  """    got = _reach(h, seed, blocked)
-    add = [v for k, v in h.pr
-           if k in got and v in h.ob and v not in got and v not in blocked]
-    if add:
-        got |= _reach(h, add, blocked)
-    return got"""),
+    # the pair table stops cascading: one pass over it, so a value that becomes a key is missed
+    "pair-once": ('def _settle(h, by, start, barred):\n    seen = set()\n    stack = [i for i in start]\n    while stack:\n        i = stack.pop()\n        if i in seen or i in barred or i not in h.ob:\n            continue\n        seen.add(i)\n        for v in h.ob[i].fl.values():\n            if v is not None:\n                stack.append(v)\n        for v in by.get(i, ()):\n            stack.append(v)\n    return seen',
+                  'def _settle(h, by, start, barred):\n    def fields(seed):\n        seen = set()\n        stack = [i for i in seed]\n        while stack:\n            i = stack.pop()\n            if i in seen or i in barred or i not in h.ob:\n                continue\n            seen.add(i)\n            for v in h.ob[i].fl.values():\n                if v is not None:\n                    stack.append(v)\n        return seen\n\n    seen = fields(start)\n    more = []\n    for i in list(seen):\n        more.extend(by.get(i, ()))\n    seen |= fields(more)\n    return seen'),
 
     # what a finalizable object keeps follows fields only, never the pair table
-    "hold-fields": ("    hold = _close(h, set(h.qu) | set(qd), live)",
-                    "    hold = _reach(h, set(h.qu) | set(qd), live)"),
+    "hold-fields": ("    hold = _settle(h, by, list(h.qu) + due, live)",
+                    "    hold = _settle(h, {}, list(h.qu) + due, live)"),
 
     # a weak reference is tested against everything kept, not against what the frames reach
-    "clear-held": ("    cl = [n for n, w in h.wk.items() if not w.c and w.t not in live]",
-                   "    cl = [n for n, w in h.wk.items()\n"
-                   "          if not w.c and w.t not in live and w.t not in hold]"),
+    "clear-held": ("    wiped = [n for n, w in h.wk.items() if not w.c and w.t not in live]",
+                   "    wiped = [n for n, w in h.wk.items() if not w.c and w.t not in live"
+                   "         and w.t not in hold]"),
 
     # the queue is settled after keeping, so an object kept by an earlier finalizable object
     # is treated as not garbage and never queued
-    "queue-late": ("""    qd = sorted(i for i in h.ob
-                if i not in live and h.ob[i].fz is not None
-                and i not in h.rn and i not in h.qu)""",
-                   """    qd = []
-    while True:
-        seen = _close(h, set(h.qu) | set(qd), live)
-        more = [i for i in sorted(h.ob)
-                if i not in live and h.ob[i].fz is not None
-                and i not in h.rn and i not in h.qu and i not in qd and i not in seen]
-        if not more:
-            break
-        qd.append(more[0])
-    qd = sorted(qd)"""),
+    "queue-late": ('    due = sorted(i for i in h.ob\n                 if i not in live and h.ob[i].fz is not None\n                 and i not in h.rn and i not in h.qu)',
+                   '    due = []\n    while True:\n        seen_so_far = _settle(h, by, list(h.qu) + due, live)\n        more = [i for i in sorted(h.ob)\n                if i not in live and h.ob[i].fz is not None and i not in h.rn\n                and i not in h.qu and i not in due and i not in seen_so_far]\n        if not more:\n            break\n        due.append(more[0])\n    due = sorted(due)'),
 
     # having run a finalizer once is not remembered across cycles
-    "refinalize": ("                and i not in h.rn and i not in h.qu)",
-                   "                and i not in h.qu)"),
+    "refinalize": ("                 and i not in h.rn and i not in h.qu)",
+                   "                 and i not in h.qu)"),
 
     # clearing is recomputed every cycle instead of staying put
-    "unclear": ("    cl = [n for n, w in h.wk.items() if not w.c and w.t not in live]",
-                "    cl = [n for n, w in h.wk.items() if w.t not in live]"),
+    "unclear": ("    wiped = [n for n, w in h.wk.items() if not w.c and w.t not in live]",
+                "    wiped = [n for n, w in h.wk.items() if w.t not in live]"),
 }
 
 

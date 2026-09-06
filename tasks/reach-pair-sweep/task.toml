@@ -24,11 +24,21 @@ to it must still clear, while a pair whose key is kept that way does retain its 
 decision an implementation already took against a single retained set has to be re-derived
 against the right one of the two, which is a replan rather than a patch.
 
+There is a second way to be wrong, and it is the one that survives a careful reading. The
+obvious way to reach the first fixed point is to sweep the whole pair table, add every value
+whose key is now present, and repeat until a sweep adds nothing. That is exactly correct and it
+is what most implementations do. On a pair table written back to front it settles one link per
+sweep, so the work is the table size times the chain depth, and the graded set contains programs
+built that way. Measured on this machine: the whole graded set takes 0.7 s with the pair table
+indexed by key, and 129.8 s by rescanning - the same answers, 185 times the work, against a
+stated 60 s limit. The faster path is not a trick; it follows from an invariant of the rule
+itself, that a pair can only newly fire at the moment its key first enters the set, so attaching
+each pair to its key visits every pair once.
+
 There is no oracle to check any of this against. The collector does not ship, so the runtime
 prints nothing until the agent writes one, and there is no reference behaviour to diff against
-or hill-climb on. Measured against a shaped population, the wrong readings are also quiet:
-settling the pair table in a single sweep changes under 4% of unshaped programs, and settling
-the finalizer queue after keeping changes about 2.5%, so ordinary testing gives almost no signal.
+or hill-climb on. The wrong readings are also quiet: settling the finalizer queue after keeping
+changes about 1% of a shaped population, so ordinary testing gives almost no signal.
 
 The data is synthetic: heap programs over integer ids, with allocate, store, drop, frame open
 and close, collect and run-a-finalizer ops, plus generated mutation streams. Real heaps are
@@ -57,11 +67,17 @@ finalizer: those objects and their closures, following pair values the same way,
 anything already reached so the two sets stay distinct. Weak clearing is then tested against the
 first set only, and release is everything in neither.
 
+Both retention passes index the pair table by key and walk a worklist, so a pair is visited
+once, when its key first arrives. An expert reaches for that not for speed but because it is the
+honest shape of the rule: nothing can fire a pair except its key arriving, and the key arrives
+exactly once. The rescanning form is kept in the cheat set, correct and too slow, because it is
+what the first draft of this reference did.
+
 An expert works in that order because it is forced by the rules rather than chosen: each pass
 consumes the previous one's answer, and the split between reachable and merely-kept is what makes
-weak clearing and pair retention answer to different sets. The same contract is implemented two
-further ways in the authoring set, one painting colours from a worklist over a key-indexed pair
-table and one iterating in rounds over the whole object set, to show the shape is not the point.
+weak clearing and pair retention answer to different sets. The same contract is implemented three
+further ways in the authoring set - breadth-first over colours, level by level over frontiers,
+and the reference with every identifier renamed - to show the shape is not the point.
 """
 
 verification_explanation = """
@@ -78,8 +94,13 @@ families that deliberately seed the retention cascade and the resurrection seque
 against that model. A submission cannot have seen them, so memorising the shipped example or
 forging records from an answer key both fail; both are in the cheat set and both score 0.
 
+One family of generated programs carries a pair table written back to front, which separates a
+collector that settles the table by rescanning it from one that indexes it. The limit and the
+input scale are both stated in the instruction, and `/app/progs/wide.txt` ships so the scale can
+be timed rather than guessed.
+
 Passing therefore means the collector settles both fixed points, in the right order, with the two
-retained sets kept apart - on programs it never saw. Grading is all-or-nothing and the fences run
+retained sets kept apart, inside the stated budget - on programs it never saw. Grading is all-or-nothing and the fences run
 both ways: releasing too much fails the ordinary cases, releasing too little fails the plain drop.
 Three independently written correct collectors all score 1, including one that is the reference
 with every identifier mechanically renamed, so implementation and naming are not being graded.
@@ -95,6 +116,7 @@ tags = [
   "key-value-weak-pairs",
   "finalizer-resurrection",
   "fixed-point-iteration",
+  "worklist-algorithms",
 ]
 
 expert_time_estimate_hours = 8

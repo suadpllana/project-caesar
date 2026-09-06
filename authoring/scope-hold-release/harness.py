@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TASK = ROOT / "tasks" / "scope-hold-release"
 SRC = TASK / "environment" / "app_src"
 REF = TASK / "solution"
-ARTIFACTS = ("hold.py", "own.py", "pin.py", "tear.py")
+ARTIFACTS = ("hold.py", "own.py", "pin.py", "tear.py", "plan.py", "gate.py", "shut.py")
 
 PROBE = r"""
 import json, pathlib, sys
@@ -37,9 +37,10 @@ for name, rows, ops in cases.FIXED:
         bad_fixed.append(name)
 bad_generated = 0
 for i in range(rounds):
-    rows, ops = gen.stream("variant-%d" % i, i % 2 == 0)
-    if not matches(rows, ops):
-        bad_generated += 1
+    for generate in (gen.stream, gen.transaction):
+        rows, ops = generate("variant-%d" % i, i % 2 == 0)
+        if not matches(rows, ops):
+            bad_generated += 1
 print(json.dumps({"fixed": bad_fixed, "generated": bad_generated}))
 """
 

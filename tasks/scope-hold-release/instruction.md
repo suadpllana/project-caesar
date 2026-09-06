@@ -8,7 +8,7 @@ Run `/app/run_wire.py` on `/app/cases/wide.txt`. The third line back reads
 underneath `app`, which is a singleton and outlives every scope in that
 stream, so when scope 1 closed the container reached inside a live
 singleton and disposed of a dependency it is still holding, while `app`
-itself has not been torn down at all and will not be. There are seven more
+itself has not been torn down at all and will not be. There are nine more
 case files in `/app/cases`. None of them comes out right either.
 
 `/app/wire/own.py`, `/app/wire/pin.py`, `/app/wire/hold.py`, `/app/wire/gate.py`,
@@ -63,12 +63,42 @@ also refuse a requested marked registration when no scope in reach carries
 its mark. Those two checks stop at the request; they are not started again
 for every name pulled in underneath it, but cycle detection does keep going,
 so a dependency or wrapping cycle anywhere below the requested name refuses
-the whole request. A refusal builds nothing at all. Nothing from that attempt
-is ever torn down. We also refuse a parting call that cannot be resolved where
+the whole request. Failing admission builds nothing at all. We also refuse a parting call that cannot be resolved where
 it has to land, a close with no scope open, and invoking a factory whose
 holder has not been resolved yet. Each of those is a `refused` line and
 nothing else. Every name in the streams is registered. A factory declaration
 is not a dependency.
+
+Construction can fail after admission. The optional last field on a
+registration line, after its parting-call name, is `fail`; missing it or
+writing `.` means the constructor starts available. `o fault NAME on`
+makes that constructor unavailable and `o fault NAME off` restores it.
+These operations print nothing. They do not change a registration or dispose
+of an instance already built.
+
+A cached instance is still usable while its constructor is unavailable.
+Otherwise the wrapped registration is built first, then dependencies in
+their listed order, and only then does this constructor run. If it is
+unavailable, it fails. Its remaining callers do not finish and later
+dependencies are not visited. A reserved number is not a finished instance.
+
+A construction failure prints `refused` for the requested name, using the
+same scope as any other refusal of that request. Immediately after it,
+tear down every instance that finished during that attempt, back to front
+against allocation order, even if its owner would have been the root or
+another scope. Each `torn` line still names that owner and the failed
+request as cause. The ownership rules include singleton callers that never
+finished. Unfinished instances print nothing. These teardowns do not run
+parting calls.
+
+Afterwards, nothing built by the failed attempt remains reusable or waits
+for a later scope close. An instance borrowed from before the attempt keeps
+its cache entry, owner and cause. Earlier factory bindings survive too; a
+failed holder resolution cannot replace them. The next operation runs
+normally, including a retry after a fault is turned off. Allocation numbers
+are not reused. A factory invocation and each parting call follow the same
+failure rules. A failed parting call finishes its cleanup before the scope
+close goes on to the next instance.
 
 A scope that closes owning nothing prints nothing at all. A refusal is written
 at the point we declined it and never held back to the end, so the dump for a

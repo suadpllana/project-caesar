@@ -3,61 +3,70 @@
 
 Three sets, settled in a fixed order, because each one changes what the next may look at.
 
-`live`   what the open frames reach. A pair's value joins only once its key is already in the
-         set, so adding a value can make some later pair's key present and the walk has to be
-         run again until nothing moves. One sweep of the pair table is not enough.
+`live`      what the open frames reach. A pair's value joins only once its key is already in
+            the set, and a value that joins can itself be some other pair's key, so this is a
+            fixed point rather than a sweep.
+`hold`      what is kept only so a queued finalizer can run: the finalizable objects and what
+            they reach, following pair values the same way, keyed off `hold` itself. It opens
+            only after `live` has closed, and objects already in `live` are blocked out of it.
+`released`  everything in neither.
 
-`hold`   what is kept only so a queued finalizer can run: the finalizable objects and whatever
-         they reach. It follows pair values the same way, keyed off `hold` itself, so this is a
-         second fixed point that opens only after `live` has closed. Objects already in `live`
-         are blocked out of it - they are kept for a better reason.
-
-The order matters twice. `qd` is settled against `live` alone, before `hold` exists, so an
+The order matters twice. `due` is settled against `live` alone, before `hold` exists, so an
 object reachable only from another finalizable object is still finalized this cycle. And weak
 references are cleared against `live` alone, never against `live | hold`: being kept to run a
 finalizer is not being reachable, which is the whole point of the split.
+
+WHY THE PAIR TABLE IS INDEXED. The obvious way to reach the fixed point is to sweep the whole
+table, add every value whose key is now present, and repeat until a sweep adds nothing. That is
+correct, and on a chain of pairs listed back to front it takes one full sweep per link - the
+work is the table size times the chain depth. Indexing by key instead turns the fixed point
+into a worklist: a pair can only newly fire at the moment its key first enters the set, so
+attaching each pair to its key and pushing its value on that transition visits every pair once.
+The invariant is what makes it safe, not the speed: nothing can fire a pair except its key
+arriving, and the key arrives exactly once.
 """
 
 
-def _reach(h, seed, blocked):
-    got = set()
-    st = list(seed)
-    while st:
-        i = st.pop()
-        if i in got or i in blocked or i not in h.ob:
+def _index(pairs):
+    by = {}
+    for k, v in pairs:
+        by.setdefault(k, []).append(v)
+    return by
+
+
+def _settle(h, by, start, barred):
+    seen = set()
+    stack = [i for i in start]
+    while stack:
+        i = stack.pop()
+        if i in seen or i in barred or i not in h.ob:
             continue
-        got.add(i)
+        seen.add(i)
         for v in h.ob[i].fl.values():
             if v is not None:
-                st.append(v)
-    return got
-
-
-def _close(h, seed, blocked):
-    got = _reach(h, seed, blocked)
-    while True:
-        add = [v for k, v in h.pr
-               if k in got and v in h.ob and v not in got and v not in blocked]
-        if not add:
-            return got
-        got |= _reach(h, add, blocked)
+                stack.append(v)
+        for v in by.get(i, ()):
+            stack.append(v)
+    return seen
 
 
 def cycle(h):
-    rt = set()
+    by = _index(h.pr)
+
+    anchors = []
     for f in h.fr:
         for v in f.values():
-            if v is not None and v in h.ob:
-                rt.add(v)
-    live = _close(h, rt, set())
+            if v is not None:
+                anchors.append(v)
+    live = _settle(h, by, anchors, frozenset())
 
-    qd = sorted(i for i in h.ob
-                if i not in live and h.ob[i].fz is not None
-                and i not in h.qu)
+    due = sorted(i for i in h.ob
+                 if i not in live and h.ob[i].fz is not None
+                 and i not in h.qu)
 
-    hold = _close(h, set(h.qu) | set(qd), live)
+    hold = _settle(h, by, list(h.qu) + due, live)
 
-    cl = [n for n, w in h.wk.items() if not w.c and w.t not in live]
+    wiped = [n for n, w in h.wk.items() if not w.c and w.t not in live]
 
-    rl = sorted(i for i in h.ob if i not in live and i not in hold)
-    return cl, qd, rl
+    freed = sorted(i for i in h.ob if i not in live and i not in hold)
+    return wiped, due, freed

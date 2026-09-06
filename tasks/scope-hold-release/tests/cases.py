@@ -143,4 +143,73 @@ FIXED = [
       r("skin", TRANS, ["leaf"], [], "job"), r("leaf", TRANS), r("tail", TRANS),
       r("bad", TRANS, ["crumb"], fail=True), r("crumb", TRANS)],
      [("open", "job"), ("open", ""), ("resolve", "job"), ("close",), ("close",)]),
+
+    ("a-cache-hit-skips-an-unavailable-constructor",
+     [r("seat", SCOPED), r("hub", SCOPED, ["seat"])],
+     [("open", ""), ("resolve", "seat"), ("fault", "seat", "on"), ("resolve", "hub"),
+      ("open", ""), ("resolve", "hub"), ("close",), ("close",)]),
+
+    ("a-recovered-constructor-rebuilds-rolled-back-dependencies",
+     [r("app", SING, ["pool"]), r("pool", TRANS), r("job", TRANS, ["app", "bad"]),
+      r("bad", TRANS, fail=True)],
+     [("open", ""), ("resolve", "job"), ("fault", "bad", "off"), ("resolve", "job"), ("close",)]),
+
+    ("a-borrowed-singleton-survives-a-failed-request",
+     [r("app", SING, ["pool"]), r("pool", TRANS), r("job", TRANS, ["app", "bad"]),
+      r("bad", TRANS, fail=True)],
+     [("open", ""), ("resolve", "app"), ("fault", "app", "on"), ("resolve", "job"),
+      ("fault", "bad", "off"), ("resolve", "job"), ("close",)]),
+
+    ("retry-does-not-tear-down-a-stale-provisional-instance",
+     [r("job", SCOPED, ["seat", "bad"]), r("seat", SCOPED), r("bad", TRANS, fail=True)],
+     [("open", ""), ("resolve", "job"), ("fault", "bad", "off"), ("resolve", "job"),
+      ("resolve", "job"), ("close",)]),
+
+    ("factory-failure-uses-capture-home-and-invocation-refusal",
+     [r("hub", SCOPED, [], ["mk"]), r("mk", SCOPED, ["note", "bad"]),
+      r("note", TRANS, [], [], "job"), r("bad", TRANS, fail=True)],
+     [("open", "job"), ("resolve", "hub"), ("open", "job"), ("invoke", "mk"),
+      ("fault", "bad", "off"), ("invoke", "mk"), ("close",), ("close",)]),
+
+    ("rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+     [r("hub", SCOPED, [], ["mk"]), r("mk", SCOPED, ["note", "bad"]),
+      r("note", TRANS, [], [], "job"), r("bad", TRANS, fail=True)],
+     [("open", "job"), ("resolve", "hub"), ("close",), ("open", "job"), ("invoke", "mk"),
+      ("fault", "bad", "off"), ("invoke", "mk"), ("close",)]),
+
+    ("failure-in-a-wrapper-prevents-later-dependencies",
+     [r("job", SCOPED, ["tail"], wraps="skin"),
+      r("skin", TRANS, ["note"], fail=True), r("note", TRANS), r("tail", TRANS)],
+     [("open", ""), ("resolve", "job"), ("fault", "skin", "off"),
+      ("resolve", "job"), ("close",)]),
+
+    ("rollback-preserves-a-marked-instance-owned-outside-the-cache-scope",
+     [r("seat", SCOPED, tag="job"), r("job", SCOPED, ["seat", "bad"]),
+      r("bad", TRANS, fail=True)],
+     [("open", "job"), ("open", ""), ("resolve", "seat"), ("resolve", "job"),
+      ("fault", "seat", "on"), ("fault", "bad", "off"), ("resolve", "job"),
+      ("close",), ("close",)]),
+
+    ("failed-new-holder-preserves-old-token-after-its-scope-closes",
+     [r("old", TRANS, facs=["mk"]), r("new", TRANS, ["note"], ["mk"], fail=True),
+      r("note", TRANS), r("mk", TRANS)],
+     [("open", ""), ("resolve", "old"), ("close",), ("open", ""), ("resolve", "new"),
+      ("invoke", "mk"), ("fault", "new", "off"), ("resolve", "new"),
+      ("invoke", "mk"), ("close",)]),
+
+    ("admission-still-precedes-any-constructor-failure",
+     [r("app", SING, ["note", "seat"], fail=True), r("note", TRANS), r("seat", SCOPED)],
+     [("open", ""), ("resolve", "app"), ("close",)]),
+
+    ("failure-is-tested-after-ordered-dependencies",
+     [r("job", TRANS, ["first", "bad", "late"]), r("first", TRANS),
+      r("bad", TRANS, ["deep"], fail=True), r("deep", TRANS), r("late", TRANS)],
+     [("open", ""), ("resolve", "job"), ("resolve", "late"), ("close",)]),
+
+    ("parting-failure-preserves-older-outer-scope-cache",
+     [r("seat", SCOPED), r("job", SCOPED, shut="flush"),
+      r("flush", TRANS, ["seat", "crumb", "bad"]), r("crumb", TRANS),
+      r("bad", TRANS, fail=True)],
+     [("open", ""), ("resolve", "seat"), ("open", ""), ("resolve", "job"),
+      ("close",), ("fault", "seat", "on"), ("resolve", "seat"), ("close",)]),
 ]

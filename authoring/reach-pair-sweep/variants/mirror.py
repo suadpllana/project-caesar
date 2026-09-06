@@ -1,42 +1,43 @@
-def gather(h, start, barred):
-    seen = set()
-    pending = list(start)
-    while pending:
-        i = pending.pop()
-        if i in seen or i in barred or i not in h.ob:
+def table(pairs):
+    idx = {}
+    for k, v in pairs:
+        idx.setdefault(k, []).append(v)
+    return idx
+
+
+def walk(h, idx, roots, skip):
+    found = set()
+    todo = [i for i in roots]
+    while todo:
+        i = todo.pop()
+        if i in found or i in skip or i not in h.ob:
             continue
-        seen.add(i)
+        found.add(i)
         for v in h.ob[i].fl.values():
             if v is not None:
-                pending.append(v)
-    return seen
-
-
-def settle(h, start, barred):
-    seen = gather(h, start, barred)
-    while True:
-        add = [v for k, v in h.pr
-               if k in seen and v in h.ob and v not in seen and v not in barred]
-        if not add:
-            return seen
-        seen |= gather(h, add, barred)
+                todo.append(v)
+        for v in idx.get(i, ()):
+            todo.append(v)
+    return found
 
 
 def cycle(h):
-    anchors = set()
+    idx = table(h.pr)
+
+    bases = []
     for f in h.fr:
         for v in f.values():
-            if v is not None and v in h.ob:
-                anchors.add(v)
-    standing = settle(h, anchors, set())
+            if v is not None:
+                bases.append(v)
+    standing = walk(h, idx, bases, frozenset())
 
-    due = sorted(i for i in h.ob
-                if i not in standing and h.ob[i].fz is not None
-                and i not in h.rn and i not in h.qu)
+    pending = sorted(i for i in h.ob
+                 if i not in standing and h.ob[i].fz is not None
+                 and i not in h.rn and i not in h.qu)
 
-    reprieved = settle(h, set(h.qu) | set(due), standing)
+    spared = walk(h, idx, list(h.qu) + pending, standing)
 
-    wiped = [n for n, w in h.wk.items() if not w.c and w.t not in standing]
+    cleared = [n for n, w in h.wk.items() if not w.c and w.t not in standing]
 
-    freed = sorted(i for i in h.ob if i not in standing and i not in reprieved)
-    return wiped, due, freed
+    dropped = sorted(i for i in h.ob if i not in standing and i not in spared)
+    return cleared, pending, dropped

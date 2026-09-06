@@ -298,3 +298,33 @@ that invalidates the first implementation rather than adding scenery. It also ha
 reference path and preserves the current exact output format, artifact boundary and binary scoring.
 It does not preserve the frozen expected traces for new failure cases; approval therefore returns
 the workflow to verifier-contract design before any code change.
+
+## Easiness recovery 3 - approved transactional construction
+
+The contributor approved candidate 1, then supplied three successful easiness exports and reports
+3/3 solves within 90 seconds. Originals are retained byte-for-byte in recovery-3 under probes.
+3RfBuTd and 9tdtbYd read core and policies in two calls and then name the same four repairs;
+yZEpcwt reads the whole tree in one call and runs fixtures in the second. Each commits to the
+winning plan by its second call and writes the four files in its third. Commands are clipped,
+so these exports establish the strategy but do not recover complete final patches. A replay of
+the previous reference represents their reported strategy, not their actual omitted submission.
+The old design's high success risk is now observed; there is no measured rate for the redesign.
+
+Approved contract, frozen for implementation: retain all old no-failure traces. The optional final
+registration field is `fail`; `o fault NAME on|off` changes constructor availability silently.
+Cache hits never execute constructors. A constructor tests availability after its wrapped object
+and ordered dependencies complete, before publishing itself. A failed request prints its ordinary
+refused record, followed immediately by teardown of the objects that completed in that attempt,
+in descending allocation order. Reserved-but-unfinished objects have no teardown. Rollback records
+use their would-be ownership (including unfinished singleton ancestors) and the failed requested
+name as cause. Rollback does not run parting calls. Existing instances, owners, causes, caches and
+factory bindings survive; new cache entries and completed allocations from that attempt are removed.
+Serials are never reused. A failed explicit holder resolution leaves older factory bindings intact.
+Parting calls and factory invocations use the same attempt rule, with their existing charge/refusal
+locations. Admission refusals still allocate nothing. Fault switches do not affect admission.
+
+The fault switch makes the approved cache boundary observable: a cached registration can be used
+while its constructor is unavailable, while a fresh instance in another scope fails. This is an
+input control for construction failure, not registration replacement. No new scoring tolerances,
+artifacts, resource gates, or output record kinds are introduced. The previous reference must pass
+all 22 legacy examples and fail new hand examples. Recovery remains pending external probes.

@@ -43,8 +43,11 @@ def _loops(tbl, nm):
 
 def play(rows, ops):
     tbl = {}
-    for nm, life, deps, facs, tag, wraps, shut in rows:
+    down = {}
+    for row in rows:
+        nm, life, deps, facs, tag, wraps, shut = row[:7]
         tbl[nm] = (life, list(deps), list(facs), wraps, tag, shut)
+        down[nm] = bool(row[7]) if len(row) > 7 else False
 
     live = [ROOT]
     tags = {ROOT: ""}
@@ -54,6 +57,9 @@ def play(rows, ops):
     made = {}
     mint = {}
     out = []
+
+    class Unavailable(Exception):
+        pass
 
     def chain(upto):
         if upto not in live:
@@ -95,6 +101,8 @@ def play(rows, ops):
             grow(wraps, under, cause, deep)
         for d in deps:
             grow(d, under, cause, deep)
+        if down[nm]:
+            raise Unavailable(nm)
         if life == SING:
             sng[nm] = me
         elif life == SCOPED:
@@ -107,6 +115,21 @@ def play(rows, ops):
             home = at
         made[me] = (nm, home, cause)
 
+    def attempt(nm, at, here):
+        boundary = serial
+        try:
+            grow(nm, at, nm, False)
+            return True
+        except Unavailable:
+            out.append(("refused", nm, here))
+            for me in sorted((me for me in made if me > boundary), reverse=True):
+                name, owner, cause = made.pop(me)
+                out.append(("torn", name, owner, cause))
+            for cache in (sng, scp):
+                for key in [key for key, me in cache.items() if me > boundary]:
+                    del cache[key]
+            return False
+
     for op in ops:
         k = op[0]
         top = live[-1]
@@ -114,6 +137,8 @@ def play(rows, ops):
             nxt += 1
             live.append(nxt)
             tags[nxt] = op[1] if len(op) > 1 else ""
+        elif k == "fault":
+            down[op[1]] = op[2] == "on"
         elif k == "close":
             if len(live) == 1:
                 out.append(("refused", "close", 0))
@@ -130,7 +155,7 @@ def play(rows, ops):
                 if not allowed(shut, landing):
                     out.append(("refused", shut, landing))
                     continue
-                grow(shut, landing, shut, False)
+                attempt(shut, landing, landing)
             for key in sorted([k2 for k2 in scp if k2[1] == gone]):
                 del scp[key]
         elif k == "resolve":
@@ -138,7 +163,8 @@ def play(rows, ops):
             if not allowed(nm, top):
                 out.append(("refused", nm, top))
                 continue
-            grow(nm, top, nm, False)
+            if not attempt(nm, top, top):
+                continue
             for f in tbl[nm][2]:
                 mint[f] = top
         elif k == "invoke":
@@ -150,5 +176,5 @@ def play(rows, ops):
             if not allowed(f, at):
                 out.append(("refused", f, top))
                 continue
-            grow(f, at, f, False)
+            attempt(f, at, top)
     return out

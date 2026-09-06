@@ -86,3 +86,19 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   because 15 minutes for an 8-hour task is wrong on its face whatever the neighbours do. The
   floor was recorded nowhere locally - only the 18000 s ceiling was - so it is now in
   `docs/RULES.md`, `AGENTS.md`, and as a `preflight.py` error that fires on the old value.
+
+- **Two reviews can pull in opposite directions, and the resolution is usually C3.**
+  `reach-pair-sweep` was cut back on a contributor review that called the incremental-marking
+  rules guessable conventions and warned against a sprawl of corner cases. The quality review
+  then failed `difficult` on exactly what that produced: "the rules are each stated explicitly
+  and the remaining work is ~40 lines". Restating the cut rules would have failed the first
+  review again. The repair that satisfies both is a measured scaling boundary, because it adds
+  difficulty without adding a single rule to the spec: the naive form stays semantically
+  correct and stops fitting the stated budget. Measured here at 0.7 s against 129.8 s on
+  identical answers, 185x, with the limit and the input scale both in the brief.
+- **A regime you promised to measure and then dropped on a recommendation is a regime you never
+  measured.** The proposal committed to "timing the reference against the naive implementation
+  before contract freeze". That timing was never run - the axis was dropped on a judgement call
+  instead, and the rejection came back on the axis that was missing. Worse, the first reference
+  was itself the naive form, so the measurement would have failed and the defect would have been
+  visible at freeze. Run the number you said you would run, before the design depends on it.

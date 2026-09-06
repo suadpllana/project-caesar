@@ -18,106 +18,90 @@ author_name = "Suad Pllana"
 author_email = "suadpllana12@gmail.com"
 
 difficulty_explanation = """
-Who does this for a living: a platform engineer who owns the dependency container every
-other team registers services in, and who has to answer for a disposal that ran too early
-or never ran at all. The graded data is synthetic. A stream is a registration table of
-short opaque names with declared lifetimes plus a list of scope opens, closes, resolutions
-and factory invocations; nothing real is constructed and nothing is really disposed. That
-is not a fair sample of a production container, where graphs are far wider and most of the
-registrations are dull. What it does reproduce faithfully is the one condition that makes
-the question hard, which is a capture that outlives the scope it was taken in.
+The work is exception safety in a dependency container with captured factories and separate
+construction and disposal scopes. The environment is a compact, executable model of that
+subsystem. Registrations and operation streams are synthetic; the concentration of constructor
+failures, retries and retained factories is deliberate. It represents a platform engineer's work
+on failed service initialization and cleanup. File count is not the source of difficulty.
 
-The tree is a working container with wrong ownership and teardown decisions. It charges
-factory work to a currently open scope and tears instances down in forward allocation
-order. Correcting it requires separating the scope used for construction and caching,
-the scope captured by a factory token, and the scope responsible for teardown.
+The initial four ownership repairs do not repair failed construction. The core reserves parent
+identity before it builds children, but records completed objects after children finish. When a
+constructor fails, the completion list can contain descendants whose singleton ancestor never
+completed. Walking only that list assigns the wrong rollback owner. Walking all entered objects
+finds the owner but would dispose unfinished objects unless completion is tracked separately.
 
-Four of the seven editable files are wrong and the rules they break interact: ownership
-follows a capture, marks pin a registration to a scope that has to be found from where the
-work was charged, and a wrapper is torn after what it wraps. The shipped refusal and parting
-policies already satisfy their rules and have to stay that way while the ownership path changes.
+Rollback has a different membership rule from scope close. It must remove completed allocations
+from one attempt across several owners, including root, while preserving older instances borrowed
+from the same caches. A marked instance may be cached under an inner build scope and disposed by
+an outer scope; grouping cleanup by either scope cannot identify the failed attempt. An object
+left in a cache after rollback changes which constructors execute on retry. Clearing the whole
+cache instead destroys earlier instances, even where their current constructor is unavailable.
 
-The instruction states the observable rules, including reverse allocation rather than
-reverse completion order. The difficult boundary is that singleton ancestry propagates
-root ownership, while a mark changes only one instance's teardown owner. Treating both
-as ordinary parent-owner inheritance looks coherent and survives the 22 named cases,
-but an isolated implementation of that reading disagreed on 72 of 1,200 generated streams.
-Charging factory work to the invocation scope disagreed on 344 of the same streams.
-These are host differential measurements of modeled decisions, not frontier solve rates.
-Eight runnable input fixtures include a compound stream with nested marks, factory reuse,
-singleton ancestry and parting calls; expected traces remain verifier-side.
+Failure is tested only when construction reaches that node, after its dependencies. A successful
+cached lookup bypasses both the constructor and its dependency traversal. Prechecking fault flags
+over the declared graph therefore rejects valid requests and suppresses required cleanup records.
+The fault state can change between operations, making these differences observable on the same
+registration. Refusals, rollback records, parting calls and later closes share one ordered trace.
 
-The natural single-scope implementation breaks these interactions. Reusing a cached
-instance preserves its cause and owner, resolving a cached holder can still replace its
-factory token, and marked ownership does not alter the build-scope cache key. Admission
-applies to the requested name while cycle detection follows its graph. Extending every
-admission check recursively rejects legitimate streams. The agent has to preserve these
-boundaries while repairing capture, ancestry, mark lookup and teardown together.
+The agent must coordinate the attempt boundary with captured invocation scopes, request admission,
+singleton ancestry, completion state and cache provenance. A failed holder resolution must preserve
+an older factory binding even if that binding points to a scope that has closed. Failure during a
+parting call must finish its rollback before the surrounding close continues. These interactions
+require the driver and the ownership policies to agree on a state model.
 
-The container ships with no comments anywhere and its identifiers are in the register of
-ordinary internal code rather than self-describing ones. That is deliberate: the token
-table, the scope stack and the pull-in chain recorded by the core have to be recovered by
-reading behaviour instead of by reading names.
+Five editable modules need repair. The admission and parting-scope policies already behave correctly.
+The environment uses short internal names and contains no comments or docstrings. All behavior is
+specified; there is no missing rule or undisclosed timing limit used to create difficulty.
 """
 
 solution_explanation = """
-The reference is four small files. Two of them carry the work.
+The reference replaces five policy files and executes every input fixture. It keeps construction,
+allocation and fault evaluation in the frozen core. The driver records the cache contents and the
+start of the attempt before entering construction. Successful work receives normal ownership and
+cause entries, and only a successful explicit holder resolution publishes replacement tokens.
 
-wire/hold.py records the scope a factory token was minted in and hands it back when the
-token is fired. The mint happens on each successful explicit holder resolution, so the
-scope recorded is that resolution's build scope, independently of the holder's teardown
-owner. Later invocation is charged there no matter how many scopes have opened since.
+On failure, the ownership policy receives every entered allocation from the attempt, including
+unfinished parents. It follows parent identity to detect singleton ancestry. The driver emits the
+refusal, disposes only completed allocations in descending allocation order with those owners, and
+restores the pre-attempt cache contents. Provisional completion records are removed and allocation
+serials remain monotone. No rollback disposal runs a parting call. Older ledger entries and token
+bindings are unaffected because they were never provisionally overwritten.
 
-wire/own.py settles the home of every instance a call created. The core reports each
-creation with the instance that pulled it in, so the file walks that chain upward and
-sends anything standing under a singleton to the root. For other instances, a mark selects
-the nearest matching ancestor of the charge, or root if none matches; an unmarked instance
-belongs to the charged scope. A marked parent's ownership is not inherited.
+The same attempt routine serves explicit resolution, factory invocation and parting calls. Each
+supplies its build scope and its refusal location separately. Factory capture, nearest-mark lookup
+and ordinary teardown ordering are repaired in hold.py, pin.py and tear.py.
 
-wire/pin.py finds the scope a marked registration belongs to by walking the chain above
-the scope the work was charged to, nearest first. wire/tear.py reverses allocation order
-within a scope, which puts wrapped allocations before their wrapper. The shipped wire/gate.py
-already checks admission at the request boundary, and wire/shut.py already
-lands a parting call outside the scope being closed. The reference leaves both of those files
-and wire/plan.py unchanged.
-
-Four alternative correct implementations are kept outside the bundle:
-the capture held as a scope-to-token index instead of a token-to-scope map, the teardown
-ordered by descending allocation serial instead of by reversing a list, the home walk done
-downward from the roots of the pull-in forest instead of upward from each instance, and
-the mark found by scanning the chain outward and keeping the last hit instead of inward
-and taking the first. All four agree record for record with the reference on the
-enumerated cases and on twelve hundred generated streams in the host-side semantic harness.
+The sealed model uses another representation: it carries singleton ancestry downward during
+construction and removes provisional cache entries by allocation identity on failure. Four
+author-side variants additionally exercise descending-serial teardown, downward ownership,
+outer-to-inner mark search and a scope-indexed token table; all use cache-delta rollback rather
+than the reference's saved-cache method.
 """
 
 verification_explanation = """
-The container is driven over twenty-two named cases and three hundred streams the verifier
-builds from a nonce minted after the agent has finished, and it is graded on one thing
-with no partial credit: the dump, record for record, in order.
+The verifier compares the full ordered dump on 42 named cases, 300 generated lifetime streams
+and 300 generated construction/fault/retry streams. Every record must match; there is no partial
+credit or tolerance. The construction generator combines random dependency graphs and fault
+changes with connected retry sequences that borrow older instances, fail, recover and invoke
+captured factories across scope boundaries. Named examples distinguish unfinished allocations
+from completed objects, old cache entries from provisional entries, and admission from construction.
 
-The dump comes out of the submitted policy running over the frozen core, which assigns
-instance identity and reports what pulled in what. A policy that fabricates records still has
-to reproduce every exact result for streams generated from the run-time nonce. The grader
-runs as root after the submitted run has been reaped and never executes agent code.
+Expected named outputs are stored in sealed ground truth and checked against an independent model.
+All 22 legacy expected sequences remain intact. Eight new literal traces were also checked by hand
+in author-side validation. Generated expectations are recomputed from a fresh nonce in the grader.
+The model shares no implementation code with the reference or submitted policies.
 
-Expected results for the named cases come from tests/oracle.py, a sealed second
-implementation written from the specification rather than from the tree, sharing no code
-with the reference: where the reference threads a capture through a driver built on
-wire.core, the oracle replays the stream with its own instance tables and emits each
-scope's teardown by descending serial. The reference is proved against it on the named
-cases and 1,200 generated streams in host validation. The three hundred graded streams are
-re-derived through the oracle inside the grader, so nothing a
-submission returns is compared against a number it could have read.
+Only the seven declared policy artifacts are overlaid on the pristine tree. Submitted code runs
+as uid 1002 with a 600-second execution bound and one inherited report descriptor. The report path,
+answer model and reward are protected from that user. The trusted grader runs after surviving
+submitted processes are reaped; reward starts at zero and changes only after all assertions pass.
 
-Two attestations sit under that. The sealed modules are fingerprinted against digests the
-grader derives by compiling the pristine sources, so rebinding a core function is caught
-even when it happens at import time before any run-time digest is taken. And the executed
-tree is compared file by file against the pristine copy after the run, with the count of
-files compared asserted before any comparison is believed, so a probe that rewrites a
-frozen module on disk is caught by that check. The cheat suite carries one probe per
-attestation, each built on the reference so that every answer it returns is correct.
-The host worker/grader checks pass for the reference; Linux isolation and full container
-cheat execution require a Docker-capable validation host.
+Frozen modules are checked by code fingerprints and the executed tree is compared with pristine
+files. Two integrity probes return correct semantic traces while changing a frozen function or
+source file; each must fail its corresponding integrity assertion. Other probes implement the
+previous four-fix strategy, graph-wide fault prechecks, incomplete ancestry, wrong rollback order,
+disposal of unfinished objects, disposal restricted to one owner, cache leakage, cache over-clearing,
+early token rebinding, rollback parting calls and forged output.
 """
 
 category = "Software"
@@ -128,7 +112,7 @@ tags = [
   "scope-capture",
   "teardown-ordering",
   "dependency-graphs",
-  "refusal-rules",
+  "transactional-rollback",
 ]
 
 expert_time_estimate_hours = 8

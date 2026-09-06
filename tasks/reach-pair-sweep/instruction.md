@@ -8,6 +8,8 @@ An object that does not survive, and that was allocated with a finalizer that ha
 
 A collection prints `clr <name>` for each weak reference it cleared, then `fin <id>` for each finalizer it queued, then `rel <id>` for each object it released. Within each of the three, ascending. `runfin` prints `ran <id>`. Nothing else is printed.
 
+`/app/progs/wide.txt` is one of the big ones. About eleven thousand objects, and a pair table written back to front. The ones we grade run several times larger. Whatever you write has to get through the whole set inside 60 seconds, so time it on `wide.txt` before you call it done.
+
 `/app/progs/small.txt` is the short one. It allocates three objects and gives the third a finalizer that stores it into slot `c`. It registers `w1` against the first, puts that first object into slot `a`, and pairs it with the second. Then it collects, runs the queued finalizer, drops slot `a` and collects again. Written correctly, the collector makes it print `fin 3`, `ran 3`, `clr w1`, `rel 1` and `rel 2`, in that order.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

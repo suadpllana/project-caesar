@@ -19,6 +19,8 @@ TASK = ROOT / "tasks" / "reach-pair-sweep"
 TESTS = TASK / "tests"
 CHEATS = ROOT / "authoring" / "reach-pair-sweep" / "cheats"
 
+LIMIT = 60
+
 NEEDS_CONTAINER = {
     "reward-daemon": "double fork plus a root-owned 700 reward channel",
     "privilege-probe": "a second uid to be unprivileged against",
@@ -38,6 +40,7 @@ EXPECT = {
     "forge-from-gt": "test_every_nonce_program_matches",
     "malformed-output": "test_hand_case[all-live]",
     "kill-worker": "worker",
+    "rescan-pairs": "limit",
     "plant-and-crash": "worker",
 }
 
@@ -55,15 +58,19 @@ def run(collector, per=80):
         env = dict(os.environ)
         env.update({"RPS_TESTS": str(TESTS), "RPS_WORK": str(work), "RPS_LOGS": str(logs),
                     "RPS_SUB": str(collector), "PYTHONDONTWRITEBYTECODE": "1"})
-        w = subprocess.run([sys.executable, str(TESTS / "worker.py"),
-                            "--out", str(work / "worker_out.json")],
-                           env=env, capture_output=True, text=True, timeout=900)
+        try:
+            w = subprocess.run([sys.executable, str(TESTS / "worker.py"),
+                                "--out", str(work / "worker_out.json")],
+                               env=env, capture_output=True, text=True, timeout=LIMIT)
+            worker_rc = w.returncode
+        except subprocess.TimeoutExpired:
+            worker_rc = 124
         g = subprocess.run([sys.executable, "-m", "pytest", str(TESTS / "test_outputs.py"),
                             "-p", "no:cacheprovider", "-q", "--tb=no", "-rfE"],
                            env=env, capture_output=True, text=True, timeout=900)
         caught = set(re.findall(r"(?:FAILED|ERROR)\s+\S+::(\S+)", g.stdout))
-        reward = 1 if (w.returncode == 0 and g.returncode == 0) else 0
-        return reward, caught, w.returncode
+        reward = 1 if (worker_rc == 0 and g.returncode == 0) else 0
+        return reward, caught, worker_rc
 
 
 def main():
@@ -83,7 +90,10 @@ def main():
             rows.append((name, reward, "scored 1", "BAD"))
             bad += 1
             continue
-        if want == "worker":
+        if want == "limit":
+            ok = worker_rc != 0
+            why = "worker exceeded the %ds limit (exit %d)" % (LIMIT, worker_rc)
+        elif want == "worker":
             ok = worker_rc != 0 or "test_every_nonce_program_matches" in caught
             why = "worker exit %d, %d assertions fired" % (worker_rc, len(caught))
         else:

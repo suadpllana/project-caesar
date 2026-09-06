@@ -1,6 +1,6 @@
 """Nonce program generation.
 
-Four families. `plain` is an unshaped mix and is what an agent's own testing will mostly look
+Five families. `plain` is an unshaped mix and is what an agent's own testing will mostly look
 like; measurement on 600 unshaped programs put the retention cascade in under 4% of them, so
 `chain`, `hold` and `back` seed the shapes a plain population almost never builds.
 
@@ -133,14 +133,47 @@ def _back(rng):
     return out
 
 
-FAMILIES = (("plain", _plain), ("chain", _chain), ("hold", _hold), ("back", _back))
+
+def _wide(rng):
+    """A chain of pairs listed back to front, plus bulk the chain never reaches.
+
+    Back to front is the whole point: listed forwards the chain settles in one sweep. Listed
+    backwards, a collector that rescans the table settles exactly one link per sweep, so its
+    cost is the table size times the depth. The bulk pairs live on ids nothing reaches, so they
+    add to every sweep without ever letting two links fire at once.
+    """
+    depth = rng.choice((10000, 13000, 16000))
+    bulk = rng.choice((3000, 5000))
+    out = ["new %d" % i for i in range(1, depth + 2)]
+    out += ["pair %d %d" % (i, i + 1) for i in range(depth, 0, -1)]
+    base = depth + 2
+    for k in range(bulk):
+        a, b = base + 2 * k, base + 2 * k + 1
+        out.append("new %d" % a)
+        out.append("new %d" % b)
+        out.append("pair %d %d" % (a, b))
+    out.append("slot a 1")
+    out.append("collect")
+    if rng.random() < 0.5:
+        out += ["slot a -", "collect"]
+    return out
+
+
+FAMILIES = (("plain", _plain), ("chain", _chain), ("hold", _hold), ("back", _back), ("wide", _wide))
+
+
+# `wide` programs are tens of thousands of lines each, so the population is sized separately:
+# enough of them that a collector settling the pair table by rescanning cannot finish, few
+# enough that a correct one costs a fraction of a second.
+WIDE_COUNT = 15
 
 
 def programs(seed, per_family):
     """Deterministic list of (family, name, lines) for one nonce seed."""
     out = []
     for fam, fn in FAMILIES:
-        for k in range(per_family):
+        n = WIDE_COUNT if fam == "wide" else per_family
+        for k in range(n):
             rng = random.Random("%s:%s:%d" % (seed, fam, k))
             out.append((fam, "%s-%03d" % (fam, k), fn(rng)))
     return out

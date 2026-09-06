@@ -22,4 +22,5 @@ without Docker, and the handover says so.
 - `cheat-read-refinalize.sh` - forgets across cycles that a finalizer already ran
 - `cheat-read-unclear.sh` - recomputes clearing every cycle instead of leaving it put
 - `cheat-release-eagerly.sh` - releases every unreachable object, ignoring the finalizer reprieve
+- `cheat-rescan-pairs.sh` - settles the pair table by rescanning it: correct, and too slow to finish
 - `cheat-reward-daemon.sh` - double-forks a process that writes the reward after grading finishes

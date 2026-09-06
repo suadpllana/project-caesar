@@ -1,0 +1,812 @@
+Agent trajectory
+
+scope-hold-release__9tdtbYd
+
+5 steps · 3 tool calls
+
+`/app` is the container our services are wired through. Registrations name a
+lifetime, scopes open and close around a unit of work, and when a scope closes
+the container tears down whatever belongs to it. We rewrote the ownership and
+teardown decisions last cycle and it has been wrong since.
+
+Run `/app/run_wire.py` on `/app/cases/wide.txt`. The third line back reads
+`torn pool 1 app`, and that line should not exist: `pool` was pulled in
+underneath `app`, which is a singleton and outlives every scope in that
+stream, so when scope 1 closed the container reached inside a live
+singleton and disposed of a dependency it is still holding, while `app`
+itself has not been torn down at all and will not be. There are seven more
+case files in `/app/cases`. None of them comes out right either.
+
+`/app/wire/own.py`, `/app/wire/pin.py`, `/app/wire/hold.py`, `/app/wire/gate.py`,
+`/app/wire/tear.py`, `/app/wire/shut.py` and `/app/wire/plan.py` are yours to change. Some of them
+are right. `/app/wire/core.py`, `/app/wire/reg.py` and `/app/wire/scope.py`
+are the container itself and you may not touch them. Read them anyway. They
+already settle things the editable files have to agree with.
+
+We grade the dump, line for line, in the order it comes out. A teardown is
+`torn`, then the registration name, then the scope that owned the instance,
+then the name we were asked for when it came into being, which for anything
+pulled in underneath something else is the name at the top of that
+resolution and not the dependency's immediate parent; a declined
+resolution is `refused`, then the name, then the scope we were in. Those two
+words are the only record kinds we write and we match them exactly.
+
+Some ground rules, because several of them are not what you would do
+elsewhere.
+
+An instance belongs to the scope the work was charged to unless one of the
+rules below moves it. A singleton is built once and is owned by the root;
+everything it pulls in belongs to the root too, however deep the chain runs
+and whatever lifetime or mark those dependencies declare for themselves;
+that rule wins over the mark. Finding an instance already built changes
+neither its owner nor its cause. A scoped registration is reused by
+registration and build scope. A mark may send its teardown somewhere else.
+It does not move the cache.
+
+Within a scope, teardown runs back to front against allocation order. The
+core sets aside an instance number before it goes on to build dependencies
+or a wrapped registration. Those later allocations are torn down first.
+Back to front, every time. Closing a scope tears down nothing an ancestor
+owns. The root itself never closes.
+
+A registration can carry a mark. Outside a singleton's chain, one that does
+is owned by the nearest scope in reach carrying the same mark, starting from
+the scope the work was charged to and walking through its ancestors. The
+nearer mark wins. With no matching scope in reach, its owner is the root.
+The mark moves that instance only. Its dependencies keep their own ownership
+rules, and neither its build scope nor its cache key moves with it. A
+registration can also wrap another: the wrapper gets its number first and
+the wrapped registration is allocated underneath it and torn down first;
+and a registration can declare a parting call, a name we resolve as the
+instance is torn down, charged to the scope outside the one that is closing,
+because nothing may be built into the closing scope any more. The call runs
+straight after that instance's `torn` line.
+
+Admission belongs to the name we were asked for. We refuse a requested
+singleton that can reach a scoped registration anywhere below it, through
+dependencies or wrapping, however many steps down the chain that takes. We
+also refuse a requested marked registration when no scope in reach carries
+its mark. Those two checks stop at the request; they are not started again
+for every name pulled in underneath it, but cycle detection does keep going,
+so a dependency or wrapping cycle anywhere below the requested name refuses
+the whole request. A refusal builds nothing at all. Nothing from that attempt
+is ever torn down. We also refuse a parting call that cannot be resolved where
+it has to land, a close with no scope open, and invoking a factory whose
+holder has not been resolved yet. Each of those is a `refused` line and
+nothing else. Every name in the streams is registered. A factory declaration
+is not a dependency.
+
+A scope that closes owning nothing prints nothing at all. A refusal is written
+at the point we declined it and never held back to the end, so the dump for a
+stream that mixes the two reads in the order the two kinds actually happened.
+
+A component can hold a factory for another registration, and it can invoke
+that factory inside a scope that was opened after the holder itself was
+built. Every successful explicit resolution of the holder replaces the
+tokens for the factories it declares, even when the holder was already
+cached or its teardown belongs somewhere else, and the new token keeps the
+build scope used for that resolution. An invocation uses the latest token
+for that factory name. Closing the scope recorded in a token does not
+cancel it or move it; a later invocation is still charged there, and once
+that scope has gone it has no ancestors in reach. The streams do this more
+than once against the same holder, sometimes with a further scope opened and
+closed in between. A transient holder behaves no differently from any other
+holder.
+
+The dump is one sequence and we compare all of it in that order, including
+records produced while different scopes close. A refused invoke names the
+scope where it was attempted; a refused parting call names the scope where
+it had to land. Instance numbers are not printed, but the order in which the
+core allocates them decides teardown order.
+
+The dump has to describe the run that produced it.
+
+You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this 
+… [clipped]
+
+I'll start by reading the container core and the editable modules, then run the failing case.
+
+Bash(ls -R | head -50 && cat run_wire.py && wc -l wire/*.py && cat wire/core.py wire/reg.py wire/scope.py)
+
+.:
+cases
+run_wire.py
+wire
+
+./cases:
+crossing.txt
+handover.txt
+nested.txt
+parting.txt
+pinned.txt
+plain.txt
+wide.txt
+wrapped.txt
+
+./wire:
+__init__.py
+core.py
+gate.py
+hold.py
+own.py
+pin.py
+plan.py
+reg.py
+scope.py
+shut.py
+tear.py
+import sys
+
+from wire import plan
+from wire.reg import SING, SCOPED, TRANS, load
+
+LIFE = {"sing": SING, "scoped": SCOPED, "trans": TRANS}
+
+
+def field(p, i):
+    return "" if i >= len(p) or p[i] == "." else p[i]
+
+
+def parse(path):
+    rows = []
+    ops = []
+    for ln in open(path):
+        ln = ln.strip()
+        if not ln or ln.startswith("#"):
+            continue
+        p = ln.split()
+        if p[0] == "r":
+            deps = [] if p[3] == "." else p[3].split(",")
+            facs = [] if p[4] == "." else p[4].split(",")
+            rows.append((p[1], LIFE[p[2]], deps, facs, field(p, 5), field(p, 6), field(p, 7)))
+        elif p[0] == "o":
+            ops.append(tuple(p[1:]))
+    return load(rows), ops
+
+
+def main():
+    tbl, ops = parse(sys.argv[1])
+    for rec in plan.run(tbl, ops):
+        print(" ".join(str(x) for x in rec))
+
+
+main()
+   0 wire/__init__.py
+  63 wire/core.py
+  15 wire/gate.py
+   8 wire/hold.py
+  16 wire/own.py
+   8 wire/pin.py
+  71 wire/plan.py
+  53 wire/reg.py
+  36 wire/scope.py
+   2 wire/shut.py
+   2 wire/tear.py
+ 274 total
+from wire.reg import SING, SCOPED
+from wire.scope import ROOT
+
+
+class Core:
+    def __init__(self, tbl):
+        self.tbl = tbl
+        self.sng = {}
+        self.scp = {}
+        self.seq = 0
+        self.made = []
+        self._tk = {}
+        self._tn = 0
+
+    def mint(self, nm, at):
+        self._tn += 1
+        self._tk[self._tn] = (nm, at)
+        return self._tn
+
+    def fire(self, t):
+        nm, at = self._tk[t]
+        return self.build(nm, at)
+
+    def build(self, nm, at, up=0):
+        r = self.tbl[nm]
+        if r.life == SING:
+            if nm in self.sng:
+                return self.sng[nm]
+            sub = ROOT
+        else:
+            if r.life == SCOPED:
+                k = (nm, at)
+                if k in self.scp:
+                    return self.scp[k]
+            sub = at
+        self.seq += 1
+        i = self.seq
+        if r.wraps:
+            self.build(r.wraps, sub, i)
+        for d in r.deps:
+            self.build(d, sub, i)
+        if r.life == SING:
+            self.sng[nm] = i
+        elif r.life == SCOPED:
+            self.scp[(nm, at)] = i
+        self.made.append((i, nm, up))
+        return i
+
+    def since(self, mark):
+        return self.made[mark:]
+
+    def mark(self):
+        return len(self.made)
+
+    def forget(self, sc):
+        for k in [k for k in self.scp if k[1] == sc]:
+            del self.scp[k]
+
+    def kind(self, i):
+        for j, nm, _u in self.made:
+            if j == i:
+                return nm
+        return None
+SING = 0
+SCOPED = 1
+TRANS = 2
+
+FREE = ""
+
+
+class Reg:
+    def __init__(self, life, deps, facs, tag, wraps, shut):
+        self.life = life
+        self.deps = deps
+        self.facs = facs
+        self.tag = tag
+        self.wraps = wraps
+        self.shut = shut
+
+
+def load(rows):
+    t = {}
+    for r in rows:
+        t[r[0]] = Reg(r[1], list(r[2]), list(r[3]), r[4], r[5], r[6])
+    return t
+
+
+def reach(tbl, nm, seen=None):
+    if seen is None:
+        seen = set()
+    if nm in seen or nm not in tbl:
+        return seen
+    seen.add(nm)
+    for d in tbl[nm].deps:
+        reach(tbl, d, seen)
+    if tbl[nm].wraps:
+        reach(tbl, tbl[nm].wraps, seen)
+    return seen
+
+
+def cycles(tbl, nm):
+    seen = []
+    stack = [(nm, ())]
+    while stack:
+        cur, path = stack.pop()
+        if cur in path:
+            return True
+        if cur not in tbl:
+            continue
+        nxt = path + (cur,)
+        for d in tbl[cur].deps:
+            stack.append((d, nxt))
+        if tbl[cur].wraps:
+            stack.append((tbl[cur].wraps, nxt))
+    del seen
+    return False
+ROOT = 0
+
+
+class Stack:
+    def __init__(self):
+        self.live = [ROOT]
+        self.tags = {ROOT: ""}
+        self.seq = ROOT
+
+    def open(self, tag=""):
+        self.seq += 1
+        self.live.append(self.seq)
+        self.tags[self.seq] = tag
+        return self.seq
+
+    def top(self):
+        return self.live[-1]
+
+    def close(self):
+        if len(self.live) == 1:
+            return None
+        return self.live.pop()
+
+    def holds(self, sc):
+        return sc in self.live
+
+    def under(self, sc):
+        i = self.live.index(sc) if sc in self.live else -1
+        return self.live[i + 1:] if i >= 0 else []
+
+    def upto(self, sc):
+        i = self.live.index(sc) if sc in self.live else -1
+        return self.live[:i + 1] if i >= 0 else []
+
+    def tag(self, sc):
+        return self.tags.get(sc, "")
+
+[stdout]
+.:
+cases
+run_wire.py
+wire
+
+./cases:
+crossing.txt
+handover.txt
+nested.txt
+parting.txt
+pinned.txt
+plain.txt
+wide.txt
+wrapped.txt
+
+./wire:
+__init__.py
+core.py
+gate.py
+hold.py
+own.py
+pin.py
+plan.py
+reg.py
+scope.py
+shut.py
+tear.py
+import sys
+
+from wire import plan
+from wire.reg import SING, SCOPED, TRANS, load
+
+LIFE = {"sing": SING, "scoped": SCOPED, "trans": TRANS}
+
+
+def field(p, i):
+    return "" if i >= len(p) or p[i] == "." else p[i]
+
+
+def parse(path):
+    rows = []
+    ops = []
+    for ln in open(path):
+        ln = ln.strip()
+        if not ln or ln.startswith("#"):
+            continue
+        p = ln.split()
+        if p[0] == "r":
+            deps = [] if p[3] == "." else p[3].split(",")
+            facs = [] if p[4] == "." else p[4].split(",")
+            rows.append((p[1], LIFE[p[2]], deps, facs, field(p, 5), field(p, 6), field(p, 7)))
+        elif p[0] == "o":
+            ops.append(tuple(p[1:]))
+    return load(rows), ops
+
+
+def main():
+    tbl, ops = parse(sys.argv[1])
+    for rec in plan.run(tbl, ops):
+        print(" ".join(str(x) for x in rec))
+
+
+main()
+   0 wire/__init__.py
+  63 wire/core.py
+  15 wire/gate.py
+   8 wire/hold.py
+  16 wire/own.py
+   8 wire/pin.py
+  71 wire/plan.py
+  53 wire/reg.py
+  36 wire/scope.py
+   2 wire/shut.py
+   2 wire/tear.py
+ 274 total
+from wire.r
+… [clipped]
+collapse
+Bash(for f in wire/own.py wire/pin.py wire/hold.py wire/gate.py wire/tear.py wire/shut.py wire/plan.py; do echo "==…)
+
+=== wire/own.py
+from wire.reg import SING
+from wire.scope import ROOT
+from wire import pin
+
+
+def homes(tbl, st, batch, at):
+    out = {}
+    for i, nm, up in batch:
+        r = tbl[nm]
+        if r.life == SING:
+            out[i] = ROOT
+        elif r.tag:
+            out[i] = pin.where(st, at, r.tag)
+        else:
+            out[i] = at
+    return out
+=== wire/pin.py
+from wire.scope import ROOT
+
+
+def where(st, at, tag):
+    for sc in reversed(st.upto(st.top())):
+        if st.tag(sc) == tag:
+            return sc
+    return ROOT
+=== wire/hold.py
+def note(bk, tok, at):
+    bk[tok] = at
+
+
+def at_of(bk, tok, st):
+    a = bk.get(tok, st.top())
+    d = st.under(a)
+    return d[-1] if d else a
+=== wire/gate.py
+from wire.reg import SING, SCOPED, cycles, reach
+
+
+def allow(tbl, st, nm, at):
+    r = tbl[nm]
+    if cycles(tbl, nm):
+        return False
+    if r.tag and not any(st.tag(sc) == r.tag for sc in st.upto(at)):
+        return False
+    if r.life != SING:
+        return True
+    for d in reach(tbl, nm):
+        if d != nm and tbl[d].life == SCOPED:
+            return False
+    return True
+=== wire/tear.py
+def order(mine):
+    return list(mine)
+=== wire/shut.py
+def at(st, closing):
+    return st.top()
+=== wire/plan.py
+from wire import core as C
+from wire import gate, hold, own, shut, tear
+from wire.scope import Stack
+
+
+def place(co, tbl, st, m, at, holds, cause, src):
+    batch = co.since(m)
+    hm = own.homes(tbl, st, batch, at)
+    for j, jn, up in batch:
+        holds[j] = hm[j]
+        cause[j] = src
+    return batch
+
+
+def run(tbl, ops):
+    co = C.Core(tbl)
+    st = Stack()
+    bk = {}
+    tk = {}
+    holds = {}
+    cause = {}
+    out = []
+    for op in ops:
+        k = op[0]
+        if k == "open":
+            st.open(op[1] if len(op) > 1 else "")
+        elif k == "close":
+            sc = st.close()
+            if sc is None:
+                out.append(("refused", "close", 0))
+                continue
+            mine = [i for i in sorted(holds) if holds[i] == sc]
+            for i in tear.order(mine):
+                nm = co.kind(i)
+                out.append(("torn", nm, sc, cause.get(i, "-")))
+                del holds[i]
+                s = tbl[nm].shut if nm in tbl else ""
+                if s:
+                    landing = shut.at(st, sc)
+                    if not st.holds(landing) or not gate.allow(tbl, st, s, landing):
+                        out.append(("refused", s, landing))
+                        continue
+                    m = co.mark()
+                    co.build(s, landing)
+                    place(co, tbl, st, m, landing, holds, cause, s)
+            co.forget(sc)
+        elif k == "resolve":
+            nm = op[1]
+            if not gate.allow(tbl, st, nm, st.top()):
+                out.append(("refused", nm, st.top()))
+                continue
+            m = co.mark()
+            co.build(nm, st.top())
+            place(co, tbl, st, m, st.top(), holds, cause, nm)
+            for f in tbl[nm].facs:
+                t = co.mint(f, st.top())
+                hold.note(bk, t, st.top())
+                tk[f] = t
+        elif k == "invoke":
+            f = op[1]
+            if f not in tk:
+                out.append(("refused", f, st.top()))
+                continue
+            at = hold.at_of(bk, tk[f], st)
+            if not gate.allow(tbl, st, f, at):
+                out.append(("refused", f, st.top()))
+                continue
+            m = co.mark()
+            co.fire(tk[f])
+            place(co, tbl, st, m, at, holds, cause, f)
+    return out
+=== cases/crossing.txt
+r hub trans note mk
+r note trans . .
+r mk scoped pack,loose .
+r pack trans leaf . job
+r leaf trans . . . . flush
+r loose trans . .
+r flush trans . .
+r app sing boot .
+r boot trans . .
+o open job
+o open
+o resolve hub
+o open job
+o invoke mk
+o close
+o open call
+o invoke mk
+o resolve app
+o close
+o close
+o close
+--- out
+torn mk 3 mk
+torn pack 3 mk
+torn leaf 3 mk
+torn loose 3 mk
+torn boot 4 app
+torn hub 2 hub
+torn note 2 hub
+torn flush 2 flush
+=== cases/handover.txt
+r hub scoped . mk
+r mk scoped seat .
+r seat scoped . .
+o open
+o resolve hub
+o invoke mk
+o invoke mk
+o close
+--- out
+torn hub 1 hub
+torn mk 1 mk
+torn seat 1 mk
+=== cases/nested.txt
+r app sing cfg .
+r cfg sing . .
+r job scoped log .
+r log scoped . .
+r tmp trans log .
+o open
+o resolve app
+o resolve job
+o open
+o resolve tmp
+o close
+o close
+--- out
+torn tmp 2 tmp
+torn log 2 tmp
+torn job 1 job
+torn log 1 job
+=== cases/parting.txt
+r job scoped log . . . flush
+r log scoped . . . . .
+r flush trans . . . . .
+o open .
+o open .
+o resolve job
+o close
+o close
+--- out
+torn job 2 job
+torn log 2 job
+torn flush 1 flush
+=== cases/pinned.txt
+r unit scoped bill . . . .
+r bill scoped . . job . .
+r log scoped . . . . .
+o open job
+o resolve log
+o open .
+o resolve unit
+o close
+o close
+--- out
+torn unit 2 unit
+torn log 1 log
+torn bill 1 unit
+=== cases/plain.txt
+r app sing cfg .
+r cfg sing . .
+r job scoped log .
+r log scoped . .
+o open
+o resolve job
+o resolve job
+o close
+--- out
+torn job 1 job
+torn log 1 job
+=== cases/wide.txt
+r app sing cfg .
+r cfg sing pool .
+r pool trans . .
+r job scoped log .
+r log scoped . .
+o open
+o resolve app
+o resolve job
+o open
+o resolve job
+o close
+o close
+--- out
+torn job 2 job
+torn log 2 job
+torn pool 1 app
+torn job 1 job
+torn log 1 job
+=== cases/wrapped.txt
+r skin scoped . . . core .
+r core scoped log . . . .
+r log scoped . . . . .
+o open .
+o resolve skin
+o close
+--- out
+torn skin 1 skin
+torn core 1 skin
+torn log 1 skin
+
+[stdout]
+=== wire/own.py
+from wire.reg import SING
+from wire.scope import ROOT
+from wire import pin
+
+
+def homes(tbl, st, batch, at):
+    out = {}
+    for i, nm, up in batch:
+        r = tbl[nm]
+        if r.life == SING:
+            out[i] = ROOT
+        elif r.tag:
+            out[i] = pin.where(st, at, r.tag)
+        else:
+            out[i] = at
+    return out
+=== wire/pin.py
+from wire.scope import ROOT
+
+
+def where(st, at, tag):
+    for sc in reversed(st.upto(st.top())):
+        if st.tag(sc) == tag:
+            ret
+… [clipped]
+collapse
+Thinking…
+I've identified four bugs: ownership doesn't propagate the singleton chain to the root, the mark walk starts at the top instead of the charged scope, teardown isn't reversed, and invocation is charged to the wrong scope. Applying the fixes now.
+
+Bash(cat > wire/own.py <<'EOF' from wire.reg import SING from wire.scope import ROOT from wire import pin def homes…)
+
+=== cases/crossing.txt
+torn loose 2 mk
+torn leaf 2 mk
+torn mk 2 mk
+torn note 2 hub
+torn hub 2 hub
+torn flush 1 flush
+torn pack 1 mk
+=== cases/handover.txt
+torn seat 1 mk
+torn mk 1 mk
+torn hub 1 hub
+=== cases/nested.txt
+torn log 2 tmp
+torn tmp 2 tmp
+torn log 1 job
+torn job 1 job
+=== cases/parting.txt
+torn log 2 job
+torn job 2 job
+torn flush 1 flush
+=== cases/pinned.txt
+torn unit 2 unit
+torn bill 1 unit
+torn log 1 log
+=== cases/plain.txt
+torn log 1 job
+torn job 1 job
+=== cases/wide.txt
+torn log 2 job
+torn job 2 job
+torn log 1 job
+torn job 1 job
+=== cases/wrapped.txt
+torn log 1 skin
+torn core 1 skin
+torn skin 1 skin
+
+[stdout]
+=== cases/crossing.txt
+torn loose 2 mk
+torn leaf 2 mk
+torn mk 2 mk
+torn note 2 hub
+torn hub 2 hub
+torn flush 1 flush
+torn pack 1 mk
+=== cases/handover.txt
+torn seat 1 mk
+torn mk 1 mk
+torn hub 1 hub
+=== cases/nested.txt
+torn log 2 tmp
+torn tmp 2 tmp
+torn log 1 job
+torn job 1 job
+=== cases/parting.txt
+torn log 2 job
+torn job 2 job
+torn flush 1 flush
+=== cases/pinned.txt
+torn unit 2 unit
+torn bill 1 unit
+torn log 1 log
+=== cases/plain.txt
+torn log 1 job
+torn job 1 job
+=== cases/wide.txt
+torn log 2 job
+torn job 2 job
+torn log 1 job
+torn job 1 job
+=== cases/wrapped.txt
+torn log 1 skin
+torn core 1 skin
+torn skin 1 skin
+[metadata] {"noOutputExpected": false}
+collapse
+All eight cases now trace correctly against the rules. I hand-checked each against the spec, including the `crossing` stream where the token's scope, the `job` mark on `pack`, the singleton chain under `app`, and the `flush` parting call all interact.
+
+**What was wrong, and what I changed:**
+
+- `wire/own.py`: ownership never followed the singleton chain. Anything built underneath a singleton now goes to the root too, however deep, by walking parents in allocation order and carrying a "singleton chain" flag. That removes the `torn pool 1 app` line in `wide`.
+- `wire/pin.py`: the mark walk started from the current top scope instead of the scope the work was charged to. It now walks from the charged scope through its ancestors, so a factory fired against a closed token scope has no ancestors in reach.
+- `wire/tear.py`: teardown ran front to back. It now runs back to front against allocation order, so dependencies and wrapped registrations are torn before their parents.
+- `wire/hold.py`: an invocation was charged to the deepest scope under the token's scope. It is now charged to the token's own scope, matching what the core's `fire` actually builds into.
+
+**Left unchanged, because they were already right:** `gate.py` (admission checks, cycle detection, marked-with-no-scope refusal), `shut.py` (parting calls land in the scope outside the closing one), and `plan.py` (refusals written at the point they happen, tokens replaced on every explicit holder resolution, causes fixed at first build).
+
+Current `wide` output:
+
+```
+torn log 2 job
+torn job 2 job
+torn log 1 job
+torn job 1 job
+```
+
+None of the case files exercise the `refused` paths, so those are verified by reading rather than by a stream.

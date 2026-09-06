@@ -15,6 +15,7 @@ OUT = TASK / "cheat"
 
 DESCRIBE = {
     "read-pair-once": "sweeps the pair table once instead of until it settles",
+    "rescan-pairs": "settles the pair table by rescanning it: correct, and too slow to finish",
     "read-hold-fields": "what a finalizer keeps follows fields but never the pair table",
     "read-clear-held": "clears weak references against everything kept, not against the frames",
     "read-queue-late": "settles the finalizer queue after keeping, hiding the second object",

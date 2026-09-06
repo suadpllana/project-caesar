@@ -1,0 +1,20 @@
+r old scoped . mk
+r mk scoped seat,app,bad .
+r seat scoped . . job
+r app sing pool .
+r pool trans . .
+r bad trans crumb . . . . fail
+r crumb trans . .
+o open job
+o open
+o resolve old
+o resolve seat
+o open job
+o invoke mk
+o fault bad off
+o invoke mk
+o fault bad on
+o invoke mk
+o close
+o close
+o close

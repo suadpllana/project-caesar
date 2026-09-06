@@ -24,12 +24,12 @@ OUT = ROOT / "authoring" / "reach-pair-sweep" / "variants"
 # collector that renamed them would not run. `add` is deliberately absent - it collides with
 # set.add, and renaming that produced a mirror that could not execute.
 RENAME = {
-    "_reach": "gather", "_close": "settle", "got": "seen", "st": "pending",
-    "seed": "start", "blocked": "barred", "live": "standing",
-    "hold": "reprieved", "qd": "due", "cl": "wiped", "rl": "freed", "rt": "anchors",
+    "_index": "table", "_settle": "walk", "by": "idx", "seen": "found", "stack": "todo",
+    "start": "roots", "barred": "skip", "live": "standing", "hold": "spared",
+    "due": "pending", "wiped": "cleared", "freed": "dropped", "anchors": "bases",
 }
 
-HAND = ("worklist.py", "rounds.py")
+HAND = ("paint.py", "levels.py")
 
 
 def mirror():

@@ -3,7 +3,7 @@
 VERIFIER CONTRACT (frozen before the environment was written).
 
 Graded artifact: the container's teardown dump. One record per line, in the
-order the run produced it, over 22 enumerated cases and 300 streams the
+order the run produced it, over 42 enumerated cases and 600 streams the
 verifier generates from a nonce minted after the agent has finished.
 
   ("torn", name, scope, cause)   an instance torn down, the scope that owned
@@ -41,7 +41,7 @@ OUT = "/work/run/out.json"
 GT = "/tests/gt.json"
 PRISTINE = pathlib.Path("/pristine")
 SEALED = {
-    "core": ("wire/core.py", ["build", "fire", "mint", "forget", "since", "mark", "kind"]),
+    "core": ("wire/core.py", ["build", "fire", "mint", "forget", "since", "mark", "kind", "fault"]),
     "reg": ("wire/reg.py", ["load", "reach", "cycles"]),
     "scope": ("wire/scope.py", ["open", "close", "top", "under", "holds", "upto", "tag"]),
 }
@@ -157,3 +157,17 @@ def test_the_generated_streams_match_the_rules(report):
             if first is None:
                 first = "g%04d" % i
     assert bad == 0, "%d of 300 generated streams came back wrong, first %s" % (bad, first)
+
+
+def test_construction_failures_and_retries_match_the_rules(report):
+    assert report is not None
+    nonce = report.get("nonce")
+    assert nonce == os.environ.get("SHR_NONCE", "0")
+    bad = []
+    for i in range(300):
+        rows, ops = gen.transaction("%s-%d" % (nonce, i), i % 2 == 0)
+        want = [[str(x) for x in t] for t in oracle.play(rows, ops)]
+        name = "t%04d" % i
+        if report["runs"].get(name) != want:
+            bad.append(name)
+    assert not bad, "%d construction streams differed, first %s" % (len(bad), bad[:1])

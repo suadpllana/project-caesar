@@ -15,7 +15,7 @@ chown -R sandbox:sandbox /work
 
 set +e
 setpriv --reuid=1002 --regid=1002 --clear-groups \
-    timeout 900 setsid --wait python3 /tests/worker.py --out /work/worker_out.json
+    timeout 60 setsid --wait python3 /tests/worker.py --out /work/worker_out.json
 worker_status=$?
 set -e
 echo "worker exit ${worker_status}"

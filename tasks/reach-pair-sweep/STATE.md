@@ -51,6 +51,12 @@ Two retention passes that are mutually recursive, and a predicate that has to sp
   table looped to a fixed point, unreachable finalizables as roots once, clear, release in id
   order. Wrong in two places that matter - the finalizer pass is not re-entrant into the pair
   fixed point, and one retained set instead of two.
+- C3, added 2026-09-07 after the quality review failed `difficult`: a measured semantic scaling
+  boundary. The rescanning fixed point is exactly correct and costs table-size times chain-depth
+  on a pair table written back to front. Whole graded set, this machine: 0.7 s indexed by key,
+  129.8 s rescanning, against a stated 60 s limit - 185x on identical answers. Disclosed in the
+  brief with the scale, and `progs/wide.txt` ships so it can be timed. No Docker here, so the
+  numbers are host numbers; the correct path has 85x headroom, which absorbs a slow container.
 - Estimated solves out of 8: 2-5. Raised from an earlier 1-3 estimate when the incremental
   marking axis was cut on review, and lowered again from 3-6 once it was clear that shipping no
   collector at all removes every oracle. Honest range, not a point estimate.
@@ -113,8 +119,9 @@ Two retention passes that are mutually recursive, and a predicate that has to sp
 | Reference vs sealed model | pass | 416 programs, three PYTHONHASHSEED values, full agreement |
 | Oracle scores 1 | pass | host emulation, 320 nonce programs |
 | nop scores 0 | pass | shipped stub prints nothing |
-| Correct variants score 1 | pass | worklist, rounds, and the mechanically renamed mirror |
-| Cheats score 0 | pass | 13 of 15 run; each caught by its own declared layer |
+| Correct variants score 1 | pass | paint (breadth-first), levels (frontier), mirror (renamed) |
+| Cheats score 0 | pass | 14 of 16 run; each caught by its own declared layer |
+| Scaling boundary | measured | 0.7 s correct vs 129.8 s rescanning, 60 s limit |
 | Cheats needing a container | not run | `reward-daemon` needs fork, `privilege-probe` needs a second uid |
 | `docker_trial --all` / `--variants` | not run | Docker is not installed on this machine |
 | preflight | pass | three unused-function warnings are false positives, see below |

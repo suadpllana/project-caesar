@@ -99,3 +99,67 @@ def stream(seed, cross):
         ops.append(("close",))
         depth -= 1
     return rows, ops
+
+
+def transaction(seed, cross):
+    rnd = random.Random("construction-" + str(seed))
+    rows, life, facs, tag = table(rnd, rnd.randrange(7, 13))
+    rows = [(*row, rnd.random() < 0.2) for row in rows]
+    nms = sorted(life)
+    holders = rnd.sample(nms, 2)
+    target = rnd.choice(nms)
+    rows = [(nm, lt, deps, [target] if nm in holders else ff, mark, wrap, shut, fail)
+            for nm, lt, deps, ff, mark, wrap, shut, fail in rows]
+    ops = [("open", rnd.choice(TAGS)), ("resolve", holders[0])]
+    depth = 1
+    for _ in range(50):
+        choice = rnd.random()
+        nm = rnd.choice(nms)
+        if choice < 0.18:
+            ops.append(("fault", nm, rnd.choice(["on", "off"])))
+        elif choice < 0.48:
+            ops.append(("resolve", nm))
+        elif choice < 0.64:
+            ops.append(("invoke", target))
+        elif choice < 0.80 and depth < 5:
+            ops.append(("open", rnd.choice(TAGS + [""])))
+            depth += 1
+        elif depth > 1:
+            ops.append(("close",))
+            depth -= 1
+        else:
+            ops.extend([("fault", nm, "off"), ("resolve", nm),
+                        ("fault", nm, "on"), ("resolve", nm)])
+    while depth:
+        ops.append(("close",))
+        depth -= 1
+
+    # A connected failure/retry tail guarantees construction and cache boundaries
+    # are exercised even when the random graph rejects most requests at admission.
+    prefix = "x" if cross else "z"
+    names = [prefix + str(i) for i in rnd.sample(range(100, 999), 10)]
+    old, new, mk, pool, bad, root, leaf, skin, flush, crumb = names
+    rooted = rnd.choice([True, False])
+    rows.extend([
+        (old, 1, [], [mk], "", "", "", False),
+        (new, 2, [crumb, bad], [mk], "", "", "", False),
+        (mk, 1, [pool, root, bad], [], "", skin, "", False),
+        (pool, 1, [], [], "job" if cross else "", "", "", False),
+        (bad, 2, [crumb], [], "", "", "", True),
+        (root, 0 if rooted else 2, [leaf], [], "", "", "", False),
+        (leaf, 2, [], [], "job", "", flush, False),
+        (skin, 2, [], [], "", "", "", False),
+        (flush, 2, [crumb, bad], [], "", "", "", False),
+        (crumb, 2, [], [], "", "", "", False),
+    ])
+    ops.extend([("open", "job"), ("open", ""), ("resolve", old)])
+    if rnd.choice([True, False]):
+        ops.append(("resolve", pool))
+    if rnd.choice([True, False]):
+        ops.append(("resolve", root))
+    ops.extend([("open", "job"), ("resolve", new), ("invoke", mk),
+                ("fault", bad, "off"), ("invoke", mk),
+                ("fault", bad, "on"), ("invoke", mk), ("resolve", new),
+                ("close",), ("close",), ("close",), ("open", "job"),
+                ("invoke", mk), ("close",)])
+    return rows, ops

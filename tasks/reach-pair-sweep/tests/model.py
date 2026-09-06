@@ -10,6 +10,7 @@ Colours: 1 is reached from the open frames, 2 is kept only so a queued finalizer
 Uncoloured objects are released. Painting 2 cannot overwrite 1, which is what keeps weak
 clearing and the finalizable set answering to colour 1 alone.
 """
+import collections
 
 
 def _index(pairs):
@@ -20,9 +21,9 @@ def _index(pairs):
 
 
 def _paint(obj, bykey, seed, colour, col):
-    work = [i for i in seed]
+    work = collections.deque(seed)
     while work:
-        i = work.pop()
+        i = work.popleft()
         if i not in obj or col.get(i):
             continue
         col[i] = colour

@@ -32,6 +32,8 @@ def blocks(nonce):
     for i in range(300):
         rows, ops = gen.stream("%s-%d" % (nonce, i), i % 2 == 0)
         out.append(("gen", "g%04d" % i, rows, ops))
+        rows, ops = gen.transaction("%s-%d" % (nonce, i), i % 2 == 0)
+        out.append(("tx", "t%04d" % i, rows, ops))
     return out
 
 
@@ -41,7 +43,7 @@ def main(dest):
     try:
         from wire import core, plan, reg, scope
         rec["seal"] = {
-            "core": digest(core.Core, ["build", "fire", "mint", "forget", "since", "mark", "kind"]),
+            "core": digest(core.Core, ["build", "fire", "mint", "forget", "since", "mark", "kind", "fault"]),
             "reg": digest(reg, ["load", "reach", "cycles"]),
             "scope": digest(scope.Stack, ["open", "close", "top", "under", "holds", "upto", "tag"]),
         }

@@ -1,0 +1,570 @@
+{
+  "runtime": "3.12.13 (main, Jul 23 2026, 14:44:57) [MSC v.1944 64 bit (AMD64)]",
+  "contract": "22 legacy outputs and isolation unchanged; 8 literal traces agree; pristine matches",
+  "variants": {
+    "reference": {
+      "fixed": [],
+      "generated": 0
+    },
+    "ok-descending-serial": {
+      "fixed": [],
+      "generated": 0
+    },
+    "ok-downward-homes": {
+      "fixed": [],
+      "generated": 0
+    },
+    "ok-last-mark": {
+      "fixed": [],
+      "generated": 0
+    },
+    "ok-scope-index": {
+      "fixed": [],
+      "generated": 0
+    }
+  },
+  "visible_reference": {
+    "crossing.txt": true,
+    "handover.txt": true,
+    "nested.txt": true,
+    "parting.txt": true,
+    "pinned.txt": true,
+    "plain.txt": true,
+    "retry.txt": true,
+    "rollback.txt": true,
+    "wide.txt": true,
+    "wrapped.txt": true
+  },
+  "visible_nop": {
+    "crossing.txt": false,
+    "handover.txt": false,
+    "nested.txt": false,
+    "parting.txt": false,
+    "pinned.txt": false,
+    "plain.txt": false,
+    "retry.txt": false,
+    "rollback.txt": false,
+    "wide.txt": false,
+    "wrapped.txt": false
+  },
+  "host_grader": {
+    "reference": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "pass",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "pass"
+    },
+    "nop": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: scoped-reentry-in-one-scope, teardown-runs-back-to-front, chain-under-a-singleton-goes-to-root, invoke-before-the-holder-exists, a-nested-close-leaves-the-parent-alone, wrapping-follows-reverse-allocation-order, held-across-one-scope, held-across-two-scopes-running, held-and-invoked-where-it-was-made, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged, two-parting-calls-run-in-teardown-order, a-failed-construction-rolls-back-what-it-finished, a-failed-singleton-still-roots-its-rollback, rollback-does-not-remove-an-older-cache-entry, rollback-clears-a-new-cache-entry, a-failed-holder-does-not-replace-an-older-factory, wrapped-and-marked-rollback-keeps-all-three-orders, a-cache-hit-skips-an-unavailable-constructor, a-recovered-constructor-rebuilds-rolled-back-dependencies, a-borrowed-singleton-survives-a-failed-request, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors, failure-in-a-wrapper-prevents-later-dependencies, rollback-preserves-a-marked-instance-owned-outside-the-cache-scope, failed-new-holder-preserves-old-token-after-its-scope-closes, failure-is-tested-after-ordered-dependencies, parting-failure-preserves-older-outer-scope-cache",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 236 of 300 generated streams came back wrong, first g0000",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-capture-at-invocation.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: held-across-one-scope, held-across-two-scopes-running, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged, a-failed-holder-does-not-replace-an-older-factory, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors, failed-new-holder-preserves-old-token-after-its-scope-closes",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 81 of 300 generated streams came back wrong, first g0000",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-capture-innermost-live.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: held-across-one-scope, held-across-two-scopes-running, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged, a-failed-holder-does-not-replace-an-older-factory, factory-failure-uses-capture-home-and-invocation-refusal",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 81 of 300 generated streams came back wrong, first g0000",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-chain-under-singleton-ignored.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: chain-under-a-singleton-goes-to-root, a-failed-singleton-still-roots-its-rollback, a-recovered-constructor-rebuilds-rolled-back-dependencies, a-borrowed-singleton-survives-a-failed-request",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 184 of 300 generated streams came back wrong, first g0000",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 273 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-completion-order.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: scoped-reentry-in-one-scope, teardown-runs-back-to-front, a-nested-close-leaves-the-parent-alone, wrapping-follows-reverse-allocation-order, held-across-one-scope, held-across-two-scopes-running, held-and-invoked-where-it-was-made, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged, a-recovered-constructor-rebuilds-rolled-back-dependencies, a-borrowed-singleton-survives-a-failed-request, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, failure-in-a-wrapper-prevents-later-dependencies, rollback-preserves-a-marked-instance-owned-outside-the-cache-scope, failed-new-holder-preserves-old-token-after-its-scope-closes",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 146 of 300 generated streams came back wrong, first g0000",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-cycle-blind.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-cycle-is-refused, a-cycle-through-a-wrapper-is-refused",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "pass"
+    },
+    "cheat-rule-inherit-marked-home.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: wrapped-and-marked-rollback-keeps-all-three-orders",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 12 of 300 generated streams came back wrong, first g0026",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 43 construction streams differed, first ['t0002']"
+    },
+    "cheat-rule-mark-from-the-active-scope.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: the-mark-is-looked-for-from-where-the-work-is-charged, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 11 of 300 generated streams came back wrong, first g0050",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 220 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-mark-not-required.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-pinned-name-with-no-mark-in-reach-is-refused, a-parting-call-with-nowhere-to-land-is-refused",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 137 of 300 generated streams came back wrong, first g0001",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 146 construction streams differed, first ['t0002']"
+    },
+    "cheat-rule-mark-taken-from-the-outermost.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: the-nearest-mark-wins-over-an-outer-one",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 26 of 300 generated streams came back wrong, first g0002",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 61 construction streams differed, first ['t0004']"
+    },
+    "cheat-rule-parting-call-into-the-closing-scope.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-parting-call-lands-outside-the-scope-that-is-going, a-parting-call-with-nowhere-to-land-is-refused, two-parting-calls-run-in-teardown-order, a-failed-parting-call-rolls-back-before-close-continues, parting-failure-preserves-older-outer-scope-cache",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 54 of 300 generated streams came back wrong, first g0005",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 189 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-precheck-constructor-fault.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-construction-rolls-back-what-it-finished, a-failed-singleton-still-roots-its-rollback, rollback-does-not-remove-an-older-cache-entry, rollback-clears-a-new-cache-entry, a-failed-holder-does-not-replace-an-older-factory, a-failed-parting-call-rolls-back-before-close-continues, rollback-does-not-run-parting-calls, wrapped-and-marked-rollback-keeps-all-three-orders, a-cache-hit-skips-an-unavailable-constructor, a-recovered-constructor-rebuilds-rolled-back-dependencies, a-borrowed-singleton-survives-a-failed-request, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors, failure-in-a-wrapper-prevents-later-dependencies, rollback-preserves-a-marked-instance-owned-outside-the-cache-scope, failed-new-holder-preserves-old-token-after-its-scope-closes, failure-is-tested-after-ordered-dependencies, parting-failure-preserves-older-outer-scope-cache",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-previous-four-fixes.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-singleton-still-roots-its-rollback, rollback-clears-a-new-cache-entry, a-recovered-constructor-rebuilds-rolled-back-dependencies, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors, failure-in-a-wrapper-prevents-later-dependencies, failed-new-holder-preserves-old-token-after-its-scope-closes, failure-is-tested-after-ordered-dependencies",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-refusal-direct-only.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: refusal-follows-the-whole-chain",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 16 of 300 generated streams came back wrong, first g0002",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 55 construction streams differed, first ['t0001']"
+    },
+    "cheat-rule-rollback-clears-old-cache.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-borrowed-singleton-survives-a-failed-request, rollback-preserves-a-marked-instance-owned-outside-the-cache-scope, parting-failure-preserves-older-outer-scope-cache",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 281 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-rollback-completed-ancestry.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-singleton-still-roots-its-rollback",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 60 construction streams differed, first ['t0005']"
+    },
+    "cheat-rule-rollback-completion-order.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: wrapped-and-marked-rollback-keeps-all-three-orders, a-recovered-constructor-rebuilds-rolled-back-dependencies",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 241 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-rollback-factory-rebind.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-holder-does-not-replace-an-older-factory, failed-new-holder-preserves-old-token-after-its-scope-closes",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-rollback-keeps-new-cache.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: rollback-clears-a-new-cache-entry, retry-does-not-tear-down-a-stale-provisional-instance",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 207 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-rollback-owned-here.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-singleton-still-roots-its-rollback, wrapped-and-marked-rollback-keeps-all-three-orders, a-recovered-constructor-rebuilds-rolled-back-dependencies, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 277 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-rollback-parting-calls.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: rollback-does-not-run-parting-calls",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 228 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-rollback-refusal-last.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-construction-rolls-back-what-it-finished, a-failed-singleton-still-roots-its-rollback, rollback-does-not-remove-an-older-cache-entry, rollback-clears-a-new-cache-entry, a-failed-holder-does-not-replace-an-older-factory, a-failed-parting-call-rolls-back-before-close-continues, rollback-does-not-run-parting-calls, wrapped-and-marked-rollback-keeps-all-three-orders, a-recovered-constructor-rebuilds-rolled-back-dependencies, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors, failure-in-a-wrapper-prevents-later-dependencies, failed-new-holder-preserves-old-token-after-its-scope-closes, failure-is-tested-after-ordered-dependencies, parting-failure-preserves-older-outer-scope-cache",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-rollback-unfinished.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-construction-rolls-back-what-it-finished, a-failed-singleton-still-roots-its-rollback, rollback-does-not-remove-an-older-cache-entry, rollback-clears-a-new-cache-entry, a-failed-holder-does-not-replace-an-older-factory, a-failed-parting-call-rolls-back-before-close-continues, rollback-does-not-run-parting-calls, wrapped-and-marked-rollback-keeps-all-three-orders, a-cache-hit-skips-an-unavailable-constructor, a-recovered-constructor-rebuilds-rolled-back-dependencies, a-borrowed-singleton-survives-a-failed-request, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors, failure-in-a-wrapper-prevents-later-dependencies, rollback-preserves-a-marked-instance-owned-outside-the-cache-scope, failed-new-holder-preserves-old-token-after-its-scope-closes, failure-is-tested-after-ordered-dependencies, parting-failure-preserves-older-outer-scope-cache",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-rule-teardown-front-to-back.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: scoped-reentry-in-one-scope, teardown-runs-back-to-front, invoke-before-the-holder-exists, a-nested-close-leaves-the-parent-alone, wrapping-follows-reverse-allocation-order, held-across-one-scope, held-across-two-scopes-running, held-and-invoked-where-it-was-made, a-transient-holder-still-carries-its-scope, the-mark-is-looked-for-from-where-the-work-is-charged, two-parting-calls-run-in-teardown-order, a-failed-holder-does-not-replace-an-older-factory, a-cache-hit-skips-an-unavailable-constructor, a-recovered-constructor-rebuilds-rolled-back-dependencies, a-borrowed-singleton-survives-a-failed-request, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, failure-in-a-wrapper-prevents-later-dependencies, rollback-preserves-a-marked-instance-owned-outside-the-cache-scope, failed-new-holder-preserves-old-token-after-its-scope-closes",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 213 of 300 generated streams came back wrong, first g0000",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-forge-answer-key.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "AssertionError: these cases came back wrong: a-failed-construction-rolls-back-what-it-finished, a-failed-singleton-still-roots-its-rollback, rollback-does-not-remove-an-older-cache-entry, rollback-clears-a-new-cache-entry, a-failed-holder-does-not-replace-an-older-factory, a-failed-parting-call-rolls-back-before-close-continues, rollback-does-not-run-parting-calls, wrapped-and-marked-rollback-keeps-all-three-orders, a-cache-hit-skips-an-unavailable-constructor, a-recovered-constructor-rebuilds-rolled-back-dependencies, a-borrowed-singleton-survives-a-failed-request, retry-does-not-tear-down-a-stale-provisional-instance, factory-failure-uses-capture-home-and-invocation-refusal, rollback-into-a-closed-capture-does-not-resurrect-its-ancestors, failure-in-a-wrapper-prevents-later-dependencies, rollback-preserves-a-marked-instance-owned-outside-the-cache-scope, failed-new-holder-preserves-old-token-after-its-scope-closes, admission-still-precedes-any-constructor-failure, failure-is-tested-after-ordered-dependencies, parting-failure-preserves-older-outer-scope-cache",
+      "test_the_generated_streams_match_the_rules": "AssertionError: 298 of 300 generated streams came back wrong, first g0000",
+      "test_construction_failures_and_retries_match_the_rules": "AssertionError: 300 construction streams differed, first ['t0000']"
+    },
+    "cheat-probe-patch-seal.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "AssertionError: wire/core.py was not the shipped module",
+      "test_the_executed_tree_was_the_one_we_shipped": "pass",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "pass",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "pass"
+    },
+    "cheat-probe-rewrite-frozen.sh": {
+      "test_the_run_produced_a_report": "pass",
+      "test_the_sealed_modules_were_the_ones_we_shipped": "pass",
+      "test_the_executed_tree_was_the_one_we_shipped": "AssertionError: wire\\core.py was modified",
+      "test_the_named_ground_truth_matches_the_rules": "pass",
+      "test_the_named_cases_match_the_rules": "pass",
+      "test_the_generated_streams_match_the_rules": "pass",
+      "test_construction_failures_and_retries_match_the_rules": "pass"
+    }
+  },
+  "mutants": {
+    "cheat-rule-capture-at-invocation.sh": {
+      "fixed": [
+        "held-across-one-scope",
+        "held-across-two-scopes-running",
+        "a-transient-holder-still-carries-its-scope",
+        "the-mark-is-looked-for-from-where-the-work-is-charged",
+        "a-failed-holder-does-not-replace-an-older-factory",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes"
+      ],
+      "generated": 387
+    },
+    "cheat-rule-capture-innermost-live.sh": {
+      "fixed": [
+        "held-across-one-scope",
+        "held-across-two-scopes-running",
+        "a-transient-holder-still-carries-its-scope",
+        "the-mark-is-looked-for-from-where-the-work-is-charged",
+        "a-failed-holder-does-not-replace-an-older-factory",
+        "factory-failure-uses-capture-home-and-invocation-refusal"
+      ],
+      "generated": 384
+    },
+    "cheat-rule-chain-under-singleton-ignored.sh": {
+      "fixed": [
+        "chain-under-a-singleton-goes-to-root",
+        "a-failed-singleton-still-roots-its-rollback",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "a-borrowed-singleton-survives-a-failed-request"
+      ],
+      "generated": 459
+    },
+    "cheat-rule-completion-order.sh": {
+      "fixed": [
+        "scoped-reentry-in-one-scope",
+        "teardown-runs-back-to-front",
+        "a-nested-close-leaves-the-parent-alone",
+        "wrapping-follows-reverse-allocation-order",
+        "held-across-one-scope",
+        "held-across-two-scopes-running",
+        "held-and-invoked-where-it-was-made",
+        "a-transient-holder-still-carries-its-scope",
+        "the-mark-is-looked-for-from-where-the-work-is-charged",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "a-borrowed-singleton-survives-a-failed-request",
+        "retry-does-not-tear-down-a-stale-provisional-instance",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "failure-in-a-wrapper-prevents-later-dependencies",
+        "rollback-preserves-a-marked-instance-owned-outside-the-cache-scope",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes"
+      ],
+      "generated": 455
+    },
+    "cheat-rule-cycle-blind.sh": {
+      "fixed": [
+        "a-cycle-is-refused",
+        "a-cycle-through-a-wrapper-is-refused"
+      ],
+      "generated": 0
+    },
+    "cheat-rule-inherit-marked-home.sh": {
+      "fixed": [
+        "wrapped-and-marked-rollback-keeps-all-three-orders"
+      ],
+      "generated": 73
+    },
+    "cheat-rule-mark-from-the-active-scope.sh": {
+      "fixed": [
+        "the-mark-is-looked-for-from-where-the-work-is-charged",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "rollback-into-a-closed-capture-does-not-resurrect-its-ancestors"
+      ],
+      "generated": 255
+    },
+    "cheat-rule-mark-not-required.sh": {
+      "fixed": [
+        "a-pinned-name-with-no-mark-in-reach-is-refused",
+        "a-parting-call-with-nowhere-to-land-is-refused"
+      ],
+      "generated": 266
+    },
+    "cheat-rule-mark-taken-from-the-outermost.sh": {
+      "fixed": [
+        "the-nearest-mark-wins-over-an-outer-one"
+      ],
+      "generated": 87
+    },
+    "cheat-rule-parting-call-into-the-closing-scope.sh": {
+      "fixed": [
+        "a-parting-call-lands-outside-the-scope-that-is-going",
+        "a-parting-call-with-nowhere-to-land-is-refused",
+        "two-parting-calls-run-in-teardown-order",
+        "a-failed-parting-call-rolls-back-before-close-continues",
+        "parting-failure-preserves-older-outer-scope-cache"
+      ],
+      "generated": 272
+    },
+    "cheat-rule-precheck-constructor-fault.sh": {
+      "fixed": [
+        "a-failed-construction-rolls-back-what-it-finished",
+        "a-failed-singleton-still-roots-its-rollback",
+        "rollback-does-not-remove-an-older-cache-entry",
+        "rollback-clears-a-new-cache-entry",
+        "a-failed-holder-does-not-replace-an-older-factory",
+        "a-failed-parting-call-rolls-back-before-close-continues",
+        "rollback-does-not-run-parting-calls",
+        "wrapped-and-marked-rollback-keeps-all-three-orders",
+        "a-cache-hit-skips-an-unavailable-constructor",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "a-borrowed-singleton-survives-a-failed-request",
+        "retry-does-not-tear-down-a-stale-provisional-instance",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+        "failure-in-a-wrapper-prevents-later-dependencies",
+        "rollback-preserves-a-marked-instance-owned-outside-the-cache-scope",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes",
+        "failure-is-tested-after-ordered-dependencies",
+        "parting-failure-preserves-older-outer-scope-cache"
+      ],
+      "generated": 300
+    },
+    "cheat-rule-previous-four-fixes.sh": {
+      "fixed": [
+        "a-failed-singleton-still-roots-its-rollback",
+        "rollback-clears-a-new-cache-entry",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "retry-does-not-tear-down-a-stale-provisional-instance",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+        "failure-in-a-wrapper-prevents-later-dependencies",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes",
+        "failure-is-tested-after-ordered-dependencies"
+      ],
+      "generated": 300
+    },
+    "cheat-rule-refusal-direct-only.sh": {
+      "fixed": [
+        "refusal-follows-the-whole-chain"
+      ],
+      "generated": 64
+    },
+    "cheat-rule-rollback-clears-old-cache.sh": {
+      "fixed": [
+        "a-borrowed-singleton-survives-a-failed-request",
+        "rollback-preserves-a-marked-instance-owned-outside-the-cache-scope",
+        "parting-failure-preserves-older-outer-scope-cache"
+      ],
+      "generated": 272
+    },
+    "cheat-rule-rollback-completed-ancestry.sh": {
+      "fixed": [
+        "a-failed-singleton-still-roots-its-rollback"
+      ],
+      "generated": 71
+    },
+    "cheat-rule-rollback-completion-order.sh": {
+      "fixed": [
+        "wrapped-and-marked-rollback-keeps-all-three-orders",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies"
+      ],
+      "generated": 250
+    },
+    "cheat-rule-rollback-factory-rebind.sh": {
+      "fixed": [
+        "a-failed-holder-does-not-replace-an-older-factory",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes"
+      ],
+      "generated": 300
+    },
+    "cheat-rule-rollback-keeps-new-cache.sh": {
+      "fixed": [
+        "rollback-clears-a-new-cache-entry",
+        "retry-does-not-tear-down-a-stale-provisional-instance"
+      ],
+      "generated": 208
+    },
+    "cheat-rule-rollback-owned-here.sh": {
+      "fixed": [
+        "a-failed-singleton-still-roots-its-rollback",
+        "wrapped-and-marked-rollback-keeps-all-three-orders",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "rollback-into-a-closed-capture-does-not-resurrect-its-ancestors"
+      ],
+      "generated": 287
+    },
+    "cheat-rule-rollback-parting-calls.sh": {
+      "fixed": [
+        "rollback-does-not-run-parting-calls"
+      ],
+      "generated": 231
+    },
+    "cheat-rule-rollback-refusal-last.sh": {
+      "fixed": [
+        "a-failed-construction-rolls-back-what-it-finished",
+        "a-failed-singleton-still-roots-its-rollback",
+        "rollback-does-not-remove-an-older-cache-entry",
+        "rollback-clears-a-new-cache-entry",
+        "a-failed-holder-does-not-replace-an-older-factory",
+        "a-failed-parting-call-rolls-back-before-close-continues",
+        "rollback-does-not-run-parting-calls",
+        "wrapped-and-marked-rollback-keeps-all-three-orders",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "retry-does-not-tear-down-a-stale-provisional-instance",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+        "failure-in-a-wrapper-prevents-later-dependencies",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes",
+        "failure-is-tested-after-ordered-dependencies",
+        "parting-failure-preserves-older-outer-scope-cache"
+      ],
+      "generated": 300
+    },
+    "cheat-rule-rollback-unfinished.sh": {
+      "fixed": [
+        "a-failed-construction-rolls-back-what-it-finished",
+        "a-failed-singleton-still-roots-its-rollback",
+        "rollback-does-not-remove-an-older-cache-entry",
+        "rollback-clears-a-new-cache-entry",
+        "a-failed-holder-does-not-replace-an-older-factory",
+        "a-failed-parting-call-rolls-back-before-close-continues",
+        "rollback-does-not-run-parting-calls",
+        "wrapped-and-marked-rollback-keeps-all-three-orders",
+        "a-cache-hit-skips-an-unavailable-constructor",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "a-borrowed-singleton-survives-a-failed-request",
+        "retry-does-not-tear-down-a-stale-provisional-instance",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "rollback-into-a-closed-capture-does-not-resurrect-its-ancestors",
+        "failure-in-a-wrapper-prevents-later-dependencies",
+        "rollback-preserves-a-marked-instance-owned-outside-the-cache-scope",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes",
+        "failure-is-tested-after-ordered-dependencies",
+        "parting-failure-preserves-older-outer-scope-cache"
+      ],
+      "generated": 300
+    },
+    "cheat-rule-teardown-front-to-back.sh": {
+      "fixed": [
+        "scoped-reentry-in-one-scope",
+        "teardown-runs-back-to-front",
+        "invoke-before-the-holder-exists",
+        "a-nested-close-leaves-the-parent-alone",
+        "wrapping-follows-reverse-allocation-order",
+        "held-across-one-scope",
+        "held-across-two-scopes-running",
+        "held-and-invoked-where-it-was-made",
+        "a-transient-holder-still-carries-its-scope",
+        "the-mark-is-looked-for-from-where-the-work-is-charged",
+        "two-parting-calls-run-in-teardown-order",
+        "a-failed-holder-does-not-replace-an-older-factory",
+        "a-cache-hit-skips-an-unavailable-constructor",
+        "a-recovered-constructor-rebuilds-rolled-back-dependencies",
+        "a-borrowed-singleton-survives-a-failed-request",
+        "retry-does-not-tear-down-a-stale-provisional-instance",
+        "factory-failure-uses-capture-home-and-invocation-refusal",
+        "failure-in-a-wrapper-prevents-later-dependencies",
+        "rollback-preserves-a-marked-instance-owned-outside-the-cache-scope",
+        "failed-new-holder-preserves-old-token-after-its-scope-closes"
+      ],
+      "generated": 523
+    }
+  },
+  "elapsed_sec": 67.09,
+  "limits": "Host Python only; Docker/Harbor/isolation and external model gates unrun"
+}

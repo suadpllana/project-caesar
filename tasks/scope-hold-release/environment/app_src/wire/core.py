@@ -2,6 +2,10 @@ from wire.reg import SING, SCOPED
 from wire.scope import ROOT
 
 
+class Failed(Exception):
+    pass
+
+
 class Core:
     def __init__(self, tbl):
         self.tbl = tbl
@@ -9,8 +13,13 @@ class Core:
         self.scp = {}
         self.seq = 0
         self.made = []
+        self.entered = []
+        self.down = {nm: r.fail for nm, r in tbl.items()}
         self._tk = {}
         self._tn = 0
+
+    def fault(self, nm, down):
+        self.down[nm] = down
 
     def mint(self, nm, at):
         self._tn += 1
@@ -35,10 +44,13 @@ class Core:
             sub = at
         self.seq += 1
         i = self.seq
+        self.entered.append((i, nm, up))
         if r.wraps:
             self.build(r.wraps, sub, i)
         for d in r.deps:
             self.build(d, sub, i)
+        if self.down[nm]:
+            raise Failed(nm)
         if r.life == SING:
             self.sng[nm] = i
         elif r.life == SCOPED:

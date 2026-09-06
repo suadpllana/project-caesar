@@ -30,6 +30,9 @@ TESTS = TASK / "tests"
 
 NOT_COVERED = ("reward-daemon", "privilege-probe")
 
+# Must match `timeout N setsid` in tests/test.sh: the stated execution limit.
+WORKER_LIMIT = 60
+
 
 def score(collector, per=80, quiet=True):
     """Reward for one collector, by the same default-deny rule test.sh uses."""
@@ -48,9 +51,12 @@ def score(collector, per=80, quiet=True):
         env.update({"RPS_TESTS": str(TESTS), "RPS_WORK": str(work), "RPS_LOGS": str(logs),
                     "RPS_SUB": str(collector), "PYTHONDONTWRITEBYTECODE": "1"})
 
-        w = subprocess.run([sys.executable, str(TESTS / "worker.py"),
-                            "--out", str(work / "worker_out.json")],
-                           env=env, capture_output=True, text=True, timeout=900)
+        try:
+            w = subprocess.run([sys.executable, str(TESTS / "worker.py"),
+                                "--out", str(work / "worker_out.json")],
+                               env=env, capture_output=True, text=True, timeout=WORKER_LIMIT)
+        except subprocess.TimeoutExpired:
+            return 0
         g = subprocess.run([sys.executable, "-m", "pytest", str(TESTS / "test_outputs.py"),
                             "-p", "no:cacheprovider", "-q"],
                            env=env, capture_output=True, text=True, timeout=900)

@@ -1,0 +1,10 @@
+r job scoped note,bad .
+r note trans . . . . flush
+r bad trans crumb . . . . fail
+r crumb trans . .
+r flush trans . .
+o open
+o resolve job
+o fault bad off
+o resolve job
+o close

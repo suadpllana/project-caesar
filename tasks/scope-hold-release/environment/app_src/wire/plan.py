@@ -12,6 +12,18 @@ def place(co, tbl, st, m, at, holds, cause, src):
     return batch
 
 
+def attempt(co, tbl, st, at, here, nm, holds, cause, out, build):
+    m = co.mark()
+    try:
+        build()
+    except C.Failed:
+        place(co, tbl, st, m, at, holds, cause, nm)
+        out.append(("refused", nm, here))
+        return False
+    place(co, tbl, st, m, at, holds, cause, nm)
+    return True
+
+
 def run(tbl, ops):
     co = C.Core(tbl)
     st = Stack()
@@ -24,6 +36,8 @@ def run(tbl, ops):
         k = op[0]
         if k == "open":
             st.open(op[1] if len(op) > 1 else "")
+        elif k == "fault":
+            co.fault(op[1], op[2] == "on")
         elif k == "close":
             sc = st.close()
             if sc is None:
@@ -40,18 +54,17 @@ def run(tbl, ops):
                     if not st.holds(landing) or not gate.allow(tbl, st, s, landing):
                         out.append(("refused", s, landing))
                         continue
-                    m = co.mark()
-                    co.build(s, landing)
-                    place(co, tbl, st, m, landing, holds, cause, s)
+                    attempt(co, tbl, st, landing, landing, s, holds, cause, out,
+                            lambda: co.build(s, landing))
             co.forget(sc)
         elif k == "resolve":
             nm = op[1]
             if not gate.allow(tbl, st, nm, st.top()):
                 out.append(("refused", nm, st.top()))
                 continue
-            m = co.mark()
-            co.build(nm, st.top())
-            place(co, tbl, st, m, st.top(), holds, cause, nm)
+            if not attempt(co, tbl, st, st.top(), st.top(), nm, holds, cause, out,
+                           lambda: co.build(nm, st.top())):
+                continue
             for f in tbl[nm].facs:
                 t = co.mint(f, st.top())
                 hold.note(bk, t, st.top())
@@ -65,7 +78,6 @@ def run(tbl, ops):
             if not gate.allow(tbl, st, f, at):
                 out.append(("refused", f, st.top()))
                 continue
-            m = co.mark()
-            co.fire(tk[f])
-            place(co, tbl, st, m, at, holds, cause, f)
+            attempt(co, tbl, st, at, st.top(), f, holds, cause, out,
+                    lambda: co.fire(tk[f]))
     return out

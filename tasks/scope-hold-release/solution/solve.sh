@@ -4,7 +4,7 @@ set -eu
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP="${APPDIR:-/app}"
 
-for f in own hold gate tear; do
+for f in gate hold own pin shut tear; do
   cp "${HERE}/${f}.py" "${APP}/wire/${f}.py"
 done
 

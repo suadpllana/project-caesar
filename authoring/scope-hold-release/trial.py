@@ -1,4 +1,5 @@
 import argparse
+import os
 import pathlib
 import shutil
 import subprocess
@@ -51,10 +52,15 @@ def rewrite(root):
 def apply(root, kind, name):
     app = root / "work" / "app"
     if kind == "oracle":
-        for f in ARTS:
-            p = SOL / f
-            if p.exists():
-                shutil.copy(p, app / "wire" / f)
+        # Run the real solve.sh, the way the platform does. Copying solution/*.py
+        # here instead is what let a stale four-file solve.sh reach reference
+        # verification while this gate reported the oracle at 1.
+        env = dict(os.environ)
+        env["APPDIR"] = str(app)
+        r = subprocess.run([shell(), str(SOL / "solve.sh")], cwd=str(app),
+                           capture_output=True, text=True, env=env)
+        if r.returncode != 0:
+            raise SystemExit("solve.sh failed: %s" % ((r.stderr or r.stdout)[-400:]))
     elif kind == "variant":
         for f in sorted((HERE / "variants" / name).glob("*.py")):
             shutil.copy(f, app / "wire" / f.name)

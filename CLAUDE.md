@@ -222,6 +222,64 @@ the owner's no-subagents rule, and a genuine cold self-solve was impossible beca
 session designed the mechanism; the three-row table above is what stands in its place, and it
 is stronger evidence than a self-probe the author would contaminate.
 
+### The reference-verification rejection: a hand-written solve.sh goes stale silently (2026-09-06)
+
+The enriched bundle went back and **failed reference verification**. The cause is one line and
+it is the cheapest rejection in this file to have avoided:
+
+> `solution/solve.sh` was hand-written with a hardcoded list, `for f in own hold gate tear`.
+> The `difficult` repair had grown `solution/` to **six** files by adding `pin.py` and
+> `shut.py`. The oracle agent therefore copied four of six, ran with the shipped broken
+> `pin.py` and `shut.py`, and scored 0.
+
+Those two files carry readings that move **6.3%** and **22.3%** of the graded set, so the
+oracle failed the generated block with certainty. Nothing about the task was wrong.
+
+**And the local gate reported the oracle at 1 the whole time, which is standing-policy item 2.**
+`authoring/<slug>/trial.py`'s oracle row copied `solution/*.py` into the work tree directly
+instead of running `solve.sh`. It was therefore testing a submission the platform never
+builds. This is the `guard-mark-unwind` finding repeating exactly - CLAUDE.md already records
+that `tools/docker_trial2.py` "now mounts the whole `solution/` directory for the oracle run,
+matching the platform" - and the per-task host emulation was written afterwards without that
+fix. **Any host emulation that stages the oracle by copying files has this latent.**
+
+Two repairs, and the first is the one that makes it impossible rather than fixed:
+
+- **`emit.py` generates `solve.sh` from `sorted(SOL.glob("*.py"))`.** The list is derived, so
+  adding a reference file updates the copier in the same run that regenerates the cheats. A
+  hand-written `solve.sh` is a second copy of the artifact list with nothing holding it equal -
+  the same defect class as the solution-quality rejection of 2026-08-31, one level up.
+- **`trial.py` runs the real `solve.sh`** with `APPDIR` pointed at the staged tree.
+
+Validated in both directions, which is the rule for a changed check: with the four-file list
+restored the trial reports **oracle 0**, failing `test_the_named_cases_match_the_rules` -
+reproducing the pipeline's verdict - and **oracle 1** with the generated one.
+
+**The sibling sweep, because a rejection names an example and not a scope.** The artifact list
+is hardcoded in five places: `task.toml`, `tests/test.sh`'s overlay loop,
+`tests/test_outputs.py`'s `ARTIFACTS`, `trial.py`'s `ARTS`, and `solve.sh`. A twenty-line
+script comparing all five found the other four already in agreement and `solve.sh` the only
+one that had drifted - but three of those four had been updated **by hand** earlier in the
+same session, one at a time, as separate failures surfaced. **Run that comparison before
+packaging any bundle whose artifact list has changed**; it is faster than finding out from the
+gate that runs sixth.
+
+One gate that had never been run on this bundle and is now: `determinism.py`, identical across
+five `PYTHONHASHSEED` values. It was clean, but the generator turns a reachability **set** into
+a sequence and only a sort stands between that and the intermittent-reference failure recorded
+under `grant-spread-order`.
+
+**Gates after the repair:** trial `--all` **22 of 22, 0 unexpected** with the oracle now going
+through the real `solve.sh`; trial `--variants` 4/4; `cheat_report` 16/16 with each attestation
+probe caught by its own layer alone; `build_gt` reproving the reference against the sealed
+oracle on 22 named cases and 400 generated streams; `readings` 6/6 pinned; `determinism` clean
+across 5 seeds; and `solvecheck`, `deadfieldcheck`, `catcheck`, `extraneouscheck`, `forgecheck`,
+`onelinecheck`, `hintcheck`, `structcheck`, `zipcheck` and `preflight` clean. `textcheck` clean
+against `guard-mark-unwind` and `grant-spread-order`, the documented burstiness outlier against
+`rollout-cache-coherence` (0.823 vs 0.929). The archive was re-checked from the extracted zip
+rather than the tree, because a stale artifact list is exactly the fault a tree-only check
+cannot see.
+
 ## Work in flight, and how main moves
 
 **`main` is pushed to directly here.** The task owner asked for that on 2026-09-01, and

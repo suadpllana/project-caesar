@@ -28,6 +28,24 @@ RULES = {
 
 HEAD = '#!/bin/bash\nset -eu\nAPP="${APPDIR:-$(pwd)}"\n'
 
+SOLVE = "\n".join([
+    "#!/bin/bash",
+    "set -eu",
+    "",
+    'HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+    'APP="${APPDIR:-/app}"',
+    "",
+    "for f in %s; do",
+    '  cp "${HERE}/${f}.py" "${APP}/wire/${f}.py"',
+    "done",
+    "",
+    'cd "${APP}"',
+    "for c in cases/*.txt; do",
+    '  python run_wire.py "${c}" > /dev/null',
+    "done",
+    "",
+])
+
 
 def write(name, body):
     p = CHEAT / name
@@ -48,10 +66,27 @@ def base(skip=None):
     return out
 
 
+def solve():
+    """Write solve.sh from whatever solution/ actually holds, so the list cannot drift.
+
+    Reference verification rejected this bundle once because solve.sh named four
+    files by hand and the enrichment had grown solution/ to six.
+    """
+    names = sorted(f.stem for f in SOL.glob("*.py"))
+    if not names:
+        raise SystemExit("emit.py: solution/ holds no python files to copy")
+    out = SOL / "solve.sh"
+    out.write_text(SOLVE % " ".join(names), newline="\n")
+    out.chmod(0o755)
+    return names
+
+
 def main():
     CHEAT.mkdir(exist_ok=True)
     for old in CHEAT.glob("*.sh"):
         old.unlink()
+    copied = solve()
+    print("solve.sh copies:", " ".join(copied))
     n = 0
     for label, (fname, was, now) in sorted(RULES.items()):
         src = (SOL / fname).read_text()

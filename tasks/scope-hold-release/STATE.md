@@ -59,10 +59,28 @@ the environment from 237 to 318 lines, the reference from 40 to 60, the wrong fi
 four to six and the graded readings from four to six. That criterion has documented
 run-to-run variance; this raises the odds rather than settling it.
 
+## The reference-verification rejection, 2026-09-06
+
+The enriched bundle failed reference verification. Cause: `solution/solve.sh` was
+hand-written with a hardcoded four-file list (`own hold gate tear`) and the enrichment had
+grown `solution/` to six. The oracle agent therefore ran with the shipped broken `pin.py`
+and `shut.py` - readings that move 6.3% and 22.3% of the graded set - and scored 0.
+
+The local trial missed it because its oracle row copied `solution/*.py` directly instead of
+running `solve.sh`. Both are fixed: `emit.py` now generates `solve.sh` from whatever
+`solution/` holds, and `trial.py` runs the real `solve.sh` the way the platform does.
+Validated in both directions - with the four-file list restored the trial reports the
+oracle at 0 on `test_the_named_cases_match_the_rules`, and at 1 with the generated one.
+
+A sweep of every other place the artifact list is hardcoded (`task.toml`, `tests/test.sh`,
+`tests/test_outputs.py`, `trial.py`) found all four already in agreement; `solve.sh` was
+the only one that had drifted.
+
 ## Gates run
 
 Host emulation `authoring/scope-hold-release/trial.py --all`: 22 rows, 0 unexpected
-(oracle 1, nop 0, 4 variants 1, 16 cheats 0). `readings.py` 6 of 6 pinned by named cases.
+(oracle 1 **through the real solve.sh**, nop 0, 4 variants 1, 16 cheats 0).
+`determinism.py` identical across 5 hash seeds. `readings.py` 6 of 6 pinned by named cases.
 `cheat_report.py` 16 of 16, each attestation probe caught by its own layer and nothing
 else. `build_gt.py` proved the reference against the sealed oracle on 22 named cases and
 400 generated streams. `onelinecheck` reports no exact rule at depth <= 2 on either graded

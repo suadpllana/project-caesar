@@ -4,11 +4,14 @@ Working memory for this task. This file never ships in the submission archive.
 
 ## Current stage
 
-`Recovery 2 paused for contributor-authored instruction after AI-authorship rejection.`
+`Recovery 4 - instruction rewritten after a second AI-authorship rejection; bundle unchanged.`
 
-The 81-entry archive was rejected at the instruction-authorship gate and moved to
-`probes/scope-hold-release/recovery-2/ai-rejected.zip`; there is intentionally no current
-submission ZIP. Latest evidence and limitations: `probes/scope-hold-release/recovery-2/REVIEW.md`.
+The 97-entry transactional archive was rejected at the instruction-authorship gate a second
+time. It is retained byte-for-byte as `probes/scope-hold-release/recovery-4/ai-rejected-2.zip`
+with its brief beside it. Only `instruction.md` changed in the replacement candidate; the
+environment, tests, solution and cheats are byte-identical to the rejected archive. Latest
+evidence and limitations: the Recovery 4 section at the end of this file, then
+`probes/scope-hold-release/recovery-2/REVIEW.md` for the earlier rounds.
 The earlier sections below preserve recovery-1 history; the final Recovery 2 section supersedes
 their diagnosis, fixture count, prose assessment and validation metrics.
 
@@ -328,3 +331,68 @@ while its constructor is unavailable, while a fresh instance in another scope fa
 input control for construction failure, not registration replacement. No new scoring tolerances,
 artifacts, resource gates, or output record kinds are introduced. The previous reference must pass
 all 22 legacy examples and fail new hand examples. Recovery remains pending external probes.
+
+## Recovery 4 - second instruction-authorship rejection
+
+The transactional archive reached the external instruction-authorship screen and was rejected
+there, the same gate that stopped recovery 2. No external easiness or difficulty result for this
+archive is recorded here, so none is claimed. Nothing in the
+graded tree is implicated: no file under `tests/`, `solution/`, `cheat/` or `environment/` reads
+`instruction.md`, and the replacement archive differs from the rejected one in that file alone.
+
+What the rejected brief measured, against `guard-mark-unwind` as the reference that had cleared the
+screen: burstiness 0.601 against 0.895, longest sentence 41 words against 85, paragraph length sd
+26.1 against 54.5, commas per sentence 0.58 against 1.28, and 8 percent of sentences over 30 words
+against 27. Every one of those says the same thing. The brief had been edited down into short,
+even, uniformly-shaped declaratives - `torn NAME OWNER CAUSE` as a format line, a paragraph per
+rule, parallel clause after parallel clause - which is the register `docs/RULES.md` and the Stage 5
+reading in `AGENTS.md` both warn produces an authorship rejection on text nobody generated. The
+condensation had also dropped four statements the earlier brief made: three the grader still
+enforces, being that the wrapper takes its allocation number before the registration it wraps, that
+allocation order is what decides teardown order, and that the nearer of two marks in reach wins;
+plus the closing anti-forgery line that the dump has to describe the run that produced it.
+
+The replacement returns the brief to the cadence of the contributor's earlier accepted text and of
+`guard-mark-unwind`: long clause-chained sentences carrying a whole rule, cut by short flat ones,
+with paragraph sizes left uneven. No rule was added, removed or reworded in substance, and the four
+dropped statements are restored. Measured against `guard-mark-unwind`: burstiness 0.960, sentence
+range 3-103 words, 34 percent under 10 words, paragraph sd 83.7, and zero hits on every
+stock-phrase, hedge, antithesis, triad, dash-aside and colloquial marker. `tools/textcheck.py`
+reports no findings against six of the eight retained briefs.
+
+The two that flag it, `delta-view-retraction` and `reach-pair-sweep`, flag one axis, type-token
+ratio, and that axis is length-dependent: those briefs are 903 and 592 words against this one's
+1,385, and `guard-mark-unwind`, `note-carry-forward` and `alias-settle-report` are all flagged on
+it too by `delta-view-retraction` while having cleared the real screen. Compared at equal sample
+length the candidate clears every reference on it: 0.341 against 0.383 over 903 words, 0.409
+against 0.387 over 592, 0.312 against 0.310 over 1,150. No synonym churn was introduced to move the
+number, and no artificial errors or staged informality were added anywhere.
+
+Every fact in the brief was re-checked against `tests/oracle.py` rather than against the previous
+draft: refusal locations for invoke, parting call and close-with-nothing-open; the rollback
+boundary and its descending-serial order; cache survival across a failed attempt; the ordering of
+wrapped, dependencies and constructor; mark search from the charged scope; and singleton ancestry
+overriding a mark. The opening incident was re-run: `/app/cases/wide.txt` on the shipped tree still
+prints `torn pool 1 app` as the third line back, `app` is never torn down, and all ten case files
+still disagree with the oracle.
+
+Validation after the edit, on Python 3.12.3 with `pytest==9.1.1`: the reference scores 1 on all
+seven grader assertions and the no-op scores 0, failing the three rule comparisons. The reference
+and all four author-side alternative policies agree with the sealed oracle on every fixed case and
+on 1,200 generated streams each, being 600 rounds of both generators. `preflight.py`,
+`structcheck.py`, `hintcheck.py`, `catcheck.py` and `zipcheck.py` report no errors; the 18
+preflight warnings are the pre-existing unused-entry-point notes. The archive is 97 entries,
+unchanged in count and content apart from the brief.
+
+One measurement is worth recording because it cost a wrong conclusion first. Graded under Python
+3.11 the reference fails `test_the_sealed_modules_were_the_ones_we_shipped`, because the seal
+hashes `repr(code.co_consts)` and on 3.11 a comprehension inside a sealed function is a nested code
+object whose repr carries its filename, which differs between the worker's `/work/app/...` import
+and the grader's baseline compile. On 3.12, where comprehensions are inlined, all three sealed
+digests are filename-stable, and both container images pin `python:3.12-slim`. The seal is sound
+for the image it ships in; it is not portable below 3.12, and this is the same `repr` of a nested
+code object that `CLAUDE.md` records from `token-seam-emit`.
+
+Docker is still absent, so the container gates, the reward-tampering probes and the external
+easiness, difficulty and authorship probes remain unrun. Local form is evidence about local form.
+The external classifier is opaque and this candidate is submitted as a re-probe, not as a pass.

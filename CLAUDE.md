@@ -1120,7 +1120,7 @@ and 400 generated streams, `prove` 300/0, `audit` 32 states and 8 variants agree
 99.7% and 86.1% of generated streams), `tiecheck` 332 streams 0 clashes, `determinism`
 identical across 5 seeds, `field_report` no dead field, `shipped` 12 of 32 enumerated and 0
 of 295 generated, `textcheck` clean against all three passing briefs, `structcheck`,
-`hintcheck`, `preflight`, `solvecheck`, `deadfieldcheck`, `extraneouscheck` and `simcheck` (clear on both axes) clean. **The two-image trial did NOT run on this version: the docker daemon died with the account limit and did not come back.** The last trial that ran is the round-three one (oracle 1, nop 0, 8 variants 1, 27 cheats 0); the verifier plumbing (`runner.py`, `test.sh`, `test_outputs.py`, both Dockerfiles) is byte-identical since, and what changed - the reference, the oracle, the generator's reopen gap, the case set, the regenerated cheats and variants - is covered by `prove`, `audit`, `variant_check` and `readingcheck`. Run `authoring/trial.py --all` before this goes back if a docker host is available.
+`hintcheck`, `preflight`, `solvecheck`, `deadfieldcheck`, `extraneouscheck` and `simcheck` (clear on both axes) clean. Real two-image trial on this host, after the daemon was restarted by hand: **oracle 1 (36 s through both containers), nop 0 (the shipped tree killed at 601 s), 8 of 8 variants 1, 29 of 29 cheats 0**, each attestation probe and the slow cheat caught by its own layer and nothing else.
 
 **Two smaller things from the probe itself:**
 

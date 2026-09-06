@@ -116,5 +116,5 @@ against three passing briefs, `structcheck` and `hintcheck` clean.
 ## Gates NOT run
 
 The three-agent easiness probe (the owner's rule: no subagents). The real two-image
-trial ran on the round-three version (oracle 1, nop 0, 8 variants 1, 27 cheats 0) and NOT
-on this one: the docker daemon died before it could build. The plumbing is unchanged since.
+trial DID run on this version once the daemon was restarted: oracle 1, nop 0 (killed at
+601 s), 8 variants 1, 29 cheats 0.

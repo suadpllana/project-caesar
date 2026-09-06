@@ -45,7 +45,7 @@ Two retention passes that are mutually recursive, and a predicate that has to sp
   collector, so overshooting into keeping everything does not pass.
   C2 - no oracle at all: the collector does not ship, so the runtime prints nothing until the
   agent writes one and there is no reference behaviour to diff against.
-  C4 - all-or-nothing over 16 hand programs and 320 nonce programs generated after the agent
+  C4 - all-or-nothing over 16 hand programs and 335 nonce programs generated after the agent
   has finished.
 - Assistant's attack on the plan: my first plan was worklist mark with a store barrier, pair
   table looped to a fixed point, unreachable finalizables as roots once, clear, release in id
@@ -117,7 +117,7 @@ Two retention passes that are mutually recursive, and a predicate that has to sp
 | Check | Status | Notes |
 |---|---|---|
 | Reference vs sealed model | pass | 416 programs, three PYTHONHASHSEED values, full agreement |
-| Oracle scores 1 | pass | host emulation, 320 nonce programs |
+| Oracle scores 1 | pass | host emulation, 335 nonce programs |
 | nop scores 0 | pass | shipped stub prints nothing |
 | Correct variants score 1 | pass | paint (breadth-first), levels (frontier), mirror (renamed) |
 | Cheats score 0 | pass | 14 of 16 run; each caught by its own declared layer |

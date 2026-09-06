@@ -328,3 +328,61 @@ while its constructor is unavailable, while a fresh instance in another scope fa
 input control for construction failure, not registration replacement. No new scoring tolerances,
 artifacts, resource gates, or output record kinds are introduced. The previous reference must pass
 all 22 legacy examples and fail new hand examples. Recovery remains pending external probes.
+
+Implementation and host validation are complete. Recovery-3/REVIEW.md contains the trajectory
+analysis, criterion-level review and remaining risk; validation.json records the full measurements.
+The reference and four cache-delta alternatives agree on 42 fixed and 2,400 generated streams.
+The actual Python worker and all seven grader assertions pass for the reference. No-op, 23
+wrong-reading policies, forged output and two integrity probes fail. Both integrity probes fail
+only their intended check. The old four-fix method fails 9 new fixed cases and all 300 construction
+streams while preserving all 22 legacy outputs. All 10 visible inputs are wrong in the starting
+tree and agree with the reference. The actual solve.sh executes successfully under Git Bash.
+
+Validation used Python 3.12.13 and the required pinned pytest packages. All 36 shell scripts pass
+syntax checks. Preflight has no errors; its 18 warnings are reviewed imported method entry points.
+Structure, hint, category, dead-field, solution-layout and extraneous-file checks pass. The local
+prose heuristic flags one three-item list; there is no authorship guarantee or detector pass.
+
+The cold attack still finds a short snapshot-based solution after understanding partial ancestry.
+That is a material difficulty risk. The new failures invalidate the old four-fix method, but local
+mutation rejection does not predict Claude solve rates. Docker/Podman and provider credentials
+remain unavailable; container validation, reward-isolation execution, external quality and fresh
+easiness/difficulty probes are pending. Added instruction wording also awaits contributor review.
+Do not call the task submission-ready or package it as a final submission at this stage.
+
+The contributor subsequently approved the revised instruction and explicitly requested the
+packaged ZIP. Packaging is now authorized for delivery and external validation. This approval
+resolves the wording review; it does not establish an external quality or difficulty pass.
+Docker/Harbor and fresh Claude probe results remain pending as recorded above.
+
+The contributor reports another instruction-authorship rejection and requests a wording fix.
+The delivered archive is preserved in recovery-3/ai-rejected.zip. The copy edit removes repeated
+cache, wrapper and output-order requirements, joins redundant sentences and repairs line wrapping.
+It preserves the approved behavioral rules; no code, metadata, expected output or verifier changes
+are part of this edit. This is assistant-assisted editing of the existing brief, not evidence of
+human authorship. No external AI-screen pass is claimed and cadence metrics are not used as a
+substitute. The contributor should read the edited instruction before resubmitting it.
+
+## Further instruction edit after another authorship rejection
+
+The contributor reports that the copy-edited archive also failed the external authorship
+check and explicitly asks for another attempt. That rejected archive is retained as
+probes/scope-hold-release/recovery-3/ai-rejected-copyedit.zip, with its instruction saved
+beside it as before-editorial-pass.md. Three reference instructions were compared:
+guard-mark-unwind, focus-return-point and share-register-screen. Similar tone is not
+evidence that this instruction will pass an authorship check.
+
+This pass edits the existing approved brief: it splits the long opening example and
+admission paragraph, puts the record fields and refusal locations together, and moves
+empty-close behavior beside ordinary teardown. No construction-failure rule is changed.
+The environment, reference solution, verifier and task metadata remain unchanged.
+These are assistant edits, not proof of human authorship. The external authorship check
+has not been run here; acceptance is not guaranteed. Contributor review is still needed
+before submission. Delivery is for review and external validation, not a claimed gate pass.
+
+This archive passes preflight with zero errors and the same 18 reviewed warnings, plus
+ZIP integrity and Unix-permission checks. All 96 entries other than instruction.md are
+byte-identical to ai-rejected-copyedit.zip. The instruction is ASCII with LF endings.
+ZIP SHA256: E8757A6E3B7EE6544D5D715E44838D8B49A9D7A4B638674553A2EA08AB58A5C0.
+The existing host validation evidence is unchanged; no container or external review
+was run for this editorial pass.

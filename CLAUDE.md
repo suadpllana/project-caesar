@@ -102,3 +102,27 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   instead, and the rejection came back on the axis that was missing. Worse, the first reference
   was itself the naive form, so the measurement would have failed and the defect would have been
   visible at freeze. Run the number you said you would run, before the design depends on it.
+
+## Lessons, measured (2026-09-07, `reach-pair-sweep`)
+
+- **A redesign leaves stale prose in every file that described the old design, and the rubric
+  reads all of them.** Swapping the reference from rescanning the pair table to indexing it by
+  key updated one paragraph of `solution_explanation` and left the other, plus the docstrings of
+  `tests/model.py` and `tests/test_outputs.py`, still saying "the reference rescans". The quality
+  review failed `solution explanation quality` on the contradiction. When the reference changes
+  shape, grep the whole bundle for every claim about what it does before anything else - the
+  code was right and only the words were wrong, which is the cheapest possible rejection to earn.
+- **Redesign silently invalidated an independence claim, not just a description.** The
+  reference-versus-model independence had rested on rescan-versus-worklist. The scaling boundary
+  forces both to index by key, so that axis closed for both and the claim had to be narrowed
+  honestly to what survives: depth-first from a stack against breadth-first from a deque, two
+  calls with a blocked set against one colour dict painted twice. An independence claim is a
+  measurement, and a redesign can spend it without touching the sentence that asserts it.
+- **Counts drift with the generator.** Adding the `wide` family moved the nonce population from
+  320 to 335 and the family count from four to five, both quoted in `verification_explanation`.
+  Numbers in shipped prose need re-deriving from the code after any generator change, not
+  re-reading.
+- **Verify the claim, not your memory of it - and check the checker.** The audit that confirmed
+  each docstring against the source first reported two false claims that were both true: it
+  counted call sites with a substring that also matched each function's own `def` line. A
+  verification script that fails is not evidence until it has itself been checked.

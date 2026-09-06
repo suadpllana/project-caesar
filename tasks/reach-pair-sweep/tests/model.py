@@ -1,10 +1,16 @@
 """Independent model of the whole runtime, written from the frozen contract.
 
 This file deliberately shares no code with `environment/app_src`. It reimplements the heap, the
-op loop and the collector, and it settles retention a different way: the reference rescans the
-pair table until a sweep adds nothing, while this walks a worklist over a table indexed by key,
-so a key becoming reached pushes that pair's value straight onto the queue. Two implementations
-of one contract; if they agree on every generated program the contract is what both encode.
+op loop and the collector, so agreement is between two readings of the contract rather than
+between two callers of one function.
+
+Where the independence sits, stated precisely, because it is narrower than it once was. Both
+sides index the pair table by key: the graded set contains programs where rescanning it cannot
+finish in the time allowed, so that axis is closed to both and is not evidence of anything. What
+differs is everything else - this walks breadth-first from a deque where the reference walks
+depth-first from a stack, and it separates the two retained sets by painting one colour dict
+twice where the reference makes two calls with a blocked set. Traversal order and state shape are
+the axes a shared misreading would have to survive.
 
 Colours: 1 is reached from the open frames, 2 is kept only so a queued finalizer can run.
 Uncoloured objects are released. Painting 2 cannot overwrite 1, which is what keeps weak

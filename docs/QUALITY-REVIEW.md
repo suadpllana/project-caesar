@@ -88,6 +88,13 @@ than the platform's, and one of its criteria still describes the old same-contai
 
 ## Observed platform verdicts
 
+Difficulty must be reviewed against the actual patch, not just the narrative or hidden case count.
+The reported 7 September rejection of scope-hold-release identified four localized fixes in a
+compact tree whose instruction delivered the whole plan. Three subsequent easiness trajectories
+confirmed that route. The approved recovery adds construction rollback across incomplete ancestry,
+cache provenance and factory capture; its external result remains pending. Code padding, omission
+of graded rules and additional random cases alone would not repair this criterion.
+
 Record every real rejection here, with what fixed it, so the same failure cannot recur. Where a
 rule can be mechanically checked, it also goes into `scripts/preflight.py`.
 

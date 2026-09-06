@@ -60,7 +60,8 @@ something still points at it, surfacing far away as corruption.
 solution_explanation = """
 The reference settles three sets in a fixed order, because each changes what the next may look
 at. First, what the open frames reach: fields to a fixed point, and a pair's value once its key
-is in the set, rescanning the pair table until a sweep adds nothing. Second, the finalizer queue,
+is in the set, with the table indexed by key so each pair is followed the moment its key arrives
+and never looked at again. Second, the finalizer queue,
 taken against that set alone and before any keeping is granted, so an object reachable only from
 another finalizable object is still queued this cycle. Third, what is kept only to run a queued
 finalizer: those objects and their closures, following pair values the same way, and blocked from
@@ -88,10 +89,10 @@ and the record is compared line for line.
 Correct is defined twice over. Sixteen hand programs, one per graded decision plus the
 must-still-work side of each fence, are checked against `gt.json`, frozen before the verifier was
 written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so a
-drifted model cannot quietly redefine correct. Three hundred and twenty further programs are
-generated inside the verifier from a nonce drawn after the agent has finished, across four
-families that deliberately seed the retention cascade and the resurrection sequence, and checked
-against that model. A submission cannot have seen them, so memorising the shipped example or
+drifted model cannot quietly redefine correct. Three hundred and thirty-five further programs are
+generated inside the verifier from a nonce drawn after the agent has finished, across five
+families that deliberately seed the retention cascade, the resurrection sequence and the wide
+pair table, and checked against that model. A submission cannot have seen them, so memorising the shipped example or
 forging records from an answer key both fail; both are in the cheat set and both score 0.
 
 One family of generated programs carries a pair table written back to front, which separates a

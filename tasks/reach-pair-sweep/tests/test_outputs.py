@@ -17,10 +17,12 @@ Graded, and settled the same way by two implementations written apart:
   7  a finalizer queued at most once for an object, across every cycle
   8  release: everything neither reached nor kept, and nothing else
 
-Implementation choice, never graded: how the fixed points are reached (the reference rescans
-the pair table, the model walks a worklist over a key index), what the collector returns as
+Implementation choice, never graded: how each fixed point is walked (the reference goes
+depth-first from a stack, the model breadth-first from a deque), what the collector returns as
 its container type, the order within each returned collection (the runtime sorts), and any
-internal naming or structure.
+internal naming or structure. Not a free choice, and not graded here either: the pair table has
+to be indexed rather than rescanned, which the execution limit decides rather than any assertion
+in this file.
 
 The record is compared exactly, line for line. Hand cases are checked against `gt.json`, frozen
 before the verifier was written; nonce programs are generated here, after the agent has

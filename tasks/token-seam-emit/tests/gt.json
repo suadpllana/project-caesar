@@ -1,0 +1,339 @@
+{
+ "h_cap-holding-partial": [
+  "h_cap-holding-partial em 1 6865",
+  "h_cap-holding-partial em 2 -",
+  "h_cap-holding-partial em 3 -",
+  "h_cap-holding-partial em 4 616263",
+  "h_cap-holding-partial fi 4 length"
+ ],
+ "h_cap-with-occurrence": [
+  "h_cap-with-occurrence em 1 6865",
+  "h_cap-with-occurrence em 2 6c6c6f",
+  "h_cap-with-occurrence em 3 -",
+  "h_cap-with-occurrence em 4 -",
+  "h_cap-with-occurrence em 5 -",
+  "h_cap-with-occurrence fi 5 stop"
+ ],
+ "h_eos-at-floor": [
+  "h_eos-at-floor em 1 6865",
+  "h_eos-at-floor em 2 6c6c6f",
+  "h_eos-at-floor em 3 -",
+  "h_eos-at-floor fi 3 eos"
+ ],
+ "h_eos-below-floor": [
+  "h_eos-below-floor em 1 6865",
+  "h_eos-below-floor em 2 6c6c6f",
+  "h_eos-below-floor em 3 -",
+  "h_eos-below-floor em 4 20776f72",
+  "h_eos-below-floor em 5 6c64",
+  "h_eos-below-floor em 6 2e",
+  "h_eos-below-floor em 7 78",
+  "h_eos-below-floor em 8 79",
+  "h_eos-below-floor em 9 7a",
+  "h_eos-below-floor em 10 -",
+  "h_eos-below-floor fi 10 eos"
+ ],
+ "h_eos-below-floor-with-stop": [
+  "h_eos-below-floor-with-stop em 1 6865",
+  "h_eos-below-floor-with-stop em 2 -",
+  "h_eos-below-floor-with-stop em 3 -",
+  "h_eos-below-floor-with-stop em 4 -",
+  "h_eos-below-floor-with-stop em 5 -",
+  "h_eos-below-floor-with-stop em 6 -",
+  "h_eos-below-floor-with-stop em 7 -",
+  "h_eos-below-floor-with-stop em 8 -",
+  "h_eos-below-floor-with-stop em 9 -",
+  "h_eos-below-floor-with-stop fi 9 stop"
+ ],
+ "h_floor-equals-cap": [
+  "h_floor-equals-cap em 1 6865",
+  "h_floor-equals-cap em 2 -",
+  "h_floor-equals-cap em 3 -",
+  "h_floor-equals-cap em 4 -",
+  "h_floor-equals-cap em 5 -",
+  "h_floor-equals-cap em 6 -",
+  "h_floor-equals-cap fi 6 stop"
+ ],
+ "h_later-stop-starts-earlier": [
+  "h_later-stop-starts-earlier em 1 -",
+  "h_later-stop-starts-earlier em 2 -",
+  "h_later-stop-starts-earlier em 3 -",
+  "h_later-stop-starts-earlier em 4 -",
+  "h_later-stop-starts-earlier em 5 -",
+  "h_later-stop-starts-earlier em 6 -",
+  "h_later-stop-starts-earlier fi 6 stop"
+ ],
+ "h_later-stop-starts-earlier-long": [
+  "h_later-stop-starts-earlier-long em 1 -",
+  "h_later-stop-starts-earlier-long em 2 -",
+  "h_later-stop-starts-earlier-long em 3 -",
+  "h_later-stop-starts-earlier-long em 4 -",
+  "h_later-stop-starts-earlier-long em 5 -",
+  "h_later-stop-starts-earlier-long em 6 -",
+  "h_later-stop-starts-earlier-long em 7 -",
+  "h_later-stop-starts-earlier-long em 8 -",
+  "h_later-stop-starts-earlier-long fi 8 stop"
+ ],
+ "h_lead-space": [
+  "h_lead-space em 1 -",
+  "h_lead-space em 2 -",
+  "h_lead-space em 3 -",
+  "h_lead-space fi 3 stop"
+ ],
+ "h_lead-space-only": [
+  "h_lead-space-only em 1 -",
+  "h_lead-space-only em 2 6865",
+  "h_lead-space-only em 3 6c6c6f",
+  "h_lead-space-only em 4 -",
+  "h_lead-space-only fi 4 eos"
+ ],
+ "h_multibyte-stop": [
+  "h_multibyte-stop em 1 6865",
+  "h_multibyte-stop em 2 -",
+  "h_multibyte-stop em 3 -",
+  "h_multibyte-stop fi 3 stop"
+ ],
+ "h_multibyte-stop-floor": [
+  "h_multibyte-stop-floor em 1 6865",
+  "h_multibyte-stop-floor em 2 -",
+  "h_multibyte-stop-floor em 3 -",
+  "h_multibyte-stop-floor em 4 -",
+  "h_multibyte-stop-floor em 5 -",
+  "h_multibyte-stop-floor em 6 -",
+  "h_multibyte-stop-floor em 7 -",
+  "h_multibyte-stop-floor fi 7 stop"
+ ],
+ "h_nested-stop-same-end": [
+  "h_nested-stop-same-end em 1 6865",
+  "h_nested-stop-same-end em 2 -",
+  "h_nested-stop-same-end em 3 -",
+  "h_nested-stop-same-end em 4 -",
+  "h_nested-stop-same-end em 5 -",
+  "h_nested-stop-same-end fi 5 stop"
+ ],
+ "h_nested-stops": [
+  "h_nested-stops em 1 6865",
+  "h_nested-stops em 2 -",
+  "h_nested-stops em 3 -",
+  "h_nested-stops fi 3 stop"
+ ],
+ "h_newline-stop": [
+  "h_newline-stop em 1 6865",
+  "h_newline-stop em 2 6c6c6f",
+  "h_newline-stop em 3 -",
+  "h_newline-stop fi 3 stop"
+ ],
+ "h_no-occurrence-at-floor": [
+  "h_no-occurrence-at-floor em 1 6865",
+  "h_no-occurrence-at-floor em 2 6c6c6f",
+  "h_no-occurrence-at-floor em 3 20",
+  "h_no-occurrence-at-floor em 4 -",
+  "h_no-occurrence-at-floor em 5 -",
+  "h_no-occurrence-at-floor em 6 61627a",
+  "h_no-occurrence-at-floor em 7 64",
+  "h_no-occurrence-at-floor em 8 78",
+  "h_no-occurrence-at-floor em 9 -",
+  "h_no-occurrence-at-floor fi 9 eos"
+ ],
+ "h_occurrence-across-special": [
+  "h_occurrence-across-special em 1 6865",
+  "h_occurrence-across-special em 2 -",
+  "h_occurrence-across-special em 3 -",
+  "h_occurrence-across-special em 4 -",
+  "h_occurrence-across-special em 5 -",
+  "h_occurrence-across-special fi 5 stop"
+ ],
+ "h_occurrence-across-special-floor": [
+  "h_occurrence-across-special-floor em 1 6865",
+  "h_occurrence-across-special-floor em 2 -",
+  "h_occurrence-across-special-floor em 3 -",
+  "h_occurrence-across-special-floor em 4 -",
+  "h_occurrence-across-special-floor em 5 -",
+  "h_occurrence-across-special-floor em 6 -",
+  "h_occurrence-across-special-floor em 7 -",
+  "h_occurrence-across-special-floor em 8 -",
+  "h_occurrence-across-special-floor fi 8 stop"
+ ],
+ "h_occurrence-at-zero": [
+  "h_occurrence-at-zero em 1 -",
+  "h_occurrence-at-zero em 2 -",
+  "h_occurrence-at-zero em 3 -",
+  "h_occurrence-at-zero em 4 -",
+  "h_occurrence-at-zero fi 4 stop"
+ ],
+ "h_partial-hold": [
+  "h_partial-hold em 1 6865",
+  "h_partial-hold em 2 6c6c6f",
+  "h_partial-hold em 3 20",
+  "h_partial-hold em 4 -",
+  "h_partial-hold em 5 -",
+  "h_partial-hold em 6 616264",
+  "h_partial-hold em 7 78",
+  "h_partial-hold em 8 -",
+  "h_partial-hold fi 8 eos"
+ ],
+ "h_partial-long": [
+  "h_partial-long em 1 -",
+  "h_partial-long em 2 -",
+  "h_partial-long fi 2 stop"
+ ],
+ "h_partial-release": [
+  "h_partial-release em 1 6865",
+  "h_partial-release em 2 -",
+  "h_partial-release em 3 -",
+  "h_partial-release em 4 61627a",
+  "h_partial-release em 5 7a",
+  "h_partial-release em 6 7a",
+  "h_partial-release em 7 -",
+  "h_partial-release fi 7 eos"
+ ],
+ "h_plain-eos": [
+  "h_plain-eos em 1 6865",
+  "h_plain-eos em 2 6c6c6f",
+  "h_plain-eos em 3 20776f72",
+  "h_plain-eos em 4 6c64",
+  "h_plain-eos em 5 2e",
+  "h_plain-eos em 6 -",
+  "h_plain-eos fi 6 eos"
+ ],
+ "h_plain-floor-high": [
+  "h_plain-floor-high em 1 6865",
+  "h_plain-floor-high em 2 6c6c6f",
+  "h_plain-floor-high em 3 20776f72",
+  "h_plain-floor-high em 4 6c64",
+  "h_plain-floor-high em 5 2e",
+  "h_plain-floor-high em 6 -",
+  "h_plain-floor-high fi 6 length"
+ ],
+ "h_plain-length": [
+  "h_plain-length em 1 6865",
+  "h_plain-length em 2 6c6c6f",
+  "h_plain-length em 3 20776f72",
+  "h_plain-length em 4 6c64",
+  "h_plain-length em 5 2e",
+  "h_plain-length fi 5 length"
+ ],
+ "h_seam-across-special": [
+  "h_seam-across-special em 1 6865",
+  "h_seam-across-special em 2 -",
+  "h_seam-across-special em 3 -",
+  "h_seam-across-special em 4 c3a9",
+  "h_seam-across-special em 5 6c6c6f",
+  "h_seam-across-special em 6 -",
+  "h_seam-across-special fi 6 eos"
+ ],
+ "h_seam-four-byte": [
+  "h_seam-four-byte em 1 6865",
+  "h_seam-four-byte em 2 -",
+  "h_seam-four-byte em 3 -",
+  "h_seam-four-byte em 4 -",
+  "h_seam-four-byte em 5 f09f9982",
+  "h_seam-four-byte em 6 6c6c6f",
+  "h_seam-four-byte em 7 -",
+  "h_seam-four-byte fi 7 eos"
+ ],
+ "h_seam-straddle-piece": [
+  "h_seam-straddle-piece em 1 6865",
+  "h_seam-straddle-piece em 2 7a",
+  "h_seam-straddle-piece em 3 c3a97a",
+  "h_seam-straddle-piece em 4 6c6c6f",
+  "h_seam-straddle-piece em 5 -",
+  "h_seam-straddle-piece fi 5 eos"
+ ],
+ "h_seam-three-byte": [
+  "h_seam-three-byte em 1 6865",
+  "h_seam-three-byte em 2 -",
+  "h_seam-three-byte em 3 e28692",
+  "h_seam-three-byte em 4 6c6c6f",
+  "h_seam-three-byte em 5 -",
+  "h_seam-three-byte fi 5 eos"
+ ],
+ "h_seam-trailing-incomplete": [
+  "h_seam-trailing-incomplete em 1 6865",
+  "h_seam-trailing-incomplete em 2 6c6c6f",
+  "h_seam-trailing-incomplete em 3 -",
+  "h_seam-trailing-incomplete em 4 -",
+  "h_seam-trailing-incomplete em 5 -",
+  "h_seam-trailing-incomplete fi 5 eos"
+ ],
+ "h_seam-two-byte": [
+  "h_seam-two-byte em 1 6865",
+  "h_seam-two-byte em 2 -",
+  "h_seam-two-byte em 3 c3a9",
+  "h_seam-two-byte em 4 6c6c6f",
+  "h_seam-two-byte em 5 -",
+  "h_seam-two-byte fi 5 eos"
+ ],
+ "h_seam-whole-chars": [
+  "h_seam-whole-chars em 1 c3a9",
+  "h_seam-whole-chars em 2 e28692",
+  "h_seam-whole-chars em 3 f09f9982",
+  "h_seam-whole-chars em 4 -",
+  "h_seam-whole-chars fi 4 eos"
+ ],
+ "h_single-byte-stop": [
+  "h_single-byte-stop em 1 6865",
+  "h_single-byte-stop em 2 6c6c6f",
+  "h_single-byte-stop em 3 -",
+  "h_single-byte-stop fi 3 stop"
+ ],
+ "h_stop-at-floor-exact": [
+  "h_stop-at-floor-exact em 1 6865",
+  "h_stop-at-floor-exact em 2 6c6c6f",
+  "h_stop-at-floor-exact em 3 20",
+  "h_stop-at-floor-exact em 4 -",
+  "h_stop-at-floor-exact em 5 -",
+  "h_stop-at-floor-exact em 6 -",
+  "h_stop-at-floor-exact fi 6 stop"
+ ],
+ "h_stop-below-floor": [
+  "h_stop-below-floor em 1 6865",
+  "h_stop-below-floor em 2 6c6c6f",
+  "h_stop-below-floor em 3 20",
+  "h_stop-below-floor em 4 -",
+  "h_stop-below-floor em 5 -",
+  "h_stop-below-floor em 6 -",
+  "h_stop-below-floor em 7 -",
+  "h_stop-below-floor em 8 -",
+  "h_stop-below-floor fi 8 stop"
+ ],
+ "h_stop-far-below-floor": [
+  "h_stop-far-below-floor em 1 -",
+  "h_stop-far-below-floor em 2 -",
+  "h_stop-far-below-floor em 3 -",
+  "h_stop-far-below-floor em 4 -",
+  "h_stop-far-below-floor em 5 -",
+  "h_stop-far-below-floor em 6 -",
+  "h_stop-far-below-floor em 7 -",
+  "h_stop-far-below-floor em 8 -",
+  "h_stop-far-below-floor em 9 -",
+  "h_stop-far-below-floor em 10 -",
+  "h_stop-far-below-floor em 11 -",
+  "h_stop-far-below-floor em 12 -",
+  "h_stop-far-below-floor fi 12 stop"
+ ],
+ "h_stop-no-floor": [
+  "h_stop-no-floor em 1 6865",
+  "h_stop-no-floor em 2 6c6c6f",
+  "h_stop-no-floor em 3 20",
+  "h_stop-no-floor em 4 -",
+  "h_stop-no-floor em 5 -",
+  "h_stop-no-floor em 6 -",
+  "h_stop-no-floor fi 6 stop"
+ ],
+ "h_stop-one-below-floor": [
+  "h_stop-one-below-floor em 1 6865",
+  "h_stop-one-below-floor em 2 6c6c6f",
+  "h_stop-one-below-floor em 3 20",
+  "h_stop-one-below-floor em 4 -",
+  "h_stop-one-below-floor em 5 -",
+  "h_stop-one-below-floor em 6 -",
+  "h_stop-one-below-floor em 7 -",
+  "h_stop-one-below-floor fi 7 stop"
+ ],
+ "h_two-stops-earliest": [
+  "h_two-stops-earliest em 1 6865",
+  "h_two-stops-earliest em 2 -",
+  "h_two-stops-earliest fi 2 stop"
+ ]
+}

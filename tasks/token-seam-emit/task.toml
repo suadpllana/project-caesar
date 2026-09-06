@@ -1,0 +1,138 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/strm/sm.py",
+  "/app/strm/hb.py",
+  "/app/strm/rel.py",
+  "/app/strm/fin.py",
+]
+
+[task]
+name = "afterquery/token-seam-emit"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is the output side of a working inference server with the wrong idea of what a
+minimum-token floor suppresses, and the wrongness is coherent rather than broken. Every
+published incremental detokenizer holds back a bounded suffix of the text - long enough to
+finish a character, long enough that a stop string cannot straddle the boundary - and
+releases everything in front of it. That is the shape a frontier agent reconstructs from
+its prior, it is right for every request without a floor, and it is unsound here.
+
+Stop strings are matched against the whole text the request has sent so far, and the floor
+decides only whether an occurrence that has been found is allowed to end the request. So an
+occurrence that completes below the floor is still there at the first step that may act on
+it, and everything from where it starts must never have been released - which makes the
+hold-back below the floor unbounded rather than a suffix, and in the worst case means
+nothing at all may go out until the floor lifts. The correction is not a patch to the
+window. Safety stops being a predicate of the current step and becomes one over the whole
+remaining life of the request, and the file that computed a window has nothing left to
+compute.
+
+The second discovery invalidates the natural implementation of the first in the same way.
+Once the hold-back is written, the obvious matcher remembers where it found an occurrence
+and stops looking, which is wrong: occurrences are ranked by where they start, so a longer
+stop string completing later can start earlier than one already standing, and the remembered
+index has to keep moving backwards. Neither mistake announces itself. Both produce a trace
+that is right for forty rows and wrong for one, and the fence is graded from both sides, so
+holding everything back to be safe fails exactly as hard as releasing too early.
+
+There is a measured resource boundary underneath, and the instruction states both the limit
+and the scale. Scanning the accumulated text from its start at every step is semantically
+correct and quadratic: on one request of 16000 tokens the reference finishes in 0.09 s and
+that implementation takes 17.98 s, and over the wide family the two are 0.65 s against
+366.98 s for the same 150615 rows. The shipped scanners are of the second kind, so an agent
+that repairs only the semantics has a correct server that does not finish.
+
+There is no oracle for any of it. The server runs whatever rules it is given and prints what
+they release; every wrong reading above produces a plausible-looking stream. The environment
+ships no expected output, the instruction states requirements without stating how to satisfy
+them, and the graded set is three hundred requests generated inside the verifier from a nonce
+made after the agent has finished, so a rule fitted to the requests in the tree carries no
+information about the rest. The server ships with no comments anywhere in it and its
+identifiers are in the register of ordinary internal code rather than self-describing ones,
+which is a deliberate design choice: the piece table, the record gate, the request lifecycle
+and the meaning of the floor have to be recovered by reading behaviour instead of by reading
+names.
+"""
+
+solution_explanation = """
+The reference replaces all four declared modules and computes the release point as the
+largest index that no future termination can move, backed off to the last complete
+character.
+
+Two positions decide it. The first is where the earliest complete occurrence of a stop
+string starts, kept as a minimum rather than as a first sighting, because a longer stop
+completing later can start earlier than one already found. The second is the earliest suffix
+of the text that is still a proper prefix of some stop string, which is what a partial that
+could still grow into an occurrence costs. The release point is the smaller of the two, and
+the floor changes none of that: it decides only whether a standing occurrence ends the
+request, so below the floor the first position pins the release point in place instead of
+ending anything, and at the first step at or above the floor the request ends there with the
+tail dropped.
+
+The character boundary is carried forward rather than recomputed, since a lead byte fixes its
+character's width and boundaries only ever move forward, and the occurrence scan resumes in a
+window behind the tail rather than rescanning from the start. That is what a practitioner does
+for the same reason they would in a real server: per-step work that grows with the length of
+the response turns a streaming endpoint into a quadratic one, and the wide requests in the
+graded set are sized so that the difference decides whether the run finishes at all.
+"""
+
+verification_explanation = """
+The graded artifact is the release point at every decode step and the finish record, compared
+exactly and all-or-nothing. Two independent models produce the expected rows: one recomputes
+every quantity from scratch at every step and was written from the contract rather than from
+the reference, and one walks the text through a keyword automaton. Both agree with the
+reference on every enumerated and generated request checked during authoring, and the narrow
+requests are graded against both, so the faster model is only trusted where the naive one has
+already confirmed it thousands of times. The enumerated requests are additionally compared
+against a sealed ground truth built before the agent existed.
+
+Passing cannot be arranged without doing the work. The requests that decide the grade are
+generated inside the verifier from a nonce created after the agent has finished, so an answer
+key is worth nothing - a cheat compiled from the entire ground truth for the enumerated
+requests scores zero. The executed tree outside the four declared artifacts must be
+byte-identical to the pristine copy, and the comparison asserts how many files it found before
+comparing any of them. Every frozen entry point is fingerprinted as it stood in the running
+interpreter against digests the grader derives by compiling the pristine sources itself. Rows
+are appended by a gate the request loop owns, which refuses any caller that is not that loop,
+and the interpreter's own count of entries into the release module must account for every row
+emitted. The reward is root-owned, locked and defaulted to zero before any submitted code is
+loaded; the run happens under an unprivileged uid in its own session under a wall clock, its
+survivors are killed by walking /proc, and grading runs afterwards as root without importing
+anything the submission wrote.
+"""
+
+category = "ML"
+
+subcategory = "Inference"
+
+tags = [
+  "byte-level-bpe",
+  "incremental-detokenization",
+  "stop-sequences",
+  "utf8-boundaries",
+  "streaming-responses",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = ""
+
+[verifier]
+timeout_sec = 1800.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+gpus = 0

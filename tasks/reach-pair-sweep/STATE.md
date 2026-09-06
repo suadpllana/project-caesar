@@ -34,13 +34,19 @@ Two retention passes that are mutually recursive, and a predicate that has to sp
   release - is correct in its first half and wrong in its second. Keeping for a finalizer adds
   roots after the pair fixed point converged and re-opens it; and once the two are looped, weak
   clearing and pair-key retention answer to different sets. Both must be re-derived together.
-- Tactics making that true: A2 (the mechanism is described operationally and never named - no "ephemeron", no
-  "tricolor", no "resurrection"), A3 (the pair fixed point and the finalizer reprieve have
-  textbook answers that do not compose), B2 (seven stated rules whose interaction is the work),
-  C1 (both fences: `plain-drop`, `all-live`, `weak-live` fail an over-conservative collector),
-  C2 (no oracle at all - the collector does not ship, so the runtime prints nothing until the
-  agent writes one and there is nothing to diff against), C4 (all-or-nothing over 16 hand
-  programs and 320 nonce programs generated after the agent finishes).
+- Tactics making that true: A2, A3, B2, C1, C2, C4.
+  A2 - described operationally and never named: no "ephemeron", no "tricolor", no
+  "resurrection" anywhere in the brief or the tree.
+  A3 - the pair fixed point and the finalizer reprieve have textbook answers that do not
+  compose, so no retrieved plan can be adopted whole.
+  B2 - seven stated rules whose interaction is the work; getting the reprieve right changes
+  what "retained" means for clearing and for pair keys.
+  C1 - both fences: `plain-drop`, `all-live` and `weak-live` fail an over-conservative
+  collector, so overshooting into keeping everything does not pass.
+  C2 - no oracle at all: the collector does not ship, so the runtime prints nothing until the
+  agent writes one and there is no reference behaviour to diff against.
+  C4 - all-or-nothing over 16 hand programs and 320 nonce programs generated after the agent
+  has finished.
 - Assistant's attack on the plan: my first plan was worklist mark with a store barrier, pair
   table looped to a fixed point, unreachable finalizables as roots once, clear, release in id
   order. Wrong in two places that matter - the finalizer pass is not re-entrant into the pair

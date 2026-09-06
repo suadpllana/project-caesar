@@ -47,6 +47,8 @@ SUFFIX_RE = re.compile(
 )
 
 MAX_TIMEOUT_SEC = 18000
+# The agent's budget also has a floor, which the ceiling alone does not catch.
+AGENT_TIMEOUT_FLOOR = 3600
 MAX_CPUS = 16
 MAX_MEMORY_MB = 16384
 MAX_STORAGE_MB = 40960
@@ -209,7 +211,17 @@ def check_task_toml(root: Path) -> dict:
     if verifier.get("environment_mode") != "separate":
         error('task.toml: [verifier] environment_mode must be "separate"')
     check_timeout(verifier.get("timeout_sec"), "[verifier] timeout_sec")
-    check_timeout(cfg.get("agent", {}).get("timeout_sec"), "[agent] timeout_sec")
+    agent_budget = cfg.get("agent", {}).get("timeout_sec")
+    check_timeout(agent_budget, "[agent] timeout_sec")
+    # A structural rejection on 2026-09-06: the platform enforces a one-hour floor on the
+    # AGENT budget, and only the ceiling was recorded here. The bundle that hit it read 900
+    # because a grep for `^timeout_sec` matched the [verifier] section, which comes first.
+    if isinstance(agent_budget, (int, float)) and agent_budget < AGENT_TIMEOUT_FLOOR:
+        error(
+            f"task.toml: [agent] timeout_sec is {int(agent_budget)}s, under the "
+            f"{AGENT_TIMEOUT_FLOOR}s floor - evaluation agents run under the task's own "
+            "budget and need at least an hour. The retained bundles use 14400"
+        )
 
     check_environment(cfg.get("environment", {}))
     return cfg

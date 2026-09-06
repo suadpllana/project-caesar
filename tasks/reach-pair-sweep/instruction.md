@@ -10,4 +10,4 @@ A collection prints `clr <name>` for each weak reference it cleared, then `fin <
 
 `/app/progs/small.txt` is the short one. It allocates three objects and gives the third a finalizer that stores it into slot `c`. It registers `w1` against the first, puts that first object into slot `a`, and pairs it with the second. Then it collects, runs the queued finalizer, drops slot `a` and collects again. Written correctly, the collector makes it print `fin 3`, `ran 3`, `clr w1`, `rel 1` and `rel 2`, in that order.
 
-You have 900 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.
+You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

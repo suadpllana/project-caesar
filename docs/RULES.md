@@ -123,6 +123,7 @@ Environments must be reproducible: no floating tags, no unpinned Python installs
 | Compose | Optional, sidecar services only; named volumes only (host bind mounts fail validation); not usable with a GPU | Harness constraint |
 | Artifacts | Every path the verifier reads is declared | Isolation is enforced from this list |
 | Timeouts | ≤ 18000 seconds | Infrastructure cap |
+| Agent budget floor | `[agent] timeout_sec` ≥ 3600 seconds (1 hour) | Evaluation agents run under the task's own budget; a shorter one is a structural rejection (2026-09-06). The retained bundles use 14400 |
 | Resources | ≤ 16 CPUs, ≤ 16384 MB memory, ≤ 40960 MB storage | Infrastructure cap |
 | GPU | `gpus = 0`; if `1`, also `gpu_types = ["H100"]` | Cost control |
 | Category | Exactly one of: Science, Software, ML, Operations, Security, Hardware, Media | Taxonomy |

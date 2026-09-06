@@ -72,3 +72,17 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   hand and a cold solve would have measured memory. It is recorded as not run, with the reading
   separations and the no-oracle property standing in its place. A self-probe reported as passed
   by a contaminated author is worse than no self-probe.
+
+- **A grep that reads the wrong field is a wrong answer delivered with confidence.**
+  `reach-pair-sweep` was rejected on `timeout-floor`: `[agent] timeout_sec = 900` against a
+  3600 s floor, for a task whose own brief claims eight expert hours. The number came from
+  `grep -E '^timeout_sec' task.toml | head -1`, which matches the `[verifier]` section because
+  it sits above `[agent]` in the file. Every retained bundle uses 14400; the check reported 900
+  for all eight. That false reading was then put to the contributor as "matches all eight
+  retained tasks", so their approval was approval of a fact that was not true - a confirmation
+  obtained on bad information transfers no responsibility. Two rules: read a keyed field with an
+  awk section guard or a TOML parser, never a bare grep for a key that repeats under different
+  tables; and sanity-check the value against the task's own claims before quoting precedent,
+  because 15 minutes for an 8-hour task is wrong on its face whatever the neighbours do. The
+  floor was recorded nowhere locally - only the 18000 s ceiling was - so it is now in
+  `docs/RULES.md`, `AGENTS.md`, and as a `preflight.py` error that fires on the old value.

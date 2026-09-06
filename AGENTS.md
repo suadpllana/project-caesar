@@ -172,6 +172,7 @@ the end.
 | Platform pins | Never `FROM --platform=` in any Dockerfile |
 | Compose | `environment/docker-compose.yaml` is optional, sidecars only; named volumes only — host bind mounts fail validation; not usable in a GPU task |
 | Resource caps | Timeouts ≤ 18000 s; ≤ 16 CPUs; ≤ 16384 MB memory; ≤ 40960 MB storage |
+| Agent budget floor | `[agent] timeout_sec` ≥ 3600 s. The ceiling is not the only bound, and `[verifier] timeout_sec` sits above it in the file - read the field under `[agent]`, not the first `timeout_sec` in the file |
 | GPU | `gpus = 0` unless the task genuinely needs one; if `gpus = 1`, set `gpu_types = ["H100"]` |
 | Category | Exactly one of: Science, Software, ML, Operations, Security, Hardware, Media |
 | Subcategory | One label from that category's row in the Stage 1 table — a `Databases` subcategory under `Science` is invalid |

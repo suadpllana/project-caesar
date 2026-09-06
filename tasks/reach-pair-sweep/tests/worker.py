@@ -20,7 +20,8 @@ import cases  # noqa: E402
 import gen  # noqa: E402
 
 WORK = pathlib.Path(os.environ.get("RPS_WORK", "/work"))
-SUBMITTED = pathlib.Path(os.environ.get("RPS_SUB", "/app/cyc/keep.py"))
+SUBMITTED = pathlib.Path(os.environ.get("RPS_SUB", "/app/col"))
+PARTS = ("plan.py", "scan.py", "keep.py", "age.py", "wipe.py")
 PRISTINE = pathlib.Path(TESTS) / "pristine"
 
 
@@ -28,9 +29,10 @@ def build_tree():
     tmp = pathlib.Path(tempfile.mkdtemp(dir=str(WORK)))
     tree = tmp / "tree"
     shutil.copytree(PRISTINE, tree)
-    sub = SUBMITTED
-    if sub.is_file():
-        shutil.copy(sub, tree / "cyc" / "keep.py")
+    for name in PARTS:
+        one = SUBMITTED / name
+        if one.is_file():
+            shutil.copy(one, tree / "col" / name)
     return tree
 
 
@@ -41,8 +43,8 @@ def main():
 
     tree = build_tree()
     sys.path.insert(0, str(tree))
-    from cyc import keep  # noqa: F401
-    from rt import ex, hp
+    import ops
+    from mem import heap
 
     progs = [("hand", n, cases.CASES[n]) for n in cases.ORDER]
     progs += list(gen.programs(nonce, per))
@@ -51,10 +53,10 @@ def main():
     for fam, name, lines in progs:
         got, err = None, None
         try:
-            h = hp.Hp()
+            h = heap.Heap()
             acc = []
             for ln in lines:
-                ex.ex(h, tuple(ln.split()), acc)
+                ops.ex(h, tuple(ln.split()), acc)
             got = acc
         except Exception:
             err = traceback.format_exc(limit=1).strip().splitlines()[-1:]

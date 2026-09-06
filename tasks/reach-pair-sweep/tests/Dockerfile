@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir pytest==9.1.1 pytest-json-ctrf==0.5.2
 RUN useradd --create-home --uid 1002 sandbox
 
 RUN mkdir -p /app
-RUN mkdir -p /app/cyc
+RUN mkdir -p /app/col
 RUN mkdir -p /work
 RUN mkdir -p /logs/verifier
 

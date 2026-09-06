@@ -1,0 +1,12 @@
+new 1
+new 2
+new 3 fin
+slot a 1
+set 1 x 2
+collect
+collect
+glob g1 3
+collect
+slot a -
+collect
+collectfull

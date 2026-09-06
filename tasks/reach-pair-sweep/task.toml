@@ -1,7 +1,11 @@
 schema_version = "1.3"
 
 artifacts = [
-  "/app/cyc/keep.py",
+  "/app/col/plan.py",
+  "/app/col/scan.py",
+  "/app/col/keep.py",
+  "/app/col/age.py",
+  "/app/col/wipe.py",
 ]
 
 [task]
@@ -12,99 +16,96 @@ author_name = "Suad Pllana"
 author_email = "suadpllana14@gmail.com"
 
 difficulty_explanation = """
-The step that breaks a frontier agent is the order of two retention passes and the fact that
-they are mutually recursive. Retaining the value of a weak key-value pair only when its key is
-retained forces a fixed point: a value pulled in can be the key of another pair, so one sweep of
-the pair table is not enough. Almost every agent gets that far. What follows is where the plans
-break. An object that is unreachable but still has an unrun finalizer is kept for this cycle
-together with everything it reaches, and that keeping adds roots AFTER the pair fixed point has
-already converged, so it re-opens it. Once the two are looped together, "retained" stops being
-one predicate: an object kept only so a finalizer can run is not reachable, so a weak reference
-to it must still clear, while a pair whose key is kept that way does retain its value. Every
-decision an implementation already took against a single retained set has to be re-derived
-against the right one of the two, which is a replan rather than a patch.
+The collector is a generational one, and the work is distributed through a runtime the agent has
+to read before the plan exists. Five files under `/app/col` decide roots, reachability, finalizer
+retention, ageing and clearing; four ship wrong. What makes them hard is not their length but
+that each consumes the previous one's answer, and several facts they depend on are behaviours of
+the surrounding tree rather than statements in the brief.
 
-There is a second way to be wrong, and it is the one that survives a careful reading. The
-obvious way to reach the first fixed point is to sweep the whole pair table, add every value
-whose key is now present, and repeat until a sweep adds nothing. That is exactly correct and it
-is what most implementations do. On a pair table written back to front it settles one link per
-sweep, so the work is the table size times the chain depth, and the graded set contains programs
-built that way. Measured on this machine: the whole graded set takes 0.7 s with the pair table
-indexed by key, and 129.8 s by rescanning - the same answers, 185 times the work, against a
-stated 60 s limit. The faster path is not a trick; it follows from an invariant of the rule
-itself, that a pair can only newly fire at the moment its key first enters the set, so attaching
-each pair to its key visits every pair once.
+The sharpest is the remembered set. `/app/mem/rset.py` records a (source, field, value) triple
+when a field of an old object is given a nursery value, and never revisits it. A minor collection
+cannot trace old space, so those entries are its only route to nursery objects held from outside -
+but the recorded value is a snapshot. Overwrite the field and the triple stays, naming an object
+nothing points at. The brief says the remembered set is where a minor collection finds those
+roots; it does not say the record goes stale, because that is readable in eleven lines of
+`rset.py` and nowhere else. Trusting the record keeps dead objects alive; ignoring the set
+releases live ones. Both ship as cheats and both fail.
 
-There is no oracle to check any of this against. The collector does not ship, so the runtime
-prints nothing until the agent writes one, and there is no reference behaviour to diff against
-or hill-climb on. The wrong readings are also quiet: settling the finalizer queue after keeping
-changes about 1% of a shaped population, so ordinary testing gives almost no signal.
+Then the couplings. The finalizer queue is settled against what the walk reached, before any
+keeping is granted, so an object reachable only from another finalizable object is still
+finalized this cycle. What is kept to run a finalizer is not what survived, so those objects do
+not age and cannot promote, and a weak reference to one clears while the object is still there. A
+minor collection may say nothing about old space, so it neither releases old objects nor clears
+references into it - yet an old pair key is reached for the whole of that collection, because
+nothing it did could show otherwise. Get ageing right and promotion changes which space an object
+is in, which changes what the next collection may trace, which changes the remembered set. There
+is no order in which these can be settled one at a time.
 
-The data is synthetic: heap programs over integer ids, with allocate, store, drop, frame open
-and close, collect and run-a-finalizer ops, plus generated mutation streams. Real heaps are
-millions of objects where ours are tens, and pair and finalizer configurations are concentrated
-far above their natural rate, because in the wild they are rare and are exactly where this class
-of bug lives. The shape is faithful; the density is deliberately adversarial.
+The pair table adds a measured resource boundary on top. Its fixed point is exactly correct when
+settled by rescanning the table until a sweep adds nothing, and on a table written back to front
+that costs the table size times the chain depth. On the graded set, indexed by key: 0.7 seconds.
+By rescanning: past 800 seconds, against a stated 60 second limit. Same answers.
 
-The environment is small on purpose and does not claim difficulty from file count: the runtime is
-four short modules and the work is one function. Identifiers are deliberately in a legacy
-register - `hp`, `ob`, `fl`, `fz`, `wk`, `pr`, `qu`, `rn` - so meaning has to come from what
-calls a field and what breaks when it is wrong, rather than from reading it off the name. That
-is a design choice, not sloppiness, and no name misdescribes what it holds.
+The data is synthetic: heap programs over integer ids, six families, with pair and finalizer
+configurations concentrated far above their natural rate because in the wild they are rare and
+are exactly where this class of bug lives. Real heaps are millions of objects where ours are
+thousands. The shape is faithful; the density is deliberately adversarial.
 
-This is what runtime engineers on a language implementation do: weak maps, finalizer queues and
-resurrection are where collector bugs concentrate, and the symptom is an object freed while
-something still points at it, surfacing far away as corruption.
+Identifiers are in a legacy register - `objs`, `flds`, `fin`, `rset`, `pins` - short but never
+misleading, and no name misdescribes what it holds. That is a choice about the register of real
+runtime code, not an obstacle: each is recoverable from what calls it.
+
+This is what runtime engineers on a language implementation do. Generational collectors, write
+barriers, weak maps and finalizer queues are where collector bugs concentrate, and the symptom is
+an object freed while something still points at it, surfacing far away as corruption.
 """
 
 solution_explanation = """
-The reference settles three sets in a fixed order, because each changes what the next may look
-at. First, what the open frames reach: fields to a fixed point, and a pair's value once its key
-is in the set, with the table indexed by key so each pair is followed the moment its key arrives
-and never looked at again. Second, the finalizer queue,
-taken against that set alone and before any keeping is granted, so an object reachable only from
-another finalizable object is still queued this cycle. Third, what is kept only to run a queued
-finalizer: those objects and their closures, following pair values the same way, and blocked from
-anything already reached so the two sets stay distinct. Weak clearing is then tested against the
-first set only, and release is everything in neither.
+Five modules, settled in a fixed order because each changes what the next may look at.
 
-Both retention passes index the pair table by key and walk a worklist, so a pair is visited
-once, when its key first arrives. An expert reaches for that not for speed but because it is the
-honest shape of the rule: nothing can fire a pair except its key arriving, and the key arrives
-exactly once. The rescanning form is kept in the cheat set, correct and too slow, because it is
-what the first draft of this reference did.
+`plan.py` chooses the roots. For a full collection that is everything named by the frame slots,
+the global table and the handle stack. For a minor one it is the nursery objects among those,
+plus the nursery objects reachable from old space - and it finds the second kind by walking the
+remembered set and re-reading each recorded field, because the value in the record is a snapshot
+that nothing keeps current.
 
-An expert works in that order because it is forced by the rules rather than chosen: each pass
-consumes the previous one's answer, and the split between reachable and merely-kept is what makes
-weak clearing and pair retention answer to different sets. The same contract is implemented three
-further ways in the authoring set - breadth-first over colours, level by level over frontiers,
-and the reference with every identifier renamed - to show the shape is not the point.
+`scan.py` walks reachability with the pair table folded in, indexed by key so each pair is
+followed the moment its key arrives and never looked at again. During a minor collection only
+nursery objects join the set, but an old key is ready before the walk starts and stays ready.
+
+`keep.py` settles the finalizer queue against that walk alone, before any keeping is granted,
+then computes what those finalizers keep as a second walk blocked from anything already reached,
+so the two sets stay apart. `age.py` ages what the walk reached and promotes at two, skipping
+anything merely kept and anything pinned. `wipe.py` clears weak references against the walk and
+leaves old referents alone on a minor collection.
+
+An expert works in that order because the rules force it, not because it is elegant: the queue
+needs the walk, the keeping needs the queue, ageing needs both, and clearing needs to know which
+of the two sets an object landed in. The same contract is implemented two further ways in the
+authoring set - one breadth-first over a colour map, one the reference with every identifier
+mechanically renamed - to show the shape is not what is graded.
 """
 
 verification_explanation = """
-Only `/app/cyc/keep.py` is taken from the agent. The verifier overlays it onto its own pristine
-copy of the runtime, so nothing else the agent may have touched can change what a program prints,
-and the record is compared line for line.
+Only the five files under `/app/col/` are taken from the agent. The verifier overlays them onto
+its own pristine copy of the runtime, so nothing else the agent may have touched can change what
+a program prints, and the record is compared line for line.
 
-Correct is defined twice over. Sixteen hand programs, one per graded decision plus the
+Correct is defined twice over. Twenty-five hand programs, one per graded decision plus the
 must-still-work side of each fence, are checked against `gt.json`, frozen before the verifier was
-written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so a
-drifted model cannot quietly redefine correct. Three hundred and thirty-five further programs are
-generated inside the verifier from a nonce drawn after the agent has finished, across five
-families that deliberately seed the retention cascade, the resurrection sequence and the wide
-pair table, and checked against that model. A submission cannot have seen them, so memorising the shipped example or
-forging records from an answer key both fail; both are in the cheat set and both score 0.
+written; the grader first asserts the sealed model still reproduces `gt.json` exactly, so a
+drifted model cannot quietly redefine correct. Three hundred and twelve further programs are
+generated inside the verifier from a nonce drawn after the agent has finished, across six
+families that seed the pair cascade, the finalizer closure, the resurrection, the stale
+remembered-set entry and the wide pair table. A submission cannot have seen them, so memorising
+the shipped examples or forging records from an answer key both fail; both are cheats and score 0.
 
-One family of generated programs carries a pair table written back to front, which separates a
-collector that settles the table by rescanning it from one that indexes it. The limit and the
-input scale are both stated in the instruction, and `/app/progs/wide.txt` ships so the scale can
-be timed rather than guessed.
-
-Passing therefore means the collector settles both fixed points, in the right order, with the two
-retained sets kept apart, inside the stated budget - on programs it never saw. Grading is all-or-nothing and the fences run
-both ways: releasing too much fails the ordinary cases, releasing too little fails the plain drop.
-Three independently written correct collectors all score 1, including one that is the reference
-with every identifier mechanically renamed, so implementation and naming are not being graded.
+The fences run both ways. Releasing too much fails the ordinary cases and `old-safe`; releasing
+too little fails `plain-drop`. Trusting the remembered set fails `rset-stale`; ignoring it fails
+`rset-root`. Ageing what is merely kept fails `held-no-age`. Sixteen cheats score 0 and each is
+caught by the layer that should catch it, the rescanning one by the execution limit itself. Two
+independently written correct collectors score 1, including the reference with every identifier
+renamed, so implementation and naming are not graded.
 """
 
 category = "Software"
@@ -112,12 +113,12 @@ category = "Software"
 subcategory = "Languages"
 
 tags = [
-  "reachability-tracing",
+  "generational-collection",
+  "remembered-sets",
   "weak-references",
   "key-value-weak-pairs",
   "finalizer-resurrection",
-  "fixed-point-iteration",
-  "worklist-algorithms",
+  "write-barriers",
 ]
 
 expert_time_estimate_hours = 8

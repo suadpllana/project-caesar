@@ -27,7 +27,8 @@ import model  # noqa: E402
 def stage(tmp, collector):
     tree = tmp / "tree"
     shutil.copytree(TASK / "environment" / "app_src", tree)
-    shutil.copy(collector, tree / "cyc" / "keep.py")
+    for f in sorted(pathlib.Path(collector).glob("*.py")):
+        shutil.copy(f, tree / "col" / f.name)
     return tree
 
 
@@ -46,7 +47,7 @@ def main(argv):
     bad, total = [], 0
     with tempfile.TemporaryDirectory() as td:
         tmp = pathlib.Path(td)
-        tree = stage(tmp, TASK / "solution" / "keep.py")
+        tree = stage(tmp, TASK / "solution")
 
         for name in cases.ORDER:
             total += 1

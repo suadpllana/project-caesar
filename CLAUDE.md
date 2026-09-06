@@ -126,3 +126,32 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   each docstring against the source first reported two false claims that were both true: it
   counted call sites with a substring that also matched each function's own `def` line. A
   verification script that fails is not evidence until it has itself been checked.
+
+## Lessons, measured (2026-09-07, `reach-pair-sweep` rebuild)
+
+- **Check a design against the bundles that passed before acting on an argument about it.** The
+  contributor's review argued that a shipped broken implementation is a worked example and an
+  oracle. It is a good argument, and I acted on it by deleting the shipped collector. All seven
+  retained passing tasks ship a working-but-wrong engine; not one ships a stub. That left this
+  task at 107 environment lines with one editable file against a passing band of 229-544 lines
+  and 1-7 editable files, and the quality review failed `difficult` twice on exactly that shape.
+  Measuring the retained set takes one command and would have caught it before the first
+  rejection, let alone the second.
+- **Two `difficult` failures means the environment, not the brief.** The manual says so and it
+  was right. The repair was not more prose or another axis bolted onto a small mechanism: it was
+  a runtime with a nursery, an old space, a write barrier, pins and a handle stack, where the
+  stated rules interact with structure the agent has to read. Nine graded decisions across five
+  modules, four shipping wrong.
+- **A reading you cannot express is a reading you cannot test.** The remembered set first stored
+  (source, field), which made "trust the record instead of re-reading it" impossible to write -
+  the reading measured 0% and no hand case caught it. Storing the written value too made the
+  classic stale-entry bug expressible: it now moves 12% of a shaped population and `rset-stale`
+  names it. When a reading refuses to separate, suspect the environment cannot represent the
+  mistake, not that the mistake is rare.
+- **`preflight` reads fields, not prose.** "Estimated solves out of 8: 2-5" is unparseable to it
+  and reported as unanswered; a bare number with the range in brackets satisfies both the tool
+  and the reader.
+- **stdout buffering looks exactly like a hang.** A timing harness printing between subprocess
+  runs showed an empty output file for ten minutes and sent me hunting a performance bug that did
+  not exist - the fast cases had finished and were sitting in the buffer behind the slow one. Use
+  `python -u` or `flush=True` in any script whose output is the measurement.

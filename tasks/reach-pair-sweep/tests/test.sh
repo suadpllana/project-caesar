@@ -6,7 +6,7 @@ chmod 700 /logs/verifier
 echo 0 > /logs/verifier/reward.txt
 
 python3 -c "import secrets; print(secrets.token_hex(16))" > /logs/verifier/nonce
-echo 80 > /logs/verifier/per
+echo 60 > /logs/verifier/per
 
 mkdir -p /work
 cp /logs/verifier/nonce /work/nonce

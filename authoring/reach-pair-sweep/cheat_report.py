@@ -1,8 +1,8 @@
-"""Every cheat scores 0 - and the named test is the one that stops it.
+"""Every cheat scores 0 - and the named layer is the one that stops it.
 
-A sweep that only reads the reward will report a clean row for a cheat that was never installed,
-or for one caught by an unrelated assertion. So each cheat declares the layer that must catch
-it, and this fails if some other layer did the work instead.
+A sweep that only reads the reward reports a clean row for a cheat that was never installed, or
+for one caught by an unrelated assertion. So each cheat declares the layer that must catch it,
+and this fails if something else did the work instead.
 
     python authoring/reach-pair-sweep/cheat_report.py
 """
@@ -20,32 +20,32 @@ TESTS = TASK / "tests"
 CHEATS = ROOT / "authoring" / "reach-pair-sweep" / "cheats"
 
 LIMIT = 60
+PER = 60
 
 NEEDS_CONTAINER = {
     "reward-daemon": "double fork plus a root-owned 700 reward channel",
     "privilege-probe": "a second uid to be unprivileged against",
 }
 
-# Each cheat names the assertion that must be the one to stop it.
 EXPECT = {
-    "read-pair-once": "test_hand_case[chain]",
-    "read-hold-fields": "test_hand_case[hold-pair]",
-    "read-clear-held": "test_hand_case[weak-on-held]",
+    "read-no-rset": "test_hand_case[rset-root]",
+    "read-trust-rset": "test_hand_case[rset-stale]",
+    "read-old-key-unready": "test_hand_case[old-key]",
     "read-queue-late": "test_hand_case[queue-first]",
-    "read-refinalize": "test_hand_case[comes-back]",
-    "read-unclear": "test_hand_case[stays-clear]",
+    "read-age-held": "test_hand_case[held-no-age]",
+    "read-wipe-old": "test_hand_case[weak-old]",
+    "read-release-old": "test_hand_case[old-safe]",
     "keep-everything": "test_hand_case[plain-drop]",
     "release-eagerly": "test_hand_case[hold-closure]",
-    "memorise-small": "test_every_nonce_program_matches",
-    "forge-from-gt": "test_every_nonce_program_matches",
     "malformed-output": "test_hand_case[all-live]",
-    "kill-worker": "worker",
+    "forge-from-gt": "test_every_nonce_program_matches",
     "rescan-pairs": "limit",
+    "kill-worker": "worker",
     "plant-and-crash": "worker",
 }
 
 
-def run(collector, per=80):
+def run(collector):
     with tempfile.TemporaryDirectory() as td:
         tmp = pathlib.Path(td)
         work, logs = tmp / "work", tmp / "logs"
@@ -54,7 +54,7 @@ def run(collector, per=80):
         nonce = secrets.token_hex(16)
         for d in (work, logs):
             (d / "nonce").write_text(nonce + "\n", encoding="utf-8")
-            (d / "per").write_text("%d\n" % per, encoding="utf-8")
+            (d / "per").write_text("%d\n" % PER, encoding="utf-8")
         env = dict(os.environ)
         env.update({"RPS_TESTS": str(TESTS), "RPS_WORK": str(work), "RPS_LOGS": str(logs),
                     "RPS_SUB": str(collector), "PYTHONDONTWRITEBYTECODE": "1"})
@@ -75,8 +75,8 @@ def run(collector, per=80):
 
 def main():
     rows, bad = [], 0
-    for path in sorted(CHEATS.glob("*.py")):
-        name = path.stem
+    for path in sorted(p for p in CHEATS.iterdir() if p.is_dir()):
+        name = path.name
         if name in NEEDS_CONTAINER:
             rows.append((name, "-", "not covered: needs %s" % NEEDS_CONTAINER[name], "skip"))
             continue
@@ -103,9 +103,9 @@ def main():
         if not ok:
             bad += 1
 
-    print("%-20s %-7s %-8s %s" % ("cheat", "reward", "verdict", "caught by"))
+    print("%-22s %-7s %-8s %s" % ("cheat", "reward", "verdict", "caught by"))
     for name, reward, why, flag in rows:
-        print("%-20s %-7s %-8s %s" % (name, reward, flag, why))
+        print("%-22s %-7s %-8s %s" % (name, reward, flag, why))
     covered = sum(1 for r in rows if r[3] == "ok")
     print("\n%d cheats caught by their own layer, %d not covered, %d wrong"
           % (covered, len(NEEDS_CONTAINER), bad))

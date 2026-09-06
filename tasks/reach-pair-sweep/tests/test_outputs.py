@@ -2,27 +2,32 @@
 
 FROZEN CONTRACT
 ---------------
-The agent supplies `/app/cyc/keep.py`, exposing `cycle(h)` and returning three collections:
-the names of weak references this collection clears, the ids whose finalizer joins the queue,
-and the ids released. Everything else in the tree is the verifier's own pristine copy, so only
-that one file can change what a program prints.
+The agent supplies the five files under `/app/col/`: `plan.py` chooses the roots for a
+collection, `scan.py` walks reachability and folds in the pair table, `keep.py` settles the
+finalizer queue and what it keeps alive, `age.py` decides ageing and promotion, and `wipe.py`
+clears weak references and names what is released. Everything else in the tree is the verifier's
+own pristine copy, so only those five can change what a program prints.
 
 Graded, and settled the same way by two implementations written apart:
-  1  what the open frames reach, a pair's value joining once its key is reached, iterated
-  2  that iteration cascading - a value pulled in can be the next pair's key
-  3  the queue settled against what the frames reach, before any keeping for finalizers
-  4  what a queued finalizer keeps: its object and that object's closure, pairs included
-  5  weak clearing tested against the frames alone, never against what is merely kept
-  6  clearing staying put once done
-  7  a finalizer queued at most once for an object, across every cycle
-  8  release: everything neither reached nor kept, and nothing else
+  1  the roots of a full collection, and of a minor one, where the remembered set is a hint
+     whose recorded field has to be read again rather than trusted
+  2  what the walk reaches, with a pair's value joining once its key is reached, iterated, and
+     an old key ready from the start of a minor collection
+  3  that a minor collection traces and releases only the nursery
+  4  the finalizer queue settled against the walk, before any keeping is granted
+  5  what a queued finalizer keeps: its object and that object's closure, pairs included
+  6  weak clearing tested against the walk alone, never against what is merely kept, and never
+     against old space on a minor collection
+  7  clearing staying put once done, and a finalizer queued at most once for an object
+  8  ageing: a survivor ages, an object kept only for a finalizer does not, a pinned object
+     keeps its age and stays put
+  9  release: everything in scope that the walk did not reach and no finalizer is keeping
 
 Implementation choice, never graded: how each fixed point is walked (the reference goes
-depth-first from a stack, the model breadth-first from a deque), what the collector returns as
-its container type, the order within each returned collection (the runtime sorts), and any
-internal naming or structure. Not a free choice, and not graded here either: the pair table has
-to be indexed rather than rescanned, which the execution limit decides rather than any assertion
-in this file.
+depth-first from a stack, the model breadth-first from a deque), the container types returned,
+the order within each returned collection (the runtime sorts), and any internal naming. Not a
+free choice, and not graded here either: the pair table has to be indexed rather than rescanned,
+which the execution limit decides rather than any assertion in this file.
 
 The record is compared exactly, line for line. Hand cases are checked against `gt.json`, frozen
 before the verifier was written; nonce programs are generated here, after the agent has

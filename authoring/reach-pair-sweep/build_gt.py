@@ -40,7 +40,8 @@ def reference_records():
         tmp = pathlib.Path(td)
         tree = tmp / "tree"
         shutil.copytree(TASK / "environment" / "app_src", tree)
-        shutil.copy(TASK / "solution" / "keep.py", tree / "cyc" / "keep.py")
+        for f in sorted((TASK / "solution").glob("*.py")):
+            shutil.copy(f, tree / "col" / f.name)
         for name in cases.ORDER:
             p = tmp / ("%s.txt" % name)
             p.write_text("\n".join(cases.CASES[name]) + "\n", encoding="utf-8")
@@ -52,7 +53,7 @@ def reference_records():
 
 def main():
     files = sync_pristine()
-    assert len(files) >= 7, "pristine tree looks short: %s" % files
+    assert len(files) >= 13, "pristine tree looks short: %s" % files
     print("pristine tree: %d files" % len(files))
 
     by_model = {n: model.expect(cases.ops(n)) for n in cases.ORDER}

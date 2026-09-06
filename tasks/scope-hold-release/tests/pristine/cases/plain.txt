@@ -1,8 +1,0 @@
-r app sing cfg .
-r cfg sing . .
-r job scoped log .
-r log scoped . .
-o open
-o resolve job
-o resolve job
-o close

@@ -928,7 +928,7 @@ def check_state_difficulty(root: Path) -> None:
         if not stripped or any(m in stripped for m in TODO_MARKERS) or len(stripped.split()) < 3:
             error(
                 f"STATE.md: {described} is unanswered - a task whose difficulty strategy was "
-                "never articulated lands outside the 1-6 band; see docs/DIFFICULTY.md"
+                "never articulated lands outside the 1-7 band; see docs/DIFFICULTY.md"
             )
 
     tactics_line = field_value(text, "Tactics making that true") or ""

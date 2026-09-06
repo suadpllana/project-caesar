@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Host emulation of the verifier: real runner, real pytest, real gt.json.
 
-Docker is not installed on the authoring host, so tools/docker_trial2.py cannot run here.
+Docker is not installed on the authoring host, so tools/docker_trial.py cannot run here.
 This reproduces everything the verifier does EXCEPT the container isolation: it overlays a
 variant's route.py onto a pristine copy of the tree, runs tests/runner.py against it, and
 grades the result with the real tests/test_outputs.py.

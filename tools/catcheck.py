@@ -12,13 +12,9 @@ from the ENVIRONMENT (the tree the agent actually works in, path names included,
 repo degrades identifiers on purpose and a tokenizer may only announce itself as `tok/`).
 A task whose category is carried by its story and not by its code is the one that fails.
 
-Measured over this repo when the check was written:
-
-    task (as declared)                env   prose
-    rollout-cache-coherence   ML       49      97   passed the quality review
-    checkpoint-resume-drift   ML       45      69   passed
-    turn-seam-alignment       ML       23      70   passed
-    alias-settle-report       ML        0       9   REJECTED, this criterion
+The check was introduced after `alias-settle-report` was rejected while declared as
+ML / Evaluation: the setting used evaluation language, but the shipped work was graph and
+state-machine software. It now declares Software / Algorithms.
 
 Usage: catcheck.py <slug> | --all      Exit 1 on any finding.
 """

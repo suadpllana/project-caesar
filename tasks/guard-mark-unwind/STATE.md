@@ -79,8 +79,7 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
 - **The reference lives in exactly one place: `solution/*.py`, beside `solve.sh`.** The first
   submission had `emit.py` inline all three files into `solve.sh` as heredocs *and* keep
   byte-identical copies in `solution/ref/`, which is what failed the quality review. `solve.sh`
-  now resolves its own directory and copies them in, the way `typeahead-query-controller` does -
-  the only solve.sh in this repo to have cleared that review. The platform hands the oracle
+  now resolves its own directory and copies them in. The platform hands the oracle
   agent the whole `solution/` directory, so files beside `solve.sh` are readable at run time.
   Do not re-inline them: `tools/solvecheck.py` fails the bundle if anyone does.
 - `kern/wake.py` is declared as an artifact and needs no change. That is deliberate - part of
@@ -128,7 +127,7 @@ async library has, so it is the shape a frontier agent reconstructs from its pri
 
 | Check | Status | Notes |
 |---|---|---|
-| Agent image builds | pass | `docker_trial2.py --build` |
+| Agent image builds | pass | `docker_trial.py guard-mark-unwind --build` |
 | No answer leaked into agent image | pass | sweep cheat finds nothing |
 | `harbor run -a oracle` = 1 | pass | real two-image trial, reward 1 |
 | `harbor run -a nop` = 0 | pass | real two-image trial, reward 0 |

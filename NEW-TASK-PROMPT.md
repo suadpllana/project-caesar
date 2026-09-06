@@ -59,8 +59,8 @@ these sections, in this order, and end the turn:
    similarity screen rejected the fifth.
 4. THE DEAD-FAMILY TEST, answered explicitly. State what the correct answer is defined
    against. Then answer each with yes/no and one line of proof:
-   - Is it a pure function under a stated rule? (dead: the solver brute-forces an oracle
-     as its first file; earliest-change-script failed three times on this)
+   - Is it a pure function under a stated rule? (usually dead: the solver can build a
+     brute-force oracle as its first file)
    - Is the graded predicate a decidable property of the input under stated transitions
      that a small state makes enumerable? (dead: alias-settle-report went 3/3 in 2-7
      minutes; run your own generator in your head and ask if the solver can produce every
@@ -168,11 +168,9 @@ F. THE BRIEF, written AFTER running the shipped broken tree, quoting its real ou
    preamble, no padding, no refuted candidate rules, no method, no counts, plain ASCII,
    the exact suffix with N equal to [agent] timeout_sec. No staged casualness. Then the
    coverage walk BOTH directions: for every graded decision name the sentence that decides
-   it; for every sentence name the assertion. Run textcheck against
-   tasks/rollout-cache-coherence, tasks/guard-mark-unwind and tasks/grant-spread-order,
-   structcheck, hintcheck; repair inside the existing voice, rejoin clauses rather than
-   chop, and ignore the two documented outliers (checkpoint's short-sentence bar,
-   turn-seam's paragraph sd). difficulty_explanation states the concrete step that breaks
+   it; for every sentence name the assertion. Run textcheck against retained briefs that
+   cleared the authorship screen, then run structcheck and hintcheck; repair inside the
+   existing voice and rejoin clauses rather than chop. difficulty_explanation states the concrete step that breaks
    an agent, what the data is and whether it is realistic, and who does this work.
 G. THE SELF-PROBE (replaces the three-agent probe; do not skip it and do not delegate it).
    Copy environment/app_src and instruction.md alone into the scratchpad. Play the solving
@@ -180,7 +178,7 @@ G. THE SELF-PROBE (replaces the three-agent probe; do not skip it and do not del
    peeking at tests/ or solution/. Record: did you write the editable files correctly on
    the first Write? Could you build a harness that confirmed every rule? Where did you get
    confirmation, and what did you have to guess? Grade the result through the real
-   verifier (docker_trial2 or the host emulation), never by your own report. Then run
+   verifier (docker_trial or the host emulation), never by your own report. Then run
    tools/leakcheck.py on your own write-up against the brief, tools/onelinecheck.py, and
    ablate your solve one decision at a time to get a number per cause. Read it like a
    rejection: a first-shot correct write is mode C; the winning line in the brief's
@@ -189,7 +187,7 @@ G. THE SELF-PROBE (replaces the three-agent probe; do not skip it and do not del
    is mode D (remove the confirmation). Every guess is an undecided rule: state it as a
    requirement. Then repair and repeat until your own cold solve is not a one-shot.
 H. GATES, all of them, in the stage-7 list of CLAUDE.md: sync, build_gt, emit,
-   variant_check, field_report, cheat_report, fuzz, determinism, tiecheck, docker_trial2
+   variant_check, field_report, cheat_report, fuzz, determinism, tiecheck, docker_trial
    --all and --variants (or the host emulation, saying which gates it does not cover),
    solvecheck, deadfieldcheck, catcheck, readingcheck, onelinecheck, hintcheck,
    structcheck, textcheck, simcheck, forgecheck, preflight (sort each finding by which

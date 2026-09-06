@@ -34,7 +34,7 @@ the agent, a reference solution proving the task is solvable, and a sealed verif
 attempt **1 or 0**.
 
 It is graded by a validation pipeline whose decisive gate is a **difficulty band**: the task is
-attempted 8 times by independent frontier agents and must be solved **at least once and at most 6
+attempted 8 times by independent frontier agents and must be solved **at least once and at most 7
 times**. Too easy is rejected. Never solved is rejected as unverifiable.
 
 Everything in this manual exists to protect that outcome.
@@ -135,7 +135,7 @@ Do not report that something works because it should. Build the image, run the c
 output. If you have not run it, say so explicitly rather than implying it passed.
 
 **D7. Difficulty is the gate that decides acceptance — treat it as a live concern at every stage.**
-Every other gate can be satisfied by care; the 1–6-of-8 band is where sound tasks die. The doctrine
+Every other gate can be satisfied by care; the 1–7-of-8 band is where sound tasks die. The doctrine
 is `docs/DIFFICULTY.md`; the target of attack is the frontier agent's *planning stage* — a task
 whose correct plan can be formed in one shot will be solved 7–8 times no matter how long execution
 takes. This is not a Stage 1 checkbox: re-examine it whenever evidence arrives. The reference
@@ -144,6 +144,11 @@ debugging → the couplings that forced exploration may be gone. The instruction
 telegraphs the method → the twist has leaked into the brief. Raise difficulty risk the moment you
 see it, whatever stage you are in — finding it at Stage 7 costs a rebuild; hiding it costs the
 submission.
+
+**Mandatory easiness-failure recovery.** If a task does not pass the easiness probe, stop treating
+it as submission-ready and read `RAISE-DIFFICULTY.md` completely. Follow that recovery loop from
+trajectory capture through the external-probe exit gate. Do not resubmit on predicted difficulty,
+and do not substitute extra cases, random scale, or verifier weakening for a semantic replan.
 
 ---
 
@@ -634,8 +639,11 @@ against the real thing. Read the final instruction cold and try to one-shot a pl
 probe agent will, with the actual environment in front of you. Answer honestly in `STATE.md`: is
 the first plan still wrong? Are the load-bearing facts still distributed, or did debugging flatten
 them? Did the instruction come to telegraph the method? Update the estimated-solves number. If the
-honest estimate has drifted above 6 or to 0, stop and say so — packaging a task outside the band
+honest estimate has drifted above 7 or to 0, stop and say so — packaging a task outside the band
 wastes the submission.
+
+If the easiness probe has already rejected this task, Stage 7 is blocked: run the complete
+`RAISE-DIFFICULTY.md` procedure and return to the earliest affected stage before packaging again.
 
 **Then run the gates, cheapest first:**
 

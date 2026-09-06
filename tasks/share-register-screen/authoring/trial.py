@@ -3,7 +3,7 @@
 It is here for speed while authoring. It does NOT cover the privilege drop, the root-owned
 reward channel, the unreadable answers, the inherited descriptor or the process teardown,
 so a clean run here says the determination is right and says nothing about the isolation.
-tools/docker_trial2.py <slug> --all is the run that covers those.
+tools/docker_trial.py <slug> --all is the run that covers those.
 
 Usage:
     python3 authoring/trial.py                 the reference
@@ -87,7 +87,7 @@ def main(argv):
     print("\n%d/%d behaved as required" % (ok, total))
     if held:
         print("%d probe(s) not covered by this emulation: %s" % (len(held), ", ".join(held)))
-        print("Run tools/docker_trial2.py share-register-screen --all for those.")
+        print("Run tools/docker_trial.py share-register-screen --all for those.")
     return 0 if ok == total else 1
 
 

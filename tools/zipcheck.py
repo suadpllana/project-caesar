@@ -74,8 +74,8 @@ def check(zpath: Path) -> int:
     #     the check that passed while an archive was broken. It is discarded the moment
     #     the archive is extracted on Linux: tests/test.sh lands non-executable, the
     #     verifier never starts, and every submission scores 0 including the reference,
-    #     with `verifier 0s` on both rows. That cost a full pipeline round trip on
-    #     earliest-change-script. tools/zipfix.py rewrites an archive that fails this.
+    #     with `verifier 0s` on both rows. tools/zipfix.py rewrites an archive that
+    #     fails this.
     dos = [i.filename for i in zf.infolist() if i.create_system != 3]
     if dos:
         findings.append(

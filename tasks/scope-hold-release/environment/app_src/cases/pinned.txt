@@ -1,9 +1,0 @@
-r unit scoped bill . . . .
-r bill scoped . . job . .
-r log scoped . . . . .
-o open job
-o resolve log
-o open .
-o resolve unit
-o close
-o close

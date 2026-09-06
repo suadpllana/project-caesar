@@ -1,0 +1,818 @@
+{
+ "cases": {
+  "comp-arrows-do-not-wrap": [
+   "w1",
+   "w1",
+   "w2",
+   "w3",
+   "w3",
+   "w2",
+   "w1",
+   "w1"
+  ],
+  "comp-back-from-dropped-place": [
+   "w1",
+   "w2",
+   "w3",
+   "w2",
+   "none",
+   "w1",
+   "w3",
+   "none",
+   "w1"
+  ],
+  "comp-back-lands-on-memory": [
+   "w1",
+   "w2",
+   "w3",
+   "w5",
+   "w3",
+   "w1",
+   "w3"
+  ],
+  "comp-empty-is-no-stop": [
+   "w1",
+   "w1",
+   "w3",
+   "w1",
+   "w1",
+   "w2"
+  ],
+  "comp-is-one-stop": [
+   "w1",
+   "w2",
+   "w3",
+   "w4",
+   "w5",
+   "w4"
+  ],
+  "comp-keys-leave-it": [
+   "w1",
+   "w2",
+   "w3",
+   "w1",
+   "w3",
+   "none",
+   "w1",
+   "w2",
+   "none",
+   "w4"
+  ],
+  "comp-memory-from-request": [
+   "w1",
+   "w4",
+   "w5",
+   "w4",
+   "w5",
+   "w1"
+  ],
+  "comp-memory-gone": [
+   "w1",
+   "w2",
+   "w3",
+   "w4",
+   "w5",
+   "w5",
+   "w2",
+   "w5",
+   "w5",
+   "w3"
+  ],
+  "group-none-selected": [
+   "w1",
+   "w2",
+   "w4",
+   "w4",
+   "w3"
+  ],
+  "group-selected-is-the-stop": [
+   "w1",
+   "w3",
+   "w5",
+   "w5",
+   "w4",
+   "w1"
+  ],
+  "group-selected-unreachable": [
+   "w1",
+   "w2",
+   "w4",
+   "w4",
+   "w3"
+  ],
+  "group-unselected-holds-focus": [
+   "w1",
+   "w3",
+   "w4",
+   "w3",
+   "w2"
+  ],
+  "instance-composite-memory": [
+   "a",
+   "x",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "a"
+  ],
+  "instance-cross-screen-reuse": [
+   "a",
+   "x",
+   "q",
+   "q",
+   "q",
+   "q",
+   "x",
+   "none",
+   "b"
+  ],
+  "instance-held-before-push": [
+   "none",
+   "none",
+   "none",
+   "none",
+   "b"
+  ],
+  "instance-leaf-memory": [
+   "a",
+   "x",
+   "z",
+   "z",
+   "z",
+   "a"
+  ],
+  "instance-lost-does-not-follow-replacement": [
+   "a",
+   "x",
+   "none",
+   "none",
+   "b",
+   "x"
+  ],
+  "instance-new-want-replaces-old-want": [
+   "none",
+   "none",
+   "none",
+   "none",
+   "x"
+  ],
+  "instance-old-branch-is-not-new-branch": [
+   "a",
+   "y",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "a",
+   "x"
+  ],
+  "instance-parent-slot": [
+   "a",
+   "x",
+   "q",
+   "q",
+   "q",
+   "q",
+   "none",
+   "a"
+  ],
+  "instance-return-different-slot": [
+   "a",
+   "x",
+   "q",
+   "q",
+   "q",
+   "none",
+   "b"
+  ],
+  "instance-return-same-slot": [
+   "a",
+   "x",
+   "q",
+   "q",
+   "q",
+   "none",
+   "x"
+  ],
+  "instance-return-through-popped-screen": [
+   "a",
+   "x",
+   "q",
+   "r",
+   "r",
+   "r",
+   "r",
+   "none",
+   "b"
+  ],
+  "instance-two-retired-generations": [
+   "a",
+   "x",
+   "q",
+   "q",
+   "q",
+   "q",
+   "q",
+   "none",
+   "a"
+  ],
+  "lost-container-dropped": [
+   "w1",
+   "w2",
+   "w3",
+   "none",
+   "w4"
+  ],
+  "lost-container-dropped-then-parent": [
+   "w1",
+   "w2",
+   "none",
+   "none",
+   "w4"
+  ],
+  "lost-insert-at-the-point": [
+   "w1",
+   "w2",
+   "none",
+   "none",
+   "w5"
+  ],
+  "lost-inside-composite": [
+   "w1",
+   "w2",
+   "none",
+   "w4",
+   "w3"
+  ],
+  "lost-moved-under-hidden": [
+   "w1",
+   "w2",
+   "none",
+   "w3",
+   "w3",
+   "w2"
+  ],
+  "lost-point-at-the-end": [
+   "w1",
+   "w3",
+   "none",
+   "w1",
+   "w2"
+  ],
+  "lost-point-does-not-move": [
+   "w1",
+   "w2",
+   "none",
+   "none",
+   "w4"
+  ],
+  "lost-starts-after-the-widget": [
+   "w1",
+   "w2",
+   "w3",
+   "none",
+   "w4",
+   "w2",
+   "w1",
+   "none",
+   "w4"
+  ],
+  "lost-widget-shown-again": [
+   "w1",
+   "w2",
+   "none",
+   "none",
+   "w3",
+   "w2",
+   "w1"
+  ],
+  "nested-arrows-climb-without-screen-wrap": [
+   "a",
+   "x",
+   "i",
+   "j",
+   "y",
+   "j",
+   "i",
+   "x",
+   "x",
+   "z",
+   "x",
+   "j",
+   "z",
+   "j"
+  ],
+  "nested-drop-container-then-move-surviving-parent": [
+   "a",
+   "j",
+   "none",
+   "none",
+   "z",
+   "x"
+  ],
+  "nested-dropped-slot-leaves-outermost": [
+   "a",
+   "j",
+   "none",
+   "a",
+   "i",
+   "i",
+   "none",
+   "z",
+   "x"
+  ],
+  "nested-empty-branch-falls-to-parent-first": [
+   "a",
+   "j",
+   "z",
+   "z",
+   "x",
+   "x",
+   "j"
+  ],
+  "nested-fallback-applies-local-group": [
+   "a",
+   "i",
+   "z",
+   "z",
+   "j",
+   "y",
+   "j"
+  ],
+  "nested-hidden-return-and-out-of-order-pop": [
+   "a",
+   "j",
+   "m1",
+   "n1",
+   "n1",
+   "n1",
+   "none",
+   "a",
+   "a",
+   "j",
+   "y"
+  ],
+  "nested-memory-of-unselected-group-member": [
+   "a",
+   "x",
+   "i",
+   "j",
+   "z",
+   "z",
+   "j",
+   "i",
+   "i"
+  ],
+  "nested-memory-remembers-branch-not-leaf": [
+   "a",
+   "j",
+   "z",
+   "z",
+   "i",
+   "i",
+   "z",
+   "i"
+  ],
+  "nested-moved-branch-invalidates-scope": [
+   "a",
+   "j",
+   "z",
+   "z",
+   "j",
+   "x",
+   "y"
+  ],
+  "nested-return-updates-every-ancestor": [
+   "a",
+   "j",
+   "m",
+   "m",
+   "i",
+   "z",
+   "i"
+  ],
+  "pick-keeps-focus": [
+   "w1",
+   "w1",
+   "w2",
+   "w3"
+  ],
+  "pop-out-of-order": [
+   "a1",
+   "a2",
+   "b1",
+   "b2",
+   "c1",
+   "c1",
+   "a2",
+   "a3"
+  ],
+  "pop-out-of-order-target-gone": [
+   "a1",
+   "a2",
+   "b1",
+   "b2",
+   "c1",
+   "c1",
+   "c1",
+   "none",
+   "a3"
+  ],
+  "pop-out-of-order-twice": [
+   "a1",
+   "a2",
+   "b1",
+   "c1",
+   "c2",
+   "d1",
+   "d1",
+   "d1",
+   "a2"
+  ],
+  "pop-out-of-order-with-held": [
+   "a1",
+   "b1",
+   "c1",
+   "c1",
+   "c1",
+   "c1",
+   "c1",
+   "a3",
+   "a1"
+  ],
+  "pop-restores-lazily": [
+   "w1",
+   "w2",
+   "d1",
+   "d1",
+   "d1",
+   "w2",
+   "w3"
+  ],
+  "pop-restores-the-widget": [
+   "w1",
+   "w2",
+   "d1",
+   "d1",
+   "w2",
+   "w3"
+  ],
+  "pop-target-dropped": [
+   "w1",
+   "w2",
+   "d1",
+   "d1",
+   "none",
+   "w3"
+  ],
+  "pop-target-still-unreachable": [
+   "w1",
+   "w2",
+   "d1",
+   "d1",
+   "none",
+   "w3",
+   "w1",
+   "w3"
+  ],
+  "pop-the-last-screen": [
+   "w1",
+   "w2",
+   "none",
+   "none",
+   "d1",
+   "d1",
+   "none",
+   "none"
+  ],
+  "push-lands-on-auto": [
+   "w1",
+   "d3",
+   "d4",
+   "w1"
+  ],
+  "push-nothing-to-take": [
+   "w1",
+   "none",
+   "none",
+   "none",
+   "d1"
+  ],
+  "push-over-nothing": [
+   "w1",
+   "w2",
+   "none",
+   "d1",
+   "none",
+   "w3",
+   "w3",
+   "w2"
+  ],
+  "push-without-auto": [
+   "w1",
+   "d1"
+  ],
+  "reach-inherits-disabled-focused": [
+   "w1",
+   "none",
+   "w2",
+   "w2",
+   "w1"
+  ],
+  "reach-inherits-hidden": [
+   "w1",
+   "none",
+   "w2",
+   "w3",
+   "w3",
+   "w1"
+  ],
+  "reach-inherits-shut": [
+   "w1",
+   "w2",
+   "none",
+   "w3",
+   "w3",
+   "w2"
+  ],
+  "tx-abandoned-tombstone-does-not-follow-moved-widget": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "none",
+   "z"
+  ],
+  "tx-abort-keeps-earlier-offscreen-request": [
+   "none",
+   "a",
+   "a",
+   "a",
+   "a",
+   "y",
+   "a"
+  ],
+  "tx-abort-restores-id-lookup-and-old-slot": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "none",
+   "none",
+   "a"
+  ],
+  "tx-abort-restores-remembered-branch-instances": [
+   "a",
+   "u",
+   "v",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "z",
+   "v"
+  ],
+  "tx-commit-checks-memory-in-final-scope": [
+   "a",
+   "u",
+   "i",
+   "j",
+   "z",
+   "z",
+   "z",
+   "z",
+   "u",
+   "v"
+  ],
+  "tx-committed-hide": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "none",
+   "c",
+   "a"
+  ],
+  "tx-early-want-retired-instance": [
+   "a",
+   "c",
+   "c",
+   "c",
+   "c",
+   "c",
+   "c"
+  ],
+  "tx-final-group-selection-before-navigation": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "w",
+   "a"
+  ],
+  "tx-fixed-slot-survives-transient-siblings": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "none",
+   "a"
+  ],
+  "tx-inner-abort-discards-old-drop-position": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "none",
+   "x"
+  ],
+  "tx-inner-abort-outer-commit": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "none",
+   "c"
+  ],
+  "tx-inner-commit-outer-abort": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "c"
+  ],
+  "tx-kept-request-retains-dropped-instance": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "none",
+   "p",
+   "a"
+  ],
+  "tx-keys-use-final-order": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "d",
+   "c"
+  ],
+  "tx-later-want-replacement-instance": [
+   "a",
+   "c",
+   "c",
+   "c",
+   "c",
+   "c",
+   "c",
+   "x"
+  ],
+  "tx-missing-want-does-not-bind-future-add": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "x"
+  ],
+  "tx-nested-queue-abort-order": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "c",
+   "b"
+  ],
+  "tx-nested-queue-merge-order": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "b",
+   "c"
+  ],
+  "tx-only-retained-offscreen-wants-compete": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "z"
+  ],
+  "tx-transient-hide-show": [
+   "a",
+   "b",
+   "b",
+   "b",
+   "b",
+   "b",
+   "c"
+  ],
+  "tx-want-then-back-final-order": [
+   "a",
+   "a",
+   "a",
+   "a",
+   "a",
+   "d",
+   "c"
+  ],
+  "want-held-beats-the-return": [
+   "w1",
+   "w2",
+   "d1",
+   "d1",
+   "w3"
+  ],
+  "want-held-before-the-push": [
+   "w1",
+   "w1",
+   "d3"
+  ],
+  "want-held-for-a-screen-below": [
+   "w1",
+   "d1",
+   "d1",
+   "d1",
+   "w3"
+  ],
+  "want-held-latest-wins": [
+   "w1",
+   "d1",
+   "d1",
+   "d1",
+   "w2"
+  ],
+  "want-held-re-enabled-before-return": [
+   "w1",
+   "d1",
+   "d1",
+   "d1",
+   "d1",
+   "w2"
+  ],
+  "want-held-unreachable-at-return": [
+   "w1",
+   "d1",
+   "d1",
+   "d1",
+   "none",
+   "w3"
+  ],
+  "want-inside-composite": [
+   "w1",
+   "w3",
+   "w3",
+   "w1",
+   "w3"
+  ],
+  "want-unreachable-is-ignored": [
+   "w1",
+   "w1",
+   "w3",
+   "w3",
+   "w1"
+  ]
+ }
+}

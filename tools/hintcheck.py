@@ -42,8 +42,7 @@ REFUTATION = (
     re.compile(r"\bit is not the (line|test|rule|answer|distinction|condition)\b"),
     re.compile(r"\bthat (is|reading) (is )?(not|never) (it|the|right|enough|correct)\b"),
     # "first" is dropped deliberately: it is ordinal far more often than dismissive,
-    # and "to check the first answer" in turn-seam-alignment is a cost constraint the
-    # solver needs, not a rule being refuted.
+    # and phrases such as "check the first answer" can state a required cost constraint.
     re.compile(r"\bthe (cheap|obvious|naive|tempting|easy) (test|rule|reading|"
                r"answer|plan|guess|move)\b"),
     re.compile(r"\b(looks like|seems like|reads as) the .{0,40}\band it is not\b"),
@@ -63,9 +62,8 @@ REFUTATION = (
 # requirement says what must be true of the answer; one of these says which part of the
 # problem to think about.
 EMPHASIS = (
-    # Narrowed deliberately. rollout-cache-coherence, which passed the screen, carries
-    # "what it has computed is the whole of what is at stake for it" - a statement about a
-    # request in the domain, not about the solver's job. The leak is the form that names
+    # Narrowed deliberately. A statement about a request in the domain is not necessarily
+    # a solver hint. The leak is the form that names
     # the solver or its program as the thing that must get the quantity right.
     re.compile(r"\bis the whole of what\b[^.]{0,60}\b(get|getting) (it )?right\b"),
     re.compile(r"\bthe whole of (the|what) (work|task|difficulty|problem|thing)\b"),

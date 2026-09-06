@@ -1,6 +1,6 @@
 # Designing for difficulty
 
-The difficulty band — solved 1 to 6 times out of 8 — is where tasks die, in both directions.
+The difficulty band — solved 1 to 7 times out of 8 — is where tasks die, in both directions.
 This file is the doctrine for clearing it, written for the assistant to use with the contributor
 during idea intake (Stage 1), verifier design (Stage 2), and the final re-attack (Stage 7).
 
@@ -344,13 +344,13 @@ realized rate up into it. Aiming at the middle produces tasks that come back at 
 Know what you are trading, though. Here is the arithmetic on the *realized* rate, which is what
 the pipeline actually scores:
 
-| If the true solve rate is | Rejected as unverifiable (0 of 8) | Rejected as too easy (7+ of 8) | Total risk |
+| If the true solve rate is | Rejected as unverifiable (0 of 8) | Rejected as too easy (8 of 8) | Total risk |
 |---|---|---|---|
-| ~1 of 8 | **34%** | 0% | **34%** |
-| ~2 of 8 | 10% | 0% | 10% |
-| ~3 of 8 | 2% | 1% | **3%** |
-| ~4 of 8 | 0.4% | 4% | 4% |
-| ~5 of 8 | 0% | 14% | 14% |
+| ~1 of 8 | 34.361% | 0.000006% | 34.361% |
+| ~2 of 8 | 10.011% | 0.0015% | 10.013% |
+| ~3 of 8 | 2.328% | 0.039% | 2.368% |
+| ~4 of 8 | 0.391% | 0.391% | 0.781% |
+| ~5 of 8 | 0.039% | 2.328% | 2.368% |
 
 If a task genuinely lands at a true 1-in-8, roughly a third of the time eight trials return zero
 and it is rejected as unverifiable. That is the price of aiming at the hard edge, and it is worth

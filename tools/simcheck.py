@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Would the similarity screen call this a variant of earlier work?
 
-`segment-merge-horizon` was rejected by the similarity screen on 2026-08-15 with every local
-gate green, because no local gate measured the axis that rejected it. This is that gate.
+A prior submission was rejected by the similarity screen with every local gate green,
+because no local gate measured the axis that rejected it. This is that gate.
 
 It reports two things, because the rejection had two causes and only the second one is
 obvious.

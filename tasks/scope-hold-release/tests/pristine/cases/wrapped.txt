@@ -1,6 +1,0 @@
-r skin scoped . . . core .
-r core scoped log . . . .
-r log scoped . . . . .
-o open .
-o resolve skin
-o close

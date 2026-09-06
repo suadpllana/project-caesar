@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 r"""Does the bundle ship anything nothing in the bundle uses?
 
-`permit-strand-relay` cleared the structural check, the AI screen, the similarity
-screen and reference verification, and failed the quality review on the single
-criterion `no extraneous files`. Three files, and each is a class rather than an
-accident:
+A previously submitted bundle cleared the structural, authorship, similarity and
+reference gates, then failed the quality review on the single criterion
+`no extraneous files`. Three files exposed three recurring classes:
 
     authoring/decisions.py   its only reader is tools/onelinecheck.py, which does
                              not ship, so from inside the archive it is an orphan
@@ -51,12 +50,9 @@ WHAT IT LOOKS FOR
              instead of the archive reports them on bundles that shipped clean.
 
 VALIDATED IN BOTH DIRECTIONS, 2026-09-05. It names exactly the reviewer's three
-findings on a reconstruction of the rejected bundle and nothing else, and it is
-clean on every bundle here that has cleared a quality review: guard-mark-unwind
-and typeahead-query-controller (nine gates), share-register-screen (the whole
-pipeline), alias-settle-report, delta-view-retraction and the rest. It also
-reports three bundles that are latent for this rejection if they go back as they
-stand - note-carry-forward, grant-spread-order and segment-merge-horizon.
+findings on a reconstruction of the rejected bundle and stays clean on retained
+bundles that cleared quality review. Exposure warnings are deliberately advisory
+because the same authoring shape has received different review outcomes.
 
 Usage:
     python3 tools/extraneouscheck.py <slug> [<slug> ...]
@@ -328,10 +324,8 @@ def check(slug: str) -> int:
         print("   -- exposure: development tooling in the archive (%d) --" % len(exposure))
         for line in exposure:
             print("   " + line)
-        print("   note: this criterion has run-to-run variance. Variants and authoring")
-        print("   scripts passed the quality review on guard-mark-unwind, share-register-")
-        print("   screen and permit-strand-relay, and BLOCKED note-carry-forward on")
-        print("   2026-09-05. Clearing it is the safest shape; it is not proof of failure.")
+        print("   note: this criterion has run-to-run variance. Clearing advisory")
+        print("   exposure is the safest shape, but exposure alone is not proof of failure.")
     if not blocking and not exposure:
         print("   clean: every shipped file is reachable, distinct and host-free")
     return 1 if blocking else 0

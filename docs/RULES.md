@@ -11,13 +11,15 @@ checks the mechanical ones. The judgment ones are yours.
 
 ## The bar
 
+Difficulty band updated on 2026-09-05 from contributor confirmation: 1-7 solves out of 8.
+
 A task is attempted **8 times by independent frontier agents** and must be solved **at least once
-and at most 6 times**.
+and at most 7 times**.
 
 | Outcome | Result |
 |---|---|
-| Solved 7-8 times | Too easy. Rejected. |
-| Solved 1-6 times | In band. |
+| Solved 8 times | Too easy. Rejected. |
+| Solved 1-7 times | In band. |
 | Never solved | Treated as unverifiable. Rejected. |
 
 This is the gate that decides most submissions, and it is the one no tooling can guarantee. Aim at

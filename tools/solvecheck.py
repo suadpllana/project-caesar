@@ -14,10 +14,9 @@ Two separate defects there, and this checks both. A heredoc past the threshold i
 style half. The duplication is the real half: the same source existing twice in one
 bundle, with nothing keeping the copies equal.
 
-The fix is the shape typeahead-query-controller shipped, which is the only solve.sh in
-this repo to have cleared the quality review: the reference sits beside solve.sh, and
-solve.sh resolves its own directory and copies it in. The platform hands the oracle agent
-the whole solution/ directory, so files next to solve.sh are readable at run time.
+The accepted fix is to keep the reference beside solve.sh, then have solve.sh resolve its
+own directory and copy those files in. The platform hands the oracle agent the whole
+solution/ directory, so files next to solve.sh are readable at run time.
 
 Usage:
     python tools/solvecheck.py <slug>          one task

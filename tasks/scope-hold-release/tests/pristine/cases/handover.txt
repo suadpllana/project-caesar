@@ -1,8 +1,0 @@
-r hub scoped . mk
-r mk scoped seat .
-r seat scoped . .
-o open
-o resolve hub
-o invoke mk
-o invoke mk
-o close

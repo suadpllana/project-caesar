@@ -45,8 +45,8 @@ def gt_slices(gt_text: str, n: int = 12) -> list[str]:
     when nothing single is long enough, consecutive tokens are joined until they are: a
     run of ground-truth rows in order is just as specific as one long token, and a cheat
     still has to carry the answers verbatim to match it. Measured 2026-09-02: adding the
-    fallback keeps every task that already reported carriers reporting them, and leaves
-    checkpoint-resume-drift, turn-seam-alignment and rollout-cache-coherence failing.
+    fallback keeps tasks with real answer-key carriers reporting them and leaves tasks
+    without such evidence failing.
     """
     data = json.loads(gt_text)
     flat = json.dumps(data, sort_keys=True).replace("{", " ").replace("}", " ").split()

@@ -1,13 +1,10 @@
 """Structural screen for instruction briefs.
 
-textcheck.py measures cadence and register. It passed every version of
-typeahead-query-controller that the AI screen then rejected, three times, so the
-axes it measures are demonstrably not the ones that decide the outcome.
+textcheck.py measures cadence and register. Historical submissions showed that those
+axes alone do not decide the authorship screen.
 
-This checks the properties that actually separated the rejected drafts from the
-briefs that cleared the screen. Every threshold below was validated in both
-directions: clean on rollout-cache-coherence, checkpoint-resume-drift and
-reaction-network-reconstruction, and firing on the rejected typeahead drafts.
+This checks structural properties that separated rejected drafts from briefs that
+cleared the screen. The retained thresholds were validated in both directions.
 
 Run it as:  python tools/structcheck.py <draft.md> [<draft2.md> ...]
 """

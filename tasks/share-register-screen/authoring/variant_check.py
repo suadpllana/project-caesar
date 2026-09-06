@@ -10,7 +10,7 @@ the reference the first time it ran, on registers where a seat came down to a ti
 which is how the tie-free requirement in tests/gen.py came to exist.
 
 This runs on the host and does not exercise the container. Use
-tools/docker_trial2.py <slug> --variants for the version that grades them for real.
+tools/docker_trial.py <slug> --variants for the version that grades them for real.
 """
 
 from __future__ import annotations

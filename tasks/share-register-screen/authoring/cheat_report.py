@@ -22,7 +22,7 @@ TASK = Path(__file__).resolve().parent.parent
 REPO = TASK.parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 
-import docker_trial2 as dt  # noqa: E402
+import docker_trial as dt  # noqa: E402
 
 WANTED = re.compile(r"^(?:FAILED|ERROR) tests/test_outputs\.py::(\S+)", re.M)
 

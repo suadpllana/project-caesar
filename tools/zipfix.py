@@ -10,9 +10,8 @@ against that passes, and it is discarded the moment the archive is extracted on 
 `tests/test.sh` lands non-executable, the verifier never starts, and EVERY submission
 scores 0 - the reference and the no-op alike - with `verifier 0s` on both rows.
 
-That has already cost this repo one full pipeline round trip, on
-`earliest-change-script`, and the note in CLAUDE.md asking for the check to be added to
-`tools/zipcheck.py` is what this pair of tools answers.
+This defect has cost a full pipeline round trip before; tools/zipcheck.py and this fixer
+close that archive-only gap.
 
 WHAT IT WRITES, replicated field for field from the archives the pipeline accepted:
 
@@ -27,7 +26,6 @@ WHAT IT WRITES, replicated field for field from the archives the pipeline accept
 
 from __future__ import annotations
 
-import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -68,7 +66,7 @@ def rewrite(path: Path) -> int:
             fresh.external_attr = wanted(info.filename)
             fresh.compress_type = zipfile.ZIP_DEFLATED
             out.writestr(fresh, blob)
-    shutil.move(str(spare), str(path))
+    spare.replace(path)
     return len(items)
 
 

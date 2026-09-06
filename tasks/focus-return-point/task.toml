@@ -1,0 +1,136 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/ui/focus.py",
+  "/app/ui/keep.py",
+  "/app/ui/reach.py",
+  "/app/ui/mem.py",
+]
+
+[task]
+name = "afterquery/focus-return-point"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer who owns keyboard navigation, focus restoration
+and render scheduling in a terminal toolkit or a component library. They have to preserve
+the keyboard user's position while a form is rebuilt, a dialog covers it, or an abandoned
+render restores controls that other parts of the application still reference.
+
+The graded data is synthetic: generated widget histories combine nested composites,
+selection groups, dialogs and reversible render edits. Trees and individual operations
+are realistic for interactive applications. The concentrated combinations of removal,
+id reuse and nested rollback are deliberately adversarial; they reproduce failures that
+would appear less frequently in ordinary sessions. Scripts allocate at most forty widgets
+over five screens, including allocations that are later abandoned, with render nesting
+limited to four levels.
+
+An eager focus controller sees each edit as a completed change. That plan fails when a
+focused widget is hidden and shown in the same render, or removed and restored by an
+abort. Deferring every event is also wrong: tree edits already happened, requests bind to
+the instances present when issued, and only their focus effects wait. At commit, queued
+navigation uses the final tree and runs in order, after the retained focus is checked.
+A request can therefore refer to an instance no longer in that tree, while a later
+request with the same printed id refers to its replacement.
+
+Nested rollback joins these timing rules to historical position. An inner commit retains
+work that an outer abort can still discard; an inner abort must leave earlier outer
+requests intact. Restoring the tree does not by itself erase deletion positions recorded
+by the policy. A stale position can remain harmless until its restored widget is moved
+and a different ancestor is removed. Previously kept requests, return points and branch
+memories must still refer to the original instances after the restoration.
+
+The final tree also has several navigation scopes. Tab leaves the outermost composite,
+while arrows climb through enclosing composite lists without entering the screen list.
+Each scope remembers a direct branch, and group representatives are local to a scope
+despite selection changes clearing same-named groups across the screen. Replaying a
+queued landing can update several memories that affect the next queued key. Correct
+timing, identity and scope rules must hold together; solving them independently leaves
+plausible but wrong focus trails.
+
+The environment uses terse internal names and intentionally omits comments. It is a small
+toolkit, not a large exploration maze: the challenge is reconciling the tree snapshots,
+event binding and focus policy rather than finding files. The visible runner reports the
+submitted policy's behavior and supplies no correctness oracle for those interactions.
+"""
+
+solution_explanation = """
+The runtime applies tree edits and restores snapshots using the original node objects.
+The reference policy records instance-bound focus intents and removal positions while a
+render is open. Each nested frame marks the pending-action boundary and preserves the
+earlier deletion records. Abort discards that frame's actions and positions; inner commit
+retains them. Outermost commit checks retained focus, then answers the pending actions
+in order against the final tree. It does not apply tree mutations a second time.
+
+Outside renders, deferred return targets and numeric removal places resolve lazily.
+Per-scope stop lists, direct-branch memories and identity-based liveness implement
+navigation through nested composites and replaced controls. The four permitted policy
+files are sufficient; the frozen runtime supplies tree operations, not focus answers.
+
+The independent expected-output model uses flat records with monotonically allocated
+handles, separate name lookup and copied structural tables for render snapshots. Its
+nested frames hold their own ordered intents. This differs from the runtime's linked
+objects and the reference policy's shared queue with saved boundaries.
+"""
+
+verification_explanation = """
+The verifier compares every printed focus exactly and scores all-or-nothing. It uses
+89 literal histories with hand-derived expected trails, including 21 render-transaction
+examples. It also drives 300 general, 300 nested, 150 id-reuse and 300 render histories
+from fixed seeds. Input-only state tracking checks legal tree edits, nested closure and
+rollback; the trusted model also checks allocation bounds and singular group selection.
+The sealed model must reproduce every literal trail before a run can pass.
+
+The worker executes the submitted policy under an unprivileged uid in a pristine runtime
+with only the four declared artifacts overlaid. Frozen function hashes include the tree
+snapshot module, and instrumentation checks that the runtime emitted every event row.
+The reward is root-owned and defaults to zero. The trusted grader runs only after worker
+completion and survivor cleanup, checks their exit statuses, and compares the actual
+trails with sealed expectations. No submitted code is imported by that grader.
+"""
+
+category = "Software"
+subcategory = "Frontend"
+
+tags = [
+  "focus-management",
+  "modal-dialogs",
+  "tree-mutation",
+  "deferred-resolution",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I maintain the focus and keyboard-navigation layer of an internal terminal toolkit our
+operations consoles are built on, and before that the dialog primitives of a web design
+system. The bug this task is built from is the one every such component ships with at
+least once: a modal closes, the thing that opened it has been removed or disabled in the
+meantime, and focus lands on the document root, so the next Tab starts from the top of
+the page and a keyboard user is lost. The fix everyone writes first - remember the opener,
+restore it if it still exists - is right in every case you would think to test and wrong
+the moment the opener is disabled and re-enabled under the modal, or two modals close in
+the wrong order, or the opener sat inside a row that was removed. Browsers keep a
+starting point in the tree for exactly this reason, and every toolkit that does not
+copies the bug.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

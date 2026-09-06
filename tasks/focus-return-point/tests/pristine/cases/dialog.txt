@@ -1,0 +1,17 @@
+screen form
+w f1 form foc
+w f2 form foc
+w box form
+w f3 box foc
+w f4 box foc
+w f5 form foc
+screen ask
+w a1 ask foc
+w a2 ask foc auto
+push form
+tab
+tab
+push ask
+drop box
+pop ask
+tab

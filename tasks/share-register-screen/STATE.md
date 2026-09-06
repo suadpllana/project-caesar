@@ -92,7 +92,7 @@ holding rather than against each of them separately.
 
 | Check | Status | Notes |
 |---|---|---|
-| Agent image builds | pass | docker_trial2, both images |
+| Agent image builds | pass | docker_trial, both images |
 | No answer leaked into agent image | pass | file-by-file walk of the built image |
 | oracle = 1 | pass | real two-image trial |
 | nop = 0 | pass | real two-image trial |

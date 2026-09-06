@@ -29,8 +29,10 @@ nothing. There is no work counter anywhere in this task and no timing budget.
   revision's verdict for that thread, the state a reply left behind, a merge
   fixed point, and a mapping that only differs from a rebuilt one on files
   that repeat themselves.
-- Tactics making that true: prong A (the retrieved plan is specifically
-  wrong), prong C (no oracle for the graded quantity in the agent's tree).
+- Tactics making that true: A1, A2, B2, C1, C2, C3 and C4. The pinned script
+  defeats the standard mapping, the historical rules interact, both sides are fenced,
+  there is no expected-output oracle, wide streams resource-gate per-thread recomputation,
+  and every stream is graded all-or-nothing.
 - My own attack on the plan: my first plan widened each thread to the change
   group it landed in and iterated absorption to a fixed point, and it is wrong
   because group-widened spans are aligned to disjoint groups, so intersections

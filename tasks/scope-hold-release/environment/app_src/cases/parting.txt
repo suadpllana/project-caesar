@@ -1,8 +1,0 @@
-r job scoped log . . . flush
-r log scoped . . . . .
-r flush trans . . . . .
-o open .
-o open .
-o resolve job
-o close
-o close

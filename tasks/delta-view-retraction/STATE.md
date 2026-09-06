@@ -244,16 +244,19 @@ not a fourth in-process layer - it is to move the counting out of the process en
   view, log, trace, both counters, emits and revised are all exactly right.
 - `tools/forgecheck.py`: clean. Fires on the three other tasks in `tasks/`, which have
   the same unmeasured hole.
-- **`tools/docker_trial2.py --all`: 24/24, and `--variants`: 4/4.** Docker does run on
+- **`tools/docker_trial.py delta-view-retraction --all`: 24/24, and `--variants`: 4/4.** Docker does run on
   this Linux sandbox (it did not on the earlier Windows host), so the two-image trial is
   no longer an unrun gate. Measured inside the verifier container: the run is `uid=1002`,
   and `PermissionError` on `/logs/verifier/reward.txt`, `/tests/gt.json`,
   `/tests/oracle.py` and `/tests/test_outputs.py`; `/work/run/out.json` is `root:root`
   `600` and still written by the unprivileged run through the inherited descriptor;
   `/work/app` is `root:root` and read-only to the run.
-- `tools/textcheck.py`: clean against rollout-cache-coherence and checkpoint-resume-drift.
+- `tools/textcheck.py`: clean against retained briefs that passed the authorship screen.
 - `tools/structcheck.py`: clean.
 - `scripts/preflight.py`: no errors.
+- 2026-09-06 quality cleanup: `solution/solve.sh` now copies the single reference file
+  from `solution/ref/` instead of inlining a duplicate. `tools/solvecheck.py` is clean,
+  and the host verifier scored the reference 1 with 158 pytest checks passing.
 
 ## Easiness-probe rejection, 2026-08-14: 2 of 3, and why
 
@@ -377,7 +380,7 @@ between `min` and `max` on the same group at the same moment.
 
 ## Gates NOT run
 
-- `harbor check` was not run (harbor not installed). `tools/docker_trial2.py` reproduces
+- `harbor check` was not run (harbor not installed). `tools/docker_trial.py` reproduces
   the two-container trial with docker directly and is what was run instead.
 - **The easiness probe has not been re-run since the hardening.** The 2 of 3 result below
   still stands and is still a rejection. The hardening does not address it: it changes

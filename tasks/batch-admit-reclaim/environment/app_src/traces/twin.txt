@@ -1,0 +1,12 @@
+pool 8
+block 3
+batch 12
+req r0 0
+req r1 0
+req r2 4
+prompt r0 1 2 0 1 2 0
+emit r0 1 0 2 1 0
+prompt r1 1 2 0 1 2 0
+emit r1 2 1 0
+prompt r2 3 3 1 2
+emit r2 0 1 3

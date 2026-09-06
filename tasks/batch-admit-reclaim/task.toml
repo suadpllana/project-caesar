@@ -1,0 +1,200 @@
+schema_version = "1.3"
+
+artifacts = [
+    "/app/eng/fit.py",
+    "/app/eng/room.py",
+    "/app/eng/back.py",
+    "/app/eng/pick.py",
+]
+
+[task]
+name = "afterquery/batch-admit-reclaim"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer who owns the scheduler and the block
+manager of an inference serving stack. This is the part that decides which
+requests are in the batch on the next step, which of them gets put out when the
+key-value pool runs short, and what a request finds still cached when it comes
+back. It fails quietly. Nothing it gets wrong shows up as a wrong token; it
+shows up as throughput that halves under load and stays halved.
+
+The graded data is synthetic. Each trace is a recorded request stream - arrival
+step, prompt tokens, and the exact tokens the request goes on to produce -
+replayed against a fixed pool of fixed-size blocks, and the token ids are drawn
+from an alphabet of two to five so that prompts collide on whole blocks. That is
+a replay rather than live sampling, which is how serving schedulers are actually
+benchmarked, but the rate at which two requests share a block boundary is
+concentrated far above production. The mechanism is real; the distribution is
+chosen to reach it.
+
+The tree ships a working engine with the wrong idea of what a step costs, and the
+wrongness is coherent rather than broken. It asks the pool how much room it has
+and compares that against the blocks the newcomer is missing. That is the shape
+of every admission check anyone has written, because with nothing else happening
+on the step it is right, so it is also the shape a frontier agent reconstructs
+from its prior. Three files ship wrong out of four and the first two corrections
+fight that shape all the way.
+
+The first is that the question is about the step rather than about the moment.
+Whether a request can come in is settled before the step decodes, and the step
+changes the pool while it runs: a part block that fills is looked up under the
+tokens in front of it and, where the pool already holds that content, the request
+gives its own block back, so decoding hands blocks back as well as taking them.
+Requests finish on the step too. A count taken at the top of the step is right
+about none of that. Measured against the reference over 150 generated traces,
+asking the pool how much it has instead of playing the step out moves 73 per cent
+of them, missing only the block a filling tail gives back moves 13 per cent, and
+asking only whether the newcomer fits moves 67 per cent.
+
+The second is what the task is built on, and it is the one that invalidates the
+natural implementation of the first. Once a submission plays the step out, the
+obvious way to satisfy an allocation is to treat what the step releases as room
+recovered - a request that finishes on this step has three blocks, so there are
+three more slots. There are not. A block nothing refers to keeps its contents and
+goes on occupying the pool until the pool needs the slot, and then the block that
+has gone longest without being taken is the one that goes. So the room a
+preemption yields does not come from the request that was put out at all, whose
+blocks were touched on that very step: it comes out of some other request's
+cached prefix, and that decides where that other request starts again when it
+returns. Counting a finisher's blocks as room moves 16 per cent of traces, and
+giving up the block that came free last instead of the one longest untouched
+moves 65 per cent - and the two are one mistake, because the second is the
+natural way to implement the first.
+
+Being wrong in the other direction is graded exactly as hard, which is what stops
+the cautious answer. A submission that admits nothing until the pool is empty is
+right about every step where the pool was under no pressure and it fails the
+eleven traces in the enumerated set that exist to protect ordinary behaviour,
+including one where nothing is ever put out at all.
+
+There is no oracle for any of it. The engine runs whatever policy it is given and
+prints a timeline that looks entirely reasonable under every reading; the tokens
+each request emits come from the recorded trace and are identical whether the
+policy is right or wrong, so running it two ways diffs nothing. The environment
+ships no expected output, the instruction states requirements without stating how
+to satisfy them, and the graded set is three hundred traces generated inside the
+verifier from a nonce drawn after the agent has finished, so a policy fitted to
+the three traces in the tree carries no information about the rest. The shipped
+tree agrees with the reference on 3 of 150 generated traces.
+
+The engine ships with no comments anywhere and its identifiers sit in the
+register of ordinary internal code rather than self-describing ones, which is a
+design choice rather than neglect: the two-phase step, the block identity, the
+part-block dance and the difference between releasing a block and giving it up
+have to be recovered by reading behaviour instead of by reading names.
+"""
+
+solution_explanation = """
+The reference is about ninety lines across four files and it is written from the
+observable requirement backwards.
+
+The requirement is that a request comes in on the first step it could have come
+in on and not before, where "could" means the pool can take everything it holds
+once that step has decoded, without a request being put out. Two things fall out
+of it. The entry question cannot be answered by arithmetic over the pool as it
+stands, because the step has not run yet: the reference answers it by playing the
+step out on a copy of the pool - the decodes in order, each part block that fills
+looked up and merged where the pool already holds it, the requests that reach
+their last token releasing, and only then the newcomers taking what they hold.
+And the copy has to be played with the same rules the real pool uses, so the
+policy that decides which block the pool gives up is inside the answer to the
+entry question rather than beside it.
+
+The second file is the one that decides which block goes. It is the block that
+has gone longest without being taken, the older of two last taken on the same
+step, and never a block a request is using. That rule is stated; what is not
+stated is that it is what settles where a returning request starts, because the
+blocks a preemption releases are the freshest in the pool and so the last to go.
+The third file answers where a request starts: it walks its blocks from the
+front and stops at the first one the pool no longer holds, which is also the
+rule for a first-time request taking a prefix somebody else put there. The
+fourth, the arrival order of the queue and the choice of which request to put
+out, ships correct, and a submission that changes it is wrong.
+
+An expert gets there by reading the engine before writing anything: the step
+driver shows that entry is settled before the decodes and applied after them,
+the pool shows that a release only drops a reference and that eviction is a
+separate act, and one hand-traced preemption shows which blocks survive it.
+"""
+
+verification_explanation = """
+The timeline is emitted by eng/log.py, which is not an editable artifact, so what
+is graded is what the engine did rather than what a submission reports. The four
+declared files are laid over an untouched copy of the tree baked into the
+verifier image, and every other file in the executed tree is compared byte for
+byte against that copy after the run, with the number of files compared asserted
+before any of them is read. Each sealed engine function is fingerprinted as it
+existed in the running interpreter at import and again when each trace ended,
+against a baseline compiled from the pristine sources outside the run. The
+interpreter counts entries into the emitter in a closure the tree cannot reach,
+and that count must equal the number of lines. The report carries a nonce drawn
+from /dev/urandom after the agent stopped.
+
+Twenty-nine enumerated traces are graded against gt.json, which is root-only and
+was produced by tests/oracle.py, a second implementation of the same rules that
+shares no code with the tree. Three hundred more are built inside the verifier
+from the run nonce and graded against that same model after the run, so there is
+no answer key to hold: one cheat carries the bytes of gt.json, is right on all
+twenty-nine enumerated traces, and scores 0 on the generated ones. Twenty-two
+cheats score 0 in all, including four that interfere with one attestation layer
+apiece and are each caught by that layer. Five alternative correct
+implementations score 1, among them one that folds the whole answer into a single
+file and one whose internal names are all invented, so the verifier is not
+grading an implementation choice. Reference and sealed model agree on the
+twenty-nine enumerated traces and on 400 generated ones, and five
+behaviour-preserving permutations of the reference produce byte-identical
+timelines on 150 traces, which is what says the rules pick out one timeline
+rather than a family of them.
+
+The run is unprivileged. tests/test.sh locks the reward channel and defaults it
+to 0 before any agent code is loaded, assembles the work tree root-owned and
+read-only, and runs the engine as uid 1002 under setsid --wait with the report
+handed down as an inherited descriptor opened by root. tests/reap.py walks /proc
+and kills whatever that account left behind, because pkill is not in the image.
+pytest then grades as root and imports nothing the submission wrote.
+"""
+
+category = "ML"
+subcategory = "Inference"
+
+tags = [
+    "paged-kv-cache",
+    "continuous-batching",
+    "block-allocator",
+    "preemption",
+    "prefix-reuse",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+Having built or operated the scheduler of an inference server: continuous
+batching, a paged key-value cache, prefix reuse across requests, and preemption
+under memory pressure. Specifically the habit of asking what a step will look
+like when it has finished rather than what the pool looks like now, and the
+knowledge that freeing a block and evicting it are two different events - which
+is the difference between a request coming back cheaply and a request redoing
+its whole prompt. Comfort reading an engine by its behaviour rather than by its
+names, and with differential testing against a second implementation when there
+is no reference output to compare against.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

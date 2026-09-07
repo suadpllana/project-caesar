@@ -1,0 +1,144 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/sheet/val.py",
+  "/app/sheet/see.py",
+  "/app/sheet/lay.py",
+  "/app/sheet/memo.py",
+]
+
+[task]
+name = "afterquery/sheet-block-place"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer who owns the calculation engine of a grid
+product, where a formula may produce a rectangle of results rather than one number and
+the rectangle occupies the cells below and to the right of the cell that owns it.
+
+The graded data is synthetic. Generated sheets combine blocks whose height is read out
+of another cell, rectangles refused by content already in the way, refusals that leave
+room for a later block, ranges carrying holes and refusals, and reads aimed into a cell's
+own quadrant. Individual sheets and operations are ordinary for such a product; the
+concentration of refusal, fall-through and self-reference is deliberately adversarial.
+Sheets run to at most sixty commands over ten columns and twenty rows.
+
+The plan a frontier agent writes first is the calculation chain every engine
+description teaches: collect the addresses each formula mentions, sort that graph, evaluate
+in order, then lay the rectangles out. Here that graph cannot be built. A reference to a
+plain cell resolves to a block value when some earlier owner reaches it, so the formula
+depends on owners it never names; and whether it depends on them at all is decided by
+values, because a refused owner covers nothing. Neither phase can run first.
+
+The shape that works is a pair of mutually recursive questions - what is this cell's
+value, and does this owner's rectangle stand - memoised together. Only the second is
+well-founded: a rectangle extends down and right, so an owner's fate rests on owners
+before it in address order. The first is not, and that asymmetry is what decides which
+cells report a loop. A read into a cell's own down-right quadrant re-enters that cell,
+and the loop takes the cell it passed through with it, so a cell that computed a value
+perfectly well can end up reporting a loop because a later cell's evaluation ran through
+it. An engine that gets the reading rule right and the loop rule wrong prints a plausible
+grid that is wrong in a handful of cells.
+
+Those rules do not separate. Getting the reading rule right changes what counts as a
+loop; getting refusal right changes what a range reads; and the counting functions treat
+a refusal, a hole and a loop three different ways, so a single reading of "error" fails
+somewhere. The visible runner reports the submitted engine's own answers and offers no
+correct one to compare against.
+
+The environment uses terse internal names in the register of long-lived code and ships no
+comments or docstrings. It is a small engine, not an exploration maze: the work is
+reconciling the value question, the placement question and the printing rules, not
+finding files.
+"""
+
+solution_explanation = """
+The runtime owns the sheet, the formula parser and the printing walk; it asks the policy
+two questions and nothing else. The reference answers them as one memoised recursion.
+
+Asking for a cell's face walks the owners at or before it in address order and takes the
+first whose rectangle reaches it, falling through to the cell's own content when none
+does. Asking whether an owner's rectangle stands needs that owner's value for its size,
+the sheet bounds, and the cells of the rectangle: content refuses it, and so does any
+owner before it whose rectangle already reached one of those cells - a query that is
+well-founded on address order and so terminates on its own. The value query sits on top,
+memoised, with the cells currently being worked out kept in order; a re-entry marks the
+re-entered cell and everything asked on its behalf as a loop, and those marks survive the
+frames that are still unwinding.
+
+An expert works this way because the alternative does not exist: there is no order in
+which to evaluate first and place afterwards. What is left to decide is which of the two
+questions carries the well-founded recursion, and the answer is visible in the geometry -
+a rectangle only ever grows down and right.
+
+The sealed model re-derives the same grids from the script text with its own tokeniser and
+parser, tagged dict values rather than tuples, a per-row index of owner addresses in place
+of a rescan of the owner list, and a placement table kept apart from the value memo.
+"""
+
+verification_explanation = """
+The verifier compares every printed line exactly and scores all-or-nothing. It uses 45
+enumerated scripts, one per stated rule, with expectations pinned in a sealed ground-truth
+file, and five fixed-seed families of generated sheets: ordinary ones, packed columns of
+blocks, sheets that read into their own quadrant, ranges carrying holes and refusals, and
+blocks aimed at the last rows and columns. The sealed model must reproduce every
+enumerated expectation before a run can pass, so a drift in either the model or the rules
+is caught before it can move the grading contract. An input-only check confirms every
+graded script stays inside the commands and bounds the instruction states.
+
+The worker executes the submitted policy under an unprivileged uid, in a pristine runtime
+with only the four declared artifacts laid over it, in its own session under a wall clock
+timeout. The reward directory is root-owned and locked before any submitted code runs, and
+the reward defaults to zero. The trusted grader runs only after the worker has exited and
+survivors have been reaped, checks both exit statuses, and imports nothing the agent wrote.
+Every frozen function is hashed inside the run and held against digests compiled from the
+pristine sources, and the printed lines are accepted only from the driver's own code
+object, so a submission cannot write its own printout or swap the runtime underneath it.
+"""
+
+category = "Software"
+subcategory = "Algorithms"
+
+tags = [
+  "mutual-recursion",
+  "memoisation",
+  "cycle-detection",
+  "rectangle-placement",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on the calculation engine of a grid product, and the part of it I own is the one
+this task is built from: what happens when a formula stops returning one number and starts
+returning a rectangle. Every engine that grows that feature hits the same wall in the same
+order. You have a dependency graph built from the addresses in the formulas, it has worked
+for years, and now a cell can be filled by a neighbour that never mentions it - so the
+graph is wrong, and it is wrong in a way that only shows up when a rectangle is refused,
+because a refused one covers nothing and the graph changes shape again. The fix everyone
+writes first is to evaluate, place, then evaluate again, which is right until a rectangle's
+height is read out of a cell some other rectangle fills. The second thing that catches
+people is self-reference: a rectangle grows down and to the right, so a formula that reads
+anything at or after its own cell is asking about itself, and the loop that comes back is
+not the textual one the old graph knew how to find.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

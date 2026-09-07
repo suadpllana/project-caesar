@@ -1,0 +1,11 @@
+put a1 3
+put b1 REP(a1,3)
+put c1 ROW(2,4)
+put d3 RUN(2)
+put e1 SUM(a1:d4)
+put f1 CNT(a1:d4)
+put c1 ROW(2,2)
+put g1 AT(b1:b3,2)
+put h1 GROW(b1:c2)
+put b1 REP(a1,5)
+clr d3

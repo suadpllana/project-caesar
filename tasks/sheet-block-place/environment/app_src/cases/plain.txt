@@ -1,0 +1,7 @@
+put a1 4
+put b1 RUN(a1)
+put d1 RUN(b2)
+put a1 6
+put d5 9
+put c3 SUM(b1:b6)
+clr d5

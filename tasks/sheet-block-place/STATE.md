@@ -170,10 +170,15 @@ Three candidates were attacked before proposing. The first is the one built here
 
 ## Decisions and their reasons
 
-- Category and labels are the contributor's to choose. The assistant's reading of the
-  guideline table is `Software` / `Algorithms`: the graded work is mutual recursion, ordering
-  and memoisation over a grid, and the calculation-engine setting is the story, not the skill.
-  Recorded here so the correction made to `alias-settle-report` is not repeated.
+- Category and labels: `Software` / `Algorithms`, confirmed by the contributor on 2026-09-07
+  after the guideline table was shown to them verbatim. The graded work is mutual recursion,
+  ordering and memoisation over a grid; the calculation-engine setting is the story, not the
+  skill, which is the correction `alias-settle-report` had to make on review. `Languages` was
+  put to them and rejected on the ground that the tokeniser and parser are frozen and never
+  graded. Tags confirmed unchanged: mutual-recursion, memoisation, cycle-detection,
+  rectangle-placement, differential-testing - none of them restates the category or the label.
+  Still open and still theirs: the domain-expert role, `relevant_experience`, and the
+  instruction itself.
 - The environment uses terse internal names in the register of real legacy code, and ships no
   comments or docstrings, per Stage 3 of AGENTS.md. This is stated in
   `difficulty_explanation` so the quality review does not read it as sloppiness.

@@ -10,12 +10,12 @@ The pair table is weaker than a field. The value of a pair is reached only while
 
 An object that the walk did not reach, and that was allocated with a finalizer that has not run, is kept anyway, along with everything it reaches, and its finalizer joins the queue. It stays kept until that finalizer has run. The first collection after that releases it, unless something live points at it again. Which finalizers join the queue is settled from what the walk reached, before any of this keeping is granted. A finalizer runs at most once for an object, whatever happens to it afterwards.
 
-An object the walk reached gets a year older, and at two it moves to old space. Being kept so a finalizer can run is not surviving, so those do not age. A pinned object keeps the age it has and stays where it is until the pin comes off.
+An object the walk reached gets a year older, and at two it moves to old space. Being kept so a finalizer can run is not surviving, so those do not age. A pinned object still gets a year older when the walk reaches it, but it stays where it is until the pin comes off. If its age is already two then, it moves to old space the next time it survives.
 
 A weak reference is cleared when the walk did not reach its referent. Being kept so a finalizer can run is not being reached. A minor collection leaves a reference alone when its referent is in old space, having no grounds to say anything about it. Once cleared it stays cleared.
 
 Each collection prints `clr <name>` for every weak reference it cleared, then `fin <id>` for every finalizer it queued, then `rel <id>` for every object it released, then `pro <id>` for every object it promoted, ascending within each of the four. `runfin` prints `ran <id>`. Nothing else is printed.
 
-`/app/progs/wide.txt` is one of the big ones. About seven thousand objects, and a pair table written back to front. The ones we grade run several times larger. Whatever you write has to get through the whole set inside 60 seconds, so time it on `wide.txt` before you call it done.
+`/app/progs/wide.txt` is one of the big ones. It has about seven thousand objects and a pair table written back to front. The graded set has 338 programs: 26 fixed programs and 312 generated after you finish, including 12 with 10,000 to 16,000 linked pair keys and another 3,000 to 5,000 unrelated pairs. The whole set must finish inside 60 seconds, so time it on `/app/progs/wide.txt` before you call it done.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

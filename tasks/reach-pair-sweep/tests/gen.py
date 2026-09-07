@@ -143,7 +143,12 @@ def _back(rng):
 
 
 def _rset(rng):
-    out = ["new 1", "slot a 1", "collect", "collect"]
+    # Half promote with the edge already installed; half exercise a later old-to-nursery write.
+    # Both routes must enter the remembered set, and both can leave a stale record afterwards.
+    promote_with_edge = rng.random() < 0.5
+    out = ["new 1", "slot a 1", "collect"]
+    if not promote_with_edge:
+        out.append("collect")
     nxt = 2
     for _ in range(rng.randint(2, 4)):
         out.append("new %d" % nxt)

@@ -20,7 +20,7 @@ Graded, and settled the same way by two implementations written apart:
      against old space on a minor collection
   7  clearing staying put once done, and a finalizer queued at most once for an object
   8  ageing: a survivor ages, an object kept only for a finalizer does not, a pinned object
-     keeps its age and stays put
+     still ages but stays put, and promotion records its existing nursery-valued fields
   9  release: everything in scope that the walk did not reach and no finalizer is keeping
 
 Implementation choice, never graded: how each fixed point is walked (the reference goes
@@ -94,6 +94,7 @@ def _record(item):
 
 def test_frozen_truth_matches_the_model(truth):
     """gt.json was frozen from the model; if they have drifted apart, grade nothing."""
+    assert len(cases.ORDER) == 26
     assert sorted(truth) == sorted(cases.ORDER)
     for name in cases.ORDER:
         assert model.expect(cases.ops(name)) == truth[name], name
@@ -118,7 +119,7 @@ def _nonce():
 def test_every_nonce_program_matches(produced):
     seed, per = _nonce()
     wanted = gen.programs(seed, per)
-    assert len(wanted) >= 300, "nonce population too small: %d" % len(wanted)
+    assert len(wanted) == 312, "nonce population changed: %d" % len(wanted)
     bad = []
     for fam, name, lines in wanted:
         item = produced.get(name)

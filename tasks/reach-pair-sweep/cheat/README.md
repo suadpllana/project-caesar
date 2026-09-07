@@ -16,10 +16,12 @@ Docker, and the handover says so.
 - `cheat-plant-and-crash.sh` - plants a passing worker result, then exits before it is overwritten
 - `cheat-privilege-probe.sh` - checks its uid and tries to write the reward channel directly
 - `cheat-read-age-held.sh` - ages objects kept only to run a finalizer, so they promote
+- `cheat-read-no-promote-rset.sh` - promotes an object without recording its existing nursery fields
 - `cheat-read-no-rset.sh` - ignores the remembered set, losing objects reachable only from old space
 - `cheat-read-old-key-unready.sh` - treats an old pair key as unreached during a minor collection
 - `cheat-read-queue-late.sh` - settles the finalizer queue after keeping, hiding the second object
 - `cheat-read-release-old.sh` - releases old objects a minor collection never traced
+- `cheat-read-sealed-model.sh` - imports the readable sealed model and forges every worker record from it
 - `cheat-read-trust-rset.sh` - trusts the value recorded in the remembered set instead of re-reading
 - `cheat-read-wipe-old.sh` - clears weak references to old objects a minor collection never examined
 - `cheat-release-eagerly.sh` - ignores the reprieve a queued finalizer earns

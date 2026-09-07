@@ -12,11 +12,14 @@ do not age, so an object waiting on its finalizer cannot promote out of the nurs
 waits. If its finalizer stores it back somewhere live it starts ageing again from the next
 collection, like anything else that survived.
 
-A pinned object cannot move, so it stays in the nursery and keeps the age it has reached. It does
-not lose the age and it does not promote late in a rush once unpinned - it promotes at the first
-collection it survives after the pin comes off.
+A pinned object still ages but cannot move, so it stays in the nursery until the pin comes off.
+It promotes at the first later collection it survives if its age has reached the threshold.
+
+Promotion is another old-to-nursery write-barrier boundary. An object can already have fields
+when it moves, so every field that still names a nursery object is recorded at that point. Later
+writes into the old object are recorded by `mem/rset.py` in the ordinary way.
 """
-from mem import heap
+from mem import heap, rset
 
 
 def promote(h, seen, held):
@@ -30,6 +33,8 @@ def promote(h, seen, held):
         o.age += 1
         if o.age >= heap.PROMOTE_AGE and o.pins == 0:
             o.space = heap.OLD
+            for fld, val in sorted(o.flds.items()):
+                rset.note(h, i, fld, val)
             moved.append(i)
     return moved
 PYEOF

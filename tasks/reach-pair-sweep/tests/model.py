@@ -143,6 +143,9 @@ def _collect(st, full, out):
         o["age"] += 1
         if o["age"] >= PROMOTE_AGE and o["pins"] == 0:
             o["space"] = OLD
+            for fld, val in sorted(o["flds"].items()):
+                if val is not None and val in objs and objs[val]["space"] == NURSERY:
+                    st["rset"].add((i, fld, val))
             out.append("pro %d" % i)
 
 

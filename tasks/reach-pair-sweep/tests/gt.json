@@ -56,6 +56,10 @@
   "rset-deep": [
     "pro 1"
   ],
+  "rset-promote": [
+    "pro 1",
+    "pro 2"
+  ],
   "rset-root": [
     "pro 1"
   ],

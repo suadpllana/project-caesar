@@ -29,7 +29,10 @@ but the recorded value is a snapshot. Overwrite the field and the triple stays, 
 nothing points at. The brief says the remembered set is where a minor collection finds those
 roots; it does not say the record goes stale, because that is readable in eleven lines of
 `rset.py` and nowhere else. Trusting the record keeps dead objects alive; ignoring the set
-releases live ones. Both ship as cheats and both fail.
+releases live ones. Promotion opens a second route into the same invariant: an object can enter
+old space with nursery-valued fields that were written before the barrier applied, so `age.py`
+has to record those fields when it moves the object. Trusting, ignoring and failing to seed the
+set at promotion all ship as cheats and all fail.
 
 Then the couplings. The finalizer queue is settled against what the walk reached, before any
 keeping is granted, so an object reachable only from another finalizable object is still
@@ -76,8 +79,9 @@ nursery objects join the set, but an old key is ready before the walk starts and
 `keep.py` settles the finalizer queue against that walk alone, before any keeping is granted,
 then computes what those finalizers keep as a second walk blocked from anything already reached,
 so the two sets stay apart. `age.py` ages what the walk reached and promotes at two, skipping
-anything merely kept and anything pinned. `wipe.py` clears weak references against the walk and
-leaves old referents alone on a minor collection.
+anything merely kept; pinned survivors still age but cannot move. When an object does promote,
+each field that currently names a nursery object is entered into the remembered set. `wipe.py`
+clears weak references against the walk and leaves old referents alone on a minor collection.
 
 An expert works in that order because the rules force it, not because it is elegant: the queue
 needs the walk, the keeping needs the queue, ageing needs both, and clearing needs to know which
@@ -91,7 +95,12 @@ Only the five files under `/app/col/` are taken from the agent. The verifier ove
 its own pristine copy of the runtime, so nothing else the agent may have touched can change what
 a program prints, and the record is compared line for line.
 
-Correct is defined twice over. Twenty-five hand programs, one per graded decision plus the
+The program texts and pristine runtime are prepared by the trusted process before privileges are
+dropped. The unprivileged worker can read those inputs but cannot read `/tests`, so it cannot
+import the sealed model or expected records. Its output is treated as hostile, surviving worker
+processes are reaped, and only the later root process can write the reward.
+
+Correct is defined twice over. Twenty-six hand programs, one per graded decision plus the
 must-still-work side of each fence, are checked against `gt.json`, frozen before the verifier was
 written; the grader first asserts the sealed model still reproduces `gt.json` exactly, so a
 drifted model cannot quietly redefine correct. Three hundred and twelve further programs are
@@ -102,10 +111,12 @@ the shipped examples or forging records from an answer key both fail; both are c
 
 The fences run both ways. Releasing too much fails the ordinary cases and `old-safe`; releasing
 too little fails `plain-drop`. Trusting the remembered set fails `rset-stale`; ignoring it fails
-`rset-root`. Ageing what is merely kept fails `held-no-age`. Sixteen cheats score 0 and each is
-caught by the layer that should catch it, the rescanning one by the execution limit itself. Two
-independently written correct collectors score 1, including the reference with every identifier
-renamed, so implementation and naming are not graded.
+`rset-root`; failing to record fields at promotion fails `rset-promote`. Ageing what is merely
+kept fails `held-no-age`. Sixteen host-executable cheats score 0 and each is caught by the layer
+that should catch it, the rescanning one by the execution limit itself. Two further isolation
+probes require the container's second uid and locked reward directory. Two independently written
+correct collectors score 1, including the reference with every identifier renamed, so
+implementation and naming are not graded.
 """
 
 category = "Software"
@@ -124,7 +135,13 @@ tags = [
 expert_time_estimate_hours = 8
 
 relevant_experience = """
-DRAFT - needs the contributor's own words before submission.
+I build and maintain async runtimes and the task queues that sit on top of them. I have also
+owned the wiring layer of a service platform where every team registered their own components.
+Across both, the failures that cost the most were lifecycle errors that did not crash and passed
+the obvious tests: a worker resumed inside a stopped scope, or an object was torn down with a
+scope that had nothing to do with it. This task draws on the same work: tracing the state
+transitions that decide whether an object is still live, which part of the runtime owns that
+decision, and why the natural local fix is wrong once two subsystems interact.
 """
 
 [verifier]

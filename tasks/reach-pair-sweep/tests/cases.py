@@ -32,6 +32,11 @@ CASES = {
     "rset-deep": ["new 1", "slot a 1", "collect", "collect",
                   "new 2", "new 3", "set 2 y 3", "set 1 x 2", "collect"],
 
+    # an object can promote with a field already pointing into the nursery; that edge must be
+    # recorded at promotion, before the old object stops being traced by minor collections
+    "rset-promote": ["new 1", "slot a 1", "collect", "new 2", "set 1 x 2",
+                     "collect", "slot a -", "collect"],
+
     # --- finalizers ----------------------------------------------------------------
 
     # 2 is reachable only from 1, and both are finalizable: the queue is settled first

@@ -1,14 +1,26 @@
 """Nonce program generation.
 
-Six families. `plain` is an unshaped mix and is what an agent's own testing will mostly look
+Eight families. `plain` is an unshaped mix and is what an agent's own testing will mostly look
 like. The rest seed shapes a plain population almost never builds: `chain` a pair cascade,
 `hold` a finalizer closure that reaches a pair key, `back` a resurrection, `rset` an old-space
 field pointing into the nursery and then going stale, and `wide` a pair table written back to
 front, which is the family a collector that rescans the table cannot finish.
 
-Programs stay well formed: an op never names an object an earlier collection released, so the
-generator replays the model over what it has emitted and draws only from what survives. Every
-collection is sorted before use, so a program depends on its seed and nothing else.
+`reuse` hands a released number back out. Nothing in an unshaped population does this often
+enough to matter, and every record the runtime keeps about an object - whether its finalizer has
+run, which object a pair row was written about - has to answer for the object rather than for
+the number. Half its programs retire a finalized object and re-allocate its number; half kill the
+key of a pair row and re-allocate that.
+
+`sweep` is the family that decides what a minor collection is allowed to cost. It builds a large
+old space held by a single root, then runs many minor collections against a nursery of one or two
+objects. Every answer in it is ordinary; what it measures is whether the collection's work is
+proportional to the nursery or to the whole heap and to every store the program has ever made.
+
+Programs stay well formed: an op never names a number whose object an earlier collection
+released without allocating there again first, so the generator replays the model over what it
+has emitted and draws only from what survives. Every collection is sorted before use, so a
+program depends on its seed and nothing else.
 """
 import random
 
@@ -19,6 +31,7 @@ GLOBS = ("g1", "g2")
 FIELDS = ("x", "y", "z")
 
 WIDE_COUNT = 12
+SWEEP_COUNT = 6
 
 
 def _ops(lines):
@@ -27,6 +40,12 @@ def _ops(lines):
 
 def _alive(lines):
     return model.alive(_ops(lines))
+
+
+def _released(lines, known):
+    """Numbers that were live in `known` and whose objects a collection has since released."""
+    live = set(_alive(lines))
+    return sorted(i for i in known if i not in live)
 
 
 def _new(rng, out, i, fin_rate):
@@ -155,6 +174,9 @@ def _rset(rng):
         nxt += 1
     out.append("set 1 x 2")
     if nxt > 3 and rng.random() < 0.5:
+        # a second field of the same old object, so the entries cannot be collapsed by source
+        out.append("set 1 y 3")
+    if nxt > 3 and rng.random() < 0.5:
         out.append("pair 2 3")
     out.append("collect")
     r = rng.random()
@@ -183,14 +205,74 @@ def _wide(rng):
     return out
 
 
+def _reuse(rng):
+    # Both halves retire an object and hand its number straight back out, so the record the
+    # runtime kept about the object that has gone is asked to answer for the one that arrives.
+    # Half leave behind a finalizer that has already run; half leave behind a pair row.
+    by_finalizer = rng.random() < 0.5
+    last = rng.randint(2, 4)
+    out = ["new 1 fin" if by_finalizer else "new 1"]
+    for i in range(2, last + 1):
+        out.append("new %d" % i)
+
+    if by_finalizer:
+        out.append("slot b %d" % last)
+        out += ["collect", "runfin", "collect"]
+    else:
+        out += ["pair 1 %d" % last, "slot a %d" % last, "collect"]
+
+    if 1 not in _released(out, set(range(1, last + 1))):
+        raise AssertionError("reuse family failed to free number 1")
+
+    out.append("new 1 fin")
+    if rng.random() < 0.5:
+        out.append("weak w1 1")
+    out += ["slot c 1", "collect", "slot c -"]
+    if not by_finalizer:
+        out.append("slot a -")
+    out.append("collect")
+    if rng.random() < 0.5:
+        out.append("collectfull")
+    return out
+
+
+def _sweep(rng):
+    survivors = rng.choice((14000, 16000, 18000))
+    rounds = rng.choice((6000, 7000))
+    anchors = list(range(1, rng.randint(3, 5) + 1))
+
+    out = ["new 1", "glob g1 1"]
+    prev, nxt = 1, 2
+    for _ in range(survivors - 1):
+        out.append("new %d" % nxt)
+        out.append("set %d n %d" % (prev, nxt))
+        prev, nxt = nxt, nxt + 1
+    out += ["collect", "collect"]
+
+    for _ in range(rounds):
+        out.append("new %d" % nxt)
+        out.append("slot a %d" % nxt)
+        for a in anchors:
+            out.append("set %d e %d" % (a, nxt))
+        nxt += 1
+        out.append("collect")
+    if rng.random() < 0.5:
+        out.append("collectfull")
+    return out
+
+
 FAMILIES = (("plain", _plain), ("chain", _chain), ("hold", _hold),
-            ("back", _back), ("rset", _rset), ("wide", _wide))
+            ("back", _back), ("rset", _rset), ("reuse", _reuse),
+            ("wide", _wide), ("sweep", _sweep))
+
+
+FIXED = {"wide": WIDE_COUNT, "sweep": SWEEP_COUNT}
 
 
 def programs(seed, per_family):
     out = []
     for fam, fn in FAMILIES:
-        n = WIDE_COUNT if fam == "wide" else per_family
+        n = FIXED.get(fam, per_family)
         for k in range(n):
             rng = random.Random("%s:%s:%d" % (seed, fam, k))
             out.append((fam, "%s-%03d" % (fam, k), fn(rng)))

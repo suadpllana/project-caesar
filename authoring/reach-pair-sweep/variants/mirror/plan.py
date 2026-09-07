@@ -6,13 +6,19 @@ def roots(h, full):
     if full:
         return sorted(set(listed))
 
-    out = [i for i in listed if h.objs[i].space == heap.NURSERY]
-    for owner, slotname, recorded in sorted(h.rset):
-        if owner not in h.objs:
+    objs = h.objs
+    out = [i for i in listed if objs[i].space == heap.NURSERY]
+    live = {}
+    for entry in h.rset:
+        owner, slotname, recorded = entry
+        if (owner, slotname) in live:
             continue
-        now = h.objs[owner].flds.get(slotname)
-        if now is None or now not in h.objs:
+        owner = objs.get(owner)
+        now = owner.flds.get(slotname) if owner is not None else None
+        cur = objs.get(now) if now is not None else None
+        if cur is None or cur.space != heap.NURSERY:
             continue
-        if h.objs[now].space == heap.NURSERY:
-            out.append(now)
+        live[(owner, slotname)] = entry
+        out.append(now)
+    h.rset = set(live.values())
     return sorted(set(out))

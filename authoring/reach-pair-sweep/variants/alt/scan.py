@@ -1,35 +1,40 @@
-import collections
+from mem import heap
 
-from mem import heap, tables
+
+def _rows(h):
+    live = {}
+    for p in h.pairs:
+        at = h.objs.get(p.key)
+        if at is not None and at.ser == p.kser:
+            live.setdefault(p.key, []).append(p.val)
+    return live
 
 
 def reach(h, start, full, barred):
-    by = tables.by_key(h)
-    q = collections.deque()
-    seen = set()
+    rows = _rows(h)
+    objs = h.objs
 
-    def offer(i):
-        if i not in h.objs or i in seen or i in barred:
-            return
-        if not full and h.objs[i].space == heap.OLD:
-            return
-        q.append(i)
+    def admits(i):
+        if i not in objs or i in barred:
+            return False
+        return full or objs[i].space == heap.NURSERY
 
-    for i in start:
-        offer(i)
+    frontier = {i for i in start if admits(i)}
     if not full:
-        for k, vs in by.items():
-            if k in h.objs and h.objs[k].space == heap.OLD:
-                for v in vs:
-                    offer(v)
-    while q:
-        i = q.popleft()
-        if i in seen:
-            continue
-        seen.add(i)
-        for v in h.objs[i].flds.values():
-            if v is not None:
-                offer(v)
-        for v in by.get(i, ()):
-            offer(v)
+        for key, vals in rows.items():
+            if objs[key].space == heap.OLD:
+                frontier.update(v for v in vals if admits(v))
+
+    seen = set()
+    while frontier:
+        seen |= frontier
+        nxt = set()
+        for i in frontier:
+            for v in objs[i].flds.values():
+                if v is not None and v not in seen and admits(v):
+                    nxt.add(v)
+            for v in rows.get(i, ()):
+                if v not in seen and admits(v):
+                    nxt.add(v)
+        frontier = nxt
     return seen

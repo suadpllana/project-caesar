@@ -30,59 +30,102 @@ import model  # noqa: E402
 PARTS = ("plan.py", "scan.py", "keep.py", "age.py", "wipe.py")
 
 # name -> (module, old, new). One contiguous semantic change against the reference.
+#
+# Readings that change no record at all are not listed here and cannot be: the heap-wide scope
+# and the unpruned remembered set are exactly correct and are decided by the execution limit on
+# the `sweep` family, not by any answer. `authoring/.../trial.py` is what measures those.
 OVERRIDES = {
     # the remembered set is ignored, so a nursery object reachable only from old space is lost
-    "no-rset": ("plan.py", """    out = [i for i in named if h.objs[i].space == heap.NURSERY]
-    for src, fld, was in sorted(h.rset):
-        if src not in h.objs:
+    "no-rset": ("plan.py", """    objs = h.objs
+    out = [i for i in named if objs[i].space == heap.NURSERY]
+    live = {}
+    for entry in h.rset:
+        src, fld, was = entry
+        if (src, fld) in live:
             continue
-        val = h.objs[src].flds.get(fld)
-        if val is None or val not in h.objs:
+        owner = objs.get(src)
+        val = owner.flds.get(fld) if owner is not None else None
+        cur = objs.get(val) if val is not None else None
+        if cur is None or cur.space != heap.NURSERY:
             continue
-        if h.objs[val].space == heap.NURSERY:
-            out.append(val)
+        live[(src, fld)] = entry
+        out.append(val)
+    h.rset = set(live.values())
     return sorted(set(out))""",
                 """    return sorted(set(named))"""),
 
-    # the remembered set is trusted: the recorded field is never read again, so a stale entry
-    # keeps a dead object alive
-    "trust-rset": ("plan.py", """        val = h.objs[src].flds.get(fld)
-        if val is None or val not in h.objs:
+    # the remembered set is trusted: the recorded value is taken instead of re-reading the
+    # field, so a stale entry keeps a dead object alive
+    "trust-rset": ("plan.py", """        owner = objs.get(src)
+        val = owner.flds.get(fld) if owner is not None else None
+        cur = objs.get(val) if val is not None else None
+        if cur is None or cur.space != heap.NURSERY:
             continue
-        if h.objs[val].space == heap.NURSERY:
-            out.append(val)""",
-                   """        if was in h.objs and h.objs[was].space == heap.NURSERY:
-            out.append(was)"""),
+        live[(src, fld)] = entry
+        out.append(val)""",
+                   """        cur = objs.get(was)
+        if cur is None or cur.space != heap.NURSERY:
+            continue
+        out.append(was)"""),
+
+    # pruning throws away entries that are still live, losing a root
+    "over-prune": ("plan.py", """        if (src, fld) in live:
+            continue""",
+                   """        if src in {e[0] for e in live}:
+            continue"""),
 
     # an old key is treated as unreached, so a minor collection drops what it keeps
     "old-key-unready": ("scan.py", """    if not full:
         for k, vs in by.items():
-            if k in h.objs and h.objs[k].space == heap.OLD:
+            if h.objs[k].space == heap.OLD:
                 stack.extend(vs)
 """, ""),
+
+    # a pair row is followed without asking whether its key is still the object it was written
+    # about, so a fresh occupant of a released number inherits the dead one's associations
+    "id-pair": ("scan.py", """        k = objs.get(p.key)
+        if k is None or k.ser != p.kser:
+            continue""",
+                """        if p.key not in objs:
+            continue"""),
+
+    # the finished-finalizer record is read by number, so a fresh object standing where a
+    # finalized one stood never gets its own finalizer run
+    "id-done": ("keep.py", "             and objs[i].ser not in h.done and i not in queued]",
+                "             and i not in h.done and i not in queued]"),
 
     # the queue is settled after keeping, hiding an object reachable only from another
     # finalizable one
     "queue-late": ("keep.py", """    fresh = [i for i in _scope(h, full)
-             if i not in seen and h.objs[i].fin is not None
-             and i not in h.done and i not in h.queue]
+             if i not in seen and objs[i].fin is not None
+             and objs[i].ser not in h.done and i not in queued]
 
-    start = [i for i in h.queue if i in h.objs] + fresh""",
+    start = [i for i in h.queue if i in objs] + fresh""",
                    """    fresh = []
     while True:
-        start = [i for i in h.queue if i in h.objs] + fresh
+        start = [i for i in h.queue if i in objs] + fresh
         seen_now = scan.reach(h, start, full, frozenset(seen)) if start else set()
         more = [i for i in _scope(h, full)
-                if i not in seen and i not in seen_now and h.objs[i].fin is not None
-                and i not in h.done and i not in h.queue and i not in fresh]
+                if i not in seen and i not in seen_now and objs[i].fin is not None
+                and objs[i].ser not in h.done and i not in queued and i not in fresh]
         if not more:
             break
         fresh.append(more[0])
-    start = [i for i in h.queue if i in h.objs] + fresh"""),
+    start = [i for i in h.queue if i in objs] + fresh"""),
 
     # an object kept only to run its finalizer ages, so it promotes out of the nursery
     "age-held": ("age.py", "        if i not in seen or i in held:",
                  "        if i not in seen and i not in held:"),
+
+    # promotion does not record the fields that already point into the nursery, so the next
+    # minor collection has no route to them
+    "no-promote-rset": ("age.py", """            for fld, val in sorted(o.flds.items()):
+                rset.note(h, i, fld, val)
+""", ""),
+
+    # promotion leaves the object in the nursery index, so later minor collections treat old
+    # objects as their own to trace and to release
+    "young-stale": ("age.py", "            h.young.discard(i)\n", ""),
 
     # a minor collection clears weak references to old objects it never examined
     "wipe-old": ("wipe.py", """        if not full:
@@ -92,8 +135,7 @@ OVERRIDES = {
 
     # a minor collection releases old objects it never traced
     "release-old": ("wipe.py",
-                    "    scope = [i for i in sorted(h.objs) "
-                    "if full or h.objs[i].space == heap.NURSERY]",
+                    "    scope = sorted(h.objs) if full else sorted(h.young)",
                     "    scope = sorted(h.objs)"),
 }
 
@@ -133,7 +175,10 @@ def record(tree, tmp, name, lines):
 
 def main(argv):
     per = int(argv[1]) if len(argv) > 1 else 20
-    pop = [(n, l) for f, n, l in gen.programs("readings-seed", per) if f != "wide"]
+    # `wide` and `sweep` are resource families: they are semantically ordinary, so counting them
+    # here would inflate every reading's share with programs that are not about that reading.
+    pop = [(n, l) for f, n, l in gen.programs("readings-seed", per)
+           if f not in ("wide", "sweep")]
     with tempfile.TemporaryDirectory() as td:
         tmp = pathlib.Path(td)
         want_hand = {n: model.expect(cases.ops(n)) for n in cases.ORDER}

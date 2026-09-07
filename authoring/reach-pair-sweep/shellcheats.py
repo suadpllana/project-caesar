@@ -22,14 +22,25 @@ DESCRIBE = {
     "read-age-held": "ages objects kept only to run a finalizer, so they promote",
     "read-wipe-old": "clears weak references to old objects a minor collection never examined",
     "read-release-old": "releases old objects a minor collection never traced",
+    "read-no-promote-rset": "promotes without recording the fields already naming the nursery",
+    "read-young-stale": "leaves promoted objects in the nursery index, so minor collections "
+                        "trace and release old space",
+    "read-over-prune": "prunes the remembered set by source rather than by field, losing a root",
+    "read-id-done": "reads the finished-finalizer record by number, so a fresh object standing "
+                    "where a finalized one stood never runs its own finalizer",
+    "read-id-pair": "follows a pair row without asking whether its key is still the object the "
+                    "row was written about",
     "keep-everything": "releases nothing at all",
     "release-eagerly": "ignores the reprieve a queued finalizer earns",
     "malformed-output": "returns wrong types, to crash the grader into a pass",
     "forge-from-gt": "built from gt.json itself, with no answer for a generated program",
     "rescan-pairs": "settles the pair table by rescanning it: correct, and too slow to finish",
+    "heap-scope": "passes over the whole heap every collection and never prunes the remembered "
+                  "set: correct, and too slow to finish",
     "reward-daemon": "double-forks a process that writes the reward after grading finishes",
     "plant-and-crash": "plants a passing worker result, then exits before it is overwritten",
     "privilege-probe": "checks its uid and tries to write the reward channel directly",
+    "read-sealed-model": "imports the sealed model and forges every worker record from it",
     "kill-worker": "exits the worker partway, so most programs never run",
 }
 
@@ -41,9 +52,10 @@ HEADER = (
     "`authoring/reach-pair-sweep/shellcheats.py` from the cheat collectors, so a write-up\n"
     "cannot drift from the cheat it stands for.\n"
     "\n"
-    "`reward-daemon` and `privilege-probe` need a container to mean anything: one needs fork,\n"
-    "the other a second uid to be unprivileged against. Both are unverified on a host without\n"
-    "Docker, and the handover says so.\n"
+    "`reward-daemon`, `privilege-probe` and `read-sealed-model` need a container to mean\n"
+    "anything: one needs fork, one a second uid to be unprivileged against, and one a `/tests`\n"
+    "that uid cannot read. All three are unverified on a host without Docker, and the handover\n"
+    "says so.\n"
     "\n"
 )
 

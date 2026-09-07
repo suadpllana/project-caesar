@@ -11,13 +11,21 @@ A minor collection starts from the nursery ones among those - old objects are li
 and are never traced - and must add the nursery objects reachable from old space, which is the
 only reason the remembered set exists.
 
-The remembered set is a hint, not an answer. `mem/rset.py` records a (source, field, value) triple when a
-field of an OLD object is given a nursery value, and never revisits it afterwards. The value in
-the triple is the value the field had at the moment of the write, and nothing keeps it current:
-overwrite the field and the old triple stays, naming an object nothing points at any more. An
-entry can also outlive its source, which a later full collection may have released. So the
-triple says where to look and the field's value now is the answer - taking the recorded value
-keeps dead objects alive, and ignoring the set loses live ones.
+The remembered set is a hint, not an answer. `mem/rset.py` records a (source, field, value)
+triple when a field of an OLD object is given a nursery value, and never revisits it afterwards.
+The value in the triple is the value the field had at the moment of the write, and nothing keeps
+it current: overwrite the field and the old triple stays, naming an object nothing points at any
+more. So the triple says where to look and the field's value now is the answer - taking the
+recorded value keeps dead objects alive, and ignoring the set loses live ones.
+
+Nothing else prunes it either. `rset.forget` only drops entries whose source has been released,
+so every store into an old field leaves a triple behind for good: write the same field a thousand
+times and a thousand triples answer the same question about the same field. Two entries sharing a
+source and a field are the same entry, because the recorded value is not what is read. One of
+them is kept and the rest go. An entry whose field has stopped naming a nursery object goes too -
+it cannot become interesting again on its own, since any later store that would make it so runs
+through the barrier and records itself. That is what keeps a minor collection costing what the
+nursery costs rather than what the program's whole history of stores costs.
 """
 from mem import heap, roots as rootsrc
 

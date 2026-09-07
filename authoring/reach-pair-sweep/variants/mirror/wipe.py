@@ -18,5 +18,5 @@ def wipe(h, found, full):
 
 
 def release(h, found, spared, full):
-    inrange = [i for i in sorted(h.objs) if full or h.objs[i].space == heap.NURSERY]
+    inrange = sorted(h.objs) if full else sorted(h.young)
     return [i for i in inrange if i not in found and i not in spared]

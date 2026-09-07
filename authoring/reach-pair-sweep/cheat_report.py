@@ -4,6 +4,18 @@ A sweep that only reads the reward reports a clean row for a cheat that was neve
 for one caught by an unrelated assertion. So each cheat declares the layer that must catch it,
 and this fails if something else did the work instead.
 
+Declaring the layer is not enough on its own. An earlier version of this file never ran the
+trusted preparation stage, so the worker had no programs, every assertion in the grader fired for
+every cheat, and each declared layer was found among them - twenty clean rows, none of which
+meant anything. The guard against that is to run the reference through this same harness first
+and require it to score 1: a harness that cannot pass the reference cannot be trusted to have
+failed anything for the reason it claims.
+
+How broad each catch is gets printed alongside it rather than judged. Some of these cheats are
+meant to fail one assertion and some are meant to fail most of them - a collector that releases
+old space wrecks a dozen programs, and the forgery has no answer for any generated one - so
+breadth is context for the reader, not a verdict.
+
     python authoring/reach-pair-sweep/cheat_report.py
 """
 import os
@@ -25,10 +37,17 @@ PER = 60
 NEEDS_CONTAINER = {
     "reward-daemon": "double fork plus a root-owned 700 reward channel",
     "privilege-probe": "a second uid to be unprivileged against",
+    "read-sealed-model": "a /tests the worker's uid cannot read",
 }
 
 EXPECT = {
     "read-no-rset": "test_hand_case[rset-root]",
+    "read-no-promote-rset": "test_hand_case[rset-promote]",
+    "read-over-prune": "test_hand_case[rset-fields]",
+    "read-young-stale": "test_hand_case[old-safe]",
+    "read-id-done": "test_hand_case[reuse-fin]",
+    "read-id-pair": "test_hand_case[reuse-key]",
+    "heap-scope": "limit",
     "read-trust-rset": "test_hand_case[rset-stale]",
     "read-old-key-unready": "test_hand_case[old-key]",
     "read-queue-late": "test_hand_case[queue-first]",
@@ -58,6 +77,18 @@ def run(collector):
         env = dict(os.environ)
         env.update({"RPS_TESTS": str(TESTS), "RPS_WORK": str(work), "RPS_LOGS": str(logs),
                     "RPS_SUB": str(collector), "PYTHONDONTWRITEBYTECODE": "1"})
+
+        # `test.sh` prepares the worker's inputs on the trusted side before dropping privileges.
+        # Without this the worker has nothing to run and every cheat looks caught by everything.
+        prep = subprocess.run([sys.executable, str(TESTS / "prepare.py"),
+                               "--nonce-file", str(logs / "nonce"),
+                               "--per-file", str(logs / "per"),
+                               "--out", str(work / "programs.json"),
+                               "--tree", str(work / "pristine")],
+                              cwd=str(TESTS), env=env, capture_output=True, text=True)
+        if prep.returncode != 0:
+            raise SystemExit("prepare.py failed:\n" + prep.stderr)
+
         try:
             w = subprocess.run([sys.executable, str(TESTS / "worker.py"),
                                 "--out", str(work / "worker_out.json")],
@@ -74,6 +105,12 @@ def run(collector):
 
 
 def main():
+    # The harness itself has to be known good, or every row below is worth nothing.
+    reward, caught, _ = run(TASK / "solution")
+    if reward != 1:
+        raise SystemExit("the reference scores %d in this harness - fix the harness, not the "
+                         "cheats (assertions fired: %s)" % (reward, sorted(caught)[:6]))
+
     rows, bad = [], 0
     for path in sorted(p for p in CHEATS.iterdir() if p.is_dir()):
         name = path.name
@@ -98,7 +135,12 @@ def main():
             why = "worker exit %d, %d assertions fired" % (worker_rc, len(caught))
         else:
             ok = want in caught
-            why = want if ok else "caught by %s instead" % (sorted(caught)[:3] or "nothing")
+            if not ok:
+                why = "caught by %s instead" % (sorted(caught)[:3] or "nothing")
+            elif len(caught) == 1:
+                why = want
+            else:
+                why = "%s (+%d other assertions)" % (want, len(caught) - 1)
         rows.append((name, reward, why, "ok" if ok else "BAD"))
         if not ok:
             bad += 1

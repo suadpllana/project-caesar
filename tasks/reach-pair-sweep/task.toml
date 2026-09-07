@@ -16,23 +16,32 @@ author_name = "Suad Pllana"
 author_email = "suadpllana14@gmail.com"
 
 difficulty_explanation = """
+
 The collector is a generational one, and the work is distributed through a runtime the agent has
 to read before the plan exists. Five files under `/app/col` decide roots, reachability, finalizer
-retention, ageing and clearing; four ship wrong. What makes them hard is not their length but
+retention, ageing and clearing; all five ship wrong. What makes them hard is not their length but
 that each consumes the previous one's answer, and several facts they depend on are behaviours of
 the surrounding tree rather than statements in the brief.
 
-The sharpest is the remembered set. `/app/mem/rset.py` records a (source, field, value) triple
+The step a frontier agent gets wrong is identity. The brief says a released number can be handed
+out again and that nothing the runtime wrote down about the old occupant carries over. It does
+not say which of the runtime's records outlive the objects they describe, because that is
+readable in the tree and nowhere else: `ops.py` records a finished finalizer under the object's
+serial rather than its number, and `mem/tables.py` stamps every pair row with the serial of the
+object that was standing at its key. Nothing sweeps dead rows out of that table. A collector that
+compares numbers - which is what every implementation of this in the wild does, and what the tree
+ships - retires the finalizer of a fresh object because its predecessor's ran, and lets a fresh
+object be held alive by an association written for a dead one. Both are silent on every small
+program and both fail the sealed set.
+
+The remembered set is the second one. `/app/mem/rset.py` records a (source, field, value) triple
 when a field of an old object is given a nursery value, and never revisits it. A minor collection
 cannot trace old space, so those entries are its only route to nursery objects held from outside -
 but the recorded value is a snapshot. Overwrite the field and the triple stays, naming an object
-nothing points at. The brief says the remembered set is where a minor collection finds those
-roots; it does not say the record goes stale, because that is readable in eleven lines of
-`rset.py` and nowhere else. Trusting the record keeps dead objects alive; ignoring the set
-releases live ones. Promotion opens a second route into the same invariant: an object can enter
-old space with nursery-valued fields that were written before the barrier applied, so `age.py`
-has to record those fields when it moves the object. Trusting, ignoring and failing to seed the
-set at promotion all ship as cheats and all fail.
+nothing points at. Trusting the record keeps dead objects alive; ignoring the set releases live
+ones. Promotion opens a second route into the same invariant: an object can enter old space with
+nursery-valued fields written before the barrier applied, so `age.py` has to record those fields
+when it moves the object.
 
 Then the couplings. The finalizer queue is settled against what the walk reached, before any
 keeping is granted, so an object reachable only from another finalizable object is still
@@ -41,22 +50,26 @@ not age and cannot promote, and a weak reference to one clears while the object 
 minor collection may say nothing about old space, so it neither releases old objects nor clears
 references into it - yet an old pair key is reached for the whole of that collection, because
 nothing it did could show otherwise. Get ageing right and promotion changes which space an object
-is in, which changes what the next collection may trace, which changes the remembered set. There
-is no order in which these can be settled one at a time.
+is in, which changes what the next collection may trace, which changes the remembered set, which
+changes which numbers come free. There is no order in which these can be settled one at a time.
 
-The pair table adds a measured resource boundary on top. Its fixed point is exactly correct when
-settled by rescanning the table until a sweep adds nothing, and on a table written back to front
-that costs the table size times the chain depth. On the graded set, indexed by key: 0.7 seconds.
-By rescanning: past 800 seconds, against a stated 60 second limit. Same answers.
+On top of that sits a measured resource boundary, and it is the one the correct-but-obvious plan
+dies on. Every pass a collection makes can be written over the whole heap, and the remembered set
+can be read entire: exactly correct, and what a careful implementation reaches for first. On the
+graded set that costs 179.7 seconds against a stated 60 second limit. Scoping the nursery passes
+to `h.young` and dropping remembered-set entries whose field has stopped naming a nursery object -
+neither of which moves a single line of output - brings the same answers back in 1.6 seconds. The
+pair table carries its own boundary: settled by rescanning until a sweep adds nothing it is also
+exactly correct, and on a table written back to front it does not finish either.
 
-The data is synthetic: heap programs over integer ids, six families, with pair and finalizer
-configurations concentrated far above their natural rate because in the wild they are rare and
-are exactly where this class of bug lives. Real heaps are millions of objects where ours are
-thousands. The shape is faithful; the density is deliberately adversarial.
+The data is synthetic: heap programs over integer ids, eight families, with pair, finalizer and
+number-reuse configurations concentrated far above their natural rate because in the wild they
+are rare and are exactly where this class of bug lives. Real heaps are millions of objects where
+ours are thousands. The shape is faithful; the density is deliberately adversarial.
 
-Identifiers are in a legacy register - `objs`, `flds`, `fin`, `rset`, `pins` - short but never
-misleading, and no name misdescribes what it holds. That is a choice about the register of real
-runtime code, not an obstacle: each is recoverable from what calls it.
+Identifiers are in a legacy register - `objs`, `flds`, `fin`, `rset`, `pins`, `ser` - short but
+never misleading, and no name misdescribes what it holds. That is a choice about the register of
+real runtime code, not an obstacle: each is recoverable from what calls it.
 
 This is what runtime engineers on a language implementation do. Generational collectors, write
 barriers, weak maps and finalizer queues are where collector bugs concentrate, and the symptom is
@@ -64,33 +77,46 @@ an object freed while something still points at it, surfacing far away as corrup
 """
 
 solution_explanation = """
+
 Five modules, settled in a fixed order because each changes what the next may look at.
 
 `plan.py` chooses the roots. For a full collection that is everything named by the frame slots,
 the global table and the handle stack. For a minor one it is the nursery objects among those,
 plus the nursery objects reachable from old space - and it finds the second kind by walking the
 remembered set and re-reading each recorded field, because the value in the record is a snapshot
-that nothing keeps current.
+that nothing keeps current. It also throws entries away as it goes: two entries that share a
+source and a field ask the same question, and an entry whose field has stopped naming a nursery
+object cannot become interesting again on its own, since any store that would make it so runs
+through the barrier and records itself.
 
 `scan.py` walks reachability with the pair table folded in, indexed by key so each pair is
-followed the moment its key arrives and never looked at again. During a minor collection only
-nursery objects join the set, but an old key is ready before the walk starts and stays ready.
+followed the moment its key arrives and never looked at again. A row whose key number now holds a
+different object is skipped: the row was written about the object that has gone. During a minor
+collection only nursery objects join the set, but an old key is ready before the walk starts and
+stays ready.
 
 `keep.py` settles the finalizer queue against that walk alone, before any keeping is granted,
 then computes what those finalizers keep as a second walk blocked from anything already reached,
-so the two sets stay apart. `age.py` ages what the walk reached and promotes at two, skipping
-anything merely kept; pinned survivors still age but cannot move. When an object does promote,
+so the two sets stay apart. It asks whether an object's finalizer has run by serial, not by
+number. `age.py` ages what the walk reached and promotes at two, skipping anything merely kept;
+pinned survivors still age but cannot move. When an object does promote it leaves `h.young`, and
 each field that currently names a nursery object is entered into the remembered set. `wipe.py`
 clears weak references against the walk and leaves old referents alone on a minor collection.
+
+Both scoped passes - what may be queued and what may be released - run over `h.young` rather than
+over the heap, which is what keeps a minor collection costing what the nursery costs. Promotion
+is the only thing that takes an object out of the nursery, so promotion is what has to take it
+out of that set; leave it there and later collections trace and release old space.
 
 An expert works in that order because the rules force it, not because it is elegant: the queue
 needs the walk, the keeping needs the queue, ageing needs both, and clearing needs to know which
 of the two sets an object landed in. The same contract is implemented two further ways in the
-authoring set - one breadth-first over a colour map, one the reference with every identifier
+authoring set - one breadth-first over a level frontier, one the reference with every identifier
 mechanically renamed - to show the shape is not what is graded.
 """
 
 verification_explanation = """
+
 Only the five files under `/app/col/` are taken from the agent. The verifier overlays them onto
 its own pristine copy of the runtime, so nothing else the agent may have touched can change what
 a program prints, and the record is compared line for line.
@@ -100,23 +126,34 @@ dropped. The unprivileged worker can read those inputs but cannot read `/tests`,
 import the sealed model or expected records. Its output is treated as hostile, surviving worker
 processes are reaped, and only the later root process can write the reward.
 
-Correct is defined twice over. Twenty-six hand programs, one per graded decision plus the
+Correct is defined twice over. Thirty-two hand programs, one per graded decision plus the
 must-still-work side of each fence, are checked against `gt.json`, frozen before the verifier was
 written; the grader first asserts the sealed model still reproduces `gt.json` exactly, so a
-drifted model cannot quietly redefine correct. Three hundred and twelve further programs are
-generated inside the verifier from a nonce drawn after the agent has finished, across six
+drifted model cannot quietly redefine correct. Three hundred and seventy-eight further programs
+are generated inside the verifier from a nonce drawn after the agent has finished, across eight
 families that seed the pair cascade, the finalizer closure, the resurrection, the stale
-remembered-set entry and the wide pair table. A submission cannot have seen them, so memorising
-the shipped examples or forging records from an answer key both fail; both are cheats and score 0.
+remembered-set entry, the wide pair table, the reuse of a released number, and a heap large
+enough to price a minor collection. A submission cannot have seen them, so memorising the shipped
+examples or forging records from an answer key both fail; both are cheats and score 0.
 
 The fences run both ways. Releasing too much fails the ordinary cases and `old-safe`; releasing
 too little fails `plain-drop`. Trusting the remembered set fails `rset-stale`; ignoring it fails
-`rset-root`; failing to record fields at promotion fails `rset-promote`. Ageing what is merely
-kept fails `held-no-age`. Sixteen host-executable cheats score 0 and each is caught by the layer
-that should catch it, the rescanning one by the execution limit itself. Two further isolation
-probes require the container's second uid and locked reward directory. Two independently written
-correct collectors score 1, including the reference with every identifier renamed, so
-implementation and naming are not graded.
+`rset-root`; pruning it harder than one entry per field fails `rset-fields`; failing to record
+fields at promotion fails `rset-promote`. Ageing what is merely kept fails `held-no-age`. Reading
+the finished-finalizer record by number fails `reuse-fin`, and following a pair row whose key has
+been reallocated fails `reuse-key`, while `reuse-live` fails a collector that treats every reused
+number as unfinalizable. Leaving a promoted object in the nursery index fails `young-promote`.
+
+Two of the cheats are exactly correct and are caught by the execution limit alone, one for
+rescanning the pair table and one for passing over the whole heap every collection: on the graded
+set they take past the limit where the reference takes 1.6 seconds, on identical answers. Every
+host-executable cheat scores 0 and each is caught by the layer that should catch it. Three
+further probes test the isolation rather than the contract, and need the container to mean
+anything: one double-forks a process to write the reward after grading, one checks its uid and
+writes the reward channel directly, and one imports the sealed model and forges every record
+from it - that last is stopped by nothing except a `/tests` the worker's uid cannot read. Two
+independently written correct collectors score 1, including the reference with every identifier
+renamed, so implementation and naming are not graded.
 """
 
 category = "Software"
@@ -126,13 +163,12 @@ subcategory = "Languages"
 tags = [
   "generational-collection",
   "remembered-sets",
-  "weak-references",
   "key-value-weak-pairs",
   "finalizer-resurrection",
-  "write-barriers",
+  "object-identity-reuse",
 ]
 
-expert_time_estimate_hours = 8
+expert_time_estimate_hours = 10
 
 relevant_experience = """
 I build and maintain async runtimes and the task queues that sit on top of them. I have also

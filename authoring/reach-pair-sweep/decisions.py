@@ -34,8 +34,13 @@ def _facts(st):
         for v in o["flds"].values():
             if v is not None:
                 pointed[v] = pointed.get(v, 0) + 1
-    keys = {k for k, _ in st["pairs"]}
-    values = {v for _, v in st["pairs"]}
+    keys = {k for k, _, _ in st["pairs"]}
+    values = {v for _, _, v in st["pairs"]}
+    # rows whose key number still holds the object the row was written about
+    live_keys = {k for k, ks, _ in st["pairs"]
+                 if k in objs and objs[k]["ser"] == ks}
+    live_values = {v for k, ks, v in st["pairs"]
+                   if k in objs and objs[k]["ser"] == ks}
     named_by_rset, accurate_rset = set(), set()
     for src, fld, was in st["rset"]:
         named_by_rset.add(was)
@@ -45,7 +50,7 @@ def _facts(st):
     for w in st["weak"].values():
         weak_on[w[0]] = weak_on.get(w[0], 0) + 1
     return (objs, slotted, globbed, handled, pointed, keys, values,
-            named_by_rset, accurate_rset, weak_on)
+            live_keys, live_values, named_by_rset, accurate_rset, weak_on)
 
 
 def samples():
@@ -60,7 +65,7 @@ def samples():
             full = op[0] == "collectfull"
             st = model._run(ops[:idx])[1]
             (objs, slotted, globbed, handled, pointed, keys, values,
-             named_by_rset, accurate_rset, weak_on) = _facts(st)
+             live_keys, live_values, named_by_rset, accurate_rset, weak_on) = _facts(st)
             before = set(objs)
             spaces = {i: objs[i]["space"] for i in objs}
             ages = {i: objs[i]["age"] for i in objs}
@@ -81,8 +86,13 @@ def samples():
                     "pointed_at": pointed.get(i, 0),
                     "is_pair_key": int(i in keys),
                     "is_pair_value": int(i in values),
+                    "is_live_pair_key": int(i in live_keys),
+                    "is_live_pair_value": int(i in live_values),
                     "has_fin": int(objs[i]["fin"] is not None),
-                    "already_ran": int(i in st["done"]),
+                    "already_ran": int(objs[i]["ser"] in st["done"]),
+                    "number_ran_before": int(any(objs[i]["ser"] != s2 for s2 in st["done"])
+                                             and i in st["done"]),
+                    "in_young_set": int(i in st["young"]),
                     "already_queued": int(i in st["queue"]),
                     "in_old_space": int(spaces[i] == model.OLD),
                     "age": ages[i],
@@ -104,6 +114,7 @@ def samples():
                     "target_pointed_at": pointed.get(tgt, 0),
                     "target_has_fin": int(tgt in objs and objs[tgt]["fin"] is not None),
                     "target_is_pair_value": int(tgt in values),
+                    "target_is_live_pair_value": int(tgt in live_values),
                     "target_in_old_space": int(tgt in objs and spaces[tgt] == model.OLD),
                     "target_queued": int(tgt in st["queue"]),
                     "target_gone": int(tgt not in objs),

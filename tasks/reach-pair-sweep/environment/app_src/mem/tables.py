@@ -6,14 +6,10 @@ class Ref:
         self.wiped = False
 
 
-def by_key(h):
-    out = {}
-    for k, v in h.pairs:
-        out.setdefault(k, []).append(v)
-    return out
+class Pair:
+    __slots__ = ("key", "kser", "val")
 
-
-def drop_gone(h, gone):
-    if not gone:
-        return
-    h.pairs[:] = [(k, v) for k, v in h.pairs if k not in gone and v not in gone]
+    def __init__(self, key, kser, val):
+        self.key = key
+        self.kser = kser
+        self.val = val

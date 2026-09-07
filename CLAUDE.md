@@ -7,6 +7,47 @@ Before designing or hardening another task, read `docs/DIFFICULTY.md`,
 Historical task transcripts and retired project notes were deliberately removed. Do not restore
 them as examples; only the projects listed in `README.md` belong in this checkout.
 
+## Lessons, measured (2026-09-07, `reach-pair-sweep` easiness recovery)
+
+The task was rejected 3/3 by the easiness probe. All three trajectories were the same shape: two
+`cat` calls, then one edit rewriting all five modules. Nothing was discovered and nothing failed.
+
+- **A resource gate is worth what it eliminates, not what it measures.** The C3 boundary graded
+  rescanning the pair table against indexing it by key, measured at past 800 s against 0.7 s. No
+  probe agent ever wrote the rescanning form - indexing a table by its key is the default, not an
+  optimisation - so a gate with a thousandfold margin killed nobody, and all three finished with
+  two orders of magnitude of slack. The replacement was chosen by reading the trajectories for
+  what they *did* write: `sorted(h.objs)` three times per collection and a remembered set read
+  whole. That form now takes past 400 s against the reference's 1.8 s. Measure the gate against
+  the code the winners actually produced.
+- **Tune a two-term cost by fitting the terms, not by scaling everything.** The sweep family's
+  reference cost is `a*survivors + b*rounds` and the naive cost is `c*survivors*rounds`. Scaling
+  both axes together moved the two in step: 14.2 s against 105.9 s, a ratio of 7.5 and only a 4x
+  margin under the limit. Fitting `a` and `b` from two measured points showed the budget belonged
+  in survivors, and the fitted configuration gives 1.8 s against 86 s - a 33x margin, on a third
+  less program text. Two timing runs bought what four rounds of guessing had not.
+- **A checker that never installed its subject reports a clean sweep, and this repo has now paid
+  for that twice.** `prepare.py` moved program generation to the trusted side; neither
+  `trial.py` nor `cheat_report.py` was updated. `trial.py` failed loudly - the reference scored
+  0. `cheat_report.py` failed *upward*: with no programs the worker died for every cheat, so
+  every assertion in the grader fired, so every cheat's declared catcher was duly found among
+  them. Twenty rows of "caught by its own layer", all meaningless. Asserting the layer is not
+  enough on its own; the harness must first prove it can pass the reference. That guard is now in
+  the file.
+- **A field that mirrors another is not symmetry, it is dead state pointing at the mechanism.**
+  `tables.Pair` was going to stamp both ends with a serial. A row's value cannot be released
+  while the object at its key survives, so the value serial can never discriminate - 4,000 random
+  reuse-heavy programs produced zero cases where it did. It would have shipped as an unused
+  affordance announcing the trap twice. Prove a guard can fire before shipping it.
+- **A non-greedy regex spanning two headings eats the section between them.** Rewriting
+  `## Verifier contract ... ## Decisions` with `re.search(..., re.S)` silently deleted the
+  140-line recovery entry that sat between them, and the file still parsed and still read
+  sensibly. Anchor a structural edit on one unique marker, and count the headings afterwards.
+- **`cd x && cat > f <<EOF` skips the write when `cd` fails, and a verification step outside the
+  chain then reports on the file that was already there.** The check printed "ops.py ok" for the
+  unmodified file and the edit was lost without a word. Absolute paths, and let the verification
+  fail closed when its subject is missing.
+
 ## Lessons, measured (2026-09-06, `token-seam-emit`)
 
 Four defects found by local gates before submission, each with the number that found it:

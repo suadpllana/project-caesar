@@ -1,5 +1,5 @@
 #!/bin/bash
-# promotes an object without recording its existing nursery fields
+# promotes without recording the fields already naming the nursery
 set -euo pipefail
 
 cat > /app/col/age.py <<'PYEOF'
@@ -18,21 +18,24 @@ It promotes at the first later collection it survives if its age has reached the
 Promotion is another old-to-nursery write-barrier boundary. An object can already have fields
 when it moves, so every field that still names a nursery object is recorded at that point. Later
 writes into the old object are recorded by `mem/rset.py` in the ordinary way.
+
+Promotion is also the only thing that takes an object out of the nursery, so it is what has to
+take it out of `h.young`. Leave it there and every later minor collection treats an old object as
+its own to trace and to release.
 """
 from mem import heap, rset
 
 
 def promote(h, seen, held):
     moved = []
-    for i in sorted(h.objs):
+    for i in sorted(h.young):
         o = h.objs[i]
-        if o.space != heap.NURSERY:
-            continue
         if i not in seen or i in held:
             continue
         o.age += 1
         if o.age >= heap.PROMOTE_AGE and o.pins == 0:
             o.space = heap.OLD
+            h.young.discard(i)
             moved.append(i)
     return moved
 PYEOF

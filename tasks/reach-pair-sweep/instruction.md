@@ -2,11 +2,13 @@
 
 `/app/run_prog.py` takes a program and prints what happened, a line per event.
 
-We rewrote the collector last cycle and it has been wrong since. Run `/app/run_prog.py` on `/app/progs/tiny.txt`. It prints `fin 3`, then `pro 1`, `pro 2` and `pro 3`, and that last line should not be there: object 3 is unreachable and is only still around because its finalizer has not run, which is not the same as having survived. The five files under `/app/col` are the ones you may change. Nothing else.
+We rewrote the collector last cycle and it has been wrong since. Run `/app/run_prog.py` on `/app/progs/tiny.txt`. It prints `fin 3`, then `pro 1`, `pro 2` and `pro 3`. That last line should not be there. The five files under `/app/col` are the ones you may change. Nothing else.
 
-An object survives a collection when the walk reaches it. A full collection walks from every root. That means the frame slots, the global table and the handle stack. A minor collection walks the nursery only, so it never traces an old object and never releases one, and the roots it starts from are the nursery objects those same three name plus the nursery objects reachable from old space. The remembered set is how it finds the second kind, and `/app/mem/rset.py` is where it comes from.
+An object survives a collection when the walk reaches it. A full collection walks from every root. That means the frame slots, the global table and the handle stack. A minor collection walks the nursery only, so it never traces an old object and never releases one, and the roots it starts from are the nursery objects those same three name plus the nursery objects reachable from old space. The remembered set is how it finds the second kind.
 
 The pair table is weaker than a field. The value of a pair is reached only while that pair's key is reached, and a value that arrives can be some other pair's key. It makes no difference how that key is being kept. During a minor collection an old key is reached for as long as the collection lasts, because nothing that collection did could show otherwise.
+
+A number is not an object. Once an object has been released its number is free, and a later `new` may be given it; what that makes is a new object standing where the old one stood. Nothing the runtime wrote down about the object that has gone carries over to the one that arrives. Programs never reuse a number while its object is still there.
 
 An object that the walk did not reach, and that was allocated with a finalizer that has not run, is kept anyway, along with everything it reaches, and its finalizer joins the queue. It stays kept until that finalizer has run. The first collection after that releases it, unless something live points at it again. Which finalizers join the queue is settled from what the walk reached, before any of this keeping is granted. A finalizer runs at most once for an object, whatever happens to it afterwards.
 
@@ -16,6 +18,6 @@ A weak reference is cleared when the walk did not reach its referent. Being kept
 
 Each collection prints `clr <name>` for every weak reference it cleared, then `fin <id>` for every finalizer it queued, then `rel <id>` for every object it released, then `pro <id>` for every object it promoted, ascending within each of the four. `runfin` prints `ran <id>`. Nothing else is printed.
 
-`/app/progs/wide.txt` is one of the big ones. It has about seven thousand objects and a pair table written back to front. The graded set has 338 programs: 26 fixed programs and 312 generated after you finish, including 12 with 10,000 to 16,000 linked pair keys and another 3,000 to 5,000 unrelated pairs. The whole set must finish inside 60 seconds, so time it on `/app/progs/wide.txt` before you call it done.
+Two of the programs in `/app/progs` are the big ones, and they are big in different ways. `wide.txt` has about seven thousand objects and a pair table written back to front. `churn.txt` puts sixteen thousand objects into old space behind a single root and then runs six thousand minor collections against a nursery holding one object at a time, rewriting the same few old fields as it goes. The graded set has 410 programs: 32 fixed programs and 378 generated after you finish. Twelve of those are shaped like `wide.txt`, with 10,000 to 16,000 linked pair keys and another 3,000 to 5,000 unrelated pairs. Six are shaped like `churn.txt`, up to eighteen thousand surviving objects and seven thousand collections. The whole set must finish inside 60 seconds, so time both of them before you call it done.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

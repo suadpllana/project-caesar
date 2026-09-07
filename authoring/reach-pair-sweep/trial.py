@@ -26,7 +26,7 @@ TASK = ROOT / "tasks" / "reach-pair-sweep"
 TESTS = TASK / "tests"
 HERE = ROOT / "authoring" / "reach-pair-sweep"
 
-NOT_COVERED = ("reward-daemon", "privilege-probe")
+NOT_COVERED = ("reward-daemon", "privilege-probe", "read-sealed-model")
 
 # Must match `timeout N setsid` in tests/test.sh: the stated execution limit.
 WORKER_LIMIT = 60
@@ -46,6 +46,18 @@ def score(collector, per=60, quiet=True):
         env = dict(os.environ)
         env.update({"RPS_TESTS": str(TESTS), "RPS_WORK": str(work), "RPS_LOGS": str(logs),
                     "RPS_SUB": str(collector), "PYTHONDONTWRITEBYTECODE": "1"})
+
+        # `test.sh` prepares the worker's inputs on the trusted side first. Emulate that same
+        # step here; skipping it leaves the worker with no programs and scores every collector 0.
+        prep = subprocess.run([sys.executable, str(TESTS / "prepare.py"),
+                               "--nonce-file", str(logs / "nonce"),
+                               "--per-file", str(logs / "per"),
+                               "--out", str(work / "programs.json"),
+                               "--tree", str(work / "pristine")],
+                              cwd=str(TESTS), env=env, capture_output=True, text=True)
+        if prep.returncode != 0:
+            raise SystemExit("prepare.py failed:\n" + prep.stderr)
+
         try:
             w = subprocess.run([sys.executable, str(TESTS / "worker.py"),
                                 "--out", str(work / "worker_out.json")],

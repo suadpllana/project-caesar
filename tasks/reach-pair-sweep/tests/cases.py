@@ -87,6 +87,40 @@ CASES = {
     "stays-clear": ["new 1 fin s", "weak w 1", "collect", "runfin", "collect",
                     "slot s -", "collect"],
 
+    # --- a number is not an object --------------------------------------------------
+
+    # the finalizer of the object that had this number has run; the object standing there now
+    # is a different one and has never been finalized
+    "reuse-fin": ["new 1 fin", "collect", "runfin", "collect",
+                  "new 1 fin", "collect"],
+
+    # the pair row was written about the object that used to hold number 1; it says nothing
+    # about the one there now, so it cannot keep 2 alive
+    "reuse-key": ["new 1", "new 2", "pair 1 2", "slot a 2", "collect",
+                  "new 1", "slot b 1", "slot a -", "collect"],
+
+    # the ordinary side: a reused number holding a reachable object survives and ages normally,
+    # and the weak reference that cleared for its predecessor stays cleared
+    "reuse-live": ["new 1 fin", "weak w 1", "collect", "runfin", "collect",
+                   "new 1 fin", "slot a 1", "collect", "collect"],
+
+    # --- what a minor collection may cost --------------------------------------------
+
+    # one field written twice leaves two entries asking about the same field; the field's
+    # current value is still a root, and the value it used to hold is not
+    "rset-rewrite": ["new 1", "slot a 1", "collect", "collect",
+                     "new 2", "set 1 x 2", "new 3", "set 1 x 3", "collect"],
+
+    # one old object holding two nursery objects in two different fields: both are roots, so
+    # collapsing the entries any harder than one per field loses one of them
+    "rset-fields": ["new 1", "slot a 1", "collect", "collect",
+                    "new 2", "new 3", "set 1 x 2", "set 1 y 3", "collect"],
+
+    # promotion is what takes an object out of the nursery; a minor collection afterwards has
+    # nothing in scope, however unreachable those objects have become
+    "young-promote": ["new 1", "new 2", "slot a 1", "slot b 2", "collect", "collect",
+                      "slot a -", "slot b -", "collect", "collect"],
+
     # --- roots and the ordinary side ------------------------------------------------
 
     # the global table and the handle stack are roots too

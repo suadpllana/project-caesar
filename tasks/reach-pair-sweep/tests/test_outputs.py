@@ -22,18 +22,26 @@ Graded, and settled the same way by two implementations written apart:
   8  ageing: a survivor ages, an object kept only for a finalizer does not, a pinned object
      still ages but stays put, and promotion records its existing nursery-valued fields
   9  release: everything in scope that the walk did not reach and no finalizer is keeping
+ 10  a number is not an object: `new` reuses the number of an object that has been released, and
+     nothing the runtime recorded about the earlier occupant answers for the later one - not
+     whether its finalizer has run, and not a pair row written about it as a key
 
 Implementation choice, never graded: how each fixed point is walked (the reference goes
 depth-first from a stack, the model breadth-first from a deque), the container types returned,
 the order within each returned collection (the runtime sorts), and any internal naming. Not a
-free choice, and not graded here either: the pair table has to be indexed rather than rescanned,
-which the execution limit decides rather than any assertion in this file.
+free choice, and not graded by any assertion here: what a minor collection is allowed to cost.
+The pair table has to be indexed rather than rescanned, a minor collection's passes have to be
+over the nursery rather than the whole heap, and the remembered set has to be pruned of entries
+that no longer name a nursery object. The execution limit decides all three, on the `wide` and
+`sweep` families, and every one of them leaves the answers unchanged - which is why none of them
+can be an assertion.
 
 The record is compared exactly, line for line. Hand cases are checked against `gt.json`, frozen
 before the verifier was written; nonce programs are generated here, after the agent has
 finished, and checked against the sealed model. `gt.json` and the model must also agree with
 each other on every hand case, so a drifted model cannot quietly redefine correct.
 """
+import hashlib
 import json
 import os
 import pathlib
@@ -81,6 +89,11 @@ def truth():
     return json.loads(GT.read_text(encoding="utf-8"))
 
 
+def _digest(lines):
+    """Must match `worker.py`'s digest exactly: it is how a program is identified here."""
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
 def _record(item):
     got = item.get("got")
     if got is None:
@@ -94,7 +107,7 @@ def _record(item):
 
 def test_frozen_truth_matches_the_model(truth):
     """gt.json was frozen from the model; if they have drifted apart, grade nothing."""
-    assert len(cases.ORDER) == 26
+    assert len(cases.ORDER) == 32
     assert sorted(truth) == sorted(cases.ORDER)
     for name in cases.ORDER:
         assert model.expect(cases.ops(name)) == truth[name], name
@@ -106,7 +119,8 @@ def test_frozen_truth_matches_the_model(truth):
 def test_hand_case(produced, truth, name):
     assert name in produced, "no result for hand case %s" % name
     item = produced[name]
-    assert item["lines"] == cases.CASES[name], "hand program was altered: %s" % name
+    assert item.get("prog") == _digest(cases.CASES[name]), (
+        "hand program was altered: %s" % name)
     assert _record(item) == truth[name]
 
 
@@ -119,14 +133,14 @@ def _nonce():
 def test_every_nonce_program_matches(produced):
     seed, per = _nonce()
     wanted = gen.programs(seed, per)
-    assert len(wanted) == 312, "nonce population changed: %d" % len(wanted)
+    assert len(wanted) == 378, "nonce population changed: %d" % len(wanted)
     bad = []
     for fam, name, lines in wanted:
         item = produced.get(name)
         if item is None:
             bad.append((name, "missing"))
             continue
-        if item["lines"] != list(lines):
+        if item.get("prog") != _digest(lines):
             bad.append((name, "program altered"))
             continue
         got, want = item.get("got"), model.expect(gen.ops(lines))

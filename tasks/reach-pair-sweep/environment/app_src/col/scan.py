@@ -1,4 +1,4 @@
-from mem import heap, tables
+from mem import heap
 
 
 def _walk(h, start, full, barred):
@@ -20,8 +20,9 @@ def _walk(h, start, full, barred):
 def reach(h, start, full, barred):
     seen = _walk(h, start, full, barred)
     while True:
-        more = [v for k, v in h.pairs
-                if k in seen and v in h.objs and v not in seen and v not in barred]
+        more = [p.val for p in h.pairs
+                if p.key in seen and p.val in h.objs
+                and p.val not in seen and p.val not in barred]
         if not more:
             return seen
         seen |= _walk(h, more, full, barred)

@@ -1,12 +1,23 @@
-from mem import heap, tables
+from mem import heap
+
+
+def _index(h):
+    objs = h.objs
+    idx = {}
+    for p in h.pairs:
+        k = objs.get(p.key)
+        if k is None or k.ser != p.kser:
+            continue
+        idx.setdefault(p.key, []).append(p.val)
+    return idx
 
 
 def reach(h, bases, full, skip):
-    idx = tables.by_key(h)
+    idx = _index(h)
     todo = list(bases)
     if not full:
         for k, vs in idx.items():
-            if k in h.objs and h.objs[k].space == heap.OLD:
+            if h.objs[k].space == heap.OLD:
                 todo.extend(vs)
 
     found = set()

@@ -12,17 +12,36 @@ so each pair is followed the moment its key arrives and never looked at again: a
 newly fire when its key first enters the set, and a key enters once. Sweeping the whole table
 until a sweep adds nothing settles one link per sweep on a table written back to front.
 
+Nothing sweeps dead rows out of the table, so a row can name a number whose object is long gone.
+A row is about the object that was standing at its key when the row was written, which is why
+`tables.Pair` carries that object's serial. Once the number has been handed out again the row
+says nothing about its new occupant, and firing it would let a fresh object hold something alive
+through an association made for a dead one. The value end needs no such guard: a row's value
+cannot be released while the object at its key is still there, so by the time the value's number
+is free the key has already stopped matching.
+
 The minor case is not the full case with a filter on the end. Only nursery objects join the set,
 because old objects are not traced at all - but an old object is live for the whole of a minor
 collection, so a pair keyed on one is ready before the walk starts and stays ready. Those values
 seed the walk. Treating an old key as unreached loses the value; letting old objects into the set
 makes them look collectable.
 """
-from mem import heap, tables
+from mem import heap
+
+
+def _index(h):
+    objs = h.objs
+    by = {}
+    for p in h.pairs:
+        k = objs.get(p.key)
+        if k is None or k.ser != p.kser:
+            continue
+        by.setdefault(p.key, []).append(p.val)
+    return by
 
 
 def reach(h, start, full, barred):
-    by = tables.by_key(h)
+    by = _index(h)
     stack = list(start)
 
     seen = set()

@@ -9,6 +9,9 @@ A minor collection has nothing to say about old space. It did not trace it and c
 shown an old object unreachable, so a reference whose referent is old is left exactly as it is -
 neither cleared nor examined. Clearing those on a minor collection is the mistake that empties a
 weak table for objects that were never in danger.
+
+Release is scoped the same way the queue is: everything for a full collection, the nursery alone
+for a minor one, and the nursery is `h.young`.
 """
 from mem import heap
 
@@ -27,5 +30,5 @@ def wipe(h, seen, full):
 
 
 def release(h, seen, held, full):
-    scope = [i for i in sorted(h.objs) if full or h.objs[i].space == heap.NURSERY]
+    scope = sorted(h.objs) if full else sorted(h.young)
     return [i for i in scope if i not in seen and i not in held]

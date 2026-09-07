@@ -7,6 +7,7 @@ the five submitted collector modules, runs every program, and writes down what c
 imports from `/tests`, which is unreadable while this process runs. A crash, a hang or a silent
 exit loses the results, which the grader reads as a failure - never as a pass.
 """
+import hashlib
 import json
 import os
 import pathlib
@@ -31,6 +32,13 @@ def build_tree():
         if one.is_file():
             shutil.copy(one, tree / "col" / name)
     return tree
+
+
+def digest(lines):
+    """What the grader checks the program against. A digest rather than the text itself: the
+    graded set runs to megabytes, and echoing all of it back would price every submission's
+    execution limit on JSON rather than on its collector."""
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
 
 
 def load_programs():
@@ -58,7 +66,7 @@ def main():
             got = acc
         except Exception:
             err = traceback.format_exc(limit=1).strip().splitlines()[-1:]
-        recs.append({"fam": fam, "name": name, "lines": list(lines),
+        recs.append({"fam": fam, "name": name, "prog": digest(lines),
                      "got": got, "err": err})
 
     pathlib.Path(out).write_text(json.dumps(recs), encoding="utf-8")

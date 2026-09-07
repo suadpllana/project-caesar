@@ -1,0 +1,13 @@
+size 10
+set r1c1 4
+set r2c1 2
+set r3c1 7
+set r1c3 = SUM(r1c1:r3c1)
+set r2c3 = CNT(r1c1:r3c1)
+set r3c3 = r2c3 * 3
+set r5c5 = IFZ(r1c1, r1c3, r2c3)
+go
+set r2c1 5
+set r1c1 0
+set r3c1 7
+clr r2c1

@@ -1,0 +1,9 @@
+size 10
+set r1c1 4
+set r1c2 = RUN(1, r1c1)
+set r7c4 = r2c2 + 0
+set r8c4 = r4c2 + 0
+go
+set r3c2 9
+clr r3c2
+set r1c1 2

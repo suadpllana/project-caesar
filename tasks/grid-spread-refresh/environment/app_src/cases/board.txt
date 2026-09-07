@@ -1,0 +1,12 @@
+size 10
+set r1c1 6
+set r2c1 3
+set r3c1 9
+set r4c1 1
+set r1c3 = TOP(r1c1:r4c1, 3)
+set r8c5 = r1c3 + 0
+set r9c5 = r3c3 + 0
+go
+set r3c1 2
+set r1c3 = TOP(r1c1:r4c1, 2)
+clr r1c3

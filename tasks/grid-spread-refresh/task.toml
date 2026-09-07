@@ -1,0 +1,159 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/sheet/dep.py",
+  "/app/sheet/lay.py",
+  "/app/sheet/upd.py",
+  "/app/sheet/flow.py",
+]
+
+[task]
+name = "afterquery/grid-spread-refresh"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer who owns the calculation core of a grid - the part
+that decides, after somebody types in one cell, which other cells have to be worked out
+again. They are judged on two things at once, because recomputing too much is a slow
+product and recomputing too little is a wrong number on a page somebody signs.
+
+The graded data is synthetic. Sheets are built in three bands - literals, formulas whose
+result is a block of values, and scalar formulas that read both - and then edited: numbers
+written and cleared, formulas replaced, content planted in the way of a block and taken
+away again, blocks grown and shrunk. Those combinations are deliberately concentrated;
+they occur in real sheets, less often together. Three of the graded sheets are large, at
+three hundred and sixty rows and roughly twelve thousand formulas, and are loaded a cell
+at a time.
+
+The natural first plan is a dependency graph over the cells each formula names, dirtied
+from the edited cell and walked to its dependents. It is wrong three times over here, and
+none of the three is a patch on it. A cell's dependencies are the reads its last evaluation
+performed, so the arm a conditional skipped is not one and a graph built from the formula
+text recomputes cells that could not have changed. A block-valued formula additionally
+depends on whether the cells it would occupy hold their own content, which is a dependency
+on cells its text never mentions, and it has to record them even in the case where it does
+not fit and occupies nothing. And a value that dips and comes back inside one settling is
+not a change, so a cell cannot be judged until whatever supplies its reads has stopped
+moving - which means the order the pending cells are worked in decides the answer, and the
+structure that gives that order is not the one the reader index gives.
+
+The engine is graded on the set of cells it recomputed, not only on the values, so
+recomputing everything does not pass and neither does a conservative sweep: asking every
+formula in the sheet whether it is out of date is exactly correct and, measured on the
+graded sheets, more than two orders of magnitude too slow.
+
+Failures arrive late. A sheet of literals feeding sums behaves identically under the wrong
+plan and the right one; the differences need a branch to flip, a blocker to be cleared, a
+block to shrink, or a cleared blocker to be replaced by the very element the block puts
+back. The environment uses short internal names and ships no comments, deliberately: it is
+a small engine, not a maze, and the work is reconciling the stated rules with the runtime's
+lookup protocol rather than finding files.
+"""
+
+solution_explanation = """
+The frozen evaluator does not return a list of references; it asks a lookup object the
+policy supplies for every value it reads, and the block layout asks the same object whether
+a cell it would occupy holds its own content. The reference makes that object record each
+read as an address, its kind and the answer it gave, keeps the whole record against the
+cell, and inverts it into an index from address to the cells that read it. Staleness is
+then exact: a cell is out of date when one of its recorded reads would now answer
+differently, never because a cell it read was recomputed.
+
+Layout is settled before anything is written. The block's length decides the cells it wants,
+each of those cells inside the sheet is probed through the lookup so the probes are recorded
+whether or not the block fits, and the block is refused if it runs off the sheet, meets own
+content, or would land on a cell the formula read. Laying it down writes one element per
+cell, so a reader of one occupied cell is only affected when that cell's element moves;
+giving cells up leaves them empty except where own content has appeared since.
+
+The settling loop takes work from the inverted index and never from a sweep. Its order is
+the part that a propagation loop gets wrong: a cell is only looked at once everything
+supplying its reads has stopped moving, where a pending cell supplies its own address and a
+pending block-valued formula supplies every cell under it in its column, since its next
+block may reach further than its last. Under the input contract that condition never
+starves.
+
+The sealed model reaches the same answers along a different route. It compiles each formula
+into a closure rather than walking a tree, builds the cone an edit could reach before
+evaluating anything, orders that cone by a per-edit depth-first pass, and finds the cell
+supplying an address by bisecting a per-column list of block-valued formulas rather than by
+a coverage map. A third implementation kept in the authoring notes drops incremental
+machinery altogether: it settles the whole sheet by repeated passes and then derives the
+recomputed set in one comparison against the previous records, which is the rule as stated
+and is what caught a rule both incremental implementations had read the same way.
+"""
+
+verification_explanation = """
+The verifier compares both printed lines of every graded edit exactly and scores
+all-or-nothing. It uses 32 enumerated sheets whose expected reports were derived by hand,
+one per stated rule, including the case where a blocker holds the very value the block
+would have put in its cell and the case where a cleared blocker is replaced by that same
+value, so a displayed value that dips and returns has to be recognised as no change at all.
+Five deterministic families of scripts then drive the rules in combination, and three sheets
+of roughly twelve thousand formulas drive them at a scale where deciding what to recompute
+by inspecting the whole sheet cannot finish. The sealed model must reproduce every hand
+derivation before any generated answer counts, and an input-only checker confirms that every
+graded script stays inside the contract the brief states.
+
+Grading the recomputed set is what makes the tests demand real work: the values alone can be
+had by recomputing everything, and that answer fails on the set. Both directions are graded,
+so a policy that recomputes a cell whose reads did not move fails exactly as a policy that
+misses one that did.
+
+The submitted policy runs under an unprivileged uid, in its own session, under a wall clock,
+in a work tree assembled from a pristine copy of the runtime with only the four declared
+files laid over it. The reward is root-owned in a locked directory and defaults to zero. The
+report is appended only by the frozen driver's own code object; the digests of every frozen
+function are taken before and after each script and held against digests compiled from the
+pristine sources; the interpreter's own instrumentation counts the driver, the per-edit step
+and the recomputations, and a report claiming more recomputed cells than recomputations that
+actually ran is rejected. The trusted grader runs after the worker has exited and its
+survivors have been killed, checks both exit statuses, and imports nothing the submission
+wrote.
+"""
+
+category = "Software"
+subcategory = "Algorithms"
+
+tags = [
+  "incremental-recomputation",
+  "dependency-tracking",
+  "dynamic-array-results",
+  "early-cutoff",
+  "invalidation-order",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I look after the calculation core of an internal reporting grid - the layer that decides,
+when one cell changes, which other cells have to be worked out again and in what order. The
+bug this task is built from is the one that engine shipped with: a formula returning a block
+of values stopped being able to lay that block down because somebody typed into a cell
+underneath it, and nothing ever asked it again after that cell was cleared, so the page
+carried a stale error until the workbook was reopened. The fix people write first is to add
+the blocking cell to the formula's dependencies, which is right until the block gets shorter
+and the cells it stops occupying are not in anybody's dependency list either. Doing it
+properly means the dependency of a cell is whatever its last evaluation actually looked at,
+including the cells it only looked at to find out whether they were free, and that is a
+different structure from the reference graph you get by parsing formulas.
+"""
+
+[verifier]
+timeout_sec = 1800.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

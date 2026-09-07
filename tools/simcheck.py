@@ -88,6 +88,48 @@ def mechanical(task: Path, others: list[Path]) -> list[str]:
     return out
 
 
+# The mandated closing sentence is identical in every brief by rule, so it is the one run
+# of shared words that is not a finding.
+SUFFIX = ("you have seconds to complete this task do not cheat by using online solutions "
+          "or hints specific to this task")
+PHRASE = 6
+
+
+def words(s: str) -> list[str]:
+    return re.findall(r"[a-z']+", s.lower())
+
+
+def borrowed(task: Path, others: list[Path]) -> list[str]:
+    """Runs of six words the brief shares with an earlier brief.
+
+    Measured on 2026-09-07: a draft that textcheck reported as irregular enough on every
+    axis still carried whole clauses out of two retained briefs, because calibrating style
+    against accepted work slides into reusing its sentences. Cadence metrics cannot see
+    that; this can.
+
+    Reported, not failed. Measured across the bundles present the same day, every earlier
+    brief shares runs with some other one, and the worst pair - guard-mark-unwind against
+    token-seam-emit - shares 98 of them, so a threshold here would reject work the screen
+    has already accepted. Read the runs it prints and decide: a shared clause of ordinary
+    plumbing is different from a shared sentence that carries the brief's voice.
+    """
+    mine = words(text(task / "instruction.md"))
+    if len(mine) <= PHRASE:
+        return []
+    out = []
+    for other in others:
+        theirs = words(text(other / "instruction.md"))
+        seen = set(tuple(theirs[i:i + PHRASE]) for i in range(len(theirs) - PHRASE + 1))
+        hits = sorted(set(" ".join(mine[i:i + PHRASE])
+                          for i in range(len(mine) - PHRASE + 1)
+                          if tuple(mine[i:i + PHRASE]) in seen))
+        hits = [h for h in hits if h not in SUFFIX]
+        if hits:
+            out.append("BORROWED from %s: %d run(s) of %d words, e.g. \"%s\""
+                       % (other.name, len(hits), PHRASE, hits[0]))
+    return out
+
+
 def graded(task: Path) -> set[str]:
     body = text(task / "task.toml").lower() + text(task / "instruction.md").lower()
     hit = set()
@@ -114,6 +156,16 @@ def main(argv: list[str]) -> int:
         print("   " + f)
     if not findings:
         print("   mechanical: no shipped file is close to another bundle's")
+
+    lifted = borrowed(task, others)
+    for f in lifted:
+        print("   " + f)
+    if lifted:
+        print("   Read those runs before packaging. Style calibration is not permission to")
+        print("   reuse sentences; earlier briefs share up to 98 runs with each other, so")
+        print("   this is a prompt to look rather than a threshold to clear.")
+    else:
+        print("   prose: the brief shares no six-word run with an earlier brief")
 
     mine = graded(task)
     shared = []

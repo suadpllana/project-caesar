@@ -171,3 +171,49 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
+
+## Lessons, measured (2026-09-07, `grid-spread-refresh`)
+
+Six defects found by local gates during the build, each with the number or check that found it.
+
+- **Two implementations can share one rule error, and a two-way differential finds it by luck
+  or not at all.** The reference and the sealed model both failed to recompute a cell whose
+  formula had been replaced, because both judged staleness only by the old record's reads and
+  that record still agreed with the sheet. The differential run only diverged three edits later,
+  when an unrelated value moved. A third implementation written to the rule as stated - settle
+  the whole sheet by repeated passes, then derive the recomputed set in one comparison against
+  the previous records - finds that class directly, because it has no incremental machinery to
+  be wrong in the same way. It is now `authoring/<slug>/slow.py` and it is worth its hour.
+- **A wrong reading that does not answer wrongly still has to be bounded before you measure it.**
+  Dropping the rule that a block may not occupy a cell its own formula read does not produce a
+  wrong report, it produces a loop: the block writes over its own input, the input changes, the
+  block is asked for again. The readings harness hung for twenty minutes. A cap on recomputations
+  was not enough on its own either, because a related shape spins inside a single evaluation;
+  the harness now carries both a step cap and a `signal.alarm` per script.
+- **A family shaped around a mechanism can still fail to exercise it, because an earlier check
+  fires first.** The self-occupancy family measured 0.0% separation: the planted literals meant
+  every block was refused for holding own content before the self-occupancy rule could decide
+  anything. Reshaping it so the values sit at the bottom of the column and everything the block
+  would reach is empty took it to 16.7%. When a reading measures zero, suspect the order of the
+  checks, not the rarity of the input.
+- **A probe that patches at import time patches nothing** - the same lesson as `token-seam-emit`,
+  in a new shape. The frozen-runtime probe did `from sheet import core` at the top of a module
+  that `core` itself imports, saw a half-built module, and raised before installing anything. It
+  scored 0 for the wrong reason and the digest check it exists to prove never fired. `cheat_report`
+  asserting the layer is what caught it; the reward alone said PASS.
+- **`preflight`'s unused-function warnings are mostly noise and occasionally not.** Thirty-one
+  of them here, twenty-nine being method calls the checker cannot resolve through an attribute.
+  Two were real: a store field nothing read anywhere (the sheet's column count, which the script
+  format now omits) and a method in the shipped tree with no caller, which announced the very
+  distinction the task turns on. Grepping `\.name\(` across the environment separates the two
+  classes in one command; do that rather than dismissing the block.
+- **Check the brief against the retained briefs for borrowed construction, not only for cadence.**
+  `textcheck` reported the draft as irregular enough on every axis while a six-word-phrase
+  comparison against all nine retained briefs found whole clauses carried over - the
+  must-still-work opener, the no-expected-output pair, the closing grading sentence. Calibrating
+  style against accepted work slides into copying it without anyone deciding to. The comparison
+  now lives in `tools/simcheck.py` and runs on every brief. It reports rather than fails, and
+  the reason is the measurement: every earlier brief here shares runs with some other one, and
+  `guard-mark-unwind` against `token-seam-emit` shares 98 of them, so a threshold would reject
+  work already accepted. Read what it prints. `grid-spread-refresh` ships at zero shared runs
+  outside the mandated closing sentence, which is where a new brief should be.

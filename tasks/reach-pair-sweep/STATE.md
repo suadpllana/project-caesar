@@ -111,6 +111,7 @@ roots, reachability, finalizer retention, ageing and clearing; four ship wrong.
 | Cheats needing a container | not run | `reward-daemon` needs fork, `privilege-probe` a second uid |
 | Scaling boundary | measured | 0.7 s correct vs past 800 s rescanning, 60 s limit |
 | `docker_trial --all` / `--variants` | not run | Docker is not installed on this machine |
+| `imagecheck` | pass | 17 files, workdir /app, reference runs all four programs |
 
 ## Open questions and next steps
 

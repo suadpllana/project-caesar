@@ -155,3 +155,19 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   runs showed an empty output file for ten minutes and sent me hunting a performance bug that did
   not exist - the fast cases had finished and were sitting in the buffer behind the slow one. Use
   `python -u` or `flush=True` in any script whose output is the measurement.
+
+- **A rebuilt tree needs its Dockerfile rebuilt with it, and nothing local was reading it.**
+  Reference verification rejected `reach-pair-sweep` with a compose build failure on both the
+  oracle and the nop rows, five seconds each, no test run. The environment had been rebuilt from
+  `rt/` and `cyc/` into `mem/`, `col/` and `ops.py`, and `environment/Dockerfile` still copied
+  the old directory names; `COPY` on a missing source fails the build. Every local gate was
+  green because none of them read the COPY lines, and the host emulation copies `app_src`
+  straight out of the working tree with `copytree`, so the Dockerfile is never exercised on a
+  machine without Docker. Both halves are now closed: `preflight` errors when a COPY source is
+  absent from the build context, and `tools/imagecheck.py` interprets WORKDIR and COPY against
+  `.dockerignore` to assemble what the image would hold, drops the reference in and runs the
+  shipped programs - which turns a missing file into an ImportError locally instead of a compose
+  error on the platform. Both were checked to fire on the real defect and to be clean on all
+  nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
+  that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
+  seconds, are packaging, never the task.

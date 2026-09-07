@@ -539,6 +539,7 @@ def check_scripts(root: Path) -> None:
         check_canonical_pins(env_dockerfile, text)
         check_platform_pins(env_dockerfile, text)
         check_leaks(text)
+        check_copy_sources(env_dockerfile, text)
 
     tests_dockerfile = root / "tests" / "Dockerfile"
     text = read(tests_dockerfile)
@@ -547,11 +548,40 @@ def check_scripts(root: Path) -> None:
         check_apt(tests_dockerfile, text)
         check_canonical_pins(tests_dockerfile, text)
         check_platform_pins(tests_dockerfile, text)
+        check_copy_sources(tests_dockerfile, text)
         if not re.search(r"^\s*COPY\s+.*/tests/?\s*$", text, re.MULTILINE):
             warn(
                 "tests/Dockerfile: no COPY into /tests found — in separate-verifier mode the "
                 "harness does not upload tests/; the image must bake them in (e.g. `COPY . /tests/`)"
             )
+
+
+def check_copy_sources(path: Path, text: str) -> None:
+    """Every COPY source must exist in the build context.
+
+    A reference-verification rejection on 2026-09-07: the environment tree was rebuilt from
+    `rt/` and `cyc/` into `mem/` and `col/`, and the Dockerfile kept copying the old names.
+    `COPY` on a missing source fails the build, so oracle and nop both died in seconds with a
+    compose error and no test ever ran. Nothing local caught it because the host emulation
+    copies `app_src` directly and never builds the image.
+    """
+    ctx = path.parent
+    for line in text.splitlines():
+        stripped = line.split("#", 1)[0].strip()
+        m = re.match(r"COPY\s+(?:--[^\s]+\s+)*(.+)$", stripped, re.IGNORECASE)
+        if not m:
+            continue
+        parts = m.group(1).split()
+        if len(parts) < 2:
+            continue
+        for src in parts[:-1]:
+            if any(ch in src for ch in "*?["):
+                continue
+            if not (ctx / src.rstrip("/")).exists():
+                error(
+                    f"{path.parent.name}/Dockerfile: COPY source {src!r} does not exist in the "
+                    f"build context - the image build fails and every run dies before any test"
+                )
 
 
 def check_platform_pins(path: Path, text: str) -> None:

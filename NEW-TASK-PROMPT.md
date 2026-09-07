@@ -50,7 +50,14 @@ Use my first prompt as the task seed and begin the normal Stage 1 investigation 
 public solutions and close variants. Inspect every retained task so the graded work is original.
 If my prompt includes a repository, check its license, clone and study it, interview me about the
 parts only experience reveals, and give me the mandatory authored-on-top versus excision choice
-before settling a candidate. Follow the exact category table and repository rules in `AGENTS.md`.
+before settling a candidate.
+
+This repository accepts only `Software` or `ML` tasks. Do not build a task categorized as Science,
+Operations, Security, Hardware, or Media. Classify the skill exercised by the graded work and the
+agent-facing environment, not the story used to describe it. If the seed genuinely belongs to an
+excluded category, do not disguise it with a Software or ML label; report the mismatch and use my
+judgment to reshape or replace the seed. Choose the subcategory from the matching row of the exact
+table in `AGENTS.md`, and use tags for the specific techniques rather than the taxonomy label.
 
 Do not stop merely because one contributor judgment is absent. While I am away, complete every
 safe independent action: repository research, architecture mapping, originality search, candidate

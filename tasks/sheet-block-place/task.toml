@@ -113,18 +113,21 @@ tags = [
 expert_time_estimate_hours = 8
 
 relevant_experience = """
-I work on the calculation engine of a grid product, and the part of it I own is the one
-this task is built from: what happens when a formula stops returning one number and starts
-returning a rectangle. Every engine that grows that feature hits the same wall in the same
-order. You have a dependency graph built from the addresses in the formulas, it has worked
-for years, and now a cell can be filled by a neighbour that never mentions it - so the
-graph is wrong, and it is wrong in a way that only shows up when a rectangle is refused,
-because a refused one covers nothing and the graph changes shape again. The fix everyone
-writes first is to evaluate, place, then evaluate again, which is right until a rectangle's
-height is read out of a cell some other rectangle fills. The second thing that catches
-people is self-reference: a rectangle grows down and to the right, so a formula that reads
-anything at or after its own cell is asking about itself, and the loop that comes back is
-not the textual one the old graph knew how to find.
+I work on the calculation engine of a grid product, and the part I own is the one this task
+is built from: what happens when a formula stops returning one number and starts returning a
+rectangle. The bug cost most of a week and I still think it is the fairest test I know for
+someone new to this code. We had a dependency graph built from the addresses written in the
+formulas; it had been right for years. Then a cell could be filled by a neighbour that never
+mentions it, so the graph was wrong - and wrong in a way that only surfaces once a rectangle
+is refused, because a refused one covers nothing and the shape of the graph changes again
+underneath you. The fix everyone writes first, and I wrote it too, is to evaluate, lay the
+rectangles out, then evaluate again. That is right until a rectangle's height is read out of
+a cell some other rectangle fills, and then no number of extra passes saves it. The thing
+that caught me second was self-reference. A rectangle only grows down and to the right, so a
+formula reading anything at or after its own cell is really asking about itself, and the loop
+that comes back is not the textual one the old graph knew how to look for - it can swallow a
+cell that had already computed a perfectly good answer on the way past. Neither of those
+shows up in the tests you would think to write.
 """
 
 [verifier]

@@ -1,0 +1,253 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/eng/take.py",
+  "/app/eng/shown.py",
+  "/app/eng/hand.py",
+  "/app/eng/hold.py",
+  "/app/eng/trip.py",
+]
+
+[task]
+name = "afterquery/slice-trip-fill"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The tree is a working matching engine with the wrong walk, and the wrongness is coherent
+rather than broken: it is the shape of an engine written against a static list of price
+levels, filling each resting order it reaches and asking the parked orders once the
+incoming order is done. That is the shape every published description of a matching
+engine has, so it is also the shape a frontier agent reconstructs from its prior, and
+each of the four corrections needed here fights it.
+
+Two of them change what the loop is, not what it does. A partly shown order may only give
+up its shown size, and the moment that runs out it re-shows and rejoins the back of its
+own level - so a single incoming order can fill it, be served two other orders, and come
+back to it, and the iteration cannot be over a snapshot of the level. A resting order
+belonging to the incoming order's own participant is taken out from under the same walk,
+whole, hidden part included, without a fill. An engine that collects the matchable orders
+first and then executes them cannot express either, and neither shows up until a level
+holds more than one order.
+
+The third is the interaction the task turns on. The band is measured against the price
+the last fill made, so a walk trades its way outward one step at a time - and a level
+that is emptied by a same-participant pull rather than by a fill does not move that
+price, which stops the walk at the next gap. That makes the reachable quantity a property
+of the walk rather than of the book, and the all-or-nothing rule then needs the outcome
+of that walk without any of its effects: an order that cannot fill entirely must leave
+the book exactly as it found it, so a submission that walks first and cancels afterwards
+has already pulled orders that should still be resting, and the damage is visible two
+messages later rather than in the row it got wrong. The natural repair - copy the state,
+walk the copy, keep it if it filled - is exactly right about every event and is where the
+scale boundary below catches it; the reference instead reads the levels without touching
+them, which is the same answer for a fraction of the cost.
+
+The fourth is the one that punishes the third. The parked orders are asked after every
+fill, against the price that fill made, not once when the incoming order is done, and a
+cascade only exists because of it. A submission that fixes the timing while keeping the
+shipped scan over the parked list has just made that scan several hundred times more
+expensive, and the deep sessions are where it finds out: on the sample in the tree the
+reference drives 234,000 events in 0.22 s and the same engine asking the parked orders by
+scan takes 22.8 s. The way out follows from the rule rather than from a trick - an order
+fires at most once and its condition is monotone in the price, so ordering the parked
+orders by their trip price touches only the ones that fire.
+
+The same boundary sits under the third, and it is the one that decides the task. All three
+correct shapes of all-or-nothing admission - copy the state and walk the copy, walk and
+rewind, or decide with a read-only pass and then walk - produce identical events, and the
+first is what a solver writes first, because it is the one that needs no reasoning about
+what the walk touches. On a book of three thousand orders spread over three hundred and
+sixty price levels with a few hundred all-or-nothing orders arriving at the touch, it costs
+the book on every one of them: measured on the sample in the tree, 20.85 s against the
+reference's 0.02 s, and 192.23 s against 0.05 s on one graded session of that shape. The
+instruction states the limit, both shapes and both sample sessions, so the boundary is
+visible before it is hit; what it does not state is that the walk only ever moves the last
+trade price to the price of the level it is filling, which is the invariant that makes a
+read-only pass exact and a rewind unnecessary.
+
+There is no oracle for any of it. The engine happily runs whatever rules it is given and
+prints the events they produce, and every wrong reading above produces a session that
+looks entirely reasonable. The environment ships no expected output, the instruction
+states requirements without stating how to satisfy them, and the graded set is three
+hundred small sessions and four deep ones generated inside the verifier from a nonce made
+after the agent has finished, so a rule that fits the three sessions in the tree carries
+no information about whether it fits the rest. The tree ships with no comments anywhere in
+it and its identifiers are in the register of ordinary internal code rather than
+self-describing ones, which is a design choice: the message format, the queue discipline,
+the shown size and the parked set have to be recovered by reading behaviour instead of by
+reading names.
+"""
+
+solution_explanation = """
+The reference is about ninety lines across four files and it is written the way someone
+who has debugged a matching engine writes it: from the observable requirement backwards,
+never from the shape of the existing code.
+
+The walk asks the book for its best price on every pass rather than iterating a list it
+took at the start, because the walk changes the book underneath itself: a re-shown order
+rejoins the back of its level, a same-participant order leaves it. Only the shown size is
+available, so the fill is min(what is left to fill, what is shown), and when the shown
+part empties the order re-discloses and rotates to the back of its own queue. The band is
+read from the current last price on every pass, which is what makes the walk step outward
+- and what makes a level cleared by a pull rather than a fill leave the walk where it was.
+
+All-or-nothing is the one place the reference does something an implementation would not
+guess from the rules alone, and it comes from noticing what the walk actually depends on.
+The last price only ever moves to the price of the level being filled, so within a level
+the order of the fills cannot change which levels are reachable; the walk's outcome
+therefore depends on the levels, not on the queue inside them. So admission is decided by
+a read-only pass over the levels best price first, carrying a shadow last price, adding up
+what the other participants have resting there - hidden quantity included, since it is
+only priority that a shown size limits, not availability - and stopping as soon as the
+order is covered. Nothing is touched, so nothing has to be put back, and the real walk
+then runs only when it is known to complete. Walking and rewinding a trail is the same
+answer for the same cost and passes. Copying the state is the same answer too, and costs
+the whole book on every such order rather than the levels it reaches, which is the shape
+the book-heavy sessions are there to find.
+
+The parked orders are kept in two heaps, ordered by trip price on the buy side and by the
+negative of it on the sell side, with a map from id for cancellation. After a fill the
+engine pops while the heap's head satisfies the condition, which is where the monotone
+argument pays: an order fires once, so the total work across a session is the number of
+parked orders and not the number of fills times that. The ones that fire on the same fill
+are then taken in arrival order, which is not their heap order and has to be restored by a
+sort - that is deliberate, because it is the difference between an id and a price that a
+solver who reached for one structure will get wrong.
+
+Four alternative correct implementations are kept in the authoring directory and all four
+score 1: admission by rewinding a trail over the real walk, the walk driven from a
+materialised list of levels rebuilt each pass, the parked orders in sorted lists rather
+than two heaps, and re-disclosure by rebuilding the level rather than rotating it. All
+four agree event for event with the reference. A fifth, admission by copying the state,
+agrees on every event as well and is kept beside them with its timings rather than among
+them, because it is right about the rules and does not fit the stated limit.
+
+The fifth declared artifact needs no change. Whether an incoming order may trade with a
+resting order of its own participant is already asked the right way in the shipped file,
+and establishing that rather than assuming an editable file must be edited is part of the
+work.
+"""
+
+verification_explanation = """
+The rebuilt engine is driven over every session and graded on one thing, exactly, with no
+partial credit: the ordered event stream, ending with the resting book in queue order and
+the orders still parked off it. Every row is written by mkt/ev.py, which is not an
+editable artifact, so the stream records what the engine did rather than what a submission
+says it did. The closing book block is the final state rather than a second axis, and it
+is what stops a submission from getting the fills right while leaving the queue wrong -
+which is exactly what mis-handling a re-disclosure does.
+
+Expected results come from tests/oracle.py, a second implementation of the same rules
+written from the specification rather than from the tree and sharing no code with it. It
+decides every graded question by a different route: a flat list per side scanned for the
+best price and for the queue front, with position held in an explicit sequence number
+rather than by moving a record; admission by deep-copying the state and walking the copy
+rather than by a read-only probe; the parked orders bucketed by trip price and found by
+bisection rather than by two heaps; and its own parser. The reference and the model agree
+on every event of 4006 sessions in the final sweep alone - four thousand small ones
+across eight seeds and six deep ones of both shapes - with several thousand more
+compared during the build and no disagreement anywhere, which is the evidence that
+what is graded is the specification and not one author's implementation.
+
+Three session sets are driven, and the last two are why there is nothing here to forge.
+The enumerated set is thirty-four sessions, one per rule, each named for the reading it
+exists to fail and including the must-still-work side of every fence. The other three
+hundred are generated inside the verifier container from a nonce made out of /dev/urandom
+at trial time, after the agent has finished, and their expected events are produced by the
+sealed model after the run. Those sessions did not exist when the submission was written.
+Thirteen whole-engine wrong readings were written down and measured against that
+population: the weakest moves 3.8 per cent of it and the strongest 85 per cent, and every
+one of the thirteen is also failed by a named enumerated session, so a failure says which
+rule broke rather than "six of three hundred random sessions wrong".
+
+Four more sessions carry the same rules at a scale where the shape of the engine matters,
+in two shapes, because there are two ways to be right and unaffordable. Two of them are a
+handful of deeply sliced resting orders answering several hundred thousand fills between
+them while several thousand orders sit parked off a book that stays small, which is what
+makes asking the parked orders once per fill expensive. The other two are the opposite: a
+book of nine thousand orders across three hundred and sixty price levels, almost none of it
+reachable, with a couple of thousand all-or-nothing orders arriving at the touch, which is
+what makes deciding each of them from a copy of the state expensive. Both are concentrated
+rather than typical and the instruction says so, along with the limit and a sample of each
+shape in the tree. The bound is the wall clock on the run rather than a duration compared in
+the grader, so the margin runs in the safe direction: measured here, the reference drives
+the whole graded set in about 20 seconds against a 300 second kill, the parked-by-scan shape
+needs over 400 seconds for the small sessions plus a single deep one, and the copy-per-order
+shape needs 192 seconds on one book-heavy session alone.
+
+Since the verifier executes agent code, four more things are attested. The executed tree
+outside the five declared artifacts must be byte-identical to the pristine copy after the
+run. Every sealed engine function is fingerprinted as it actually existed in the running
+interpreter, at import and again when each session ended, against digests the grader
+derives by compiling the pristine sources, so rebinding a function is caught the way
+editing its file already was. Event rows are appended by a closure the runner owns which
+refuses any caller that is not Emit.row itself, and the interpreter's tally of entries into
+that emitter, kept in that closure through sys.monitoring, has to equal the number of rows
+and to have still been armed when each session ended. And the report carries the run nonce,
+so a report planted before the run cannot pass.
+
+Deliberately not graded, because grading them would measure an implementation choice rather
+than behaviour: how a submission holds the book, the queue or the parked set; how many
+times it asks any decision; and wall clock as a number. Five alternative correct
+implementations live in the authoring directory and all five are required to score 1.
+
+The run happens as an unprivileged uid in its own session under a wall clock timeout,
+against a tree it cannot write; the reward channel is root-owned and locked before it
+starts; the ground truth, the sealed model and the grader are root-only files; and the file
+the run reports into is opened by root before privilege is dropped and handed over as a
+descriptor, so the uid executing agent code does not own the file it is graded on. Grading
+runs afterwards as root, in pytest, and never executes anything the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Algorithms"
+
+tags = [
+  "order-book-matching",
+  "price-time-priority",
+  "hidden-quantity",
+  "stop-order-activation",
+  "event-trace-differential",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on exchange infrastructure, which means most of my hard bugs are matching bugs and
+almost none of them look like bugs when they land. The one this task is built from cost a
+week: a fill-or-kill order that was correctly rejected, and correctly left nothing behind
+except the two resting orders it had already cancelled on its way through, because the
+engine decided admission by walking the book and unwinding the fills rather than by
+deciding first. Nobody noticed for a month, because the only symptom was that a
+participant's own quotes went missing on days when they sent that order type, and the
+fills that did print were all correct.
+
+What made it expensive is that the natural design - walk it, and put it back if it comes
+up short - is right in every situation you would write a test for, and wrong exactly when
+the walk has side effects that are not fills. The interaction with a price collar measured
+against the last trade is the same bug wearing a different hat: a level that gets cleared
+by a self-match cancellation does not move the reference, so the walk stops one gap
+earlier than the arithmetic says it should, and every venue I have worked on has gotten
+that wrong at least once. The disclosure rule is the one newcomers always get backwards -
+they fill the whole resting order because that is what the size field says - and the
+activation rule is the one they get right and then make unaffordable.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

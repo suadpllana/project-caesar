@@ -171,3 +171,49 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
+
+## Lessons, measured (2026-09-07, `slice-trip-fill`)
+
+- **The Stage 7 re-attack is the one that matters, and it moved the estimate by three solves.**
+  The Stage 1 attack said 2 of 8. Reading the finished brief cold said 5: every rule was
+  stated plainly, and a literal implementation of each stated sentence was the correct one,
+  so the conjunction was long rather than deep - `note-carry-forward`'s failure mode exactly.
+  The repair was the prescribed one and it is reliable: find a real input family in which the
+  natural correct method stops fitting. All-or-nothing admission has three correct shapes and
+  the first one a solver writes costs the whole book per order; on a book-heavy session that
+  is 192.23 s against the reference's 0.05 s, and two of those sit behind the kill. Do the
+  re-attack before believing a Stage 1 number, because the number that decides the task is
+  the second one.
+- **A brief that says how to find something has already lost the scale gate.** The activation
+  paragraph read "every fill looks at all of them", which prescribes the scan that the deep
+  sessions then punish - the agent is told to do the thing it is failed for. State when
+  something may happen, never how to look for it. Caught by reading the brief against the
+  gate, not by any tool.
+- **`preflight`'s unused-affordance check excluded dotted call sites**, so a tree that calls
+  `shown.avail(r)` and `opp.top()` reported 18 public functions as unused. Eighteen false
+  warnings bury the one that is real: `Side.rear` genuinely was an affordance nothing shipped
+  called, existing only because the correct rotation needed it. Relaxing the lookbehind from
+  `(?<![\w.])` to `(?<![\w])` left one warning on this bundle, still fires on a planted
+  orphan, and turned up two real orphans in already-submitted bundles (`view/core.py:apply`,
+  `mem/tables.py:by_key`). Check the checker before acting on a wall of warnings.
+- **`textcheck` compares against whichever brief you hand it, and its FIX lines are a
+  comparison rather than a bar.** Against `guard-mark-unwind` the draft was "too even" on
+  three axes; measured against all six retained briefs it sits inside the passing range on
+  every one, next to `focus-return-point` and `token-seam-emit`. Read the range, not the
+  verdict, or you will tune prose toward a number that no gate holds.
+- **`docker_trial.py --variants` wrote only the files a variant directory carried**, leaving
+  the shipped broken files standing for the rest - so a correct one-file variant would have
+  been reported as scoring 0. Both it and the host trial now fill the remainder from
+  `solution/`. A checker that reports a correct thing as failing costs a rebuild chasing a
+  defect that is not there.
+- **The similarity screen has two axes and only one of them is about bytes.** `simcheck`
+  reported `environment/Dockerfile` at 1.000 against two bundles; a five-line file cannot be
+  made different by rewording, so it was made different by giving it something to do - it now
+  imports every module and drives a session at build time, which is also the check that would
+  have caught the stale `COPY` that failed `reach-pair-sweep` on the platform.
+- **Docker image pulls were blocked by the egress policy for the whole session**
+  (`production.cloudfront.docker.com` answers 403 to CONNECT), so no container gate ran. The
+  host emulation covers the tree, the grader and the cheat suite; it does not cover the
+  privilege drop, the root-owned reward channel or the root-only ground truth. Both halves
+  are recorded separately in `STATE.md`, and the container gates are outstanding rather than
+  passed.

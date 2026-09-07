@@ -1,0 +1,17 @@
+Correct implementations that do not fit the stated bound.
+
+Neither of these is wrong about the rules. Both produce exactly the reference's events on
+every session small enough to run them, and both are what a solver writes first. They are
+kept here rather than in cheat/, because a cheat is an attempt to score without doing the
+work and these do the work; what they fail is the limit the instruction states.
+
+copy-per-order.py   all-or-nothing decided by deep-copying the state and walking the copy.
+                    Measured 2026-09-07: 20.85 s against the reference's 0.02 s on the
+                    shipped sess/book.txt, and 192.23 s against 0.05 s on one graded
+                    book-heavy session. Two of those sit in the graded set against a 300
+                    second kill.
+
+parked-by-scan.py   activation decided by scanning the parked list on every fill. Measured
+                    2026-09-07: 22.83 s against the reference's 0.22 s on the shipped
+                    sess/wide.txt, and over 400 s for 300 small sessions plus one graded
+                    parked-heavy session, where the reference needs 21 s for 300 plus four.

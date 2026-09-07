@@ -151,17 +151,36 @@ class Trial:
         return ok
 
     def from_dir(self, d: Path) -> Path:
-        """Turn a directory of editable files into an agent script, for variant checks."""
+        """Turn a directory of editable files into an agent script, for variant checks.
+
+        A variant normally changes one decision and leaves the rest of the reference
+        alone, so anything it does not carry is filled in from solution/. Writing only
+        the files present in the directory leaves the SHIPPED broken files standing for
+        the others, which reports a correct variant as a failure and is a defect in this
+        checker rather than in the task.
+        """
         by_base = {Path(a).name: a for a in self.arts}
-        lines = ["#!/bin/bash", "set -euo pipefail", ""]
+        pick = {}
+        ref = self.task / "solution"
+        if ref.is_dir():
+            for f in sorted(ref.glob("*.py")):
+                if f.name in by_base:
+                    pick[f.name] = f
         for f in sorted(d.glob("*.py")):
-            rel = by_base.get(f.name)
-            if rel is None:
-                continue
-            lines += ["cat > /app/%s <<'PYEOF'" % rel, f.read_text().rstrip("\n"), "PYEOF", ""]
+            if f.name in by_base:
+                pick[f.name] = f
+        lines = ["#!/bin/bash", "set -euo pipefail", ""]
+        for name in sorted(pick):
+            lines += ["cat > /app/%s <<'PYEOF'" % by_base[name],
+                      pick[name].read_text().rstrip("\n"), "PYEOF", ""]
         out = Path(tempfile.mkdtemp()) / "variant.sh"
         out.write_text("\n".join(lines) + "\n")
         return out
+
+    def variant_root(self) -> Path:
+        """Variants live outside the bundle, like readings.py and decisions.py do."""
+        outside = ROOT / "authoring" / self.task.name / "variants"
+        return outside if outside.is_dir() else self.task / "authoring" / "variants"
 
 
 def main(argv: list[str]) -> int:
@@ -185,7 +204,7 @@ def main(argv: list[str]) -> int:
         return 0 if t.run("variant: " + d.name, t.from_dir(d), 1) else 1
     if what == "--variants":
         res = []
-        for d in sorted((t.task / "authoring" / "variants").iterdir()):
+        for d in sorted(t.variant_root().iterdir()):
             if d.is_dir() and d.name.startswith("ok-"):
                 res.append(t.run("variant: " + d.name, t.from_dir(d), 1))
         print("%d/%d variants scored 1" % (sum(res), len(res)))

@@ -717,8 +717,13 @@ def check_leaks_by_affordance(root: Path) -> None:
             for name in set(DEF_NAME_RE.findall(text)):
                 if DUNDER_OR_PRIVATE.match(name) or name in ENTRYPOINT_NAMES:
                     continue
-                # Count references outside the definition line itself.
-                refs = len(re.findall(rf"(?<![\w.]){re.escape(name)}\s*\(", corpus))
+                # Count references outside the definition line itself. A call through a
+                # module or an instance - `shown.avail(r)`, `opp.top()` - is a reference
+                # like any other, so the lookbehind excludes an identifier character but
+                # not a dot. Excluding the dot reported every module-qualified call site
+                # in a tree that uses them as unused, which is 18 false warnings in a row
+                # and buries the one that is real.
+                refs = len(re.findall(rf"(?<![\w]){re.escape(name)}\s*\(", corpus))
                 defs = len(re.findall(rf"def\s+{re.escape(name)}\s*\(", corpus))
                 if refs <= defs and f'"{name}"' not in corpus and f"'{name}'" not in corpus:
                     rel = "/".join(path.relative_to(root).parts)

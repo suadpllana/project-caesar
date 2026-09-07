@@ -53,7 +53,7 @@ def run(policy, small, deep, nonce, keep=False):
         return 2, root
     env.update(RUN_OUT=out, APP_DIR=app, PRISTINE_DIR=PRISTINE,
                PYTHONPATH=TESTS)
-    g = subprocess.run([sys.executable, "-m", "pytest", "-q",
+    g = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
                         os.path.join(TESTS, "test_outputs.py"), "-rf"],
                        env=env, capture_output=True, text=True)
     print(g.stdout[-6000:])

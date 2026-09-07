@@ -40,7 +40,7 @@ def one(path, small, deep, nonce):
     subprocess.run([sys.executable, os.path.join(TESTS, "runner.py"), out],
                    env=env, capture_output=True, text=True, timeout=900)
     env.update(RUN_OUT=out, APP_DIR=app, PRISTINE_DIR=PRISTINE, PYTHONPATH=TESTS)
-    g = subprocess.run([sys.executable, "-m", "pytest", "-q",
+    g = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
                         os.path.join(TESTS, "test_outputs.py"), "-rf"],
                        env=env, capture_output=True, text=True, timeout=900)
     shutil.rmtree(root, ignore_errors=True)

@@ -1,6 +1,6 @@
 # Rules, and the reason behind each
 
-> Transcribed from the Frontier Bench task authoring guideline, **as of 2026-08-09**. The guideline
+> Transcribed from the Frontier Bench task authoring guideline, **as of 2026-09-07**. The guideline
 > is the authority; this file is a copy and will drift. If you know a rule has changed, tell your
 > assistant — it will follow you and update these files.
 
@@ -81,20 +81,20 @@ submission should target a different failure mode; reskinning a previous task is
 
 ## Authorship
 
-**"Write the instruction yourself with assistant if possible."** You are the author; your assistant
-helps you write, and instructions are still screened for AI-generated text.
+The contributor confirmed the current accepted workflow on 2026-09-07: the assistant authors the
+complete bundle after the first prompt, including `instruction.md`, `relevant_experience`, and the
+three `*_explanation` metadata fields. Contributor drafting or sentence approval is not required.
 
-In practice that means your assistant hands you a fact sheet of everything that must be covered,
-takes your description — spoken or in rough notes — as the spine of the text, tidies and tightens
-it, asks you for what is missing, and suggests wording when you are stuck. Your words stay in it,
-and you approve every sentence. A few short rounds, not an afternoon.
+The assistant builds an internal fact sheet from the frozen contract, actual environment behavior,
+reference solution, verifier results, repository history, and the contributor's first prompt. It
+writes concrete, complete prose from those facts and validates it against retained tasks that passed
+the authorship and quality screens. It does not invent constraints, personal credentials, employers,
+years of experience, or access to systems the evidence does not support.
 
-What it will not do is take over the drafting, invent a constraint or a path you did not give it, or
-hand you text you have not read. Those are not stylistic preferences: a made-up detail produces a
-broken task, and an instruction you have not checked is one a reviewer can find wrong before you do.
-
-Your `relevant_experience` and the three `*_explanation` metadata fields are also yours: they are
-what a human reviewer reads to judge whether this is real expert work.
+Instructions are still screened for generated-text signals. The assistant must therefore perform
+the prose review itself: remove repetitive sentence scaffolding, marketing language, unnecessary
+headings, staged informality, and accidental method hints. Passing examples calibrate style; their
+wording must not be copied.
 
 ---
 

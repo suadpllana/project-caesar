@@ -29,9 +29,9 @@ probe evidence. Do not delete, rewrite, or summarize away a successful trajector
    busywork, gratuitous repository size, or an arbitrarily short timeout.
 3. More hidden cases do not repair a correct first plan. Random cases prevent hardcoding; they do
    not create planning depth.
-4. Every new behavior must be stated accurately in the contributor's instruction and checked by
-   the verifier. The contributor must review changed instruction substance. A changed verifier
-   contract requires the contributor's explicit approval.
+4. Every new behavior must be stated accurately in the agent-authored instruction and checked by
+   the verifier. The agent owns the rewrite and prose review. A changed verifier contract requires
+   the contributor's explicit approval when it changes what "correct" means.
 5. Preserve a concrete expert solution. The reference must remain reliable, implementation-neutral,
    and comfortably inside the stated resource limit.
 6. Do not reuse a public issue, patch, benchmark, write-up, or prior task answer as the new twist.
@@ -60,7 +60,7 @@ Choose every applicable failure mode. Point to concrete files and lines.
 | Failure mode | Evidence | Required direction |
 |---|---|---|
 | The default plan was correct | The agent named the right algorithm or state model immediately | Add a specified interaction that makes that coherent prior wrong |
-| The instruction delivered the plan | Method names, staged hints, repeated constraints, or examples exposed the decomposition | With the contributor, state behavior without naming or teaching the method |
+| The instruction delivered the plan | Method names, staged hints, repeated constraints, or examples exposed the decomposition | Rewrite it to state behavior without naming or teaching the method |
 | The environment delivered the plan | A helper, derived field, count, flag, data pair, comment, or name reconstructed the hidden distinction | Remove the derived leak while keeping all necessary facts observable |
 | The agent confirmed each step independently | Visible examples or an exposed oracle answered every load-bearing question | Deny incremental confirmation; keep only interface examples and sealed exact grading |
 | A route-around bypassed the hard part | The output could be produced without satisfying the intended invariant | Fence both sides and add an ordinary case that rejects overconservative shortcuts |
@@ -72,8 +72,8 @@ the exact reason it remained valid.
 
 ## 3. Design a semantic replan
 
-Draft two or three candidate changes in `STATE.md`. Attack each before presenting it to the
-contributor. A usable change normally has all of these properties:
+Draft two or three candidate changes in `STATE.md`. Attack each, select the strongest, and proceed.
+A usable change normally has all of these properties:
 
 - the original first plan remains reasonable, not foolish;
 - a later discovery invalidates that plan rather than merely adding one local condition;
@@ -105,13 +105,13 @@ path can be described; that produces zero solves, not valid difficulty.
 
 ## 4. Rebuild from the earliest affected stage
 
-Once the contributor chooses and confirms the semantic change, return to the normal workflow at
-the earliest affected stage:
+Once the strongest semantic change is selected, return to the normal workflow at the earliest
+affected stage:
 
 1. Stage 2: freeze the revised verifier contract before environment code changes.
 2. Stage 3: update the environment and remove any newly exposed derived leaks.
 3. Stage 4: update the single canonical reference solution and measure it.
-4. Stage 5: help the contributor revise their instruction, then gap-check every tested rule.
+4. Stage 5: rewrite and self-review the instruction, then gap-check every tested rule.
 5. Stage 6: turn the old winning implementation into a named cheat and add a small hand case that
    proves why it is wrong. Re-run every existing cheat and alternative correct variant.
 6. Stage 7: re-attack the finished task cold, run preflight, oracle, nop, isolation checks where

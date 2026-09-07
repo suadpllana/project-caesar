@@ -3,8 +3,8 @@
 An alternative to authoring a task *on top of* the contributor's repository: excise the crux and
 make restoring it the task. The environment is the repo minus one organ; the solution is the
 excised part plus a sharp delta; the instruction reports a symptom and a goal in the domain's own
-language. Offered to the contributor as a choice (see `AGENTS.md`, repo-based intake); this file
-is the operating procedure once they choose it.
+language. The agent evaluates it against authored-on-top (see `AGENTS.md`, repo-based intake); this
+file is the operating procedure when the evidence makes excision the stronger shape.
 
 **When it fits:** the repo has a component where the couplings converge — something whose correct
 reconstruction demands understanding the surrounding tree — and the contributor's war stories
@@ -118,8 +118,8 @@ harness.
 
 ## 6. Instruction — symptom and goal, domain register
 
-The contributor writes it (D1), in the vocabulary of their field, not software engineering — 
-unless software *is* their field. It contains: the observable symptom with its exact reproduction
+The agent writes it (D1), in the vocabulary of the field, not software engineering — unless
+software *is* the field. It contains: the observable symptom with its exact reproduction
 and exact wrong-versus-expected values; the goal in verifiable terms; the twist's requirements
 stated openly; the must-still-work flows; the editable-file boundary. It never contains the
 route: no mechanism names, no module roles, no CS terms of art, no reading order. The

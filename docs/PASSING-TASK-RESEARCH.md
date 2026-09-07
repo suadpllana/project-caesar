@@ -262,7 +262,7 @@ and [`tasks/focus-return-point/task.toml`](../tasks/focus-return-point/task.toml
 1. Describe intrinsic difficulty in `task.toml`: the practitioner, realistic or intentionally
    concentrated data, the natural wrong plan, and the exact interaction that breaks it. Do not put
    revision history, probe counts, or future work in shipped metadata.
-2. Keep the contributor's instruction concrete and complete without describing the method. Every
+2. Keep the agent-authored instruction concrete and complete without describing the method. Every
    tested rule needs one sentence; every sentence needs a test. State paths, limits, input bounds,
    output order, and both sides of each fence.
 3. Categorize the skill exercised by the graded work, not the narrative setting. Tags name the

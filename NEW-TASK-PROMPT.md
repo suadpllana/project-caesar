@@ -59,18 +59,23 @@ excluded category, do not disguise it with a Software or ML label; report the mi
 judgment to reshape or replace the seed. Choose the subcategory from the matching row of the exact
 table in `AGENTS.md`, and use tags for the specific techniques rather than the taxonomy label.
 
-Do not stop merely because one contributor judgment is absent. While I am away, complete every
-safe independent action: repository research, architecture mapping, originality search, candidate
-attacks, fact-sheet preparation, tooling checks, environment planning, and verifier design that
-does not depend on the missing choice. At the first natural checkpoint, ask one batched question
-containing only judgments that belong to me: task meaning, originality, category and labels,
-domain-expert role, repository shape, verifier-contract meaning, or approval of my instruction
-wording. Never ask me to choose libraries, file layouts, test structure, or commands.
+Do not stop because authoring material is absent. Own the task bundle end to end: research,
+category and tags, domain role, task selection, environment, verifier, reference solution, cheats,
+`instruction.md`, every explanatory metadata field, validation, packaging, and delivery. Infer and
+write these from my first prompt, repository evidence, actual program behavior, and measured test
+results. Ask me only when two materially different meanings of the requested task remain possible
+after investigation or when changing a frozen verifier contract would change what "correct" means.
 
-My words are the spine of `instruction.md`. You may organize and lightly edit text I supplied, but
-do not invent the task instruction or submit wording I have not reviewed. Build the environment,
-verifier, reference solution, checks, and packaging yourself. Never weaken the verifier to make a
-run pass.
+Write `relevant_experience`, `difficulty_explanation`, `solution_explanation`, and
+`verification_explanation` yourself. Use the established author identity already present in the
+repository. Describe only experience supported by the task history and repository evidence; never
+invent an employer, credential, duration, or personal claim. Use the retained tasks that passed the
+authorship and quality screens as style calibration without copying their prose.
+
+Write `instruction.md` yourself after the environment and verifier behavior are real. Do not ask me
+to draft, rewrite, or approve it. Treat my first prompt as the source of intent, resolve engineering
+details from the implementation, and self-review every sentence against the environment and sealed
+contract. Never weaken the verifier to make a run pass.
 
 Work through the following build order autonomously. These are your internal gates, not questions
 for me and not separate turns unless a contributor-owned decision blocks the next gate.
@@ -144,13 +149,20 @@ Run alternative correct variants through the same verifier. A stated-contract im
 scores 0 reveals verifier overfitting. A cheat that scores 1 is either a verifier defect, a missing
 case, an unobservable distinction, or a correct variant; diagnose which before changing anything.
 
-## Contributor instruction
+## Instruction and metadata
 
-After the environment behavior is real, give me a fact sheet containing all absolute paths, input
-bounds, outputs, ordering rules, failure conditions, and the timeout. Work from my wording. Keep
-the final instruction concrete, complete, method-neutral, and plain ASCII. Every tested rule needs
-one sentence and every sentence needs a test. Include the exact required suffix with the agent
-timeout from `task.toml`. Read the final text back to me and obtain my review before submission.
+After the environment behavior is real, build an internal fact sheet containing all absolute
+paths, input bounds, outputs, ordering rules, failure conditions, and the timeout. Write the final
+instruction yourself. Keep it concrete, complete, method-neutral, and plain ASCII. Every tested
+rule needs one sentence and every sentence needs a test. Include the exact required suffix with the
+agent timeout from `task.toml`.
+
+Write all metadata yourself from evidence. `relevant_experience` must be concise, specific to the
+work, and truthful; the three explanation fields must describe the actual difficulty, reference
+approach, and verification strategy without revision history or unsupported claims. Compare the
+prose with retained tasks that passed the screen, then run the repository's text, structure, hint,
+and preflight checks and repair every finding yourself. Contributor review is optional feedback,
+not a completion gate.
 
 ## Cold self-attack and easiness recovery
 

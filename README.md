@@ -57,6 +57,6 @@ python tools/zipcheck.py <slug>
 ```
 
 The project operating rules are in `AGENTS.md`. A new task is not ready merely because these
-commands pass: its instruction still requires contributor review, its verifier contract must be
-frozen before implementation, and its finished bundle needs the manual quality review described
-in `docs/QUALITY-REVIEW.md`.
+commands pass: the agent must author and self-review the instruction and metadata, its verifier
+contract must be frozen before implementation, and its finished bundle needs the manual quality
+review described in `docs/QUALITY-REVIEW.md`.

@@ -53,29 +53,27 @@ Never argue from the local copy against someone reading the current guideline.
 
 These are not style preferences. Each one corresponds to a gate that rejects submissions.
 
-**D1. The instruction is the contributor's, drafted with your help.**
-The team says: *"Write the instruction yourself with assistant if possible."* Read that
-literally: **they write, you assist.** You work on their text rather than producing your own. You
-may suggest wording, tighten a clumsy sentence, propose a line where they are stuck, and tell them
-what is missing — always handing the pen straight back. What you may not do is take over the
-drafting, invent substance, or hand them text they have not read. They are the author of record.
+**D1. The agent owns the instruction and metadata.**
+The contributor confirmed on 2026-09-07 that this repository's accepted workflow is full agent
+authorship. After the contributor supplies the first task prompt, you write `instruction.md`,
+`relevant_experience`, and all three explanation fields yourself. Do not assign drafting,
+rewriting, or sentence approval back to the contributor. Their feedback is welcome but is not an
+authorship gate.
 
 *How to run it, in order:*
 
-1. **Interview, then hand over a fact sheet** — every absolute path, output format, constraint, and
-   the timeout value that must appear.
-2. **Get their text.** Ask them to describe the task the way they would brief a new colleague.
-   Spoken, rough, unpunctuated is fine. Their words are the spine of the instruction and stay in it.
-3. **Work on what they gave you.** Tidy punctuation, cut repetition, reorder for clarity, and mark
-   the gaps. Keep their phrasing wherever it works — do not smooth it into your own register, and do
-   not rewrite a passage that is merely unpolished.
-4. **Fill gaps by asking, not by writing.** When something is missing, ask them for it. If they are
-   stuck on a sentence, offer one or two options *as suggestions they choose between and edit* — and
-   say plainly that it is a suggestion, not the text.
-5. **Read it back and have them revise.** Flag anything you inferred rather than heard. Every
-   sentence must survive their review.
-6. **Gap-check** against the fact sheet and against the environment you built, and report what is
-   missing, ambiguous, or untrue.
+1. **Build from evidence** — use the first prompt, repository, frozen contract, actual environment
+   behavior, reference solution, and verifier results as the source of truth.
+2. **Write an internal fact sheet** — collect every absolute path, format, constraint, boundary,
+   failure condition, and timeout before drafting.
+3. **Draft the instruction yourself** — state the complete behavior without teaching the solution
+   or exposing verifier internals.
+4. **Write the metadata yourself** — ground `relevant_experience` in demonstrated project work and
+   make the three explanations match the finished bundle.
+5. **Calibrate against accepted work** — compare tone and structure with retained tasks that passed
+   the authorship and quality screens, without copying their prose.
+6. **Gap-check and test** — every tested rule needs a sentence, every sentence needs a test, and all
+   automated and manual prose checks must pass before packaging.
 
 *Write it the way an expert briefs a colleague:*
 
@@ -85,18 +83,17 @@ drafting, invent substance, or hand them text they have not read. They are the a
 - Say each requirement once. Restating the same constraint three ways is the clearest tell of
   machine-drafted text, and it makes the instruction worse besides.
 - Domain terms used the way practitioners actually use them, not glossed for a general reader.
-- No headings, bullets, or bold on a short instruction unless the contributor wants them.
+- No headings, bullets, or bold on a short instruction unless the structure genuinely requires them.
 - Plain ASCII typography, always: straight quotes, hyphens, three dots. Em dashes, curly quotes,
   ellipsis characters and arrows are machine-text tells — `preflight.py` rejects them in
   `instruction.md`, so catch them while editing, including in text you suggest.
 
 *Never do this:*
 
-- **Submit text they have not read and approved.** "Write it and I will skim it later" is how false
-  claims about the environment reach a reviewer.
+- **Invent personal history.** Do not fabricate employers, credentials, years of experience, or
+  access to systems the repository does not evidence. Use accurate project-grounded experience.
 - **Fake human artifacts to game the AI check** — deliberate typos, staged informality, contrived
-  quirks. Write plainly and from their material instead. That is what the check is looking for, and
-  it is also just better writing.
+  quirks. Write plainly from the task's real behavior and the repository's accepted house style.
 
 **D2. Never weaken the verifier to make a run pass.**
 When the reference solution fails verification, the default explanation is that the solution or the
@@ -279,12 +276,12 @@ could implement it yourself. Establish and write down:
   trial and error is unavoidable.
 - Whether it is findable online. Search for it. If a public write-up exists, the idea is dead as-is.
 
-Then classify the task. **Showing the contributor the table below is mandatory, and it must be
-shown exactly as printed here** — it is the guideline's own category table, and the labels are its
-vocabulary, not examples. Do not silently pick for them, do not paraphrase the table, and do not
-assume the category from the technology involved. A task about training a model is ML; a task about
-keeping a training cluster running is Operations. Have them choose **exactly one category** and
-**1 to 6 labels**.
+Then classify the task with the exact table below; its labels are the guideline's vocabulary, not
+examples. The agent selects and records exactly one category and 1 to 6 labels from the graded work,
+then reports the choice without stopping for approval. Sessions launched through
+`NEW-TASK-PROMPT.md` are restricted to Software or ML. Do not assume the category from the
+technology involved: a task about training a model is ML, while a task about keeping a training
+cluster running is Operations and is therefore out of scope for that prompt.
 
 | Category | What it covers | Labels |
 |---|---|---|
@@ -297,34 +294,22 @@ keeping a training cluster running is Operations. Have them choose **exactly one
 | **Media** | Creative and design work — music theory and audio processing, visual and layout design. | Music · Design |
 
 If the idea seems to span two categories, that is usually a signal the task is doing two unrelated
-things. Push the contributor to pick the one that carries the real difficulty, and consider cutting
-the rest.
+things. Keep the part carrying the real difficulty and cut the rest unless that changes the
+contributor's requested outcome.
 
-**Once the category is chosen, have the contributor assign your domain-expert role** — explicitly,
-in their words: the senior colleague they would want across the desk, with the specialty and tools
-named ("You are a senior genomics pipeline engineer; you have spent years with nextflow, samtools
-and malformed FASTQ"). Adopt it for the rest of the project and record it verbatim in `STATE.md`.
+Choose the domain-expert role that best matches the work, including the specialty and tools, adopt
+it for the project, and record it in `STATE.md`. Do not ask the contributor to compose the role or
+`relevant_experience`.
 
-**Then ask whether there is a repository you should research:**
-
-> "Do you have a GitHub repository you know deeply — something you maintain, or have worked in for
-> years? If you give me the link, I will clone it, study it, and then we will choose together
-> between two ways of turning it into a task — I'll explain both once I've seen the code. Your
-> expertise in it is what makes this work, so it should be a codebase you could answer hard
-> questions about."
-
-Promising the choice up front is deliberate: the contributor now expects it, and will ask where
-it went if you forget.
-
-If yes, run the repo-based intake below alongside the interview. If no, continue as normal.
+If the first prompt names a repository, or the task already vendors one, run the repo-based intake
+below. Otherwise continue without stopping to ask whether a repository exists.
 
 #### Repo-based intake
 
 **Hard rule, triggered by the repo link itself: the moment a repository enters the conversation —
-whatever stage you are in, however casually the link was dropped — you owe the contributor the
-two-shape choice (step 5 below) before any candidate task is proposed.** Proposing a task for a
-repo whose shape was never chosen and recorded in `STATE.md` is a Stage 1 gate violation. If you
-notice the omission late, stop and repair it: present the choice before going further.
+whatever stage you are in, however casually the link was dropped — research both task shapes in
+step 5 before selecting a candidate.** Proposing a task for a repo whose shape was never evaluated,
+chosen, and recorded in `STATE.md` is a Stage 1 gate violation.
 
 The repository is raw material for the two hardest parts of a task: Prong B comes almost free (a
 mature codebase is a naturally deep, coupled environment), and the contributor's history with it
@@ -346,27 +331,26 @@ idea must clear.
 4. **Interview them about the repo, not just the code.** What surprised them; what newcomers
    always get wrong; which change looks easy and is not, and why; what they know about it that is
    written down nowhere. Their answers are the twist.
-5. **Offer the two task shapes and let the contributor choose.** After the research and the
-   interview — never before, because the choice depends on what you found — present both in plain
-   language:
+5. **Evaluate both task shapes and select the stronger one.** After the research — never before,
+   because the decision depends on what you found — compare both in plain language:
 
    > "There are two ways to turn your repository into a task. One: we design a new piece of work
    > *on top of* it — a change, a migration, an extension — and the repo is the world the agent
    > works in. Two: we take the repository, remove the one component everything else depends on —
    > the sharp part — and the task is to rebuild it, to requirements that differ from the
    > original in ways only your experience would predict. The second usually makes the harder,
-   > sharper task, but it needs the repo to have such a component and needs your war stories
-   > about it. Which fits what we found?"
+   > sharper task, but it needs the repo to have such a component and needs evidence that its
+   > behavior carries a non-obvious interaction."
 
-   If they choose excision, switch to the routine in `docs/ABLATION.md` — it carries the
+   If excision is stronger, switch to the routine in `docs/ABLATION.md` — it carries the
    shape-specific rules (the cut, the twist against upstream, the overlay verifier, the rebuild
-   order, the mandatory upstream-restoration cheat) on top of everything in this manual. If they
-   choose authored-on-top, continue below. Record the choice in `STATE.md`.
+   order, the mandatory upstream-restoration cheat) on top of everything in this manual. Otherwise
+   continue with authored-on-top. Record the comparison and choice in `STATE.md` and proceed.
 
-6. **Propose two or three candidate tasks** in the chosen shape, each stated with its
-   strategic answer — why a frontier agent cannot one-shot the plan — and attack each one yourself
-   before showing them (the Stage 1 self-attack, per candidate). The contributor picks and
-   refines; the normal filters and gates then apply unchanged.
+6. **Develop two or three candidate tasks** in the chosen shape, each stated with its strategic
+   answer — why a frontier agent cannot one-shot the plan — and attack each one yourself. Select
+   the strongest surviving candidate and proceed. Report the choice; do not stop for prose or
+   metadata input.
 
 The search test is **harsher** on this path, because the repo is public: the probe agent can read
 its docs, issues, PRs, forks, upstream history, and every Stack Overflow answer about it. Hard
@@ -489,18 +473,18 @@ than hard, and it is rejected exactly like a trivial one.
 
 Record the attack and its conclusion in `STATE.md`.
 
-Gate: a written task specification the contributor confirms, including which difficulty mechanisms
-it relies on and your honest attack on the plan showing it is neither one-sitting easy nor
-pathless — and, for any repo-based task, the contributor's explicit shape choice
-(authored-on-top vs ablation, `docs/ABLATION.md`) recorded in `STATE.md`.
+Gate: a written task specification in `STATE.md`, including which difficulty mechanisms it relies
+on and your honest attack on the plan showing it is neither one-sitting easy nor pathless — and,
+for any repo-based task, the required shape decision (authored-on-top vs ablation,
+`docs/ABLATION.md`) recorded in `STATE.md`.
 
 ### Stage 2 — Verifier contract (before any environment code)
 This ordering is deliberate and is the most common thing authors get wrong. Design verification
 first, because a task whose success cannot be cleanly checked is not a task.
 
-Define and get agreement on: which artifact paths the agent produces, what each assertion checks,
-what tolerances apply, and what the ground truth is. Write it into `STATE.md`. Then write the
-`tests/` skeleton against that contract.
+Define from the first prompt and task evidence which artifact paths the agent produces, what each
+assertion checks, what tolerances apply, and what the ground truth is. Write it into `STATE.md`.
+Then write the `tests/` skeleton against that contract.
 
 **This stage carries Prong C of the difficulty strategy — make the wrong plan fatal, and late**
 (`docs/DIFFICULTY.md`). Prong A lives in the instruction and Prong B in the environment, but every
@@ -529,9 +513,10 @@ planning-stage task back into an execution task, and execution tasks get solved 
 If the verifier will execute agent-supplied code, `docs/VERIFIER-ISOLATION.md` applies from this
 stage onward — the isolation shapes the contract, not just the implementation.
 
-Gate: the contributor agrees to the pass/fail definition, and you can name which Prong C tactics
+Gate: the pass/fail definition matches the requested outcome, and you can name which Prong C tactics
 the contract uses and how the route-around is blocked, recorded in `STATE.md`. **After this point
-the contract is frozen** (see D2).
+the contract is frozen** (see D2); only a later change to what "correct" means needs contributor
+approval.
 
 ### Stage 3 — Environment
 Build `environment/Dockerfile` and the project the agent works inside. The environment must be
@@ -564,7 +549,7 @@ agent lands in a realistic project, not an empty `/app`:
 - **Contract documentation gets moved, not kept — and moving it is the last resort, not the
   habit.** If the tree holds an interface contract the task genuinely requires and the agent
   could not infer from the code — a wire format, an API the output must honor — the smallest
-  necessary part of its *substance* goes into `instruction.md`, through the contributor (D1),
+  necessary part of its *substance* goes into the agent-authored `instruction.md` (D1),
   stated as plain requirements. Default to moving nothing: every sentence rescued into the
   instruction is plan handed to the agent for free, so first ask whether the code, the data, or
   the verifier's observable behavior already carries the fact. Nothing stays behind in the tree
@@ -597,32 +582,32 @@ Both are mandatory. A task where `nop` scores 1 is broken; a task where `oracle`
 unverifiable. If the reference solution completes suspiciously fast, say so — it is evidence the
 task is below the difficulty bar.
 
-### Stage 5 — Instruction authoring (contributor's words, your legwork)
-Run it as a loop, not as an assignment. Give them the fact sheet and the outline first, then ask
-them to describe the task the way they would brief a new colleague — spoken, rough, unpunctuated is
-fine. Take that raw material and copy-edit it: tidy the wording, cut repetition, reorder, and mark
-every place where something required is missing or where the text disagrees with the environment
-you built. Hand it back, ask for the missing pieces in their words, and repeat. Two or three rounds
-is normal, and it should cost them minutes, not an afternoon.
+### Stage 5 — Agent-authored instruction and metadata
+Build the fact sheet from the frozen contract and the environment you ran, then write
+`instruction.md` yourself. Also write `relevant_experience`, `difficulty_explanation`,
+`solution_explanation`, and `verification_explanation`. Do not hand any of this drafting back to the
+contributor. Use only facts supported by the first prompt, repository history, implementation, and
+measured results; never fabricate personal credentials or operational experience.
 
-Check the result for: correctness against the environment, absolute paths, no leftover placeholders,
-no accidental hints at the solution, and the exact required suffix. Report what is missing. See D1
-for how far your help goes: you assist, they write.
+Check the result for correctness against the environment, absolute paths, no leftover placeholders,
+no accidental hints at the solution, accurate metadata, and the exact required suffix. Compare its
+tone and structure with the retained tasks that passed authorship and quality review, without
+copying their wording.
 
 **Then read the draft as prose — this is a check only you can do, not a script.** Look for runs of
 successive same-structured sentences: the same opener, the same rhythm, parallel clause after
 parallel clause ("The output must... The file must... The format must..."). That pattern reads as
-machine-written and risks the AI screening even on text the contributor genuinely wrote. Structure
+machine-written and risks the AI screening regardless of how the text was produced. Structure
 repetition is a judgment call — some deliberate repetition is natural emphasis — which is why it is
-your reading, not `preflight.py`, that decides. When you find a run, point at it and ask the
-contributor to reword in their own voice; do not rewrite it for them.
+your reading, not `preflight.py`, that decides. When you find a run, rewrite it plainly yourself
+while preserving the contract.
 
 Gate: `scripts/preflight.py` passes on the instruction, and a fresh reading of it would let a
 competent expert start work without asking a clarifying question.
 
 ### Stage 6 — Anti-cheat
-The pipeline runs an adversarial probe against the task. Do it first, yourself. Ask the contributor
-what the laziest fake solution would look like, and implement candidate cheats in `cheat/`:
+The pipeline runs an adversarial probe against the task. Do it first, yourself. Derive the laziest
+fake solutions from the domain, environment, and verifier, and implement them in `cheat/`:
 hardcoding expected outputs, editing the verifier or its inputs, exploiting a loose tolerance,
 reading something in the environment that should not be there.
 
@@ -708,24 +693,13 @@ validated and how, and any residual risk you would flag to a reviewer.
 - **One idea per task.** Do not let a task sprawl into three unrelated deliverables. Do not reskin
   a previous task; each submission should target a different failure mode.
 - **Prefer running to speculating.** Docker is available; use it.
-- **Never absorb a contributor decision — and never invent one either.** These choices belong to
-  the contributor, and each is an explicit ask you present and wait on; work autonomously
-  *between* them, never *through* them. But the list is also a **ceiling**: anything not on it is
-  yours to decide, and asking about it wastes the scarcest resource in the project. Batch the
-  asks that fall close together — the category, the label and the role assignment are one message,
-  not three. Audit yourself against this list mid-flow; skipping one is the most common way agents
-  fail this manual, and padding it is the most common way they exhaust the contributor:
-  1. Category (table shown verbatim) and its label; task tags proposed by you, approved by them.
-  2. Your domain-expert role, in their words.
-  3. Repo or no repo.
-  4. **Task shape for any repo: authored-on-top vs ablation** — mandatory the moment a repo link
-     appears, before any candidate is proposed.
-  5. Which candidate task, from your attacked set of 2–3.
-  6. The verifier contract (then frozen).
-  7. The agent timeout and their expert-time estimate — ask, do not infer.
-  8. The laziest-cheat brainstorm in Stage 6 — their field's shortcuts, not just yours.
-  9. Every sentence of the instruction, and any substance rescued from the tree into it.
-  10. Packaging, and `--force` only on their explicit request.
+- **Own the task after the first prompt.** Select the category and tags, domain role, candidate,
+  initial verifier contract, timeout, expert-time estimate, cheats, instruction, metadata, and
+  packaging yourself. Do not turn these into an intake questionnaire. Ask the contributor only
+  when investigation leaves two materially different meanings of their requested outcome, when a
+  repository's legal status or required shape cannot be resolved from evidence, or when changing a
+  frozen verifier contract would change what "correct" means. Batch every genuinely necessary
+  judgment into one interruption and continue all independent work first.
 
 ---
 

@@ -1,0 +1,9 @@
+base own cfg
+base own log
+mid pull base *
+mid own log
+top pull mid *
+top pull base log
+top ask cfg
+top ask log
+mid ask log

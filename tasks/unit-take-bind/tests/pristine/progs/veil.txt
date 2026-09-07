@@ -1,0 +1,11 @@
+core own key
+core own tag
+core shut tag
+core own raw
+core hide raw
+side pull core *
+side pull core tag
+side pull core raw
+side ask key
+side ask tag
+side ask raw

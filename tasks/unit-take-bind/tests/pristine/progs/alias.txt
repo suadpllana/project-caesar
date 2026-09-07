@@ -1,0 +1,8 @@
+far own item
+near als box far
+near own gate
+mid pull near *
+mid pull box item
+mid ask item
+mid ask box
+mid ask gate

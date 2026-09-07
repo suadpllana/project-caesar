@@ -1,0 +1,7 @@
+a pull b *
+a own one
+b pull a *
+b own two
+c pull a *
+c ask one
+c ask two

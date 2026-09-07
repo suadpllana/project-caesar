@@ -1,0 +1,162 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/res/step.py",
+  "/app/res/show.py",
+  "/app/res/pick.py",
+  "/app/res/turn.py",
+]
+
+[task]
+name = "afterquery/unit-take-bind"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana14@gmail.com"
+
+difficulty_explanation = """
+Binding names across a module graph is a fixed point, and the plan every resolver reaches for
+is a relaxation loop: recompute each unit's bindings from whatever is known, keep the cheapest
+route seen, repeat until a sweep changes nothing. That loop is right for as long as every name
+has one origin, and the brief here says plainly that two origins at the same price do not bind
+at all. A contest removes a binding rather than adding one, and a loop that updates in place
+has already handed the earlier, single-origin answer to every unit it visited afterwards. Those
+units keep it. Nothing in the trace says so: the wrong line is a real origin at a real rank, on
+a program whose right answer is that the name means nothing there. The repair is not a patch to
+the loop. It is settling one price at a time, so that no conclusion ever rests on a fact that is
+only decided later, which is a different driver from the one that ships.
+
+The rest of the work is a conjunction that has to hold at once. A pulled name costs one more
+than the larger of two ranks, not one more than the rank it had in its source, so a pull whose
+source name is itself something the unit had to work out is dearer than it looks. A source name
+denotes both the unit called that in the program and whatever unit the name is bound to locally,
+and both readings compete, so removing either one changes which origins tie. A name held back
+from wide pulls is still there for a pull that names it, while a hidden one is gone from both
+and still answers inside the unit that hid it. Get the contest rule right and the settlement
+order becomes wrong; get the ranks right and a pair of origins that used to tie no longer does.
+There is no order in which these can be settled one at a time.
+
+Four files decide it, under `/app/res`, and all four ship wrong; the tree around them - the
+reader, the unit record, the settled-binding store, the trace formatter - is fixed, so the
+interfaces those four expose are the contract and everything inside them is free. The shipped
+binder gets about a third of the 355 graded programs wrong, which is enough to make running it
+look productive and nowhere near enough to make it an oracle.
+
+The programs are synthetic, in eight families, with contested names and aliased sources at
+densities far above what a real module graph carries - in the wild both are rare, and both are
+exactly where this class of bug lives. Declaration order is shuffled in every family, because
+the rules never mention order and an engine that depends on it is wrong.
+
+Identifiers are in a legacy register - `nm`, `als`, `deck`, `rs`, `rv`, `vn` - short, and no name
+misdescribes what it holds. That is a choice about the register of real compiler front ends
+rather than an obstacle: each is recoverable from what calls it.
+"""
+
+solution_explanation = """
+Four modules, settled in an order the rules force rather than one that is elegant.
+
+`step.py` prices a candidate and reads a pull's source. The price is one more than the larger
+of the source reading's rank and the rank the name already carries in the source unit, and the
+source name yields one reading per unit it can denote: the program's unit of that name, free,
+and any unit the name is bound to in the pulling unit, at that binding's cost. Both go on the
+table, because dropping either one silently changes which origins tie.
+
+`show.py` says what each form of pull can reach: a wide pull sees the names that are neither
+hidden nor shut, a narrow one sees everything that is not hidden, and neither sees a contested
+name.
+
+`pick.py` takes a set of candidates that already cost the same and answers with the origin they
+share, or with a contest when they do not. Same origin twice is not a contest; an `own` and an
+`als` that point at the same unit are different origins and are.
+
+`turn.py` is where the plan has to change. It settles one price at a time: at price k it takes
+only the candidates that cost exactly k, whose inputs are therefore already decided at prices
+below k, settles those names, and only then moves on. Nothing is ever revised, so a contest
+discovered at k cannot leave a stale binding downstream, and the settlement stops at the first
+price that decides nothing, because a candidate at k+1 needs an input decided at k.
+
+An expert works in that order because the rules force it: the price needs the source reading,
+the reach needs the price, the contest needs the reach, and the driver needs all three before it
+can know which conclusions belong to which price. The same contract is implemented a second way
+in the sealed model, which holds a heap of pending candidates and pops a whole price at once
+rather than sweeping the units, to show that the shape is not what is graded.
+"""
+
+verification_explanation = """
+Only the four files under `/app/res/` are taken from the submission. The verifier lays them over
+its own pristine copy of the tree, so nothing else that may have been touched can change what a
+program prints, and the trace is compared line for line.
+
+Correct is defined twice over. Thirty-seven enumerated programs, one per graded decision plus
+the must-still-work side of each fence, are checked against `gt.json`, frozen before the
+verifier was written; the grader first asserts the sealed model still reproduces `gt.json`
+exactly, so a drifted model cannot quietly redefine correct. Three hundred and eighteen further
+programs are generated inside the verifier from a nonce drawn after the submission has finished,
+across eight families that seed contested names, aliased sources, held-back names, pull cycles,
+and routes of equal length that arrive at a unit at different points in a sweep. A submission
+cannot have seen them, so memorising the shipped examples or writing out an answer key both
+fail, and both are cheats that score 0.
+
+The fences run both ways. Contesting whenever two candidates arrive fails the ordinary programs
+and `same-origin-twice`; never contesting fails `two-origins` and `clash-stops`. Letting a wide
+pull take a shut name fails `shut-wide`; blocking a narrow pull from one fails `shut-narrow`.
+Pricing a pull without its source reading fails `cost-max`; settling in place rather than one
+price at a time fails `late-clash`. Sixteen whole-engine misreadings were measured against the
+graded population before the cheats were written, and each one is named by at least one
+enumerated program.
+
+The submission's code runs unprivileged, in its own session, with the reward channel already
+root-owned and locked and its default already 0. The sealed model, the frozen answers and the
+generator are shut to that uid before it starts, so the only route to a matching record is to
+settle the programs. Survivors are reaped before grading, the worker's exit status is checked,
+and every value that came back from it is parsed defensively, so a crash, a hang, a planted
+record or malformed output all leave the reward where it started.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "name-resolution",
+  "module-graphs",
+  "glob-imports",
+  "re-export-visibility",
+  "ambiguity-detection",
+  "fixed-point-settlement",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on the front half of a language implementation - the reader, the module graph and the
+binder that answers what a name means where it stands - and on the editor service that has to
+answer the same question about a tree somebody is still typing into. The bugs that cost most in
+that seat are binding bugs, because they are invisible on the inputs anyone tests with. A
+resolver written as a relaxation loop is correct on every module graph small enough to reason
+about by hand, and it stays correct right up to the point where a name can be reached by two
+routes of the same length; then it starts answering with whichever route the loop happened to
+walk first, and carrying that answer outward into modules that should have seen nothing at all.
+What made it hard to find was that the wrong answer is a perfectly plausible one - a real symbol
+from a real module at a believable distance - so it does not read as a bug until somebody
+notices the same file resolving differently after an unrelated import is added at the bottom of
+another file. What I took from it is that the order a binder settles things in is part of what
+it means, not an implementation detail, and that ambiguity is the rule that turns that from a
+matter of taste into a matter of correctness.
+"""
+
+[verifier]
+timeout_sec = 1200.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

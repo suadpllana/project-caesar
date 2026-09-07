@@ -1,0 +1,125 @@
+{
+ "ask-none": [
+  "top log none"
+ ],
+ "ask-unit": [
+  "near box unit far 0"
+ ],
+ "chain-two": [
+  "top cfg own base 2"
+ ],
+ "clash-around": [
+  "top cfg own one 1"
+ ],
+ "clash-not-wide": [
+  "top cfg none"
+ ],
+ "clash-stops": [
+  "mid cfg clash 1",
+  "top cfg none"
+ ],
+ "clash-then-one": [
+  "mid cfg clash 1"
+ ],
+ "cost-both-deep": [
+  "mid box unit step 2",
+  "mid item own far 3"
+ ],
+ "cost-max": [
+  "mid box unit far 1",
+  "mid item own far 2"
+ ],
+ "cost-src-deep": [
+  "mid box unit far 3",
+  "mid item own far 4"
+ ],
+ "dup-line": [
+  "top cfg own base 1"
+ ],
+ "far-ignored": [
+  "top cfg own one 1"
+ ],
+ "hide-both": [
+  "side raw none"
+ ],
+ "hide-local": [
+  "core raw own core 0"
+ ],
+ "kind-clash": [
+  "top box clash 2"
+ ],
+ "late-clash": [
+  "t x none",
+  "m x clash 2"
+ ],
+ "late-clash-swap": [
+  "m x clash 2",
+  "t x none"
+ ],
+ "late-near": [
+  "t x own a 2"
+ ],
+ "near-wins": [
+  "top cfg own base 1"
+ ],
+ "own-here": [
+  "top cfg own top 0",
+  "base cfg own base 0"
+ ],
+ "own-twice": [
+  "base cfg own base 0"
+ ],
+ "pull-one": [
+  "top cfg own base 1"
+ ],
+ "pull-wide": [
+  "top cfg own base 1",
+  "top log own base 1"
+ ],
+ "ring-only": [
+  "a one none"
+ ],
+ "ring-race": [
+  "m v clash 2",
+  "n v none"
+ ],
+ "ring-two": [
+  "c one own a 1",
+  "c two own b 2"
+ ],
+ "same-origin-twice": [
+  "top cfg own base 2"
+ ],
+ "shut-narrow": [
+  "side tag own core 1"
+ ],
+ "shut-then-on": [
+  "far tag own core 2"
+ ],
+ "shut-wide": [
+  "side key own core 1",
+  "side tag none"
+ ],
+ "src-both": [
+  "mid item clash 1"
+ ],
+ "src-ghost": [
+  "near box none",
+  "near item none"
+ ],
+ "src-two-readings": [
+  "u item clash 1"
+ ],
+ "src-unit-only": [
+  "near item own far 1"
+ ],
+ "two-origins": [
+  "top cfg clash 1"
+ ],
+ "unit-versus-own": [
+  "top box clash 1"
+ ],
+ "wide-carries-unit": [
+  "top box unit far 1"
+ ]
+}

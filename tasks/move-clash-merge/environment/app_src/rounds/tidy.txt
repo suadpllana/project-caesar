@@ -1,0 +1,14 @@
+d 1 /work
+d 2 /work/in
+d 3 /work/out
+f 4 /work/in/one.dat a1
+f 5 /work/out/two.dat b2
+f 6 /work/note.txt c3
+L mv /work/in /work/hold
+L mv /work/out /work/in
+L mv /work/hold /work/out
+R ed /work/note.txt c9
+sync
+L mkd /work/keep
+R mv /work/note.txt /work/brief.txt
+sync

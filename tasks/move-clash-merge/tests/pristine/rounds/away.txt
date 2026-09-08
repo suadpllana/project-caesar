@@ -1,0 +1,14 @@
+d 1 /pkg
+d 2 /pkg/tmp
+f 3 /pkg/tmp/a.log q1
+f 4 /pkg/tmp/b.log q2
+f 5 /pkg/main.cfg r1
+L rm /pkg/tmp/a.log
+L rm /pkg/tmp/b.log
+L rm /pkg/tmp
+R rm /pkg/tmp/a.log
+R mkd /pkg/next
+sync
+R ed /pkg/main.cfg r5
+L mkf /pkg/next/hold.dat s1
+sync

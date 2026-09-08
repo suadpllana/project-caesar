@@ -1,0 +1,143 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/mrg/live.py",
+  "/app/mrg/spot.py",
+  "/app/mrg/name.py",
+  "/app/mrg/book.py",
+  "/app/mrg/step.py",
+]
+
+[task]
+name = "afterquery/move-clash-merge"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer who owns the reconciler of a sync client, the part
+that takes the last agreed state, both sides' copies of it, and settles what the agreed state
+now is and what each side has to do about it.
+
+The graded data is synthetic. Scenarios are five shaped families over records of up to thirty
+nodes and four rounds: removals set against changes, moves that cross, names
+contested by more than two nodes at once, and rounds where nothing happened. The individual
+operations are ordinary for a sync client; the concentration of interactions is deliberately
+adversarial.
+
+The natural plan is the right shape and wrong in its order. An agent classifies each node,
+resolves the conflicts, then writes out the difference between each side and the record. Three
+things break that. A file both sides wrote leaves behind a second node that has to exist, and
+have a number, before the folder's contested names are settled, which the pipeline the tree
+ships cannot do because it settles names first: the repair is to move a stage, not to change a
+rule. A destination path resolves to whatever currently stands under that name, so an emission
+that computes the difference and writes it out builds a plausible tree that is not the
+record's, without any operation failing on the way. And which operation may be emitted next is
+decided by what can be carried out at that moment rather than by kind, so a plan that groups
+removals, then moves, then creations hands a client a move into a folder it has not made yet.
+
+Nothing fails early. The engine prints what the submitted policy did and never what it should
+have done, the record it carries between rounds is not printed at all, and a rule read wrongly
+shows up only as a line that differs. The one thing an agent can settle for itself is that its
+own operations reach its own record, which is a mechanical constraint rather than a test of
+whether that record is right.
+
+The environment uses terse internal names and ships no comments, deliberately. It is a small
+engine rather than a maze: the work is reconciling nine decisions that depend on each other,
+not finding files.
+"""
+
+solution_explanation = """
+The reference settles a round in an order the shipped pipeline cannot express. Placement goes
+first, the folder and the name apart, each carrying which side it came from, because the loop
+break and the name contest both need that. Survival is settled against that placement, so a
+folder is held open only by the nodes the record put inside it that are still settling there.
+Anything left without a folder walks up the record's chain; loops are broken by putting back
+the workstation's move, smallest number first, until nothing sits inside itself. Contents come
+next, and a two-sided write appends a second node to the placement before numbers are handed
+out, which is what lets that node take part in the contest it caused. Numbers go out in one
+pass, contested names are settled case-blind folder by folder, and the record is built from the
+result.
+
+The operations are a loop rather than a difference. At each step it takes the operations that
+can actually be carried out now - destination folder resolved through the record's own parent
+rather than by name, destination name free, folder empty before a removal, content written only
+once the file is in place - and emits the first by kind and then by path. When nothing can be
+carried out it pushes whatever holds a wanted name aside under a temporary mark, which is also
+how a name changes case on the side that compares names case-blind.
+
+That is how the work is really done. A reconciler that emits a difference is the version every
+team writes first, and the version that has to be replaced the first time a customer swaps two
+folder names.
+
+The sealed model is a second implementation written from the same rules rather than from the
+reference: flat records with no child index, survival as an upward walk per node instead of a
+fixed point over the whole set, loops found by colouring rather than by following a trail. The
+emission loop is fixed by the rules and is the same procedure in both, which is said here
+rather than claimed away.
+"""
+
+verification_explanation = """
+The verifier compares every printed line of every scenario, exactly, and scores all or nothing.
+It drives 54 enumerated scenarios, one per graded decision plus the ones that must stay quiet,
+against expectations frozen before the verifier was written, and 300 scenarios in five shaped
+families built from the run nonce after the agent has finished, against the sealed model. The
+model has to reproduce every frozen expectation before anything else is graded, so a model that
+has drifted cannot quietly redefine correct. Each of the twenty-five wrong readings these rules
+admit is separated by a named enumerated scenario, so a failure points at a rule rather than at
+bad luck.
+
+The run executes the submitted policy under an unprivileged uid, in its own session, under a
+wall-clock limit, in a work tree it cannot write, with the pristine engine underneath and only
+the five declared files laid over it. It reports into a descriptor root opened before the
+privilege drop. Three things are attested from inside that process: a trace row may only be
+appended by the driver's own code object; the interpreter's own count of entries into the
+driver and the applier is held against the number of operations the trace claims; and every
+frozen function is hashed there and held against digests the grader compiles from the pristine
+sources. The reward is root-owned, defaults to zero, and is written last by the privileged
+grader, after the run's exit status is checked and any survivor is reaped. The grader imports
+nothing the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Systems"
+
+tags = [
+  "two-way-sync",
+  "move-detection",
+  "conflict-resolution",
+  "name-collisions",
+  "operation-ordering",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I work on the reconciler of a two-way file sync client: the part that decides what the agreed
+state should be once both sides have moved on, and the part that turns that decision into
+operations a client can actually carry out. The bug this task is built from is the one every
+sync engine ships at least once. The reconciler is right about the answer and wrong about the
+order, so it hands a client a move into a folder that does not exist yet, the move is refused,
+and the round ends with the two sides holding different trees. The rest of the family comes
+from working per path where the engine should work per node: a removal quietly beating a rename
+on the other side, two people's files landing on one name, a folder brought back for a file
+that had already moved out of it. None of it shows up in the cases anyone writes first, because
+those have one change per node and no two changes that interact.
+"""
+
+[verifier]
+timeout_sec = 1800.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

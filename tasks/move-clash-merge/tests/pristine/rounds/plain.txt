@@ -1,0 +1,16 @@
+d 1 /doc
+d 2 /doc/old
+f 3 /doc/notes.txt v2
+f 4 /doc/old/plan.txt w1
+f 5 /doc/scratch.dat q1
+f 6 /list.dat x7
+L mv /doc/notes.txt /doc/brief.txt
+L mkf /doc/todo.txt y3
+L rm /doc/scratch.dat
+R ed /doc/notes.txt v9
+R mv /list.dat /doc/list.dat
+sync
+L ed /doc/brief.txt v4
+R mkd /doc/new
+R mv /doc/old/plan.txt /doc/new/plan.txt
+sync

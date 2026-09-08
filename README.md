@@ -15,6 +15,13 @@ Project Caesar AI passed:
 - `note-carry-forward`
 - `focus-return-point`
 
+Built here, not yet submitted:
+
+- `move-clash-merge` - a two-way sync reconciler; five policy files decide what the agreed
+  record keeps, where each node sits, how contested names are settled, what numbers new nodes
+  get and the order the operations go out in. Every local gate passes; the Docker oracle and
+  nop gates still need a machine with Docker.
+
 Human passed:
 
 - `heap-file-replacement` (reference only; bundle not present in this checkout)

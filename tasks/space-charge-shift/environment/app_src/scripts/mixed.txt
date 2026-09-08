@@ -1,0 +1,21 @@
+space main 5000
+space arch 5000
+blob c1 120
+blob c2 80
+blob c3 200
+mkdir /main/proj
+mkdir /main/proj/src
+add /main/proj/src/a 1 c1
+add /main/proj/src/b 2 c2
+link /arch/a 1
+use
+snap r1
+unlink /main/proj/src/a
+use
+undo r1
+use
+add /arch/c 3 c3
+write 2 c3
+use
+move /main/proj /arch/proj
+use

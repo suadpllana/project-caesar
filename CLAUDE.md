@@ -171,3 +171,44 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
+
+## Lessons, measured (2026-09-08, `space-charge-shift`)
+
+- **Whatever the worker can read, the submission can read.** The verifier ran the submitted
+  layer inside the container that also held `/tests/gt.json`, `/tests/model.py` and the
+  generator, all world-readable, and a cheat that looked for the answer key found it and scored
+  1. The environment was clean; the leak was on the sealed side, where a leak audit that only
+  greps the agent tree never looks. Script generation moved into a root-only stage that writes
+  the population to a read-only `/feed`, and the model, the ground truth, the cases, the
+  generator and the grader are mode 600 before the privilege drop. A container probe now
+  confirms the sandbox uid is denied each of them. The cheat suite found this, which is what it
+  is for: a probe that scores 1 is evidence, not an inconvenience.
+- **The packager drops a directory called `runs/`, and every local gate still passed.**
+  `preflight.EXCLUDE_DIRS` treats `runs` as harness output, so the two example scripts the brief
+  tells the agent to run were missing from the zip while the working tree ran fine.
+  `imagecheck` reads the working tree, `zipcheck` reads the archive but only for shape, and
+  neither compares the two. Renamed to `scripts/`, and the check that catches this class is one
+  line: list the files on disk against `preflight.shipped_files()` and look at what is missing.
+- **A rule nothing can observe is not a rule.** Two sentences in the brief - the age counter not
+  rewinding after a rollback, and a refused operation issuing no age - had no possible test,
+  because every link created after a checkpoint is removed by the rollback, so a counter that
+  rewound would produce the same order. Both came out. What replaced them is observable and
+  graded: an id an asset has held is never available again. Check the observability of a rule
+  before writing the sentence, not after failing to write its case.
+- **An accounting hook that fires before the structure cannot serve a rollback.** The first
+  contract called the layer once per operation with the store still in its pre-state, which is
+  clean until a rollback recreates a folder and then re-links inside it: the ancestor walk lands
+  on a folder that does not exist yet. The hook now fires per journal record, immediately after
+  that record is applied, in both directions, while the gate still sees the whole operation
+  against the pre-state store. The asymmetry is deliberate, is visible in `ops.py`, and is where
+  two of the graded decisions live.
+- **A wrong reading has to be expressible in the reference's own structure.** The cheat that
+  cached a folder's space at link time changed nothing, because the reference reaches a space
+  through an aggregate walk and calls `spot()` only in the gate. It was measured as "not caught"
+  and replaced by one that is expressible - a folder move that moves no charge. Before counting
+  a reading as covered, check that the reference can even hold it.
+- **State both scales, because the cost is not linear in the one you shipped.** The brief called
+  the shipped wide script "a third of the size" of the graded ones. A subtree walk grows with
+  moves times subtree, so the real factor is nine, and an agent extrapolating linearly would
+  ship something 2.5x over the budget believing it had headroom. Both sizes are now stated in
+  full, and the agent is told to build one at the graded size and time that.

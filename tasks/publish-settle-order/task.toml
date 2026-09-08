@@ -16,9 +16,9 @@ author_name = "Suad Pllana"
 author_email = "suadpllana12@gmail.com"
 
 difficulty_explanation = """
-The host is small and every rule is in the brief, which is where the difficulty sits: two of the
-thirteen graded decisions cannot be implemented from the brief alone, and neither failure shows
-up until late.
+The host is small and every rule is in the brief, which is where the difficulty sits. Thirteen
+decisions are graded and eleven of them are a careful reading away. The other two cannot be
+written from the brief at all, and neither failure shows up until late.
 
 The first is identity. A use settles on a publication rather than on a name, and the brief says
 so - a unit of the same name coming back up does not repair a use that was settled on the one
@@ -37,7 +37,7 @@ is a unit leaving, where the answer becomes whatever stood behind it. Rebuilding
 whenever the order changes is correct too, and also too slow: a closure of eighteen thousand
 units changes the order eighteen thousand times.
 
-Eleven further decisions consume each other around those two. Publication and startup interleave
+The eleven that are readable consume each other around those two. Publication and startup interleave
 per unit, so a startup call inside a dependency cycle resolves against an order that does not yet
 hold the unit that began the activation. What a unit names is walked in declaration order whether
 it is a dependency or an ordering edge, and only retention tells the two apart - an ordering edge
@@ -72,7 +72,7 @@ Coming up also clears the record's settled uses and stamps a fresh mark on it, b
 fallback publication counting like any other, and the implementation keeps one list per name in
 publication order: a unit joining appends to each of its names, a unit leaving is spliced out,
 and the head of a list is that name's answer. That follows from the order only ever growing at
-the back, and it is the difference between two seconds and ten minutes on the graded set.
+the back, and it is the difference between two seconds and eleven minutes on the graded set.
 
 `site.py` runs a call. An open use resolves once and settles on the publication it found, mark
 and all. A settled use is never resolved again, and it answers dead as soon as the mark it

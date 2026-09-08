@@ -332,6 +332,25 @@ not acceptable, discount the container rows below; the host-emulation rows were 
 without it and cover everything except the privilege drop, the root-owned reward and the
 survivor sweep.
 
+## Rejections, and what fixed them
+
+- **2026-09-07, structural gate, `ARTIFACT-PARENT-NOT-CREATED - TESTS/DOCKERFILE`.** The
+  submission was recorded and refused: "tests/Dockerfile never creates /app/sheet". It did.
+  `mkdir -p /app/sheet` was chained onto another `RUN` with `&&`, the directory was present
+  in the built image, and both container gates passed because the local trial runner creates
+  artifact parents itself before uploading. The gate reads the instruction, not the shell.
+  Fixed by writing `RUN mkdir -p /app` and `RUN mkdir -p /app/sheet` as their own
+  instructions, which is what all nine earlier bundles do; verified by inspecting the built
+  image (`/app/sheet` present) and re-running oracle and nop.
+  The cause is worth more than the fix: the chained form was introduced when the Dockerfile
+  was rewritten to bring its `simcheck` similarity below the NEAR threshold. A local advisory
+  was cleared by breaking a hard platform check that no local gate was reading. `preflight.py`
+  now errors when an artifact parent is created only inside a `&&` chain, carrying the
+  platform's own error name; the check was confirmed to fire on the rejected shape and to
+  leave all ten bundles clean.
+  The other line in the report, `CHEAT-DIR-PRESENT`, is the documented informational warning:
+  the pipeline never executes `cheat/`.
+
 ## Validation status
 
 | Check | Status | Notes |

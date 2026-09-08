@@ -217,3 +217,15 @@ Six defects found by local gates during the build, each with the number or check
   `guard-mark-unwind` against `token-seam-emit` shares 98 of them, so a threshold would reject
   work already accepted. Read what it prints. `grid-spread-refresh` ships at zero shared runs
   outside the mandated closing sentence, which is where a new brief should be.
+
+- **A local gate satisfied by breaking a platform gate.** `grid-spread-refresh` was rejected on
+  `ARTIFACT-PARENT-NOT-CREATED` for a `/app/sheet` that its `tests/Dockerfile` did create: the
+  `mkdir -p` had been chained onto another `RUN` with `&&`, and the structural gate reads the
+  instruction rather than the shell. The chained form was not an accident - it came from
+  rewriting the Dockerfile to get its `simcheck` similarity below the NEAR threshold, so a local
+  advisory was cleared by breaking a hard platform check that no local gate was reading. Two
+  rules: when a file is rewritten to satisfy a similarity score, re-read it against the
+  mechanical rules it is also subject to, because similarity is the only gate that rewards
+  making a file unlike the ones that passed; and when nine retained bundles all write something
+  the same way, that uniformity is evidence about the checker, not a style habit to vary.
+  `preflight.py` now errors on the chained form.

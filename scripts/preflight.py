@@ -767,19 +767,30 @@ def check_artifact_parents(root: Path, cfg: dict) -> None:
         parent = str(PurePosixPath(art).parent)
         if parent in ("/", ""):
             continue
-        # `mkdir -p /app/data` and `WORKDIR /app/data` also create /app, so match the
-        # parent as a path prefix in any mkdir or WORKDIR instruction.
+        # `mkdir -p /app/data` and `WORKDIR /app/data` also create /app, so a deeper
+        # mkdir counts, as does a WORKDIR at or below the parent.
         escaped = re.escape(parent)
-        created = re.search(
-            rf"(mkdir\s[^\n]*{escaped}(?=[\s/]|$))|(^\s*WORKDIR\s+{escaped}(?=[\s/]|$))",
-            body,
-            re.MULTILINE,
-        )
-        if not created:
+        deep = rf"{escaped}(?=[\s/]|$)"
+        standalone = re.search(rf"^\s*RUN\s+mkdir\s+(-p\s+)?[^\n&|;]*{deep}",
+                               body, re.MULTILINE)
+        anywhere = re.search(rf"(mkdir\s[^\n]*{deep})|(^\s*WORKDIR\s+{deep})",
+                             body, re.MULTILINE)
+        if not anywhere:
             error(
                 f'tests/Dockerfile: never creates {parent} - add "RUN mkdir -p {parent}" so the '
                 f"harness can upload the declared artifact(s) into it (otherwise verification "
                 f'fails with "Could not find the file {parent} in container")'
+            )
+        elif not standalone:
+            # 2026-09-07: the platform's structural gate rejected a bundle whose mkdir was
+            # chained onto another RUN with `&&`. It reads the instruction, not the shell,
+            # so a directory this checker can see created may still be reported missing.
+            # Every retained bundle writes it as its own RUN line; so must every new one.
+            error(
+                f'tests/Dockerfile: creates {parent}, but not as its own instruction - the '
+                f'structural gate looks for a standalone "RUN mkdir -p {parent}" and does not '
+                f"follow a && chain, so it rejects the bundle with ARTIFACT-PARENT-NOT-CREATED "
+                f"even though the directory would exist. Put the mkdir on its own RUN line"
             )
 
 

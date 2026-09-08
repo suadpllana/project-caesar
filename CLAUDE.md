@@ -171,3 +171,46 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
+
+## Lessons, measured (2026-09-08, `span-close-step`)
+
+- **A verifier that executes agent code had the sealed model on the sandbox's import path.**
+  The worker put `/tests` on `sys.path` so it could load the case list and the generator, and
+  that same path carried `model.py` and `gt.json`, both world-readable in the image. Submitted
+  code could have imported the model, computed the expected trace and handed it back. What
+  exposed it was not a cheat scoring 1 - none did - but `cheat_report.py` flagging two attacks as
+  "reward 0 with no failing test", which sent me to read what the worker could actually reach.
+  The repair moves the answers, the generator and the nonce into a root-only `tests/seal/`, and
+  chooses the trial's scripts in a privileged stage *before* the worker starts, so the sandbox is
+  handed scripts and nothing to derive an answer from. Rule: for this shape, list what is
+  readable from the executing uid, not what you meant to seal.
+- **`forgecheck` was matching on the ground truth's keys, not its answers, and so reported a real
+  forgery probe as absent.** Its marks came from the encoded document, whose only tokens long
+  enough to be distinctive were the hand-case names an author chose; a cheat keyed by anything
+  else carries none of them. The fix is additive rather than a replacement - the answer-side pass
+  runs only when the encoded-document pass finds no carrier - because switching outright made
+  three retained bundles that had passed start failing. Checked across all ten bundles: every one
+  still reports its carrier. A checker that gets stricter is a regression for everybody else's
+  work unless you measure it against them.
+- **An alternative correct implementation that was actually a wrong reading.** `ok-open-list-order`
+  settled documents in the order they were first seen, which is micro-batch order, not stream
+  order - the same mistake the `settle-in-batch-order` reading makes. The variant suite scored it
+  0 and I nearly filed that as verifier overfitting. Diagnose the direction before changing
+  anything: the doc says a stated-contract variant scoring 0 reveals overfitting, and the
+  contrapositive is that a variant has to be proved correct, not assumed.
+- **`repr()` is the only safe way to embed a generated JSON blob in generated Python.** The
+  forgery's answer table went in through `"""%s"""` and the JSON's `\"` sequences were eaten by
+  the Python parser, so the cheat raised `JSONDecodeError` on every script and reproduced 0 of 25.
+  With `repr()` it reproduces 24. Same class as the heredoc-escape lesson above, one layer up.
+- **Consolidating a Dockerfile into fewer layers raised its similarity score.** `simcheck` measures
+  line overlap, so merging four `RUN` lines into one moved `tests/Dockerfile` from 0.783 to 0.820
+  against the neighbouring bundle - cleaner and more similar at once. The plumbing every bundle
+  shares under `docs/VERIFIER-ISOLATION.md` will sit near the threshold whatever you do; what is
+  worth rewriting is the file that is a near copy because it *was* copied (`reap.py`, 0.983,
+  rewritten to sweep by session and then by owner, now below the threshold).
+- **The first draft of the brief failed the cadence screen and no rule had to change to fix it.**
+  Burstiness 0.522 against 0.791 for the brief that passed, 8% short sentences against 24%. Every
+  repair was splitting a compound sentence at a real clause boundary, and the two ambiguous
+  formulas that came out of the same pass ("the base scaled by the count plus one over the
+  warmup") were worth rewriting anyway. Measure the prose against a brief that passed, not against
+  an impression of it.

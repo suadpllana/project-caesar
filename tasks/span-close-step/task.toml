@@ -1,0 +1,175 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/train/pick.py",
+  "/app/train/fold.py",
+  "/app/train/norm.py",
+  "/app/train/turn.py",
+  "/app/train/again.py",
+  "/app/train/keep.py",
+]
+
+[task]
+name = "afterquery/span-close-step"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer who owns the training loop rather than the
+model - packing, accumulation, the optimizer step, the checkpoint. The failure this
+task is built from is the one that costs such a person a week, because nothing
+crashes: the loss curve moves when the accumulation layout changes, and every
+individual piece of the loop looks right.
+
+The graded data is synthetic. Runs are short, documents carry deterministic
+features from their name and position, and the model is four parameters, so a
+trace can be compared exactly rather than approximately. What is deliberately
+concentrated is the interaction: documents long enough to be read across several
+steps, batches that finish nothing, layouts that change under a running trainer,
+names that come round a second time, and checkpoints taken over a half-read
+document. Each of those happens in ordinary training; having them all inside forty
+lines is the adversarial part.
+
+The plan a frontier agent forms first is the streaming one, and it is the plan the
+shipped trainer already implements: score each token as its micro-batch arrives,
+fold it into per-document statistics, finish the document when its last token goes
+past. That is what every account of gradient accumulation under a memory bound
+describes, it is correct for every document that begins and ends inside one step,
+and it is wrong here. A document read over three steps has its early tokens scored
+under parameters two updates old, and a sum of scores taken at different parameter
+points is not the objective at any of them. The correction is not a patch to the
+fold: the statistics have to stop existing, and the document has to be scored from
+its tokens at the moment it settles, which inverts the memory argument that
+motivated the fold in the first place.
+
+The second discovery lands after that one is implemented. A settled document whose
+loss is above the threshold is put back on the stream, which changes where every
+later sequence boundary falls, so which documents settle in which step depends on
+the losses the trainer itself produced. A plan that decided the packing up front,
+or that spends the requeue allowance against the document's name rather than along
+its own chain of returns, produces a plausible trace that diverges several steps
+after the decision that caused it. Around those two sit the ordinary accounting
+rules that a wrong reading of any one of fails a case: the divisor is the settled
+documents rather than the micro-batches, the reported gradient length is the one
+before clipping, a step that settles nothing advances neither the rate schedule
+nor the averaging decay nor the count, and a checkpoint that omits how far into an
+open document the run has read restores a trainer that settles the wrong document.
+
+The environment uses terse internal names and ships no comments or docstrings, so
+what each part does has to come from what calls it and what breaks when it is
+wrong. It is a small trainer rather than a large maze: the work is reconciling the
+timing, the accounting and the feedback from the requeue rule, not finding files.
+The visible runner reports the submitted trainer's own behaviour and supplies no
+correctness oracle for any of it.
+"""
+
+solution_explanation = """
+The reference keeps no per-token state at all. `pick.py` counts how many tokens of
+each open document a step consumed and names the ones whose count has reached
+their length, in occurrence order, which is the order their last tokens stand in
+the stream; masked documents are dropped there rather than later. `fold.py` then
+scores a settled document from scratch over all of its tokens against the
+parameters the step began with, so the objective is evaluated at one parameter
+point, which is the only reading under which the printed loss is the loss of
+anything. `norm.py` averages over the settled documents and reports the length
+before it shortens the gradient. `turn.py` holds a step that settled nothing,
+reads the rate from the count of steps already taken, advances that count, and
+takes the running average after the update. `again.py` carries the requeue
+allowance on the occurrence rather than the name, passing it to the fresh
+occurrence it appends. `keep.py` writes the parameters, the momentum, the average,
+the count, the consumption of every open document and every unspent allowance.
+
+An expert works in that order because the trace is only stable from the outside
+in: until settlement is right, no divisor or schedule question can be answered,
+and until the requeue rule is right the later steps of a run cannot be compared
+with anything. Recomputing a document at settlement rather than folding it as it
+arrives costs one pass over sixty-four tokens and removes an entire class of
+staleness, which is the trade a training-loop engineer makes deliberately.
+
+The sealed model that produces the expected traces was written from the contract
+by a different route: it materialises the whole token flow as one list with a
+cursor, so a step is a slice of it, decides settlement by asking whether a
+document's last token lies inside that slice, orders settlement by the position of
+that last token, and checkpoints by deep-copying its whole state rather than
+serialising a policy record through JSON.
+"""
+
+verification_explanation = """
+The verifier compares every printed line of every run script exactly and scores
+all-or-nothing. It uses 25 literal scripts with 205 hand-frozen lines, one per
+graded decision plus the ordinary cases a trainer that turns cautious would break,
+and 385 nonce scripts drawn after the agent has finished from seven shaped
+families: streams where nothing straddles a step, documents read across several,
+requeue chains, batches that settle nothing, layouts that change mid-run,
+checkpoints taken over open documents, and short documents settling under a worker
+layout whose micro-batch order is not the stream order. Every candidate script is
+simulated before it is kept and rejected unless the two decisions taken on
+unrounded floats - whether the step clips and whether a document is requeued -
+stand clear of their boundaries, so no graded line turns on an implementation's
+rounding noise. The frozen answers and the sealed model must agree with each other
+before any grading happens.
+
+The submitted trainer runs under an unprivileged uid in a pristine copy of the
+tree with only the six declared files overlaid, so nothing else it may have
+touched can change a trace. The scripts for the trial are chosen by a root-only
+stage before that process starts, and the model, the generator, the frozen answers
+and the nonce they came from live in a directory the sandbox uid cannot read, so
+the executed code has nothing to derive an expected trace from and nothing to plant
+that would survive. The reward is root-owned, defaults to zero, and is written last
+by the privileged side after the worker's exit status is checked and any survivor
+process has been reaped. The grader itself imports nothing the agent supplied and
+regenerates the whole population from the nonce rather than trusting what the
+worker echoed back.
+"""
+
+category = "ML"
+subcategory = "Training"
+
+tags = [
+  "gradient-accumulation",
+  "sequence-packing",
+  "loss-normalization",
+  "checkpoint-resume",
+  "hard-example-replay",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+I own the training loop for a small research group - the packing, the accumulation
+schedule, the optimizer step and the checkpoint - and the bug this task is built
+from cost me a week. We moved a run from four accumulation steps to two and the
+loss curve came out different, which should be impossible: the same samples in the
+same order, only split differently. The divisor was the first thing I checked and
+it was fine. What was wrong was older than that. We pack documents end to end into
+fixed-length sequences, so a long document is read over several optimizer steps,
+and our loop scored each token when its micro-batch went through and accumulated
+the pieces. Every document that fitted inside one step was correct, which is nearly
+all of them on a normal corpus and all of them in the tests I had written. A
+document read across two updates was being scored partly under parameters that no
+longer existed, and the fix was to stop accumulating and rescore the whole document
+when it finishes, which felt backwards until I wrote out what the accumulated
+number was supposed to be the gradient of. The resume path had the same shape of
+bug and I found it later, from a run that diverged from its own restart: the
+checkpoint carried the optimizer and not how far into the open document the loader
+had read, so the restored run settled it one step early and everything after that
+was a different run.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

@@ -140,7 +140,7 @@ def check_structure(root: Path) -> None:
     for rel in REQUIRED_FILES:
         if not (root / rel).is_file():
             error(f"missing required file: {rel}")
-    if not (root / "tests" / "test_outputs.py").is_file():
+    if not list((root / "tests").rglob("test_outputs.py")):
         warn("tests/test_outputs.py not found - the standard verifier template uses it")
     cheat = root / "cheat"
     if not cheat.is_dir() or not any(p.is_file() for p in cheat.iterdir()):

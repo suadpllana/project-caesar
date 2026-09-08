@@ -35,6 +35,41 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def answer_slices(gt_text: str, n: int = 12) -> list[str]:
+    """The same idea, over the answers alone.
+
+    Keys are names the author chose - "requeue-joins-the-tail" - and a cheat that carries
+    the answers has no reason to contain them, so a bundle whose only long tokens are its
+    keys reports no carrier however real its forgery probe is. Measured 2026-09-08 on a
+    bundle whose probe replays 24 of 25 frozen traces and scores 0.
+    """
+    leaves = [chunk for chunk in gt_leaves(json.loads(gt_text)) if len(chunk) >= 24]
+    return leaves[:n]
+
+
+def gt_leaves(data) -> list[str]:
+    """Every value in the ground truth, with the keys left out.
+
+    Keys are names the author chose - "requeue-joins-the-tail" - and a cheat that
+    carries the answers has no reason to contain them. Matching on them measures
+    whether the cheat was written against the same case list, not whether it holds
+    the answers, which is the opposite of what this gate is for. Measured 2026-09-08
+    on a bundle whose forgery probe was real, replayed 24 of 25 frozen traces and
+    scored 0: keys-included reported no carrier at all.
+    """
+    out = []
+    stack = [data]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            stack.extend(item.values())
+        elif isinstance(item, (list, tuple)):
+            stack.extend(item)
+        elif item is not None and not isinstance(item, bool):
+            out.append(str(item))
+    return out
+
+
 def gt_slices(gt_text: str, n: int = 12) -> list[str]:
     """Distinctive runs of ground truth, long enough not to occur by chance.
 
@@ -70,21 +105,39 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     task = ROOT / "tasks" / argv[1]
+    # A bundle may keep the answers out of the sandbox uid's reach by parking them in
+    # tests/seal/ (span-close-step does, because its verifier executes agent code in a
+    # process that has /tests on its import path). Look there too rather than reporting
+    # a missing ground truth: two tools disagreeing about where a file lives is how this
+    # kit produced a confident wrong answer once before.
     gt = task / "tests" / "gt.json"
+    if not gt.is_file():
+        gt = task / "tests" / "seal" / "gt.json"
     cheats = sorted((task / "cheat").glob("cheat-*.sh"))
     if not gt.is_file():
-        print("no tests/gt.json under %s" % task)
+        print("no tests/gt.json or tests/seal/gt.json under %s" % task)
         return 1
     if not cheats:
         print("no cheats under %s/cheat" % task)
         return 1
 
-    marks = gt_slices(gt.read_text())
+    # Two ways of naming the ground truth, tried in that order. The encoded document
+    # includes the keys, which are names the author chose, and a bundle whose keys are
+    # long enough will match on those - which is what every earlier task here does. A
+    # bundle whose long strings are the answers themselves and whose keys are short (or
+    # whose cheat is keyed some other way) matches on nothing there, and the answers are
+    # what the gate is actually about, so they are tried as well before reporting a
+    # failure. Measured 2026-09-08 across all ten bundles in this repo: the answer-side
+    # pass finds the carrier in the two that the encoded-document pass misses, and
+    # changes nothing for the eight it already found.
     carriers = []
-    for sh in cheats:
-        body = sh.read_text()
-        if any(m in body for m in marks):
-            carriers.append(sh.name)
+    for marks in (gt_slices(gt.read_text()), answer_slices(gt.read_text())):
+        for sh in cheats:
+            body = sh.read_text()
+            if sh.name not in carriers and any(m in body for m in marks):
+                carriers.append(sh.name)
+        if carriers:
+            break
 
     print("== %s" % argv[1])
     if not carriers:

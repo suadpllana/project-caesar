@@ -1,0 +1,11 @@
+lim 4
+bat 1 1 1
+rep 9.0 2
+doc ab 4 1
+mdoc cd 8
+doc ef 4 2
+step
+step
+step
+step
+emit

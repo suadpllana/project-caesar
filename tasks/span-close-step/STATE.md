@@ -206,6 +206,29 @@ reward-tamper cheats are written and score 0 under host emulation, where they ca
 they mean in a container. This is the single largest residual risk in the bundle and the handover
 says so.
 
+## Stage 7 re-attack, against the finished bundle
+
+Read the final brief cold and tried to one-shot the plan with the real tree in front of me. The
+six-file plan does form: count tokens per open document and settle at the length, rescore at
+settlement from `feat.vec`, mean over the settled, report before clipping, hold on nothing
+settled, rate before the count advances, average after, allowance along the chain, append at the
+tail, checkpoint whatever the other five kept. That is the plan, and the brief states every rule
+that goes into it - which is the design, not a leak: nothing here is withheld and every deviation
+is on the page. What the brief does not hand over is the reconciliation. Settlement order has to
+be recovered from what `pick` can actually see, the checkpoint's contents are decided by choices
+the other five files have not made yet when you start, and the requeue rule puts the packing under
+the trainer's own output, so a plan that fixes the data layout first is wrong in a way that
+surfaces several steps later. Eleven rules are graded together, all-or-nothing, over 410 scripts.
+
+The honest risk, stated rather than argued away: the reference is 89 lines of code across six
+files. That is comparable to `guard-mark-unwind` (105) and well above the ~40 lines the quality
+review called too little work when it failed `reach-pair-sweep` on `difficult`, but it is at the
+low end of the retained band, and the environment at 310 lines is in the lower half of 229-544.
+If this task comes back solved 8 times, the repair is not more rules - it is a mechanism the
+brief can state without also stating how to satisfy it.
+
+Estimate after the re-attack: unchanged at 2 of 8, with the realized rate expected to drift up.
+
 ## Self-probe
 
 Not run, and it could not have been: the author wrote the contract, the shipped wrong trainer and

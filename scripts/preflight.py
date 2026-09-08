@@ -768,18 +768,26 @@ def check_artifact_parents(root: Path, cfg: dict) -> None:
         if parent in ("/", ""):
             continue
         # `mkdir -p /app/data` and `WORKDIR /app/data` also create /app, so match the
-        # parent as a path prefix in any mkdir or WORKDIR instruction.
+        # parent as a path prefix. The instruction has to be a physical line that starts
+        # with RUN or WORKDIR, not a continuation folded into a longer RUN: the platform's
+        # own structural check reads the file line by line and rejected a bundle on
+        # 2026-09-08 whose parent was created by "RUN useradd ... \\ && mkdir -p /app
+        # /app/train ...". That form creates the directory perfectly well and every gate
+        # here passed it, which is exactly why this check has to be as literal as theirs.
         escaped = re.escape(parent)
         created = re.search(
-            rf"(mkdir\s[^\n]*{escaped}(?=[\s/]|$))|(^\s*WORKDIR\s+{escaped}(?=[\s/]|$))",
+            rf"^\s*RUN\s[^\n]*\bmkdir\s[^\n]*{escaped}(?=[\s/]|$)"
+            rf"|^\s*WORKDIR\s+{escaped}(?=[\s/]|$)",
             body,
             re.MULTILINE,
         )
         if not created:
             error(
-                f'tests/Dockerfile: never creates {parent} - add "RUN mkdir -p {parent}" so the '
-                f"harness can upload the declared artifact(s) into it (otherwise verification "
-                f'fails with "Could not find the file {parent} in container")'
+                f'tests/Dockerfile: never creates {parent} on a line of its own - add '
+                f'"RUN mkdir -p {parent}" so the harness can upload the declared artifact(s) '
+                f'into it (otherwise verification fails with "Could not find the file {parent} '
+                f'in container"). A mkdir folded into a continuation of another RUN does not '
+                f"count: the platform reads this file line by line"
             )
 
 

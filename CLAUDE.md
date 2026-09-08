@@ -214,3 +214,21 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   formulas that came out of the same pass ("the base scaled by the count plus one over the
   warmup") were worth rewriting anyway. Measure the prose against a brief that passed, not against
   an impression of it.
+
+- **A local check that is looser than the platform's is not a check.** The bundle was rejected on
+  `ARTIFACT-PARENT-NOT-CREATED` for a `tests/Dockerfile` that creates `/app/train` perfectly well -
+  in a continuation line, `RUN useradd ... \\ && mkdir -p /app /app/train ...`. The platform reads
+  the file line by line and wants an instruction that starts with `RUN mkdir -p`; `preflight.py`
+  matched the parent anywhere in any mkdir and passed it, so every local gate was green on a bundle
+  the first platform gate rejects. Two rules follow. Write the shape the retained bundles use unless
+  there is a reason not to - all eight of them use standalone `RUN mkdir -p` lines and all eight
+  passed, and my reason for folding them was a similarity score. And when a mechanical rule is
+  transcribed into `preflight.py`, transcribe the *matcher*, not the intent: a check that accepts
+  more than the platform does is worse than no check, because it converts "unverified" into
+  "verified" without doing any verification.
+- **simcheck and the platform can pull in opposite directions, and the platform wins.** Splitting
+  the four `mkdir` lines apart moved `tests/Dockerfile` from 0.779 to 0.868 against the neighbouring
+  bundle, straight back over the NEAR threshold. That is the correct trade: a blocking structural
+  error costs a submission, a similarity warning on fifteen lines of mandated plumbing costs a
+  sentence in the handover. Rewrite the file that is a near copy because it *was* copied; do not
+  rewrite the file whose shape the harness dictates.

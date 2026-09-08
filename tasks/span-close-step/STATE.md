@@ -191,9 +191,11 @@ isolation (no privilege drop, no locked reward channel, no survivor sweep).
 - `scripts/package.py` then `tools/zipcheck.py`: 67 entries, no findings, no cache or state files
   in the archive.
 - `tools/simcheck.py`: NEAR on `environment/Dockerfile` (five lines of boilerplate identical
-  across every retained bundle), `tests/Dockerfile` and `tests/test.sh`. `tests/reap.py` was
-  rewritten after simcheck flagged it as a near copy. Conceptually distinct from every earlier
-  task.
+  across every retained bundle) and on `tests/Dockerfile` at 0.868. That number was 0.779 with the
+  four `mkdir` lines folded into one `RUN`, and folding them is what the platform rejected on
+  2026-09-08, so it stays at 0.868: the shape the harness requires is the shape every other bundle
+  has. `tests/reap.py` and `tests/test.sh` were both rewritten after simcheck flagged them and are
+  below the threshold. Conceptually distinct from every earlier task.
 
 ## Infrastructure
 
@@ -205,6 +207,15 @@ container can show: the privilege drop, the root-only reward channel, and the su
 reward-tamper cheats are written and score 0 under host emulation, where they cannot mean what
 they mean in a container. This is the single largest residual risk in the bundle and the handover
 says so.
+
+## Platform verdicts
+
+- 2026-09-08, structural, blocking: `ARTIFACT-PARENT-NOT-CREATED` on `tests/Dockerfile`. The
+  parent of the declared artifacts was created by a `mkdir` folded into a continuation of the
+  `useradd` instruction; the platform reads the file line by line and wants an instruction that
+  starts with `RUN mkdir -p`. Restored the standalone lines, and `scripts/preflight.py` now
+  enforces the same literal form - checked to fire on the rejected file and to stay clean on all
+  ten bundles here. The `CHEAT-DIR-PRESENT` warning in the same report is expected and benign.
 
 ## Stage 7 re-attack, against the finished bundle
 

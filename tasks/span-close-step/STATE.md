@@ -178,6 +178,12 @@ isolation (no privilege drop, no locked reward channel, no survivor sweep).
   both shipped scripts.
 - `tools/forgecheck.py`: the forgery probe is recognised as carrying ground truth and the whole
   cheat suite scores 0 through it.
+- `authoring/span-close-step/sealcheck.py`: the verifier's `tests/` staged under the mode bits
+  `tests/Dockerfile` applies, then read from uid 1002 through `setpriv`. The model, the generator,
+  the case list and the frozen answers are all unreachable; `worker.py` and the pristine tree, the
+  two things the worker legitimately needs, are readable. This is real uid-based evidence for the
+  seal without a container; it says nothing about the locked reward channel or the survivor sweep,
+  which need one.
 - `tools/textcheck.py` against the brief that passed the screen: no axis is more regular than the
   reference. `tools/structcheck.py` and `tools/hintcheck.py`: clean.
 - `scripts/preflight.py`: no errors. `catcheck`, `solvecheck`, `deadfieldcheck`,
@@ -211,5 +217,7 @@ plan gets wrong.
 
 ## Remaining
 
-- Container gates, if a workspace with a reachable registry becomes available.
+- Container gates, if a workspace with a reachable registry becomes available. `tests/test.sh`
+  and both Dockerfiles are the files no local gate executes: they are syntax-checked, LF-only, and
+  read by `tools/imagecheck.py`, but they have never been run.
 - The external easiness and difficulty probes.

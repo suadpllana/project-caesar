@@ -106,7 +106,7 @@ def main(argv: list[str]) -> int:
         return 2
     task = ROOT / "tasks" / argv[1]
     # A bundle may keep the answers out of the sandbox uid's reach by parking them in
-    # tests/seal/ (span-close-step does, because its verifier executes agent code in a
+    # tests/seal/ (packed-doc-settlement does, because its verifier executes agent code in a
     # process that has /tests on its import path). Look there too rather than reporting
     # a missing ground truth: two tools disagreeing about where a file lives is how this
     # kit produced a confident wrong answer once before.

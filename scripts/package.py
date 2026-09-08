@@ -31,6 +31,7 @@ import preflight  # noqa: E402
 # packager can never disagree about what ships (see preflight.EXCLUDE_DIRS).
 EXCLUDE_NAMES = preflight.EXCLUDE_NAMES
 EXCLUDE_DIRS = preflight.EXCLUDE_DIRS
+EXCLUDE_TOP_DIRS = preflight.EXCLUDE_TOP_DIRS
 EXCLUDE_SUFFIXES = preflight.EXCLUDE_SUFFIXES
 
 EXECUTABLE_ATTR = (0o755 << 16) | 0o600

@@ -6,15 +6,15 @@ derived, whether the objective uses the customary shift by the largest score, wh
 shape the checkpoint takes. A variant that scores 0 means the verifier is grading
 an implementation choice rather than the behaviour, which is a verifier defect.
 
-    python3 authoring/span-close-step/variants.py          write and check them all
+    python3 authoring/packed-doc-settlement/variants.py          write and check them all
 """
 import pathlib
 import shutil
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "authoring" / "span-close-step"))
-sys.path.insert(0, str(ROOT / "tasks" / "span-close-step" / "tests" / "seal"))
+sys.path.insert(0, str(ROOT / "authoring" / "packed-doc-settlement"))
+sys.path.insert(0, str(ROOT / "tasks" / "packed-doc-settlement" / "tests" / "seal"))
 
 import harness  # noqa: E402
 import trial  # noqa: E402
@@ -22,8 +22,8 @@ import cases  # noqa: E402
 import gen  # noqa: E402
 import model  # noqa: E402
 
-REF = ROOT / "tasks" / "span-close-step" / "solution"
-OUT = ROOT / "authoring" / "span-close-step" / "variants"
+REF = ROOT / "tasks" / "packed-doc-settlement" / "solution"
+OUT = ROOT / "authoring" / "packed-doc-settlement" / "variants"
 
 NO_SHIFT_FOLD = '''import math
 

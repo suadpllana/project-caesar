@@ -1,4 +1,4 @@
-"""Host emulation for span-close-step.
+"""Host emulation for packed-doc-settlement.
 
 Builds a runnable tree outside the bundle from the frozen environment modules plus
 one policy directory, then runs run scripts against it in-process. Docker is not
@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-TASK = ROOT / "tasks" / "span-close-step"
+TASK = ROOT / "tasks" / "packed-doc-settlement"
 ENV = TASK / "environment" / "app_src"
 FROZEN = ("__init__.py", "feat.py", "feed.py", "lay.py", "box.py", "ops.py")
 POLICY = ("pick.py", "fold.py", "norm.py", "turn.py", "again.py", "keep.py")
@@ -23,7 +23,7 @@ POLICY = ("pick.py", "fold.py", "norm.py", "turn.py", "again.py", "keep.py")
 
 def build(policy=None, into=None):
     """Stage a tree: frozen modules from the environment, policy from `policy`."""
-    tmp = pathlib.Path(into or tempfile.mkdtemp(prefix="scs-"))
+    tmp = pathlib.Path(into or tempfile.mkdtemp(prefix="pds-"))
     tree = tmp / "tree"
     if tree.exists():
         shutil.rmtree(tree)

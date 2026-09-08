@@ -7,10 +7,10 @@ has finished - and nothing else: it does not drop privileges, does not lock the
 reward channel and does not reap survivors, so it is evidence about semantics and
 never about the verifier's isolation.
 
-    python3 authoring/span-close-step/trial.py oracle
-    python3 authoring/span-close-step/trial.py nop
-    python3 authoring/span-close-step/trial.py --dir authoring/span-close-step/variants/ok-flat
-    python3 authoring/span-close-step/trial.py --all
+    python3 authoring/packed-doc-settlement/trial.py oracle
+    python3 authoring/packed-doc-settlement/trial.py nop
+    python3 authoring/packed-doc-settlement/trial.py --dir authoring/packed-doc-settlement/variants/ok-flat
+    python3 authoring/packed-doc-settlement/trial.py --all
 """
 import contextlib
 import os
@@ -21,7 +21,7 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-TASK = ROOT / "tasks" / "span-close-step"
+TASK = ROOT / "tasks" / "packed-doc-settlement"
 ENV = TASK / "environment" / "app_src"
 TESTS = TASK / "tests"
 PARTS = ("pick.py", "fold.py", "norm.py", "turn.py", "again.py", "keep.py")
@@ -99,8 +99,8 @@ def verify(work, app):
     shutil.copy(logs / "per", wk / "per")
 
     env = dict(os.environ)
-    env.update({"SCS_TESTS": str(TESTS), "SCS_WORK": str(wk), "SCS_LOGS": str(logs),
-                "SCS_SUB": str(app / "train"), "PYTHONDONTWRITEBYTECODE": "1"})
+    env.update({"PDS_TESTS": str(TESTS), "PDS_WORK": str(wk), "PDS_LOGS": str(logs),
+                "PDS_SUB": str(app / "train"), "PYTHONDONTWRITEBYTECODE": "1"})
     planned = subprocess.run([sys.executable, str(TESTS / "seal" / "plan.py"),
                               "--out", str(wk / "scripts.json"), "--logs", str(logs)],
                              capture_output=True, text=True, env=env)
@@ -121,7 +121,7 @@ def verify(work, app):
 
 def detail(kind, script=None, policy=None):
     """Run one trial and report the reward plus why it came out that way."""
-    work = pathlib.Path(tempfile.mkdtemp(prefix="scs-trial-"))
+    work = pathlib.Path(tempfile.mkdtemp(prefix="pds-trial-"))
     try:
         app = stage_app(work)
         agent = run_agent(app, kind, script, policy)

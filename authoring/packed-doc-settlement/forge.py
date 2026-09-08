@@ -16,13 +16,13 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "authoring" / "span-close-step"))
-sys.path.insert(0, str(ROOT / "tasks" / "span-close-step" / "tests" / "seal"))
+sys.path.insert(0, str(ROOT / "authoring" / "packed-doc-settlement"))
+sys.path.insert(0, str(ROOT / "tasks" / "packed-doc-settlement" / "tests" / "seal"))
 
 import cases  # noqa: E402
 import harness  # noqa: E402
 
-TASK = ROOT / "tasks" / "span-close-step"
+TASK = ROOT / "tasks" / "packed-doc-settlement"
 GT = TASK / "tests" / "seal" / "gt.json"
 
 SIG = '''
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     files = build()
     import shutil
     import tempfile
-    d = pathlib.Path(tempfile.mkdtemp(prefix="scs-forge-"))
+    d = pathlib.Path(tempfile.mkdtemp(prefix="pds-forge-"))
     try:
         for f in harness.POLICY:
             shutil.copy(TASK / "environment" / "app_src" / "train" / f, d / f)

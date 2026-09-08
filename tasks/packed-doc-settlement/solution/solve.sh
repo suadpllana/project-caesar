@@ -7,4 +7,4 @@ for part in pick fold norm turn again keep; do
 done
 
 cd /app
-python run_train.py runs/hold.txt
+python run_train.py recipes/hold.txt

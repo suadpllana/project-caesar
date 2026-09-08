@@ -1,10 +1,10 @@
 """Literal run scripts, one per graded decision, with the must-still-work side.
 
 The generated population is the generality check; these are the enumerated
-corners. Each name below says which decision the script pins down, and
-`authoring/span-close-step/decisions.py` asserts that every wrong reading kept in
-`readings.py` is caught by at least one of them - a corner nobody's mistake can
-fail is a corner that is not being graded.
+corners. Each name below says which decision the script pins down, and every one of
+them was checked to reject at least one plausible-but-wrong reading of the brief
+before it was kept: a corner nobody's mistake can fail is a corner that is not being
+graded.
 """
 
 CASES = {

@@ -12,14 +12,14 @@ import shutil
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "authoring" / "span-close-step"))
-sys.path.insert(0, str(ROOT / "tasks" / "span-close-step" / "tests" / "seal"))
+sys.path.insert(0, str(ROOT / "authoring" / "packed-doc-settlement"))
+sys.path.insert(0, str(ROOT / "tasks" / "packed-doc-settlement" / "tests" / "seal"))
 
 import harness  # noqa: E402
 import cases  # noqa: E402
 import model  # noqa: E402
 
-TASK = ROOT / "tasks" / "span-close-step"
+TASK = ROOT / "tasks" / "packed-doc-settlement"
 ENV = TASK / "environment" / "app_src"
 PRISTINE = TASK / "tests" / "pristine"
 
@@ -35,12 +35,12 @@ def stage_pristine():
     if PRISTINE.exists():
         shutil.rmtree(PRISTINE)
     (PRISTINE / "train").mkdir(parents=True)
-    (PRISTINE / "runs").mkdir(parents=True)
+    (PRISTINE / "recipes").mkdir(parents=True)
     write(PRISTINE / "run_train.py", (ENV / "run_train.py").read_text())
     for f in sorted((ENV / "train").glob("*.py")):
         write(PRISTINE / "train" / f.name, f.read_text())
-    for f in sorted((ENV / "runs").glob("*.txt")):
-        write(PRISTINE / "runs" / f.name, f.read_text())
+    for f in sorted((ENV / "recipes").glob("*.txt")):
+        write(PRISTINE / "recipes" / f.name, f.read_text())
 
 
 def main():

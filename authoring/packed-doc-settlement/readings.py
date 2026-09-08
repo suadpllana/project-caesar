@@ -12,15 +12,15 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "authoring" / "span-close-step"))
-sys.path.insert(0, str(ROOT / "tasks" / "span-close-step" / "tests" / "seal"))
+sys.path.insert(0, str(ROOT / "authoring" / "packed-doc-settlement"))
+sys.path.insert(0, str(ROOT / "tasks" / "packed-doc-settlement" / "tests" / "seal"))
 
 import harness  # noqa: E402
 import gen  # noqa: E402
 import model  # noqa: E402
 
-REF = ROOT / "tasks" / "span-close-step" / "solution"
-ENV = ROOT / "tasks" / "span-close-step" / "environment" / "app_src" / "train"
+REF = ROOT / "tasks" / "packed-doc-settlement" / "solution"
+ENV = ROOT / "tasks" / "packed-doc-settlement" / "environment" / "app_src" / "train"
 
 STALE_PICK = '''import math
 
@@ -464,7 +464,7 @@ def main():
     per = int(sys.argv[2]) if len(sys.argv) > 2 else 60
     progs = gen.programs(seed, per)
     want = [(n, model.expect(l)) for _, n, l in progs]
-    tmp = pathlib.Path(tempfile.mkdtemp(prefix="scs-readings-"))
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="pds-readings-"))
     try:
         base = harness.solution_tree()
         ok = sum(1 for (_, _, lines), (_, exp) in zip(progs, want)

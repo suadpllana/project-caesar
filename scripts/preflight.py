@@ -70,11 +70,22 @@ TODO_MARKERS = ("TODO", "FIXME", "<your-", "XXX")
 # disagreed, harbor's own `jobs/` output was skipped by the scanner and shipped
 # by the packager - and its result.json carries the org name, which the platform
 # blocks. Never let one tool learn about a path the other does not.
+# Caches and metadata, excluded wherever they appear: nothing a task ships is ever
+# called one of these.
 EXCLUDE_DIRS = {
-    ".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache",
-    "logs", "runs", ".harbor",
+    ".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".harbor",
+}
+# Harness output, excluded only at the top of the task folder, which is the one place
+# a `harbor run -o .` leaves it. These are ordinary English words and a task may
+# legitimately ship a directory with the same name deeper in its tree: `runs/` here ate
+# environment/app_src/runs/ out of a submitted archive on 2026-09-08, so the brief
+# pointed at files that were not in the bundle and the quality review failed the task on
+# it. Scope the name to where the danger actually is; content detection below still
+# catches harness output wherever it hides.
+EXCLUDE_TOP_DIRS = {
+    "logs", "runs",
     "jobs",          # harbor run's default output dir (-o/--jobs-dir)
-    "job", "results", "trials", ".pytest_cache",
+    "job", "results", "trials",
 }
 # Any directory holding a harbor result file is harness output, whatever it is called.
 HARNESS_OUTPUT_MARKERS = ("result.json", "trial.log", "job.log")
@@ -103,6 +114,8 @@ def shipped_files(root: Path) -> list[Path]:
             continue
         rel = path.relative_to(root)
         if any(part in EXCLUDE_DIRS for part in rel.parts):
+            continue
+        if rel.parts and rel.parts[0] in EXCLUDE_TOP_DIRS:
             continue
         if any(str(path).startswith(str(d)) for d in skip_dirs):
             continue

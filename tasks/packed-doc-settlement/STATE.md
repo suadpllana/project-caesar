@@ -1,6 +1,6 @@
 # Task state
 
-Working memory for `span-close-step`. Assume the next session starts with no memory of this
+Working memory for `packed-doc-settlement`. Assume the next session starts with no memory of this
 one - anything not written here is lost. This file never ships in the zip.
 
 ## Current stage
@@ -157,7 +157,7 @@ line exactly.
 ## Evidence
 
 Everything below was run in this workspace. Host emulation means
-`authoring/span-close-step/trial.py`, which reproduces the grading faithfully - same worker, same
+`authoring/packed-doc-settlement/trial.py`, which reproduces the grading faithfully - same worker, same
 pytest module, same nonce generation after the agent finishes - and does not reproduce the
 isolation (no privilege drop, no locked reward channel, no survivor sweep).
 
@@ -178,7 +178,7 @@ isolation (no privilege drop, no locked reward channel, no survivor sweep).
   both shipped scripts.
 - `tools/forgecheck.py`: the forgery probe is recognised as carrying ground truth and the whole
   cheat suite scores 0 through it.
-- `authoring/span-close-step/sealcheck.py`: the verifier's `tests/` staged under the mode bits
+- `authoring/packed-doc-settlement/sealcheck.py`: the verifier's `tests/` staged under the mode bits
   `tests/Dockerfile` applies, then read from uid 1002 through `setpriv`. The model, the generator,
   the case list and the frozen answers are all unreachable; `worker.py` and the pristine tree, the
   two things the worker legitimately needs, are readable. This is real uid-based evidence for the
@@ -188,8 +188,9 @@ isolation (no privilege drop, no locked reward channel, no survivor sweep).
   reference. `tools/structcheck.py` and `tools/hintcheck.py`: clean.
 - `scripts/preflight.py`: no errors. `catcheck`, `solvecheck`, `deadfieldcheck`,
   `extraneouscheck`: clean.
-- `scripts/package.py` then `tools/zipcheck.py`: 67 entries, no findings, no cache or state files
-  in the archive.
+- `scripts/package.py` then `tools/zipcheck.py`: 71 entries, no findings, no cache or state files
+  in the archive, and every `/app` path the brief names present in it - including
+  `environment/app_src/recipes/`, which an earlier build silently lost.
 - `tools/simcheck.py`: NEAR on `environment/Dockerfile` (five lines of boilerplate identical
   across every retained bundle) and on `tests/Dockerfile` at 0.868. That number was 0.779 with the
   four `mkdir` lines folded into one `RUN`, and folding them is what the platform rejected on
@@ -210,6 +211,18 @@ says so.
 
 ## Platform verdicts
 
+- 2026-09-08, quality review, blocking, `typos`: the brief named `/app/runs/hold.txt` and
+  `solve.sh` ran `runs/hold.txt`, but the archive contained no `runs/` directory - this repo's
+  packager carries `runs` on its harness-output exclusion list and had dropped
+  `environment/app_src/runs/` from the zip. The brief pointed at nothing and the reference would
+  have exited 1. Three repairs: the exclusion list now scopes harness-output names to the top of
+  the task folder, the directory is `recipes/` so it no longer sits on the name, and
+  `tools/zipcheck.py` now reads the archive's own `instruction.md` and fails when a `/app/...`
+  path it names is missing from the archive - checked to reproduce this rejection and to be clean
+  on all ten bundles. The same finding flagged `cheat/README.md` and `tests/seal/cases.py` for
+  citing `authoring/<slug>/*.py`, which never ships; both were reworded.
+- 2026-09-08, quality review, blocking, `task name`: `span-close-step` was cryptic - the task's own
+  internal vocabulary rather than its subject. Renamed to `packed-doc-settlement`.
 - 2026-09-08, structural, blocking: `ARTIFACT-PARENT-NOT-CREATED` on `tests/Dockerfile`. The
   parent of the declared artifacts was created by a `mkdir` folded into a continuation of the
   `useradd` instruction; the platform reads the file line by line and wants an instruction that

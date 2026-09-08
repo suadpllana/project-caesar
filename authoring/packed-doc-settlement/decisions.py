@@ -12,8 +12,8 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "authoring" / "span-close-step"))
-sys.path.insert(0, str(ROOT / "tasks" / "span-close-step" / "tests" / "seal"))
+sys.path.insert(0, str(ROOT / "authoring" / "packed-doc-settlement"))
+sys.path.insert(0, str(ROOT / "tasks" / "packed-doc-settlement" / "tests" / "seal"))
 
 import harness  # noqa: E402
 import cases  # noqa: E402
@@ -41,7 +41,7 @@ def main():
             bad += 1
         print("%-30s %2d lines  %s" % (name, len(exp), flag or "ok"))
 
-    tmp = pathlib.Path(tempfile.mkdtemp(prefix="scs-dec-"))
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="pds-dec-"))
     try:
         print()
         for rname in sorted(readings.READINGS):

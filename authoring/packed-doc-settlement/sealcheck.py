@@ -10,7 +10,7 @@ drop to the sandbox uid with `setpriv`, and report what is reachable from there.
 What it does not show is the rest of the isolation - the locked reward channel, the
 survivor sweep, the privileged grader - which needs the two-container runner.
 
-    sudo python3 authoring/span-close-step/sealcheck.py
+    sudo python3 authoring/packed-doc-settlement/sealcheck.py
 """
 import os
 import pathlib
@@ -19,8 +19,8 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-TESTS = ROOT / "tasks" / "span-close-step" / "tests"
-STAGE = pathlib.Path("/opt/scs-sealcheck")
+TESTS = ROOT / "tasks" / "packed-doc-settlement" / "tests"
+STAGE = pathlib.Path("/opt/pds-sealcheck")
 SANDBOX = 1002
 
 PROBE = r"""
@@ -72,7 +72,7 @@ def main():
         subprocess.run(["chmod", "700", str(STAGE / "tests" / "seal")], check=True)
         for f in sorted((STAGE / "tests" / "seal").iterdir()):
             f.chmod(0o600)
-        print("== span-close-step seal, under the image's own mode bits")
+        print("== packed-doc-settlement seal, under the image's own mode bits")
         proc = subprocess.run(
             ["setpriv", "--reuid=%d" % SANDBOX, "--regid=%d" % SANDBOX, "--clear-groups",
              sys.executable, "-c", PROBE % {"stage": STAGE}])

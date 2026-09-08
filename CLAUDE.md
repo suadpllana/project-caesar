@@ -172,7 +172,7 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
 
-## Lessons, measured (2026-09-08, `span-close-step`)
+## Lessons, measured (2026-09-08, `packed-doc-settlement`)
 
 - **A verifier that executes agent code had the sealed model on the sandbox's import path.**
   The worker put `/tests` on `sys.path` so it could load the case list and the generator, and
@@ -232,3 +232,26 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   error costs a submission, a similarity warning on fifteen lines of mandated plumbing costs a
   sentence in the handover. Rewrite the file that is a near copy because it *was* copied; do not
   rewrite the file whose shape the harness dictates.
+
+- **The packager silently deleted a shipped directory, and every local gate stayed green.**
+  `environment/app_src/runs/` held the two run scripts the brief tells the agent to run. `runs`
+  was in `EXCLUDE_DIRS` as a harness-output name, so `package.py` dropped it: the archive had no
+  `.txt` file at all, the brief pointed at nothing, `solve.sh` exited 1, and the quality review
+  failed the task on `typos`. `preflight` reads the tree and never saw it; `imagecheck` reads the
+  tree; `zipcheck`'s staleness test compares zip against tree and cannot see a file missing from
+  *both*. The fix is in three parts and the third is the one that generalises: scope
+  harness-output names to the top of the task folder, rename the directory so it no longer sits
+  on the name, and make `zipcheck` read the archive's own `instruction.md` and fail when a
+  `/app/...` path it names is not in the archive. That last check reproduces the rejection
+  exactly and is clean on all ten bundles. **Every gate that reads the working tree is answering
+  a different question from the one the pipeline asks.** At least one check has to read the zip
+  and nothing else.
+- **A slug is read by a person before anything else in the bundle.** `span-close-step` was three
+  lowercase words and passed every mechanical name rule, and the quality review still failed it as
+  cryptic: 'span', 'close' and 'step' are the task's own internal vocabulary and say nothing about
+  a trainer, accumulation or settlement. Name the subject the way someone who has never seen the
+  task would describe it - `packed-doc-settlement` - not the way the code names its mechanism.
+- **Documentation inside the bundle may only point at things inside the bundle.** `cheat/README.md`
+  and `tests/seal/cases.py` cited `authoring/<slug>/*.py`, which lives in the repo and never
+  ships, and the reviewer read those as dangling paths in the same finding as the missing
+  directory. Anything the archive names, the archive has to contain.

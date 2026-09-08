@@ -10,7 +10,7 @@ artifacts = [
 ]
 
 [task]
-name = "afterquery/span-close-step"
+name = "afterquery/packed-doc-settlement"
 
 [metadata]
 author_name = "Suad Pllana"

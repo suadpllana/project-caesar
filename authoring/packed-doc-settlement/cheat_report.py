@@ -11,12 +11,12 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "authoring" / "span-close-step"))
+sys.path.insert(0, str(ROOT / "authoring" / "packed-doc-settlement"))
 
 import trial  # noqa: E402
 import shellcheats  # noqa: E402
 
-CHEATS = ROOT / "tasks" / "span-close-step" / "cheat"
+CHEATS = ROOT / "tasks" / "packed-doc-settlement" / "cheat"
 
 
 def main():

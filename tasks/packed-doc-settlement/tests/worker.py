@@ -17,9 +17,9 @@ import sys
 import tempfile
 import traceback
 
-TESTS = pathlib.Path(os.environ.get("SCS_TESTS", "/tests"))
-WORK = pathlib.Path(os.environ.get("SCS_WORK", "/work"))
-SUBMITTED = pathlib.Path(os.environ.get("SCS_SUB", "/app/train"))
+TESTS = pathlib.Path(os.environ.get("PDS_TESTS", "/tests"))
+WORK = pathlib.Path(os.environ.get("PDS_WORK", "/work"))
+SUBMITTED = pathlib.Path(os.environ.get("PDS_SUB", "/app/train"))
 PARTS = ("pick.py", "fold.py", "norm.py", "turn.py", "again.py", "keep.py")
 PRISTINE = TESTS / "pristine"
 

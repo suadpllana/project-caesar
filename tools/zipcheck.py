@@ -126,6 +126,28 @@ def check(zpath: Path) -> int:
         if len(stale) > 10:
             findings.append("...and %d more files newer than the zip" % (len(stale) - 10))
 
+    # 5. Every /app path the brief names has to be in the archive. The staleness test
+    #    above compares the zip against the tree, so a file the packager drops from BOTH
+    #    is invisible to it - which is how a bundle shipped on 2026-09-08 with no
+    #    environment/app_src/runs/ at all, because `runs` was on the packager's
+    #    harness-output exclusion list. The brief told the agent to run a script that was
+    #    not there and solve.sh exited 1; the quality review failed the task on it and no
+    #    local gate had said a word. Read what the brief promises, and look for it here.
+    if "instruction.md" in {"/".join(n.split("/")[1:]) for n in names}:
+        brief = zf.read("%s/instruction.md" % slug).decode("utf-8", "replace")
+        shipped = {"/".join(n.split("/")[1:]) for n in names}
+        for path in sorted(set(re.findall(r"`(/app/[\w./-]+)`", brief))):
+            rel = path[len("/app/"):]
+            if not rel:
+                continue
+            here = "environment/app_src/" + rel
+            if here in shipped:
+                continue
+            if any(n.startswith(here + "/") for n in shipped):
+                continue
+            findings.append(
+                "instruction.md names %s but the archive has no %s" % (path, here))
+
     print("== %s" % zpath)
     print("   %d entries" % len(names))
     if findings:

@@ -56,10 +56,10 @@ import gen
 import model
 
 HERE = pathlib.Path(__file__).resolve().parent
-WORK = pathlib.Path(os.environ.get("SCS_WORK", "/work"))
+WORK = pathlib.Path(os.environ.get("PDS_WORK", "/work"))
 OUT = WORK / "worker_out.json"
 GT = HERE / "gt.json"
-LOGS = pathlib.Path(os.environ.get("SCS_LOGS", "/logs/verifier"))
+LOGS = pathlib.Path(os.environ.get("PDS_LOGS", "/logs/verifier"))
 NONCE = LOGS / "nonce"
 PER = LOGS / "per"
 

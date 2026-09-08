@@ -25,8 +25,12 @@ chmod 600 /tests/gt.json /tests/model.py /tests/gen.py /tests/cases.py \
 rm -rf /work
 mkdir -p /work/app /work/run
 cp -a /pristine/. /work/app/
+# A declared file the agent never produced does not exist here; the pristine one stands in
+# and the run fails on the answers. `[ -f ... ] && cp` would abort under `set -e` instead.
 for f in mrg/live.py mrg/spot.py mrg/name.py mrg/book.py mrg/step.py; do
-  [ -f "/app/$f" ] && cp -f "/app/$f" "/work/app/$f"
+  if [ -f "/app/$f" ]; then
+    cp -f "/app/$f" "/work/app/$f"
+  fi
 done
 find /work/app \( -name __pycache__ -o -name '*.pyc' \) -exec rm -rf {} + 2>/dev/null || true
 chown -R root:root /work

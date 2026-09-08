@@ -22,7 +22,7 @@ The operations are `mkd <path>`, `mkf <path> <content>`, `ed <path> <content>`, 
 <path>` and `rm <path>`. A move names the whole destination path. A removal names a file, or a
 folder with nothing left in it. An operation a side cannot carry out is passed over. The
 workstation compares names exactly. On the server they are compared without regard to case, and
-so they are in the record, which cannot hold two names in one folder that differ only in case.
+so they are in the record.
 
 Each round prints the operations the engine gave each side, one to a line and in the order it
 gave them, as `<round> L <op>` and `<round> R <op>`, with the operation written the way a
@@ -86,9 +86,9 @@ can be standing on the name it wants itself, which is what a change of case come
 that compares names without regard to it.
 
 Every printed line of every round is graded, exactly, on the scenarios in the tree and on
-scenarios you have not seen. Those run to four rounds over records of up to thirty nodes,
-and they do all of it: removals set against changes, folders emptied and refilled, moves that
-cross, one name wanted by more than two nodes at once, and rounds in which nothing happened.
-Nothing outside the five files is read.
+scenarios you have not seen. Those run to four rounds over records of up to thirty nodes, and
+they do all of it: removals set against changes, folders emptied and refilled, moves that cross,
+one name wanted by more than two nodes at once, and rounds in which nothing happened. Nothing
+outside the five files is read.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

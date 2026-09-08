@@ -116,7 +116,9 @@ def check_hints(text):
 def check_numbers(slug, text):
     """Every 'N folds' / 'N scans' in the brief must exist in gt.json."""
     findings = []
-    gtp = ROOT / "tasks" / slug / "tests" / "gt.json"
+    gtp = ROOT / "tasks" / slug / "tests" / "seal" / "gt.json"
+    if not gtp.is_file():
+        gtp = ROOT / "tasks" / slug / "tests" / "gt.json"
     if not gtp.is_file():
         return findings
     gt = json.loads(gtp.read_text(encoding="utf-8"))

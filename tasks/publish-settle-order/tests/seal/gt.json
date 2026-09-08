@@ -1,0 +1,177 @@
+{
+ "boot-cycle": [
+  "up u2",
+  "miss u2 s1",
+  "up u1",
+  "run u1 s2 u2"
+ ],
+ "boot-order": [
+  "up u2",
+  "up u1",
+  "run u1 s2 u2",
+  "run u1 s1 u2",
+  "run u1 s1 u2"
+ ],
+ "boot-partial": [
+  "up u2",
+  "miss u2 s1",
+  "up u1",
+  "run u2 s1 u1"
+ ],
+ "casc-order": [
+  "up u1",
+  "up u2",
+  "up u3",
+  "down u3",
+  "down u2",
+  "down u1"
+ ],
+ "casc-part": [
+  "up u1",
+  "up u2",
+  "up u3",
+  "down u3",
+  "down u1",
+  "down u2"
+ ],
+ "chain": [
+  "up u1",
+  "up u2",
+  "up u3",
+  "down u3",
+  "down u2",
+  "down u1"
+ ],
+ "dead-stays": [
+  "up u2",
+  "up u1",
+  "run u1 s1 u2",
+  "down u2",
+  "up u3",
+  "dead u1 s1",
+  "dead u1 s1"
+ ],
+ "deep": [
+  "up u1",
+  "up u2",
+  "up u3"
+ ],
+ "dep-holds": [
+  "up u1",
+  "up u2",
+  "down u2",
+  "down u1"
+ ],
+ "dep-order": [
+  "up u2",
+  "up u1",
+  "up u3"
+ ],
+ "fall-first": [
+  "up u1",
+  "up u2",
+  "up u3",
+  "run u3 s1 u1"
+ ],
+ "fall-late": [
+  "up u1",
+  "up u2",
+  "up u3",
+  "run u3 s1 u1"
+ ],
+ "fall-only": [
+  "up u1",
+  "up u2",
+  "run u2 s1 u1"
+ ],
+ "fresh-instance": [
+  "up u2",
+  "up u1",
+  "run u1 s1 u2",
+  "down u1",
+  "up u3",
+  "down u2",
+  "up u1",
+  "run u1 s1 u3"
+ ],
+ "hold-two": [
+  "up u1",
+  "down u1"
+ ],
+ "miss-boot": [
+  "up u2",
+  "miss u2 s1",
+  "up u1",
+  "miss u2 s1",
+  "up u3",
+  "run u2 s1 u3"
+ ],
+ "miss-open": [
+  "up u1",
+  "miss u1 s1",
+  "up u2",
+  "run u1 s1 u2"
+ ],
+ "not-live": [
+  "up u2",
+  "up u1",
+  "run u1 s1 u2",
+  "down u1"
+ ],
+ "plain": [
+  "up u1",
+  "up u2",
+  "run u2 s1 u1",
+  "down u2",
+  "down u1"
+ ],
+ "pre-no-keep": [
+  "up u1",
+  "up u2",
+  "down u1"
+ ],
+ "pre-order": [
+  "up u2",
+  "up u1",
+  "up u3"
+ ],
+ "pre-vs-dep": [
+  "up u1",
+  "up u2",
+  "up u3",
+  "down u2"
+ ],
+ "rel-early": [
+  "up u1",
+  "up u2",
+  "down u2"
+ ],
+ "rel-nohold": [
+  "up u1",
+  "down u1",
+  "up u1",
+  "down u1"
+ ],
+ "same-name": [
+  "up u2",
+  "up u1",
+  "run u1 s1 u2",
+  "down u2",
+  "up u2",
+  "dead u1 s1"
+ ],
+ "stay-put": [
+  "up u1",
+  "up u2",
+  "up u3",
+  "run u3 s1 u1"
+ ],
+ "stick-dead": [
+  "up u2",
+  "up u3",
+  "up u1",
+  "run u1 s1 u2",
+  "down u2",
+  "dead u1 s1"
+ ]
+}

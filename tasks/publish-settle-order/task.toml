@@ -1,0 +1,169 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/link/walk.py",
+  "/app/link/pick.py",
+  "/app/link/site.py",
+  "/app/link/want.py",
+  "/app/link/drop.py",
+]
+
+[task]
+name = "afterquery/publish-settle-order"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The host is small and every rule is in the brief, which is where the difficulty sits: two of the
+thirteen graded decisions cannot be implemented from the brief alone, and neither failure shows
+up until late.
+
+The first is identity. A use settles on a publication rather than on a name, and the brief says
+so - a unit of the same name coming back up does not repair a use that was settled on the one
+that left. Nothing in the tree represents a publication. `reg/tab.py` keeps one record per name
+for the whole run and hands back the same object every time, so the two natural stores, the
+record and the record's `live` flag, both quietly revive a use that has to stay dead. The repair
+is not a line but a change of model: an instance mark the agent has to invent, stamped where a
+unit is published and carried in the settled use. A generation counter shipped in the tree would
+have handed that over, so there is none.
+
+The second is cost. "The first unit in publication order that publishes the name" reads as a
+scan of the order per call, and that is exactly correct; on the graded set it takes 658
+seconds against the 60 the brief states. What makes it cheap is that the order only grows at the
+back, so a unit joining can only add names nothing answers yet, and the direction needing care
+is a unit leaving, where the answer becomes whatever stood behind it. Rebuilding the index
+whenever the order changes is correct too, and also too slow: a closure of eighteen thousand
+units changes the order eighteen thousand times.
+
+Eleven further decisions consume each other around those two. Publication and startup interleave
+per unit, so a startup call inside a dependency cycle resolves against an order that does not yet
+hold the unit that began the activation. What a unit names is walked in declaration order whether
+it is a dependency or an ordering edge, and only retention tells the two apart - an ordering edge
+decides when its target comes up and keeps nothing afterwards, so a unit brought up by one goes
+down at the next sweep unless something else wants it. A call that finds nothing settles nothing,
+so the same call can settle later. The sweep takes the last unwanted unit and then asks again,
+and what it takes down decides which settled uses are dead. All five editable modules ship wrong,
+so running the host confirms nothing about any one of them.
+
+Identifiers are in a legacy register - `seq`, `pubs`, `boots`, `needs`, `uses`, `link/`, `reg/` -
+short but never misleading, and no name misdescribes what it holds. That is a choice about the
+register of real runtime code rather than an obstacle: each is recoverable from what calls it.
+The tree is compact and does not pretend otherwise. The difficulty is the conjunction and the two
+inventions, not the file count.
+
+The programs are synthetic, in seven families, with dependency cycles, fallback publications,
+ordering edges, retire-and-return and cascading releases concentrated far above their natural
+rate. In a working host they are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Five modules, settled in the order the rules force rather than one that is tidy.
+
+`walk.py` brings a unit up. What the unit names comes first, in declaration order and without
+regard to which kind of edge it is, skipping any that is already up or is itself part way up,
+which is what makes a cycle terminate. The unit is then published at the back of the order and
+its startup calls run after that, so a startup call sees the order as far as it has been built.
+Coming up also clears the record's settled uses and stamps a fresh mark on it, because
+`reg/tab.py` hands back the same record the unit used in its last life.
+
+`pick.py` answers a name. The contract is the first live publisher in publication order, a
+fallback publication counting like any other, and the implementation keeps one list per name in
+publication order: a unit joining appends to each of its names, a unit leaving is spliced out,
+and the head of a list is that name's answer. That follows from the order only ever growing at
+the back, and it is the difference between two seconds and ten minutes on the graded set.
+
+`site.py` runs a call. An open use resolves once and settles on the publication it found, mark
+and all. A settled use is never resolved again, and it answers dead as soon as the mark it
+carries is not the mark on the record. A call that found nothing settles nothing.
+
+`want.py` decides whether a live unit has to stay - a hold of its own, or a live unit that needs
+it as a dependency, which is where the second half of a `needs` entry finally matters - and
+`drop.py` gives a hold back and sweeps, taking the last unwanted unit in publication order and
+then asking again, because the one that went down may have been all that kept the next.
+
+An expert works in that order because each module consumes the one before it: the walk decides
+the order, the order decides the answer, and the answer decides what a retirement breaks. The
+same contract is implemented three further ways in the authoring set - the whole host in one
+module, an answer memoised per name and dropped whenever the order changes, and a walk from an
+explicit stack that numbers publications instead of marking them - so the shape is visibly not
+what is graded.
+"""
+
+verification_explanation = """
+Only the five files under `/app/link/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-seven hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Three hundred and sixty-four
+further programs are generated inside the verifier from a seed drawn after the agent's container
+is gone, across seven families that concentrate cycles, fallback publications, ordering edges,
+retire-and-return and cascading releases. A submission cannot have seen them, so fitting the
+shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Settling too eagerly fails `miss-open` and `miss-boot`; never settling
+fails `stick-dead`. Treating a returning name as the unit that left fails `same-name` and
+`fresh-instance`. Retiring too much fails `dep-holds` and `rel-early`; retiring too little fails
+`casc-order`, `chain` and `pre-no-keep`. Answering with the newest publisher rather than the
+first fails `fall-first` and `stay-put`.
+
+Thirty-six cheats score 0. Twenty-five are wrong readings, twenty-two of them caught by the
+enumerated case named for that reading and three by the execution limit alone. One is a forgery
+that carries the frozen answer for every enumerated program and replays it: it passes all
+twenty-seven and fails on the programs it could not have seen, which is the clearest statement
+that the enumerated half is not the exam. The other ten are probes - the answer key, a hijacked
+dispatcher, a planted report, a report forged after the worker exits, a grader crash, malformed
+records, privilege, a shrunken population, and a rewrite of the parts of the tree the verifier
+does not take. Three independently written correct hosts score 1.
+
+The submitted host runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Systems"
+
+tags = [
+  "extension-host",
+  "name-resolution",
+  "publication-order",
+  "instance-identity",
+  "reference-counted-teardown",
+  "incremental-index",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+Having built or maintained the loading half of an extension host: something that brings units
+of code up in dependency order, lets them publish names that other units call, and has to take
+them down again without breaking whatever is still running. Familiarity with the fact that a
+resolution is not a function of the current state but of the moment it was made, so what a call
+reaches depends on how much of the order existed the first time it asked. Comfort with
+reference-counted teardown and the cascade that one release sets off, and the habit of asking
+whether the thing that came back is the thing that left.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

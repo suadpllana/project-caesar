@@ -1,0 +1,13 @@
+unit u1
+pub u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u3
+call u3 s1
+rel u1
+call u3 s1
+act u2
+call u3 s1
+rel u3

@@ -171,3 +171,38 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
+
+## Lessons, measured (2026-09-08, `publish-settle-order`)
+
+- **Measure the tree against the retained band before calling the environment done.** The first
+  build of this task was 162 lines of Python across eleven files - under every retained bundle
+  (229 to 544) and the exact shape the quality review has failed `difficult` on twice. Nothing
+  else saw it: preflight, `extraneouscheck`, `imagecheck`, the oracle, the nop and 33 cheats were
+  all green on a task that was quietly too small. `wc -l` over `tasks/*/environment/app_src/**.py`
+  is one command and it is the check. The repair was structure the rules use - a declaration
+  store, a publication order, a hold ledger keyed by name, an event writer, all frozen - plus one
+  more graded rule that splits bringing a unit up from keeping it up.
+- **A sealed model inside the verifier is readable by the code it grades unless it is locked.**
+  The worker puts `/tests` on `sys.path` so it can import the case list and the generator, and
+  that also makes `import model` work from a submitted file - the model computes the answer to
+  every graded program. `tests/seal/` with `chmod 700` before the privilege drop closes it, and
+  the probe that reaches for it now reports `PermissionError` instead of only a zero. Two kit
+  tools had to be taught the new location, which is the same "two tools disagree" shape as the
+  `readingcheck` fix.
+- **Two runs of a fixed-path harness are one run with the rows interleaved.** `host_trial.py`
+  writes `/app`, `/tests`, `/work` and `/logs`; a second copy started beside it produced a cheat
+  row carrying the shipped host's trace and cost twenty minutes chasing a bug that was not there.
+  It takes a lock now. The same applies to any authoring script that writes absolute paths.
+- **A relative path handed to a harness that chdirs is a silent no-op.** `--cheat tasks/.../x.sh`
+  ran `bash` with cwd `/app`, where that path does not exist, and the exit status was ignored, so
+  the cheat looked like a clean run that scored 0 for its own reasons. Resolve paths, and check
+  the status of anything you shell out to.
+- **`tests/pristine/` is a copy, and copies go stale.** Rebuilding the environment without
+  re-syncing it made the oracle fail with an ImportError inside the worker, which reads like a
+  broken task rather than a stale mirror. The sync script has a `--check` mode; run it after any
+  change to `environment/`.
+- **A forgery probe has to key on the program, not on the process.** The first answer-key cheat
+  kept its op buffer in a module global, so it reproduced the first program and drifted on every
+  one after it. It scored 0 either way, which is the trap: the layer report claimed the nonce
+  population caught it when in truth it had stopped working after the first case. Assert what the
+  probe was supposed to reproduce, not only what it scored.

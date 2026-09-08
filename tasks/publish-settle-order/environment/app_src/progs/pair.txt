@@ -1,0 +1,10 @@
+unit u1
+unit u2
+dep u1 u2
+dep u2 u1
+pub u1 s1
+pub u2 s2
+boot u1 s2
+act u1
+call u2 s1
+rel u1

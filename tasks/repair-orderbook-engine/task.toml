@@ -30,16 +30,20 @@ All-or-nothing admission is where the first coherent plan goes wrong. The shippe
 decides admission with a read-only count and then walks, and the natural repair keeps
 that shape: count under order pace, execute and roll back under fill pace, and put
 everything back when the order comes up short. Under these rules a whole order finds out
-by walking whether it is short, and a firing caused by one of its fills is the one effect
-its failure does not reverse. A counted admission fires nothing on a walk that would have
-failed; a transaction that restores the parked set fires it and then takes it back. Both
-agree with the rules on every session where nothing parked sits in the failed walk's
-path, so they survive ordinary testing and a self-written reference built on the same
-reading. The set that stays fired spans nesting: an order fired inside a child the failed
-order ran, whether that child succeeded or failed, is announced and run again after the
-enclosing cancellation, in arrival order, from its full size, and is run once more when
-the next enclosing order fails. Bookkeeping that closes with its frame loses exactly
-those.
+by walking whether it is short, and its failure unwinds trades but not paperwork: a
+firing caused by one of its fills stands, and so does a same-participant cancellation of
+an order that was on the book when it began. A counted admission fires and pulls nothing
+on a walk that would have failed; a transaction that restores the parked set and the book
+fires and pulls and then takes both back; a refusal without walking, on the ground that
+no fill is possible, misses the cancellations a fill-less walk still makes. All three
+agree with the rules on every session where nothing parked and nothing of the same
+participant sits in the failed walk's path, so they survive ordinary testing and a
+self-written reference built on the same reading. Both kept effects span nesting and
+survive an inner order's success or failure, and an order that only rested inside the
+discarded execution has no cancellation to keep: it runs again from full size instead.
+Bookkeeping that closes with its frame, or that treats every removal alike, loses exactly
+those distinctions. The brief states the principle and the announcements; the consequences
+are the solver's to derive.
 
 Two execution policies make the same rules produce different traces. In order pace,
 fired orders wait until the current order finishes, so what a failed whole fired joins
@@ -73,17 +77,20 @@ and completes each child's descendants before advancing to the next sibling.
 
 Whole orders are walked for real in both paces, inside a frame taken at entry: queue
 references and the waiting queue are copied, the last price is saved, and the values an
-execution changes are recorded in every frame open at the time. The shipped read-only
-count survives as the one refusal that needs no walk, a walk that would make no fill,
-because such a walk fires nothing and leaves nothing to restore. The parked set is not
-part of the frame. Firing records what fired into every open frame, so an outer frame
-holds what fired inside an inner one whether that inner order committed or failed. On
-failure the frame is restored, the cancellation line is printed, the frame's firings are
-announced in arrival order and then submitted again, at once under fill pace and onto the
-waiting queue under order pace. Restoration keeps the original order objects so later
-user cancellations still reach them. A failed child restores its own entry state and
-runs its own firings; a failed ancestor restores the larger subtree and runs the larger
-set.
+execution changes are recorded in every frame open at the time, the first touch of each
+order recording whether it was on the book when the frame opened. The shipped read-only
+count is retained for the frozen interface and never consulted, because a walk that would
+fill nothing can still cancel. The parked set is not part of the frame. Firings and
+same-participant cancellations are recorded into every open frame, so an outer frame
+holds what happened inside an inner one whether that inner order committed or failed. On
+failure the frame is restored; the cancelled orders that were standing at entry are
+marked dead again, which leaves them off the book while the restored queues skip them;
+the cancellation line is printed, the cancellations are announced in the order they
+happened, the firings are announced in arrival order and then submitted again, at once
+under fill pace and onto the waiting queue under order pace. Restoration keeps the
+original order objects so later user cancellations still reach them. A failed child
+restores its own entry state and re-announces its own leavings; a failed ancestor
+restores the larger subtree and re-announces the larger set.
 
 Two heaps hold parked buys and sells, with an ID map for cancellation and a separate
 arrival sequence for simultaneous firings. Eligible records are removed once, ordered
@@ -93,23 +100,27 @@ non-monotonic order IDs according to the instruction's arrival-order rule.
 
 verification_explanation = """
 The verifier overlays the five declared artifacts onto a pristine engine tree and drives
-67 named sessions, 300 generated small sessions in six shaped families, 120 generated
+74 named sessions, 300 generated small sessions in six shaped families, 120 generated
 fill-pace sessions, four generated large sessions and one large fill-pace session. The
 generated inputs use a nonce chosen after the attempt finishes. Every ordered event row
 and final book row is compared exactly with the sealed model. The saved named-case rows
 must also agree with that model. There is no partial credit or numerical tolerance.
 
 The model uses a flat book with explicit queue sequence numbers, per-mutation undo
-records for nested whole orders, a firing log that no checkpoint truncates, and bucketed
-trigger prices found by bisection. It shares no matching code with the submitted engine.
-Arrival stamps are separate from queue priority and order IDs. Named sessions distinguish
-descendant liquidity supply and consumption, depth-first ordering, final-fill batches,
-nested restoration, later cancellations, simultaneous firing with unordered IDs, and what
-a failed whole fired: kept, announced after the cancellation line, run in arrival order
-from full size, before waiting siblings under fill pace and behind the waiting queue
-under order pace, and run again after each enclosing failure, whether the child it fired
-inside committed or failed. The must-still-work side is fenced by failed orders that made
-no fill. Twenty-one tests cover semantics, integrity and process lifecycle.
+records for nested whole orders, a firing log and a cancellation log that no checkpoint
+truncates, a book-entry stamp per order, and bucketed trigger prices found by bisection.
+It shares no matching code with the submitted engine. Arrival stamps are separate from
+queue priority and order IDs. Named sessions distinguish descendant liquidity supply and
+consumption, depth-first ordering, final-fill batches, nested restoration, later
+cancellations, simultaneous firing with unordered IDs, and what a failed whole fired and
+pulled: a firing kept, announced after the cancellation line, run in arrival order from
+full size, before waiting siblings under fill pace and behind the waiting queue under
+order pace, and run again after each enclosing failure; a same-participant cancellation
+of an order that was standing kept and announced again before the firings, in the order
+it happened, at any depth, while one of an order that only rested inside the discarded
+execution is not. The must-still-work side is fenced by failed orders that made no fill,
+with and without a cancellation on the way. Twenty-three tests cover semantics, integrity
+and process lifecycle.
 
 Integrity checks compare immutable files and live function fingerprints, check monitored
 committed-sink entry counts against reported rows, and require the existing walk, avail,

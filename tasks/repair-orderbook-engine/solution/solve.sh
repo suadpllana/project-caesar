@@ -8,9 +8,11 @@
 # edited is part of the work.
 #
 # hold.py walks every whole order for real in both paces and keeps a frame to give the
-# state back from; the shipped read-only count survives only as the one refusal that
-# needs no walk, a walk that would fill nothing. What a failed walk fired is not given
-# back: the frame carries it, and admit re-announces and re-runs it after the pul line.
+# state back from. The shipped read-only count is kept for the frozen interface and never
+# consulted: a walk that would fill nothing can still pull the participant's own orders,
+# and that stands. What a failed walk fired, and what it pulled of orders that were
+# standing when it began, is not given back: the frame carries both, and admit
+# re-announces them after the pul line and re-runs the fired ones.
 set -euo pipefail
 
 APP="${APP:-/app}"

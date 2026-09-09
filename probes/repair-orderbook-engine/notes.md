@@ -54,3 +54,35 @@ correct. That is the plan the repair turns against.
 taken back. The precheck plan fires nothing on a walk that would have failed; the
 transaction plan fires and then re-parks; both pass every session where nothing parked
 sits in the failed walk's path.
+
+# Second round, 2026-09-09: 2 of 3 on the firing-rule rebuild
+
+Trajectories `round2-trial1-232JkX2.md` (reward 1, 7 tool calls), `round2-trial2-MqLoELr.md`
+(reward 0, 12 tool calls, about three times the others' time) and
+`round2-trial3-n9PXiyH.md` (reward 1, 6 tool calls), the agents' own words with the pasted
+brief stripped (the first 29-30 lines of each upload).
+
+## The signature
+
+Same as round 1: one or two reads, one write of five files, hand traces, timing, done. The
+firing rule was implemented from the brief's enumeration of its consequences. Trial 3:
+"the log and the fired list are shared stacks with per-level marks." Trial 1: "merges the
+journal upward" on success, "firings are never journaled, so they stay permanent."
+
+## The failure
+
+Trial 2 built the same plan with one difference - "firings are recorded in the innermost
+frame" - then wrote a brute-force reference, compared 1,500 random sessions including 49
+with a failed whole re-firing orders, saw zero mismatches, and scored 0. Its reference read
+the rule the way its engine did. This is the design property working: a self-built oracle
+cannot see a shared wrong reading. It just did not fire often enough, because the brief
+listed the consequences a careful reader needed.
+
+## What the second repair does about it
+
+`STATE.md`, "Easiness recovery 2026-09-09, second round": the rule is restated as a
+principle - the trades are unwound and the paperwork stands - with its second consequence
+in the domain, that a same-participant cancellation of an order that stood when the whole
+began is not resurrected either. The listed consequences are gone; they follow from
+"everything its execution changed goes back" and "at any depth". The reference's own
+no-fill shortcut became a wrong plan in the process.

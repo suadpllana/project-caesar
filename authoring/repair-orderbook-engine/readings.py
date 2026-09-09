@@ -40,6 +40,14 @@ EXPECT = {
     "fired-keeps-fills": "fill-refired-order-starts-over",
     "fired-run-at-once-in-order-pace": "whole-fired-waits-its-turn",
     "fired-announced-one-at-a-time": "fill-refired-order-fires-more",
+    "no-fill-shortcut": "whole-no-fill-still-pulls",
+    "whole-restores-same-pulls": "whole-same-pull-stands",
+    "same-restored": "whole-same-pull-stands",
+    "same-not-reannounced": "whole-same-pull-stands",
+    "same-after-trp": "whole-pull-and-firing-both-stand",
+    "same-depth-one": "fill-nested-same-pull-announced-again",
+    "same-unscoped": "fill-rested-inside-then-pulled-is-moot",
+    "same-pulls-by-id": "whole-pulls-in-the-order-they-happened",
 }
 
 

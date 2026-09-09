@@ -1,5 +1,5 @@
 #!/bin/bash
-# runs what a failed whole fired from what was left after the discarded execution, not from its full size.
+# announces the same cancellations after the firings instead of before them.
 set -euo pipefail
 APP="${APP:-/app}"
 mkdir -p "$APP/eng"
@@ -184,8 +184,6 @@ def admit(st, o, out):
         for row in tape.rows:
             out.row(*row)
         return
-    for _, order in frame.fired:
-        frame.orders.pop(order, None)
     frame.restore(st)
     gone = []
     for order in frame.pulled:
@@ -193,11 +191,11 @@ def admit(st, o, out):
             order.live = False
             gone.append(order)
     out.row("pul", o.oid, "whole")
-    for order in gone:
-        out.row("pul", order.oid, "same")
     again = [order for _, order in sorted(frame.fired, key=lambda x: x[0])]
     for order in again:
         out.row("trp", order.oid)
+    for order in gone:
+        out.row("pul", order.oid, "same")
     if st.pace == "fill":
         from mkt.drv import submit
         for order in again:

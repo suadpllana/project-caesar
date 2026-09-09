@@ -496,7 +496,7 @@
     1
    ]
   ],
-  "fill-child-same-hand-pull-is-atomic": [
+  "fill-child-same-pull-outlives-parent-failure": [
    [
     "rst",
     1,
@@ -519,6 +519,11 @@
     "whole"
    ],
    [
+    "pul",
+    2,
+    "same"
+   ],
+   [
     "trp",
     3
    ],
@@ -528,11 +533,45 @@
     1,
     100,
     1
+   ]
+  ],
+  "fill-child-same-pull-stands": [
+   [
+    "rst",
+    1,
+    100,
+    1
+   ],
+   [
+    "rst",
+    2,
+    101,
+    2
+   ],
+   [
+    "arm",
+    3
+   ],
+   [
+    "pul",
+    4,
+    "whole"
    ],
    [
     "pul",
     2,
-    "user"
+    "same"
+   ],
+   [
+    "trp",
+    3
+   ],
+   [
+    "trd",
+    3,
+    1,
+    100,
+    1
    ]
   ],
   "fill-descendants-before-siblings": [
@@ -1042,6 +1081,65 @@
     1
    ]
   ],
+  "fill-nested-same-pull-announced-again": [
+   [
+    "rst",
+    1,
+    100,
+    1
+   ],
+   [
+    "rst",
+    2,
+    101,
+    1
+   ],
+   [
+    "rst",
+    3,
+    102,
+    1
+   ],
+   [
+    "arm",
+    4
+   ],
+   [
+    "pul",
+    5,
+    "whole"
+   ],
+   [
+    "pul",
+    2,
+    "same"
+   ],
+   [
+    "trp",
+    4
+   ],
+   [
+    "pul",
+    4,
+    "whole"
+   ],
+   [
+    "bk",
+    "s",
+    100,
+    1,
+    1,
+    1
+   ],
+   [
+    "bk",
+    "s",
+    102,
+    3,
+    1,
+    1
+   ]
+  ],
   "fill-parent-failure-keeps-child-fired": [
    [
     "rst",
@@ -1267,6 +1365,49 @@
     "bk",
     "s",
     104,
+    2,
+    1,
+    1
+   ]
+  ],
+  "fill-rested-inside-then-pulled-is-moot": [
+   [
+    "rst",
+    1,
+    100,
+    1
+   ],
+   [
+    "arm",
+    2
+   ],
+   [
+    "pul",
+    3,
+    "whole"
+   ],
+   [
+    "trp",
+    2
+   ],
+   [
+    "rst",
+    2,
+    105,
+    1
+   ],
+   [
+    "bk",
+    "s",
+    100,
+    1,
+    1,
+    1
+   ],
+   [
+    "bk",
+    "s",
+    105,
     2,
     1,
     1
@@ -2689,12 +2830,9 @@
     "whole"
    ],
    [
-    "bk",
-    "s",
-    100,
+    "pul",
     1,
-    10,
-    10
+    "same"
    ],
    [
     "bk",
@@ -2968,26 +3106,22 @@
     "whole"
    ],
    [
-    "trd",
-    4,
+    "pul",
     1,
-    100,
-    10
+    "same"
    ],
    [
-    "trd",
+    "pul",
     4,
-    2,
-    103,
-    5
+    "whole"
    ],
    [
     "bk",
     "s",
     103,
     2,
-    5,
-    5
+    10,
+    10
    ]
   ],
   "whole-market-order": [
@@ -3035,6 +3169,160 @@
     "s",
     100,
     1,
+    10,
+    10
+   ]
+  ],
+  "whole-no-fill-still-pulls": [
+   [
+    "rst",
+    1,
+    100,
+    10
+   ],
+   [
+    "rst",
+    2,
+    103,
+    10
+   ],
+   [
+    "pul",
+    3,
+    "whole"
+   ],
+   [
+    "pul",
+    1,
+    "same"
+   ],
+   [
+    "bk",
+    "s",
+    103,
+    2,
+    10,
+    10
+   ]
+  ],
+  "whole-pull-and-firing-both-stand": [
+   [
+    "rst",
+    1,
+    100,
+    10
+   ],
+   [
+    "rst",
+    2,
+    104,
+    10
+   ],
+   [
+    "arm",
+    3
+   ],
+   [
+    "pul",
+    4,
+    "whole"
+   ],
+   [
+    "pul",
+    1,
+    "same"
+   ],
+   [
+    "trp",
+    3
+   ],
+   [
+    "trd",
+    3,
+    2,
+    104,
+    5
+   ],
+   [
+    "bk",
+    "s",
+    104,
+    2,
+    5,
+    5
+   ]
+  ],
+  "whole-pulls-in-the-order-they-happened": [
+   [
+    "rst",
+    9,
+    100,
+    5
+   ],
+   [
+    "rst",
+    2,
+    101,
+    5
+   ],
+   [
+    "rst",
+    1,
+    102,
+    5
+   ],
+   [
+    "pul",
+    4,
+    "whole"
+   ],
+   [
+    "pul",
+    9,
+    "same"
+   ],
+   [
+    "pul",
+    1,
+    "same"
+   ],
+   [
+    "bk",
+    "s",
+    101,
+    2,
+    5,
+    5
+   ]
+  ],
+  "whole-same-pull-stands": [
+   [
+    "rst",
+    1,
+    100,
+    10
+   ],
+   [
+    "rst",
+    2,
+    100,
+    10
+   ],
+   [
+    "pul",
+    3,
+    "whole"
+   ],
+   [
+    "pul",
+    1,
+    "same"
+   ],
+   [
+    "bk",
+    "s",
+    100,
+    2,
     10,
     10
    ]

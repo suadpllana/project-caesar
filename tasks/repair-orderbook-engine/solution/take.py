@@ -20,6 +20,7 @@ def walk(st, o, out):
         if hand.blocks(o, r):
             r.live = False
             opp.take(px)
+            hold.pulled(st, r)
             out.row("pul", r.oid, "same")
             continue
         q = min(o.rem, shown.avail(r))

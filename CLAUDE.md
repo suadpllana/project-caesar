@@ -201,3 +201,28 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   level a fired child may rest on through the frozen driver. Both are mutations the reference
   never has to name because it snapshots whole queues; a second correct implementation is the
   only thing that asks whether the contract is implementation-neutral.
+
+## Lessons, measured (2026-09-09, `repair-orderbook-engine`, second round)
+
+- **A rule stated as a checklist of its consequences is the plan, however hard the rule.**
+  The firing rule was fully specified - at any depth, arrival order, full size, before waiting
+  siblings, again after an enclosing failure - and two of three probe agents built the exact
+  frame discipline those clauses describe, in six and seven tool calls, one write each.
+  `leakcheck` was clean: they did not quote the brief, they implemented its list. Restated as a
+  principle ("the trades are unwound and the paperwork stands") plus the announcements, with
+  every consequence left to follow from "everything its execution changed goes back" and "at
+  any depth". Determinacy for the run audit was checked clause by clause against the hand
+  cases before the list went.
+- **The self-oracle argument held, once.** The failing agent's brute-force reference agreed
+  with its engine on 1,500 sessions, 49 of them exercising the mechanism, and it scored 0 -
+  the reference encoded the same reading. Design for readings a careful reader can still
+  hold wrong; a reading the brief spells out is one nobody holds wrong.
+- **The second class made the first reference a cheat, and its quiet shortcut the trap.**
+  Same-participant cancellations standing turned the reference's own `room() == 0` refusal
+  into a wrong plan: a fill-less walk still pulls. Measured, that shortcut alone fails 61/300
+  order-pace and 55/120 fill-pace sessions. The author's convenient equivalence is the first
+  thing a new rule should be checked against.
+- **A journaled undo must journal its own corrections.** The model's first draft re-removed
+  standing cancelled orders after the inner undo with a bare `list.remove`; the enclosing
+  undo then tried to unwind the order's own arrival and found nothing. Route every
+  post-undo mutation through the same journaled operations, in the enclosing frame's range.

@@ -2,11 +2,11 @@ from collections import deque
 
 from eng import take
 
-# One journal frame per whole order in flight: undo entries first, then what fired inside.
-# A frame that closes, either way, hands both to the frame around it: the undo entries only
-# on success, because a failed frame has already played them back, but the firings always,
-# because nothing takes a firing back and the enclosing order has to run them again if it
-# fails in turn.
+# One journal frame per whole order in flight: undo entries, what fired inside, what was
+# pulled for `same` inside, and the `live` flag of every order as it stood when the frame
+# opened. A frame that closes hands the firings and pulls to the frame around it either
+# way, and the undo entries only on success, because a failed frame has already played
+# them back.
 JRN = []
 
 
@@ -23,6 +23,8 @@ class Buf:
 def note_o(o):
     if JRN:
         JRN[-1][0].append((0, o, o.rem, o.shn, o.live))
+        for frame in JRN:
+            frame[3].setdefault(o, o.live)
 
 
 def note_q(side, px):
@@ -34,6 +36,11 @@ def note_q(side, px):
 def note_fired(seq, o):
     if JRN:
         JRN[-1][1].append((seq, o))
+
+
+def note_pulled(o):
+    if JRN:
+        JRN[-1][2].append(o)
 
 
 def _undo(entries):
@@ -68,7 +75,7 @@ def room(st, o):
 def admit(st, o, out):
     last = st.last
     pend = list(st.pend)
-    frame = ([], [])
+    frame = ([], [], [], {})
     JRN.append(frame)
     buf = Buf()
     try:
@@ -79,6 +86,7 @@ def admit(st, o, out):
         if JRN:
             JRN[-1][0].extend(frame[0])
             JRN[-1][1].extend(frame[1])
+            JRN[-1][2].extend(frame[2])
         for r in buf.rows:
             out.row(*r)
         return
@@ -86,9 +94,17 @@ def admit(st, o, out):
     st.last = last
     st.pend.clear()
     st.pend.extend(pend)
+    gone = []
+    for x in frame[2]:
+        if frame[3].get(x) and x not in gone:
+            x.live = False
+            gone.append(x)
     if JRN:
         JRN[-1][1].extend(frame[1])
+        JRN[-1][2].extend(frame[2])
     out.row("pul", o.oid, "whole")
+    for x in gone:
+        out.row("pul", x.oid, "same")
     again = [x for _, x in sorted(frame[1], key=lambda t: t[0])]
     for x in again:
         out.row("trp", x.oid)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# runs what a failed whole fired from what was left after the discarded execution, not from its full size.
+# puts a resting order pulled for same inside a failed whole back on the book with the rest of the state.
 set -euo pipefail
 APP="${APP:-/app}"
 mkdir -p "$APP/eng"
@@ -184,14 +184,8 @@ def admit(st, o, out):
         for row in tape.rows:
             out.row(*row)
         return
-    for _, order in frame.fired:
-        frame.orders.pop(order, None)
     frame.restore(st)
     gone = []
-    for order in frame.pulled:
-        if frame.standing(order) and order not in gone:
-            order.live = False
-            gone.append(order)
     out.row("pul", o.oid, "whole")
     for order in gone:
         out.row("pul", order.oid, "same")

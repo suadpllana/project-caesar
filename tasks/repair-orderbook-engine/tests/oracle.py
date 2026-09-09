@@ -51,6 +51,9 @@ class Rec:
         self.trp = trp
         self.seq = 0
         self.arrival = 0
+        # The book-entry stamp: a same-participant cancellation inside a failed whole
+        # stands only for an order that was on the book when that whole began.
+        self.born = 0
 
 
 class Pen:
@@ -117,6 +120,10 @@ class State:
         # firing is not taken back, so a failed frame reads its slice of this log to
         # find what it must run again, however deep the firing was.
         self.flog = []
+        # Every same-participant cancellation under fill pace, in order, never truncated
+        # for the same reason; and the entry stamp handed to each order that rests.
+        self.slog = []
+        self.tick = 0
 
     def row(self, *cells):
         self.rows.append(tuple(cells))
@@ -205,7 +212,7 @@ def walk(S, o, trail=None):
         r = front(S, side, px)
         if r.hand == o.hand:
             S.bk[side].remove(r)
-            note(trail, ("gone", side, r))
+            note(trail, ("same", side, r))
             S.row("pul", r.oid, "same")
             continue
         q = min(o.rem, r.shn)
@@ -230,8 +237,11 @@ def walk(S, o, trail=None):
 
 
 def rewind(S, o, trail):
-    """Reverse the trail. Returns what fired along it, which stays fired."""
+    """Reverse the trail. Returns what fired along it and what it pulled for `same`;
+    neither is put back. Under order pace nothing rests inside a walk, so every order
+    pulled there was standing when the whole began."""
     fired = []
+    pulled = []
     for item in reversed(trail):
         kind = item[0]
         if kind == "fill":
@@ -241,6 +251,8 @@ def rewind(S, o, trail):
             o.rem += q
         elif kind == "gone":
             S.bk[item[1]].append(item[2])
+        elif kind == "same":
+            pulled.append(item[2])
         elif kind == "seq":
             item[1].seq = item[2]
             item[1].shn = item[3]
@@ -250,13 +262,16 @@ def rewind(S, o, trail):
             S.last = item[1]
         elif kind == "trip":
             fired.extend(item[1])
-    return fired
+    pulled.reverse()
+    return fired, pulled
 
 
 def park(S, o):
     S.bk[o.side].append(o)
     S.seq += 1
     o.seq = S.seq
+    S.tick += 1
+    o.born = S.tick
     o.shn = o.rem if o.shw is None else min(o.shw, o.rem)
     S.row("rst", o.oid, o.px, o.shn)
 
@@ -270,8 +285,10 @@ def submit(S, o):
         if o.rem > 0:
             del S.rows[said:]
             del S.pend[held:]
-            fired = rewind(S, o, trail)
+            fired, pulled = rewind(S, o, trail)
             S.row("pul", o.oid, "whole")
+            for r in pulled:
+                S.row("pul", r.oid, "same")
             for a in by_arrival(fired):
                 S.row("trp", a.oid)
                 S.pend.append(a)
@@ -308,6 +325,8 @@ def attach(S, o):
     change(S, S, "seq", S.seq + 1)
     change(S, o, "seq", S.seq)
     change(S, o, "shn", o.rem if o.shw is None else min(o.shw, o.rem))
+    S.tick += 1
+    o.born = S.tick
     S.row("rst", o.oid, o.px, o.shn)
 
 
@@ -340,6 +359,7 @@ def fill_walk(S, o):
         r = front(S, side, px)
         if r.hand == o.hand:
             detach(S, side, r)
+            S.slog.append(r)
             S.row("pul", r.oid, "same")
             continue
         q = min(o.rem, r.shn)
@@ -362,18 +382,32 @@ def fill_walk(S, o):
 
 def fill_submit(S, o):
     if o.tif == "whole":
-        begin, said, lit = len(S.trail), len(S.rows), len(S.flog)
+        begin, said, lit, sl = len(S.trail), len(S.rows), len(S.flog), len(S.slog)
+        stood = S.tick
         S.depth += 1
         fill_walk(S, o)
         failed = o.rem > 0
+        gone = []
         if failed:
             undo(S, begin)
             del S.rows[said:]
+            # The undo put every pulled order back. The ones that were on the book when
+            # this whole began stay pulled; the rest only stood because of work that has
+            # just been unwound, and their cancellation went with it. The removal is
+            # journaled like any other, in the enclosing frame's range, so an enclosing
+            # failure can unwind it before it unwinds the order's own arrival.
+            for r in S.slog[sl:]:
+                if r.born <= stood and r not in gone:
+                    gone.append(r)
+                    if r in S.bk[r.side]:
+                        detach(S, r.side, r)
         S.depth -= 1
         if not S.depth:
             S.trail.clear()
         if failed:
             S.row("pul", o.oid, "whole")
+            for r in gone:
+                S.row("pul", r.oid, "same")
             again = by_arrival(S.flog[lit:])
             for a in again:
                 S.row("trp", a.oid)

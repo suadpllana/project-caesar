@@ -1,5 +1,5 @@
 #!/bin/bash
-# runs what a failed whole fired from what was left after the discarded execution, not from its full size.
+# records a same cancellation made inside a whole the failed order ran in that inner frame only, so the enclosing failure puts the order back.
 set -euo pipefail
 APP="${APP:-/app}"
 mkdir -p "$APP/eng"
@@ -135,8 +135,8 @@ def fired(st, seq, order):
 
 
 def pulled(st, order):
-    for frame in frames(st):
-        frame.pulled.append(order)
+    if frames(st):
+        frames(st)[-1].pulled.append(order)
 
 
 def room(st, o):
@@ -184,8 +184,6 @@ def admit(st, o, out):
         for row in tape.rows:
             out.row(*row)
         return
-    for _, order in frame.fired:
-        frame.orders.pop(order, None)
     frame.restore(st)
     gone = []
     for order in frame.pulled:

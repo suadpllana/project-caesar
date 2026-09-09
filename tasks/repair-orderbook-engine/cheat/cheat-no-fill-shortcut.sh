@@ -1,5 +1,5 @@
 #!/bin/bash
-# runs what a failed whole fired from what was left after the discarded execution, not from its full size.
+# refuses without walking when the count says no fill is possible, so a walk that would only have pulled the participant's own orders never pulls them.
 set -euo pipefail
 APP="${APP:-/app}"
 mkdir -p "$APP/eng"
@@ -175,6 +175,9 @@ def room(st, o):
 
 
 def admit(st, o, out):
+    if room(st, o) == 0:
+        out.row("pul", o.oid, "whole")
+        return
     frame = Frame(st)
     frames(st).append(frame)
     tape = Tape()
@@ -184,8 +187,6 @@ def admit(st, o, out):
         for row in tape.rows:
             out.row(*row)
         return
-    for _, order in frame.fired:
-        frame.orders.pop(order, None)
     frame.restore(st)
     gone = []
     for order in frame.pulled:

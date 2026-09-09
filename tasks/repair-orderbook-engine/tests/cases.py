@@ -465,7 +465,7 @@ new 4 4 b 103 1 - day 100
 new 5 5 b 106 2 - whole -
 """)
 
-_add("fill-child-same-hand-pull-is-atomic", """
+_add("fill-child-same-pull-outlives-parent-failure", """
 pace fill
 cap 5
 mark 100
@@ -663,4 +663,79 @@ new 1 1 s 100 3 1 day -
 new 2 2 s 104 1 - day -
 new 3 3 b 104 2 - day 100
 new 4 4 b 104 6 - whole -
+""")
+
+# ---------------------------------------------------------------- what a failed whole pulled
+# A same-participant cancellation made inside a failed whole stands too, for an order that
+# was on the book when the whole began. It is announced again after the cancellation line,
+# before the firings; an order that only rested inside the discarded execution is not.
+
+_add("whole-same-pull-stands", """
+cap 40
+mark 100
+new 1 1 s 100 10 - day -
+new 2 2 s 100 10 - day -
+new 3 1 b 100 30 - whole -
+""")
+
+# The walk fills nothing - the second level is out of the band - but it pulls on the way,
+# and the pull stands. Refusing without walking misses it.
+_add("whole-no-fill-still-pulls", """
+cap 3
+mark 98
+new 1 1 s 100 10 - day -
+new 2 2 s 103 10 - day -
+new 3 1 b 110 5 - whole -
+""")
+
+_add("whole-pull-and-firing-both-stand", """
+cap 40
+mark 100
+new 1 1 s 100 10 - day -
+new 2 2 s 104 10 - day -
+new 3 7 b 110 5 - day 102
+new 4 1 b 110 30 - whole -
+""")
+
+_add("whole-pulls-in-the-order-they-happened", """
+cap 40
+mark 100
+new 9 1 s 100 5 - day -
+new 2 2 s 101 5 - day -
+new 1 1 s 102 5 - day -
+new 4 1 b 110 30 - whole -
+""")
+
+# A child the failed whole ran pulled one of its own participant's orders; that stands,
+# and the child runs again against a book without it.
+_add("fill-child-same-pull-stands", """
+pace fill
+cap 5
+mark 100
+new 1 1 s 100 1 - day -
+new 2 2 s 101 2 - day -
+new 3 2 b 105 1 - day 100
+new 4 4 b 105 3 - whole -
+""")
+
+# The fired child rested inside the failed execution and was then pulled for `same` by the
+# parent's own walk. Its rest is unwound, so the pull is moot: it runs again from full size.
+_add("fill-rested-inside-then-pulled-is-moot", """
+pace fill
+cap 5
+mark 100
+new 1 2 s 100 1 - day -
+new 2 1 s 105 1 - day 100
+new 3 1 b 105 3 - whole -
+""")
+
+_add("fill-nested-same-pull-announced-again", """
+pace fill
+cap 5
+mark 100
+new 1 1 s 100 1 - day -
+new 2 3 s 101 1 - day -
+new 3 2 s 102 1 - day -
+new 4 3 b 105 3 - whole 100
+new 5 5 b 105 5 - whole -
 """)

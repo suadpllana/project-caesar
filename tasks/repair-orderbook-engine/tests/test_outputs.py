@@ -26,7 +26,7 @@ WHAT IS GRADED, on every session, exactly, with no partial credit:
 
 SESSION SETS, with nonce-generated inputs preventing a reusable answer key:
 
-  The enumerated set in cases.py is sixty-seven sessions, named for the
+  The enumerated set in cases.py is seventy-four sessions, named for the
   reading each exists to fail and including the must-still-work side of every fence. It
   is fixed, it is in the bundle, and its expected results are in gt.json.
 
@@ -47,9 +47,12 @@ SESSION SETS, with nonce-generated inputs preventing a reusable answer key:
 
   Fill-boundary execution adds 120 generated small sessions and one large book session.
   They exercise descendant execution and nested whole-order rollback, and what a failed
-  whole fired: kept out of the parked set, announced after the cancellation line and run
-  again in arrival order, at any depth and after each enclosing failure. One of the six
-  small families, spark, aims order-pace whole orders at parked orders in the same way. The small
+  whole fired or pulled: a fired order is kept out of the parked set, announced after the
+  cancellation line and run again in arrival order, at any depth and after each enclosing
+  failure; a same-participant cancellation of an order that stood when the whole began is
+  kept and announced again, before the firings, while one of an order that only rested
+  inside the discarded execution goes with it. One of the six small families, spark, aims
+  order-pace whole orders at parked orders and same-participant liquidity in the same way. The small
   generator creates at most sixteen trip-bearing messages in a session; the large
   family has at most one waiting at once, inside the specified limit of twenty-four.
 
@@ -92,9 +95,10 @@ implementations disagree on is a trap, not a test):
     duration compared here.
 
   Correctness is the complete ordered output, not agreement with the reference's
-  internal algorithm. Failed admission must undo every visible effect except a firing,
-  successful admission must execute the full walk, and simultaneous fill consequences
-  must follow the serialization order stated in the instruction.
+  internal algorithm. Failed admission must undo every visible effect except a firing
+  and a same-participant cancellation of an order that was standing, successful admission
+  must execute the full walk, and simultaneous fill consequences must follow the
+  serialization order stated in the instruction.
 """
 
 import ast
@@ -142,7 +146,13 @@ FIRED_FILL = ("fill-parent-failure-keeps-child-fired", "fill-nested-failure-fire
               "fill-fired-whole-stays-fired-under-parent-failure",
               "fill-refired-order-fires-more", "fill-failure-with-nothing-fired",
               "fill-refired-order-starts-over", "fill-successful-child-firings-run-again")
-FILL = tuple(n for n in cases.SESS if n.startswith("fill-") and n not in FIRED_FILL) + (
+PULLED = ("whole-same-pull-stands", "whole-no-fill-still-pulls",
+          "whole-pull-and-firing-both-stand", "whole-pulls-in-the-order-they-happened")
+PULLED_FILL = ("fill-child-same-pull-stands", "fill-rested-inside-then-pulled-is-moot",
+               "fill-nested-same-pull-announced-again",
+               "fill-child-same-pull-outlives-parent-failure")
+FILL = tuple(n for n in cases.SESS if n.startswith("fill-")
+             and n not in FIRED_FILL and n not in PULLED_FILL) + (
     "order-selector-preserves-deferred-execution",)
 
 
@@ -292,6 +302,13 @@ def test_what_a_failed_whole_fired():
     sweep(FIRED)
 
 
+def test_what_a_failed_whole_pulled():
+    """A same-participant cancellation the failed whole's walk made stands, announced
+    again after the cancellation line and before the firings, in the order it happened -
+    even when the walk filled nothing at all."""
+    sweep(PULLED)
+
+
 def test_ordinary_sessions():
     """The must-still-work side: plain crossing, resting, cancelling a remainder, and
     pulling."""
@@ -319,6 +336,13 @@ def test_fill_what_a_failed_whole_fired():
     the failed order, from full size, whether they fired inside a child that committed or
     one that failed, and again after each enclosing failure."""
     sweep(FIRED_FILL)
+
+
+def test_fill_what_a_failed_whole_pulled():
+    """Under fill pace the cancellation stands at any depth and outlives an enclosing
+    failure, and the re-run child sees the order gone; an order that only rested inside
+    the discarded execution is not kept pulled, it runs again."""
+    sweep(PULLED_FILL)
 
 
 def test_fill_generated_sessions():

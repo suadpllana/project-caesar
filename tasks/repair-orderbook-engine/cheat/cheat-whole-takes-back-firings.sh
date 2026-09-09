@@ -1,5 +1,5 @@
 #!/bin/bash
-# the previous reference: decides admission by counting under order pace and re-parks what a failed whole fired under fill pace.
+# the previous reference but one: decides admission by counting under order pace and re-parks what a failed whole fired under fill pace.
 set -euo pipefail
 APP="${APP:-/app}"
 mkdir -p "$APP/eng"

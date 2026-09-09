@@ -6,10 +6,10 @@ Two families, because they test different things.
 each session is built in two phases - resting liquidity around the mark, then a burst of
 orders that actually cross it - and the burst is shaped six ways, at the decisions the
 engine turns on: disclosure, the band, the same participant, all-or-nothing admission,
-activation, and what a failed whole fired. A population that is not aimed at a mechanism
-does not exercise it. The spark family parks on one side with trip prices stepping toward
-the mark, so an order that arrived earlier fires later, and sends whole orders too big for
-what rests on that side.
+activation, and what a failed whole fired or pulled. A population that is not aimed at a
+mechanism does not exercise it. The spark family parks on one side with trip prices
+stepping toward the mark, so an order that arrived earlier fires later, tops the other
+side up with liquidity of every participant, and sends whole orders too big for it.
 
 `deep_batch` builds the large sessions, in two shapes, because there are two ways to be
 correct and unaffordable.

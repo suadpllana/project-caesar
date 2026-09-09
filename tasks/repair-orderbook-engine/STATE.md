@@ -63,12 +63,15 @@ at any nesting depth, and once more after each enclosing failure.
   order once when an enclosing failure needs it run again. Where I would have gone wrong: the
   merge-on-success, and keeping the precheck "because it is equivalent when nothing fires"
   without proving the equivalence holds only at zero.
-- Estimated solves out of 8: 3 [design aim 1-2, before external evidence]
+- Estimated solves out of 8: 2 [design aim 1; round 1 of the rebuilt task came back 2 of 3,
+  see the second recovery entry]
 - Difficulty score anchor: not assigned (pre-recovery bundle passed easiness only through an
   undocumented sink rule; see the recovery entry)
 - Score history: 2026-09-09 quality review failed `task name` only (renamed from
   `slice-trip-fill`); run audit failed `task specification` 5/8 and `difficulty crux` 5/8
-  (sink rule undocumented); easiness probe 3/3 after the sink repair; recovery below.
+  (sink rule undocumented); easiness probe 3/3 after the sink repair; recovery below;
+  easiness probe 2/3 on the firing-rule rebuild (2026-09-09, later the same day); second
+  recovery entry below.
 - Leak audit: the shipped `hold.py` counts then walks and never restores - it nudges toward
   the wrong plan and decides nothing. `/app/sess/fill.txt` holds one successful whole; no
   shipped session has a failed whole that fired, so `run_book.py` output is never an oracle
@@ -97,13 +100,17 @@ at any nesting depth, and once more after each enclosing failure.
   one large fill-pace, all from a nonce made after the run - against `tests/oracle.py`; the
   named set also against `tests/gt.json`; live fingerprints of sealed functions; the sink
   frame check; the monitoring tally; worker and reaper exit statuses.
-- The rule that changed: a `whole` that comes up short restores the book, last price,
-  quantities, shown amounts, queue positions and waiting work, discards every printed line of
-  its execution, prints `pul <id> whole`, then a `trp` line for every order fired inside that
-  execution at any depth, in arrival order, and those orders execute again from full size -
-  onto the end of the waiting queue under order pace, at once and before anything waiting on
-  the failed order under fill pace. A fired whole that fails stays fired; an enclosing failure
-  discards its cancellation line and runs it again with everything else fired inside it.
+- The rule that changed (twice): a `whole` that comes up short restores the book, last
+  price, quantities, shown amounts, queue positions and waiting work, discards every printed
+  line of its execution and prints `pul <id> whole`. Two leavings stand, at any depth: a parked
+  order that fired inside the execution, and a resting order that was on the book when the
+  whole began and was pulled for `same` inside it. After the cancellation line the `same`
+  cancellations are announced again in the order they happened, then a `trp` line per fired
+  order in arrival order, then the fired orders execute as one batch from full size - onto the
+  end of the waiting queue under order pace, at once and before anything waiting on the failed
+  order under fill pace. An order that only rested inside the discarded execution has no
+  cancellation to keep and runs again. An enclosing failure discards the inner cancellation
+  and its batch and does the same for everything that fired or was pulled inside it.
 - Tolerances: none. All-or-nothing on every row.
 - Ground truth: `tests/gt.json` (named cases, built by `authoring/repair-orderbook-engine/build_gt.py`,
   reference and model must agree before it is written); everything else computed by the
@@ -116,10 +123,11 @@ at any nesting depth, and once more after each enclosing failure.
   nudge (the counted admission) into the wrong plan without adding a corner case. Same-hand
   pulls as a second committed class were considered and rejected as a second journal class
   needing its own reprint rules - sprawl, not interaction.
-- The reference keeps `room()` and calls it only as the zero test: a walk that would fill
-  nothing fires nothing and restores nothing, so refusing it without walking is exactly
-  equivalent, and `agree.py` confirms that over thousands of sessions against a model that
-  never counts. Any other use of the count is the wrong plan.
+- The reference keeps `room()` for the frozen interface and no longer calls it. In round 1
+  it was the zero test - a walk that would fill nothing fires nothing - and `agree.py`
+  confirmed the equivalence; the second class ended it, because a fill-less walk still
+  pulls the participant's own orders and that stands. The shortcut is now the cheat
+  `no-fill-shortcut`, measured at 61/300 order-pace and 55/120 fill-pace sessions.
 - Arrival order for the post-cancellation batch, not firing order: "like any batch", the
   existing rule, stated in the brief. Firing order would make an unrestored waiting queue
   accidentally right under order pace.
@@ -134,8 +142,8 @@ at any nesting depth, and once more after each enclosing failure.
 | No answer leaked into agent image | pass | leak audit above; `extraneouscheck`, `hintcheck` clean |
 | `harbor run -a oracle` = 1 | host emulation 1 | `authoring/repair-orderbook-engine/trial.py oracle`, 22.8 s of 300 |
 | `harbor run -a nop` = 0 | host emulation 0 | |
-| Cheats all score 0 | host emulation | 44 cheats, two sweeps; the three isolation probes needing a second uid or fork are reported not covered |
-| Alternative correct variant = 1 | host emulation 1 | `variants/journal`: per-mutation journal, bisected parked lists, frames merge on close |
+| Cheats all score 0 | host emulation | 52 cheats (31 legacy, 21 generated readings including two previous references); the three isolation probes needing a second uid or fork are reported not covered |
+| Alternative correct variant = 1 | host emulation 1 | `variants/journal`: per-mutation journal, bisected parked lists, frames merge on close, entry `live` recorded per frame |
 | `preflight.py` | run at Stage 7 | STATE.md now present |
 | `harbor check` rubric | not run | manual self-review against docs/QUALITY-REVIEW.md |
 
@@ -253,3 +261,126 @@ cold self-attack are recorded above; the honest estimate is 3 of 8. If the probe
 8 of 8 again, the next diagnosis starts from the trajectories, not from another rule: the
 suspects, in order, are the brief's whole paragraph handing over the frame discipline, and
 the hand-case names in `cases.py` (not shipped to the agent, but read by reviewers).
+
+## Easiness recovery 2026-09-09, second round
+
+### 1. Capture
+
+- Probe result on the firing-rule rebuild: 2 of 3 solved. Trajectories:
+  `probes/repair-orderbook-engine/round2-trial1-232JkX2.md` (reward 1, 7 tool calls),
+  `round2-trial2-MqLoELr.md` (reward 0, 12 tool calls, about three times the others' time),
+  `round2-trial3-n9PXiyH.md` (reward 1, 6 tool calls). Commentary in `notes.md`.
+- Solvers' first plan, decisive discovery, final method: identical to round 1 plus the
+  firing rule read straight off the brief. 232JkX2: "journals every book, order and last-price
+  mutation... on success flushes rows and merges the journal upward... prints trp for every
+  order fired at any depth in arrival order... firings are never journaled, so they stay
+  permanent". n9PXiyH: "the log and the fired list are shared stacks with per-level marks".
+  One write of five files each, then hand traces, then done.
+- The failing agent: same plan, but "firings are recorded in the innermost frame". Its own
+  brute-force reference agreed with its engine on 1,500 random sessions, 49 of them with a
+  failed whole re-firing orders, and the verifier still scored it 0: the reference encoded
+  the same reading. This is the property the round-1 design was built on, working once.
+- Earliest point with enough information: the first read of the brief. The `whole` paragraph
+  listed every consequence of the rule - at any depth, arrival order, full size, before
+  waiting siblings, again after an enclosing failure - so the two careful readers built the
+  shared-stack design directly from it. `leakcheck` finds no phrase reuse; the plan came
+  from the enumeration, not the wording.
+- Existing tactics: A1 (inverted convention, `room()` nudge), B2, C1, C2, C4. The tactic that
+  failed in practice: B2 - the consequences were listed, so a careful reader held them one at
+  a time.
+- Estimated solves before this round: 3 of 8 recorded; realised 2 of 3.
+
+### 2. Classification
+
+- The instruction delivered the plan: the enumerated consequences of the firing rule were a
+  checklist for the frame discipline (trial 3 lines 863-865, trial 1 lines 879-880).
+- The default plan was correct for two of three: a shared fired stack with marks, or merging
+  upward on success, is what a careful engineer builds once nesting is spelled out.
+- The agent confirmed each step independently: the failing agent's self-reference confirmed
+  a wrong reading; the solvers' hand traces confirmed right ones. Neither was a shipped oracle.
+
+### 3. Candidates
+
+- A (selected) - state the rule as a principle and add the second leaving that follows
+  from it. "The trades are unwound and the paperwork stands": what fired is fired for good,
+  and a resting order that stood when the whole began and was pulled for `same` inside it is
+  gone for good, at any depth; announced again after the cancellation line, cancellations
+  first in the order they happened, firings in arrival order; the fired batch runs. The
+  consequences the old paragraph listed (full size, restored book, stays fired, enclosing
+  failure runs it again) follow from "everything its execution changed goes back" and "at
+  any depth", and are no longer listed. New interactions: a fill-less walk still pulls, so
+  the reference's own no-fill shortcut is now the wrong plan; the journal must classify two
+  kinds of removal and scope one of them to entry membership; a child's cancellation stands
+  and the re-run child meets a different book; an order that rested inside and was then
+  pulled inside has no cancellation to keep. Domain-real: a venue busts trades, it does not
+  resurrect cancelled orders or un-trigger stops.
+- B (rejected) - a limbo state for orders fired by discarded fills, due only when a standing
+  fill reaches the trip. Observable only through `pull` and the final `am` lines; a gotcha,
+  not an interaction.
+- C (rejected) - unwinding only the whole's own fills and keeping its children's work.
+  Ill-defined: the children executed against a book the parent's fills had changed.
+- D (rejected, again) - a scale boundary. Both solvers journal per mutation already.
+
+### 4. Rebuild
+
+- Stage 2: `tests/oracle.py` - order-pace trail keeps `same` removals as entries the rewind
+  reads but does not reverse; fill-pace side keeps `slog`, a cancellation log no checkpoint
+  truncates, and a book-entry stamp per order so a failure keeps only the cancellations of
+  orders that stood when it began; the re-removal goes through the journaled `detach`, in
+  the enclosing frame's range, so an enclosing failure unwinds it before it unwinds the
+  order's own arrival (the first draft used a bare `remove` and the enclosing undo found
+  nothing to remove).
+- Stage 4: `solution/hold.py` - frames record what was pulled into every open frame; the
+  first touch of an order records whether it stood; on failure the standing ones are marked
+  dead again after restoration, announced, then the firings. The no-fill shortcut is gone;
+  `room()` is retained for the interface and never consulted.
+- Stage 5: `instruction.md` whole paragraph rewritten as the principle; `task.toml`
+  re-derived; 74 named cases (seven new), 23 tests.
+- Stage 6: the round-1 reference is `cheat-whole-restores-same-pulls`; seven reading cheats
+  for the second class plus `no-fill-shortcut`; `readings.py` asserts each is caught by its
+  named case. The journal variant re-proves implementation neutrality.
+- Measurements and the exit gate follow.
+
+### 5. Measurements, second round (host emulation, `RUN_SMALL=300 RUN_DEEP=4`, nonce `readings`)
+
+Sessions each reading gets wrong, out of 300 order-pace small (six families of 50), 120
+fill-pace small, five large, and 74 hand cases. Reward is 0 for every row; the last column
+is the hand case `readings.py` asserts catches it.
+
+| reading | order-pace small | fill-pace small | large | hand | named by |
+|---|---|---|---|---|---|
+| whole-prechecks (count under order pace) | 84 (spark 32) | 0 | 2 | 9 | whole-keeps-what-it-fired |
+| no-fill-shortcut (round-1 reference's early-out) | 61 | 55 | 2 | 2 | whole-no-fill-still-pulls |
+| whole-takes-back-firings (round-0 reference) | 84 | 93 | 3 | 28 | whole-keeps-what-it-fired |
+| whole-restores-same-pulls (round-1 reference) | 84 | 77 | 2 | 9 | whole-same-pull-stands |
+| same-restored | 84 | 77 | 2 | 9 | whole-same-pull-stands |
+| same-not-reannounced | 84 | 78 | 2 | 9 | whole-same-pull-stands |
+| same-after-trp | 13 | 43 | 0 | 4 | whole-pull-and-firing-both-stand |
+| same-depth-one | 0 | 22 | 0 | 1 | fill-nested-same-pull-announced-again |
+| same-unscoped | 0 | 2 | 0 | 1 | fill-rested-inside-then-pulled-is-moot |
+| same-pulls-by-id | 12 | 18 | 0 | 1 | whole-pulls-in-the-order-they-happened |
+| fired-reparked / fired-vanish / trp-left-inside / fired-before-cancel | 24 | 66 | 1 | 23 | whole-keeps-what-it-fired |
+| fired-in-firing-order | 2 | 21 | 0 | 1 | whole-fired-batch-is-arrival-order |
+| fired-inner-frame-lost | 0 | 12 | 0 | 2 | fill-successful-child-firings-run-again |
+| fired-once | 0 | 4 | 0 | 1 | fill-nested-failure-fires-again |
+| fired-after-siblings | 0 | 13 | 0 | 2 | fill-fired-batch-precedes-waiting-siblings |
+| fired-keeps-fills | 0 | 43 | 1 | 11 | fill-refired-order-starts-over |
+| fired-run-at-once-in-order-pace | 0 | 0 | 0 | 1 | whole-fired-waits-its-turn |
+| fired-announced-one-at-a-time | 0 | 56 | 0 | 4 | fill-refired-order-fires-more |
+
+The second class is loud where the first was quiet: same-participant liquidity sits in the
+path of a failed walk in a quarter of the order-pace population and two thirds of the
+fill-pace one, so the round-1 reference, the counted admission and the no-fill shortcut
+all fail broadly, and the failing agent's own fuzzer would have had to read the rule right
+to miss it. `same-unscoped` is quiet (2/120) and lives on its hand case: it needs a fired
+child of the whole's own participant to rest inside and then be walked into.
+
+Reference 1, nop 0, journal variant 1; model and reference agree on 1,877 generated
+sessions with the second class in, the journal variant on 975.
+
+### 6. Exit gate, second round
+
+Not passed. Needs the external easiness probe on the rebuilt archive. Estimate: 2 of 8. If
+it comes back 3 of 3 again the next diagnosis starts from the trajectories; the remaining
+suspects are the brief's principle sentence itself and the shape of the specification,
+which no longer lists consequences.

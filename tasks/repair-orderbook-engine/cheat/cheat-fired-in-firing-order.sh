@@ -26,6 +26,7 @@ def walk(st, o, out):
         if hand.blocks(o, r):
             r.live = False
             opp.take(px)
+            hold.pulled(st, r)
             out.row("pul", r.oid, "same")
             continue
         q = min(o.rem, shown.avail(r))
@@ -75,9 +76,10 @@ class Frame:
 
     Queue references are copied, so restoration keeps the order records the driver
     indexes by id, and only the values an execution actually changes are saved, into
-    every frame open at the time. The parked set is not part of the frame: a firing is
-    never taken back, so the frame records what fired inside it instead, at any depth,
-    and the failure path re-announces and re-runs exactly that.
+    every frame open at the time. Two things are not given back, and the frame records
+    them instead, at any depth: what fired, which has left the parked set, and what was
+    pulled for `same`, which has left the book if it was standing when the frame opened.
+    The failure path re-announces both and re-runs the first.
     """
 
     def __init__(self, st):
@@ -89,6 +91,7 @@ class Frame:
             self.sides.append((side, levels, list(side.pq)))
         self.pending = deque(st.pend)
         self.fired = []
+        self.pulled = []
 
     def restore(self, st):
         st.last = self.last
@@ -98,6 +101,10 @@ class Frame:
             side.lv = levels
             side.pq = prices
         st.pend = self.pending
+
+    def standing(self, order):
+        """Was the order on the book when this frame opened? Its first touch says."""
+        return self.orders[order][2]
 
 
 class Tape:
@@ -127,13 +134,18 @@ def fired(st, seq, order):
         frame.fired.append((seq, order))
 
 
+def pulled(st, order):
+    for frame in frames(st):
+        frame.pulled.append(order)
+
+
 def room(st, o):
     """Quantity a walk could take right now, read without touching anything.
 
-    Dead levels are skipped, the incoming participant's own orders are excluded and a
-    shadow last price steps where a fill is possible. Zero means the walk would make no
-    fill at all, and only then can admission be refused without walking: a walk that
-    fills nothing fires nothing, so there is nothing to keep.
+    Retained for the frozen interface. Admission never consults it: a walk that would
+    fill nothing can still pull the participant's own orders off the book, and those
+    cancellations stand, so there is no count that says a whole order may be refused
+    without walking.
     """
     opp = st.bk.opp(o.side)
     sign = 1 if o.side == "b" else -1
@@ -163,9 +175,6 @@ def room(st, o):
 
 
 def admit(st, o, out):
-    if room(st, o) == 0:
-        out.row("pul", o.oid, "whole")
-        return
     frame = Frame(st)
     frames(st).append(frame)
     tape = Tape()
@@ -176,7 +185,14 @@ def admit(st, o, out):
             out.row(*row)
         return
     frame.restore(st)
+    gone = []
+    for order in frame.pulled:
+        if frame.standing(order) and order not in gone:
+            order.live = False
+            gone.append(order)
     out.row("pul", o.oid, "whole")
+    for order in gone:
+        out.row("pul", order.oid, "same")
     again = [order for _, order in frame.fired]
     for order in again:
         out.row("trp", order.oid)

@@ -1,0 +1,260 @@
+# Difficulty record for publish-settle-order, transcribed after the fact from the task's own
+# documentation. Every claim below restates one already made in the files listed under
+# task.sources; nothing is added. Fields the documentation does not support are left empty.
+
+[task]
+slug = "publish-settle-order"
+status = "pending"
+sources = [
+  "tasks/publish-settle-order/STATE.md",
+  "tasks/publish-settle-order/task.toml",
+  "tasks/publish-settle-order/instruction.md",
+  "tasks/publish-settle-order/tests/test_outputs.py",
+  "tasks/publish-settle-order/cheat/",
+  "authoring/publish-settle-order/readings.py",
+  "authoring/publish-settle-order/variants/",
+]
+expert_hours = 12
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Read the six editable files against the six paragraphs of the brief and rewrite all six in one
+pass: an integer serial minted at publication that is both identity and order key, per-name
+buckets per scope sorted by that serial, a heap keyed by it for the sweep, one scope attribute
+per unit, a retention ledger fed by publication and retirement only, and an in-progress set
+local to one activation; then, on a miss, bring the auto unit up with the ordinary activation
+and resolve again. This is the plan all three probe agents wrote, before any program was run.
+"""
+first_plan_source = "instruction"
+breaking_rule = """
+A call that finds nothing it can see brings up the first unit marked auto, in the order the
+marks were made, as if the caller had named it as a dependency: what comes up is published
+directly ahead of the caller in the publication order and not at the back, into the scope the
+caller reads or public if the caller reads none, it takes no hold, and the caller keeps it up
+until the caller goes down. A serial can no longer order anything once a publication can land
+ahead of the caller: a bucket sorted by it answers the wrong head, a heap keyed by it retires
+the wrong unit first, and promotion inserts in the wrong place.
+"""
+second_discovery = """
+Having replaced the serial with a float midpoint between neighbours, the key is exact for the
+first fifty-odd loads in front of one caller and silently wrong after that; the fan-deep
+program puts sixty loads in front of one caller and fails a key made of float midpoints and
+nothing else, so the order key has to be one that admits insertion at the same spot without
+bound - a tuple with a suffix or an exact fraction - and the same key must also be the identity
+that separates two lives of one record. The author records finding the first discovery by
+thinking about auto-order and this one never without the fan family.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read ops.py to learn the op set and which entry points each op reaches",
+  "read reg/tab.py and reg/order.py and notice that records are reused across lives and that the order is a linked list with an insertion primitive",
+  "write the activation walk with publication and startup interleaved per unit and the in-progress set on the host",
+  "mint a key per publication that is both its identity and its place, admitting insertion directly ahead of a live unit (a tuple with a suffix, or an exact fraction between neighbours)",
+  "keep two attributes per unit, what its publication is and what it reads",
+  "keep buckets per scope and name sorted by key and answer the earlier of the two heads",
+  "on a miss, bring the first auto unit in mark order that is neither up nor part way up up ahead of the caller into the caller's read scope, record the binding on the caller's record, and resolve again",
+  "keep the ledger fed by publication, binding and retirement and the cascade queue keyed by the same key",
+  "time progs/wide.txt and progs/tear.txt, multiply by three, and check it against the limit",
+]
+
+[search]
+best_page = """
+The neighbouring real machinery: OSGi lazy activation, where wiring is fixed at resolve time and
+activation happens on first class load; VS Code activation events; dynamic-linker lazy binding.
+"""
+helps_plan = false
+deviation = """
+Those systems carry the principle that resolution order is not activation-time order, but no
+public description states this rule set - a lazily loaded unit taking a dependency's place in
+the resolution order, kept up by its caller, published into the caller's scope - and the graded
+object is this host's exact trace.
+"""
+
+[tactics]
+A1 = """
+The prior for a lazy load is coherent and specifically wrong twice: it appends, and it holds.
+The prior for a promoted unit is that it reads what its publication reads. All stated the other
+way.
+"""
+A2 = """
+Nothing is named: no lazy binding, no generation, no label, no order maintenance, no index. The
+brief says where a unit is published and what keeps it up.
+"""
+A3 = """
+Insertion ahead of a live unit, first-in-order resolution across two buckets, and last-first
+retirement, all at scale, have no single structure that gives all three; and the key that admits
+insertion must also be the identity that separates two lives of one record.
+"""
+B2 = """
+One event, the load, is an order event, a scope event, a retention event and a resolution event
+at once, and the four modules that own those have to agree on it. All six shipped modules are
+wrong and the shipped load is wrong in four ways at once.
+"""
+C1 = """
+Both fences on every new axis: auto-bound against auto-plain, auto-scope against
+auto-scope-mates, auto-dead against auto-late-mark, cycle-stays against casc-order,
+promote-reads-home against scope-no-republish.
+"""
+C2 = """
+No oracle: a spec-derived brute-force model is right for free - a list with insert needs no
+key - and transfers nothing about the fast structures.
+"""
+C3 = """
+Six measured boundaries, each with a fast path that follows from an invariant: the order is
+spliced into only directly ahead of a live unit, each bucket is a subsequence of one order,
+retention changes only at publication, load and retirement.
+"""
+C4 = """
+All-or-nothing over 56 enumerated programs and 456 nonce programs in twelve families, generated
+inside the verifier from a seed drawn after the agent's container is gone.
+"""
+guard = """
+Only the six files under /app/link/ are declared artifacts; the verifier overlays them onto its
+own pristine copy of the tree, so the op dispatch, the record table, the declaration store, the
+order and the program reader cannot be reshaped by the agent.
+"""
+
+[decisions]
+graded = 16
+interactions = [
+  { a = "the load is published directly ahead of the caller (rule 15)", b = "which publisher answers a name, first in publication order (rule 6)", why = "a serial orders nothing once a publication can land ahead of the caller, so every structure keyed by it - buckets, heap, promotion insert - has to be rekeyed by something that admits insertion and still identifies a life of a record" },
+  { a = "the load goes into the scope the caller reads (rule 15)", b = "act on a unit up in a scope makes it public where it stands and it goes on reading its scope (rule 5)", why = "the load goes into the caller's read scope, which a promoted unit still has, so one scope attribute per unit is one too few" },
+  { a = "the caller keeps up what it loaded until it goes down (rule 15)", b = "what keeps a live unit up and the sweep after a release (rules 10 and 11)", why = "the ledger has a third writer and the caller's record has to remember what to give back when it goes down, not when it next comes up" },
+  { a = "a load from inside a startup call (rules 15 and 2)", b = "the walk skips a unit that is already up or part way up (rule 1)", why = "a startup call inside the load can miss on a name the unit part way up publishes, so the in-progress set has to be one set on the host shared across nested activations" },
+  { a = "the call is answered by rule 6 over the order as it now stands (rule 16)", b = "what comes up ahead of the caller, in the order it comes up (rule 15)", why = "the answer after the load is whatever is first in the order now, which is the loaded unit's own dependency when that publishes the name" },
+  { a = "a settled use carries the identity of the publication it settled on (rule 9)", b = "the order key that admits insertion (rule 15)", why = "the key that admits insertion must also be the identity that separates two lives of one record, because reg/tab.py hands the same record back after a retirement" },
+  { a = "a call reaches a publication only when it is public or in the scope the caller reads (rule 4)", b = "the first visible publisher in publication order (rule 6)", why = "the answer for a caller is the earlier of two heads, the public list and the caller's own scope, which follows from each bucket being a subsequence of one order" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Retiring too little fails casc-order, chain, pre-no-keep and auto-next-life; never settling a
+use fails stick-dead; refusing to bring an auto unit up for an open use fails auto-late-mark;
+and a unit that stops reading its scope once act has made it public fails promote-reads-home.
+"""
+late_case = """
+The fast structures fail on programs an agent does not write unprompted: a competitor opened
+privately before the load and promoted after it, sixty loads in front of one caller (fan-deep,
+where a float midpoint key is exact for the first fifty-odd and silently wrong after), a load
+from a promoted unit, and a load from inside a startup call of a unit part way up.
+"""
+oracle_denied = """
+A brute-force model written from the brief gets every rule right for free - a list with insert
+needs no key - and confirms nothing about the structures that have to replace it; all six
+shipped modules are wrong, the shipped load is wrong in four ways at once, and the two
+execution limits are the only feedback a wrong structure gets.
+"""
+
+[leaks]
+candidates = [
+  { what = "an expected trace beside a shipped program", closed_by = "the tree ships eight programs and no expected trace for any of them; the answer is a sequence of events produced by running a program, and nothing in the tree stores one" },
+  { what = "a publication key, generation counter, resolution cache, dependent list or binding list", closed_by = "none ships; each is the agent's to invent, and a serial that nothing reads would be a dead field that deadfieldcheck exists to catch" },
+  { what = "the insertion primitive put in reg/order.py", closed_by = "it is on the live path: the shipped walk.py uses it, wrongly, for the loaded unit and not its closure, so it is not an unused affordance" },
+  { what = "Host.autos, the list of auto marks", closed_by = "a declaration store, not a derived quantity: the marks in the order the program made them, which is what the rule refers to" },
+  { what = "gt.json and the sealed model", closed_by = "baked into the verifier image only, in tests/seal chmod 700 before any agent code runs; the answer-key probe reports PermissionError" },
+  { what = "per-axis confirmation before commit", closed_by = "one trace per program, all-or-nothing, and the frozen order offers no comparable position: pos is a walk" },
+]
+derived_quantities = """
+Rec holds what the program declared - needs, pubs, boots, auto - plus live, uses and the order
+links that the frozen order module maintains; Host.autos is the list of marks in the order made.
+No publication key, generation counter, resolution cache, dependent list or binding list ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Resolutions that are exactly correct and too slow: comparing candidates by walking the order to
+their positions, one list per name filtered by visibility at lookup, rebuilding the index on
+every load, scanning the order; and teardowns that answer the retention question by a scan or
+find each cascade candidate by rescanning the live set. All six produce exactly the reference's
+traces.
+"""
+invariant = """
+The order admits insertion only directly ahead of a live unit, so an order key that admits
+insertion is enough and positions are not; each bucket is a subsequence of one order, so the
+answer is the earlier of two heads; retention changes only at publication, load and retirement.
+"""
+input_scale = "three programs of each large size - wide.txt is 52,000 units and 26,000 calls of which 5,000 bring a unit up, tear.txt is 24,000 units a single release brings down - plus about 450 small ones (456 nonce programs in twelve families and 56 hand programs); all of it inside the limit"
+limit_seconds = 60
+measured = true
+# Measured on a quiet machine, one program each against the 60 s limit for the whole set:
+# positions 43 s, filtered list 46 s, rebuild per load 202 s, scan 281 s (one wide program);
+# retention scan 132 s, rescanning sweep 77 s (one tear program); reference 5.2 s for the set.
+why_not = ""
+
+[cheats]
+# Fifty-four wrong readings ship under cheat/ (the ten probes and the forgery are omitted here).
+# The reading text is each script's header comment; hand_case is filled only where STATE.md or
+# task.toml names the enumerated case that catches that reading. Six are semantically identical
+# to the reference and are separated by the execution limit alone; their hand_case is empty.
+wrong_readings = [
+  { reading = "orders publications by a serial, so a unit brought up ahead of its caller sorts after it", hand_case = "auto-order" },
+  { reading = "orders publications by float midpoints, which run out after fifty loads in front of one caller", hand_case = "fan-deep: sixty loads in front of one caller" },
+  { reading = "appends every publication to its bucket, as if the order only ever grew at the back", hand_case = "auto-promote-order" },
+  { reading = "gives the unit a call brings up a hold of its own", hand_case = "auto-plain" },
+  { reading = "publishes the unit a call brings up at the back of the order", hand_case = "auto-order" },
+  { reading = "makes a unit read only public publications once act has made it public", hand_case = "promote-reads-home" },
+  { reading = "lets the caller keep nothing it brought up", hand_case = "auto-bound" },
+  { reading = "never gives back what a caller was keeping up when the caller goes down", hand_case = "auto-next-life" },
+  { reading = "starts a load with an empty in-progress set, so a unit part way up can be brought up again inside its own activation", hand_case = "auto-busy" },
+  { reading = "answers the call with the unit it brought up, whatever its closure published ahead of it", hand_case = "auto-first-in-order" },
+  { reading = "settles a call that found nothing, so it can never settle later", hand_case = "miss-open and miss-boot" },
+  { reading = "resolves every call afresh instead of settling once", hand_case = "stick-dead" },
+  { reading = "treats a returning unit as the publication a use settled on", hand_case = "same-name and fresh-instance" },
+  { reading = "brings an auto unit up for a use whose publication has gone", hand_case = "auto-dead" },
+  { reading = "never brings a unit up for a call that finds nothing", hand_case = "auto-late-mark" },
+  { reading = "lets every caller read every scope", hand_case = "scope-no-republish" },
+  { reading = "lets a caller in a scope read that scope and not the public publications", hand_case = "scope-public-first" },
+  { reading = "publishes the unit a call brings up public, whatever the caller reads", hand_case = "auto-scope" },
+  { reading = "publishes the unit a call brings up into a scope of its own", hand_case = "auto-scope-mates" },
+  { reading = "keeps a unit only while a held unit reaches it, so a dependency cycle nobody holds goes down", hand_case = "cycle-stays" },
+  { reading = "never looks again at a unit the cascade has just freed", hand_case = "cycle-soft" },
+  { reading = "takes auto candidates in declaration order rather than the order they were marked", hand_case = "" },
+  { reading = "publishes the unit a call brings up into the scope of the caller's publication rather than the one it reads", hand_case = "" },
+  { reading = "takes the last marked auto candidate rather than the first", hand_case = "" },
+  { reading = "publishes a unit brought up from inside an activation at the back of the order", hand_case = "" },
+  { reading = "makes a candidate that is up in another scope public instead of passing over it", hand_case = "" },
+  { reading = "runs a unit's startup calls before it is published", hand_case = "" },
+  { reading = "publishes the whole closure, then runs every startup call", hand_case = "" },
+  { reading = "lets a unit that is not up make a call", hand_case = "" },
+  { reading = "resolves again once the publication a use settled on has gone", hand_case = "" },
+  { reading = "counts every edge on the way in and one per name on the way out", hand_case = "" },
+  { reading = "never gives back what a retired unit was holding", hand_case = "" },
+  { reading = "ignores live dependents and keeps a unit only for its own holds", hand_case = "" },
+  { reading = "takes what a unit names in sorted order rather than declaration order", hand_case = "" },
+  { reading = "answers a name with the newest publisher rather than the first", hand_case = "" },
+  { reading = "leaves a publication private when act names it again", hand_case = "" },
+  { reading = "publishes an open activation public, as if scopes did not exist", hand_case = "" },
+  { reading = "takes the hard dependencies first and the ordering edges after them", hand_case = "" },
+  { reading = "brings up only hard dependencies and ignores the ordering edges", hand_case = "" },
+  { reading = "puts a promoted publication at the back of the public order", hand_case = "" },
+  { reading = "gives back a hold from a unit that is not up or holds none", hand_case = "" },
+  { reading = "moves a unit to the back of the order when it is brought up again", hand_case = "" },
+  { reading = "adds no hold when a unit that is already up is brought up again", hand_case = "" },
+  { reading = "gives every unit of an open activation a scope of its own", hand_case = "" },
+  { reading = "lets an ordering edge keep its target up, like a dependency", hand_case = "" },
+  { reading = "prefers an ordinary publication to a fallback one", hand_case = "" },
+  { reading = "takes the first unwanted unit in publication order rather than the last", hand_case = "" },
+  { reading = "lets a returning unit keep what it settled in its last life", hand_case = "" },
+  { reading = "compares candidates by walking the order to each one's position, which is correct and too slow", hand_case = "" },
+  { reading = "keeps one list per name and filters it by visibility, which is correct and too slow", hand_case = "" },
+  { reading = "rebuilds its index from the order whenever a load splices into it, which is correct and too slow", hand_case = "" },
+  { reading = "answers every call by scanning the publication order, which is correct and too slow", hand_case = "" },
+  { reading = "answers every retention question by scanning the live set, which is correct and too slow", hand_case = "" },
+  { reading = "finds each candidate by scanning the live set, which is correct and too slow", hand_case = "" },
+]
+correct_variants = [
+  "ok-flat: the whole host in one module with exact fractions for keys and sorted lists for everything",
+  "ok-stack: a walk from an explicit stack with fraction keys and buckets as dictionaries",
+  "ok-count: tuple keys with a ledger built from sets and the candidate queue kept by bisect",
+]
+
+[shape]
+# Left at 0: the checker measures the built tree under tasks/publish-settle-order/.
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

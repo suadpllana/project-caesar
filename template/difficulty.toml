@@ -1,0 +1,120 @@
+# Difficulty record - the design of a task, written before any code exists.
+#
+# Copy to authoring/<slug>/difficulty.toml (outside the bundle; it never ships) and answer
+# every field from the idea, not from hope. Then run:
+#
+#     python tools/difficultycheck.py <slug>
+#
+# The score has to land inside the band the retained passing tasks occupy before
+# environment code is written. Below the band, the idea is redesigned or replaced; the record
+# is never padded to reach the number, because the probe reads the task and not this file.
+# Every claim here is restated in STATE.md and must match what is built. At Stage 7 the same
+# command re-measures the built tree and reports where the design drifted.
+#
+# Word minimums in the comments are what the checker reads. They are floors for a concrete
+# answer, not targets; a longer vague answer scores the same as a short one.
+
+[task]
+slug = "my-task-slug"
+status = "idea"                      # idea | pending | passed (informational)
+sources = []                         # where each claim below is recorded once code exists
+expert_hours = 8                     # honest; passing tasks claim 7 to 12
+estimated_solves = 2                 # out of 8; design for 1 to 3, never 0 or 8
+
+[plan]
+# 1. The frontier agent's first plan, in the words it would use (>= 25 words).
+first_plan = ""
+# Where that plan comes from: prior | search | instruction | tree | examples
+first_plan_source = "prior"
+# 2. The exact stated requirement that makes the first plan wrong (>= 15 words).
+breaking_rule = ""
+# 3. The later discovery that invalidates the implementation of the first (>= 15 words).
+#    It must be a different finding from breaking_rule, not the same one restated.
+second_discovery = ""
+# What the second discovery does to the first implementation: replan | patch
+second_discovery_effect = "replan"
+# Your own cold attack: is your very first plan the correct one? If true, the planning
+# attack has already failed and the design goes back to docs/DIFFICULTY.md.
+first_plan_correct = false
+# 10. The expert path, step by step, five or more concrete steps of >= 5 words each.
+expert_path = [
+]
+
+[search]
+# The best page a probe agent with open internet retrieves for this task (>= 10 words).
+best_page = ""
+# Does that page substantially plan the task? true kills the idea.
+helps_plan = false
+# Where the spec departs from what that page says, so retrieval hurts (>= 10 words).
+deviation = ""
+
+[tactics]
+# Name only the tactics the design actually uses, each justified in this task's terms
+# (>= 10 words). At least two prongs. Keys: A1 A2 A3 B1 B2 C1 C2 C3 C4.
+# Length, tree size, random cases and obscurity are not tactics and are reported as such.
+A1 = ""
+B2 = ""
+C1 = ""
+C4 = ""
+# The route-around guard: which files are editable, what is hash-checked, what interface
+# is frozen, so the task cannot be reshaped into one the default plan handles (>= 8 words).
+guard = ""
+
+[decisions]
+# How many distinct decisions the verifier grades.
+graded = 0
+# Pairs of rules where getting one right changes what "right" means for the other.
+# Rules that can each be settled alone are a checklist, not a planning problem.
+interactions = [
+  { a = "", b = "", why = "" },
+]
+# Can the agent confirm each rule separately, from anything it can see or run?
+per_decision_feedback = false
+
+[fences]
+# 5. The everyday case an overconservative solution fails (>= 10 words).
+ordinary_case = ""
+# 6. The adversarial case where the wrong plan fails late, after ordinary cases pass (>= 10 words).
+late_case = ""
+# How the agent would check its own work, and why that check confirms nothing (>= 10 words).
+oracle_denied = ""
+
+[leaks]
+# 4. Everything in the planned tree that could let an agent discover, name or verify a
+#    discovery without reasoning: fields, helpers, samples, counts, pairs of counts.
+#    Each with how it is closed. At least three.
+candidates = [
+  { what = "", closed_by = "" },
+]
+# Which stored values are primitives, and that no derivation the task is about ships (>= 8 words).
+derived_quantities = ""
+# Does any artifact that is a function of the correct trajectory ship to the agent?
+oracle_shipped = false
+
+[gate]
+# 7. Resource gate. present = true needs all four fields below and must be measured before
+#    the design depends on it; present = false needs why_not.
+present = false
+naive_family = ""                    # the correct-but-infeasible method the gate kills
+invariant = ""                       # the domain fact the fast path follows from
+input_scale = ""                     # stated in the brief
+limit_seconds = 0                    # stated in the brief
+measured = false                     # naive and expert timings actually run
+why_not = ""                         # when present = false: why no naive-correct family exists
+
+[cheats]
+# 8. Every plausible wrong reading, each with the hand case that separates it. Six or more.
+wrong_readings = [
+  { reading = "", hand_case = "" },
+]
+# 9. Two meaningfully different correct implementations that must both score 1.
+correct_variants = [
+]
+
+[shape]
+# Planned sizes. Once tasks/<slug>/ exists these are measured from the tree instead and
+# a drift over 35% is reported. Retained band: 229 to 544 environment lines, 1 to 7
+# editable files, 110 to 424 reference lines.
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

@@ -978,6 +978,17 @@ def check_state_difficulty(root: Path) -> None:
                 "never articulated lands outside the 1-7 band; see docs/DIFFICULTY.md"
             )
 
+    # The difficulty record is the pre-code gate (docs/DIFFICULTY-SCORE.md). It lives outside
+    # the bundle, so this is a warning: the bundle can ship without it, but a task built
+    # without scoring its design against the passed set skipped the gate that decides most.
+    record = root.resolve().parent.parent / "authoring" / root.resolve().name / "difficulty.toml"
+    if not record.is_file():
+        warn(
+            f"no difficulty record at authoring/{root.resolve().name}/difficulty.toml - the design "
+            "was never scored against the passed tasks; copy template/difficulty.toml there and "
+            "run tools/difficultycheck.py before Stage 2 (docs/DIFFICULTY-SCORE.md)"
+        )
+
     tactics_line = field_value(text, "Tactics making that true") or ""
     prongs = {(m.group(1) or m.group(2)).upper() for m in TACTIC_RE.finditer(tactics_line)}
     if tactics_line and not any(m in tactics_line for m in TODO_MARKERS):

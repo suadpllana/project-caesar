@@ -298,6 +298,11 @@ Before environment work begins, write these answers in its `STATE.md`:
 A candidate with weak answers to questions 2 or 3 is still easy. A candidate with no clear answer
 to question 10 is not hard; it is unverifiable.
 
+These ten answers, with the tactics, the leak audit, the fences, the gate, the planned cheats and
+the planned shape, are the fields of `authoring/<slug>/difficulty.toml`, and
+`tools/difficultycheck.py` scores them against the passed set before Stage 2. The rubric, the
+calibration and the negative controls are in `docs/DIFFICULTY-SCORE.md`.
+
 ## Do not overlearn the examples
 
 - A large repository is not required. `focus-return-point` is compact, and its interaction is the

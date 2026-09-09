@@ -1,0 +1,101 @@
+# NEGATIVE CONTROL. publish-settle-order as first built on 2026-09-08 (CLAUDE.md, "Lessons,
+# measured (2026-09-08)" and "(2026-09-09, difficulty rebuild)"; docs/QUALITY-REVIEW.md).
+# 162 lines of Python across eleven files; the quality review failed `difficult`: "the
+# editable code is roughly 100 lines of Python across five files, and each fix is a few
+# lines. The two inventions the author highlights (a per-instance mark to defeat record
+# reuse, and a per-name list kept in publication order) are standard techniques
+# (ABA/generation tagging, a dict of lists)." The repair note: "a task whose hard parts are
+# two retrievable techniques is a task whose plan is retrieved" - which is what
+# first_plan_correct = true records.
+
+[task]
+status = "rejected"
+sources = ["CLAUDE.md", "docs/QUALITY-REVIEW.md", "tasks/publish-settle-order/STATE.md"]
+expert_hours = 12
+estimated_solves = 2
+
+[plan]
+first_plan = """
+A serial minted at publication, per-name lists kept in publication order, a per-instance mark
+to tell two lives of one record apart, a ledger fed by publication and retirement, and a
+resolution that takes the first publisher in the order.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Records are reused across lives, so a bare record identity confuses a retired unit with its
+replacement; a per-instance mark is needed.
+"""
+second_discovery = """
+Publication order has to be kept per name so that resolution answers the first publisher
+rather than the newest, which a dict of lists keeps.
+"""
+second_discovery_effect = "patch"
+first_plan_correct = true
+expert_path = [
+  "read ops.py and the record table",
+  "add a per-instance mark to each record",
+  "keep a per-name list in publication order",
+  "answer the first publisher position",
+  "feed the ledger from publication and retirement",
+]
+
+[search]
+best_page = """
+Generation tagging against the ABA problem, and order-maintained dictionaries of lists.
+"""
+helps_plan = true
+deviation = ""
+
+[tactics]
+A1 = """
+The prior for a resolution answers the newest publisher; the stated rule is the first in
+publication order.
+"""
+B2 = """
+Five stated rules over the walk, the view, the pick, the site and the drop.
+"""
+C4 = """
+All-or-nothing over enumerated and nonce programs.
+"""
+guard = """
+Five editable files under /app/link overlaid on a pristine tree.
+"""
+
+[decisions]
+graded = 5
+interactions = []
+per_decision_feedback = true
+
+[fences]
+ordinary_case = """
+A unit published once and never retired resolves the same under every reading.
+"""
+late_case = """
+A record reused for a second life after retirement.
+"""
+oracle_denied = """
+No expected traces ship; a brute-force model written from the brief is right for free.
+"""
+
+[leaks]
+candidates = [
+  { what = "run_target carrying the exact rule = first_publisher_pos", closed_by = "onelinecheck found the exact rule at depth one and it shipped anyway" },
+]
+derived_quantities = ""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "newest publisher answers", hand_case = "two publishers of one name" },
+  { reading = "record identity without a mark", hand_case = "a record reused for a second life" },
+]
+correct_variants = []
+
+[shape]
+environment_py_lines = 162
+editable_files = 5
+reference_lines = 100

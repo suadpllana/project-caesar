@@ -1,0 +1,201 @@
+# Difficulty record for reach-pair-sweep, transcribed after the fact from the task's own
+# documentation. Every claim below restates one already made in the files listed under
+# task.sources; nothing is added. Fields the documentation does not support are left empty.
+
+[task]
+slug = "reach-pair-sweep"
+status = "pending"
+sources = [
+  "tasks/reach-pair-sweep/STATE.md",
+  "tasks/reach-pair-sweep/task.toml",
+  "tasks/reach-pair-sweep/instruction.md",
+  "tasks/reach-pair-sweep/tests/test_outputs.py",
+  "tasks/reach-pair-sweep/cheat/README.md",
+  "tasks/reach-pair-sweep/cheat/",
+  "authoring/reach-pair-sweep/readings.py",
+  "authoring/reach-pair-sweep/variants/",
+]
+expert_hours = 8
+estimated_solves = 3
+
+[plan]
+first_plan = """
+Reachability plus the pair fixed point plus finalizer retention: walk from the frame slots, the
+global table and the handle stack, fold the pair table in as a fixed point, keep the closure of
+every unreached finalizable object and queue its finalizer, age and promote what survived, and
+clear weak references to whatever was not reached. That is the previous version of this task,
+which was rejected twice as not difficult, and the textbook answers to the pair fixed point, the
+finalizer reprieve and the generational split do not compose here.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The brief says the remembered set is where a minor collection finds the nursery objects reachable
+from old space and that /app/mem/rset.py is where it comes from. That file records a (source,
+field, value) triple when a field of an old object is given a nursery value and never revisits
+it, so the recorded value is a snapshot: overwrite the field and the triple stays, naming an
+object nothing points at. The recorded field has to be read again rather than trusted. Trusting
+the record keeps dead objects alive; ignoring the set releases live ones.
+"""
+second_discovery = """
+Which finalizers join the queue is settled from what the walk reached, before any keeping is
+granted, and what is kept to run a finalizer is not what survived: those objects do not age and
+cannot promote, and a weak reference to one clears while the object is still there. So the walk
+cannot produce one reached set; survived and merely kept have to be held apart as two sets and
+that split carried into ageing and clearing. Getting ageing right then changes which space an
+object is in, which changes what the next collection may trace, which changes the remembered
+set - there is no order in which these can be settled one at a time.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read ops.py to find the five entry points and the order they are called in",
+  "read mem/rset.py and notice the recorded value is never refreshed",
+  "write roots for both collection kinds, re-reading each recorded field for the minor one",
+  "write the walk with the pair table indexed by key",
+  "settle the finalizer queue against the walk before keeping anything",
+  "separate what survived from what is merely kept, as a second walk blocked from anything already reached",
+  "carry that split into ageing and clearing",
+  "apply the space rules: a minor collection traces, releases and clears only the nursery, but an old pair key is ready throughout",
+]
+
+[search]
+best_page = """
+No single page is named. STATE.md records that the parts are documented separately - the
+concepts the brief never names are ephemeron, tricolor, resurrection and write barrier - and
+task.toml names generational collectors, write barriers, weak maps and finalizer queues as the
+public material.
+"""
+helps_plan = false
+deviation = """
+The conjunction with a stale remembered set, a generational split and the finalizer reprieve
+interacting is on no page, the brief names none of the concepts, and the textbook answers to
+the pair fixed point, the reprieve and the generational split do not compose.
+"""
+
+[tactics]
+A2 = """
+The mechanisms are described operationally and never named: no ephemeron, no tricolor, no
+resurrection, no write barrier.
+"""
+A3 = """
+The pair fixed point, the finalizer reprieve and the generational split have textbook answers
+that do not compose.
+"""
+B1 = """
+The load-bearing facts are spread: the barrier's trigger in mem/rset.py, promotion in the module
+the agent is writing, root sources in mem/roots.py, staleness nowhere but in the interaction of
+the two.
+"""
+B2 = """
+Nine stated decisions whose interaction is the work; getting ageing right changes which space
+an object is in, which changes what the next collection traces.
+"""
+C1 = """
+Both fences: plain-drop, all-live and weak-live fail an over-conservative collector; old-safe,
+rset-root and weak-old fail an over-eager one.
+"""
+C2 = """
+The shipped collector is wrong in four of five modules, so running it confirms nothing.
+"""
+C3 = """
+A measured scaling boundary: the rescanning fixed point is exactly correct and takes past 800 s
+on the graded set against 0.7 s indexed, with a stated 60 s limit.
+"""
+C4 = """
+All-or-nothing over 25 hand programs and 312 nonce programs generated after the agent finishes.
+"""
+guard = """
+Only the five files under /app/col/ are artifacts, with the entry points plan.roots, scan.reach,
+keep.settle, age.promote, wipe.wipe and wipe.release frozen; the verifier overlays them onto its
+own pristine copy of the runtime, so nothing else the agent touches can change what a program
+prints.
+"""
+
+[decisions]
+graded = 9
+interactions = [
+  { a = "ageing and promotion (decision 8)", b = "the roots of a minor collection and the remembered set (decision 1)", why = "getting ageing right changes which space an object is in, which changes what the next collection may trace, which changes the remembered set; whether an object is in the nursery or old space depends on the ageing rule the agent is also writing" },
+  { a = "the finalizer queue settled against the walk (decision 4)", b = "what a queued finalizer keeps (decision 5)", why = "the queue is settled against what the walk reached before any keeping is granted, so an object reachable only from another finalizable object is still finalized this cycle; settle it afterwards and it looks kept rather than garbage" },
+  { a = "what a queued finalizer keeps (decision 5)", b = "ageing and weak clearing (decisions 6 and 8)", why = "what is kept to run a finalizer is not what survived, so those objects do not age and cannot promote, and a weak reference to one clears while the object is still there" },
+  { a = "a minor collection traces and releases only the nursery (decision 3)", b = "an old pair key ready from the start of a minor collection (decision 2)", why = "a minor collection may say nothing about old space, so it neither releases old objects nor clears references into it, yet an old pair key is reached for the whole of that collection because nothing it did could show otherwise" },
+  { a = "the remembered set as a hint to re-read (decision 1)", b = "what the walk reaches (decision 2)", why = "a minor collection cannot trace old space, so the remembered set entries are its only route to nursery objects held from outside, and trusting the snapshot keeps dead objects alive while ignoring the set releases live ones" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+An object whose only slot is cleared has to be released at the next collection: plain-drop,
+all-live and weak-live fail an over-conservative collector, and a collector that releases
+nothing at all (keep-everything) fails plain-drop.
+"""
+late_case = """
+A field of an old object is overwritten after the remembered set recorded its earlier nursery
+value: the triple stays, naming an object nothing points at, and a collector that trusts the
+record keeps the dead object alive (rset-stale), a fact readable in eleven lines of rset.py and
+nowhere else; and on the wide family, a pair table written back to front, the rescanning fixed
+point that is exactly right on every small program runs past 800 seconds.
+"""
+oracle_denied = """
+The shipped collector is wrong in four of five modules, so running it confirms nothing;
+tiny.txt shows the record format and one wrong line that the brief names, and does not settle
+the remembered set, the pair cascade, the queue ordering or the clearing rules.
+"""
+
+[leaks]
+candidates = [
+  { what = "an expected output beside a shipped program", closed_by = "the shipped data is four programs with no expected output beside them; no shipped file reproduces a graded answer by a join, a sort or a field comparison" },
+  { what = "a stored derived quantity on the heap", closed_by = "the heap exposes only primitives the mutator wrote; there is no reached flag, no colour, no retained count, no cached closure" },
+  { what = "the worked example tiny.txt", closed_by = "it shows the record format and one wrong line the brief names, and does not settle the remembered set, the pair cascade, the queue ordering or the clearing rules" },
+  { what = "a callable helper counted as difficulty", closed_by = "nothing; the five modules under /app/col are what is being written" },
+  { what = "the sealed model and gt.json", closed_by = "nonce programs are generated in the verifier after the agent has finished and checked against tests/model.py; the grader asserts model and gt.json still agree before grading anything" },
+]
+derived_quantities = """
+The heap exposes primitives the mutator wrote - objs, flds, fin, space, age, pins, rset, pairs,
+weak, queue, done. Nothing derived is stored: no reached flag, no colour, no retained count, no
+cached closure.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Settling the pair table fixed point by rescanning the table until a sweep adds nothing: exactly
+correct, and on a table written back to front it costs the table size times the chain depth.
+"""
+invariant = """
+A pair can only newly fire when its key first enters the reached set, and a key enters once, so
+the table indexed by key follows each pair the moment its key arrives and never looks at it
+again.
+"""
+input_scale = "wide.txt is about seven thousand objects with a pair table written back to front; the graded ones run several times larger; 25 hand programs plus 312 nonce programs in six families"
+limit_seconds = 60
+measured = true
+# Measured on the graded set: 0.7 s indexed by key against past 800 s rescanning, same answers.
+why_not = ""
+
+[cheats]
+# The ten semantic cheats under cheat/ (the six isolation, reward and forgery probes are
+# omitted). The reading text is each script's header comment; hand_case is filled only where
+# STATE.md, task.toml or the cheat README names the enumerated case that catches that reading.
+wrong_readings = [
+  { reading = "trusts the value recorded in the remembered set instead of re-reading", hand_case = "rset-stale" },
+  { reading = "ignores the remembered set, losing objects reachable only from old space", hand_case = "rset-root" },
+  { reading = "ages objects kept only to run a finalizer, so they promote", hand_case = "held-no-age" },
+  { reading = "releases nothing at all", hand_case = "plain-drop" },
+  { reading = "treats an old pair key as unreached during a minor collection", hand_case = "" },
+  { reading = "settles the finalizer queue after keeping, hiding the second object", hand_case = "" },
+  { reading = "releases old objects a minor collection never traced", hand_case = "" },
+  { reading = "clears weak references to old objects a minor collection never examined", hand_case = "" },
+  { reading = "ignores the reprieve a queued finalizer earns", hand_case = "" },
+  { reading = "settles the pair table by rescanning it: correct, and too slow to finish", hand_case = "" },
+]
+correct_variants = [
+  "alt: a breadth-first walk over a colour map",
+  "mirror: the reference with every identifier mechanically renamed",
+]
+
+[shape]
+# Left at 0: the checker measures the built tree under tasks/reach-pair-sweep/.
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

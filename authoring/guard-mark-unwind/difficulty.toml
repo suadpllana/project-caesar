@@ -1,0 +1,162 @@
+# Difficulty record for guard-mark-unwind, transcribed from the sources listed below.
+# Passed all nine gates 2026-09-01 after a 0-of-8 difficulty result was repaired by stating
+# the input space, never the rule.
+
+[task]
+slug = "guard-mark-unwind"
+status = "passed"
+sources = [
+  "tasks/guard-mark-unwind/STATE.md",
+  "tasks/guard-mark-unwind/task.toml",
+  "tasks/guard-mark-unwind/cheat/README.md",
+  "tasks/guard-mark-unwind/cheat/*.sh header comments",
+  "tasks/guard-mark-unwind/tests/test_outputs.py docstring",
+  "docs/PASSING-TASK-RESEARCH.md",
+]
+expert_hours = 8
+estimated_solves = 1
+
+[plan]
+first_plan = """
+A cancellation token delivered once and carrying the scope it came from: choose the target
+guard when the cut is raised, stamp it onto the travelling exception, and recognise that
+target by identity at the boundary. That is the shape almost every mainstream async library
+has, and the shipped runtime already behaves coherently under it, so the first repair is
+easy to believe.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Delivery is attributed to the outermost marked guard in view rather than the innermost:
+attributing inward lets the fiber resume inside an enclosing guard that is also marked and
+run every op up to the next checkpoint, and blocks are not checkpoints, so the only trace of
+the mistake is one extra token in an otherwise perfect run.
+"""
+second_discovery = """
+A mark can land while a cut is already travelling - a deadline crossing during a cleanup
+block, a sibling failing while the fiber sits at a band it may not leave - so the guard
+stamped on the exception goes stale. Where the cut rests has to be decided again at each
+guard as it closes, from the marks standing then, not from the guard chosen when the cut was
+raised.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read the op set and the two-phase wait out of the loop",
+  "drive the shipped programs and notice the token emitted inside a guard that is already marked",
+  "derive the window rule from the shield behaviour",
+  "rebuild delivery to name the outermost marked guard in the window",
+  "find that the stamped guard goes stale mid-unwind and move the resting decision to each guard as it closes",
+  "then the band rules: hold while children are alive so the answer is recomputed when the last child ends",
+]
+
+[search]
+best_page = """
+Structured-concurrency cancellation semantics as written up for Trio and anyio, and the
+FreeRTOS and Zephyr discussions of the simplified-priority-restore class of bug.
+"""
+helps_plan = false
+deviation = """
+The public write-ups describe the priority-restore variant and single-delivery cancellation
+tokens; here delivery is level-triggered and sticky, the target is the outermost marked
+guard, and the resting boundary is recomputed as guards close, which no retrieved runtime
+does.
+"""
+
+[tactics]
+A1 = """
+The retrieved cancellation-token answer - deliver once, stamp the scope, match by identity -
+is coherent and specifically wrong on every one of the seven corrections.
+"""
+B2 = """
+Seven decisions across three files interact: the outermost rule, the shield window, the
+resting decision at each closing guard, holding at a band while children live, stopping
+children when unwinding into a band, ordering what leaves a band by completion, and errors
+not being marks.
+"""
+C1 = """
+One enumerated program per rule including the must-still-work side of each fence; an
+unmarked guard passes a travelling cut, and holding then raising what was held is wrong in
+exactly the cases holding was for.
+"""
+C2 = """
+The runtime runs whatever rules it is given and prints the trace they produce; every wrong
+reading yields a trace that looks entirely reasonable and no expected output ships.
+"""
+C4 = """
+Exact ordered event trace and per-fiber token lists over 28 enumerated programs and 300
+programs generated inside the verifier from a nonce made after the agent has finished,
+all-or-nothing.
+"""
+guard = """
+Four declared artifacts under /app/kern; the executed tree outside them is byte-identical
+to a pristine copy after the run and every sealed runtime function is fingerprinted in the
+running interpreter.
+"""
+
+[decisions]
+graded = 8
+interactions = [
+  { a = "delivery to the outermost marked guard", b = "resting decided as each guard closes", why = "the natural implementation of the first stamps the chosen guard on the exception, and the second says that stamp goes stale when a mark lands mid-unwind, so the first has to be rebuilt as a rule asked again at every closing guard" },
+  { a = "holding at the close of a band while children live", b = "resting decided as each guard closes", why = "holding is worth nothing on its own; it is worth everything because the fiber is asked again when the last child ends, which is the only way the answer is recomputed against marks that landed while it waited" },
+  { a = "the shield window", b = "delivery to the outermost marked guard", why = "a shield hides what encloses it and not its own guard, so the window the outermost rule scans is cut on the far side of the shielded guard and a mark on that guard still reaches the fiber" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+An unmarked guard passes a travelling cut through, and a fiber under a guard that is not
+marked runs to completion; a submission that rests anywhere or holds everything fails these.
+"""
+late_case = """
+A mark that lands while a cut is already travelling: the stamped-guard implementation is
+right for forty rows and wrong for one, and the only symptom is one extra token in the
+middle of a run.
+"""
+oracle_denied = """
+The runtime happily runs whatever rules it is given and prints the trace they produce; the
+environment ships no expected output and every wrong reading prints a plausible trace.
+"""
+
+[leaks]
+candidates = [
+  { what = "Gd.own and Gd.kind, written by loop.py and read by nothing", closed_by = "deleted; a dead field is a false affordance that looks like a clue, and the 0-of-8 trajectory invented a band-skip rule from it" },
+  { what = "the error rule, whether a child ending on an error marks the band's own guard", closed_by = "stated in the brief as an observable rule, because it was peripheral ambiguity rather than the intended difficulty" },
+  { what = "the shipped programs as a fitting target", closed_by = "300 graded programs are generated inside the verifier from a nonce drawn after the agent finishes, so a rule fitted to the tree carries no information about the rest" },
+  { what = "self-describing names and comments", closed_by = "the runtime ships with no comments and identifiers in the register of ordinary internal code; the op set, the two-phase wait and the block stack are recovered from behaviour" },
+]
+derived_quantities = """
+The runtime ships no expected output, no cached delivery target, no stored resting guard;
+where a cut rests is never written down anywhere the agent can read.
+"""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = """
+The task wins without a scale gate; its leverage is a strong prior that is correct almost
+everywhere and a wrong reading that differs by one token, so no naive-but-correct family
+needs a resource boundary.
+"""
+
+[cheats]
+wrong_readings = [
+  { reading = "stamp the chosen guard on the cut and match it by identity", hand_case = "a mark that lands while the cut is already travelling, the program the resting sweep is built on" },
+  { reading = "delivery attributed to the innermost marked guard", hand_case = "a fiber resuming inside an enclosing guard that is already marked and emitting one extra token" },
+  { reading = "each mark delivered once and forgotten", hand_case = "the same guard has to reach the fiber again at the next checkpoint under a sticky mark" },
+  { reading = "any marked guard takes the cut", hand_case = "the innermost takes it and the fiber resumes inside an enclosing marked guard" },
+  { reading = "a shield hides its own guard as well", hand_case = "a fiber that shields a guard and then marks that guard runs on" },
+  { reading = "the window cut before the shielded guard", hand_case = "the same symptom as shield-opaque reached from the other side" },
+  { reading = "a fiber leaves a band with children alive", hand_case = "band-leave program in the enumerated set" },
+  { reading = "a fiber unwinds into its own band without stopping the children", hand_case = "children run to completion under an exception already travelling" },
+  { reading = "a mark on a sleeping fiber left until its wait runs out", hand_case = "never-rouse program in the enumerated set" },
+  { reading = "collected payloads ordered by spawn instead of completion", hand_case = "differs from the reference on 1 program of 427" },
+  { reading = "an unmarked guard absorbs a travelling cut", hand_case = "unmarked-guard-passes-it, a shrunk 21-line counterexample inside the delivery sweep" },
+]
+correct_variants = [
+  "six variants that disagree on how often the chain is consulted, what is cached and which data structures are kept, all scoring 1",
+]
+
+[shape]
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

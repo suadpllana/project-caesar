@@ -41,6 +41,9 @@ TODO: the specific reason a frontier agent fails. Name the step, not "it is comp
 - Tactics making that true (docs/DIFFICULTY.md — prong A poison / prong B withholding / prong C late failure): TODO
 - Assistant's attack on the plan (its first plan, and where that plan is wrong): TODO
 - Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): TODO
+- Difficulty record score (tools/difficultycheck.py on authoring/<slug>/difficulty.toml, before
+  Stage 2; every attempt's score and what changed, until it reaches the band in
+  docs/DIFFICULTY-SCORE.md): TODO
 - Difficulty score anchor (50 at first complete submission, approved by contributor): TODO
 - Score history (date, score, what moved, and any pipeline re-anchor): TODO
 - Leak audit (docs/DIFFICULTY.md): for each mechanism, what in the bundle could let an agent

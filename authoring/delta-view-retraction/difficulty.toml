@@ -1,0 +1,172 @@
+# Difficulty record for delta-view-retraction, transcribed from the sources listed below.
+# Failed easiness twice (2 of 3, then 3 of 3) while the graded question was one shallow
+# predicate; passed once a second graded quantity, how much a reread folds, was added and
+# the two findings interacted.
+
+[task]
+slug = "delta-view-retraction"
+status = "passed"
+sources = [
+  "tasks/delta-view-retraction/STATE.md",
+  "tasks/delta-view-retraction/task.toml",
+  "tasks/delta-view-retraction/cheat/*.sh header comments",
+  "tasks/delta-view-retraction/tests/test_outputs.py docstring",
+  "docs/PASSING-TASK-RESEARCH.md",
+]
+expert_hours = 8
+estimated_solves = 2
+
+[plan]
+first_plan = """
+The textbook aggregate split: sums and counts are invertible, so absorb their retractions
+with an inverse delta; minima, maxima and top cells are not, so rebuild them from the row
+store on every retraction. The delta-lattice answer publishes every value correctly and is
+over the work budget in nine of twelve scenarios.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Whether a cell can absorb a retraction is a property of that cell at that moment, not of the
+aggregate kind: the accumulator keeps at most three distinct candidates and discards the rest
+with no record, so a cell can absorb a retraction while its candidate set is still a faithful
+witness, and only a retraction that empties a candidate slot in an incomplete cell forces a
+reread.
+"""
+second_discovery = """
+A reread need not fold the whole live group: the bounded accumulator can only retain rows
+carrying its surviving candidate values, so the rebuild folds those rows and their
+multiplicities. Once it does, the dependency map names the rows folded rather than the rows
+the group holds, so the completeness test that read that map becomes wrong and has to move to
+the row store listing.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read fold in store/agg.py and see the cap discard silently with no record",
+  "establish that the accumulator cannot report the loss, since its multiplicity tracks what it kept",
+  "establish that a positive edit is always absorbable because fold and rebuild discard by the same rule",
+  "establish that a negative edit is absorbable only while the candidate set is a faithful witness, and find the accountable live count from the row store listing",
+  "seed the retracted values into that set so the membership case falls out, and split an update into its two edits",
+  "find the second half: an incomplete cell still absorbs any retraction that leaves its candidate set standing",
+  "narrow the rebuild to the rows that can survive the cap, and move the completeness test off the dependency map",
+]
+
+[search]
+best_page = """
+Incremental view maintenance under retraction: the delta-lattice and multiplicity treatment
+where invertible aggregates absorb and non-invertible ones rebuild.
+"""
+helps_plan = false
+deviation = """
+The retrieved plan is correct on every value and wrong on work in ten of thirteen scenarios,
+because the cap makes absorbability a per-cell, per-moment property the literature's
+per-kind rule does not express.
+"""
+
+[tactics]
+A1 = """
+The memorised delta-lattice answer, rebuild the non-invertible kinds on retraction, is
+specifically wrong on work while right on every published value.
+"""
+A2 = """
+Invertibility and the cap are never named; there is no spill counter, no flag and no
+predicate that reports the loss.
+"""
+B1 = """
+Cap semantics live in agg.py, counters in core.py and edit splitting in land.py, none of
+them editable, and the accountable set lives in the row store rather than the cell.
+"""
+B2 = """
+Update-splits-into-two-edits, no-op deletes, the membership case, the slot test and the
+narrowed rebuild must all hold at once, and the narrowed rebuild changes what the
+completeness test may read.
+"""
+C1 = """
+Fenced both ways: over-rebuilding fails the work ceiling and under-rebuilding fails the
+values, so the safe answer and the eager answer both score 0.
+"""
+C2 = """
+No oracle for work: a cold rebuild the agent writes confirms the values under every wrong
+plan, and the brief no longer publishes the target counters.
+"""
+C3 = """
+The work counters, counted in a non-editable file and graded as a ceiling tied to a
+replayable journal, are the resource gate the semantically safe answer fails.
+"""
+guard = """
+One editable file, view/route.py; the engine outside it is attested byte-identical to a
+pristine copy after the run and the counters are counted in code the agent cannot change.
+"""
+
+[decisions]
+graded = 4
+interactions = [
+  { a = "when a cell must reread", b = "how much a reread folds", why = "once a rebuild folds only the rows that can survive, the cell's dependency map names the rows it folded rather than the rows the group holds, so the cheapest completeness test starts reporting an incomplete cell as complete and the accountable set has to move to the row store" },
+  { a = "completeness of a cell", b = "the slot test", why = "completeness alone is over budget on six of twelve and the slot test alone on two; a cell that has lost values still absorbs a retraction that leaves its candidates standing" },
+  { a = "splitting an update into two edits", b = "judging each cell independently", why = "the positive half is always absorbable and the negative half is judged per cell, so a verdict reused across kinds is wrong" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A retraction of a value the cell never held, or one copy of a value another live row still
+carries, must be absorbed; rebuilding there is correct on values and over the fold budget.
+"""
+late_case = """
+rebuild-narrows-deps, an eight-op counterexample where a narrowed rebuild makes the
+dependency-map completeness test report an incomplete cell as complete, so the line one
+solving agent used absorbs an edit it cannot answer for.
+"""
+oracle_denied = """
+A cold full rebuild the agent writes confirms every published value under every wrong plan,
+and the work budget is graded against a ceiling the brief does not state.
+"""
+
+[leaks]
+candidates = [
+  { what = "agg.exact() and agg.invertible(), shipped oracles naming the distinction", closed_by = "removed; rebuild iff not exact was correct and free" },
+  { what = "the spill counter, then acc.n minus sum(acc.top.values())", closed_by = "eviction now decrements the multiplicity it discards so n equals the retained sum and no pair of retained fields witnesses the loss" },
+  { what = "repair.touched() doing the membership check in an editable file", closed_by = "removed" },
+  { what = "the published target of 55 folds and 6 scans telling the solver when to stop", closed_by = "the brief grounds on the shipped engine's 120 and 40 and grades a ceiling it does not name" },
+  { what = "store/carry.py and store/stamp.py, a second cache and a fingerprint nothing reached", closed_by = "removed as scenery and a table of contents" },
+]
+derived_quantities = """
+The accumulator carries only what it still holds; the accountable live count comes from the
+row store listing and nothing stored reports what the cap discarded.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Rebuilding every order-sensitive cell on any retraction, or on any incomplete cell, or
+folding the whole live group on every reread: all correct on values and over the budget.
+"""
+invariant = """
+The accumulator keeps the best three distinct values and drops the rest by a rule that does
+not depend on arrival order, so only rows carrying a surviving value can survive a rebuild.
+"""
+input_scale = "thirteen scenarios with per-scenario fold and scan ceilings from the sharpest correct rule"
+limit_seconds = 900
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "rebuild every order-sensitive cell on any retraction", hand_case = "over the budget on nine of twelve scenarios" },
+  { reading = "rebuild whenever the cell is incomplete", hand_case = "a cell that has lost values taking a retraction that leaves its candidates standing" },
+  { reading = "the slot test alone without completeness", hand_case = "a group that had lost nothing rereading on a slot emptying" },
+  { reading = "completeness read off the dependency map", hand_case = "rebuild-narrows-deps, an eight-op counterexample found by fuzzing and shrunk" },
+  { reading = "hand the whole group to every rebuild", hand_case = "retract-drains-witness, 45 against a budget of 44" },
+  { reading = "rebuild only when the retracted value is not held", hand_case = "a cell holding fewer values than the group that is no longer a witness" },
+  { reading = "acc.n against len(acc.top) as the witness test", hand_case = "duplicates-at-the-cap, where duplicates inflate n with nothing lost" },
+  { reading = "never rebuild", hand_case = "the accumulator drifts once retractions drain it" },
+  { reading = "one verdict per delta reused across aggregate kinds", hand_case = "the fold count differs between min and max on the same group at the same moment" },
+]
+correct_variants = [
+  "completeness from the row store, from retained multiplicity, and the two halves in either order: four ok variants reaching identical counters",
+]
+
+[shape]
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

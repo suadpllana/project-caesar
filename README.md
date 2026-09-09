@@ -36,7 +36,9 @@ passes.
 tasks/<slug>/          retained task source
 tasks/<slug>.zip       corresponding packaged submission
 probes/<slug>/         external probe trajectories, when available
-authoring/              retained out-of-bundle authoring support
+authoring/<slug>/       retained out-of-bundle authoring support, including the
+                        difficulty record scored before any code is written
+authoring/controls/     rejected designs that must stay below the difficulty band
 docs/                   rules, difficulty doctrine, and research notes
 scripts/                preflight and packaging
 template/               new-task skeleton
@@ -51,6 +53,7 @@ archives with `scripts/package.py`; do not zip task folders by hand.
 Run the cheap structural check first, then the generic two-image runner when Docker is available:
 
 ```text
+python tools/difficultycheck.py <slug>            before Stage 2, and again at Stage 7
 python scripts/preflight.py tasks/<slug>
 python tools/docker_trial.py <slug> --all
 python tools/docker_trial.py <slug> --variants
@@ -58,7 +61,8 @@ python scripts/package.py tasks/<slug>
 python tools/zipcheck.py <slug>
 ```
 
-The project operating rules are in `AGENTS.md`. A new task is not ready merely because these
-commands pass: the agent must author and self-review the instruction and metadata, its verifier
+The project operating rules are in `AGENTS.md`. A new task begins with a difficulty record scored
+against the passed tasks (`docs/DIFFICULTY-SCORE.md`); no environment code is written until the
+record is inside their band. A new task is not ready merely because these commands pass: the agent must author and self-review the instruction and metadata, its verifier
 contract must be frozen before implementation, and its finished bundle needs the manual quality
 review described in `docs/QUALITY-REVIEW.md`.

@@ -1,0 +1,163 @@
+# Difficulty record for share-register-screen, transcribed from the sources listed below.
+# Failed easiness 3 of 3 on 2026-09-02 because the brief stated the collapse; repaired by
+# removing the reveal and adding a third graded decision; the repaired task passed.
+
+[task]
+slug = "share-register-screen"
+status = "passed"
+sources = [
+  "tasks/share-register-screen/STATE.md",
+  "tasks/share-register-screen/task.toml",
+  "tasks/share-register-screen/cheat/*.sh header comments",
+  "tasks/share-register-screen/tests/test_outputs.py docstring",
+  "docs/PASSING-TASK-RESEARCH.md",
+]
+expert_hours = 7
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Build the holding graph, seed the list with the parties the programme named, and repeat:
+for each company, ask the shipped seat allocation for its board and add the company when
+more than half its seats went to holders already on the list. A percentage chain with a
+fifty per cent threshold, which is the memorised model of ownership screening.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The screen asks what the parties on the list CAN appoint, so they arrive at the meeting as
+one hand: a board is filled a seat at a time by running averages, and the seats a group of
+holders takes standing together are not the seats its members take standing apart.
+"""
+second_discovery = """
+Nominee and treasury behaviour changes what joins that hand. The collapse must key on the
+party that casts the vote, not the party the register records, and a company's own stock
+standing in somebody else's name is silent at its own meeting; the natural collapse folds
+exactly that vote into the list's hand.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read reg/lex.py and reg/book.py to recover the filing language",
+  "read reg/site.py for what a holding is worth and who casts it",
+  "read reg/poll.py and notice the board is filled one seat at a time by running averages rather than shared out in proportion",
+  "run screen_reg.py over regs/ring.txt and see a company off the list on a row saying the list took two of its three seats",
+  "make the sweep repeat until it settles",
+  "read the requirement again, notice it asks what the parties on the list CAN appoint, work out that a group of holders is one hand at a meeting, collapse them in voice.py",
+  "fix tally.py to count that hand rather than looking for members among the takers, and silence the company's own stock after the principal is resolved",
+]
+
+[search]
+best_page = """
+Beneficial-ownership and sanctions screening guidance: the fifty per cent aggregation rule
+and the board apportionment method are each documented everywhere.
+"""
+helps_plan = false
+deviation = """
+The combination, and the fact that a coalition gains seats under seat-by-seat allocation, is
+not written up as a screening rule anywhere found; the retrieved percentage chain is the
+wrong plan.
+"""
+
+[tactics]
+A1 = """
+The memorised ownership-screening model is a percentage chain with a fifty per cent
+threshold; the graded question is a board filled seat by seat where a coalition takes more
+seats together than apart.
+"""
+A2 = """
+Nothing in the tree or brief names the coalition, the collapse or the apportionment method;
+the brief states what the list can appoint and the screen prints a plausible answer either
+way.
+"""
+B2 = """
+Closure, coalition and holding rules cannot be solved independently because each changes the
+next iteration's input: the hand grows every time the list grows, and the collapse changes
+what the seat count means.
+"""
+C1 = """
+Ordinary registers where the list has one holder must come out the same under every
+reading; half-is-enough, votes-not-seats and never-look-again fail on the must-still-work
+side.
+"""
+C2 = """
+The screen runs whatever rules it is given and prints records that add up under all of
+them; nothing in /app/regs is annotated and no expected output ships.
+"""
+C4 = """
+Exact integer determination records over 23 enumerated registers and 320 registers
+generated in the verifier from a nonce after the agent has stopped, all-or-nothing.
+"""
+guard = """
+Four declared artifacts under /app/pol; the tree outside them is byte-identical to the
+pristine copy after the run and the frozen seat allocation is fingerprinted in the running
+interpreter.
+"""
+
+[decisions]
+graded = 3
+interactions = [
+  { a = "the list is closed under itself and the sweep repeats", b = "the list's holders vote as one hand", why = "the natural fixpoint asks the shipped allocation for each board and counts seats whose taker is on the list; after the collapse no member holds a seat under its own name, so the field the first answer reads stops meaning what it meant and the old count reaches an empty list" },
+  { a = "the list's holders vote as one hand", b = "a company's own stock is silent at its own meeting", why = "the natural collapse keys on the party that casts the vote, and a company's own stock casts as the company, so where the company is on the list its own shares are folded into the list's hand: the one vote the treasury rule removes is the vote the collapse adds" },
+  { a = "nominee arrangements pointing at a company", b = "the collapse keyed on the caster", why = "a nominee on the list brings what it holds for an outsider and an outsider brings everything it holds for the list only when the collapse resolves the principal first" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Registers where the list has a single holder must come out identical under the collapse;
+a submission that takes half the directors as enough, or more than half the votes, fails
+the everyday register.
+"""
+late_case = """
+Two holders on the list who would carry a seat between them but not apart, on a register
+where the closure half already looks fixed; and a nominee standing on the register of the
+company it holds for, about a quarter of generated registers.
+"""
+oracle_denied = """
+The shipped screen prints a plausible determination under either reading and the closure
+half is the only thing anywhere in the tree that says something is wrong at all.
+"""
+
+[leaks]
+candidates = [
+  { what = "two brief sentences that stated the coalition collapse", closed_by = "both sentences removed after the 3-of-3 easiness result; the brief specifies outcomes without narrating the strategy" },
+  { what = "a field, flag or helper naming a group or a combined hand", closed_by = "none exists; deadfieldcheck is clean so nothing is written and never read" },
+  { what = "apart, the number of seats the list's holders take standing alone, one call away", closed_by = "onelinecheck finds no exact rule at depth two over the exposed fields for either graded decision, including over apart" },
+  { what = "the frozen accessor dropping the holding recorded against the company itself", closed_by = "left standing as a realistic half-handled rule; stock in somebody else's name is not dropped and nothing says the combination" },
+]
+derived_quantities = """
+The register ships filings, holdings and who casts them; no seat count, no list membership
+and no collapsed hand is stored anywhere in the tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = """
+No work counter anywhere: five tasks in this repository grade work against a budget and the
+similarity screen rejected the fifth for it, so this task grades the whole determination
+instead.
+"""
+
+[cheats]
+wrong_readings = [
+  { reading = "one sweep of the register in incorporation order", hand_case = "a company carried by a company that is itself carried later in the same sweep" },
+  { reading = "every holder stands alone at the meeting", hand_case = "short by a seat where two holders on the list would have carried one between them" },
+  { reading = "the hand is only the parties the programme named", hand_case = "the list stops one step out when a taken company would join the hand" },
+  { reading = "a company that falls short is settled and not asked again", hand_case = "the hand grows every time the list grows, so a company carries on the next pass" },
+  { reading = "the hand collapsed on the recorded holder rather than the caster", hand_case = "a nominee on the list holding for an outsider, and an outsider holding for the list" },
+  { reading = "a company's own stock in somebody else's name votes at its own meeting", hand_case = "the plain half of the treasury rule looks handled while the nominee half is not" },
+  { reading = "half the directors is taken as enough", hand_case = "an even board where the list takes exactly half" },
+  { reading = "more than half the votes is taken as the test", hand_case = "a register where votes and seats disagree under running averages" },
+  { reading = "seats the list took counted by looking for members among the takers", hand_case = "after the collapse no member holds a seat under its own name" },
+]
+correct_variants = [
+  "ok-latekey, the reference with the hand named so it sorts after every party id",
+  "the earlier probe's own solve, kept verbatim where it remains semantically valid",
+  "six variants in all, differing on how many times the register is consulted, what is cached and the sweep order",
+]
+
+[shape]
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

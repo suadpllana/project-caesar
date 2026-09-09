@@ -473,10 +473,23 @@ than hard, and it is rejected exactly like a trivial one.
 
 Record the attack and its conclusion in `STATE.md`.
 
+**Then score the design, before any code exists.** Write the idea down as
+`authoring/<slug>/difficulty.toml` (copy `template/difficulty.toml`; it holds the ten intake
+questions of `docs/PASSING-TASK-RESEARCH.md`, the tactics, the leak audit, the fences, the gate,
+the planned cheats and variants and the planned tree shape) and run
+`python tools/difficultycheck.py <slug>`. The retained passing tasks score 95 to 100 on it and
+every design the pipeline rejected scores 40 to 59; the floor and the calibration are in
+`docs/DIFFICULTY-SCORE.md`. A design below the floor, or with a hard stop, does not proceed:
+read the repair list under each axis, go back to the doctrine, and redesign or replace the idea
+- then score the new one. Record each attempt's score and what changed in `STATE.md`. The record
+is a statement of the design, never a document tuned to the number: the checker reads fields and
+counts, `STATE.md` restates the same claims in prose, and the probe reads the task.
+
 Gate: a written task specification in `STATE.md`, including which difficulty mechanisms it relies
-on and your honest attack on the plan showing it is neither one-sitting easy nor pathless — and,
-for any repo-based task, the required shape decision (authored-on-top vs ablation,
-`docs/ABLATION.md`) recorded in `STATE.md`.
+on and your honest attack on the plan showing it is neither one-sitting easy nor pathless; a
+difficulty record inside the band of the passed tasks with no hard stop; and, for any repo-based
+task, the required shape decision (authored-on-top vs ablation, `docs/ABLATION.md`) recorded in
+`STATE.md`.
 
 ### Stage 2 — Verifier contract (before any environment code)
 This ordering is deliberate and is the most common thing authors get wrong. Design verification
@@ -621,8 +634,11 @@ Gate: every cheat scores 0. If one scores 1, that is a verifier bug — fix it a
 ### Stage 7 — Pre-flight and packaging
 
 **First, re-attack the finished task (D7).** The Stage 1 attack was against a plan; this one is
-against the real thing. Read the final instruction cold and try to one-shot a plan the way the
-probe agent will, with the actual environment in front of you. Answer honestly in `STATE.md`: is
+against the real thing. Re-run `python tools/difficultycheck.py <slug>` as well: with the tree
+built, it measures the environment, the editable files and the reference instead of reading the
+planned sizes, and reports any drift over a third; a design that scored in the band on paper
+and falls out of it here has flattened somewhere the report names. Read the final instruction
+cold and try to one-shot a plan the way the probe agent will, with the actual environment in front of you. Answer honestly in `STATE.md`: is
 the first plan still wrong? Are the load-bearing facts still distributed, or did debugging flatten
 them? Did the instruction come to telegraph the method? Update the estimated-solves number. If the
 honest estimate has drifted above 7 or to 0, stop and say so — packaging a task outside the band
@@ -717,6 +733,7 @@ You have N seconds to complete this task. Do not cheat by using online solutions
 ## 8. Command reference
 
 ```
+python tools/difficultycheck.py <slug>        Score the design against the passed tasks (before Stage 2, again at Stage 7)
 harbor init afterquery/<slug> -t -o <dir>     Scaffold (generic schema — see §4 note)
 harbor run -p <dir> -a oracle -e docker       Reference solution; must score 1
 harbor run -p <dir> -a nop -e docker          Do-nothing agent; must score 0

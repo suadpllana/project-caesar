@@ -1,0 +1,173 @@
+# Difficulty record for note-carry-forward, transcribed from the sources listed below.
+# Rejected on `difficult` three times and on easiness twice while the mechanism was one
+# insight in 98 lines; passed after the board carried spans, states and a history and a
+# measured per-revision scale boundary was added.
+
+[task]
+slug = "note-carry-forward"
+status = "passed"
+sources = [
+  "tasks/note-carry-forward/STATE.md",
+  "tasks/note-carry-forward/task.toml",
+  "tasks/note-carry-forward/cheat/*.sh header comments",
+  "tasks/note-carry-forward/tests/test_outputs.py docstring",
+  "docs/PASSING-TASK-RESEARCH.md",
+  "probes/note-carry-forward/",
+]
+expert_hours = 8
+estimated_solves = 1
+
+[plan]
+first_plan = """
+Replay the revisions with an ordinary longest-common-subsequence mapping, cache the chosen
+script per revision pair, widen each thread to the change group it landed in, and update
+each note independently in one pass, writing the table and the log together.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The mapping has to come off the script the tool settled rather than any equally short one:
+the shipped backtrace takes the diagonal where the tool takes the delete, agrees with the
+tool about how many lines survived and disagrees about which, which is only visible on files
+that repeat themselves.
+"""
+second_discovery = """
+Note state is historical: raising is edge triggered and needs the previous revision's
+verdict, reopening needs the state a reply left behind, merging by overlap needs a fixed
+point because a union reaches threads neither half reached, and change groups belong to the
+revision pair, so a board that settles them once per thread is correct and forty times too
+slow on wide streams.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "walk the store from the first revision to the head rather than diffing the endpoints",
+  "carry spans through the script the tool settled, outdate the ones that empty and leave them listed",
+  "raise on first contact and reopen the answered ones; admit new threads, apply replies and resolutions",
+  "merge overlapping spans to a fixed point with the older thread taking the union",
+  "settle the change groups once per revision pair, because they are a fact about the pair and not the thread, and time a wide stream against the 600 second limit",
+]
+
+[search]
+best_page = """
+Diff alignment and comment anchoring in code review products: longest common subsequence,
+difflib opcodes and per-line comment tracking.
+"""
+helps_plan = false
+deviation = """
+The shipped edit script disagrees with standard LCS on repeated lines, the thread lifecycle
+is edge triggered with a merge fixed point, and the retrieved per-thread recomputation is
+correct but infeasible at the graded width.
+"""
+
+[tactics]
+A1 = """
+The pinned script defeats the standard mapping: difflib and a rebuilt LCS walk move 93 and
+91 per cent of streams while agreeing with the tool on every count a solver checks.
+"""
+A2 = """
+The brief states behaviour without naming the mapping, the fixed point or the per-pair
+ownership of change groups; the annotated exhibit and the sentence refuting one sweep were
+removed.
+"""
+B2 = """
+Nineteen graded decisions, four of which need something no single revision supplies, and
+merging interacts with replies, raising and absorbed-thread routing.
+"""
+C1 = """
+Both sides fenced: an outdated thread stays listed, a resolved thread is not raised, and a
+lone deletion produces no change group so it does not raise.
+"""
+C2 = """
+No expected-output oracle ships; the driver prints whatever board it is given and the
+generated block is built inside the verifier from a seed drawn after the run.
+"""
+C3 = """
+Wide streams resource-gate per-thread recomputation of change groups: 1.4 seconds settled once
+per revision against 58 seconds settled per thread, 36 wide streams behind a 600 second limit.
+"""
+C4 = """
+The thread table and the ordered log of every stream, all-or-nothing, over 22 hand-written
+and 360 generated streams.
+"""
+guard = """
+Two editable artifacts, note/rule.py and note/board.py, overlaid on a pristine tree that is
+attested after the run; the engine that pins the script is frozen.
+"""
+
+[decisions]
+graded = 19
+interactions = [
+  { a = "merging by overlap to a fixed point", b = "replies and resolutions", why = "a resolve that arrives at a revision is what the open half then drags back open, so merging before the replies settles the state before the reply that changes it" },
+  { a = "the mapping off the settled script", b = "spans carried through revisions", why = "a rebuilt mapping keeps the same number of lines and a different copy of a repeated one, so the span a thread carries drifts on every repeating file" },
+  { a = "absorbed threads", b = "talk aimed at them", why = "a reply or resolution aimed at an absorbed thread lands on whoever holds its span now, so routing depends on the merge outcome" },
+  { a = "change groups owned by the revision pair", b = "per-thread reach", why = "settling the groups again for every thread gives every right answer and pays the whole edit script per thread, which the wide family makes fatal" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A lone deletion produces no change group and does not raise; a resolved thread is not raised
+along with the rest; an outdated thread stays on the board rather than leaving it.
+"""
+late_case = """
+A union that reaches a third thread neither half reached on its own, which a one-pass merge
+misses on 47 per cent of streams while being right on every hand-made stream; and the wide
+family where per-thread recomputation times out after every answer was right.
+"""
+oracle_denied = """
+The driver prints whatever board it is given; the shipped mapping is not visibly wrong
+because it is a shortest script with the same line count, so every count a solver checks
+comes out right.
+"""
+
+[leaks]
+candidates = [
+  { what = "the annotated repeat.txt exhibit naming the file, the fault and the precondition", closed_by = "removed from the brief; it was the whole of the one discovery a self-built harness cannot check" },
+  { what = "the sentence 'so one sweep over the pairs does not settle it'", closed_by = "removed; it refuted a shipped cheat that moves 47 per cent" },
+  { what = "a shipped rule.kept that was a hand-rolled LCS every trajectory named as finding one", closed_by = "it is now a backtrace over pin.table that takes the diagonal where pin.script takes the delete, and looks right" },
+  { what = "a shipped correct rule.py reducing the work to one file", closed_by = "rule.py ships wrong in both of its functions" },
+]
+derived_quantities = """
+The store ships revisions, threads and talk; no carried span, no previous-revision verdict
+and no change group is stored anywhere in the tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Settling which lines the change reaches again for every thread on the board instead of once
+per revision pair; every answer it gives is right.
+"""
+invariant = """
+Change groups are a fact about the pair of revisions, not about the thread, so the board
+settles them once for the pair and reuses them for every thread.
+"""
+input_scale = "36 wide streams of about 300 lines in a run"
+limit_seconds = 600
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "mapping from difflib's sequence matcher", hand_case = "a repeating file where the tool settles the tie differently, 93 per cent of streams" },
+  { reading = "mapping rebuilt from an ordinary LCS walk", hand_case = "a different copy of a repeated line, 91 per cent" },
+  { reading = "a change read as the lines the script added", hand_case = "a line coming through untouched between two runs of the change" },
+  { reading = "merge only on equal spans", hand_case = "two threads sharing a line without holding the same lines" },
+  { reading = "merge in one pass", hand_case = "a union reaching a third thread neither half reached" },
+  { reading = "the older thread keeps its own span", hand_case = "the merged thread is now the thread for both stretches" },
+  { reading = "an outdated thread dropped off the board", hand_case = "the table shorter by exactly the threads a reviewer looks for" },
+  { reading = "raise every revision the thread stays caught", hand_case = "a thread caught across several revisions raised once" },
+  { reading = "merge before the replies rather than after", hand_case = "a resolve arriving at the revision the open half drags back open" },
+  { reading = "absorb entries ordered by the surviving thread", hand_case = "one revision absorbing two threads, 31 of 300 streams" },
+  { reading = "change groups settled once per thread", hand_case = "a wide stream, 58 seconds against 1.4" },
+]
+correct_variants = [
+  "ok-merge-by-components, merging by connected components rather than hunting pairs",
+  "ok-mapping-from-ops, ok-precomputed-pairs, ok-settled-in-a-slot, ok-touched-written-out",
+]
+
+[shape]
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

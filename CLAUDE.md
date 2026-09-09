@@ -278,3 +278,24 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   limit, because the noise publishers were visible to the callers and the forest was too small.
   The shapes had to change, not the claims. The metadata I had already drafted would have stated
   two boundaries that did not exist - write the number after measuring it, never before.
+
+## Lessons, measured (2026-09-09, the difficulty checker)
+
+- **The passing shape was already written down; nobody had scored against it.** The ten intake
+  questions in `docs/PASSING-TASK-RESEARCH.md`, the prongs, the leak audit and the size band were
+  all on file, and three tasks still went to the quality review without a second discovery, with
+  rules that could be confirmed one at a time, or with a 37-line reference. `tools/difficultycheck.py`
+  scores a design record (`authoring/<slug>/difficulty.toml`) on exactly those parts, before any
+  code. Transcribed from their own state files, the six passed bundles score 95 to 100 and the four
+  documented rejected designs score 40 to 59, a 36-point gap that no axis alone explains: the
+  rejections lose on `patch` where a pass has `replan`, on no interacting pair, on per-decision
+  feedback and on a small reference, together.
+- **A calibration with only positives measures agreement with the author.** The first six records
+  all scored 95 or better, which says the rubric fits the passing set and nothing else. The
+  rejected versions of four of the same tasks are on file in `STATE.md` and `CLAUDE.md`, so they
+  are records too, under `authoring/controls/`, and `--calibrate` fails if any of them reaches the
+  floor. A rubric change is validated in both directions or not at all.
+- **The record measures articulation, not truth.** It reads fields, lengths and counts. That is
+  why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
+  tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
+  the band on paper and shrank during the build falls out of it there, with the axis named.

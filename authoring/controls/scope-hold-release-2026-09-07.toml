@@ -1,0 +1,115 @@
+# NEGATIVE CONTROL. scope-hold-release as it stood when the quality review failed it on
+# `difficult` on 2026-09-07 (tasks/scope-hold-release/STATE.md, "Quality rejection -
+# intrinsic difficulty", and docs/QUALITY-REVIEW.md). The reviewer: "once the instruction is
+# read, the complete plan is available without exploration ... each decision maps to one
+# small function ... B2 is only a checklist because the policies can be repaired and
+# confirmed independently. C4 supplies coverage rather than planning depth." A record of
+# that design must score below the band.
+
+[task]
+status = "rejected"
+sources = ["tasks/scope-hold-release/STATE.md", "docs/QUALITY-REVIEW.md"]
+expert_hours = 8
+
+[plan]
+first_plan = """
+The active scope owns work performed now: charge a factory to the invocation scope, search
+marks from the active scope, tear down in allocation order, refuse singleton descendants
+directly. Preserve the visibly correct refusal and parting policies, reverse teardown, then
+trace the factory token, ownership ledger and mark lookup together.
+"""
+first_plan_source = "instruction"
+breaking_rule = """
+A factory held by an older component retains the scope stored with its token, so factory
+work is charged to the holder-build scope rather than the invocation scope, and marked
+ownership is searched from the charged scope.
+"""
+second_discovery = ""
+second_discovery_effect = "patch"
+first_plan_correct = false
+expert_path = [
+  "read wire/plan.py to map each policy call",
+  "correlate Core.mint, Core.fire and the separate ownership ledger",
+  "fix capture and ownership together and search marks from the charged scope",
+  "reverse teardown and preserve the already-correct refusal and parting policies",
+]
+
+[search]
+best_page = """
+Public dependency-injection documentation on scopes, ownership and disposal order in
+containers.
+"""
+helps_plan = false
+deviation = """
+The custom capture, mark and teardown conjunction is not documented, but each rule is stated
+in the brief and maps to one small function.
+"""
+
+[tactics]
+A1 = """
+The familiar rule that the active scope owns work performed now is coherent for direct
+resolutions and wrong for a factory held by an older component.
+"""
+B2 = """
+Factory capture, marks and singleton ancestry are claimed to change one another's inputs,
+but each policy can be repaired and confirmed independently.
+"""
+C1 = """
+Ordinary and adversarial cases fence both sides over 22 fixed and 300 nonce-generated
+streams.
+"""
+C4 = """
+Exact ordered torn and refused records, all-or-nothing, behind a pristine overlay.
+"""
+guard = """
+Seven editable policy files under /app/wire overlaid on a pristine tree with frozen-module
+attestations.
+"""
+
+[decisions]
+graded = 4
+interactions = []
+per_decision_feedback = true
+
+[fences]
+ordinary_case = """
+Direct resolutions where the active scope is the owner must still tear down in the ordinary
+order.
+"""
+late_case = """
+Nonce-generated streams where a factory crosses scopes; the visible examples all fail in the
+submitted tree so they do not confirm the capture decision.
+"""
+oracle_denied = """
+No expected-output oracle ships agent-side; the seven visible cases all fail in the submitted
+tree.
+"""
+
+[leaks]
+candidates = [
+  { what = "the frozen core's mint and fire pair exposing that a token retains a scope", closed_by = "left in place; it does not state how the ledger must use it" },
+  { what = "Core.wrapper_of and Stack.parent, unused helpers", closed_by = "removed as false affordances" },
+]
+derived_quantities = """
+The ownership ledger is the agent's; the core records resolution ancestry and factory tokens.
+"""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = "C3 is not claimed. There is no resource gate."
+
+[cheats]
+wrong_readings = [
+  { reading = "capture at invocation", hand_case = "76 of 300 generated streams wrong" },
+  { reading = "active-scope mark lookup", hand_case = "19 of 300 generated streams wrong" },
+  { reading = "front-to-back teardown", hand_case = "229 of 300 generated streams wrong" },
+  { reading = "direct-only singleton refusal", hand_case = "15 of 300 generated streams wrong" },
+  { reading = "parting into the closing scope", hand_case = "62 of 300 generated streams wrong" },
+]
+correct_variants = []
+
+[shape]
+environment_py_lines = 261
+editable_files = 7
+reference_lines = 37

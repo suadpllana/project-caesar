@@ -1,0 +1,164 @@
+# Difficulty record for token-seam-emit, transcribed after the fact from the task's own
+# documentation. Every field restates a claim already made in one of task.sources; fields
+# the documentation does not support are left empty rather than filled.
+
+[task]
+slug = "token-seam-emit"
+status = "pending"
+sources = [
+  "tasks/token-seam-emit/STATE.md",
+  "tasks/token-seam-emit/task.toml",
+  "tasks/token-seam-emit/instruction.md",
+  "tasks/token-seam-emit/tests/test_outputs.py",
+  "tasks/token-seam-emit/cheat/README.md",
+  "tasks/token-seam-emit/cheat/cheat-read-*.sh",
+  "authoring/token-seam-emit/readings.py",
+  "authoring/token-seam-emit/decisions.py",
+]
+expert_hours = 8
+# STATE.md: "Estimated solves out of 8: 2 of 8. Designed at 1 of 8, adjusted up".
+estimated_solves = 2
+
+[plan]
+first_plan = """A pending byte buffer plus a matcher over the live stop set, releasing the \
+longest prefix that is character-complete and carries no live stop prefix. This is the \
+bounded-suffix hold-back every published incremental detokenizer uses: keep back enough bytes \
+that a character cannot be cut in half and a stop string cannot straddle the boundary, and \
+send everything in front of it. It is right for every request without a floor."""
+# STATE.md / task.toml: "the shape a frontier agent reconstructs from its prior".
+first_plan_source = "prior"
+breaking_rule = """Stop strings are matched against the whole text the request has sent so \
+far, not against the piece that just arrived, and the floor does not change what is matched: \
+it decides one thing only, whether an occurrence that has been found is allowed to end the \
+request. So the bounded-suffix hold-back is unsound below the floor."""
+# task.toml labels this as "the second discovery"; STATE.md's D1 attack lists it as the second
+# place the first plan is wrong. STATE.md's intake answer 3 instead restates the pinning
+# consequence of the breaking rule (a complete occurrence below the floor pins the release
+# point permanently, so safety is a property of the request's whole remaining life).
+second_discovery = """Once the hold-back is written, the obvious matcher remembers where it \
+found an occurrence and stops looking, which is wrong: occurrences are ranked by where they \
+start, so a longer stop string completing later can start earlier than one already standing, \
+and the remembered index has to keep moving backwards."""
+# STATE.md: "the correction is not a patch"; task.toml: "The second discovery invalidates the
+# natural implementation of the first in the same way."
+second_discovery_effect = "replan"
+# STATE.md D1: "my first plan would be wrong somewhere that matters".
+first_plan_correct = false
+expert_path = [
+  "Run run_stream.py on r2.txt and r3.txt: bytes dribble out late, and r3 ends four tokens before the floor.",
+  "Read the request lifecycle to recover the floor semantics: matching runs over the whole accumulated text and the floor gates termination only.",
+  "Derive the release point as the smaller of the earliest complete occurrence start and the earliest suffix that is a proper prefix of a stop, backed off to a character boundary.",
+  "Keep the earliest occurrence start as a minimum rather than a first sighting, because a longer stop completing later can start earlier.",
+  "Below the floor let a standing occurrence pin the release point; at the first step at or above the floor end the request at its start with the tail dropped.",
+  "Carry the character boundary forward and resume the occurrence scan in a window behind the tail, so per-step work does not grow with the text.",
+  "Test each regime - no stop, floor with no stop, stop with no floor, cap, suppressed EOS - against the runner once the rule is derived.",
+]
+
+[search]
+# task.toml difficulty_explanation and relevant_experience; no specific page is named.
+best_page = """The published incremental detokenizers, all of which hold back a bounded suffix \
+of the text - long enough to finish a character, long enough that a stop string cannot straddle \
+the boundary - and release everything in front of it."""
+helps_plan = false
+deviation = """Here stop strings are matched against the whole accumulated text and the floor \
+decides only whether a found occurrence may end the request, so the bounded-suffix hold-back \
+those sources describe is unsound below the floor and the file that computed a window has \
+nothing left to compute."""
+
+[tactics]
+# Transcribed from STATE.md "Tactics, attack and estimate".
+A1 = "The bounded-suffix hold-back every published incremental detokenizer uses is specifically wrong here."
+A2 = "The floor is described by what it suppresses and never named as a rule about retention."
+A3 = "The exhaustive rescan is correct and infeasible while the cheap incremental form is unsound until the pinning rule is derived."
+B2 = "Eight decisions interacting through one release point, with no per-decision feedback anywhere in the tree."
+C1 = "Fenced both ways, so over-holding fails as hard as over-releasing."
+C3 = "A measured semantic scaling boundary with the limit and the scale stated in the brief."
+C4 = "Exact and all-or-nothing over 300 nonce-generated requests plus a wide family."
+guard = """Only strm/sm.py, hb.py, rel.py and fin.py may change; every other file is compared \
+against the shipped copy after the run, with the file count asserted first; the interfaces are \
+frozen and every frozen entry point is fingerprinted against digests compiled from pristine \
+sources; rows are appended by a gate the request loop owns, which refuses any other caller."""
+
+[decisions]
+# STATE.md "The eight graded decisions".
+graded = 8
+interactions = [
+  { a = "the floor", b = "stop matching", why = "The floor does not change what is matched; it decides only whether a found occurrence ends the request, so an occurrence completing below the floor still pins the release point and the hold-back is unbounded rather than a suffix." },
+  { a = "earliest-start ranking", b = "matcher memory", why = "Occurrences are found by where they start, so a longer stop completing later than a shorter one still wins if it starts before it, and a remembered first sighting has to keep moving backwards." },
+  { a = "special pieces", b = "occurrence matching", why = "A piece that carries no bytes contributes nothing to the text, so an occurrence can run straight through one and matching cannot be done per piece." },
+  { a = "leading space dropped once", b = "match positions", why = "One leading space is dropped once per request and everything downstream sees the text without it, which shifts every match position." },
+  { a = "cap and length finish", b = "stop matching at the last step", why = "Matching still runs at the final step, so a stop occurrence there takes precedence, the reason is stop and the tail is dropped." },
+  { a = "character-boundary backoff", b = "release point", why = "The release point is backed off to the last complete character boundary at or before it, byte-fallback pieces included, so the seam decision changes what leaves at every step." },
+]
+# STATE.md B2: "no per-decision feedback anywhere in the tree".
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """A request with no stop strings releases every complete character the moment \
+it is complete; a request with a floor and no stop strings is not held back by the floor at all; \
+a stop with no floor uses the bounded rule; and a text ending on a live partial that can no \
+longer grow into any stop string releases that text rather than holding it."""
+late_case = """An occurrence completing two tokens below the floor in a long request, where \
+every earlier step looked correct."""
+oracle_denied = """The server runs whatever rules it is given and prints what they release, and \
+every wrong reading produces a plausible-looking stream. No expected output ships and none is \
+coming; the graded requests are generated inside the verifier from a nonce made after the agent \
+has finished, so a rule fitted to the requests in the tree carries no information about the rest."""
+
+[leaks]
+candidates = [
+  { what = "a shipped helper that computes a boundary", closed_by = "None ships; the tree has no unused public function, and the release module is handed only the step index, the floor, the text length, the released length and the shape of the stop set." },
+  { what = "an exposed pair of counts whose difference is the pinned position", closed_by = "None ships; the quantities that are the answer in disguise - where the earliest occurrence starts, how long the live partial is - are absent from what the runner hands the release module." },
+  { what = "expected output for any request", closed_by = "No expected output ships and none is coming; the graded requests are generated from a nonce after the agent finishes." },
+  { what = "comments, docs and self-describing identifiers", closed_by = "The server ships with no comments anywhere and identifiers in the register of ordinary internal code, so the piece table, the record gate, the lifecycle and the meaning of the floor are recovered by reading behaviour." },
+]
+derived_quantities = """The runner hands the release module only primitives - the step index, \
+the floor, how much text exists, how much has already gone out, and the shape of the stop set. \
+Where the earliest occurrence starts and how long the live partial is are absent, and onelinecheck \
+found no graded decision reproduced by a rule at depth two or less."""
+oracle_shipped = false
+
+[gate]
+# STATE.md intake answer 7: "MEASURED 2026-09-06 and kept".
+present = true
+naive_family = """Scanning the accumulated text from the start at every step is semantically \
+correct and quadratic; the shipped scanners are of this kind, so an agent that repairs only the \
+semantics has a correct server that does not finish. Curve on one request, reference against the \
+naive scanners: 2000 tokens 0.06 s / 0.34 s, 4000 0.05 / 1.18, 8000 0.06 / 4.48, 16000 \
+0.09 / 18.21. Four wide requests: reference 0.65 s, naive 366.98 s, 565x, both emitting the \
+same 150615 rows."""
+invariant = """A lead byte fixes its character's width and boundaries only ever move forward, \
+so the character boundary is carried forward rather than recomputed, and the occurrence scan \
+resumes in a window behind the tail behind an incremental matcher instead of rescanning from \
+the start."""
+input_scale = "Some graded requests run to about forty thousand tokens; the graded set carries 8 wide requests."
+limit_seconds = 600
+measured = true
+why_not = ""
+
+[cheats]
+# The eight cheat-read-* scripts, described by their header comments and readings.py. The
+# only hand case the documentation names is STATE.md intake answer 8, attached to the
+# reading it describes ("hold against live stops only"). readings.py names an enumerated
+# case per reading at run time, but no per-reading case is recorded in the documentation.
+wrong_readings = [
+  { reading = "fixed-window: hold back the longest stop minus one, always", hand_case = "" },
+  { reading = "cut-after-stop: the occurrence itself is included in the output", hand_case = "" },
+  { reading = "flush-on-stop: the held tail is sent when the occurrence is found", hand_case = "" },
+  { reading = "blind-below-floor: below the floor nothing is checked, so nothing is held", hand_case = "" },
+  { reading = "floor-ignored: an occurrence terminates wherever it completes", hand_case = "" },
+  { reading = "no-pin: partials are held but a standing occurrence does not pin the release point (hold against live stops only)", hand_case = "a request with a floor of 6 whose stop completes at step 3" },
+  { reading = "eos-below-floor: a suppressed end-of-stream piece finishes the request anyway", hand_case = "" },
+  { reading = "raw-flush: the final flush ignores the trailing incomplete character", hand_case = "" },
+]
+correct_variants = [
+  "the reference: an incremental matcher with the character boundary carried forward and the occurrence scan resumed in a window behind the tail",
+  "the naive model: recomputes every quantity from scratch at every step, written from the contract rather than from the reference",
+  "the automaton model: walks the text through a keyword automaton",
+]
+
+[shape]
+# Measured from the tree by the checker.
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

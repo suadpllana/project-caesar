@@ -1,0 +1,93 @@
+# NEGATIVE CONTROL. note-carry-forward as it stood at its third `difficult` rejection
+# (tasks/note-carry-forward/STATE.md, "Quality-review rejection on `difficult`, twice, and
+# what finally changed"): "the shipped kept/inside helpers are already correct, so the work
+# reduces to replacing an origin-to-head diff with a per-revision walk and changing
+# should_raise to 'now and not before'. A competent undergraduate could do this in well under
+# a day." The whole reference was 98 lines and its intellectual content was one insight. The
+# round before it had passed the review and failed easiness 3 of 3 at 75 seconds a trial.
+# The author's own estimate at the time was 1 of 8, which is what makes this a control.
+
+[task]
+status = "rejected"
+sources = ["tasks/note-carry-forward/STATE.md", "probes/note-carry-forward/"]
+expert_hours = 8
+estimated_solves = 1
+
+[plan]
+first_plan = """
+Diff the origin against the head, find which notes the change touches, and raise them; cache
+the edit script per revision pair and write the table and log in one pass.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Threads have to be carried one revision at a time through the script the tool settled, and a
+thread is raised when the change first reaches it, now and not before.
+"""
+second_discovery = ""
+second_discovery_effect = "patch"
+first_plan_correct = false
+expert_path = [
+  "replace the origin-to-head diff with a per-revision walk",
+  "carry each note's line through the settled script",
+  "change should_raise to raise on first contact only",
+]
+
+[search]
+best_page = """
+Comment anchoring in code review tools and longest-common-subsequence diff alignment.
+"""
+helps_plan = false
+deviation = """
+The pinned script beats a rebuilt LCS on repeated lines; nothing else departs from the
+retrieved plan.
+"""
+
+[tactics]
+A1 = """
+The pinned edit script disagrees with the standard mapping on files that repeat themselves.
+"""
+C4 = """
+Every stream graded all-or-nothing over hand-written and generated streams.
+"""
+guard = """
+Two editable files overlaid on a pristine tree.
+"""
+
+[decisions]
+graded = 2
+interactions = []
+per_decision_feedback = true
+
+[fences]
+ordinary_case = """
+A change that misses the span must not raise the thread.
+"""
+late_case = ""
+oracle_denied = """
+No expected output ships, but the visible annotated exhibit names the file, the fault and the
+precondition.
+"""
+
+[leaks]
+candidates = [
+  { what = "the annotated repeat.txt exhibit", closed_by = "still shipped in this round" },
+  { what = "shipped correct kept and inside helpers", closed_by = "still shipped correct in this round" },
+]
+derived_quantities = ""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "origin-to-head diff", hand_case = "a note whose line moves and moves back across revisions" },
+  { reading = "raise every revision the thread stays caught", hand_case = "" },
+]
+correct_variants = []
+
+[shape]
+environment_py_lines = 200
+editable_files = 2
+reference_lines = 98

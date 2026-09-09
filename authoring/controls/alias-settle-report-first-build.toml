@@ -1,0 +1,110 @@
+# NEGATIVE CONTROL. alias-settle-report as first submitted, which failed easiness 2 of 3
+# (tasks/alias-settle-report/STATE.md, "Why the original probe was too easy";
+# probes/alias-settle-report/). "The graded question was a fully specified, decidable
+# predicate over a small state. The definition itself supplied the algorithmic plan." All
+# three trajectories planned a group enumerator, copied the fixed-point idea into hold.py and
+# built a brute-force oracle from the stated rules. Hidden cases added coverage but did not
+# change the plan.
+
+[task]
+status = "rejected"
+sources = ["tasks/alias-settle-report/STATE.md", "probes/alias-settle-report/notes.md"]
+expert_hours = 8
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Enumerate every legal future group from the stated transition rules, solve the fixed point
+over departures directly, and validate against a brute-force checker built from the same
+rules.
+"""
+first_plan_source = "instruction"
+breaking_rule = """
+A difference standing anywhere inside a welded group forbids the whole route, and filing
+removes an item from reach on the same tick, so the departure set is a fixed point.
+"""
+second_discovery = ""
+second_discovery_effect = "patch"
+first_plan_correct = true
+expert_path = [
+  "read the machine and the stated event rules",
+  "enumerate legal groups reachable from each watched key's item",
+  "iterate the departure set to a fixed point",
+  "check against a brute-force model of the rules",
+]
+
+[search]
+best_page = """
+Deduplication and record-linkage pipelines with union-find reachability closure.
+"""
+helps_plan = false
+deviation = """
+Declared differences forbid routes and filing removes items from reach on the same tick.
+"""
+
+[tactics]
+A1 = """
+The union-find-plus-reachability prior is wrong once differences forbid routes.
+"""
+B2 = """
+Future aliases, declared differences, pending posts, departures on the current tick and the
+smallest self-consistent departure set all hold at once.
+"""
+C1 = """
+Both directions graded: eager filing and unnecessary holding fail alike.
+"""
+C4 = """
+All rows and filings graded all-or-nothing over enumerated and generated sets.
+"""
+guard = """
+Four declared artifacts under /app/bind; the machine outside them is attested.
+"""
+
+[decisions]
+graded = 4
+interactions = [
+  { a = "reach as a difference-free group search", b = "departures on the current tick", why = "reach must be answered against a departure set that is itself being solved for, the smallest self-consistent one" },
+]
+per_decision_feedback = true
+
+[fences]
+ordinary_case = """
+A set where nothing could have been welded must be filed at the first tick.
+"""
+late_case = """
+Two items that each block the other, where the largest self-consistent set lets both go.
+"""
+oracle_denied = """
+No expected output ships, but the stated rules are a fully specified finite-state predicate
+a solver checks against itself.
+"""
+
+[leaks]
+candidates = [
+  { what = "the small state space and precise event rules", closed_by = "not closed; the definition itself supplied the algorithmic plan" },
+  { what = "the shipped sets as a fitting target", closed_by = "generated sets built from a nonce inside the verifier" },
+]
+derived_quantities = """
+The tree ships posts, tags, differences and shuts; no reach set or filing tick is stored.
+"""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "differences ignored", hand_case = "a set with a difference across a chain" },
+  { reading = "an item that has left the desk still counted in reach", hand_case = "a filed item welded through on a later tick" },
+  { reading = "the largest self-consistent departure set", hand_case = "two items that each block the other both let go" },
+  { reading = "reach is every cell", hand_case = "wrong wherever nothing could have been welded" },
+]
+correct_variants = [
+  "four independent correct variants with different representations",
+]
+
+[shape]
+environment_py_lines = 229
+editable_files = 4
+reference_lines = 150

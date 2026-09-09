@@ -80,6 +80,33 @@ contract. Never weaken the verifier to make a run pass.
 Work through the following build order autonomously. These are your internal gates, not questions
 for me and not separate turns unless a contributor-owned decision blocks the next gate.
 
+## Difficulty gate: score the idea before writing a single line of code
+
+Before any environment, verifier or solution code exists, write the idea down as a difficulty
+record and score it. Copy `template/difficulty.toml` to `authoring/<slug>/difficulty.toml` and
+answer every field from the idea: the frontier agent's first plan and where it comes from, the
+exact rule that breaks it, the second discovery that forces a replan rather than a patch, the best
+public page and why it does not help, each tactic in this task's terms, the graded decisions and
+the pairs that change each other's meaning, the ordinary and the late case, the leak audit, the
+resource gate or the reason there is none, the wrong readings with a hand case each, two correct
+variants, the expert path step by step, the estimated solves and the planned tree shape. Then run
+`python tools/difficultycheck.py <slug>`.
+
+The tasks that passed AI or human review score 95 to 100 on this checker and every design the
+pipeline rejected scores 40 to 59; the band, the rubric and the calibration are in
+`docs/DIFFICULTY-SCORE.md`. If the idea scores inside that band with no hard stop, proceed to the
+task record and the verifier contract. If it does not, the idea is not built: read the repair
+list the checker prints under each axis, return to `docs/DIFFICULTY.md`, and formulate another
+idea - or a deeper version of this one - and score that. Repeat until a record reaches the band.
+Record every attempt's score and what changed between attempts in `STATE.md`.
+
+The record is a description of the design, not a document to be tuned until the number comes
+out. The checker reads fields, lengths and counts; it cannot tell a real second discovery from
+an invented one, and every claim in it is restated in `STATE.md`, tested by your cold self-attack
+and finally by the probe. Padding the record to the floor produces a number and a rejection. Run
+the same command again at the final gates: with the tree built it measures the sizes instead of
+reading them, and a design that has flattened during the build falls out of the band there.
+
 ## Task record and difficulty attack
 
 Create or update `tasks/<slug>/STATE.md` immediately. Record the real work, observable definition

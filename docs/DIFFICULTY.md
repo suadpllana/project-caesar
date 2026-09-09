@@ -299,6 +299,15 @@ harder. Removing hill-climbing is not the same as removing solvability.
 
 ## Calibrate the plan before any code is written
 
+The self-attack below is the judgment; `tools/difficultycheck.py` is the measurement that goes
+with it. Write the design down as `authoring/<slug>/difficulty.toml` (`template/difficulty.toml`
+documents every field: the ten intake questions of `docs/PASSING-TASK-RESEARCH.md`, the tactics,
+the leak audit, the fences, the gate, the planned cheats and variants, the planned tree shape)
+and score it. The retained passing tasks score 95 to 100 on it and the designs the pipeline
+rejected score 40 to 59 (`docs/DIFFICULTY-SCORE.md`). A design below the floor is redesigned or
+replaced before Stage 2; the record is never padded to reach the number, because the probe reads
+the task and not the record.
+
 Difficulty is a property of the design, not something added later. By the time the environment and
 verifier exist, the task is as hard as it will ever be — strengthening it then means rebuilding.
 So the plan must clear the bar **before Stage 2 begins**.

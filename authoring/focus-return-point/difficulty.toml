@@ -1,0 +1,153 @@
+# Difficulty record for focus-return-point, transcribed from the sources listed below.
+# Two smaller versions were each solved 2 of 3; the final version with nested render
+# transactions and the binding-time/evaluation-time split passed.
+
+[task]
+slug = "focus-return-point"
+status = "passed"
+sources = [
+  "tasks/focus-return-point/STATE.md",
+  "tasks/focus-return-point/task.toml",
+  "tasks/focus-return-point/cheat/*.sh header comments",
+  "tasks/focus-return-point/tests/test_outputs.py docstring",
+  "docs/PASSING-TASK-RESEARCH.md",
+]
+expert_hours = 8
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Either process every event immediately, treating each tree edit as a completed change and
+resolving focus as it goes, or defer the entire render and replay everything at commit. Both
+are the natural controllers, and the two smaller versions were solved by agents who put
+nested navigation and id lifetimes into that first plan after two reads.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Tree edits are immediate but focus effects are deferred: a focus request binds to the object
+instance present when it is issued and resolves against the final tree at the outer commit,
+so an eager controller loses focus during transient renders and a deferring one binds to the
+wrong lifetime and replays mutations that already happened.
+"""
+second_discovery = """
+Nested render frames and rollback: an inner commit retains work an outer abort can still
+discard, abort restores the original objects and only that frame's deletion records, and a
+reused widget id can name a replacement while an older modal return names the retired
+instance. Restoring the tree does not erase deletion positions the policy recorded.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read the runtime snapshots and confirm that tree edits happen before the policy callback",
+  "preserve instance-bound focus intents and deletion positions in nested frames",
+  "on abort, restore the frame's original objects and discard only that frame's pending effects and positions",
+  "on the outer commit, validate retained focus, then replay intents in issue order against the final tree",
+  "resolve modal returns, group representatives and composite branch memories by object lifetime and the correct navigation scope, not by the latest widget id",
+]
+
+[search]
+best_page = """
+Focus management and focus restoration write-ups for component libraries and terminal
+toolkits: focus traps, modal return focus, roving tabindex.
+"""
+helps_plan = false
+deviation = """
+Every retrieved controller is either eager or fully deferred; here mutations are immediate,
+focus intents bind to instances, effects wait for the outer commit, and nested abort restores
+deletion history, a hybrid no page describes.
+"""
+
+[tactics]
+A1 = """
+The two familiar timing models, eager and deferred, are each coherent and each wrong; the
+correct plan is a hybrid neither prior supplies.
+"""
+A3 = """
+Immediate mutation, instance-bound intents, deferred effects and rollbackable deletion history
+have no single known controller that satisfies all four at once.
+"""
+B2 = """
+Timing, identity and scope rules must hold together: Tab, arrows, group selection, modal
+returns and per-composite branch memory have different boundaries and replaying one queued
+landing can update several memories that affect the next queued key.
+"""
+C1 = """
+Ordinary modal and navigation cases must still pass, so a controller that drops requests or
+forgets returns eagerly fails the must-still-work side.
+"""
+C4 = """
+Exact focus trail after every event over 89 literal histories and 1050 generated histories
+in four families, all-or-nothing, expected output produced only by the sealed model.
+"""
+guard = """
+Four editable policy files under /app/ui overlaid on a pristine runtime with frozen runtime
+hashes, instrumentation and worker status checked before the trusted grader awards a pass.
+"""
+
+[decisions]
+graded = 19
+interactions = [
+  { a = "immediate tree edits", b = "deferred focus effects", why = "a request binds to the instance present when issued and resolves against the final tree at the outer commit, so neither processing everything now nor deferring everything is right" },
+  { a = "nested frame rollback", b = "deletion positions recorded by the policy", why = "restoring the tree does not erase deletion positions; a stale position stays harmless until the restored widget is moved and a different ancestor is removed" },
+  { a = "widget id reuse", b = "instance-bound requests and returns", why = "current id lookup serves new events while an older modal return refers to the retired instance, so name lookup and historical identity must stay separate" },
+  { a = "navigation scopes", b = "queued landings at commit", why = "replaying a queued landing can update several branch memories that decide the next queued key" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A held request for a screen that is not on top must not be dropped, and a return record must
+survive its widget being disturbed and re-enabled before the return; forgetting eagerly fails.
+"""
+late_case = """
+An aborted widget is restored, moved, and later loses a different ancestor: the stale
+deletion position from the aborted frame becomes visible only then, after ordinary modal and
+navigation cases passed.
+"""
+oracle_denied = """
+The visible runner reports the submitted policy's behaviour and supplies no correctness
+oracle for the timing, identity and scope interactions.
+"""
+
+[leaks]
+candidates = [
+  { what = "nested navigation and object-lifetime identity announced by the earlier versions", closed_by = "the final version changed the timing model rather than adding histories, so the twist is the binding-time split rather than a feature agents put in their first plan" },
+  { what = "terse internal names and no comments", closed_by = "stated in the metadata as a design choice; the toolkit is small and the challenge is reconciling snapshots, binding and policy" },
+  { what = "the runtime's tree operations as focus answers", closed_by = "the frozen runtime supplies tree operations, not focus answers; the four policy files are what is written" },
+  { what = "literal histories as a fitting target", closed_by = "1050 generated histories from versioned seeds, expected output only from the sealed model" },
+]
+derived_quantities = """
+The runtime keeps the tree and snapshots; no settled focus, no bound intent and no deletion
+position is stored anywhere the policy did not write itself.
+"""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = """
+The task is compact and its difficulty is the semantic conjunction of timing, identity and
+scope; no naive-but-correct family exists to gate and B1 is deliberately not claimed.
+"""
+
+[cheats]
+wrong_readings = [
+  { reading = "the place of a dropped widget kept as after the sibling before it", hand_case = "the place moves when that sibling goes or something is inserted before it" },
+  { reading = "a held request whose widget cannot take focus skipped for the return record", hand_case = "held-falls-back literal history" },
+  { reading = "the first held request for a screen wins rather than the latest", hand_case = "held-first-wins literal history" },
+  { reading = "a return record or held request forgotten the moment its widget is disturbed", hand_case = "a widget re-enabled before the return is not restored" },
+  { reading = "a return record into a screen that has gone resolves to nothing", hand_case = "a pop after an out-of-order pop lands on the first stop" },
+  { reading = "going back from a dropped widget's place inside a composite re-enters it", hand_case = "should land on the last stop before it" },
+  { reading = "a widget asked about its own flags only", hand_case = "a widget under a hidden, disabled or shut container still counts as a stop" },
+  { reading = "composite memory learns only from arrow keys", hand_case = "memory should learn from every landing" },
+  { reading = "a request on the top screen always takes focus", hand_case = "a widget that cannot take it" },
+  { reading = "focus lost to a mutation starts the next key from the top", hand_case = "lost-from-the-top literal history" },
+]
+correct_variants = [
+  "the runtime reference with linked objects and a shared queue with saved boundaries",
+  "the independent flat-handle model with monotonically allocated handles, separate name lookup and copied structural tables",
+]
+
+[shape]
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

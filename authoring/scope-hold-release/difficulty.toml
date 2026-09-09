@@ -1,0 +1,189 @@
+# Difficulty record for scope-hold-release, transcribed after the fact from the task's own
+# documentation. The design described is the current one: transactional construction
+# rollback ("Easiness recovery 3" and later in STATE.md), which supersedes the earlier
+# recovery sections. Every field restates a claim already made in one of task.sources;
+# fields the documentation does not support are left empty rather than filled.
+
+[task]
+slug = "scope-hold-release"
+status = "pending"
+sources = [
+  "tasks/scope-hold-release/STATE.md",
+  "tasks/scope-hold-release/task.toml",
+  "tasks/scope-hold-release/instruction.md",
+  "tasks/scope-hold-release/tests/test_outputs.py",
+  "tasks/scope-hold-release/cheat/",
+  "probes/scope-hold-release/recovery-3/REVIEW.md",
+  "probes/scope-hold-release/recovery-3/validation.json",
+  "authoring/scope-hold-release/variants/",
+]
+expert_hours = 8
+# estimated_solves is deliberately absent. STATE.md records a realized 0 of 8 for the OLD
+# submitted version and says of the current design "there is no measured rate for the
+# redesign" and "no in-band result is claimed until the external probes run".
+
+[plan]
+# STATE.md quality rejection and Recovery 3: the easiness agents "name the same four
+# repairs" by their second call; task.toml: "The initial four ownership repairs do not repair
+# failed construction"; "The natural prevalidation plan and the natural 'tear down by final
+# owner' plan both fail".
+first_plan = """Retain the scope stored with a factory token, search marks from the charged \
+scope, propagate root ownership through singleton ancestry, and reverse the allocation list at \
+teardown - the four repairs each easiness agent named by its second tool call - and then handle \
+failed construction by prechecking fault flags over the declared graph, or by tearing down what \
+a failed attempt built by its final owner."""
+# STATE.md: "Once the instruction is read, the complete plan is available without exploration".
+first_plan_source = "instruction"
+breaking_rule = """Failure is tested only when construction reaches that node, after its \
+dependencies. A successful cached lookup bypasses both the constructor and its dependency \
+traversal, so cached nodes are not reconstructed, and prechecking fault flags over the declared \
+graph rejects valid requests and suppresses required cleanup records."""
+second_discovery = """Rollback has a different membership rule from scope close: it must remove \
+completed allocations from one attempt across several owners, including root, while preserving \
+older instances borrowed from the same caches. The core records completed objects after children \
+finish, so the completion list can contain descendants whose singleton ancestor never completed; \
+walking only that list assigns the wrong rollback owner, and walking all entered objects finds \
+the owner but would dispose unfinished objects unless completion is tracked separately."""
+# STATE.md: "discovering rollback forces the ownership and token work to be replanned as one
+# transaction".
+second_discovery_effect = "replan"
+# first_plan_correct is deliberately absent. STATE.md's cold attack on the current design
+# says only that it "still finds a short snapshot-based solution after understanding partial
+# ancestry" and calls that "a material difficulty risk"; it does not say whether the
+# author's first plan was wrong.
+expert_path = [
+  "Read wire/plan.py to map each policy call, and read the frozen core, which reserves identities before recursive builds, records entered allocations and publishes only finished objects.",
+  "In the driver, record the cache contents and the start of the attempt before entering construction.",
+  "Fix factory capture and ownership together: keep the scope stored with the token, and search marks from the charged scope.",
+  "Follow parent identity through every entered allocation, including unfinished singleton parents, to settle rollback ownership.",
+  "On failure emit the refusal, dispose only completed allocations in descending allocation order with those owners, restore the pre-attempt cache contents, and run no parting call.",
+  "Serve explicit resolution, factory invocation and parting calls with the same attempt routine, each supplying its build scope and refusal location separately.",
+  "Reverse teardown within a scope and leave the already-correct admission and parting-scope policies alone.",
+]
+
+[search]
+# STATE.md "Originality".
+best_page = """Public dependency-injection documentation covering general scope and ownership \
+concepts; exact searches for the slug and the distinctive 'torn pool 1 app' symptom found no \
+task, solution or write-up."""
+helps_plan = false
+deviation = """That documentation covers general scope and ownership concepts but not this \
+custom capture, mark and teardown conjunction."""
+
+[tactics]
+# STATE.md Recovery 2: "A1, A3, B2, C1 and C4, with C2 limited to absence of an expected-output
+# oracle. B1 remains unclaimed." Recovery 3 REVIEW.md: "A1/A3, interacting B2, positive/negative
+# C1 and exact C4."
+A1 = "The familiar rule that the active scope owns work performed now is coherent for direct resolutions but wrong for a factory held by an older component, and the natural prevalidation and tear-down-by-final-owner plans for failed construction both fail."
+A3 = "Factory capture, marks and singleton ancestry require a hybrid ownership rule, and rollback needs a membership rule different from scope close."
+B2 = "The decisions change one another's inputs: correct factory capture changes the starting scope for marked ownership, singleton ancestry can override both, and the attempt boundary must agree with captured invocation scopes, admission, completion state and cache provenance."
+C1 = "Ordinary and adversarial cases fence both sides: a whole-graph fault precheck rejects valid requests, and clearing the whole cache on rollback destroys earlier instances."
+C2 = "Limited to the absence of an expected-output oracle: the ten visible fixtures contain inputs only, and all are wrong in the starting tree."
+C4 = "Exact all-or-nothing comparison of the full ordered dump over 42 named cases and 600 nonce-generated streams behind a pristine overlay."
+guard = """Only the seven declared policy artifacts are overlaid on the pristine tree; core.py, \
+reg.py and scope.py are frozen and their functions fingerprinted; the executed tree is compared \
+with the pristine files under a minimum file-count assertion; ground truth, the sealed model and \
+the reward are root-only."""
+
+[decisions]
+# tests/test_outputs.py: the real work graded is "the set of instances created, the scope each
+# is owned by, the order within a scope, and which resolutions are refused". (task.toml counts
+# five editable modules needing repair; validation.json counts 23 wrong-reading policies.)
+graded = 4
+interactions = [
+  { a = "factory capture", b = "marked ownership", why = "Correct factory capture changes the starting scope for marked ownership, while singleton ancestry can override both." },
+  { a = "rollback membership", b = "cache provenance", why = "An object left in a cache after rollback changes which constructors execute on retry; clearing the whole cache instead destroys earlier instances, even where their current constructor is unavailable." },
+  { a = "rollback ownership", b = "completion tracking", why = "The completion list can contain descendants whose singleton ancestor never completed, so walking only it assigns the wrong owner, and walking all entered objects disposes unfinished ones unless completion is tracked separately." },
+  { a = "fault evaluation", b = "cache hits", why = "A successful cached lookup bypasses the constructor and its dependency traversal, so prechecking fault flags over the declared graph rejects valid requests and suppresses required cleanup records." },
+  { a = "failed holder resolution", b = "factory token binding", why = "A failed holder resolution must preserve an older factory binding even if that binding points to a scope that has closed." },
+  { a = "parting-call failure", b = "scope close", why = "Failure during a parting call must finish its rollback before the surrounding close continues, and the parting call is charged to the scope outside the one that is closing." },
+]
+# per_decision_feedback is deliberately absent. The documentation speaks to it only for the
+# pre-rollback design (Recovery 2 withdrew the no-visible-confirmation claim; the quality
+# review said the policies could be repaired and confirmed independently) and makes no
+# statement for the current design.
+
+[fences]
+ordinary_case = """A cached instance is still usable while its constructor is unavailable, so a \
+graph-wide fault precheck rejects valid requests; and an instance borrowed from before the \
+attempt keeps its cache entry, owner and cause, so clearing the whole cache on rollback destroys \
+earlier instances."""
+late_case = """The previous four-fix strategy passes all 22 legacy expected outputs and fails \
+9 new fixed cases and all 300 construction streams; a failed holder resolution must preserve an \
+older factory binding even when that binding points to a scope that has already closed."""
+oracle_denied = """No expected output ships: the ten visible fixtures contain inputs only and \
+all fail in the starting tree; the named ground truth and the independent model are root-only \
+inside the verifier, and the generated streams are recomputed from a nonce minted after the \
+agent has finished."""
+
+[leaks]
+candidates = [
+  { what = "the frozen core's mint and fire pair", closed_by = "It exposes that a factory token already retains a scope but does not state how the editable ownership ledger must use it." },
+  { what = "unused Core.wrapper_of and Stack.parent helpers", closed_by = "Removed from the agent tree and the pristine overlay; neither had a caller, and leaving them in would be a false affordance about the wrapper and parting-call repairs." },
+  { what = "expected output beside the visible fixtures", closed_by = "All ten visible fixtures contain inputs only; no tests, oracle, ground truth or reference file is in the agent build context." },
+  { what = "comments, docstrings and docs in the agent tree", closed_by = "The agent-facing tree has no comments, docstrings or docs and uses short internal names." },
+]
+derived_quantities = """The core stores primitives only: it reserves parent identity before it \
+builds children, records entered allocations, and publishes completed objects only after \
+children finish. The completion log omits unfinished singleton parents while the allocation \
+history holds them, so rollback ownership and attempt membership must be derived; the one-line \
+checker covers only the old ownership decisions, not the rollback mechanism."""
+oracle_shipped = false
+
+[gate]
+# STATE.md: "C3 is not claimed. There is no resource gate."
+present = false
+naive_family = ""
+invariant = ""
+input_scale = ""
+limit_seconds = 0
+measured = false
+why_not = """C3 is not claimed and there is no resource gate: transactional rollback is \
+exercised with exact traces without adding a performance trick, and no undisclosed timing limit \
+is used to create difficulty."""
+
+[cheats]
+# One entry per cheat-rule-*.sh, described from STATE.md and task.toml's probe list (the two
+# marked "from the file name" have no prose description in the documentation). The hand case
+# is the first named fixed case each cheat fails in recovery-3/validation.json's mutants
+# table, which STATE.md cites as the record of the full measurements; the cheat scripts
+# themselves carry no header comments.
+wrong_readings = [
+  { reading = "capture-at-invocation: a factory invocation is charged to the active invocation scope instead of the scope stored with the token", hand_case = "held-across-one-scope" },
+  { reading = "capture-innermost-live: the factory is charged to the innermost still-live scope (from the file name)", hand_case = "held-across-one-scope" },
+  { reading = "chain-under-singleton-ignored: dependencies pulled in under a singleton keep their own ownership instead of the root", hand_case = "chain-under-a-singleton-goes-to-root" },
+  { reading = "completion-order: teardown ordered by completion instead of allocation order", hand_case = "scoped-reentry-in-one-scope" },
+  { reading = "cycle-blind: cycle detection does not keep going below the requested name", hand_case = "a-cycle-is-refused" },
+  { reading = "inherit-marked-home: a marked instance's dependencies inherit its marked owner instead of keeping their own ownership rules", hand_case = "wrapped-and-marked-rollback-keeps-all-three-orders" },
+  { reading = "mark-from-the-active-scope: marks are searched from the active scope instead of the charged scope", hand_case = "the-mark-is-looked-for-from-where-the-work-is-charged" },
+  { reading = "mark-not-required: a marked registration with no matching scope in reach is built instead of refused", hand_case = "a-pinned-name-with-no-mark-in-reach-is-refused" },
+  { reading = "mark-taken-from-the-outermost: the outermost matching mark wins instead of the nearest", hand_case = "the-nearest-mark-wins-over-an-outer-one" },
+  { reading = "parting-call-into-the-closing-scope: the parting call is charged into the scope that is closing", hand_case = "a-parting-call-lands-outside-the-scope-that-is-going" },
+  { reading = "precheck-constructor-fault: fault flags are prechecked over the declared graph before construction", hand_case = "a-failed-construction-rolls-back-what-it-finished" },
+  { reading = "previous-four-fixes: the previous four-fix strategy with no construction rollback", hand_case = "a-failed-singleton-still-roots-its-rollback" },
+  { reading = "refusal-direct-only: singleton refusal checks direct dependencies only, not the whole chain", hand_case = "refusal-follows-the-whole-chain" },
+  { reading = "rollback-clears-old-cache: cache over-clearing, rollback removes entries from before the attempt", hand_case = "a-borrowed-singleton-survives-a-failed-request" },
+  { reading = "rollback-completed-ancestry: incomplete ancestry, rollback ownership walks only completed objects", hand_case = "a-failed-singleton-still-roots-its-rollback" },
+  { reading = "rollback-completion-order: wrong rollback order, completion order instead of descending allocation order", hand_case = "wrapped-and-marked-rollback-keeps-all-three-orders" },
+  { reading = "rollback-factory-rebind: early token rebinding, a failed holder resolution replaces the factory tokens", hand_case = "a-failed-holder-does-not-replace-an-older-factory" },
+  { reading = "rollback-keeps-new-cache: cache leakage, provisional entries from the failed attempt stay reusable", hand_case = "rollback-clears-a-new-cache-entry" },
+  { reading = "rollback-owned-here: disposal restricted to one owner", hand_case = "a-failed-singleton-still-roots-its-rollback" },
+  { reading = "rollback-parting-calls: rollback disposal runs parting calls", hand_case = "rollback-does-not-run-parting-calls" },
+  { reading = "rollback-refusal-last: the refused record is printed after the rollback teardown instead of before it (from the file name)", hand_case = "a-failed-construction-rolls-back-what-it-finished" },
+  { reading = "rollback-unfinished: disposal of unfinished objects", hand_case = "a-failed-construction-rolls-back-what-it-finished" },
+  { reading = "teardown-front-to-back: teardown runs front to back against allocation order", hand_case = "scoped-reentry-in-one-scope" },
+]
+# task.toml solution_explanation and authoring/scope-hold-release/variants/.
+correct_variants = [
+  "ok-descending-serial: descending-serial teardown, cache-delta rollback",
+  "ok-downward-homes: downward ownership carried during construction, cache-delta rollback",
+  "ok-last-mark: outer-to-inner mark search, cache-delta rollback",
+  "ok-scope-index: a scope-indexed token table, cache-delta rollback",
+  "the sealed model: carries singleton ancestry downward and removes provisional cache entries by allocation identity",
+]
+
+[shape]
+# Measured from the tree by the checker.
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

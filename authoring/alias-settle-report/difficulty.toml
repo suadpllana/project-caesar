@@ -1,0 +1,174 @@
+# Difficulty record for alias-settle-report, transcribed from the sources listed below.
+# The first build failed easiness 2 of 3 (fully specified finite-state predicate, plan
+# formed in one shot); the repaired build with the measured no-difference scale boundary
+# passed both probes.
+
+[task]
+slug = "alias-settle-report"
+status = "passed"
+sources = [
+  "tasks/alias-settle-report/STATE.md",
+  "tasks/alias-settle-report/task.toml",
+  "tasks/alias-settle-report/cheat/*.sh header comments",
+  "tasks/alias-settle-report/tests/test_outputs.py docstring",
+  "docs/PASSING-TASK-RESEARCH.md",
+  "probes/alias-settle-report/",
+]
+expert_hours = 8
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Decide that a line is safe to write by looking at the tags standing against the item it is
+about, over the cells standing at the moment the question is asked: a union-find and a
+reachability closure over the cells that open tags touch, then exact enumeration of every
+legal future group and the fixed point solved directly, with a brute-force checker built
+from the stated transition rules.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The closure is not the answer: welding a chain welds every item on it into one, so a
+difference standing between any two of them forbids the whole route. The condition is a
+path whose entire vertex set is free of differences, a search over growing groups rather
+than a walk over edges; and reach must be answered against a set of departures that is
+itself being solved for, the smallest self-consistent one.
+"""
+second_discovery = """
+Exact legal-group enumeration is semantically correct and resource-infeasible on broad
+no-difference states: with no declared difference every subgroup inside the open-tag
+component is legal, so the union of reachable groups is the ordinary connected component and
+a linear closure replaces the exponential search - but only there, because applying it to
+difference-bearing states is wrong.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read bind/mc.py to learn what the machine emits and when the filing question is asked",
+  "work out that the question is about futures: a still-open tag can weld a smaller key or an earlier post on, a still-open run can post ahead",
+  "write reach as a search that grows a group by absorbing items an open tag can reach and refuses any group holding both ends of a declared difference",
+  "make the departure set a fixed point: start from the items already gone, let any settled watched key go, and go round again",
+  "notice the 25 to 30 key no-bar pools in the brief and the 600 second limit, and prove that without differences the reachable union is the connected component",
+  "keep the exact group search on every state with differences and time both against the wide case",
+]
+
+[search]
+best_page = """
+Deduplication and record-linkage pipelines with union-find reachability closure, which is
+the shape every worked example of deduplication has.
+"""
+helps_plan = false
+deviation = """
+Every retrieved pipeline has one matcher in play and is right; here declared differences
+forbid routes, filing removes items from reach on the same tick, and the no-difference scale
+family defeats the exact search the pages suggest.
+"""
+
+[tactics]
+A1 = """
+The union-find-plus-reachability prior is poisoned by declared differences that forbid whole
+routes and by a resource boundary on the exact search the prior leads to.
+"""
+A2 = """
+The brief describes the behaviour and the scale without naming the component-closure
+optimisation or the fixed point over departures.
+"""
+B2 = """
+Fixed-point filing, stale tag pools, item-level differences and the scale condition all have
+to hold at once, and letting one item go changes what another item can reach.
+"""
+C1 = """
+Both directions are graded: eager filing and unnecessary holding fail alike, so a submission
+that holds every line until its tags have shut is wrong on every set where nothing could have
+been welded.
+"""
+C2 = """
+No expected-output oracle ships; the machine emits rows under any policy, and the graded sets
+are generated after the agent finishes.
+"""
+C3 = """
+Exhaustive subgroup enumeration is exact and takes past 70 seconds on a single open tag
+spanning thirty keys where the component closure takes 0.07 seconds, against a stated
+600 second limit.
+"""
+C4 = """
+All rows and filings graded all-or-nothing over 37 enumerated sets and 300 nonce-generated
+sets built inside the verifier.
+"""
+guard = """
+Four declared artifacts under /app/bind; the machine outside them is attested against a
+pristine copy and sealed functions are fingerprinted in the running interpreter.
+"""
+
+[decisions]
+graded = 4
+interactions = [
+  { a = "reach as a difference-free group search", b = "departures on the current tick", why = "reach cannot be computed once from the book and consulted; the cells still weldable are those standing once this tick's lines have gone, and which lines those are is the question being asked" },
+  { a = "the smallest self-consistent departure set", b = "reach", why = "letting one item go can be exactly what puts a smaller key or an earlier post out of another item's reach, and taking the largest set instead moves 87 per cent of generated sets" },
+  { a = "the component closure on no-difference states", b = "the exact group search", why = "the fast path is correct only where no difference stands inside the component, so the solver has to preserve the exact path on the other side of the boundary" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A set where nothing could have been welded must be filed at the first tick; a submission
+that holds every line until its tags have shut is wrong on every such set.
+"""
+late_case = """
+A broad no-bar pool of 25 to 30 keys under one open tag, generated every twelfth seed, where
+the exact search is still running after 70 seconds and the whole run has 600.
+"""
+oracle_denied = """
+No expected output ships and the machine emits rows under any policy; the graded sets exist
+only after the agent has finished, so a self-built checker confirms the rules against
+themselves.
+"""
+
+[leaks]
+candidates = [
+  { what = "the shipped sets as a fitting target", closed_by = "300 sets built from a nonce drawn inside the verifier after the run; one cheat carries gt.json's own bytes and scores 0" },
+  { what = "card.py and seq.py shipping correct", closed_by = "the brief says not all four files need changing; establishing which is part of the work" },
+  { what = "the scale distribution", closed_by = "the brief states the 600 second limit and 25 to 30 key no-bar pools, and does not name the optimisation" },
+  { what = "counts of entries into the decision functions", closed_by = "compared only as floors, because a variant that folds reach into readiness enters one function zero times" },
+]
+derived_quantities = """
+The tree ships posts, tags, differences and shuts as the machine emits them; no reach set,
+no departure set and no filing tick is stored anywhere the agent can read.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exact enumeration of every legal future group, which every probe trajectory implemented and
+which is correct on every state it can finish.
+"""
+invariant = """
+Without a declared difference every reachable subgroup is legal, so their union is the
+ordinary connected component and a linear closure gives the same answer.
+"""
+input_scale = "no-bar tag pools of 25 to 30 keys, four to six watched keys, one open tag spanning all"
+limit_seconds = 600
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "differences ignored", hand_case = "moves 69 per cent of generated sets; a set with a difference across a chain" },
+  { reading = "a difference checked only between consecutive steps", hand_case = "moves 32 per cent; the difference stands between non-adjacent items on the route" },
+  { reading = "a difference checked only at the two ends of the route", hand_case = "moves 1 per cent; the difference is between an interior item and an end" },
+  { reading = "an item that has left the desk still counted in reach", hand_case = "moves 46 per cent; a filed item welded through on a later tick" },
+  { reading = "only departures already recorded noticed", hand_case = "moves 21 per cent; one line freeing another on the same tick" },
+  { reading = "the largest self-consistent departure set", hand_case = "moves 87 per cent; two items that each block the other both let go" },
+  { reading = "reach is every cell", hand_case = "the overcautious side, wrong wherever nothing could have been welded" },
+  { reading = "pending posts ignored", hand_case = "a still-open run posting ahead of the post that stands" },
+  { reading = "shut tags still count", hand_case = "a tag that has shut welding nothing further" },
+  { reading = "score settled by key first", hand_case = "first post by run name and then key" },
+]
+correct_variants = [
+  "four independent correct variants with different representations, one folding reachability into the readiness test",
+]
+
+[shape]
+environment_py_lines = 0
+editable_files = 0
+reference_lines = 0

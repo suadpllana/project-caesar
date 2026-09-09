@@ -12,16 +12,28 @@ was standing on is given back. Nothing else can change the answer, so nothing el
 watched, and a unit found still wanted when its turn comes is simply dropped from the queue -
 whatever makes it unwanted later will put it back.
 
-The queue is keyed by the publication serial rather than by position, and that is not a
-convenience. Positions shift as units are spliced out, and a dependency that retired and came
-back sits *after* the dependent that needs it, so a cascade can expose a candidate later in the
-order than the unit that exposed it. A structure that assumes candidates only ever appear
-earlier is right on every ordinary teardown and wrong there.
+The queue is keyed by the publication key rather than by position, and that is not a
+convenience. Positions shift as units are spliced out and in, a dependency that retired and came
+back sits *after* the dependent that needs it, and a unit brought up by a call sits *before* the
+caller that keeps it; so a cascade can expose a candidate on either side of the unit that exposed
+it. The key is a tuple with no numeric negative, so the heap holds a small wrapper whose ordering
+is reversed rather than a negated number.
 """
 import heapq
 
 from link import pick, want
 from reg import hold, order, say, tab
+
+
+class _Last:
+    __slots__ = ("at", "name")
+
+    def __init__(self, at, name):
+        self.at = at
+        self.name = name
+
+    def __lt__(self, other):
+        return self.at > other.at
 
 
 def _queue(h):
@@ -32,7 +44,7 @@ def _queue(h):
 
 
 def note(h, r):
-    heapq.heappush(_queue(h), (-r.at, r.at, r.name))
+    heapq.heappush(_queue(h), _Last(r.at, r.name))
 
 
 def let(h, name, out):
@@ -47,9 +59,9 @@ def let(h, name, out):
 def _sweep(h, out):
     q = _queue(h)
     while q:
-        _key, at, name = heapq.heappop(q)
-        go = h.units.get(name)
-        if go is None or not go.live or go.at != at or want.wanted(h, go):
+        top = heapq.heappop(q)
+        go = h.units.get(top.name)
+        if go is None or not go.live or go.at != top.at or want.wanted(h, go):
             continue
         want.parted(h, go)
         go.live = False

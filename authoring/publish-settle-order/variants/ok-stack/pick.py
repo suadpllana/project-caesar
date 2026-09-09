@@ -36,6 +36,7 @@ def moved(h, r, was):
 
 def find(h, caller, sym):
     best = None
+    got = None
     for key in view.keys(h, caller):
         bucket = _idx(h).get((key, sym))
         if not bucket:
@@ -44,4 +45,4 @@ def find(h, caller, sym):
         if best is None or at < best:
             best = at
             got = bucket[at]
-    return None if best is None else got
+    return got

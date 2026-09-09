@@ -1,19 +1,23 @@
 """Which publications a caller is allowed to reach.
 
-A publication is either public or private to the scope that brought it up, and a caller reads
-the public ones plus, if it is private itself, the ones in its own scope. Nothing else about a
-scope matters: it holds nothing up, it is not a unit, and it never appears in the trace.
+Two attributes per unit, and the whole of the scope model is that they are two and not one. A
+publication is either public or private to the scope that brought it up; that is what `den`
+answers, and it is what the buckets in `pick.py` are keyed by. A unit *reads* the public
+publications plus the ones in the scope it was brought up into; that is what `home` answers, and
+it is what `keys` is built from. They start equal and `act` on a private unit splits them: the
+publication becomes public where it stands, and the unit goes on reading its scope. A unit brought
+up by a call is published into the caller's `home`, not into whatever its publication has become.
 
-`keys` is the whole of the model as far as resolution is concerned. It gives the buckets a
-caller may read, and it is what lets `pick.py` answer a call without walking past publications
-the caller cannot see.
+Nothing else about a scope matters: it holds nothing up, it is not a unit, and it never appears
+in the trace.
 """
 
 
-def _dens(h):
-    d = getattr(h, "dens", None)
+def _tab(h, key):
+    d = getattr(h, key, None)
     if d is None:
-        d = h.dens = {}
+        d = {}
+        setattr(h, key, d)
     return d
 
 
@@ -23,17 +27,22 @@ def fresh(h):
 
 
 def seal(h, r, den):
-    _dens(h)[r.name] = den
+    _tab(h, "dens")[r.name] = den
+    _tab(h, "homes")[r.name] = den
 
 
 def open_up(h, r):
-    _dens(h)[r.name] = None
+    _tab(h, "dens")[r.name] = None
 
 
 def den(h, r):
-    return _dens(h).get(r.name)
+    return _tab(h, "dens").get(r.name)
+
+
+def home(h, r):
+    return _tab(h, "homes").get(r.name)
 
 
 def keys(h, caller):
-    mine = den(h, caller)
+    mine = home(h, caller)
     return (None,) if mine is None else (mine,)

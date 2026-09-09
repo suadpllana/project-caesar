@@ -16,6 +16,8 @@ def ex(h, op, out):
         decl.pub(h, op[1], op[2], True)
     elif k == "boot":
         decl.boot(h, op[1], op[2])
+    elif k == "auto":
+        decl.auto(h, op[1])
     elif k == "act":
         walk.bring(h, op[1], True, out)
     elif k == "open":

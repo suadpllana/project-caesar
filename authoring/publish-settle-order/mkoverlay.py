@@ -1,4 +1,4 @@
-"""Build a full five-file overlay from the reference plus one reading's replacements."""
+"""Build a full six-file overlay from the reference plus one reading's replacements."""
 import pathlib
 import shutil
 import sys

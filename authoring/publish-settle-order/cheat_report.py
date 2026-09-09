@@ -5,7 +5,7 @@ for one caught by something unrelated. So each cheat declares what must catch it
 enumerated case, the nonce population, the execution limit, or - for the probes that need a
 second uid and a root-owned reward channel - the two-container trial, which is run separately.
 
-The five submitted files are lifted straight out of each cheat's heredocs rather than by running
+The six submitted files are lifted straight out of each cheat's heredocs rather than by running
 it against `/app`, so this is hermetic and can run beside anything else.
 
     python3 authoring/publish-settle-order/cheat_report.py
@@ -36,7 +36,8 @@ EXPECT = {
     "boot-before-publish": "test_hand_case[boot-cycle]",
     "boots-after-closure": "test_hand_case[boot-cycle]",
     "call-when-down": "test_hand_case[not-live]",
-    "dead-rebinds": "test_hand_case[boot-cycle]",
+    "dead-rebinds": "test_hand_case[auto-dead]",
+    "dead-reloads": "test_hand_case[auto-dead]",
     "dedupe-once": "test_hand_case[twice-named]",
     "deps-need-not-live": "test_hand_case[casc-order]",
     "holds-only": "test_hand_case[cycle-soft]",
@@ -47,6 +48,8 @@ EXPECT = {
     "pre-after-deps": "test_hand_case[pre-order]",
     "pre-skipped": "test_hand_case[cycle-soft]",
     "promote-at-back": "test_hand_case[scope-promote]",
+    "promote-drops-home": "test_hand_case[promote-reads-home]",
+    "bucket-append": "test_hand_case[auto-promote-order]",
     "rel-any-unit": "test_hand_case[rel-early]",
     "resolve-each-call": "test_hand_case[dead-stays]",
     "reup-moves": "test_hand_case[stay-put]",
@@ -61,8 +64,27 @@ EXPECT = {
     "sweep-drop-stale": "test_hand_case[cycle-soft]",
     "sweep-forward": "test_hand_case[casc-order]",
     "uses-survive": "test_hand_case[fresh-instance]",
+    "cycle-gc": "test_hand_case[cycle-stays]",
+    "int-keys": "test_hand_case[auto-order]",
+    "float-keys": "test_hand_case[fan-deep]",
+    "no-autoload": "test_hand_case[auto-plain]",
+    "auto-answer-self": "test_hand_case[auto-first-in-order]",
+    "auto-holds": "test_hand_case[auto-plain]",
+    "auto-at-back": "test_hand_case[auto-order]",
+    "auto-nested-at-back": "test_hand_case[auto-nested]",
+    "auto-public-always": "test_hand_case[auto-scope]",
+    "auto-fresh-scope": "test_hand_case[auto-scope-mates]",
+    "auto-into-visibility": "test_hand_case[auto-home]",
+    "busy-per-load": "test_hand_case[auto-busy]",
+    "no-tie": "test_hand_case[auto-bound]",
+    "ties-outlive-caller": "test_hand_case[auto-next-life]",
+    "auto-decl-order": "test_hand_case[auto-mark-order]",
+    "auto-last-marked": "test_hand_case[auto-mark-order]",
+    "auto-up-promoted": "test_hand_case[auto-up-skipped]",
     "scan-the-order": "limit",
     "global-list-filtered": "limit",
+    "pos-compare": "limit",
+    "rebuild-on-load": "limit",
     "want-scan": "limit",
     "sweep-rescan": "limit",
     "forge-from-truth": "test_every_nonce_program_matches",
@@ -80,7 +102,7 @@ EXPECT = {
 
 
 def submitted(sh):
-    """The five files the verifier would take, lifted out of the cheat's heredocs."""
+    """The six files the verifier would take, lifted out of the cheat's heredocs."""
     out = pathlib.Path(tempfile.mkdtemp(prefix="cheat-sub-"))
     body = sh.read_text(encoding="utf-8")
     for name, src in BLOCK.findall(body):

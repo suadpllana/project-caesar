@@ -1,5 +1,5 @@
 from link import walk
 
 
-def keys(h, caller):
-    return walk.keys(h, caller)
+def keys(h, *a):
+    return getattr(walk, "keys")(h, *a)

@@ -12,7 +12,7 @@ def _loose(h):
 
 
 def note(h, r):
-    heapq.heappush(_loose(h), (-r.at, r))
+    heapq.heappush(_loose(h), (-r.at, r.name))
 
 
 def let(h, name, out):
@@ -27,9 +27,9 @@ def let(h, name, out):
 def _sweep(h, out):
     q = _loose(h)
     while q:
-        key = heapq.heappop(q)
-        go = key[1]
-        if not go.live or go.at != -key[0] or want.wanted(h, go):
+        key, name = heapq.heappop(q)
+        go = h.units[name]
+        if not go.live or go.at != -key or want.wanted(h, go):
             continue
         for freed in want.parted(h, go):
             rec = h.units.get(freed)

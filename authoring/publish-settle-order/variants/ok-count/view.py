@@ -1,19 +1,15 @@
-"""Which publications a caller is allowed to reach.
+class _Scope:
+    __slots__ = ("den", "home")
 
-A publication is either public or private to the scope that brought it up, and a caller reads
-the public ones plus, if it is private itself, the ones in its own scope. Nothing else about a
-scope matters: it holds nothing up, it is not a unit, and it never appears in the trace.
-
-`keys` is the whole of the model as far as resolution is concerned. It gives the buckets a
-caller may read, and it is what lets `pick.py` answer a call without walking past publications
-the caller cannot see.
-"""
+    def __init__(self, den):
+        self.den = den
+        self.home = den
 
 
-def _dens(h):
-    d = getattr(h, "dens", None)
+def _of(h):
+    d = getattr(h, "scope_of", None)
     if d is None:
-        d = h.dens = {}
+        d = h.scope_of = {}
     return d
 
 
@@ -23,17 +19,23 @@ def fresh(h):
 
 
 def seal(h, r, den):
-    _dens(h)[r.name] = den
+    _of(h)[r.name] = _Scope(den)
 
 
 def open_up(h, r):
-    _dens(h)[r.name] = None
+    _of(h)[r.name].den = None
 
 
 def den(h, r):
-    return _dens(h).get(r.name)
+    s = _of(h).get(r.name)
+    return None if s is None else s.den
+
+
+def home(h, r):
+    s = _of(h).get(r.name)
+    return None if s is None else s.home
 
 
 def keys(h, caller):
-    mine = den(h, caller)
+    mine = home(h, caller)
     return (None,) if mine is None else (None, mine)

@@ -32,7 +32,7 @@ def _pubs(rec):
 
 
 def _seq(h):
-    return list(h.seq.values())
+    return LB.order.live(h)
 
 
 def _live_publishers(h, sym):
@@ -52,12 +52,16 @@ def _dependents(h, rec, live_only, hard=None):
     return out
 
 
+LB = None
+
+
 def samples():
-    lb = lab.Lab(lab.TASK / "solution")
+    global LB
+    lb = LB = lab.Lab(lab.TASK / "solution")
     call_rows, target_rows, retire_rows = [], [], []
     seen_calls = set()
     for _fam, _name, lines in gen.programs("decisions", 8):
-        if len(lines) > 400:
+        if len(lines) > 400 or len(lines) > 160 and _fam == "fan":
             continue
         h = lb.tab.Host()
         acc = []
@@ -71,8 +75,9 @@ def samples():
                 pubs = _live_publishers(h, sym)
                 plain = [r for r in pubs if (sym, False) in r.pubs]
                 dens = getattr(h, "dens", {})
-                mine = dens.get(caller.name)
+                mine = getattr(h, "homes", {}).get(caller.name)
                 seen = [r for r in pubs if dens.get(r.name) in (None, mine)]
+                autos = [x for x in h.autos if not h.units[x].live and sym in _pubs(h.units[x])]
                 row = {
                     "caller_private": int(mine is not None),
                     "publishers_seen": len(seen),
@@ -80,12 +85,14 @@ def samples():
                     "caller_up": int(caller.live),
                     "caller_holds": h.holds.get(caller.name, 0),
                     "caller_asked_before": int((op[1], sym) in seen_calls),
-                    "live_units": len(h.seq),
+                    "live_units": len(_seq(h)),
                     "publishers_live": len(pubs),
                     "plain_publishers_live": len(plain),
                     "publisher_ever_declared": int(any(sym in _pubs(r) for r in h.units.values())),
                     "first_publisher_pos": _seq(h).index(pubs[0]) if pubs else -1,
                     "caller_pos": _seq(h).index(caller) if caller.live else -1,
+                    "auto_candidates": len(autos),
+                    "auto_marked_total": len(h.autos),
                 }
                 seen_calls.add((op[1], sym))
                 lb.ops.ex(h, op, acc)
@@ -116,7 +123,7 @@ def samples():
                         "live_units": len(before),
                     }))
                 lb.ops.ex(h, op, acc)
-                left = set(h.seq)
+                left = {x.name for x in _seq(h)}
                 for rec, row in rows:
                     retire_rows.append((row, int(rec.name not in left)))
                 continue

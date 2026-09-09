@@ -207,6 +207,48 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   population caught it when in truth it had stopped working after the first case. Assert what the
   probe was supposed to reproduce, not only what it scored.
 
+## Lessons, measured (2026-09-09, `publish-settle-order` easiness recovery)
+
+The easiness probe solved the task 2 of 3. All three agents formed the complete plan before
+running a program, because every rule was individually implementable and the structure each rule
+wants is the standard one; trial 2 wrote a brute-force model from the brief and fuzzed 1,900
+programs against it. The repair is one rule whose consequences invalidate six structures at once -
+a unit brought up by a call is published *ahead* of its caller, as a dependency would be - and
+the lessons below are from building it.
+
+- **A trajectory file that opens with the brief makes `leakcheck` grade the brief against
+  itself.** The three probe transcripts arrived with the instruction pasted at the top. Stripped,
+  the check found one shared rule sentence in one trial and nothing in the other two, which is the
+  evidence that the plan came from the rules being stated rather than from quoted prose. The
+  transcripts carry no verdicts either: which trial failed cannot be read from them, and STATE.md
+  says so rather than guessing.
+- **`open('w')` truncates before it validates.** Writing `newline="\\n"` through a quoted heredoc
+  put a literal backslash-n into Python, `io.open` raised on the argument, and `cases.py` was
+  already zero bytes. The next command then failed with "module has no attribute ORDER", which
+  reads like an import-path problem and is not. Escapes go through a script file, once, and a
+  file that a failed write may have touched is checked with `wc` before anything imports it.
+- **A cheat emitted before the reading was repaired tests the unrepaired reading.** `emit.py`
+  ran, then `make_readings.py` was fixed for a reading whose candidate check ran before it swapped
+  the in-progress set, then `readings.py` said "caught by auto-busy" from the fresh directory while
+  `cheat_report.py` said "NOT CAUGHT, nothing failed" from the stale script. Two tools disagreeing
+  is the signal; the rule is that `emit.py` runs after every `make_readings.py`, never before.
+- **A reading that moves 0.7% of the population is a reading the population is not shaped for.**
+  The serial-as-order-key reading needs a competitor that came up *before* the load and stands
+  *after* the caller, which only a publisher opened privately and promoted afterwards can be. The
+  first shaping put the competitor up after the load, where a serial and a position agree, and the
+  number stayed at 0.7%. Shaped correctly it moved 9.7%. Write the wrong reading down, derive the
+  program shape that separates it, then generate that shape; do not generate and hope.
+- **A committed harness value can disagree with every number in the prose.** `test.sh` ran
+  `PER=60` while the brief, the metadata and the timings all said 45 (366 programs, three of each
+  large size). It had passed reference verification on the platform, so nothing local or remote
+  flagged it. Every count in shipped prose is now re-derived from `gen.programs` after any change
+  to the generator or the harness, and the harness value is the one the prose is derived from.
+- **`build_gt.py` proves additivity, and only if it reads the old file first.** Thirty-six frozen
+  answers held byte-for-byte through a new op, a linked order with insertion, a new retention
+  edge and a changed scope model; the one contract change that did move an answer nowhere -
+  a promoted unit going on reading its own scope - is recorded as a contract change all the same,
+  because no frozen program exercised the corner and that is why it had gone unnoticed.
+
 ## Lessons, measured (2026-09-09, `publish-settle-order` difficulty rebuild)
 
 The quality review failed `difficult` on the first submission: "the editable code is roughly 100

@@ -5,7 +5,7 @@ LOGS=/logs/verifier
 WORK=/work
 SANDBOX=1002
 LIMIT=60
-PER=60
+PER=45
 
 # The reward channel and the sealed answers are locked before anything the agent wrote runs,
 # and the reward starts at 0: only a clean worker and a clean grader can raise it.

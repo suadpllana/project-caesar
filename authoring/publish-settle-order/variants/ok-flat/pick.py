@@ -1,5 +1,5 @@
 from link import walk
 
 
-def find(h, caller, sym):
-    return walk.find(h, caller, sym)
+def find(h, *a):
+    return getattr(walk, "find")(h, *a)

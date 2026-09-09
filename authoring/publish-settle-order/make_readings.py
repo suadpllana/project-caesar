@@ -5,9 +5,11 @@ plan produces. Writing them as edits rather than as copies keeps them in step wi
 reference, and every replacement asserts that it fired, so a reading can never quietly become a
 byte-for-byte copy of the thing it is supposed to differ from.
 
-Three of them are semantically identical to the reference on purpose. Those are the ones the
-execution limit separates: a resolution that scans the order, a resolution that keeps one list
-per name and filters it by visibility, and a teardown that rescans the live set for candidates.
+Six of them are semantically identical to the reference on purpose. Those are the ones the
+execution limit separates: a resolution that scans the order, one that keeps one list per name
+and filters it by visibility, one that compares candidates by their position in the order, one
+that rebuilds its index whenever the order is spliced into, a retention question answered by a
+scan, and a teardown that rescans the live set for candidates.
 
     python3 authoring/publish-settle-order/make_readings.py
 """
@@ -32,20 +34,37 @@ def whole(name, part, text):
     EDITS.setdefault(name, {})[part] = text
 
 
+KEYS = '''    if before is None:
+        r.at = (h.tick,)
+        order.add(h, r)
+    else:
+        k = before.at
+        r.at = k[:-1] + (k[-1] - 1, h.tick)
+        order.put(h, r, before)'''
+
+LOAD = '''            _up(h, r, view.home(h, caller), caller, out)
+            want.tied(h, caller, r)
+            return r'''
+
 # --- the activation walk ----------------------------------------------------------------
 edit("boots-after-closure", "walk.py",
-     ("""    else:
-        _up(h, r, None if wide else view.fresh(h), set(), out)
+     ("""        _up(h, r, None if wide else view.fresh(h), None, out)
     hold.take(h, name)""",
-      """    else:
-        fresh = []
-        _up(h, r, None if wide else view.fresh(h), set(), fresh, out)
+      """        fresh = []
+        _up(h, r, None if wide else view.fresh(h), None, fresh, out)
         for x in fresh:
             for sym in x.boots:
                 site.reach(h, x, sym, out)
     hold.take(h, name)"""),
-     ("""def _up(h, r, den, busy, out):""", """def _up(h, r, den, busy, fresh, out):"""),
-     ("""        _up(h, dr, den, busy, out)""", """        _up(h, dr, den, busy, fresh, out)"""),
+     (LOAD, """            fresh = []
+            _up(h, r, view.home(h, caller), caller, fresh, out)
+            for x in fresh:
+                for s2 in x.boots:
+                    site.reach(h, x, s2, out)
+            want.tied(h, caller, r)
+            return r"""),
+     ("def _up(h, r, den, before, out):", "def _up(h, r, den, before, fresh, out):"),
+     ("        _up(h, dr, den, before, out)", "        _up(h, dr, den, before, fresh, out)"),
      ("""    say.up(out, r.name)
     for sym in r.boots:
         site.reach(h, r, sym, out)
@@ -55,22 +74,18 @@ edit("boots-after-closure", "walk.py",
     busy.discard(r.name)"""))
 
 edit("boot-before-publish", "walk.py",
-     ("""    order.add(h, r)
-    pick.joined(h, r)
-    want.joined(h, r)
-    if not want.wanted(h, r):
-        drop.note(h, r)
-    say.up(out, r.name)
+     ("""    view.seal(h, r, den)
+    pick.joined(h, r)""",
+      """    view.seal(h, r, den)
     for sym in r.boots:
-        site.reach(h, r, sym, out)""",
-      """    for sym in r.boots:
         site.reach(h, r, sym, out)
-    order.add(h, r)
-    pick.joined(h, r)
-    want.joined(h, r)
-    if not want.wanted(h, r):
-        drop.note(h, r)
-    say.up(out, r.name)"""))
+    pick.joined(h, r)"""),
+     ("""    say.up(out, r.name)
+    for sym in r.boots:
+        site.reach(h, r, sym, out)
+    busy.discard(r.name)""",
+      """    say.up(out, r.name)
+    busy.discard(r.name)"""))
 
 edit("uses-survive", "walk.py", ("    r.uses = {}\n", ""))
 
@@ -80,14 +95,16 @@ edit("reup-moves", "walk.py",
       """    if r.live:
         pick.parted(h, r)
         order.drop(h, r)
+        h.tick = getattr(h, 'tick', 0) + 1
+        r.at = (h.tick,)
         order.add(h, r)
         pick.joined(h, r)
         was = view.den(h, r)"""))
 
 edit("reup-no-hold", "walk.py",
-     ("""        _up(h, r, None if wide else view.fresh(h), set(), out)
+     ("""        _up(h, r, None if wide else view.fresh(h), None, out)
     hold.take(h, name)""",
-      """        _up(h, r, None if wide else view.fresh(h), set(), out)
+      """        _up(h, r, None if wide else view.fresh(h), None, out)
         hold.take(h, name)"""))
 
 edit("needs-sorted", "walk.py",
@@ -108,12 +125,12 @@ edit("pre-after-deps", "walk.py",
         dr = tab.get(h, other)"""))
 
 edit("open-is-act", "walk.py",
-     ("        _up(h, r, None if wide else view.fresh(h), set(), out)",
-      "        _up(h, r, None, set(), out)"))
+     ("        _up(h, r, None if wide else view.fresh(h), None, out)",
+      "        _up(h, r, None, None, out)"))
 
 edit("scope-per-unit", "walk.py",
-     ("""        _up(h, r, None if wide else view.fresh(h), set(), out)""",
-      """        _up(h, r, None if wide else False, set(), out)"""),
+     ("""        _up(h, r, None if wide else view.fresh(h), None, out)""",
+      """        _up(h, r, None if wide else False, None, out)"""),
      ("""    view.seal(h, r, den)""",
       """    view.seal(h, r, None if den is None else view.fresh(h))"""))
 
@@ -124,11 +141,124 @@ edit("no-promotion", "walk.py",
             pick.moved(h, r, was)""",
       """        pass"""))
 
+# --- the order key ------------------------------------------------------------------------
+edit("int-keys", "walk.py",
+     (KEYS, """    r.at = h.tick
+    if before is None:
+        order.add(h, r)
+    else:
+        order.put(h, r, before)"""))
+
+edit("float-keys", "walk.py",
+     (KEYS, """    if before is None:
+        r.at = float(h.tick)
+        order.add(h, r)
+    else:
+        low = before.back.at if before.back is not None else before.at - 1.0
+        r.at = (low + before.at) / 2.0
+        order.put(h, r, before)"""))
+
+# --- the load ------------------------------------------------------------------------------
+edit("no-autoload", "site.py",
+     ("""        if t is None and walk.lazy(h, r, sym, out) is not None:
+            t = pick.find(h, r, sym)
+""", ""))
+
+edit("auto-answer-self", "site.py",
+     ("""        if t is None and walk.lazy(h, r, sym, out) is not None:
+            t = pick.find(h, r, sym)""",
+      """        if t is None:
+            t = walk.lazy(h, r, sym, out)"""))
+
+edit("auto-holds", "walk.py",
+     (LOAD, """            _up(h, r, view.home(h, caller), caller, out)
+            want.tied(h, caller, r)
+            hold.take(h, r.name)
+            return r"""))
+
+edit("auto-at-back", "walk.py",
+     ("            _up(h, r, view.home(h, caller), caller, out)",
+      "            _up(h, r, view.home(h, caller), None, out)"))
+
+edit("auto-nested-at-back", "walk.py",
+     ("            _up(h, r, view.home(h, caller), caller, out)",
+      "            _up(h, r, view.home(h, caller), None if busy else caller, out)"))
+
+edit("auto-public-always", "walk.py",
+     ("            _up(h, r, view.home(h, caller), caller, out)",
+      "            _up(h, r, None, caller, out)"))
+
+edit("auto-fresh-scope", "walk.py",
+     ("            _up(h, r, view.home(h, caller), caller, out)",
+      "            _up(h, r, view.fresh(h), caller, out)"))
+
+edit("auto-into-visibility", "walk.py",
+     ("            _up(h, r, view.home(h, caller), caller, out)",
+      "            _up(h, r, view.den(h, caller), caller, out)"))
+
+edit("busy-per-load", "walk.py",
+     ("""    busy = _busy(h)
+    for name in h.autos:
+        r = h.units[name]
+        if r.live or name in busy:
+            continue
+        if any(s == sym for s, _fall in r.pubs):
+            _up(h, r, view.home(h, caller), caller, out)
+            want.tied(h, caller, r)
+            return r
+    return None""",
+      """    keep = _busy(h)
+    busy = h.busy = set()
+    try:
+        for name in h.autos:
+            r = h.units[name]
+            if r.live or name in busy:
+                continue
+            if any(s == sym for s, _fall in r.pubs):
+                _up(h, r, view.home(h, caller), caller, out)
+                want.tied(h, caller, r)
+                return r
+        return None
+    finally:
+        h.busy = keep"""))
+
+edit("no-tie", "walk.py",
+     ("            want.tied(h, caller, r)\n", ""))
+
+edit("auto-decl-order", "walk.py",
+     ("""    for name in h.autos:
+        r = h.units[name]
+""",
+      """    for name, r in h.units.items():
+        if not r.auto:
+            continue
+"""))
+
+edit("auto-last-marked", "walk.py",
+     ("    for name in h.autos:", "    for name in reversed(h.autos):"))
+
+edit("auto-up-promoted", "walk.py",
+     ("""        if r.live or name in busy:
+            continue
+        if any(s == sym for s, _fall in r.pubs):
+            _up(h, r, view.home(h, caller), caller, out)""",
+      """        if name in busy:
+            continue
+        if any(s == sym for s, _fall in r.pubs):
+            if r.live:
+                was = view.den(h, r)
+                if was is not None:
+                    view.open_up(h, r)
+                    pick.moved(h, r, was)
+                return r
+            _up(h, r, view.home(h, caller), caller, out)"""))
+
 # --- visibility -------------------------------------------------------------------------
-whole("see-everything", "view.py", '''def _dens(h):
-    d = getattr(h, "dens", None)
+whole("see-everything", "view.py", '''def _tab(h, key):
+    d = getattr(h, key, None)
     if d is None:
-        d = h.dens = {}
+        d = {}
+        setattr(h, key, d)
     return d
 
 
@@ -138,26 +268,38 @@ def fresh(h):
 
 
 def seal(h, r, den):
-    _dens(h)[r.name] = den
+    _tab(h, "dens")[r.name] = den
+    _tab(h, "homes")[r.name] = den
 
 
 def open_up(h, r):
-    _dens(h)[r.name] = None
+    _tab(h, "dens")[r.name] = None
 
 
 def den(h, r):
-    return _dens(h).get(r.name)
+    return _tab(h, "dens").get(r.name)
+
+
+def home(h, r):
+    return _tab(h, "homes").get(r.name)
 
 
 def keys(h, caller):
-    return tuple(dict.fromkeys([None] + list(_dens(h).values())))
+    return tuple(dict.fromkeys([None] + list(_tab(h, "dens").values())))
 ''')
 
 edit("scope-only", "view.py",
-     ("""    mine = den(h, caller)
+     ("""    mine = home(h, caller)
     return (None,) if mine is None else (None, mine)""",
-      """    mine = den(h, caller)
+      """    mine = home(h, caller)
     return (None,) if mine is None else (mine,)"""))
+
+edit("promote-drops-home", "view.py",
+     ("""def open_up(h, r):
+    _tab(h, "dens")[r.name] = None""",
+      """def open_up(h, r):
+    _tab(h, "dens")[r.name] = None
+    _tab(h, "homes")[r.name] = None"""))
 
 # --- which unit answers a name -----------------------------------------------------------
 edit("strong-over-fallback", "pick.py",
@@ -198,19 +340,24 @@ edit("newest-publisher", "pick.py",
 
 edit("promote-at-back", "pick.py",
      ("""    _cut(h, r, was)
-    i = _idx(h)
-    for sym in _syms(r):
-        lst = i.setdefault((None, sym), [])
-        lo, hi = 0, len(lst)
-        while lo < hi:
-            mid = (lo + hi) // 2
-            if lst[mid].at < r.at:
-                lo = mid + 1
-            else:
-                hi = mid
-        lst.insert(lo, r)""",
+    _put(h, r, None)""",
       """    _cut(h, r, was)
-    _put(h, r, None)"""))
+    for sym in _syms(r):
+        _idx(h).setdefault((None, sym), []).append(r)"""))
+
+edit("bucket-append", "pick.py",
+     ("""        if not lst or lst[-1].at < r.at:
+            lst.append(r)
+        else:
+            lst.insert(_slot(lst, r.at), r)""",
+      """        lst.append(r)"""),
+     ("""        n = _slot(lst, r.at)
+        if n < len(lst) and lst[n] is r:
+            del lst[n]""",
+      """        for n, x in enumerate(lst):
+            if x is r:
+                del lst[n]
+                break"""))
 
 whole("scan-the-order", "pick.py", '''from link import view
 from reg import order
@@ -253,10 +400,22 @@ def _syms(r):
     return dict.fromkeys(p[0] for p in r.pubs)
 
 
+def _slot(lst, at):
+    lo, hi = 0, len(lst)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if lst[mid].at < at:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
+
+
 def joined(h, r):
     i = _idx(h)
     for sym in _syms(r):
-        i.setdefault(sym, []).append(r)
+        lst = i.setdefault(sym, [])
+        lst.insert(_slot(lst, r.at), r)
 
 
 def parted(h, r):
@@ -265,10 +424,9 @@ def parted(h, r):
         lst = i.get(sym)
         if not lst:
             continue
-        for n, x in enumerate(lst):
-            if x is r:
-                del lst[n]
-                break
+        n = _slot(lst, r.at)
+        if n < len(lst) and lst[n] is r:
+            del lst[n]
 
 
 def moved(h, r, was):
@@ -281,6 +439,118 @@ def find(h, caller, sym):
         if view.den(h, r) in seen:
             return r
     return None
+''')
+
+whole("pos-compare", "pick.py", '''from link import view
+from reg import order
+
+
+def _idx(h):
+    i = getattr(h, "idx", None)
+    if i is None:
+        i = h.idx = {}
+    return i
+
+
+def _syms(r):
+    return dict.fromkeys(p[0] for p in r.pubs)
+
+
+def _cut(h, r, den):
+    i = _idx(h)
+    for sym in _syms(r):
+        lst = i.get((den, sym), [])
+        for n, x in enumerate(lst):
+            if x is r:
+                del lst[n]
+                break
+
+
+def joined(h, r):
+    i = _idx(h)
+    den = view.den(h, r)
+    for sym in _syms(r):
+        i.setdefault((den, sym), []).append(r)
+
+
+def parted(h, r):
+    _cut(h, r, view.den(h, r))
+
+
+def moved(h, r, was):
+    _cut(h, r, was)
+    i = _idx(h)
+    for sym in _syms(r):
+        i.setdefault((None, sym), []).append(r)
+
+
+def find(h, caller, sym):
+    best, at = None, -1
+    for key in view.keys(h, caller):
+        for r in _idx(h).get((key, sym), ()):
+            p = order.pos(h, r)
+            if best is None or p < at:
+                best, at = r, p
+    return best
+''')
+
+whole("rebuild-on-load", "pick.py", '''from link import view
+from reg import order
+
+
+def _idx(h):
+    i = getattr(h, "idx", None)
+    if i is None:
+        i = h.idx = {}
+    return i
+
+
+def _syms(r):
+    return dict.fromkeys(p[0] for p in r.pubs)
+
+
+def _rebuild(h):
+    i = {}
+    for r in order.live(h):
+        den = view.den(h, r)
+        for sym in _syms(r):
+            i.setdefault((den, sym), []).append(r)
+    h.idx = i
+
+
+def joined(h, r):
+    if r.fore is not None:
+        _rebuild(h)
+        return
+    i = _idx(h)
+    den = view.den(h, r)
+    for sym in _syms(r):
+        i.setdefault((den, sym), []).append(r)
+
+
+def parted(h, r):
+    i = _idx(h)
+    den = view.den(h, r)
+    for sym in _syms(r):
+        lst = i.get((den, sym), [])
+        for n, x in enumerate(lst):
+            if x is r:
+                del lst[n]
+                break
+
+
+def moved(h, r, was):
+    _rebuild(h)
+
+
+def find(h, caller, sym):
+    i = _idx(h)
+    best = None
+    for key in view.keys(h, caller):
+        lst = i.get((key, sym))
+        if lst and (best is None or lst[0].at < best.at):
+            best = lst[0]
+    return best
 ''')
 
 # --- what a call does ---------------------------------------------------------------------
@@ -300,6 +570,8 @@ edit("settle-the-miss", "site.py",
      ("""    u = r.uses.get(sym)
     if u is None:
         t = pick.find(h, r, sym)
+        if t is None and walk.lazy(h, r, sym, out) is not None:
+            t = pick.find(h, r, sym)
         if t is None:
             say.miss(out, r.name, sym)
             return""",
@@ -309,12 +581,14 @@ edit("settle-the-miss", "site.py",
         return
     if u is None:
         t = pick.find(h, r, sym)
+        if t is None and walk.lazy(h, r, sym, out) is not None:
+            t = pick.find(h, r, sym)
         if t is None:
             r.uses[sym] = None
             say.miss(out, r.name, sym)
             return"""))
 
-whole("resolve-each-call", "site.py", '''from link import pick
+whole("resolve-each-call", "site.py", '''from link import pick, walk
 from reg import say
 
 
@@ -322,13 +596,15 @@ def reach(h, r, sym, out):
     if not r.live:
         return
     t = pick.find(h, r, sym)
+    if t is None and walk.lazy(h, r, sym, out) is not None:
+        t = pick.find(h, r, sym)
     if t is None:
         say.miss(out, r.name, sym)
         return
     say.ran(out, r.name, sym, t.name)
 ''')
 
-whole("dead-rebinds", "site.py", '''from link import pick
+whole("dead-rebinds", "site.py", '''from link import pick, walk
 from reg import say
 
 
@@ -342,13 +618,40 @@ def reach(h, r, sym, out):
             say.ran(out, r.name, sym, t.name)
             return
         del r.uses[sym]
+        t = pick.find(h, r, sym)
+        if t is None:
+            say.dead(out, r.name, sym)
+            return
+        r.uses[sym] = (t, t.at)
+        say.ran(out, r.name, sym, t.name)
+        return
     t = pick.find(h, r, sym)
+    if t is None and walk.lazy(h, r, sym, out) is not None:
+        t = pick.find(h, r, sym)
     if t is None:
-        say.dead(out, r.name, sym)
+        say.miss(out, r.name, sym)
         return
     r.uses[sym] = (t, t.at)
     say.ran(out, r.name, sym, t.name)
 ''')
+
+edit("dead-reloads", "site.py",
+     ("""    t, at = u
+    if t.live and t.at == at:
+        say.ran(out, r.name, sym, t.name)
+    else:
+        say.dead(out, r.name, sym)""",
+      """    t, at = u
+    if t.live and t.at == at:
+        say.ran(out, r.name, sym, t.name)
+        return
+    del r.uses[sym]
+    if walk.lazy(h, r, sym, out) is None:
+        say.dead(out, r.name, sym)
+        return
+    t = pick.find(h, r, sym)
+    r.uses[sym] = (t, t.at)
+    say.ran(out, r.name, sym, t.name)"""))
 
 edit("call-when-down", "site.py",
      ("""    if not r.live:
@@ -359,6 +662,9 @@ edit("call-when-down", "site.py",
 edit("soft-keeps", "want.py",
      ("    return dict.fromkeys(other for other, kind in r.needs if kind)",
       "    return dict.fromkeys(other for other, kind in r.needs)"))
+
+edit("ties-outlive-caller", "want.py",
+     ("    for name in list(_hard(r)) + r.ties:", "    for name in _hard(r):"))
 
 # Counting edges is only wrong when the two halves of the ledger disagree about it, which is
 # what happens when they are written at different times: the entry counts every edge, the exit
@@ -379,14 +685,21 @@ def joined(h, r):
         owed[name] = owed.get(name, 0) + 1
 
 
+def tied(h, r, t):
+    r.ties.append(t.name)
+    owed = _owed(h)
+    owed[t.name] = owed.get(t.name, 0) + 1
+
+
 def parted(h, r):
     owed = _owed(h)
     freed = []
-    for name in dict.fromkeys(other for other, kind in r.needs if kind):
+    for name in list(dict.fromkeys(other for other, kind in r.needs if kind)) + r.ties:
         left = owed.get(name, 0) - 1
         owed[name] = left
         if left <= 0:
             freed.append(name)
+    r.ties = []
     return freed
 
 
@@ -395,19 +708,26 @@ def wanted(h, r):
 ''')
 
 edit("deps-need-not-live", "want.py",
-     ("""    freed = []
-    for name in _hard(r):
+     ("""    owed = _owed(h)
+    freed = []
+    for name in list(_hard(r)) + r.ties:
         left = owed.get(name, 0) - 1
         owed[name] = left
         if left <= 0:
             freed.append(name)
+    r.ties = []
     return freed""",
-      """    return []"""))
+      """    r.ties = []
+    return []"""))
 
 whole("holds-only", "want.py", '''from reg import hold
 
 
 def joined(h, r):
+    return None
+
+
+def tied(h, r, t):
     return None
 
 
@@ -426,8 +746,14 @@ def joined(h, r):
     return None
 
 
+def tied(h, r, t):
+    r.ties.append(t.name)
+
+
 def parted(h, r):
-    return [other for other, kind in r.needs if kind]
+    names = [other for other, kind in r.needs if kind] + r.ties
+    r.ties = []
+    return names
 
 
 def wanted(h, r):
@@ -436,16 +762,74 @@ def wanted(h, r):
     for o in order.live(h):
         if o is r:
             continue
+        if r.name in o.ties:
+            return True
         for other, kind in o.needs:
             if kind and other == r.name:
                 return True
     return False
 ''')
 
+whole("cycle-gc", "want.py", '''from reg import hold, order
+
+
+def _owed(h):
+    d = getattr(h, "owed", None)
+    if d is None:
+        d = h.owed = {}
+    return d
+
+
+def _hard(r):
+    return dict.fromkeys(other for other, kind in r.needs if kind)
+
+
+def joined(h, r):
+    owed = _owed(h)
+    for name in _hard(r):
+        owed[name] = owed.get(name, 0) + 1
+
+
+def tied(h, r, t):
+    r.ties.append(t.name)
+    owed = _owed(h)
+    owed[t.name] = owed.get(t.name, 0) + 1
+
+
+def parted(h, r):
+    owed = _owed(h)
+    freed = []
+    for name in list(_hard(r)) + r.ties:
+        left = owed.get(name, 0) - 1
+        owed[name] = left
+        if left <= 0:
+            freed.append(name)
+    r.ties = []
+    return freed
+
+
+def wanted(h, r):
+    if hold.held(h, r.name) > 0:
+        return True
+    seen = set()
+    stack = [o for o in order.live(h) if hold.held(h, o.name) > 0]
+    while stack:
+        o = stack.pop()
+        if o.name in seen:
+            continue
+        seen.add(o.name)
+        if o is r:
+            return True
+        for other in list(_hard(o)) + list(o.ties):
+            dr = h.units.get(other)
+            if dr is not None and dr.live and dr.name not in seen:
+                stack.append(dr)
+    return False
+''')
+
 # --- the cascade ------------------------------------------------------------------------------
 edit("sweep-forward", "drop.py",
-     ("    heapq.heappush(_queue(h), (-r.at, r.at, r.name))",
-      "    heapq.heappush(_queue(h), (r.at, r.at, r.name))"))
+     ("        return self.at > other.at", "        return self.at < other.at"))
 
 edit("sweep-drop-stale", "drop.py",
      ("""        for freed in want.parted(h, go):

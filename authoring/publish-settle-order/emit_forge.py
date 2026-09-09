@@ -62,6 +62,8 @@ def _decls(h):
             out.append("%%s %%s %%s" %% ("fall" if f else "pub", name, s))
         for b in r.boots:
             out.append("boot %%s %%s" %% (name, b))
+        if r.auto:
+            out.append("auto " + name)
     return out
 
 
@@ -128,6 +130,8 @@ def main():
                 rebuilt.append("%s %s %s" % ("fall" if f else "pub", unit, s))
             for b in rec.boots:
                 rebuilt.append("boot %s %s" % (unit, b))
+            if rec.auto:
+                rebuilt.append("auto " + unit)
         if sorted(rebuilt) != decls_of(lines):
             raise SystemExit("%s: the forger could not rebuild the declarations" % name)
         table[key(rebuilt, acts_of(lines))] = truth[name]

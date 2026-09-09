@@ -17,3 +17,10 @@ def pub(h, name, sym, fall):
 
 def boot(h, name, sym):
     tab.get(h, name).boots.append(sym)
+
+
+def auto(h, name):
+    r = tab.get(h, name)
+    if not r.auto:
+        r.auto = True
+        h.autos.append(name)

@@ -11,35 +11,50 @@ what a program prints.
 Graded, and settled the same way by two implementations written apart:
 
   1  the order units come up in: what a unit names first, in declaration order, whether it is a
-     dependency or an ordering edge, one that is already up or part way up skipped
+     dependency or an ordering edge, one that is already up or part way up skipped; no unit
+     names itself
   2  publication and startup interleaved per unit, so a startup call sees the order as far as it
      has been built and no further
-  3  a unit coming up has settled nothing, whatever the record it is handed carries from a
-     previous life
+  3  a unit coming up has settled nothing and keeps nothing it brought up in a previous life,
+     whatever the record it is handed carries
   4  `act` publishes into no scope, `open` publishes one activation into a single fresh scope,
-     and a call reaches a publication only when it is public or sits in the caller's own scope
+     and a call reaches a publication only when it is public or sits in the scope the caller
+     reads
   5  `act` on a unit that is up in a scope makes that publication public where it stands - same
-     publication, same place in the order, visible to everyone from then on
+     publication, same place in the order, visible to everyone from then on - and the unit goes
+     on reading the scope it was brought up into
   6  which publisher answers a name: the first in publication order that the caller can see, a
      fallback publication counting exactly like any other
   7  a call that finds no publisher settles nothing, so a later call can still settle, against a
      unit that came up or became visible in between
   8  a settled use is never resolved again
   9  a settled use that reaches a publication which has gone answers dead, and a unit of the same
-     name coming back does not repair it
- 10  a live unit stays while it holds a hold of its own or any live unit names it as a
-     dependency; an ordering edge keeps nothing
+     name coming back does not repair it, nor does an `auto` unit being brought up again
+ 10  a live unit stays while it holds a hold of its own, or any live unit names it as a
+     dependency, or any live unit brought it up as the answer to a call; an ordering edge keeps
+     nothing; two live units that name each other as dependencies keep each other up
  11  the sweep after a release: the last unwanted unit in publication order, applied before the
      next is chosen, repeated until nothing unwanted is left
  12  a call from a unit that is not up is not an event
  13  bringing up a unit that is already up adds a hold and leaves its publication where it is
+ 14  a call that finds nothing it can see brings up the first unit marked `auto` - in the order
+     the marks were made - that publishes the name and is neither up nor part way up; if there is
+     none the call is a miss and settles nothing
+ 15  that unit comes up as if the caller had named it as a dependency: what comes up is published
+     directly ahead of the caller in the publication order, in the order it comes up; into the
+     scope the caller reads, or public when the caller reads none; with its startup calls run as
+     in any activation; with no hold taken; and kept up by the caller until the caller goes down
+ 16  the call is then answered by rule 6 over the order as it now stands, which need not name the
+     unit brought up
 
 Implementation choice, and not graded: how the dependency walk is carried (the reference
 recurses, the model runs an explicit stack), how a publication is told apart from the one before
-it, what the resolution buckets and the retention ledger are made of, and any internal naming.
-Not a free choice, and not asserted here either: neither the answer to a name nor the next
-candidate for retirement can be found by scanning, which the execution limit on the worker
-decides rather than any assertion in this file.
+it, what the order key that admits a unit ahead of its caller is made of (the reference uses
+tuples, the model exact fractions), what the resolution buckets and the retention ledger are made
+of, and any internal naming. Not a free choice, and not asserted here either: neither the answer
+to a name, nor a publication's place relative to another, nor the next candidate for retirement
+can be found by walking the order, which the execution limit on the worker decides rather than
+any assertion in this file.
 
 Hand cases are checked against `gt.json`, frozen before this file was written. Nonce programs
 are generated here, after the agent has finished, and checked against the sealed model. The

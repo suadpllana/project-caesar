@@ -5,6 +5,10 @@ def joined(h, r):
     return None
 
 
+def tied(h, r, t):
+    return None
+
+
 def parted(h, r):
     return []
 

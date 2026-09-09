@@ -1,6 +1,6 @@
 """Write the probe cheats: attacks on the verifier rather than wrong readings of the contract.
 
-Each one is the shipped host with an attack appended to one of the five files, so it does no
+Each one is the shipped host with an attack appended to one of the six files, so it does no
 work and has to be stopped by the isolation rather than by the grading. Deriving them from the
 shipped files keeps them running after the tree changes shape - a probe that crashes on an
 attribute that no longer exists is a probe that proves nothing.

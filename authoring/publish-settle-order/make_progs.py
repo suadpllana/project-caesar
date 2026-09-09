@@ -57,6 +57,19 @@ dep u2 u1
 open u2
 call u2 s1
 """,
+    "lazy.txt": """
+unit u1
+pub u1 s1
+unit u2
+auto u2
+dep u2 u1
+pub u2 s2
+boot u2 s1
+unit u3
+act u3
+call u3 s2
+rel u3
+""",
     "churn.txt": """
 unit u1
 pub u1 s1

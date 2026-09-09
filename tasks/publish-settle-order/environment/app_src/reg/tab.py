@@ -4,14 +4,19 @@ class Rec:
         self.needs = []
         self.pubs = []
         self.boots = []
+        self.auto = False
         self.live = False
         self.uses = {}
+        self.back = None
+        self.fore = None
 
 
 class Host:
     def __init__(self):
         self.units = {}
-        self.seq = {}
+        self.autos = []
+        self.head = None
+        self.tail = None
         self.holds = {}
 
 

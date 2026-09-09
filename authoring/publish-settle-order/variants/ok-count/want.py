@@ -1,35 +1,37 @@
 from reg import hold
 
 
-def _owed(h):
-    d = getattr(h, "owed", None)
+def _keepers(h):
+    d = getattr(h, "keepers", None)
     if d is None:
-        d = h.owed = {}
+        d = h.keepers = {}
     return d
 
 
 def joined(h, r):
-    seen = set()
+    keepers = _keepers(h)
     for other, kind in r.needs:
-        if not kind or other in seen:
-            continue
-        seen.add(other)
-        _owed(h)[other] = _owed(h).get(other, 0) + 1
+        if kind:
+            keepers.setdefault(other, set()).add(r.name)
+
+
+def tied(h, r, t):
+    r.ties.append(t.name)
+    _keepers(h).setdefault(t.name, set()).add(r.name)
 
 
 def parted(h, r):
-    seen = set()
+    keepers = _keepers(h)
     freed = []
-    for other, kind in r.needs:
-        if not kind or other in seen:
-            continue
-        seen.add(other)
-        left = _owed(h).get(other, 0) - 1
-        _owed(h)[other] = left
-        if left < 1:
-            freed.append(other)
-    return freed
+    for other in [o for o, kind in r.needs if kind] + r.ties:
+        who = keepers.get(other)
+        if who is not None:
+            who.discard(r.name)
+            if not who:
+                freed.append(other)
+    r.ties = []
+    return list(dict.fromkeys(freed))
 
 
 def wanted(h, r):
-    return hold.held(h, r.name) > 0 or _owed(h).get(r.name, 0) > 0
+    return hold.held(h, r.name) > 0 or bool(_keepers(h).get(r.name))

@@ -162,6 +162,102 @@ CASES = {
         "unit u1", "unit u2", "unit u3", "dep u3 u1", "dep u3 u2",
         "act u3", "act u2", "rel u3", "rel u2",
     ],
+    # --- a call that finds nothing brings a unit up, as the caller's dependency ---------------
+    "auto-plain": [
+        "unit a", "auto a", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c",
+    ],
+    "auto-bound": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d",
+        "act c", "call c s1", "act d", "rel d", "rel c",
+    ],
+    "auto-order": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit p", "pub p s1", "unit d",
+        "act c", "open p", "call c s1", "act p", "act d", "call d s1", "rel c", "call d s1",
+    ],
+    "auto-pre": [
+        "unit p", "unit a", "auto a", "pre a p", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c",
+    ],
+    "auto-first-in-order": [
+        "unit f", "pub f s1", "unit a", "auto a", "dep a f", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c",
+    ],
+    "auto-fall": [
+        "unit a", "auto a", "fall a s1", "unit c",
+        "act c", "call c s1",
+    ],
+    "auto-mark-order": [
+        "unit a", "unit b", "auto b", "auto a", "pub a s1", "pub b s1", "unit c",
+        "act c", "call c s1",
+    ],
+    "auto-late-mark": [
+        "unit c", "act c", "call c s1",
+        "unit a", "auto a", "pub a s1", "call c s1",
+    ],
+    "auto-next-life": [
+        "unit a", "auto a", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c", "act c", "rel c",
+    ],
+    "auto-dead": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d", "unit e",
+        "act c", "act d", "call c s1", "call d s1", "rel c", "call d s1",
+        "act e", "call e s1", "call d s1",
+    ],
+    # --- where a load lands, and who can see it -----------------------------------------------
+    "auto-scope": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d",
+        "open c", "call c s1", "act d", "call d s1", "act a", "call d s1",
+    ],
+    "auto-scope-mates": [
+        "unit a", "auto a", "pub a s1", "unit e", "boot e s1", "unit c", "dep c e",
+        "open c", "call c s1",
+    ],
+    "auto-home": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d",
+        "open c", "act c", "call c s1", "act d", "call d s1",
+    ],
+    "auto-up-skipped": [
+        "unit a", "auto a", "pub a s1", "unit b", "auto b", "pub b s1", "unit c", "unit d",
+        "open c", "call c s1", "act d", "call d s1",
+    ],
+    "auto-promote-order": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit p", "pub p s1", "unit d",
+        "open c", "call c s1", "act p", "act a", "act d", "call d s1",
+    ],
+    "promote-reads-home": [
+        "unit p", "pub p s1", "unit c", "dep c p",
+        "open c", "act c", "call c s1",
+    ],
+    # --- loads that nest through startup calls -------------------------------------------------
+    "auto-nested": [
+        "unit d", "boot d s2", "unit b", "auto b", "pub b s2",
+        "unit a", "auto a", "dep a d", "pub a s1", "fall a s2", "unit c",
+        "act c", "call c s1", "unit x", "act x", "call x s2", "rel c",
+    ],
+    "auto-busy": [
+        "unit d", "boot d s1", "unit a", "auto a", "dep a d", "pub a s1", "unit c",
+        "act c", "call c s1", "call d s1",
+    ],
+    # --- retention that follows from the rule as written ---------------------------------------
+    "cycle-stays": [
+        "unit u1", "unit u2", "dep u1 u2", "dep u2 u1",
+        "act u1", "rel u1",
+    ],
+    # --- sixty loads in front of one caller: mechanical rather than hand-readable, and kept
+    # --- because an order key built from float midpoints is exact for the first fifty or so
+    # --- insertions at one spot and silently wrong after that
+    "fan-deep": (
+        ["unit a%d" % i for i in range(60)]
+        + ["pub a%d z%d" % (i, i) for i in range(60)]
+        + ["auto a%d" % i for i in range(60)]
+        + ["unit c", "unit p", "pub p z59", "pub p z0", "unit d", "act c"]
+        + ["call c z%d" % i for i in range(60)]
+        + ["act p", "act d", "call d z59", "call d z0", "rel c", "call d z59", "call d z0",
+           "act c"]
+        + ["call c z%d" % i for i in range(60)]
+        + ["rel c"]
+    ),
     # --- a call from a unit that is not live is not a call -----------------------------------
     "not-live": [
         "unit u1", "unit u2", "pub u2 s1",

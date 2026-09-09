@@ -1,4 +1,4 @@
-from link import pick
+from link import pick, walk
 from reg import say
 
 
@@ -12,9 +12,18 @@ def reach(h, r, sym, out):
             say.ran(out, r.name, sym, t.name)
             return
         del r.uses[sym]
+        t = pick.find(h, r, sym)
+        if t is None:
+            say.dead(out, r.name, sym)
+            return
+        r.uses[sym] = (t, t.at)
+        say.ran(out, r.name, sym, t.name)
+        return
     t = pick.find(h, r, sym)
+    if t is None and walk.lazy(h, r, sym, out) is not None:
+        t = pick.find(h, r, sym)
     if t is None:
-        say.dead(out, r.name, sym)
+        say.miss(out, r.name, sym)
         return
     r.uses[sym] = (t, t.at)
     say.ran(out, r.name, sym, t.name)

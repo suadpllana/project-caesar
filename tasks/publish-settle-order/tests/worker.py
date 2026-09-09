@@ -7,8 +7,9 @@ silent exit loses the record, and a lost record is a failure, never a pass.
 
 The wall clock the platform puts on this process is also the task's execution limit, so a
 correct host that cannot get through the set in time is scored exactly like a wrong one. Two of
-the ten families exist for that: one where the answer to a name sits behind thousands of
-publications the caller cannot see, and one where a single release brings a forest down.
+the twelve families exist for that: one where the answer to a name sits behind thousands of
+publications the caller cannot see and every caller splices a unit into the order ahead of
+itself, and one where a single release brings a forest down.
 """
 import hashlib
 import json

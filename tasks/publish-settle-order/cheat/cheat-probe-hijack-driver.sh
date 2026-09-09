@@ -3,7 +3,7 @@
 set -euo pipefail
 
 cat > /app/link/site.py <<'PYEOF'
-from link import pick
+from link import pick, walk
 from reg import say
 
 
@@ -13,6 +13,8 @@ def reach(h, r, sym, out):
     t = r.uses.get(sym)
     if t is None:
         t = pick.find(h, r, sym)
+        if t is None:
+            t = walk.lazy(h, r, sym, out)
         if t is None:
             say.miss(out, r.name, sym)
             return

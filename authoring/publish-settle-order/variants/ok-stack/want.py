@@ -21,13 +21,19 @@ def joined(h, r):
         _owed(h)[name] = _owed(h).get(name, 0) + 1
 
 
+def tied(h, r, t):
+    r.ties.append(t.name)
+    _owed(h)[t.name] = _owed(h).get(t.name, 0) + 1
+
+
 def parted(h, r):
     freed = []
-    for name in _hard(r):
+    for name in _hard(r) + r.ties:
         left = _owed(h).get(name, 0) - 1
         _owed(h)[name] = left
         if left < 1:
             freed.append(name)
+    r.ties = []
     return freed
 
 

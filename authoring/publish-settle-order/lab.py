@@ -44,6 +44,7 @@ class Lab:
         sys.path.insert(0, str(self.tree))
         self.ops = importlib.import_module("ops")
         self.tab = importlib.import_module("reg.tab")
+        self.order = importlib.import_module("reg.order")
         sys.path.pop(0)
 
     def close(self):

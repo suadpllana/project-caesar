@@ -1,0 +1,868 @@
+Easiness probe, 9 September 2026, trial 3 of 3.
+
+THIS FILE IS THE SOLVING AGENT'S OWN WORDS AND TOOL OUTPUT, AND NOTHING ELSE. The brief
+that opened the transcript was removed so that tools/leakcheck.py is not circular.
+Commentary lives in notes.md beside it.
+
+I'll start by reading the loader code and running the failing program.
+
+Bash(ls -R | head -50 && cat run_host.py && wc -l link/*.py && cat progs/tiny.txt && python3 run_host.py progs/tiny…)
+
+.:
+link
+ops.py
+progs
+reg
+run_host.py
+
+./link:
+__init__.py
+drop.py
+pick.py
+site.py
+view.py
+walk.py
+want.py
+
+./progs:
+churn.txt
+pair.txt
+scope.txt
+soft.txt
+tear.txt
+tiny.txt
+wide.txt
+
+./reg:
+__init__.py
+decl.py
+hold.py
+order.py
+say.py
+tab.py
+text.py
+import sys
+
+import ops
+from reg import tab, text
+
+
+def main(a):
+    if len(a) != 2:
+        sys.stderr.write("usage: run_host.py <prog>\n")
+        return 2
+    h = tab.Host()
+    out = []
+    for op in text.ops(a[1]):
+        ops.ex(h, op, out)
+    for ln in out:
+        print(ln)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+   0 link/__init__.py
+  24 link/drop.py
+  17 link/pick.py
+  18 link/site.py
+   2 link/view.py
+  27 link/walk.py
+  13 link/want.py
+ 101 total
+unit u1
+fall u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u2
+act u3
+call u3 s1
+up u1
+up u2
+up u3
+run u3 s1 u2
+
+[stdout]
+.:
+link
+ops.py
+progs
+reg
+run_host.py
+
+./link:
+__init__.py
+drop.py
+pick.py
+site.py
+view.py
+walk.py
+want.py
+
+./progs:
+churn.txt
+pair.txt
+scope.txt
+soft.txt
+tear.txt
+tiny.txt
+wide.txt
+
+./reg:
+__init__.py
+decl.py
+hold.py
+order.py
+say.py
+tab.py
+text.py
+import sys
+
+import ops
+from reg import tab, text
+
+
+def main(a):
+    if len(a) != 2:
+        sys.stderr.write("usage: run_host.py <prog>\n")
+        return 2
+    h = tab.Host()
+    out = []
+    for op in text.ops(a[1]):
+        ops.ex(h, op, out)
+    for ln in out:
+        print(ln)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+   0 link/__init__.py
+  24 link/drop.py
+  17 link/pick.py
+  18 link/site.py
+   2 link/view.py
+  27 link/walk.py
+  13 link/want.py
+ 101 total
+unit u1
+fall u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u2
+act u3
+call u3 s1
+up u1
+up u2
+up u3
+run u3 s1 u2
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(for f in link/*.py reg/*.py ops.py; do echo "=== $f"; cat $f; done)
+
+=== link/__init__.py
+=== link/drop.py
+from link import want
+from reg import hold, order, say, tab
+
+
+def let(h, name, out):
+    r = tab.get(h, name)
+    if not r.live or hold.held(h, name) <= 0:
+        return
+    hold.give(h, name)
+    _sweep(h, out)
+
+
+def _sweep(h, out):
+    while True:
+        go = None
+        for r in order.live(h):
+            if not want.wanted(h, r):
+                if go is None or order.pos(h, r) < order.pos(h, go):
+                    go = r
+        if go is None:
+            return
+        go.live = False
+        order.drop(h, go)
+        say.down(out, go.name)
+=== link/pick.py
+from link import view
+from reg import order
+
+
+def find(h, caller, sym):
+    back = None
+    for r in order.live(h):
+        if not view.can(h, caller, r):
+            continue
+        for s, fall in r.pubs:
+            if s != sym:
+                continue
+            if not fall:
+                return r
+            if back is None:
+                back = r
+    return back
+=== link/site.py
+from link import pick
+from reg import say
+
+
+def reach(h, r, sym, out):
+    if not r.live:
+        return
+    t = r.uses.get(sym)
+    if t is None:
+        t = pick.find(h, r, sym)
+        if t is None:
+            say.miss(out, r.name, sym)
+            return
+        r.uses[sym] = t
+    if t.live:
+        say.ran(out, r.name, sym, t.name)
+    else:
+        say.dead(out, r.name, sym)
+=== link/view.py
+def can(h, caller, target):
+    return True
+=== link/walk.py
+from link import site
+from reg import hold, order, say, tab
+
+
+def bring(h, name, wide, out):
+    r = tab.get(h, name)
+    if not r.live:
+        fresh = []
+        _up(h, r, set(), fresh, out)
+        for x in fresh:
+            for sym in x.boots:
+                site.reach(h, x, sym, out)
+    hold.take(h, name)
+
+
+def _up(h, r, busy, fresh, out):
+    busy.add(r.name)
+    for other, _kind in r.needs:
+        dr = tab.get(h, other)
+        if dr.live or dr.name in busy:
+            continue
+        _up(h, dr, busy, fresh, out)
+    r.live = True
+    order.add(h, r)
+    fresh.append(r)
+    say.up(out, r.name)
+    busy.discard(r.name)
+=== link/want.py
+from reg import hold
+
+
+def wanted(h, r):
+    if hold.held(h, r.name) > 0:
+        return True
+    for o in h.units.values():
+        if o is r:
+            continue
+        for other, _kind in o.needs:
+            if other == r.name:
+                return True
+    return False
+=== reg/__init__.py
+=== reg/decl.py
+from reg import tab
+
+
+def unit(h, name):
+    tab.get(h, name)
+
+
+def need(h, name, other, hard):
+    r = tab.get(h, name)
+    tab.get(h, other)
+    r.needs.append((other, hard))
+
+
+def pub(h, name, sym, fall):
+    tab.get(h, name).pubs.append((sym, fall))
+
+
+def boot(h, name, sym):
+    tab.get(h, name).boots.append(sym)
+=== reg/hold.py
+def take(h, name):
+    h.holds[name] = h.holds.get(name, 0) + 1
+
+
+def give(h, name):
+    h.holds[name] = h.holds.get(name, 0) - 1
+
+
+def held(h, name):
+    return h.holds.get(name, 0)
+=== reg/order.py
+def add(h, r):
+    h.seq[r.name] = r
+
+
+def drop(h, r):
+    h.seq.pop(r.name, None)
+
+
+def live(h):
+    return list(h.seq.values())
+
+
+def pos(h, r):
+    for n, x in enumerate(h.seq.values()):
+        if x is r:
+            return n
+    return -1
+=== reg/say.py
+def up(out, name):
+    out.append("up " + name)
+
+
+def down(out, name):
+    out.append("down " + name)
+
+
+def ran(out, caller, sym, target):
+    out.append("run %s %s %s" % (caller, sym, target))
+
+
+def miss(out, caller, sym):
+    out.append("miss %s %s" % (caller, sym))
+
+
+def dead(out, caller, sym):
+    out.append("dead %s %s" % (caller, sym))
+=== reg/tab.py
+class Rec:
+    def __init__(self, name):
+        self.name = name
+        self.needs = []
+        self.pubs = []
+        self.boots = []
+        self.live = False
+        self.uses = {}
+
+
+class Host:
+    def __init__(self):
+        self.units = {}
+        self.seq = {}
+        self.holds = {}
+
+
+def get(h, name):
+    r = h.units.get(name)
+    if r is None:
+        r = Rec(name)
+        h.units[name] = r
+    return r
+=== reg/text.py
+def ops(p):
+    out = []
+    with open(p) as f:
+        for ln in f:
+            ln = ln.strip()
+            if ln:
+                out.append(tuple(ln.split()))
+    return out
+=== ops.py
+from link import drop, site, walk
+from reg import decl, tab
+
+
+def ex(h, op, out):
+    k = op[0]
+    if k == "unit":
+        decl.unit(h, op[1])
+    elif k == "dep":
+        decl.need(h, op[1], op[2], True)
+    elif k == "pre":
+        decl.need(h, op[1], op[2], False)
+    elif k == "pub":
+        decl.pub(h, op[1], op[2], False)
+    elif k == "fall":
+        decl.pub(h, op[1], op[2], True)
+    elif k == "boot":
+        decl.boot(h, op[1], op[2])
+    elif k == "act":
+        walk.bring(h, op[1], True, out)
+    elif k == "open":
+        walk.bring(h, op[1], False, out)
+    elif k == "call":
+        site.reach(h, tab.get(h, op[1]), op[2], out)
+    elif k == "rel":
+        drop.let(h, op[1], out)
+    else:
+        raise ValueError(k)
+
+[stdout]
+=== link/__init__.py
+=== link/drop.py
+from link import want
+from reg import hold, order, say, tab
+
+
+def let(h, name, out):
+    r = tab.get(h, name)
+    if not r.live or hold.held(h, name) <= 0:
+        return
+    hold.give(h, name)
+    _sweep(h, out)
+
+
+def _sweep(h, out):
+    while True:
+        go = None
+        for r in order.live(h):
+            if not want.wanted(h, r):
+                if go is None or order.pos(h, r) < order.pos(h, go):
+                    go = r
+        if go is None:
+            return
+        go.live = False
+        order.drop(h, go)
+        say.down(out, go.name)
+=== link/pick.py
+from link import view
+from reg import order
+
+
+def find(h, caller, sym):
+    back = None
+    for r in order.live(h):
+        if not view.can(h, caller, r):
+            continue
+        for s, fall in r.pubs:
+            if s != sym:
+                continue
+            if not fall:
+                return r
+            if back is None:
+                back = r
+    return back
+=== link/site.py
+from link import pick
+fro
+… [clipped]
+collapse
+Bash(cat progs/scope.txt progs/soft.txt progs/pair.txt | head -80; wc -l progs/*; grep -c '^open' progs/wide.txt; a…)
+
+unit u1
+pub u1 s1
+unit u2
+dep u2 u1
+open u2
+call u2 s1
+unit u1
+pub u1 s1
+unit u2
+pre u2 u1
+boot u2 s1
+act u2
+call u2 s1
+unit u1
+unit u2
+dep u1 u2
+dep u2 u1
+pub u1 s1
+pub u2 s2
+boot u1 s2
+act u1
+call u2 s1
+rel u1
+     13 progs/churn.txt
+     10 progs/pair.txt
+      6 progs/scope.txt
+      7 progs/soft.txt
+  35833 progs/tear.txt
+      9 progs/tiny.txt
+  93550 progs/wide.txt
+ 129428 total
+4358
+   1123 act
+  20764 call
+  20600 dep
+   4358 open
+  20624 pub
+     60 rel
+  26021 unit
+     31 act
+  17855 dep
+     30 pre
+     31 rel
+  17886 unit
+
+[stdout]
+unit u1
+pub u1 s1
+unit u2
+dep u2 u1
+open u2
+call u2 s1
+unit u1
+pub u1 s1
+unit u2
+pre u2 u1
+boot u2 s1
+act u2
+call u2 s1
+unit u1
+unit u2
+dep u1 u2
+dep u2 u1
+pub u1 s1
+pub u2 s2
+boot u1 s2
+act u1
+call u2 s1
+rel u1
+     13 progs/churn.txt
+     10 progs/pair.txt
+      6 progs/scope.txt
+      7 progs/soft.txt
+  35833 progs/tear.txt
+      9 progs/tiny.txt
+  93550 progs/wide.txt
+ 129428 total
+4358
+   1123 act
+  20764 call
+  20600 dep
+   4358 open
+  20624 pub
+     60 rel
+  26021 unit
+     31 act
+  17855 dep
+     30 pre
+     31 rel
+  17886 unit
+[metadata] {"noOutputExpected": false}
+collapse
+Now I'll rewrite the six link modules: fallback picking, scopes, publication identity for settled uses, boot-call timing, dependency-based want with an index, and a heap-driven sweep.
+
+Bash(cat > link/want.py <<'EOF' import heapq from reg import hold def st(h): s = getattr(h, "_link", None) if s is …)
+
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+unit u1
+pub u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u3
+call u3 s1
+rel u1
+call u3 s1
+act u2
+call u3 s1
+rel u3
+
+[stdout]
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+unit u1
+pub u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u3
+call u3 s1
+rel u1
+call u3 s1
+act u2
+call u3 s1
+rel u3
+[metadata] {"noOutputExpected": false}
+collapse
+Small programs all look right. Now timing the two big programs.
+
+Bash(time python3 run_host.py progs/wide.txt | awk '{print $1}' | sort | uniq -c; time python3 run_host.py progs/te…)
+
+60 down
+  20764 run
+  26081 up
+
+real	1m12.203s
+user	1m11.403s
+sys	0m0.301s
+  17886 down
+  17886 up
+
+real	0m0.525s
+user	0m0.338s
+sys	0m0.196s
+
+[stdout]
+     60 down
+  20764 run
+  26081 up
+
+real	1m12.203s
+user	1m11.403s
+sys	0m0.301s
+  17886 down
+  17886 up
+
+real	0m0.525s
+user	0m0.338s
+sys	0m0.196s
+[metadata] {"noOutputExpected": false}
+collapse
+`tear.txt` is fast, but `wide.txt` takes 72 seconds. Profiling to find the hot spot.
+
+Bash(python3 -c " import cProfile,pstats,sys sys.argv=['x','progs/wide.txt'] import run_host,io cProfile.run('run_h…)
+
+Command did not complete within its 120s timeout and was moved to the background (ID: bfkrca4gm). Output is being written to: /tmp/claude-0/-app/5a625816-45c6-4d8a-af2b-f0814035f843/tasks/bfkrca4gm.output. You will be notified when it completes. To check interim output, use Read on that file path.
+
+[metadata] {"noOutputExpected": false, "backgroundTaskId": "bfkrca4gm", "timedOutAfterMs": 120000}
+Bash(awk '$1=="pub"{print $3}' progs/wide.txt | sort | uniq -c | sort -rn | head -3; awk '$1=="call"{print $3}' pro…)
+
+5151 s3
+   5151 s2
+   5151 s1
+   5191 s3
+   5191 s2
+   5191 s1
+
+[stdout]
+   5151 s3
+   5151 s2
+   5151 s1
+   5191 s3
+   5191 s2
+   5191 s1
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking… (click to expand)
+Bash(cat > link/pick.py <<'EOF' from link import want def _first(d): if d: for r in d.values(): if r.live: return r…)
+
+link/drop.py:30:    bysym = s["bysym"]
+link/drop.py:33:        d = bysym.get((sym, scope))
+link/walk.py:54:    bysym = s["bysym"]
+… +26 lines (click to expand)
+Thinking…
+I'll re-sort the public index only when a moved scoped publication ends up out of order, then re-run and time both large programs.
+
+Bash(python3 - <<'EOF' p='link/walk.py'; t=open(p).read() t=t.replace(""" k = (sym, None) d = bysym.get(k) if d is …)
+
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+b29176a0f735339c78deb7da5277af71  -
+
+real	0m2.602s
+user	0m0.865s
+sys	0m0.617s
+65de9fa40241b13879724b75201a8076  -
+
+real	0m1.685s
+user	0m0.624s
+sys	0m0.322s
+up a
+up b
+up c
+run c s b
+run c s b
+up d
+run d s b
+down a
+down c
+run d s b
+up a
+run d s b
+
+[stdout]
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+b29176a0f735339c78deb7da5277af71  -
+
+real	0m2.602s
+user	0m0.865s
+sys	0m0.617s
+65de9fa40241b13879724b75201a8076  -
+
+real	0m1.685s
+user	0m0.624s
+sys	0m0.322s
+up a
+up b
+up c
+run c s b
+run c s b
+up d
+run d s b
+down a
+down c
+run d s b
+up a
+run d s b
+[metadata] {"noOutputExpected": false}
+collapse
+Small programs and the scope test behave as specified. Both big programs now run in under 3 seconds. One more check on take-down order and publication identity.
+
+Bash(cat > /tmp/t2.txt <<'EOF' unit a pub a s unit b unit c dep c a dep c b unit e boot e s pre e a act a act b act…)
+
+up a
+up b
+up c
+up e
+run e s a
+run e s a
+down c
+down b
+down a
+dead e s
+up a
+dead e s
+
+[stdout]
+up a
+up b
+up c
+up e
+run e s a
+run e s a
+down c
+down b
+down a
+dead e s
+up a
+dead e s
+[metadata] {"noOutputExpected": false}
+collapse
+All checks pass. Here is the recap.
+
+**Root causes** in the rewritten loader, all fixed within the six permitted files:
+
+- **Fallback picking** in `link/pick.py` skipped fallback publications in favour of any later ordinary one. Now the first live, visible publisher in publication order wins, fallback or not. This fixes the `tiny.txt` result, which now ends `run u3 s1 u1`.
+- **Scopes were unimplemented.** `view.can` returned true for everything. `open` now assigns one fresh scope to everything it brings up, `act` publishes publicly, and `act` on an up scoped unit makes it public in place.
+- **Startup calls ran too late.** They now run right after their unit is published, before the walk continues.
+- **Settled uses survived restarts.** A use now records the publication generation, so a unit coming back up does not repair a dead call, and a unit coming up starts with nothing settled.
+- **Take-down was wrong and slow.** `pre` units counted as keeping their unit up, the sweep took the first rather than the last unwanted unit, and it rescanned every unit per pass. It now keeps a live dependent count per unit and pops candidates from a heap ordered from the back.
+- **Deep walks** are done with an explicit stack rather than recursion.
+
+**Performance.** Lookups are indexed by symbol and scope, since each symbol in `wide.txt` has about five thousand publishers.
+
+| program | time |
+|---|---|
+| wide.txt | 2.6 s |
+| tear.txt | 1.7 s |
+
+Three of each plus the small programs fit comfortably inside the 60 second budget.
+
+**One assumption to flag.** Units that depend on each other in a cycle keep each other up after all holds are released, since the rules say a unit stays up while any up unit names it as a dependency. `pair.txt` therefore prints no `down` lines. If the shipped loader should break such cycles, that rule in `link/want.py` is the place to change.

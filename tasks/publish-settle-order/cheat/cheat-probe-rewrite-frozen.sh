@@ -50,10 +50,11 @@ def ex(h, op, out):
         decl.pub(h, op[1], op[2], k == "fall")
     elif k == "boot":
         decl.boot(h, op[1], op[2])
+    elif k == "auto":
+        decl.auto(h, op[1])
     elif k in ("act", "open"):
         r = tab.get(h, op[1])
         r.live = True
-        h.seq[op[1]] = r
         out.append("up " + op[1])
     elif k == "call":
         out.append("run %s %s %s" % (op[1], op[2], op[1]))

@@ -1,0 +1,1334 @@
+Easiness probe, 9 September 2026, trial 2 of 3.
+
+THIS FILE IS THE SOLVING AGENT'S OWN WORDS AND TOOL OUTPUT, AND NOTHING ELSE. The brief
+that opened the transcript was removed so that tools/leakcheck.py is not circular.
+Commentary lives in notes.md beside it.
+
+I'll start by reading the loader code and running the failing program.
+
+Bash(ls -R | head -50 && cat run_host.py && wc -l link/*.py && cat progs/tiny.txt && python3 run_host.py progs/tiny…)
+
+.:
+link
+ops.py
+progs
+reg
+run_host.py
+
+./link:
+__init__.py
+drop.py
+pick.py
+site.py
+view.py
+walk.py
+want.py
+
+./progs:
+churn.txt
+pair.txt
+scope.txt
+soft.txt
+tear.txt
+tiny.txt
+wide.txt
+
+./reg:
+__init__.py
+decl.py
+hold.py
+order.py
+say.py
+tab.py
+text.py
+import sys
+
+import ops
+from reg import tab, text
+
+
+def main(a):
+    if len(a) != 2:
+        sys.stderr.write("usage: run_host.py <prog>\n")
+        return 2
+    h = tab.Host()
+    out = []
+    for op in text.ops(a[1]):
+        ops.ex(h, op, out)
+    for ln in out:
+        print(ln)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+   0 link/__init__.py
+  24 link/drop.py
+  17 link/pick.py
+  18 link/site.py
+   2 link/view.py
+  27 link/walk.py
+  13 link/want.py
+ 101 total
+unit u1
+fall u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u2
+act u3
+call u3 s1
+up u1
+up u2
+up u3
+run u3 s1 u2
+
+[stdout]
+.:
+link
+ops.py
+progs
+reg
+run_host.py
+
+./link:
+__init__.py
+drop.py
+pick.py
+site.py
+view.py
+walk.py
+want.py
+
+./progs:
+churn.txt
+pair.txt
+scope.txt
+soft.txt
+tear.txt
+tiny.txt
+wide.txt
+
+./reg:
+__init__.py
+decl.py
+hold.py
+order.py
+say.py
+tab.py
+text.py
+import sys
+
+import ops
+from reg import tab, text
+
+
+def main(a):
+    if len(a) != 2:
+        sys.stderr.write("usage: run_host.py <prog>\n")
+        return 2
+    h = tab.Host()
+    out = []
+    for op in text.ops(a[1]):
+        ops.ex(h, op, out)
+    for ln in out:
+        print(ln)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+   0 link/__init__.py
+  24 link/drop.py
+  17 link/pick.py
+  18 link/site.py
+   2 link/view.py
+  27 link/walk.py
+  13 link/want.py
+ 101 total
+unit u1
+fall u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u2
+act u3
+call u3 s1
+up u1
+up u2
+up u3
+run u3 s1 u2
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(for f in ops.py link/*.py reg/*.py; do echo "=== $f"; cat $f; done; for p in progs/pair.txt progs/scope.txt pr…)
+
+=== ops.py
+from link import drop, site, walk
+from reg import decl, tab
+
+
+def ex(h, op, out):
+    k = op[0]
+    if k == "unit":
+        decl.unit(h, op[1])
+    elif k == "dep":
+        decl.need(h, op[1], op[2], True)
+    elif k == "pre":
+        decl.need(h, op[1], op[2], False)
+    elif k == "pub":
+        decl.pub(h, op[1], op[2], False)
+    elif k == "fall":
+        decl.pub(h, op[1], op[2], True)
+    elif k == "boot":
+        decl.boot(h, op[1], op[2])
+    elif k == "act":
+        walk.bring(h, op[1], True, out)
+    elif k == "open":
+        walk.bring(h, op[1], False, out)
+    elif k == "call":
+        site.reach(h, tab.get(h, op[1]), op[2], out)
+    elif k == "rel":
+        drop.let(h, op[1], out)
+    else:
+        raise ValueError(k)
+=== link/__init__.py
+=== link/drop.py
+from link import want
+from reg import hold, order, say, tab
+
+
+def let(h, name, out):
+    r = tab.get(h, name)
+    if not r.live or hold.held(h, name) <= 0:
+        return
+    hold.give(h, name)
+    _sweep(h, out)
+
+
+def _sweep(h, out):
+    while True:
+        go = None
+        for r in order.live(h):
+            if not want.wanted(h, r):
+                if go is None or order.pos(h, r) < order.pos(h, go):
+                    go = r
+        if go is None:
+            return
+        go.live = False
+        order.drop(h, go)
+        say.down(out, go.name)
+=== link/pick.py
+from link import view
+from reg import order
+
+
+def find(h, caller, sym):
+    back = None
+    for r in order.live(h):
+        if not view.can(h, caller, r):
+            continue
+        for s, fall in r.pubs:
+            if s != sym:
+                continue
+            if not fall:
+                return r
+            if back is None:
+                back = r
+    return back
+=== link/site.py
+from link import pick
+from reg import say
+
+
+def reach(h, r, sym, out):
+    if not r.live:
+        return
+    t = r.uses.get(sym)
+    if t is None:
+        t = pick.find(h, r, sym)
+        if t is None:
+            say.miss(out, r.name, sym)
+            return
+        r.uses[sym] = t
+    if t.live:
+        say.ran(out, r.name, sym, t.name)
+    else:
+        say.dead(out, r.name, sym)
+=== link/view.py
+def can(h, caller, target):
+    return True
+=== link/walk.py
+from link import site
+from reg import hold, order, say, tab
+
+
+def bring(h, name, wide, out):
+    r = tab.get(h, name)
+    if not r.live:
+        fresh = []
+        _up(h, r, set(), fresh, out)
+        for x in fresh:
+            for sym in x.boots:
+                site.reach(h, x, sym, out)
+    hold.take(h, name)
+
+
+def _up(h, r, busy, fresh, out):
+    busy.add(r.name)
+    for other, _kind in r.needs:
+        dr = tab.get(h, other)
+        if dr.live or dr.name in busy:
+            continue
+        _up(h, dr, busy, fresh, out)
+    r.live = True
+    order.add(h, r)
+    fresh.append(r)
+    say.up(out, r.name)
+    busy.discard(r.name)
+=== link/want.py
+from reg import hold
+
+
+def wanted(h, r):
+    if hold.held(h, r.name) > 0:
+        return True
+    for o in h.units.values():
+        if o is r:
+            continue
+        for other, _kind in o.needs:
+            if other == r.name:
+                return True
+    return False
+=== reg/__init__.py
+=== reg/decl.py
+from reg import tab
+
+
+def unit(h, name):
+    tab.get(h, name)
+
+
+def need(h, name, other, hard):
+    r = tab.get(h, name)
+    tab.get(h, other)
+    r.needs.append((other, hard))
+
+
+def pub(h, name, sym, fall):
+    tab.get(h, name).pubs.append((sym, fall))
+
+
+def boot(h, name, sym):
+    tab.get(h, name).boots.append(sym)
+=== reg/hold.py
+def take(h, name):
+    h.holds[name] = h.holds.get(name, 0) + 1
+
+
+def give(h, name):
+    h.holds[name] = h.holds.get(name, 0) - 1
+
+
+def held(h, name):
+    return h.holds.get(name, 0)
+=== reg/order.py
+def add(h, r):
+    h.seq[r.name] = r
+
+
+def drop(h, r):
+    h.seq.pop(r.name, None)
+
+
+def live(h):
+    return list(h.seq.values())
+
+
+def pos(h, r):
+    for n, x in enumerate(h.seq.values()):
+        if x is r:
+            return n
+    return -1
+=== reg/say.py
+def up(out, name):
+    out.append("up " + name)
+
+
+def down(out, name):
+    out.append("down " + name)
+
+
+def ran(out, caller, sym, target):
+    out.append("run %s %s %s" % (caller, sym, target))
+
+
+def miss(out, caller, sym):
+    out.append("miss %s %s" % (caller, sym))
+
+
+def dead(out, caller, sym):
+    out.append("dead %s %s" % (caller, sym))
+=== reg/tab.py
+class Rec:
+    def __init__(self, name):
+        self.name = name
+        self.needs = []
+        self.pubs = []
+        self.boots = []
+        self.live = False
+        self.uses = {}
+
+
+class Host:
+    def __init__(self):
+        self.units = {}
+        self.seq = {}
+        self.holds = {}
+
+
+def get(h, name):
+    r = h.units.get(name)
+    if r is None:
+        r = Rec(name)
+        h.units[name] = r
+    return r
+=== reg/text.py
+def ops(p):
+    out = []
+    with open(p) as f:
+        for ln in f:
+            ln = ln.strip()
+            if ln:
+                out.append(tuple(ln.split()))
+    return out
+=== progs/pair.txt
+unit u1
+unit u2
+dep u1 u2
+dep u2 u1
+pub u1 s1
+pub u2 s2
+boot u1 s2
+act u1
+call u2 s1
+rel u1
+--- out
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+=== progs/scope.txt
+unit u1
+pub u1 s1
+unit u2
+dep u2 u1
+open u2
+call u2 s1
+--- out
+up u1
+up u2
+run u2 s1 u1
+=== progs/soft.txt
+unit u1
+pub u1 s1
+unit u2
+pre u2 u1
+boot u2 s1
+act u2
+call u2 s1
+--- out
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+=== progs/churn.txt
+unit u1
+pub u1 s1
+unit u2
+pub u2 s1
+unit u3
+act u1
+act u3
+call u3 s1
+rel u1
+call u3 s1
+act u2
+call u3 s1
+rel u3
+--- out
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+  93550 progs/wide.txt
+  35833 progs/tear.txt
+ 129383 total
+unit k0
+pub k0 qk0
+unit k1
+pub k1 qk1
+unit k2
+
+[stdout]
+=== ops.py
+from link import drop, site, walk
+from reg import decl, tab
+
+
+def ex(h, op, out):
+    k = op[0]
+    if k == "unit":
+        decl.unit(h, op[1])
+    elif k == "dep":
+        decl.need(h, op[1], op[2], True)
+    elif k == "pre":
+        decl.need(h, op[1], op[2], False)
+    elif k == "pub":
+        decl.pub(h, o
+… [clipped]
+collapse
+Thinking…
+Found several bugs: fallback demoted in `pick`, missing scopes in `view`, delayed boots and unreset uses in `walk`, dead units/pre-links counted in `want`, and `drop` selecting the wrong item while being quadratic. I'll now rewrite all six files to fix these.
+
+Bash(cd /app/link && cat > view.py <<'EOF' def state(h): s = getattr(h, "_view", None) if s is None: s = {"scope": …)
+
+== tiny
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== pair
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== scope
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== soft
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== churn
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+
+real	0m0.025s
+user	0m0.021s
+sys	0m0.004s
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+
+real	0m0.026s
+user	0m0.020s
+sys	0m0.007s
+
+[stdout]
+== tiny
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== pair
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== scope
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== soft
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+== churn
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+
+real	0m0.025s
+user	0m0.021s
+sys	0m0.004s
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+
+real	0m0.026s
+user	0m0.020s
+sys	0m0.007s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app && for p in tiny pair scope soft churn; do echo "== $p"; python3 run_host.py progs/$p.txt; done; time …)
+
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+  20806 up d0
+  20764 run c0 s0 p0
+   5191 up c0
+     80 up k0
+     60 down k0
+      4 up p0
+
+real	1m32.258s
+user	1m31.224s
+sys	0m0.333s
+  17886 down
+  17886 up
+
+real	0m0.932s
+user	0m0.735s
+sys	0m0.173s
+
+[stdout]
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+  20806 up d0
+  20764 run c0 s0 p0
+   5191 up c0
+     80 up k0
+     60 down k0
+      4 up p0
+
+real	1m32.258s
+user	1m31.224s
+sys	0m0.333s
+  17886 down
+  17886 up
+
+real	0m0.932s
+user	0m0.735s
+sys	0m0.173s
+[metadata] {"noOutputExpected": false}
+collapse
+Outputs look right; `wide.txt` is far too slow. Profiling it.
+
+Bash(grep -c . progs/wide.txt; awk '{print $1}' progs/wide.txt | sort | uniq -c; grep -E '^(pub|fall)' progs/wide.t…)
+
+93550
+   1123 act
+  20764 call
+  20600 dep
+   4358 open
+  20624 pub
+     60 rel
+  26021 unit
+   5151 s3
+   5151 s2
+   5151 s1
+   5191 s3
+   5191 s2
+   5191 s1
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/local/lib/python3.12/pstats.py", line 115, in __init__
+    self.init(arg)
+  File "/usr/local/lib/python3.12/pstats.py", line 129, in init
+    self.load_stats(arg)
+  File "/usr/local/lib/python3.12/pstats.py", line 142, in load_stats
+    with open(arg, 'rb') as f:
+         ^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/prof'
+
+[stdout]
+93550
+   1123 act
+  20764 call
+  20600 dep
+   4358 open
+  20624 pub
+     60 rel
+  26021 unit
+   5151 s3
+   5151 s2
+   5151 s1
+   5191 s3
+   5191 s2
+   5191 s1
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/local/lib/python3.12/pstats.py", line 115, in __init__
+    self.init(arg)
+  File "/usr/local/lib/python3.12/pstats.py", line 129, in init
+    self.load_stats(arg)
+  File "/usr/local/lib/python3.12/pstats.py", line 142, in load_stats
+    with open(arg, 'rb') as f:
+         ^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/prof'
+[metadata] {"noOutputExpected": false}
+collapse
+The hot spot is clear from the program shape: each of three symbols has ~5000 scoped publishers, and every call scans past them all. I'll index publications per symbol and per scope.
+
+Bash(cd /app/link && cat > pick.py <<'EOF' import bisect from link import view, want def index(h): ix = getattr(h, …)
+
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+
+real	0m0.027s
+user	0m0.023s
+sys	0m0.005s
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+
+real	0m0.026s
+user	0m0.022s
+sys	0m0.006s
+
+[stdout]
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+
+real	0m0.027s
+user	0m0.023s
+sys	0m0.005s
+python3: can't open file '/app/link/run_host.py': [Errno 2] No such file or directory
+d41d8cd98f00b204e9800998ecf8427e  -
+
+real	0m0.026s
+user	0m0.022s
+sys	0m0.006s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app && for p in tiny pair scope soft churn; do echo "== $p"; python3 run_host.py progs/$p.txt; done; time …)
+
+== tiny
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+    walk.bring(h, op[1], True, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'u1'
+== pair
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+    walk.bring(h, op[1], True, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 21, in _up
+    _up(h, dr, busy, scope, out)
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'u2'
+== scope
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 22, in ex
+    walk.bring(h, op[1], False, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 21, in _up
+    _up(h, dr, busy, scope, out)
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'u1'
+== soft
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+    walk.bring(h, op[1], True, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 21, in _up
+    _up(h, dr, busy, scope, out)
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'u1'
+== churn
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+    walk.bring(h, op[1], True, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'u1'
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+    walk.bring(h, op[1], True, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'k0'
+
+real	0m0.117s
+user	0m0.098s
+sys	0m0.019s
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+    walk.bring(h, op[1], True, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 21, in _up
+    _up(h, dr, busy, scope, out)
+  File "/app/link/walk.py", line 21, in _up
+    _up(h, dr, busy, scope, out)
+  File "/app/link/walk.py", line 21, in _up
+    _up(h, dr, busy, scope, out)
+  [Previous line repeated 6 more times]
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 't9841'
+
+real	0m0.141s
+user	0m0.111s
+sys	0m0.029s
+
+[stdout]
+== tiny
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+    walk.bring(h, op[1], True, out)
+  File "/app/link/walk.py", line 9, in bring
+    _up(h, r, set(), scope, out)
+  File "/app/link/walk.py", line 27, in _up
+    pick.add(h, r)
+  File "/app/link/pick.py", line 31, in add
+    k = _key(h, r)
+        ^^^^^^^^^^
+  File "/app/link/pick.py", line 15, in _key
+    return want.pos(h)["at"][r.name]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'u1'
+== pair
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 20, in ex
+  
+… [clipped]
+collapse
+Ordering issue: `want.arrive` must run before `pick.add`. Swapping them in walk.py.
+
+Bash(python3 - <<'EOF' p='link/walk.py'; s=open(p).read() s=s.replace(" pick.add(h, r)\n want.arrive(h, r)\n"," wan…)
+
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+  20806 up d0
+  20764 run c0 s0 p0
+   5191 up c0
+     80 up k0
+     60 down k0
+      4 up p0
+
+real	0m0.822s
+user	0m0.594s
+sys	0m0.250s
+  17886 down
+  17886 up
+
+real	0m0.880s
+user	0m0.681s
+sys	0m0.200s
+
+[stdout]
+== tiny
+up u1
+up u2
+up u3
+run u3 s1 u1
+== pair
+up u2
+up u1
+run u1 s2 u2
+run u2 s1 u1
+== scope
+up u1
+up u2
+run u2 s1 u1
+== soft
+up u1
+up u2
+run u2 s1 u1
+run u2 s1 u1
+== churn
+up u1
+up u3
+run u3 s1 u1
+down u1
+dead u3 s1
+up u2
+dead u3 s1
+down u3
+  20806 up d0
+  20764 run c0 s0 p0
+   5191 up c0
+     80 up k0
+     60 down k0
+      4 up p0
+
+real	0m0.822s
+user	0m0.594s
+sys	0m0.250s
+  17886 down
+  17886 up
+
+real	0m0.880s
+user	0m0.681s
+sys	0m0.200s
+[metadata] {"noOutputExpected": false}
+collapse
+Both big programs now finish in under a second. To gain confidence on the semantics, I'll write an independent brute-force reference in /tmp and fuzz it against the loader on random small programs.
+
+Bash(mkdir -p /tmp/fz && cat > /tmp/fz/ref.py <<'EOF' import sys def run(ops): out=[]; units={} class U: pass def g…)
+
+Command did not complete within its 120s timeout and was moved to the background (ID: bm23evz9o). Output is being written to: /tmp/claude-0/-app/a9bd2dfd-53d8-4038-a203-9a2753df2575/tasks/bm23evz9o.output. You will be notified when it completes. To check interim output, use Read on that file path.
+Session cwd remains /app; directory changes made by the backgrounded command do not apply to subsequent commands.
+… +1 lines (click to expand)
+Bash(sleep 60; cat /tmp/claude-0/-app/a9bd2dfd-53d8-4038-a203-9a2753df2575/tasks/bm23evz9o.output)
+
+DIFF seed 20
+DIFF seed 39
+DIFF seed 80
+DIFF seed 87
+DIFF seed 269
+DIFF seed 297
+DIFF seed 326
+DIFF seed 337
+DIFF seed 357
+DIFF seed 434
+DIFF seed 478
+DIFF seed 487
+DIFF seed 492
+DIFF seed 670
+DIFF seed 686
+DIFF seed 710
+DIFF seed 787
+DIFF seed 799
+DIFF seed 1001
+DIFF seed 1128
+DIFF seed 1283
+
+[stdout]
+DIFF seed 20
+DIFF seed 39
+DIFF seed 80
+DIFF seed 87
+DIFF seed 269
+DIFF seed 297
+DIFF seed 326
+DIFF seed 337
+DIFF seed 357
+DIFF seed 434
+DIFF seed 478
+DIFF seed 487
+DIFF seed 492
+DIFF seed 670
+DIFF seed 686
+DIFF seed 710
+DIFF seed 787
+DIFF seed 799
+DIFF seed 1001
+DIFF seed 1128
+DIFF seed 1283
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; cat /tmp/fz/bad20.txt; echo ---; diff <(python3 run_host.py /tmp/fz/bad20.txt) <(python3 /tmp/fz/ref.…)
+
+unit u0
+dep u0 u6
+dep u0 u2
+pub u0 s0
+boot u0 s1
+unit u1
+unit u2
+pre u2 u3
+pub u2 s0
+boot u2 s2
+unit u3
+pre u3 u2
+boot u3 s2
+boot u3 s1
+unit u4
+dep u4 u0
+pub u4 s0
+pub u4 s0
+unit u5
+fall u5 s1
+boot u5 s1
+boot u5 s0
+unit u6
+dep u6 u0
+dep u6 u2
+boot u6 s0
+boot u6 s0
+call u4 s1
+call u1 s2
+call u2 s2
+call u3 s0
+call u2 s2
+---
+0a1
+>
+
+[stdout]
+unit u0
+dep u0 u6
+dep u0 u2
+pub u0 s0
+boot u0 s1
+unit u1
+unit u2
+pre u2 u3
+pub u2 s0
+boot u2 s2
+unit u3
+pre u3 u2
+boot u3 s2
+boot u3 s1
+unit u4
+dep u4 u0
+pub u4 s0
+pub u4 s0
+unit u5
+fall u5 s1
+boot u5 s1
+boot u5 s0
+unit u6
+dep u6 u0
+dep u6 u2
+boot u6 s0
+boot u6 s0
+call u4 s1
+call u1 s2
+call u2 s2
+call u3 s0
+call u2 s2
+---
+0a1
+>
+[metadata] {"returnCodeInterpretation": "Files differ", "noOutputExpected": false}
+collapse
+Only the reference printing a blank line on empty output. Fixing that and rechecking the failing seeds.
+
+Bash(cd /app; sed -i 's/ print("\\n".join(run(ops)))/ sys.stdout.write("".join(l+"\\n" for l in run(ops)))/' /tmp/f…)
+
+checked
+
+[stdout]
+checked
+[metadata] {"noOutputExpected": false}
+collapse
+All 1500 random programs match the reference. One more batch with longer programs to exercise scope exposure and release cascades more heavily, plus final timing.
+
+Bash(cd /app; sed -i 's/r.randint(5,25)/r.randint(30,70)/; s/r.randint(2,7)/r.randint(3,9)/' /tmp/fz/gen.py; fail=0…)
+
+DIFF 2000
+DIFF 2002
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: s1
+DIFF 2006
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: s2
+DIFF 2008
+DIFF 2011
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: u3
+DIFF 2012
+DIFF 2015
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: ll
+DIFF 2017
+fail=1
+0
+
+real	0m1.326s
+user	0m1.156s
+sys	0m0.162s
+
+[stdout]
+DIFF 2000
+DIFF 2002
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: s1
+DIFF 2006
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: s2
+DIFF 2008
+DIFF 2011
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: u3
+DIFF 2012
+DIFF 2015
+Traceback (most recent call last):
+  File "/app/run_host.py", line 21, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_host.py", line 14, in main
+    ops.ex(h, op, out)
+  File "/app/ops.py", line 28, in ex
+    raise ValueError(k)
+ValueError: ll
+DIFF 2017
+fail=1
+0
+
+real	0m1.326s
+user	0m1.156s
+sys	0m0.162s
+[metadata] {"noOutputExpected": false}
+collapse
+The generator got mangled by my edit. Checking it.
+
+Bash(cd /app; python3 /tmp/fz/gen.py 2002 | grep -vE '^(unit|dep|pre|pub|fall|boot|act|open|call|rel) ' | head; cat…)
+
+import random,sys
+r=random.Random(int(sys.argv[1]))
+n=r.randint(3,9); us=["u%d"%i for i in range(n)]; syms=["s%d"%i for i in range(3)]
+L=[]
+
+[stdout]
+import random,sys
+r=random.Random(int(sys.argv[1]))
+n=r.randint(3,9); us=["u%d"%i for i in range(n)]; syms=["s%d"%i for i in range(3)]
+L=[]
+[metadata] {"noOutputExpected": false}
+collapse
+The earlier background fuzz loop was still writing to the same temp file, which corrupted the programs. It has finished now, so I'll rerun the longer batch.
+
+Bash(cd /app; fail=0; for i in $(seq 2000 2400); do python3 /tmp/fz/gen.py $i > /tmp/fz/q.txt; cmp -s <(python3 run…)
+
+fail=0
+20
+
+[stdout]
+fail=0
+20
+[metadata] {"noOutputExpected": false}
+collapse
+The loader is fixed. `tiny.txt` now ends with `run u3 s1 u1`, and all 1,900 fuzzed programs match an independent brute-force reference.
+
+**What was wrong**, and the fixes, all confined to the six `link` files:
+
+- **pick.py**: a fallback publication was demoted behind any ordinary one. It now competes purely on publication order. Lookups also use a per-symbol, per-scope index instead of scanning the whole order.
+- **view.py**: scopes were not implemented at all, so every call saw every publication. It now tracks each unit's scope and public flag. `open` creates a fresh scope, and `act` on a scoped unit exposes it in place.
+- **walk.py**: startup calls ran only after the whole activation finished, and a unit coming back up kept its old settled uses. Boots now run right after each unit's own `up`, and uses are cleared on every bring-up.
+- **site.py**: a settled call pointed at the unit record, so a unit coming back up under the same name silently repaired a dead call. Settled uses now carry a publication generation.
+- **want.py**: a unit was kept up by dead units and by `pre` links. It now keeps a live reference count of hard dependencies only.
+- **drop.py**: the sweep took down the first unwanted unit rather than the last, and it was cubic in the number of live units. It now uses a max-heap on publication position and only re-examines the dependencies of each unit that goes down.
+
+**Timing** for the two large programs, run back to back:
+
+| Program | Before | After |
+|---|---|---|
+| wide.txt | 92 s | 0.8 s |
+| tear.txt | 0.9 s | 0.9 s |
+
+Both together take about 1.3 seconds, so the graded set of six large plus 360 small programs fits comfortably inside the 60 second budget.
+
+One judgment call to flag: when `act` makes a scoped publication public, I kept the unit's own scope membership, so its later calls still see its scope siblings. The spec only describes how others see it, and this reading matched the reference I wrote from the spec.

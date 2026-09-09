@@ -14,14 +14,21 @@ def joined(h, r):
         owed[name] = owed.get(name, 0) + 1
 
 
+def tied(h, r, t):
+    r.ties.append(t.name)
+    owed = _owed(h)
+    owed[t.name] = owed.get(t.name, 0) + 1
+
+
 def parted(h, r):
     owed = _owed(h)
     freed = []
-    for name in dict.fromkeys(other for other, kind in r.needs if kind):
+    for name in list(dict.fromkeys(other for other, kind in r.needs if kind)) + r.ties:
         left = owed.get(name, 0) - 1
         owed[name] = left
         if left <= 0:
             freed.append(name)
+    r.ties = []
     return freed
 
 

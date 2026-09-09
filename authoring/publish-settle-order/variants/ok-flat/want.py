@@ -1,5 +1,5 @@
 from link import walk
 
 
-def wanted(h, r):
-    return walk.wanted(h, r)
+def wanted(h, *a):
+    return getattr(walk, "wanted")(h, *a)

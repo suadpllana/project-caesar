@@ -1,0 +1,138 @@
+"""The graded decisions as rows of features the agent can actually read.
+
+`tools/onelinecheck.py` searches for the shortest exact rule over these. The features are the
+raw ones the shipped tree exposes at that moment - whether the caller is up, how many live units
+publish the name and where the first of them sits in the order, how many holds a unit has, how
+many of its declared dependents are still up. Nothing derived is offered, because the derivation
+is the task.
+
+The verdict to want is that at least one graded quantity has no short rule. Two should not: what
+a call does, because separating `run` from `dead` needs a distinction the tree does not
+represent at all, and whether a unit goes down, because that is a fixed point over the whole
+live set rather than a property of the unit.
+
+    python3 authoring/publish-settle-order/decisions.py
+"""
+import pathlib
+import sys
+
+HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+TESTS = HERE.parents[1] / "tasks" / "publish-settle-order" / "tests"
+sys.path.insert(0, str(TESTS))
+
+import gen  # noqa: E402
+import lab  # noqa: E402
+
+KIND = {"miss": 1, "run": 2, "dead": 3}
+
+
+def _pubs(rec):
+    return [p[0] for p in rec.pubs]
+
+
+def _seq(h):
+    return LB.order.live(h)
+
+
+def _live_publishers(h, sym):
+    return [r for r in _seq(h) if sym in _pubs(r)]
+
+
+def _dependents(h, rec, live_only, hard=None):
+    pool = _seq(h) if live_only else list(h.units.values())
+    out = []
+    for o in pool:
+        if o is rec:
+            continue
+        for named, kind in o.needs:
+            if named == rec.name and (hard is None or kind == hard):
+                out.append(o)
+                break
+    return out
+
+
+LB = None
+
+
+def samples():
+    global LB
+    lb = LB = lab.Lab(lab.TASK / "solution")
+    call_rows, target_rows, retire_rows = [], [], []
+    seen_calls = set()
+    for _fam, _name, lines in gen.programs("decisions", 8):
+        if len(lines) > 400 or len(lines) > 160 and _fam == "fan":
+            continue
+        h = lb.tab.Host()
+        acc = []
+        seen_calls.clear()
+        for line in lines:
+            op = tuple(line.split())
+            mark = len(acc)
+            if op[0] == "call":
+                caller = lb.tab.get(h, op[1])
+                sym = op[2]
+                pubs = _live_publishers(h, sym)
+                plain = [r for r in pubs if (sym, False) in r.pubs]
+                dens = getattr(h, "dens", {})
+                mine = getattr(h, "homes", {}).get(caller.name)
+                seen = [r for r in pubs if dens.get(r.name) in (None, mine)]
+                autos = [x for x in h.autos if not h.units[x].live and sym in _pubs(h.units[x])]
+                row = {
+                    "caller_private": int(mine is not None),
+                    "publishers_seen": len(seen),
+                    "first_seen_pos": _seq(h).index(seen[0]) if seen else -1,
+                    "caller_up": int(caller.live),
+                    "caller_holds": h.holds.get(caller.name, 0),
+                    "caller_asked_before": int((op[1], sym) in seen_calls),
+                    "live_units": len(_seq(h)),
+                    "publishers_live": len(pubs),
+                    "plain_publishers_live": len(plain),
+                    "publisher_ever_declared": int(any(sym in _pubs(r) for r in h.units.values())),
+                    "first_publisher_pos": _seq(h).index(pubs[0]) if pubs else -1,
+                    "caller_pos": _seq(h).index(caller) if caller.live else -1,
+                    "auto_candidates": len(autos),
+                    "auto_marked_total": len(h.autos),
+                }
+                seen_calls.add((op[1], sym))
+                lb.ops.ex(h, op, acc)
+                made = acc[mark:]
+                call_rows.append((row, KIND.get(made[0].split()[0], 0) if made else 0))
+                if made and made[0].startswith("run "):
+                    answer = made[0].split()[3]
+                    target_rows.append(({
+                        "publishers_live": row["publishers_live"],
+                        "first_publisher_pos": row["first_publisher_pos"],
+                        "first_plain_pos": _seq(h).index(plain[0]) if plain else -1,
+                        "last_publisher_pos": _seq(h).index(pubs[-1]) if pubs else -1,
+                    }, [r.name for r in _seq(h)].index(answer)))
+                continue
+            if op[0] == "rel":
+                before = _seq(h)
+                rows = []
+                for rec in before:
+                    rows.append((rec, {
+                        "is_released_unit": int(rec.name == op[1]),
+                        "holds": h.holds.get(rec.name, 0),
+                        "declared_dependents": len(_dependents(h, rec, False)),
+                        "live_dependents": len(_dependents(h, rec, True)),
+                        "live_hard_dependents": len(_dependents(h, rec, True, True)),
+                        "live_soft_dependents": len(_dependents(h, rec, True, False)),
+                        "n_needs": len(rec.needs),
+                        "pos_in_order": _seq(h).index(rec),
+                        "live_units": len(before),
+                    }))
+                lb.ops.ex(h, op, acc)
+                left = {x.name for x in _seq(h)}
+                for rec, row in rows:
+                    retire_rows.append((row, int(rec.name not in left)))
+                continue
+            lb.ops.ex(h, op, acc)
+    lb.close()
+    return {"call_outcome": call_rows, "run_target": target_rows, "retire_now": retire_rows}
+
+
+if __name__ == "__main__":
+    got = samples()
+    for k, v in sorted(got.items()):
+        print("%-14s %5d rows, %d distinct labels" % (k, len(v), len({y for _, y in v})))

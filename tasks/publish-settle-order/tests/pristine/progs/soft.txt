@@ -1,0 +1,7 @@
+unit u1
+pub u1 s1
+unit u2
+pre u2 u1
+boot u2 s1
+act u2
+call u2 s1

@@ -171,3 +171,110 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
+
+## Lessons, measured (2026-09-08, `publish-settle-order`)
+
+- **Measure the tree against the retained band before calling the environment done.** The first
+  build of this task was 162 lines of Python across eleven files - under every retained bundle
+  (229 to 544) and the exact shape the quality review has failed `difficult` on twice. Nothing
+  else saw it: preflight, `extraneouscheck`, `imagecheck`, the oracle, the nop and 33 cheats were
+  all green on a task that was quietly too small. `wc -l` over `tasks/*/environment/app_src/**.py`
+  is one command and it is the check. The repair was structure the rules use - a declaration
+  store, a publication order, a hold ledger keyed by name, an event writer, all frozen - plus one
+  more graded rule that splits bringing a unit up from keeping it up.
+- **A sealed model inside the verifier is readable by the code it grades unless it is locked.**
+  The worker puts `/tests` on `sys.path` so it can import the case list and the generator, and
+  that also makes `import model` work from a submitted file - the model computes the answer to
+  every graded program. `tests/seal/` with `chmod 700` before the privilege drop closes it, and
+  the probe that reaches for it now reports `PermissionError` instead of only a zero. Two kit
+  tools had to be taught the new location, which is the same "two tools disagree" shape as the
+  `readingcheck` fix.
+- **Two runs of a fixed-path harness are one run with the rows interleaved.** `host_trial.py`
+  writes `/app`, `/tests`, `/work` and `/logs`; a second copy started beside it produced a cheat
+  row carrying the shipped host's trace and cost twenty minutes chasing a bug that was not there.
+  It takes a lock now. The same applies to any authoring script that writes absolute paths.
+- **A relative path handed to a harness that chdirs is a silent no-op.** `--cheat tasks/.../x.sh`
+  ran `bash` with cwd `/app`, where that path does not exist, and the exit status was ignored, so
+  the cheat looked like a clean run that scored 0 for its own reasons. Resolve paths, and check
+  the status of anything you shell out to.
+- **`tests/pristine/` is a copy, and copies go stale.** Rebuilding the environment without
+  re-syncing it made the oracle fail with an ImportError inside the worker, which reads like a
+  broken task rather than a stale mirror. The sync script has a `--check` mode; run it after any
+  change to `environment/`.
+- **A forgery probe has to key on the program, not on the process.** The first answer-key cheat
+  kept its op buffer in a module global, so it reproduced the first program and drifted on every
+  one after it. It scored 0 either way, which is the trap: the layer report claimed the nonce
+  population caught it when in truth it had stopped working after the first case. Assert what the
+  probe was supposed to reproduce, not only what it scored.
+
+## Lessons, measured (2026-09-09, `publish-settle-order` easiness recovery)
+
+The easiness probe solved the task 2 of 3. All three agents formed the complete plan before
+running a program, because every rule was individually implementable and the structure each rule
+wants is the standard one; trial 2 wrote a brute-force model from the brief and fuzzed 1,900
+programs against it. The repair is one rule whose consequences invalidate six structures at once -
+a unit brought up by a call is published *ahead* of its caller, as a dependency would be - and
+the lessons below are from building it.
+
+- **A trajectory file that opens with the brief makes `leakcheck` grade the brief against
+  itself.** The three probe transcripts arrived with the instruction pasted at the top. Stripped,
+  the check found one shared rule sentence in one trial and nothing in the other two, which is the
+  evidence that the plan came from the rules being stated rather than from quoted prose. The
+  transcripts carry no verdicts either: which trial failed cannot be read from them, and STATE.md
+  says so rather than guessing.
+- **`open('w')` truncates before it validates.** Writing `newline="\\n"` through a quoted heredoc
+  put a literal backslash-n into Python, `io.open` raised on the argument, and `cases.py` was
+  already zero bytes. The next command then failed with "module has no attribute ORDER", which
+  reads like an import-path problem and is not. Escapes go through a script file, once, and a
+  file that a failed write may have touched is checked with `wc` before anything imports it.
+- **A cheat emitted before the reading was repaired tests the unrepaired reading.** `emit.py`
+  ran, then `make_readings.py` was fixed for a reading whose candidate check ran before it swapped
+  the in-progress set, then `readings.py` said "caught by auto-busy" from the fresh directory while
+  `cheat_report.py` said "NOT CAUGHT, nothing failed" from the stale script. Two tools disagreeing
+  is the signal; the rule is that `emit.py` runs after every `make_readings.py`, never before.
+- **A reading that moves 0.7% of the population is a reading the population is not shaped for.**
+  The serial-as-order-key reading needs a competitor that came up *before* the load and stands
+  *after* the caller, which only a publisher opened privately and promoted afterwards can be. The
+  first shaping put the competitor up after the load, where a serial and a position agree, and the
+  number stayed at 0.7%. Shaped correctly it moved 9.7%. Write the wrong reading down, derive the
+  program shape that separates it, then generate that shape; do not generate and hope.
+- **A committed harness value can disagree with every number in the prose.** `test.sh` ran
+  `PER=60` while the brief, the metadata and the timings all said 45 (366 programs, three of each
+  large size). It had passed reference verification on the platform, so nothing local or remote
+  flagged it. Every count in shipped prose is now re-derived from `gen.programs` after any change
+  to the generator or the harness, and the harness value is the one the prose is derived from.
+- **`build_gt.py` proves additivity, and only if it reads the old file first.** Thirty-six frozen
+  answers held byte-for-byte through a new op, a linked order with insertion, a new retention
+  edge and a changed scope model; the one contract change that did move an answer nowhere -
+  a promoted unit going on reading its own scope - is recorded as a contract change all the same,
+  because no frozen program exercised the corner and that is why it had gone unnoticed.
+
+## Lessons, measured (2026-09-09, `publish-settle-order` difficulty rebuild)
+
+The quality review failed `difficult` on the first submission: "the editable code is roughly 100
+lines of Python across five files, and each fix is a few lines. The two inventions the author
+highlights (a per-instance mark to defeat record reuse, and a per-name list kept in publication
+order) are standard techniques (ABA/generation tagging, a dict of lists)."
+
+- **A rubric that names the technique your difficulty rests on has already told you the repair.**
+  Both names were accurate, and that is the finding: a task whose hard parts are two retrievable
+  techniques is a task whose plan is retrieved. The repair is not more rules. It is making the
+  fast path a derivation rather than a lookup - here, a resolution that depends on the caller as
+  well as the order, so the answer is the earlier of two heads because each is a subsequence of
+  one order, and a teardown whose specified event order forbids the obvious worklist.
+  `tools/onelinecheck.py` measures exactly this and measured the repair: before, `run_target` had
+  the exact rule `= first_publisher_pos`; after, none of the three graded quantities has a rule
+  at depth two.
+- **"Roughly a hundred lines across five files" is a measurement, and it was the one I never
+  made.** I had measured the *environment* against the retained band and rebuilt it for being
+  small; I never measured the graded patch, which is the number the rubric reads. 179 lines of
+  reference before, 312 after, five editable files before, six after. Measure both.
+- **An additive contract change is provable, and the proof is worth building first.** Scopes were
+  added without changing any existing rule, so every one of the 27 already-frozen answers had to
+  come out byte-identical afterwards. `build_gt.py` checks that on every run. Without it, a
+  rebuild of this size means re-deriving thirty-odd traces by hand and hoping.
+- **Two of the three intended scaling boundaries did not bite when measured.** A per-name list
+  filtered by visibility came out at 1.5 s and a rescanning teardown at 11.5 s, both inside the
+  limit, because the noise publishers were visible to the callers and the forest was too small.
+  The shapes had to change, not the claims. The metadata I had already drafted would have stated
+  two boundaries that did not exist - write the number after measuring it, never before.

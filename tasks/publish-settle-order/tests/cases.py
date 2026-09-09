@@ -1,0 +1,272 @@
+"""The enumerated programs: one per graded decision, plus the side of each fence that has to
+keep working.
+
+Every case is small enough to read as a trace by hand, and each one was written for a specific
+wrong reading. The name says which. `authoring/publish-settle-order/readings.py` checks that
+this set actually separates those readings rather than only covering them on paper.
+"""
+
+CASES = {
+    # --- ordinary behaviour: a publisher answers, a hold released takes its unit down -------
+    "plain": [
+        "unit u1", "pub u1 s1", "unit u2",
+        "act u1", "act u2", "call u2 s1", "rel u2", "rel u1",
+    ],
+    # --- dependencies come up before the unit that named them, in declaration order ---------
+    "deep": [
+        "unit u1", "unit u2", "unit u3", "dep u3 u1", "dep u3 u2",
+        "act u3",
+    ],
+    "dep-order": [
+        "unit u1", "unit u2", "unit u3", "dep u3 u2", "dep u3 u1",
+        "act u3",
+    ],
+    "rel-early": [
+        "unit u1", "unit u2", "dep u2 u1",
+        "act u2", "rel u1", "act u1", "rel u2",
+    ],
+    "chain": [
+        "unit u1", "unit u2", "unit u3", "dep u3 u2", "dep u2 u1",
+        "act u3", "rel u3",
+    ],
+    # --- a startup call resolves against the order as it stands at that moment --------------
+    "boot-partial": [
+        "unit u1", "unit u2", "dep u1 u2", "pub u1 s1", "boot u2 s1",
+        "act u1", "call u2 s1",
+    ],
+    "boot-cycle": [
+        "unit u1", "unit u2", "dep u1 u2", "dep u2 u1",
+        "pub u1 s1", "pub u2 s2", "boot u1 s2", "boot u2 s1",
+        "act u1",
+    ],
+    "boot-order": [
+        "unit u1", "unit u2", "pub u2 s1", "pub u2 s2", "dep u1 u2",
+        "boot u1 s2", "boot u1 s1",
+        "act u1", "call u1 s1",
+    ],
+    # --- a scope is what an `open` activation publishes into, and who may read it ----------
+    "scope-private": [
+        "unit u1", "pub u1 s1", "unit u2", "unit u3", "pub u3 s1",
+        "open u1", "act u2", "call u2 s1", "act u3", "call u2 s1",
+    ],
+    "scope-mates": [
+        "unit u1", "pub u1 s1", "unit u2", "dep u2 u1",
+        "open u2", "call u2 s1",
+    ],
+    "scope-public-first": [
+        "unit u0", "pub u0 s1", "unit u1", "pub u1 s1", "unit u2", "dep u2 u1",
+        "act u0", "open u2", "call u2 s1",
+    ],
+    "scope-mine-first": [
+        "unit u1", "pub u1 s1", "unit u2", "dep u2 u1", "unit u0", "pub u0 s1",
+        "open u2", "act u0", "call u2 s1",
+    ],
+    "scope-promote": [
+        "unit u1", "pub u1 s1", "unit u2", "unit u3", "pub u3 s1", "unit u4",
+        "open u1", "act u3", "act u2", "call u2 s1",
+        "act u1", "call u2 s1", "act u4", "call u4 s1",
+    ],
+    "scope-late-visible": [
+        "unit u1", "pub u1 s1", "unit u2",
+        "open u1", "act u2", "call u2 s1", "act u1", "call u2 s1",
+    ],
+    "scope-no-republish": [
+        "unit u1", "pub u1 s1", "unit u2", "dep u2 u1", "boot u2 s1",
+        "open u1", "act u2", "call u2 s1",
+    ],
+    # --- retention counts units, not edges, and a cascade can free a later publication ------
+    "twice-named": [
+        "unit u1", "unit u2", "dep u2 u1", "dep u2 u1",
+        "act u2", "rel u2",
+    ],
+    "cycle-soft": [
+        "unit u1", "unit u2", "dep u1 u2", "pre u2 u1",
+        "act u2", "rel u2",
+    ],
+    # --- an ordering edge decides when a unit comes up and keeps nothing afterwards -------
+    "pre-order": [
+        "unit u1", "unit u2", "unit u3", "pre u3 u2", "dep u3 u1",
+        "act u3",
+    ],
+    "pre-no-keep": [
+        "unit u1", "unit u2", "pre u2 u1",
+        "act u2", "act u1", "rel u1",
+    ],
+    "pre-vs-dep": [
+        "unit u1", "unit u2", "unit u3", "dep u3 u1", "pre u3 u2",
+        "act u3", "act u1", "act u2", "rel u1", "rel u2",
+    ],
+    # --- a fallback publication competes on publication order, not on being a fallback ------
+    "fall-first": [
+        "unit u1", "fall u1 s1", "unit u2", "pub u2 s1", "unit u3",
+        "act u1", "act u2", "act u3", "call u3 s1",
+    ],
+    "fall-late": [
+        "unit u1", "pub u1 s1", "unit u2", "fall u2 s1", "unit u3",
+        "act u1", "act u2", "act u3", "call u3 s1",
+    ],
+    "fall-only": [
+        "unit u1", "fall u1 s1", "unit u2",
+        "act u1", "act u2", "call u2 s1",
+    ],
+    # --- an unanswered call settles nothing --------------------------------------------------
+    "miss-open": [
+        "unit u1", "unit u2", "pub u2 s1",
+        "act u1", "call u1 s1", "act u2", "call u1 s1",
+    ],
+    "miss-boot": [
+        "unit u1", "unit u2", "dep u1 u2", "boot u2 s1", "unit u3", "pub u3 s1",
+        "act u1", "call u2 s1", "act u3", "call u2 s1",
+    ],
+    # --- a settled use is never resolved again ----------------------------------------------
+    "stick-dead": [
+        "unit u1", "unit u2", "pub u2 s1", "unit u3", "pub u3 s1",
+        "act u2", "act u3", "act u1", "call u1 s1", "rel u2", "call u1 s1",
+    ],
+    "dead-stays": [
+        "unit u1", "unit u2", "pub u2 s1", "unit u3", "pub u3 s1",
+        "act u2", "act u1", "call u1 s1", "rel u2", "act u3",
+        "call u1 s1", "call u1 s1",
+    ],
+    # --- a name that comes back is not the unit that left ------------------------------------
+    "same-name": [
+        "unit u1", "unit u2", "pub u2 s1",
+        "act u2", "act u1", "call u1 s1", "rel u2", "act u2", "call u1 s1",
+    ],
+    "fresh-instance": [
+        "unit u1", "unit u2", "pub u2 s1", "unit u3", "pub u3 s1",
+        "act u2", "act u1", "call u1 s1", "rel u1", "act u3", "rel u2",
+        "act u1", "call u1 s1",
+    ],
+    # --- holds ------------------------------------------------------------------------------
+    "hold-two": [
+        "unit u1", "act u1", "act u1", "rel u1", "rel u1",
+    ],
+    "rel-nohold": [
+        "unit u1", "act u1", "rel u1", "rel u1", "act u1", "rel u1",
+    ],
+    "dep-holds": [
+        "unit u1", "unit u2", "dep u2 u1",
+        "act u1", "act u2", "rel u1", "rel u2",
+    ],
+    "stay-put": [
+        "unit u1", "pub u1 s1", "unit u2", "pub u2 s1", "unit u3",
+        "act u1", "act u2", "act u1", "act u3", "call u3 s1",
+    ],
+    # --- what a released hold takes down with it, and in what order --------------------------
+    "casc-order": [
+        "unit u1", "unit u2", "unit u3", "dep u3 u1", "dep u3 u2",
+        "act u3", "rel u3",
+    ],
+    "casc-part": [
+        "unit u1", "unit u2", "unit u3", "dep u3 u1", "dep u3 u2",
+        "act u3", "act u2", "rel u3", "rel u2",
+    ],
+    # --- a call that finds nothing brings a unit up, as the caller's dependency ---------------
+    "auto-plain": [
+        "unit a", "auto a", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c",
+    ],
+    "auto-bound": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d",
+        "act c", "call c s1", "act d", "rel d", "rel c",
+    ],
+    "auto-order": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit p", "pub p s1", "unit d",
+        "act c", "open p", "call c s1", "act p", "act d", "call d s1", "rel c", "call d s1",
+    ],
+    "auto-pre": [
+        "unit p", "unit a", "auto a", "pre a p", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c",
+    ],
+    "auto-first-in-order": [
+        "unit f", "pub f s1", "unit a", "auto a", "dep a f", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c",
+    ],
+    "auto-fall": [
+        "unit a", "auto a", "fall a s1", "unit c",
+        "act c", "call c s1",
+    ],
+    "auto-mark-order": [
+        "unit a", "unit b", "auto b", "auto a", "pub a s1", "pub b s1", "unit c",
+        "act c", "call c s1",
+    ],
+    "auto-late-mark": [
+        "unit c", "act c", "call c s1",
+        "unit a", "auto a", "pub a s1", "call c s1",
+    ],
+    "auto-next-life": [
+        "unit a", "auto a", "pub a s1", "unit c",
+        "act c", "call c s1", "rel c", "act c", "rel c",
+    ],
+    "auto-dead": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d", "unit e",
+        "act c", "act d", "call c s1", "call d s1", "rel c", "call d s1",
+        "act e", "call e s1", "call d s1",
+    ],
+    # --- where a load lands, and who can see it -----------------------------------------------
+    "auto-scope": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d",
+        "open c", "call c s1", "act d", "call d s1", "act a", "call d s1",
+    ],
+    "auto-scope-mates": [
+        "unit a", "auto a", "pub a s1", "unit e", "boot e s1", "unit c", "dep c e",
+        "open c", "call c s1",
+    ],
+    "auto-home": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit d",
+        "open c", "act c", "call c s1", "act d", "call d s1",
+    ],
+    "auto-up-skipped": [
+        "unit a", "auto a", "pub a s1", "unit b", "auto b", "pub b s1", "unit c", "unit d",
+        "open c", "call c s1", "act d", "call d s1",
+    ],
+    "auto-promote-order": [
+        "unit a", "auto a", "pub a s1", "unit c", "unit p", "pub p s1", "unit d",
+        "open c", "call c s1", "act p", "act a", "act d", "call d s1",
+    ],
+    "promote-reads-home": [
+        "unit p", "pub p s1", "unit c", "dep c p",
+        "open c", "act c", "call c s1",
+    ],
+    # --- loads that nest through startup calls -------------------------------------------------
+    "auto-nested": [
+        "unit d", "boot d s2", "unit b", "auto b", "pub b s2",
+        "unit a", "auto a", "dep a d", "pub a s1", "fall a s2", "unit c",
+        "act c", "call c s1", "unit x", "act x", "call x s2", "rel c",
+    ],
+    "auto-busy": [
+        "unit d", "boot d s1", "unit a", "auto a", "dep a d", "pub a s1", "unit c",
+        "act c", "call c s1", "call d s1",
+    ],
+    # --- retention that follows from the rule as written ---------------------------------------
+    "cycle-stays": [
+        "unit u1", "unit u2", "dep u1 u2", "dep u2 u1",
+        "act u1", "rel u1",
+    ],
+    # --- sixty loads in front of one caller: mechanical rather than hand-readable, and kept
+    # --- because an order key built from float midpoints is exact for the first fifty or so
+    # --- insertions at one spot and silently wrong after that
+    "fan-deep": (
+        ["unit a%d" % i for i in range(60)]
+        + ["pub a%d z%d" % (i, i) for i in range(60)]
+        + ["auto a%d" % i for i in range(60)]
+        + ["unit c", "unit p", "pub p z59", "pub p z0", "unit d", "act c"]
+        + ["call c z%d" % i for i in range(60)]
+        + ["act p", "act d", "call d z59", "call d z0", "rel c", "call d z59", "call d z0",
+           "act c"]
+        + ["call c z%d" % i for i in range(60)]
+        + ["rel c"]
+    ),
+    # --- a call from a unit that is not live is not a call -----------------------------------
+    "not-live": [
+        "unit u1", "unit u2", "pub u2 s1",
+        "act u2", "call u1 s1", "act u1", "call u1 s1", "rel u1", "call u1 s1",
+    ],
+}
+
+ORDER = sorted(CASES)
+
+
+def ops(name):
+    return list(CASES[name])

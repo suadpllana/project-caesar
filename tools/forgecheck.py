@@ -70,10 +70,15 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     task = ROOT / "tasks" / argv[1]
-    gt = task / "tests" / "gt.json"
+    # A bundle that keeps its frozen answers where the sandbox uid cannot read them
+    # (tests/seal/, chmod 700 before any agent code runs) is doing the right thing, and
+    # this gate has to follow the file rather than the other way round.
+    gt = task / "tests" / "seal" / "gt.json"
+    if not gt.is_file():
+        gt = task / "tests" / "gt.json"
     cheats = sorted((task / "cheat").glob("cheat-*.sh"))
     if not gt.is_file():
-        print("no tests/gt.json under %s" % task)
+        print("no gt.json under %s/tests (looked in tests/seal/ too)" % task)
         return 1
     if not cheats:
         print("no cheats under %s/cheat" % task)

@@ -1,0 +1,216 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/link/walk.py",
+  "/app/link/view.py",
+  "/app/link/pick.py",
+  "/app/link/site.py",
+  "/app/link/want.py",
+  "/app/link/drop.py",
+]
+
+[task]
+name = "afterquery/publish-settle-order"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The host is small and every rule is in the brief. What is not in the brief is which of the
+structures the rules seem to ask for survive all of them at once, and that is where the work is.
+
+The rules that look ordinary are the ones a first plan gets right. A name is answered by the first
+visible publisher in publication order; a caller reads the public publications plus its own scope;
+a released hold retires the last unwanted unit in the order and asks again. The natural structures
+for those are a serial minted at publication, one list per name and scope kept in serial order, a
+heap keyed by the serial, and a ledger of live dependents fed by publication and retirement. Every
+one of them is right until a call finds nothing it can see.
+
+A call that finds nothing brings up the first `auto` unit that could answer it, as if the caller
+had named it as a dependency. The brief says what that means and the rest follows: the unit is
+published directly ahead of the caller rather than at the back, into the scope the caller reads,
+with no hold, and the caller keeps it up until the caller goes down. A serial can no longer order
+anything, because the newest publication is not the last one: a bucket sorted by serial answers the
+wrong head, a heap keyed by it retires the wrong unit first, and promotion inserts in the wrong
+place. A float midpoint is exact for the first fifty-odd loads in front of one caller and silently
+wrong after that, and one graded family does exactly that. One scope attribute per unit cannot
+express a unit that `act` has made public and that still reads the scope it came up in, which the
+load rule needs. The ledger has to be written by a resolution and emptied by a retirement, not by
+the two events it was built on. The in-progress set has to be shared across activations that nest
+through startup calls, or a unit part way up is brought up again inside its own activation. Each
+of those is a stated consequence of one sentence, and each invalidates a structure rather than a
+line.
+
+Two scale boundaries decide what a correct structure is allowed to cost, and both have a fast
+path that follows from an invariant rather than a technique. The order admits insertion only
+directly ahead of a live unit, so an order key that admits insertion is enough, and positions are
+not: one wide program alone takes 43 seconds comparing candidates by walking the order to them,
+46 seconds filtering one list per name by visibility, 202 seconds rebuilding the index on every
+load, and 281 seconds scanning the order, against a 60 second limit for all 456 programs. One
+teardown program takes 132 seconds with the retention question answered by a scan and 77
+seconds with the candidates found by rescanning the live set. The reference settles the whole
+graded set in about five seconds. All six of those readings produce exactly the reference's
+traces; the limit is the only thing that separates them.
+
+Around those sit the decisions that were already there: publication and startup interleaved per
+unit, so a startup call inside a dependency cycle resolves against a partial order; a settled use
+that carries the identity of the publication it settled on, because `reg/tab.py` hands the same
+record back after a retirement and a unit of the same name coming back - by `act` or by a load -
+is not that publication; a call that finds nothing settling nothing; a unit that comes up having
+settled nothing and keeping nothing it brought up last time. All six editable modules ship wrong,
+the shipped load is wrong in four ways at once, and the two limits are the only feedback a wrong
+structure gets. A brute-force model written from the brief gets every rule right for free - a list
+with `insert` needs no key - and confirms nothing about the structures that have to replace it.
+
+Identifiers are in a legacy register - `seq`, `pubs`, `boots`, `needs`, `uses`, `autos`,
+`link/`, `reg/` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real runtime code rather than an obstacle: each is recoverable from
+what calls it.
+
+The programs are synthetic, in twelve families, with dependency cycles, fallback publications,
+ordering edges, private scopes, promotion, retire-and-return, cascading releases, loads that nest
+through startup calls, loads captured by a caller's scope, and one caller loading sixty units in
+front of itself, all concentrated far above their natural rate. In a working host they are rare,
+and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six modules, settled in the order the rules force rather than one that is tidy.
+
+`walk.py` brings a unit up, by `act`, by `open`, or as the answer to a call. What it names comes
+first, in declaration order and without regard to which kind of edge it is, skipping any that is
+already up or part way up, which is what makes a cycle terminate. The unit is then published and
+its startup calls run before the next unit is, so a startup call sees the order as far as it has
+been built. Publication mints a key that does three jobs: it separates this publication from the
+one the record carried before, it orders the buckets `pick.py` keeps, and it is what the cascade
+takes candidates by. It is a tuple rather than a serial because a unit brought up by a call is
+published directly ahead of its caller: an appended publication takes `(tick,)`, and one placed
+ahead of a publication with key `k` takes `k[:-1] + (k[-1] - 1, tick)`, which sorts after
+everything already ahead of `k` and before `k` however many times the same spot is used, and
+compares exactly. The in-progress set lives on the host because a startup call inside one
+activation can start another. `act` publishes public, `open` publishes the whole closure into one
+fresh scope, and `act` on a unit that is up privately moves that publication to the public side
+where it stands. A load takes the first `auto` unit in mark order that publishes the name and is
+neither up nor part way up, brings it up into the caller's read scope ahead of the caller, binds
+it to the caller, and returns it so the call can resolve again.
+
+`view.py` keeps two attributes per unit and the whole of the scope model is that they are two: the
+scope of the publication, which the buckets are keyed by, and the scope the unit reads, which
+`keys` is built from. Promotion changes the first and never the second, and a load goes into the
+second.
+
+`pick.py` keeps one list per scope and name in key order, joined by bisection because the order is
+spliced into, and takes the earlier of the two heads a caller may read - which is the answer
+because each bucket is a subsequence of one order. Promotion moves an entry between buckets and
+keeps its key.
+
+`site.py` runs a call: an open use resolves once and settles on the publication it found, key and
+all; a settled use is never resolved again and answers dead as soon as the key it carries is not
+the key on the record; an open use that finds nothing gets one load and one more resolution; a
+call that still finds nothing settles nothing.
+
+`want.py` keeps the retention ledger - a count per name of the live units that need it, once per
+unit however many times that unit names it, plus one per live unit that brought it up as the
+answer to a call - and gives the second kind back when the caller retires, from a list kept on the
+caller's record beside its settled uses. `drop.py` gives a hold back and runs the cascade over a
+queue ordered by key, which a unit joins when it is published with nothing wanting it, when the
+last live unit that needed it goes down, or when its hold is given back. A candidate found still
+wanted when its turn comes is dropped; whatever makes it unwanted later puts it back. The heap
+holds a small wrapper whose ordering is reversed, because a tuple has no negative.
+
+An expert works in that order because each module consumes the one before it: the walk decides
+the order and the scopes, those decide the answer, the answer decides what is bound, and the
+binding decides what a retirement breaks. The same contract is implemented three further ways in
+the authoring set - the whole host in one module with exact fractions for keys and sorted lists
+for everything, a walk from an explicit stack with fraction keys and buckets as dictionaries, and
+the tuple keys with a ledger built from sets and the candidate queue kept by bisect - so the shape
+is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/link/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Fifty-six hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Four hundred and fifty-six further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across twelve families that concentrate cycles, fallback publications, ordering edges, scopes and
+promotion, retire-and-return, cascading releases, nested loads, captured loads and deep fans of
+loads. A submission cannot have seen them, so fitting the shipped examples fails, and so does
+carrying an answer key.
+
+The fences run both ways. Settling too eagerly fails `miss-open` and `miss-boot`; never settling
+fails `stick-dead`. Treating a returning name as the unit that left fails `same-name` and
+`fresh-instance`; bringing an `auto` unit back for a dead use fails `auto-dead`, and refusing to
+bring one up for an open use fails `auto-late-mark`. Reading every scope fails
+`scope-no-republish`; reading only your own fails `scope-public-first`; a unit that stops reading
+its scope once `act` has made it public fails `promote-reads-home`. Loading at the back of the
+order fails `auto-order`; loading with a hold, or keeping nothing, fails `auto-plain` and
+`auto-bound`; loading public, or into a scope of its own, fails `auto-scope` and
+`auto-scope-mates`. Retiring too much fails `dep-holds`, `rel-early` and `cycle-stays`; retiring
+too little fails `casc-order`, `chain`, `pre-no-keep` and `auto-next-life`; freeing a candidate
+and not looking at it again fails `cycle-soft`. Sixty loads in front of one caller, `fan-deep`,
+fails a key made of float midpoints and nothing else.
+
+Sixty-five cheats score 0. Fifty-four are wrong readings, forty-eight of them caught by the
+enumerated case named for that reading and six by the execution limit alone - four resolutions
+and two teardowns that are exactly correct and too slow. One is a forgery carrying the frozen
+answer for every enumerated program, which passes all fifty-six and fails on the programs it could
+not have seen. The other ten are probes: the answer key, a hijacked dispatcher, a planted report,
+a report forged after the worker exits, a grader crash, malformed records, privilege, a shrunken
+population, and a rewrite of the parts of the tree the verifier does not take. Three
+independently written correct hosts score 1.
+
+The submitted host runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Systems"
+
+tags = [
+  "extension-host",
+  "lazy-activation",
+  "visibility-scopes",
+  "instance-identity",
+  "reference-counted-teardown",
+  "order-maintenance",
+]
+
+expert_time_estimate_hours = 12
+
+relevant_experience = """
+Having built or maintained the loading half of an extension host: something that brings units of
+code up in dependency order, lets them publish names that other units call, keeps one unit's
+publications out of another's way, brings a provider up on demand when a call needs one, and has
+to take them all down again without breaking whatever is still running. Familiarity with the
+fact that a resolution is not a function of the current state but of the moment it was made and
+of who made it, and that where a lazily bound dependency stands in the order is not where it was
+loaded in time. Comfort with reference-counted teardown and the cascade one release sets off, with
+the difference between an edge that orders a load and an edge that keeps a unit alive, and the
+habit of asking whether the thing that came back is the thing that left.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

@@ -1,3 +1,4 @@
+from link import view
 from reg import order
 
 
@@ -9,8 +10,15 @@ def parted(h, r):
     return None
 
 
-def find(h, sym):
+def moved(h, r, was):
+    return None
+
+
+def find(h, caller, sym):
+    seen = view.keys(h, caller)
     for r in order.live(h):
+        if view.den(h, r) not in seen:
+            continue
         for s, _fall in r.pubs:
             if s == sym:
                 return r

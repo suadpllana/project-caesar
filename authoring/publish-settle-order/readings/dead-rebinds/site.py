@@ -7,14 +7,14 @@ def reach(h, r, sym, out):
         return
     u = r.uses.get(sym)
     if u is not None:
-        t, mark = u
-        if t.live and t.mark is mark:
+        t, at = u
+        if t.live and t.at == at:
             say.ran(out, r.name, sym, t.name)
             return
         del r.uses[sym]
-    t = pick.find(h, sym)
+    t = pick.find(h, r, sym)
     if t is None:
         say.dead(out, r.name, sym)
         return
-    r.uses[sym] = (t, t.mark)
+    r.uses[sym] = (t, t.at)
     say.ran(out, r.name, sym, t.name)

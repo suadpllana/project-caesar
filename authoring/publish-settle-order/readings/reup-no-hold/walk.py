@@ -1,48 +1,60 @@
-"""Bringing a unit up.
+"""Bringing a unit up, publicly or into a scope of its own.
 
-Three things decide the trace here and each is easy to get subtly wrong.
+Four things decide the trace here.
 
-The first is that a unit is published and then immediately runs its startup calls, before the
-next unit in the closure is published. The publication order therefore grows one unit at a time
-and a startup call resolves against the order as it stands at that moment - which, inside a
-dependency cycle, is an order that does not yet contain the unit that started the activation.
-Publishing the whole closure first and running the startup calls afterwards gives every startup
-a complete order to resolve against, and that is a different trace.
+A unit is published and then immediately runs its startup calls, before the next unit in the
+closure is published, so the order grows one unit at a time and a startup call resolves against
+the order as it stands at that moment - which, inside a dependency cycle, is an order that does
+not yet hold the unit that began the activation.
 
-The second is that `needs` mixes two kinds of edge. Both bring the named unit up first and in
-declaration order, so the walk treats them alike; only retention tells them apart, which is
-`want.py`'s business and not this file's.
+What a unit names is walked in declaration order whether it is a dependency or an ordering edge;
+only retention tells the two apart, which is `want.py`'s business.
 
-The third is that `reg/tab.py` keeps one record per name for the whole run and hands the same
-object back on every lookup, so `uses` and anything else left on it survive a retirement. A unit
-coming up has settled nothing, so the table is cleared here, and the instance gets a fresh mark
-that nothing else can forge - that mark is what tells a settled use whether the unit it reached
-is still the one it reached.
+`reg/tab.py` keeps one record per name for the whole run and hands the same object back every
+time, so `uses` and anything else left on a record survive a retirement. A unit coming up has
+settled nothing, and its publication needs an identity of its own. The serial minted here is
+that identity three times over: it separates this publication from the one the record carried
+before, it orders the per-name lists in `pick.py`, and it is the key the cascade in `drop.py`
+takes its candidates by - which matters because a list position is not stable across splicing
+and a serial is.
+
+`open` publishes the whole closure into one fresh scope; `act` publishes it public. `act` on a
+unit that is already up privately makes that publication public where it stands, which moves it
+between the two lists a resolution consults and changes nothing else about it.
 """
-from link import pick, site
+from link import drop, pick, site, view, want
 from reg import hold, order, say, tab
 
 
-def bring(h, name, out):
+def bring(h, name, wide, out):
     r = tab.get(h, name)
     if r.live:
-        return
-    _up(h, r, set(), out)
-    hold.take(h, name)
+        was = view.den(h, r)
+        if wide and was is not None:
+            view.open_up(h, r)
+            pick.moved(h, r, was)
+    else:
+        _up(h, r, None if wide else view.fresh(h), set(), out)
+        hold.take(h, name)
 
 
-def _up(h, r, busy, out):
+def _up(h, r, den, busy, out):
     busy.add(r.name)
     for other, _kind in r.needs:
         dr = tab.get(h, other)
         if dr.live or dr.name in busy:
             continue
-        _up(h, dr, busy, out)
+        _up(h, dr, den, busy, out)
+    h.tick = getattr(h, "tick", 0) + 1
+    r.at = h.tick
     r.live = True
     r.uses = {}
-    r.mark = object()
+    view.seal(h, r, den)
     order.add(h, r)
     pick.joined(h, r)
+    want.joined(h, r)
+    if not want.wanted(h, r):
+        drop.note(h, r)
     say.up(out, r.name)
     for sym in r.boots:
         site.reach(h, r, sym, out)

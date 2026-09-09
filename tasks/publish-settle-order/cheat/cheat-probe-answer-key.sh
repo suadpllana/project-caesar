@@ -3,12 +3,15 @@
 set -euo pipefail
 
 cat > /app/link/pick.py <<'PYEOF'
+from link import view
 from reg import order
 
 
-def find(h, sym):
+def find(h, caller, sym):
     back = None
     for r in order.live(h):
+        if not view.can(h, caller, r):
+            continue
         for s, fall in r.pubs:
             if s != sym:
                 continue

@@ -11,7 +11,7 @@ class Rec:
 class Host:
     def __init__(self):
         self.units = {}
-        self.seq = []
+        self.seq = {}
         self.holds = {}
 
 

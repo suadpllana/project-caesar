@@ -3,54 +3,100 @@
 set -euo pipefail
 
 cat > /app/link/walk.py <<'PYEOF'
-from link import pick, site
+from link import drop, pick, site, view, want
 from reg import hold, order, say, tab
 
 
-def bring(h, name, out):
+def bring(h, name, wide, out):
     r = tab.get(h, name)
-    if not r.live:
-        _up(h, r, set(), out)
+    if r.live:
+        was = view.den(h, r)
+        if wide and was is not None:
+            view.open_up(h, r)
+            pick.moved(h, r, was)
+    else:
+        _up(h, r, None if wide else view.fresh(h), set(), out)
     hold.take(h, name)
 
 
-def _up(h, r, busy, out):
+def _up(h, r, den, busy, out):
     busy.add(r.name)
     for other, _kind in r.needs:
         dr = tab.get(h, other)
         if dr.live or dr.name in busy:
             continue
-        _up(h, dr, busy, out)
+        _up(h, dr, den, busy, out)
+    h.tick = getattr(h, "tick", 0) + 1
+    r.at = h.tick
     r.live = True
     r.uses = {}
-    r.mark = object()
+    view.seal(h, r, den)
     order.add(h, r)
     pick.joined(h, r)
+    want.joined(h, r)
+    if not want.wanted(h, r):
+        drop.note(h, r)
     say.up(out, r.name)
     for sym in r.boots:
         site.reach(h, r, sym, out)
     busy.discard(r.name)
 PYEOF
 
+cat > /app/link/view.py <<'PYEOF'
+def _dens(h):
+    d = getattr(h, "dens", None)
+    if d is None:
+        d = h.dens = {}
+    return d
+
+
+def fresh(h):
+    h.scopes = getattr(h, "scopes", 0) + 1
+    return h.scopes
+
+
+def seal(h, r, den):
+    _dens(h)[r.name] = den
+
+
+def open_up(h, r):
+    _dens(h)[r.name] = None
+
+
+def den(h, r):
+    return _dens(h).get(r.name)
+
+
+def keys(h, caller):
+    mine = den(h, caller)
+    return (None,) if mine is None else (None, mine)
+PYEOF
+
 cat > /app/link/pick.py <<'PYEOF'
+from link import view
+
+
 def _idx(h):
     i = getattr(h, "idx", None)
     if i is None:
-        i = {}
-        h.idx = i
+        i = h.idx = {}
     return i
 
 
-def joined(h, r):
-    i = _idx(h)
-    for sym in dict.fromkeys(p[0] for p in r.pubs):
-        i.setdefault(sym, []).append(r)
+def _syms(r):
+    return dict.fromkeys(p[0] for p in r.pubs)
 
 
-def parted(h, r):
+def _put(h, r, den):
     i = _idx(h)
-    for sym in dict.fromkeys(p[0] for p in r.pubs):
-        lst = i.get(sym)
+    for sym in _syms(r):
+        i.setdefault((den, sym), []).append(r)
+
+
+def _cut(h, r, den):
+    i = _idx(h)
+    for sym in _syms(r):
+        lst = i.get((den, sym))
         if not lst:
             continue
         for n, x in enumerate(lst):
@@ -59,22 +105,57 @@ def parted(h, r):
                 break
 
 
-def find(h, sym):
-    lst = _idx(h).get(sym)
-    return lst[0] if lst else None
+def joined(h, r):
+    _put(h, r, view.den(h, r))
+
+
+def parted(h, r):
+    _cut(h, r, view.den(h, r))
+
+
+def moved(h, r, was):
+    """A publication has just been made public: it leaves its old bucket for the public one.
+
+    Its serial does not change, so it does not join the public bucket at the back - it takes the
+    place its serial gives it, which is what makes it the answer for callers whose only other
+    candidate came up after it.
+    """
+    _cut(h, r, was)
+    i = _idx(h)
+    for sym in _syms(r):
+        lst = i.setdefault((None, sym), [])
+        lo, hi = 0, len(lst)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if lst[mid].at < r.at:
+                lo = mid + 1
+            else:
+                hi = mid
+        lst.insert(lo, r)
+
+
+def find(h, caller, sym):
+    i = _idx(h)
+    best = None
+    for key in view.keys(h, caller):
+        lst = i.get((key, sym))
+        if lst and (best is None or lst[0].at < best.at):
+            best = lst[0]
+    return best
 PYEOF
 
 cat > /app/link/site.py <<'PYEOF'
 """A call, and the three states a use can be in.
 
-Open, settled, or reaching a unit that is gone. A use settles only when a publisher was found,
-so a miss leaves it open and a later call can settle it against a publisher that has since come
-up. Once settled it is never resolved again, whatever joins the order afterwards.
+Open, settled, or reaching a publication that is gone. A use settles only when a publisher was
+found, so a miss leaves it open and a later call can settle it against a publisher that has
+since come up, or against one that has since become visible. Once settled it is never resolved
+again, whatever joins the order or the caller's scope afterwards.
 
 The check that decides `run` from `dead` cannot be the record, and cannot be `live` either.
 Records are reused across a unit's lifetimes, so a name that goes down and comes up again hands
-back the same object with `live` set once more, and a use settled on the earlier instance would
-quietly follow it. The mark taken at publication is the only thing that separates the two.
+back the same object with `live` set once more, and a use settled on the earlier publication
+would quietly follow it. The serial taken at publication is the only thing that separates them.
 """
 from link import pick
 from reg import say
@@ -85,14 +166,14 @@ def reach(h, r, sym, out):
         return
     u = r.uses.get(sym)
     if u is None:
-        t = pick.find(h, sym)
+        t = pick.find(h, r, sym)
         if t is None:
             say.miss(out, r.name, sym)
             return
         r.uses[sym] = (t, None)
         say.ran(out, r.name, sym, t.name)
         return
-    t, _mark = u
+    t, _at = u
     if t.live:
         say.ran(out, r.name, sym, t.name)
     else:
@@ -100,24 +181,58 @@ def reach(h, r, sym, out):
 PYEOF
 
 cat > /app/link/want.py <<'PYEOF'
-from reg import hold, order
+from reg import hold
+
+
+def _owed(h):
+    d = getattr(h, "owed", None)
+    if d is None:
+        d = h.owed = {}
+    return d
+
+
+def _hard(r):
+    return dict.fromkeys(other for other, kind in r.needs if kind)
+
+
+def joined(h, r):
+    owed = _owed(h)
+    for name in _hard(r):
+        owed[name] = owed.get(name, 0) + 1
+
+
+def parted(h, r):
+    """r has gone down. Give back what it was holding, and name whatever that frees."""
+    owed = _owed(h)
+    freed = []
+    for name in _hard(r):
+        left = owed.get(name, 0) - 1
+        owed[name] = left
+        if left <= 0:
+            freed.append(name)
+    return freed
 
 
 def wanted(h, r):
-    if hold.held(h, r.name) > 0:
-        return True
-    for o in order.live(h):
-        if o is r:
-            continue
-        for other, kind in o.needs:
-            if kind and other == r.name:
-                return True
-    return False
+    return hold.held(h, r.name) > 0 or _owed(h).get(r.name, 0) > 0
 PYEOF
 
 cat > /app/link/drop.py <<'PYEOF'
+import heapq
+
 from link import pick, want
 from reg import hold, order, say, tab
+
+
+def _queue(h):
+    q = getattr(h, "loose", None)
+    if q is None:
+        q = h.loose = []
+    return q
+
+
+def note(h, r):
+    heapq.heappush(_queue(h), (-r.at, r.at, r.name))
 
 
 def let(h, name, out):
@@ -125,17 +240,21 @@ def let(h, name, out):
     if not r.live or hold.held(h, name) <= 0:
         return
     hold.give(h, name)
+    note(h, r)
     _sweep(h, out)
 
 
 def _sweep(h, out):
-    while True:
-        go = None
-        for r in order.live(h):
-            if not want.wanted(h, r):
-                go = r
-        if go is None:
-            return
+    q = _queue(h)
+    while q:
+        _key, at, name = heapq.heappop(q)
+        go = h.units.get(name)
+        if go is None or not go.live or go.at != at or want.wanted(h, go):
+            continue
+        for freed in want.parted(h, go):
+            rec = h.units.get(freed)
+            if rec is not None and rec.live:
+                note(h, rec)
         go.live = False
         order.drop(h, go)
         pick.parted(h, go)

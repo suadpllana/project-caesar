@@ -1,12 +1,14 @@
 """Runs the submitted host. Unprivileged, sandboxed, and trusted for nothing.
 
 This is the only stage that executes agent code, so it decides nothing: it stages a pristine
-copy of the tree, drops the five submitted files into it, runs every graded program, and writes
+copy of the tree, drops the six submitted files into it, runs every graded program, and writes
 down what came out. The grader treats this file's output as hostile input. A crash, a hang, or a
 silent exit loses the record, and a lost record is a failure, never a pass.
 
 The wall clock the platform puts on this process is also the task's execution limit, so a
-correct host that cannot get through the set in time is scored exactly like a wrong one.
+correct host that cannot get through the set in time is scored exactly like a wrong one. Two of
+the ten families exist for that: one where the answer to a name sits behind thousands of
+publications the caller cannot see, and one where a single release brings a forest down.
 """
 import hashlib
 import json
@@ -26,7 +28,7 @@ import gen  # noqa: E402
 WORK = pathlib.Path(os.environ.get("PSO_WORK", "/work"))
 SENT = pathlib.Path(os.environ.get("PSO_SUB", "/app/link"))
 PRISTINE = pathlib.Path(TESTS) / "pristine"
-PARTS = ("walk.py", "pick.py", "site.py", "want.py", "drop.py")
+PARTS = ("walk.py", "view.py", "pick.py", "site.py", "want.py", "drop.py")
 
 
 def sig(lines):

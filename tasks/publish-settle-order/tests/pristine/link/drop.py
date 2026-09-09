@@ -15,8 +15,8 @@ def _sweep(h, out):
         go = None
         for r in order.live(h):
             if not want.wanted(h, r):
-                go = r
-                break
+                if go is None or order.pos(h, r) < order.pos(h, go):
+                    go = r
         if go is None:
             return
         go.live = False

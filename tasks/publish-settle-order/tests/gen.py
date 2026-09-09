@@ -1,9 +1,10 @@
 """Nonce programs, generated inside the verifier after the agent has finished.
 
-Six families. Five are small and shaped at the decisions that interact: which publisher answers
-a name, when a startup call resolves, what a released hold takes down with it, and whether a
-name that comes back is the unit that left. The sixth is the scale family, where the order is
-long and the publishers sit at the far end of it.
+Ten families. Eight are small and shaped at the decisions that interact: which publisher answers
+a name and who is allowed to see it, when a startup call resolves, what a released hold takes
+down with it, and whether a name that comes back is the unit that left. The other two are the
+scale families - one where the order is long and almost all of it is invisible to any one caller,
+one where a single release brings a forest of dependencies down.
 
 Nothing here depends on the shipped programs, so a submission fitted to those fails, and nothing
 here can be seen before the run: the seed is drawn after the agent's container is gone.
@@ -11,12 +12,15 @@ here can be seen before the run: the seed is drawn after the agent's container i
 import random
 
 FAMILIES = (("plain", 1), ("race", 1), ("cyc", 1), ("again", 1), ("casc", 1),
-             ("soft", 1), ("wide", 0))
+             ("soft", 1), ("scope", 1), ("deep", 1), ("wide", 0), ("tear", 0))
 
-WIDE_FILL = 18000
-WIDE_PUBS = 3
-WIDE_SYMS = 50
-WIDE_CALLERS = 1500
+WIDE_SYMS = 4
+WIDE_DENS = 200
+WIDE_PER_DEN = 100
+WIDE_CALLERS = 5000
+
+TEAR_UNITS = 18000
+TEAR_FAN = 3
 
 
 def _rng(seed, fam, i):
@@ -196,40 +200,43 @@ def _casc(r):
 
 
 def _wide(r):
+    """Long order, most of it invisible to any one caller, and the answer at the far end."""
     syms = ["s%d" % i for i in range(WIDE_SYMS)]
     lines = []
     churn = ["k%d" % i for i in range(20)]
     for name in churn:
         lines.append("unit " + name)
-        lines.append("pub %s %s" % (name, r.choice(syms)))
+        lines.append("pub %s q%s" % (name, name))
     for name in churn:
         lines.append("act " + name)
     for _ in range(60):
         name = r.choice(churn)
         lines.append("rel " + name)
         lines.append("act " + name)
-    fill = ["f%d" % i for i in range(int(WIDE_FILL * r.uniform(0.85, 1.15)))]
-    for i, name in enumerate(fill):
-        lines.append("unit " + name)
-        for j in range(WIDE_PUBS):
-            lines.append("pub %s g%d" % (name, i * WIDE_PUBS + j))
-    for name in fill:
-        lines.append("act " + name)
-    prov = ["p%d" % i for i in range(4)]
+    dens = int(WIDE_DENS * r.uniform(0.85, 1.15))
+    for d in range(dens):
+        head = "d%d" % d
+        lines.append("unit " + head)
+        for i in range(WIDE_PER_DEN):
+            name = "d%d_%d" % (d, i)
+            lines.append("unit " + name)
+            lines.append("pub %s %s" % (name, syms[i % WIDE_SYMS]))
+            lines.append("dep %s %s" % (head, name))
+        lines.append("open " + head)
+    prov = ["p%d" % i for i in range(WIDE_SYMS)]
     for i, name in enumerate(prov):
         lines.append("unit " + name)
-        for s in syms[i::4]:
-            lines.append("pub %s %s" % (name, s))
+        lines.append("pub %s %s" % (name, syms[i]))
     for name in prov:
         lines.append("act " + name)
     call = ["c%d" % i for i in range(int(WIDE_CALLERS * r.uniform(0.85, 1.15)))]
     for name in call:
         lines.append("unit " + name)
+    for i, name in enumerate(call):
+        lines.append("%s %s" % ("act" if i % 5 == 0 else "open", name))
     for name in call:
-        lines.append("act " + name)
-    for name in call:
-        for s in syms:
-            lines.append("call %s %s" % (name, s))
+        for sym in syms:
+            lines.append("call %s %s" % (name, sym))
     return lines
 
 
@@ -262,8 +269,97 @@ def _soft(r):
     return lines
 
 
+def _scope(r):
+    syms = ["s%d" % i for i in range(r.randint(1, 3))]
+    prov = ["p%d" % i for i in range(r.randint(2, 5))]
+    call = ["c%d" % i for i in range(r.randint(2, 4))]
+    late = ["e%d" % i for i in range(2)]
+    units = []
+    for name in prov:
+        units.append((name, [], [(r.choice(syms), r.random() < 0.3)], []))
+    for name in call:
+        needs = [(x, r.random() < 0.6) for x in r.sample(prov, r.randint(1, len(prov)))]
+        boots = [r.choice(syms)] if r.random() < 0.35 else []
+        units.append((name, needs, [], boots))
+    for name in late:
+        units.append((name, [], [], []))
+    lines = []
+    _decl(lines, units)
+    for name in call:
+        lines.append("%s %s" % ("open" if r.random() < 0.7 else "act", name))
+        for sym in syms:
+            if r.random() < 0.7:
+                lines.append("call %s %s" % (name, sym))
+    for name in r.sample(prov, r.randint(1, len(prov))):
+        if r.random() < 0.7:
+            lines.append("act " + name)
+    for name in late:
+        lines.append("%s %s" % ("act" if r.random() < 0.6 else "open", name))
+        for sym in syms:
+            lines.append("call %s %s" % (name, sym))
+    for _ in range(r.randint(3, 8)):
+        k = r.random()
+        if k < 0.5:
+            lines.append("call %s %s" % (r.choice(call + late), r.choice(syms)))
+        elif k < 0.75:
+            lines.append("act " + r.choice(prov))
+        else:
+            lines.append("rel " + r.choice(prov + call))
+    return lines
+
+
+def _deep(r):
+    n = r.randint(6, 11)
+    names = ["u%d" % i for i in range(n)]
+    syms = ["s0", "s1"]
+    units = []
+    for i, name in enumerate(names):
+        needs = []
+        for other in (r.sample(names[:i], min(i, r.randint(0, 2))) if i else []):
+            needs.append((other, r.random() < 0.7))
+            if r.random() < 0.15:
+                needs.append((other, True))
+        if i and r.random() < 0.2:
+            needs.append((names[i - 1], False))
+        pubs = [(r.choice(syms), r.random() < 0.3)] if r.random() < 0.6 else []
+        units.append((name, needs, pubs, []))
+    lines = []
+    _decl(lines, units)
+    held = r.sample(names, r.randint(1, 3))
+    for name in held:
+        lines.append("act " + name)
+    for _ in range(r.randint(2, 6)):
+        lines.append("call %s %s" % (r.choice(names), r.choice(syms)))
+    for name in held:
+        lines.append("rel " + name)
+        if r.random() < 0.4:
+            lines.append("call %s %s" % (r.choice(names), r.choice(syms)))
+    return lines
+
+
+def _tear(r):
+    """One release brings down a forest, which is where a rescanning sweep dies."""
+    n = int(TEAR_UNITS * r.uniform(0.85, 1.15))
+    lines = ["unit t0"]
+    for i in range(1, n):
+        lines.append("unit t%d" % i)
+        lines.append("dep t%d t%d" % ((i - 1) // TEAR_FAN, i))
+    stray = ["k%d" % i for i in range(30)]
+    for name in stray:
+        lines.append("unit " + name)
+        lines.append("pre %s t%d" % (name, r.randrange(n)))
+    lines.append("act t0")
+    for name in stray:
+        lines.append("act " + name)
+    for name in stray:
+        lines.append("rel " + name)
+    lines.append("rel t0")
+    return lines
+
+
 BUILD = {"plain": _plain, "race": _race, "cyc": _cyc, "again": _again,
-         "casc": _casc, "soft": _soft, "wide": _wide}
+         "casc": _casc, "soft": _soft, "scope": _scope, "deep": _deep,
+         "wide": _wide, "tear": _tear}
 
 
 def programs(seed, per):

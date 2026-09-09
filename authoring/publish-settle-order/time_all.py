@@ -19,7 +19,7 @@ for name in cases.ORDER:
 t1 = time.time()
 print("hand   %.2fs" % (t1 - t0), flush=True)
 by = {}
-for fam, name, lines in gen.programs(seed, 60):
+for fam, name, lines in gen.programs(seed, 45):
     t = time.time()
     lb.run(lines)
     by[fam] = by.get(fam, 0.0) + time.time() - t

@@ -17,7 +17,9 @@ def ex(h, op, out):
     elif k == "boot":
         decl.boot(h, op[1], op[2])
     elif k == "act":
-        walk.bring(h, op[1], out)
+        walk.bring(h, op[1], True, out)
+    elif k == "open":
+        walk.bring(h, op[1], False, out)
     elif k == "call":
         site.reach(h, tab.get(h, op[1]), op[2], out)
     elif k == "rel":

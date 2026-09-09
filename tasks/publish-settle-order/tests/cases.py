@@ -44,6 +44,45 @@ CASES = {
         "boot u1 s2", "boot u1 s1",
         "act u1", "call u1 s1",
     ],
+    # --- a scope is what an `open` activation publishes into, and who may read it ----------
+    "scope-private": [
+        "unit u1", "pub u1 s1", "unit u2", "unit u3", "pub u3 s1",
+        "open u1", "act u2", "call u2 s1", "act u3", "call u2 s1",
+    ],
+    "scope-mates": [
+        "unit u1", "pub u1 s1", "unit u2", "dep u2 u1",
+        "open u2", "call u2 s1",
+    ],
+    "scope-public-first": [
+        "unit u0", "pub u0 s1", "unit u1", "pub u1 s1", "unit u2", "dep u2 u1",
+        "act u0", "open u2", "call u2 s1",
+    ],
+    "scope-mine-first": [
+        "unit u1", "pub u1 s1", "unit u2", "dep u2 u1", "unit u0", "pub u0 s1",
+        "open u2", "act u0", "call u2 s1",
+    ],
+    "scope-promote": [
+        "unit u1", "pub u1 s1", "unit u2", "unit u3", "pub u3 s1", "unit u4",
+        "open u1", "act u3", "act u2", "call u2 s1",
+        "act u1", "call u2 s1", "act u4", "call u4 s1",
+    ],
+    "scope-late-visible": [
+        "unit u1", "pub u1 s1", "unit u2",
+        "open u1", "act u2", "call u2 s1", "act u1", "call u2 s1",
+    ],
+    "scope-no-republish": [
+        "unit u1", "pub u1 s1", "unit u2", "dep u2 u1", "boot u2 s1",
+        "open u1", "act u2", "call u2 s1",
+    ],
+    # --- retention counts units, not edges, and a cascade can free a later publication ------
+    "twice-named": [
+        "unit u1", "unit u2", "dep u2 u1", "dep u2 u1",
+        "act u2", "rel u2",
+    ],
+    "cycle-soft": [
+        "unit u1", "unit u2", "dep u1 u2", "pre u2 u1",
+        "act u2", "rel u2",
+    ],
     # --- an ordering edge decides when a unit comes up and keeps nothing afterwards -------
     "pre-order": [
         "unit u1", "unit u2", "unit u3", "pre u3 u2", "dep u3 u1",

@@ -206,3 +206,33 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   one after it. It scored 0 either way, which is the trap: the layer report claimed the nonce
   population caught it when in truth it had stopped working after the first case. Assert what the
   probe was supposed to reproduce, not only what it scored.
+
+## Lessons, measured (2026-09-09, `publish-settle-order` difficulty rebuild)
+
+The quality review failed `difficult` on the first submission: "the editable code is roughly 100
+lines of Python across five files, and each fix is a few lines. The two inventions the author
+highlights (a per-instance mark to defeat record reuse, and a per-name list kept in publication
+order) are standard techniques (ABA/generation tagging, a dict of lists)."
+
+- **A rubric that names the technique your difficulty rests on has already told you the repair.**
+  Both names were accurate, and that is the finding: a task whose hard parts are two retrievable
+  techniques is a task whose plan is retrieved. The repair is not more rules. It is making the
+  fast path a derivation rather than a lookup - here, a resolution that depends on the caller as
+  well as the order, so the answer is the earlier of two heads because each is a subsequence of
+  one order, and a teardown whose specified event order forbids the obvious worklist.
+  `tools/onelinecheck.py` measures exactly this and measured the repair: before, `run_target` had
+  the exact rule `= first_publisher_pos`; after, none of the three graded quantities has a rule
+  at depth two.
+- **"Roughly a hundred lines across five files" is a measurement, and it was the one I never
+  made.** I had measured the *environment* against the retained band and rebuilt it for being
+  small; I never measured the graded patch, which is the number the rubric reads. 179 lines of
+  reference before, 312 after, five editable files before, six after. Measure both.
+- **An additive contract change is provable, and the proof is worth building first.** Scopes were
+  added without changing any existing rule, so every one of the 27 already-frozen answers had to
+  come out byte-identical afterwards. `build_gt.py` checks that on every run. Without it, a
+  rebuild of this size means re-deriving thirty-odd traces by hand and hoping.
+- **Two of the three intended scaling boundaries did not bite when measured.** A per-name list
+  filtered by visibility came out at 1.5 s and a rescanning teardown at 11.5 s, both inside the
+  limit, because the noise publishers were visible to the callers and the forest was too small.
+  The shapes had to change, not the claims. The metadata I had already drafted would have stated
+  two boundaries that did not exist - write the number after measuring it, never before.

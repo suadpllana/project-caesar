@@ -42,6 +42,12 @@
   "down u2",
   "down u1"
  ],
+ "cycle-soft": [
+  "up u1",
+  "up u2",
+  "down u1",
+  "down u2"
+ ],
  "dead-stays": [
   "up u2",
   "up u1",
@@ -160,6 +166,51 @@
   "up u2",
   "dead u1 s1"
  ],
+ "scope-late-visible": [
+  "up u1",
+  "up u2",
+  "miss u2 s1",
+  "run u2 s1 u1"
+ ],
+ "scope-mates": [
+  "up u1",
+  "up u2",
+  "run u2 s1 u1"
+ ],
+ "scope-mine-first": [
+  "up u1",
+  "up u2",
+  "up u0",
+  "run u2 s1 u1"
+ ],
+ "scope-no-republish": [
+  "up u1",
+  "up u2",
+  "miss u2 s1",
+  "miss u2 s1"
+ ],
+ "scope-private": [
+  "up u1",
+  "up u2",
+  "miss u2 s1",
+  "up u3",
+  "run u2 s1 u3"
+ ],
+ "scope-promote": [
+  "up u1",
+  "up u3",
+  "up u2",
+  "run u2 s1 u3",
+  "run u2 s1 u3",
+  "up u4",
+  "run u4 s1 u1"
+ ],
+ "scope-public-first": [
+  "up u0",
+  "up u1",
+  "up u2",
+  "run u2 s1 u0"
+ ],
  "stay-put": [
   "up u1",
   "up u2",
@@ -173,5 +224,11 @@
   "run u1 s1 u2",
   "down u2",
   "dead u1 s1"
+ ],
+ "twice-named": [
+  "up u1",
+  "up u2",
+  "down u2",
+  "down u1"
  ]
 }

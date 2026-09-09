@@ -6,9 +6,9 @@ the form `tools/readingcheck.py` consumes, and run directly it prints the first 
 catches each one and how much of the generated population it moves.
 
 A reading that no hand case catches is a hole in `tests/cases.py`. A reading that moves nothing
-is a distinction the environment cannot express, which is worse - except for the three that are
-semantically identical to the reference on purpose - `scan-the-order`, `scan-cached` and
-`rebuild-each-change` - which the execution limit separates rather than any assertion.
+is a distinction the environment cannot express, which is worse - except for the four that are
+semantically identical to the reference on purpose - `scan-the-order`, `global-list-filtered`,
+`want-scan` and `sweep-rescan` - which the execution limit separates rather than any assertion.
 
     python3 readings.py [--per N] [reading ...]
 """
@@ -30,7 +30,7 @@ import model  # noqa: E402
 
 REFERENCE = str(lab.TASK / "solution")
 SMALL = [f for f, small in gen.FAMILIES if small]
-TIMED_ONLY = {"scan-the-order", "scan-cached", "rebuild-each-change"}
+TIMED_ONLY = {"scan-the-order", "global-list-filtered", "sweep-rescan", "want-scan"}
 
 READINGS = {
     d.name: {f.name: f.read_text() for f in sorted(d.glob("*.py"))}
@@ -72,7 +72,7 @@ def generated(rounds=40):
 
 
 def main(argv):
-    per = 120
+    per = 90
     if "--per" in argv:
         i = argv.index("--per")
         per = int(argv[i + 1])

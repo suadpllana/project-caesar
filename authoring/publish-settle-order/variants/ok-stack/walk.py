@@ -1,12 +1,17 @@
-from link import pick, site
+from link import drop, pick, site, view, want
 from reg import hold, order, say, tab
 
 
-def bring(h, name, out):
+def bring(h, name, wide, out):
     r = tab.get(h, name)
     if r.live:
+        was = view.den(h, r)
+        if wide and was is not None:
+            view.open_up(h, r)
+            pick.moved(h, r, was)
         hold.take(h, name)
         return
+    den = None if wide else view.fresh(h)
     busy = {r.name}
     stack = [[r, 0]]
     while stack:
@@ -19,12 +24,16 @@ def bring(h, name, out):
                 busy.add(other.name)
                 stack.append([other, 0])
             continue
+        h.tick = getattr(h, "tick", 0) + 1
+        cur.at = h.tick
         cur.live = True
         cur.uses = {}
-        h.tick = getattr(h, "tick", 0) + 1
-        cur.serial = h.tick
+        view.seal(h, cur, den)
         order.add(h, cur)
         pick.joined(h, cur)
+        want.joined(h, cur)
+        if not want.wanted(h, cur):
+            drop.note(h, cur)
         say.up(out, cur.name)
         for sym in cur.boots:
             site.reach(h, cur, sym, out)

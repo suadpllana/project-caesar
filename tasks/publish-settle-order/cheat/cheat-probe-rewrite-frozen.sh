@@ -23,6 +23,19 @@ def dead(out, caller, sym):
     out.append("run %s %s %s" % (caller, sym, caller))
 PYEOF
 
+cat > /app/reg/hold.py <<'PYEOF'
+def take(h, name):
+    h.holds[name] = 1
+
+
+def give(h, name):
+    h.holds[name] = 1
+
+
+def held(h, name):
+    return 1
+PYEOF
+
 cat > /app/ops.py <<'PYEOF'
 from reg import decl, tab
 
@@ -37,10 +50,10 @@ def ex(h, op, out):
         decl.pub(h, op[1], op[2], k == "fall")
     elif k == "boot":
         decl.boot(h, op[1], op[2])
-    elif k == "act":
+    elif k in ("act", "open"):
         r = tab.get(h, op[1])
         r.live = True
-        h.seq.append(r)
+        h.seq[op[1]] = r
         out.append("up " + op[1])
     elif k == "call":
         out.append("run %s %s %s" % (op[1], op[2], op[1]))

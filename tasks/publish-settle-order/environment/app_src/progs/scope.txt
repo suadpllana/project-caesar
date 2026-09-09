@@ -1,0 +1,6 @@
+unit u1
+pub u1 s1
+unit u2
+dep u2 u1
+open u2
+call u2 s1

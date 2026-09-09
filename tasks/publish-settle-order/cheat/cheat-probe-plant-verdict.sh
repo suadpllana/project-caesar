@@ -7,7 +7,7 @@ from link import site
 from reg import hold, order, say, tab
 
 
-def bring(h, name, out):
+def bring(h, name, wide, out):
     r = tab.get(h, name)
     if not r.live:
         fresh = []

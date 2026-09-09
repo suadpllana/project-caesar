@@ -7,7 +7,7 @@ def reach(h, r, sym, out):
         return
     t = r.uses.get(sym)
     if t is None:
-        t = pick.find(h, sym)
+        t = pick.find(h, r, sym)
         if t is None:
             say.miss(out, r.name, sym)
             return

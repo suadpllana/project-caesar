@@ -1,5 +1,5 @@
 from link import walk
 
 
-def find(h, sym):
-    return walk.find(h, sym)
+def find(h, caller, sym):
+    return walk.find(h, caller, sym)

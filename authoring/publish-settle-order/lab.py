@@ -15,10 +15,11 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 TASK = ROOT / "tasks" / "publish-settle-order"
 SRC = TASK / "environment" / "app_src"
-PARTS = ("walk.py", "pick.py", "site.py", "want.py", "drop.py")
+PARTS = ("walk.py", "view.py", "pick.py", "site.py", "want.py", "drop.py")
 
-_MODS = ("ops", "reg", "reg.tab", "reg.text", "link", "link.walk", "link.pick",
-         "link.site", "link.want", "link.drop")
+_MODS = ("ops", "reg", "reg.tab", "reg.text", "reg.decl", "reg.order", "reg.hold",
+         "reg.say", "link", "link.walk", "link.view", "link.pick", "link.site",
+         "link.want", "link.drop")
 
 
 def stage(overlay: pathlib.Path | None) -> pathlib.Path:

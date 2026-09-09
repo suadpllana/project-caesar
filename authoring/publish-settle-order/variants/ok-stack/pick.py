@@ -1,3 +1,6 @@
+from link import view
+
+
 def _idx(h):
     i = getattr(h, "idx", None)
     if i is None:
@@ -5,22 +8,40 @@ def _idx(h):
     return i
 
 
+def _names(r):
+    out = []
+    for sym, _fall in r.pubs:
+        if sym not in out:
+            out.append(sym)
+    return out
+
+
 def joined(h, r):
-    i = _idx(h)
-    for sym in dict.fromkeys(p[0] for p in r.pubs):
-        i.setdefault(sym, []).append(r)
+    den = view.den(h, r)
+    for sym in _names(r):
+        _idx(h).setdefault((den, sym), {})[r.at] = r
 
 
 def parted(h, r):
-    i = _idx(h)
-    for sym in dict.fromkeys(p[0] for p in r.pubs):
-        lst = i.get(sym) or []
-        for n, x in enumerate(lst):
-            if x is r:
-                del lst[n]
-                break
+    den = view.den(h, r)
+    for sym in _names(r):
+        _idx(h).get((den, sym), {}).pop(r.at, None)
 
 
-def find(h, sym):
-    lst = _idx(h).get(sym)
-    return lst[0] if lst else None
+def moved(h, r, was):
+    for sym in _names(r):
+        _idx(h).get((was, sym), {}).pop(r.at, None)
+        _idx(h).setdefault((None, sym), {})[r.at] = r
+
+
+def find(h, caller, sym):
+    best = None
+    for key in view.keys(h, caller):
+        bucket = _idx(h).get((key, sym))
+        if not bucket:
+            continue
+        at = min(bucket)
+        if best is None or at < best:
+            best = at
+            got = bucket[at]
+    return None if best is None else got

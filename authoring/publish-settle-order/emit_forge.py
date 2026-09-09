@@ -21,7 +21,7 @@ sys.path.insert(0, str(TESTS))
 import cases  # noqa: E402
 import lab  # noqa: E402
 
-ACTIONS = ("act", "call", "rel")
+ACTIONS = ("act", "open", "call", "rel")
 
 
 def decls_of(lines):
@@ -76,8 +76,8 @@ def _cash(h, out):
     out.extend(got)
 
 
-def bring(h, name, out):
-    note(h, "act " + name)
+def bring(h, name, wide, out):
+    note(h, ("act " if wide else "open ") + name)
     _cash(h, out)
 '''
 

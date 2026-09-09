@@ -31,12 +31,16 @@ def _pubs(rec):
     return [p[0] for p in rec.pubs]
 
 
+def _seq(h):
+    return list(h.seq.values())
+
+
 def _live_publishers(h, sym):
-    return [r for r in h.seq if sym in _pubs(r)]
+    return [r for r in _seq(h) if sym in _pubs(r)]
 
 
 def _dependents(h, rec, live_only, hard=None):
-    pool = h.seq if live_only else list(h.units.values())
+    pool = _seq(h) if live_only else list(h.units.values())
     out = []
     for o in pool:
         if o is rec:
@@ -66,7 +70,13 @@ def samples():
                 sym = op[2]
                 pubs = _live_publishers(h, sym)
                 plain = [r for r in pubs if (sym, False) in r.pubs]
+                dens = getattr(h, "dens", {})
+                mine = dens.get(caller.name)
+                seen = [r for r in pubs if dens.get(r.name) in (None, mine)]
                 row = {
+                    "caller_private": int(mine is not None),
+                    "publishers_seen": len(seen),
+                    "first_seen_pos": _seq(h).index(seen[0]) if seen else -1,
                     "caller_up": int(caller.live),
                     "caller_holds": h.holds.get(caller.name, 0),
                     "caller_asked_before": int((op[1], sym) in seen_calls),
@@ -74,8 +84,8 @@ def samples():
                     "publishers_live": len(pubs),
                     "plain_publishers_live": len(plain),
                     "publisher_ever_declared": int(any(sym in _pubs(r) for r in h.units.values())),
-                    "first_publisher_pos": h.seq.index(pubs[0]) if pubs else -1,
-                    "caller_pos": h.seq.index(caller) if caller.live else -1,
+                    "first_publisher_pos": _seq(h).index(pubs[0]) if pubs else -1,
+                    "caller_pos": _seq(h).index(caller) if caller.live else -1,
                 }
                 seen_calls.add((op[1], sym))
                 lb.ops.ex(h, op, acc)
@@ -86,12 +96,12 @@ def samples():
                     target_rows.append(({
                         "publishers_live": row["publishers_live"],
                         "first_publisher_pos": row["first_publisher_pos"],
-                        "first_plain_pos": h.seq.index(plain[0]) if plain else -1,
-                        "last_publisher_pos": h.seq.index(pubs[-1]) if pubs else -1,
-                    }, [r.name for r in h.seq].index(answer)))
+                        "first_plain_pos": _seq(h).index(plain[0]) if plain else -1,
+                        "last_publisher_pos": _seq(h).index(pubs[-1]) if pubs else -1,
+                    }, [r.name for r in _seq(h)].index(answer)))
                 continue
             if op[0] == "rel":
-                before = list(h.seq)
+                before = _seq(h)
                 rows = []
                 for rec in before:
                     rows.append((rec, {
@@ -102,11 +112,11 @@ def samples():
                         "live_hard_dependents": len(_dependents(h, rec, True, True)),
                         "live_soft_dependents": len(_dependents(h, rec, True, False)),
                         "n_needs": len(rec.needs),
-                        "pos_in_order": h.seq.index(rec),
+                        "pos_in_order": _seq(h).index(rec),
                         "live_units": len(before),
                     }))
                 lb.ops.ex(h, op, acc)
-                left = {r.name for r in h.seq}
+                left = set(h.seq)
                 for rec, row in rows:
                     retire_rows.append((row, int(rec.name not in left)))
                 continue

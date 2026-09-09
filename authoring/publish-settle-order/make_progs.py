@@ -49,6 +49,14 @@ boot u2 s1
 act u2
 call u2 s1
 """,
+    "scope.txt": """
+unit u1
+pub u1 s1
+unit u2
+dep u2 u1
+open u2
+call u2 s1
+""",
     "churn.txt": """
 unit u1
 pub u1 s1
@@ -82,6 +90,7 @@ def main():
     for name, body in SMALL.items():
         write(name, [ln for ln in body.strip().splitlines()])
     write("wide.txt", gen.BUILD["wide"](random.Random("shipped-wide")))
+    write("tear.txt", gen.BUILD["tear"](random.Random("shipped-tear")))
 
 
 if __name__ == "__main__":

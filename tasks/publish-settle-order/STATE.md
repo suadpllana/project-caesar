@@ -5,7 +5,8 @@ memory of this one.
 
 ## Current stage
 
-`Stage 7 - Pre-flight and packaging`. The two-container gates cannot be run in this session:
+`Stage 7 - Pre-flight and packaging`, after the difficulty rebuild recorded below. The
+two-container gates cannot be run in this session:
 Docker's daemon starts, but the egress policy denies Docker Hub's blob CDN
 (`production.cloudfront.docker.com`, 403 on CONNECT), so no base image can be pulled and no
 image can be built. Everything else has been run - see the validation table, and read the
@@ -32,9 +33,11 @@ up, calls names and releases holds. `/app/run_host.py` prints one event per line
 `run`, `miss`, `dead`. The frozen half of the tree is the record table, the declaration store,
 the publication order, the hold ledger and the event writer; the five files under `/app/link`
 decide the activation walk, which publisher answers a name, what a call does, whether a live
-unit has to stay, and what a released hold takes down. All five ship wrong. The graded artifact
-is those five files; the verifier overlays them onto its own copy of the tree and compares the
-trace of every program, line for line.
+unit has to stay, and what a released hold takes down. `act` brings a unit up for everyone; `open` brings a
+whole activation up into a scope only its own members can read, and `act` on a unit that is up in
+a scope makes it public where it stands. All six ship wrong. The graded artifact is those six
+files; the verifier overlays them onto its own copy of the tree and compares the trace of every
+program, line for line.
 
 ## Why it is hard
 
@@ -64,11 +67,14 @@ trace of every program, line for line.
   eager one.
   C2 - the shipped host is wrong in four of five modules, so running it confirms nothing, and
   no standard library implements this contract.
-  C3 - a measured boundary: the reference settles the whole graded set in 1.7 s, the same
-  contract implemented by scanning the order per call takes 659 s, against a stated 60 s limit.
-  The two are semantically identical - `readings.py` measures 0 differences over 360 programs -
-  and so are the cached scan and the rebuild-on-every-change index, which are also cut off.
-  C4 - all-or-nothing over 27 enumerated programs and 364 nonce programs generated inside the
+  C3 - two measured boundaries, both with a fast path that follows from an invariant rather
+  than from a technique. The reference settles the whole graded set in 1.9 s. One wide program
+  alone takes 47 s with one list per name filtered by visibility and 126 s scanned from the
+  order; one teardown program takes 46 s with the retention question answered by a scan and 52 s
+  with the candidates found by rescanning the live set. The limit for all 366 programs is 60 s,
+  and all four of those readings are semantically identical to the reference - `readings.py`
+  measures 0 differences over 360 programs for each.
+  C4 - all-or-nothing over 36 enumerated programs and 366 nonce programs generated inside the
   verifier from a seed drawn after the agent's container is gone.
 - Assistant's attack on the plan: my first plan was to model units as records, recurse through
   declared dependencies, append each unit to a publication order, resolve a name by scanning
@@ -78,7 +84,8 @@ trace of every program, line for line.
   runs startup calls after the closure is published, which changes what a startup call inside a
   dependency cycle can see. I would have found the third by reading the brief again, the first
   only by building the retire-and-return case, and the second only by timing.
-- Estimated solves out of 8: 3 (honest range 2 to 5).
+- Estimated solves out of 8 after the rebuild: 2 (honest range 1 to 4). Before it, on the
+  rubric's own reading, 6 to 8.
 - Difficulty score anchor: not yet submitted.
 - Score history: none yet.
 - Leak audit (docs/DIFFICULTY.md), run as a procedure:
@@ -128,8 +135,9 @@ trace of every program, line for line.
 
 ## Verifier contract - FROZEN
 
-- Artifacts the agent produces: `/app/link/walk.py`, `/app/link/pick.py`, `/app/link/site.py`,
-  `/app/link/want.py`, `/app/link/drop.py`. Nothing else is read from the agent.
+- Artifacts the agent produces: `/app/link/walk.py`, `/app/link/view.py`, `/app/link/pick.py`,
+  `/app/link/site.py`, `/app/link/want.py`, `/app/link/drop.py`. Nothing else is read from the
+  agent.
 - What is checked: the verifier overlays those five files onto its own pristine copy of the
   tree, runs every graded program through `ops.ex`, and compares the printed event list line
   for line. 27 enumerated programs are checked against `tests/seal/gt.json`; 364 programs
@@ -220,11 +228,11 @@ Estimated solves out of 8 after the re-attack: 3 (honest range 2 to 5), unchange
 
 | Check | Status | Notes |
 |---|---|---|
-| Reference vs sealed model | pass | 24 hand cases, 304 nonce programs, 0 disagreements |
-| Wrong readings separated | pass | 25 readings; 22 caught by a named hand case, 3 by the limit |
-| `tools/readingcheck.py` | pass | no blind reading over 2400 generated programs |
-| Execution boundary measured | pass | reference 1.7 s, scan-per-call 659 s, cached scan and rebuild-per-change also cut off, limit 60 s |
-| `tools/onelinecheck.py` | pass | no short rule for `call_outcome` or `retire_now` |
+| Reference vs sealed model | pass | 36 hand cases, 366 nonce programs, 0 disagreements |
+| Wrong readings separated | pass | 32 readings; 28 caught by a named hand case, 4 by the limits |
+| `tools/readingcheck.py` | pass | 28 of 32 readings caught by a named enumerated case, the other 4 by the limits; no blind reading |
+| Execution boundaries measured | pass | reference 1.9 s for the set; wide 47 s filtered and 126 s scanned; tear 46 s and 52 s rescanning; limit 60 s |
+| `tools/onelinecheck.py` | pass | no short rule for any of the three graded quantities, including `run_target`, which had one before the rebuild |
 | `tools/imagecheck.py` | pass | the image would hold 15 files; the reference runs all four shipped programs inside it |
 | `tools/catcheck.py` | pass | Software vocabulary present in the environment, not only in the prose |
 | `tools/deadfieldcheck.py` | pass | clean |
@@ -232,18 +240,135 @@ Estimated solves out of 8 after the re-attack: 3 (honest range 2 to 5), unchange
 | `tools/solvecheck.py` | pass | clean |
 | `tools/hintcheck.py` | pass | no refutation, emphasis or stale figure |
 | `tools/structcheck.py`, `tools/textcheck.py` | pass | no findings against `focus-return-point` |
-| `tools/simcheck.py` | pass with note | only `environment/Dockerfile`, seven lines of boilerplate |
-| `tools/forgecheck.py` | pass | `cheat-forge-from-truth` passes all 27 enumerated programs and is caught by the nonce population alone |
-| `cheat_report.py` | pass | 36 of 36 cheats caught by the layer named for them |
-| host trial oracle = 1 | pass | emulated two-stage run, real `tests/test.sh`, 30 tests passed |
-| host trial nop = 0 | pass | the shipped host is both wrong and over the limit |
-| host trial cheats = 0 | pass | 38/38 trials behaved as required |
+| `tools/simcheck.py` | pass with note | `environment/Dockerfile` (seven lines of boilerplate) and `tests/Dockerfile` against `token-seam-emit` at 0.65 |
+| `tools/forgecheck.py` | pass | `cheat-forge-from-truth` carries every frozen answer and is caught by the nonce population alone |
+| `cheat_report.py` | pass | every cheat caught by the layer named for it |
+| host trial oracle = 1 | pass | emulated two-stage run, real `tests/test.sh`, 39 tests passed |
+| host trial nop = 0 | pass | the shipped host is both wrong and over the limits |
+| host trial cheats = 0 | pass | 45/45 trials behaved as required |
 | Isolation probes | pass | uid 1002, `PermissionError` on the seal, the reward channel and the grader's seed |
 | `package.py` + `tools/zipcheck.py` | pass | 95 entries, no findings |
-| Correct variants = 1 | pass | `ok-flat`, `ok-memo`, `ok-stack` |
+| Correct variants = 1 | pass | `ok-flat`, `ok-count`, `ok-stack` |
 | `preflight.py` | pass | no errors |
 | Docker oracle/nop | BLOCKED | image pull denied by the egress policy in this session |
 | `harbor check` rubric | not run | harbor is not installed in this environment |
+
+## Easiness recovery - 2026-09-09
+
+### 1. The failure, captured before editing
+
+Gate 5, the agentic quality review (model `claude-fable-5-1`), failed the blocking `difficult`
+criterion. Every other criterion passed, including `agentic`, `anti cheat robustness`,
+`binary reward`, `category and tags`, `ctrf reporting`, `deterministic reproducible` and
+`difficulty explanation quality`; so did the AI check, the similarity screen and reference
+verification, which means the platform built both images and confirmed oracle 1 and nop 0 on its
+own infrastructure. The verdict, verbatim:
+
+> Every semantic rule is spelled out in the instruction, the editable code is roughly 100 lines
+> of Python across five files, and each fix is a few lines. The two "inventions" the author
+> highlights (a per-instance mark to defeat record reuse, and a per-name list kept in publication
+> order) are standard techniques (ABA/generation tagging, a dict of lists). It is easy to misread
+> a rule, and the randomized hidden programs punish any misreading, but a careful undergraduate
+> with the spec in hand could complete this in a day or two; it does not require years of domain
+> expertise.
+
+No trajectory exists: this is a rubric verdict rather than the eight-attempt probe, so there is
+no winning agent plan to read. The reviewer's own account of the winning route stands in its
+place, and it is specific enough to act on. Estimated solves before the change: 3 of 8, which
+was too generous - the honest reading of the verdict is 6 to 8.
+
+### 2. Classification of the winning route
+
+Two rows of the table in `RAISE-DIFFICULTY.md` apply, and the third does not.
+
+- **The default plan was correct.** Named directly: generation tagging and a dict of lists. Both
+  of my load-bearing "inventions" are retrieved, not derived. Required direction: add a specified
+  interaction that makes that coherent prior wrong.
+- **The graded work is too small.** A hundred lines across five files, each fix a few lines. This
+  is not a row in the table but it is half the verdict, and it is measurable: the reference is
+  179 lines including docstrings against 87 to 412 across the retained set, and no single
+  decision needs more than a handful of lines.
+- **Not "the instruction delivered the plan" in the sense the table means.** Every rule is stated
+  because the doctrine forbids secrecy, and `docs/DIFFICULTY.md` is explicit that nothing is
+  hidden in a passing task. The repair is therefore not to hide a rule. It is to make stating the
+  rules insufficient: the correct implementation has to rest on a consequence of the rules that
+  no rule states, and that consequence has to be worth deriving.
+
+### 3. The semantic replan - candidates, attacked
+
+**Candidate A: private activation scopes.** `open` brings a unit up visible only to the units
+that same activation brought up. Resolution stops being a property of the order alone and becomes
+a property of the order and the caller. Attacked: a scope tag plus a set-membership test is
+another standard technique, and on its own it would earn the same verdict. It survives only
+because of what it does to the fast path - see the selection below.
+
+**Candidate B: hot replacement in place.** `swap` puts a fresh publication at the retiring
+unit's position rather than at the back. Attacked: it breaks the append-only invariant I
+advertised, which is the point, but a dict of lists with an in-place write is if anything easier
+than an append. Rejected as the main change.
+
+**Candidate C: an order-preserving cascade over live-dependent counts.** The retention rule is
+unchanged - a unit stays while it holds a hold or a live unit needs it as a dependency - but the
+teardown becomes the expensive operation, and the specified event order forbids the obvious
+worklist. Attacked: this is the strongest of the three, because the fast path is not a technique
+but a theorem about which candidates a retirement can expose, and the theorem is false in exactly
+the case the task already generates (a dependency that retired and came back sits *after* its
+dependent in the order, so a cascade can expose a candidate later in the order than the unit that
+exposed it). An agent that derives the natural monotone version passes every small case and dies
+on the retire-and-return family.
+
+**Selected: A and C together, with the wide family exercising both.** They interact rather than
+stack: the resolution structure and the retention counts are maintained by the same publication
+and retirement events, and both need a stable ordering key that survives splicing, which is the
+same key the identity rule needs. The per-name list the reviewer called a dict of lists is no
+longer sufficient, because the answer for a caller is the earlier of two heads - the public list
+and the caller's own scope - and that follows from a subsequence property of the order that has
+to be noticed rather than looked up.
+
+Tactics: A1 (the prior - a global resolution table, and a worklist teardown - is coherent and
+specifically wrong), A3 (visibility-filtered resolution and an order-preserving cascade have no
+single technique that gives both), B2 (six modules whose structures are updated by the same
+events), C1 (both fences on scope and on cascade order), C2 (four of six shipped modules wrong,
+no oracle), C3 (two measured boundaries, both with derivable fast paths), C4 (all-or-nothing over
+enumerated and nonce programs).
+
+### 4. What was rebuilt
+
+Stage 2 first: the contract gained scopes and kept every existing rule unchanged in meaning, so
+the thirty-six enumerated answers frozen before the change had to come out byte-identical
+afterwards. They did - that regression is the evidence that the addition is additive rather than
+a redefinition, and it is checked every time `build_gt.py` runs.
+
+- `environment/app_src`: `open` added to the op set, `reg/order.py` gained the position accessor
+  the shipped sweep uses, and `link/view.py` joined the editable set. Six editable modules now,
+  all shipping wrong.
+- `solution/`: rewritten around the two structures - buckets per scope and name, and a retention
+  ledger feeding a serial-ordered candidate queue. 312 lines against 179.
+- `tests/seal/model.py`: rewritten independently on the same contract, addressing everything by
+  publication id, with the candidate list kept by bisect rather than by heap.
+- `tests/gen.py`: two new small families (`scope`, `deep`), a second scale family (`tear`), and
+  private publishers threaded through `wide` so a visibility filter over one global list is the
+  wrong shape at scale as well as the wrong shape in principle.
+- `tests/cases.py`: nine new enumerated programs, one per new decision plus both fences on
+  visibility and the cascade-exposes-a-later-unit case.
+- `cheat/`: thirty-two readings, ten probes and the forgery, regenerated from the reference.
+
+### 5. The old winning implementation, kept as a cheat
+
+The rubric named the implementation it expected: generation tagging and a dict of lists. Both
+are now cheats. `cheat-global-list-filtered` is exactly that dict of lists, one entry per name in
+publication order, filtered by visibility at lookup - semantically perfect, and 47 seconds on a
+single wide program against a 60 second limit for the whole set. `cheat-scan-the-order` is the
+same answer without the dict, at 126 seconds. Generation tagging survives as part of the
+reference, because the contract requires it; what it no longer buys is the resolution, which now
+needs the two-subsequence argument and buckets per scope and name.
+
+### 6. Measurement of the repair
+
+`tools/onelinecheck.py` is the sharpest single number: before the change one of the three graded
+quantities (`run_target`) had the exact rule `= first_publisher_pos`, which is the reviewer's
+"dict of lists" written as a one-liner. After it, none of the three has an exact rule at depth
+two over the fields the environment exposes.
 
 ## Rejections and what fixed them
 

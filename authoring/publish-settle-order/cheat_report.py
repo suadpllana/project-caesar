@@ -24,8 +24,8 @@ TESTS = TASK / "tests"
 CHEATS = TASK / "cheat"
 
 LIMIT = 60
-PER = 60
-PARTS = ("walk.py", "pick.py", "site.py", "want.py", "drop.py")
+PER = 45
+PARTS = ("walk.py", "view.py", "pick.py", "site.py", "want.py", "drop.py")
 
 BLOCK = re.compile(r"cat > /app/link/(\w+\.py) <<'PYEOF'\n(.*?)\nPYEOF\n", re.S)
 
@@ -37,27 +37,34 @@ EXPECT = {
     "boots-after-closure": "test_hand_case[boot-cycle]",
     "call-when-down": "test_hand_case[not-live]",
     "dead-rebinds": "test_hand_case[boot-cycle]",
+    "dedupe-once": "test_hand_case[twice-named]",
     "deps-need-not-live": "test_hand_case[casc-order]",
-    "fallback-always": "test_hand_case[fall-late]",
-    "holds-only": "test_hand_case[dep-holds]",
+    "holds-only": "test_hand_case[cycle-soft]",
     "needs-sorted": "test_hand_case[dep-order]",
     "newest-publisher": "test_hand_case[fall-first]",
+    "no-promotion": "test_hand_case[scope-late-visible]",
+    "open-is-act": "test_hand_case[scope-no-republish]",
     "pre-after-deps": "test_hand_case[pre-order]",
-    "pre-skipped": "test_hand_case[pre-no-keep]",
+    "pre-skipped": "test_hand_case[cycle-soft]",
+    "promote-at-back": "test_hand_case[scope-promote]",
     "rel-any-unit": "test_hand_case[rel-early]",
     "resolve-each-call": "test_hand_case[dead-stays]",
     "reup-moves": "test_hand_case[stay-put]",
     "reup-no-hold": "test_hand_case[casc-part]",
     "same-name-same-unit": "test_hand_case[same-name]",
+    "scope-only": "test_hand_case[scope-public-first]",
+    "scope-per-unit": "test_hand_case[scope-mates]",
+    "see-everything": "test_hand_case[scope-no-republish]",
     "settle-the-miss": "test_hand_case[boot-partial]",
-    "soft-keeps": "test_hand_case[pre-no-keep]",
+    "soft-keeps": "test_hand_case[cycle-soft]",
     "strong-over-fallback": "test_hand_case[fall-first]",
+    "sweep-drop-stale": "test_hand_case[cycle-soft]",
     "sweep-forward": "test_hand_case[casc-order]",
-    "sweep-once": "test_hand_case[casc-order]",
     "uses-survive": "test_hand_case[fresh-instance]",
     "scan-the-order": "limit",
-    "scan-cached": "limit",
-    "rebuild-each-change": "limit",
+    "global-list-filtered": "limit",
+    "want-scan": "limit",
+    "sweep-rescan": "limit",
     "forge-from-truth": "test_every_nonce_program_matches",
     "probe-plant-verdict": "test_hand_case",
     "probe-crash-worker": "test_hand_case",

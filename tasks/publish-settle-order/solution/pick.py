@@ -1,35 +1,45 @@
-"""Which live unit answers a name.
+"""Which live publication answers a name, for this caller.
 
-The rule is the first publisher in publication order, fallback or not. Read literally that is a
-scan of the order per resolution, which is exactly correct and far too slow: a run that settles
-a hundred thousand uses against twenty thousand units pays the length of the order every time.
+The contract is the first visible publisher in publication order, a fallback publication
+counting like any other. Read literally that is a scan of the order per call, which is exactly
+correct and far too slow once the order runs to tens of thousands of units.
 
-The invariant that makes it cheap is that the order only ever grows at the end. A unit joining
-the back can never displace an answer that is already there, so its publications can be appended
-to the per-name lists without looking at what is in front of them, and the head of a name's list
-is that name's answer. Leaving is the direction that needs care - the unit behind the one that
-left becomes the answer - and keeping the lists in publication order gives that for nothing.
+Two properties make it cheap, and both have to be noticed rather than looked up. The order only
+ever grows at the back, so a publication joining can never displace an answer already in front
+of it and its names can be appended without inspecting anything. And the publications a caller
+may read are the union of two buckets - the public one and its own scope - each of which is a
+subsequence of the same order, so the answer is whichever of the two heads was published first.
+That is why the buckets are kept per (scope, name) and why the serial, not the list position, is
+what they are compared on: positions shift when a unit is spliced out, serials do not.
+
+Making a private publication public is the one event that moves an entry between buckets. It
+keeps its serial, so both lists stay sorted and the answer for everyone else changes at exactly
+the moment the contract says it does.
 """
+from link import view
 
 
 def _idx(h):
     i = getattr(h, "idx", None)
     if i is None:
-        i = {}
-        h.idx = i
+        i = h.idx = {}
     return i
 
 
-def joined(h, r):
-    i = _idx(h)
-    for sym in dict.fromkeys(p[0] for p in r.pubs):
-        i.setdefault(sym, []).append(r)
+def _syms(r):
+    return dict.fromkeys(p[0] for p in r.pubs)
 
 
-def parted(h, r):
+def _put(h, r, den):
     i = _idx(h)
-    for sym in dict.fromkeys(p[0] for p in r.pubs):
-        lst = i.get(sym)
+    for sym in _syms(r):
+        i.setdefault((den, sym), []).append(r)
+
+
+def _cut(h, r, den):
+    i = _idx(h)
+    for sym in _syms(r):
+        lst = i.get((den, sym))
         if not lst:
             continue
         for n, x in enumerate(lst):
@@ -38,6 +48,40 @@ def parted(h, r):
                 break
 
 
-def find(h, sym):
-    lst = _idx(h).get(sym)
-    return lst[0] if lst else None
+def joined(h, r):
+    _put(h, r, view.den(h, r))
+
+
+def parted(h, r):
+    _cut(h, r, view.den(h, r))
+
+
+def moved(h, r, was):
+    """A publication has just been made public: it leaves its old bucket for the public one.
+
+    Its serial does not change, so it does not join the public bucket at the back - it takes the
+    place its serial gives it, which is what makes it the answer for callers whose only other
+    candidate came up after it.
+    """
+    _cut(h, r, was)
+    i = _idx(h)
+    for sym in _syms(r):
+        lst = i.setdefault((None, sym), [])
+        lo, hi = 0, len(lst)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if lst[mid].at < r.at:
+                lo = mid + 1
+            else:
+                hi = mid
+        lst.insert(lo, r)
+
+
+def find(h, caller, sym):
+    i = _idx(h)
+    best = None
+    for key in view.keys(h, caller):
+        lst = i.get((key, sym))
+        if lst and (best is None or lst[0].at < best.at):
+            best = lst[0]
+    return best

@@ -245,6 +245,12 @@ Estimated solves out of 8 after the re-attack: 3 (honest range 2 to 5), unchange
 | Docker oracle/nop | BLOCKED | image pull denied by the egress policy in this session |
 | `harbor check` rubric | not run | harbor is not installed in this environment |
 
+## Rejections and what fixed them
+
+| Date | Gate | Verdict | Fix |
+|---|---|---|---|
+| 2026-09-09 | Bundle structure | `ARTIFACT-PARENT-NOT-CREATED - TESTS/DOCKERFILE`: "tests/Dockerfile never creates /app/link" | The directory was created, by `RUN useradd ... && mkdir -p /app/link /work /logs/verifier`. The platform reads whole instructions and wants the mkdir to be the instruction, so each parent now has its own `RUN mkdir -p` line, as the retained bundles have. `scripts/preflight.py` was matching `mkdir` anywhere in the file and passed the rejected shape; it now requires the instruction to begin with `RUN mkdir` or `WORKDIR`, was confirmed to fire on the exact Dockerfile that was rejected, and is clean on all ten bundles. The `CHEAT-DIR-PRESENT` warning in the same report is informational and expected. |
+
 ## Open questions and next steps
 
 Two-container gates on a machine with a reachable registry, and the platform's own probes. The

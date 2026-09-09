@@ -768,10 +768,15 @@ def check_artifact_parents(root: Path, cfg: dict) -> None:
         if parent in ("/", ""):
             continue
         # `mkdir -p /app/data` and `WORKDIR /app/data` also create /app, so match the
-        # parent as a path prefix in any mkdir or WORKDIR instruction.
+        # parent as a path prefix. The instruction has to BEGIN with mkdir or WORKDIR,
+        # though: the platform's own structural check reads whole instructions, and it
+        # rejected a bundle on 2026-09-09 whose mkdir was real but sat in a `&&`
+        # continuation of a `RUN useradd`. The directory existed; the check still failed,
+        # so this one is deliberately as strict as theirs rather than as strict as Docker.
         escaped = re.escape(parent)
         created = re.search(
-            rf"(mkdir\s[^\n]*{escaped}(?=[\s/]|$))|(^\s*WORKDIR\s+{escaped}(?=[\s/]|$))",
+            rf"(^\s*RUN\s+mkdir\s[^\n]*{escaped}(?=[\s/]|$))"
+            rf"|(^\s*WORKDIR\s+{escaped}(?=[\s/]|$))",
             body,
             re.MULTILINE,
         )

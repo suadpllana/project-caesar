@@ -14,6 +14,8 @@ Project Caesar AI passed:
 - `alias-settle-report`
 - `note-carry-forward`
 - `focus-return-point`
+- `sheet-block-place`
+- `move-clash-merge`
 
 Human passed:
 

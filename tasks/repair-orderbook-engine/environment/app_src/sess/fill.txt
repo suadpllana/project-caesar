@@ -1,0 +1,9 @@
+pace fill
+cap 4
+mark 100
+new 1 1 s 101 7 2 day -
+new 2 2 s 103 5 2 day -
+new 3 3 b 104 3 - whole 102
+new 4 4 s 101 4 - day 101
+new 5 5 b 104 9 - whole -
+pull 2

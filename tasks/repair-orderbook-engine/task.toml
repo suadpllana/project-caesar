@@ -1,0 +1,167 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/eng/take.py",
+  "/app/eng/shown.py",
+  "/app/eng/hand.py",
+  "/app/eng/hold.py",
+  "/app/eng/trip.py",
+]
+
+[task]
+name = "afterquery/repair-orderbook-engine"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+A matching-engine engineer would perform this repair while comparing execution and
+failure-isolation policies in an exchange simulator. The session data is synthetic and
+constructed to exercise interacting matching rules and workload shapes; it is not a
+recording of customer orders or production trading activity.
+
+The matching rules interact through the last fill price, price queues and parked orders.
+A same-participant cancellation removes liquidity without moving the last price; an empty
+level left behind by a user cancellation is not a live barrier. Hidden remainder can
+become available through repeated disclosure, but each disclosure changes queue priority.
+
+All-or-nothing admission is where the first coherent plan goes wrong. The shipped module
+decides admission with a read-only count and then walks, and the natural repair keeps
+that shape: count under order pace, execute and roll back under fill pace, and put
+everything back when the order comes up short. Under these rules a whole order finds out
+by walking whether it is short, and a firing caused by one of its fills is the one effect
+its failure does not reverse. A counted admission fires nothing on a walk that would have
+failed; a transaction that restores the parked set fires it and then takes it back. Both
+agree with the rules on every session where nothing parked sits in the failed walk's
+path, so they survive ordinary testing and a self-written reference built on the same
+reading. The set that stays fired spans nesting: an order fired inside a child the failed
+order ran, whether that child succeeded or failed, is announced and run again after the
+enclosing cancellation, in arrival order, from its full size, and is run once more when
+the next enclosing order fails. Bookkeeping that closes with its frame loses exactly
+those.
+
+Two execution policies make the same rules produce different traces. In order pace,
+fired orders wait until the current order finishes, so what a failed whole fired joins
+the end of the waiting queue. In fill pace, they run before the parent continues and can
+remove liquidity it needed or add liquidity that was absent at entry, and what a failed
+whole fired runs before anything that was waiting on it. These are simulator rules, not
+a claim that a live venue can reverse published trades.
+
+The original large session families put pressure on different straightforward
+implementations. One combines many parked orders with many small fills. The other
+combines a large remote book with repeated whole orders near the touch. Scanning every
+parked order on every fill and copying the entire book for every admission both repeat
+work on irrelevant state. The instruction exposes the workloads and the existing
+300-second execution cutoff, without prescribing the admission method or parked-order
+data structure.
+
+The Python tree is compact. Its sparse documentation and short internal identifiers are
+deliberate, but are not a substitute for the interaction between the rules. Exact event
+and final-book comparisons reject an implementation that repairs each sample while
+losing queue order, cancellation atomicity, or deferred activation on other sessions.
+"""
+
+solution_explanation = """
+The reference restores the four incorrect decision modules and keeps the same-participant
+predicate. The walk takes only the resting order's shown quantity and measures the price
+band from the current last fill. A depleted slice is replenished and moved to the back of
+its price queue. Trigger notifications precede a disclosure caused by the same fill;
+order pace leaves fired orders on the driver's waiting queue. Fill pace executes the
+new batch after resting-order cleanup, including a batch from the parent's final fill,
+and completes each child's descendants before advancing to the next sibling.
+
+Whole orders are walked for real in both paces, inside a frame taken at entry: queue
+references and the waiting queue are copied, the last price is saved, and the values an
+execution changes are recorded in every frame open at the time. The shipped read-only
+count survives as the one refusal that needs no walk, a walk that would make no fill,
+because such a walk fires nothing and leaves nothing to restore. The parked set is not
+part of the frame. Firing records what fired into every open frame, so an outer frame
+holds what fired inside an inner one whether that inner order committed or failed. On
+failure the frame is restored, the cancellation line is printed, the frame's firings are
+announced in arrival order and then submitted again, at once under fill pace and onto the
+waiting queue under order pace. Restoration keeps the original order objects so later
+user cancellations still reach them. A failed child restores its own entry state and
+runs its own firings; a failed ancestor restores the larger subtree and runs the larger
+set.
+
+Two heaps hold parked buys and sells, with an ID map for cancellation and a separate
+arrival sequence for simultaneous firings. Eligible records are removed once, ordered
+by that sequence, and appended to the driver's pending queue. The method also handles
+non-monotonic order IDs according to the instruction's arrival-order rule.
+"""
+
+verification_explanation = """
+The verifier overlays the five declared artifacts onto a pristine engine tree and drives
+67 named sessions, 300 generated small sessions in six shaped families, 120 generated
+fill-pace sessions, four generated large sessions and one large fill-pace session. The
+generated inputs use a nonce chosen after the attempt finishes. Every ordered event row
+and final book row is compared exactly with the sealed model. The saved named-case rows
+must also agree with that model. There is no partial credit or numerical tolerance.
+
+The model uses a flat book with explicit queue sequence numbers, per-mutation undo
+records for nested whole orders, a firing log that no checkpoint truncates, and bucketed
+trigger prices found by bisection. It shares no matching code with the submitted engine.
+Arrival stamps are separate from queue priority and order IDs. Named sessions distinguish
+descendant liquidity supply and consumption, depth-first ordering, final-fill batches,
+nested restoration, later cancellations, simultaneous firing with unordered IDs, and what
+a failed whole fired: kept, announced after the cancellation line, run in arrival order
+from full size, before waiting siblings under fill pace and behind the waiting queue
+under order pace, and run again after each enclosing failure, whether the child it fired
+inside committed or failed. The must-still-work side is fenced by failed orders that made
+no fill. Twenty-one tests cover semantics, integrity and process lifecycle.
+
+Integrity checks compare immutable files and live function fingerprints, check monitored
+committed-sink entry counts against reported rows, and require the existing walk, avail,
+blocks, admit and check decisions to remain in use. The sink accepts only calls from
+the frozen emitter code; private speculative buffers are allowed. The instruction states
+that contract, and the shipped run_book.py applies the same caller check, so a row pushed
+past the emitter fails in the agent's own runs before it can fail in grading. The worker
+has a 300-second cutoff. The 900-second verifier budget additionally covers model
+execution and pytest grading.
+
+The wrapper drops worker privileges, locks the reward directory, defaults the reward
+to zero and grades afterwards as root. The worker and cleanup process must both exit
+successfully; their statuses are captured by the trusted shell and checked separately
+from the worker's report. A correct report followed by a failed process still scores
+zero. The reward is written only after every semantic, integrity and lifecycle check
+passes. The verifier produces a pytest CTRF report alongside the binary reward.
+"""
+
+category = "Software"
+subcategory = "Algorithms"
+
+tags = [
+  "order-book-matching",
+  "price-time-priority",
+  "hidden-quantity",
+  "stop-order-activation",
+  "nested-transactions",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+The demonstrated project work is analysis and repair of this Python matching-engine
+bundle: tracing disclosure priority, moving price limits, same-participant cancellation,
+whole-order admission, deferred activation and nested fill-boundary execution across
+the decision modules; comparing
+agent implementations with an independent model; and diagnosing an event-order contract
+gap from supplied execution trajectories.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

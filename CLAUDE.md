@@ -171,3 +171,33 @@ invisible to 1200 random requests until a stop pool containing the shape was add
   nine bundles. The Dockerfile now copies `app_src/` whole rather than enumerating subdirectories
   that drift. Diagnosis rule confirmed: identical failures on the oracle AND nop rows, in
   seconds, are packaging, never the task.
+
+## Lessons, measured (2026-09-09, `repair-orderbook-engine`)
+
+- **A trap that fails correct agents is not difficulty, and it hides that the task has none.**
+  The bundle (then `slice-trip-fill`) passed the easiness probe and failed the run audit on
+  `task specification` 5/8 and `difficulty crux` 5/8: five agents had the engine right and died
+  on an undocumented sink rule (`out.sink(row)` instead of `out.row(*row)`), three scored 1. Eight
+  of eight had formed the correct plan. Documenting the rule, and making the shipped
+  `run_book.py` refuse the same call, sent the next easiness probe to 3/3 in 7-15 tool calls.
+  Read a run audit's "correct semantics, failed on X" rows as an easiness result in disguise:
+  the realised solve rate is the semantic one, and the trap was doing the task's work.
+- **A self-written reference finds implementation slips, never a wrong reading.** All three
+  solvers built a deep-copy reference from the brief and fuzzed thousands of sessions; the
+  reference encodes the same reading as the engine it checks. The repair had to be a rule the
+  default reading gets wrong (firings survive a failed whole's restoration), because more cases
+  cannot catch a reading both sides share.
+- **`leakcheck` named the sentence before I suspected it.** The restoration list in the brief
+  ("the book, last price, quantities, shown amounts, queue positions...") came back verbatim in
+  trial 3's write-up: a checklist of what to snapshot. Replaced by "put everything back the way it
+  stood, with one exception"; the requirement is the same, the plan is no longer in it.
+- **Assert which case catches each reading, not just the reward.** `readings.py` refused
+  `fired-depth-one`: reward 0, but caught by the nested-failure case rather than the cascade
+  case I had named for it. The cheat modelled a different mistake than its rationale claimed
+  (firings inside a nested whole child never reach the outer frame), and that mistake had no hand
+  case of its own until the assertion failed. Renamed, and given one.
+- **The variant is where the verifier's assumptions show.** A per-mutation journal variant
+  disagreed on 150 of 1,419 sessions until it noted the queue rotation a disclosure makes and the
+  level a fired child may rest on through the frozen driver. Both are mutations the reference
+  never has to name because it snapshots whole queues; a second correct implementation is the
+  only thing that asks whether the contract is implementation-neutral.

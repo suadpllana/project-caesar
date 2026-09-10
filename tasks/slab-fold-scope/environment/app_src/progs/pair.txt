@@ -1,0 +1,12 @@
+plan a
+put a v 0 9
+push a
+plan b
+put b v 20 29
+push b
+plan c
+fold c v 0 99
+push c
+at v 5
+at v 15
+rows v

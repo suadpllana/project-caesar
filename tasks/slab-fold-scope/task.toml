@@ -1,0 +1,207 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/tab/live.py",
+  "/app/tab/lay.py",
+  "/app/tab/wipe.py",
+  "/app/tab/mark.py",
+  "/app/tab/take.py",
+  "/app/tab/push.py",
+]
+
+[task]
+name = "afterquery/slab-fold-scope"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is close to what the shipped service already is, and most of it is right. A
+bucket is a list of slabs with their ranges; a push copies the bucket, runs the parts against
+the copy in order, and keeps it. Which slabs a fold may re-pack comes from a stamp recorded
+when the slab was made, compared with the proposal's base. Every one of those is a structure,
+and each is right until a fold's reach has to be settled.
+
+A fold re-packs only the slabs holding nothing but what the bucket already held when the
+proposal was planned. Because a re-pack hands its keys on carrying the numbers they arrived
+with, one slab can hold keys from either side of that line, so the question is about every key
+in a slab and no stamp taken when the slab was made can answer it. The obvious repair - a first
+and a last number carried on the slab - is right until keys leave, and keys leave constantly: a
+put takes the keys it covers away from whatever slab held them, a cut removes them outright,
+and either can be a part of the very proposal being pushed. The numbers therefore live on the
+keys, and the question is asked at the moment the fold part runs rather than once per slab or
+once per proposal.
+
+The slab that does hold both is not an abort. It undoes the attempt and has the proposal
+planned again at the head and pushed once more. That rules out applying parts as they are
+decided, because a fold cannot be decided until the parts before it have run and none of those
+parts may stand if a later fold forces the second attempt. A proposal carrying two folds where
+the second is the one that trips re-packs differently under the wider base, so redoing only the
+fold that tripped is wrong, and so is keeping what the first attempt did. The slab numbering
+goes back as well, which every later at query shows.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in
+each follows from an invariant rather than a technique: two live slabs of a bucket never share
+a key, and a part touches only the range it names. Measured here against the 60 second limit
+for the whole graded set, one wide program alone takes 128 seconds with the bucket scanned once
+per part and 81 seconds with each proposal staged by copying the bucket it touches, while
+holding the live keys one key at a time runs out of the 2048 MB the task is given after 16
+seconds and never reaches the end of the import. The reference settles all 483 graded programs
+in a little over four seconds. All three of those readings produce exactly the reference's
+traces on everything they finish; the limit is the only thing that separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: an append that takes keys
+away from the slab holding them and reports only what was not live, a cut that reports what it
+took rather than the width of its range, a fold that does nothing at all when fewer than two
+slabs are in reach, and a proposal that takes no number when it creates no slab and removes no
+key - which moves every later proposal's base by one and so decides a later fold's reach. All
+six editable files ship wrong, and the only feedback a wrong structure gets is a number in a
+land line and a slab id in an at query, because a fold prints no event of its own.
+
+Identifiers are in a legacy register - `tab/`, `lay`, `wipe`, `mark`, `take`, `hold`, `over`,
+`inside`, `born`, `sid` - short but never misleading, and no name misdescribes what it holds.
+That is a choice about the register of real commit-path code rather than an obstacle: each is
+recoverable from what calls it.
+
+The programs are synthetic, in twelve families, with proposals whose bases fall behind the
+head, re-packs across an era line, parts that unmix a slab, folds reaching one slab or none,
+slabs left holding many runs, appends over ranges that are partly live, and the two scale
+families. In a working store these are rare, and they are exactly where this class of bug
+lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`live.py` holds a bucket as four lists kept in key order - the first key of every run, its last
+key, the number those keys carry, and the slab holding them - plus a live key count per slab
+and one for the bucket. Two live slabs never share a key, so the runs are disjoint and ordered:
+the runs meeting a range are one bisection away, the at query is another, and rows is a
+counter. Every change to those lists goes through a splice that first writes what it displaced
+onto a journal, and every count change writes down its old value, so an attempt is undone by
+walking the journal backwards. There is nothing else to undo, which is what makes staging cost
+the size of what a part touched instead of the size of the bucket.
+
+`wipe.py` is the cut and carries the run arithmetic: the window of runs meeting the range is
+replaced by whatever parts of them lie outside it, the keys removed are counted as they go, and
+a per-slab count reaching zero is how a slab is gone. `lay.py` is the append, which is that
+same subtraction followed by one new run - which is why what it reports is the width of its
+range less what the subtraction took.
+
+`mark.py` says what a created slab carries. A put's slab is one run whose keys carry the number
+the proposal is taking. A fold's slab is the runs it re-packs with their numbers untouched; the
+retag is the whole of it, and it is what lets a slab come to hold two eras and therefore the
+reason the reach question cannot be answered from anything recorded at creation.
+
+`take.py` is the reach. Over the runs meeting the range it sums, per slab, the keys that lie
+inside it and the least and greatest number they carry. A slab whose keys inside the range do
+not add up to its whole count has a key outside and is looked at no further. One with a number
+on each side of the base raises, and `push.py` catches that. The rest are taken when their
+greatest number is at most the base, and fewer than two of them is nothing at all.
+
+`push.py` runs the parts in order against the journal. On a raise it winds the journal back,
+puts the slab numbering back where it started, and runs them all again with the head as the
+base. The proposal takes a number only when a slab was created or a key was removed, and the
+void case winds back too, so a proposal that did nothing has done nothing.
+
+An expert works in that order because each file consumes the one before it: the index decides
+what a part can see, the arithmetic decides what a part does, what a created slab carries
+decides what a fold may reach, and the reach decides whether the proposal is pushed once or
+twice. The same contract is implemented two further ways in the authoring set - one holding a
+bucket as a dict from the first key of a run to its record beside a sorted list of first keys
+and undoing an attempt record by record, one rebuilding the window a part touched as a fresh
+list and swapping it in - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/tab/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-seven hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Four hundred and
+fifty-six further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across twelve families that concentrate staggered bases, re-packs
+across an era line, the parts that unmix a slab, folds reaching one slab or none, slabs left
+holding many runs, appends over partly live ranges, and the two scale families. A submission
+cannot have seen them, so fitting the shipped examples fails, and so does carrying an answer
+key.
+
+The fences run both ways. Re-packing too much fails `fold-era`, `own-part` and
+`mixed-elsewhere`; re-packing too little fails `fold-old-base` and `fold-keeps`. Reporting the
+width of a range fails `cut-count`; reporting nothing fails `put-add`. Adding a slab beside the
+keys already live fails `put-steal`; a fold with one slab in reach that re-packs it anyway
+fails `fold-floor`, and one that takes a slab with a key outside its range fails `fold-inside`.
+Ignoring the slab that holds both eras fails `mixed-retry`; reading era off the keys a range
+happens to show rather than off the whole slab fails `mixed-part-astride`; treating a slab that
+merely meets the range as one fails `mixed-astride`; scanning for one before the parts run
+fails `mixed-cut-unmix` and `mixed-put-unmix`; redoing only the fold that tripped fails
+`mixed-two-folds`; keeping the first attempt's slab numbers fails `mixed-number`; running the
+folds after the other parts fails `own-fold-first`. Taking a number for a proposal that did
+nothing fails `void-number` and `cut-none`.
+
+Thirty-three cheats score 0. Twenty are wrong readings, each caught by the enumerated case
+named for it. Three are exactly correct and too slow or too large: the bucket scanned once per
+part, each proposal staged by copying the bucket, and the live keys held one key at a time. One
+is a forgery carrying the frozen answers for every enumerated program, which passes all
+twenty-seven and fails on the programs it could not have seen. The other nine are probes: the
+answer key, a hijacked driver, a planted report, a report planted and the worker exited clean
+before it could be overwritten, malformed records, privilege, a shrunken population, a late
+reward, and a rewrite of the parts of the tree the verifier does not take. Two independently
+written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Data engineering"
+
+tags = [
+  "commit-validation",
+  "optimistic-concurrency",
+  "compaction-rewrites",
+  "key-provenance",
+  "interval-runs",
+  "staged-rollback",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the ingest and commit path of a partitioned store: the part that serialises
+proposals, decides what a staged change still means once somebody else has landed under it, and
+runs compaction without losing the rows that arrived while it was being planned. Familiarity
+with the fact that a rewrite is only entitled to the data it was planned against, that the
+record of when a key arrived has to survive being re-packed if that question is to stay
+answerable at all, and that a slab is not the unit the question is about. Comfort with range
+arithmetic over runs, with staging a change so it can be taken back whole, and with the
+difference between a structure that is correct and one that is affordable at the size the store
+actually runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

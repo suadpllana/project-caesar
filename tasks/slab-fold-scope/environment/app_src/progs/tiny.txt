@@ -1,0 +1,6 @@
+plan a
+put a v 0 9
+push a
+plan b
+cut b v 5 24
+push b

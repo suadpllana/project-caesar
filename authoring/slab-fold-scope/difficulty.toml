@@ -1,0 +1,199 @@
+# Difficulty record for slab-fold-scope, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/slab-fold-scope/STATE.md and is what the build has
+# to deliver. Scored with `python tools/difficultycheck.py slab-fold-scope`.
+
+[task]
+slug = "slab-fold-scope"
+status = "pending"
+sources = [
+  "tasks/slab-fold-scope/STATE.md",
+  "tasks/slab-fold-scope/task.toml",
+  "tasks/slab-fold-scope/tests/test_outputs.py docstring",
+  "authoring/slab-fold-scope/cheat_report.py output",
+]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Model the table as a dict of buckets, each a list of slabs with their key ranges, and keep a
+commit counter. On push, take a copy of the bucket, walk the proposal's parts in order
+against it, and keep the copy if nothing objected: a put drops a new slab in, a cut subtracts
+its range from every slab that overlaps it, and a fold gathers the slabs sitting inside its
+range and replaces them with one. Decide which slabs a fold may take from a per-slab stamp
+recorded when the slab was made, comparing it with the proposal's base.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A fold re-packs only the slabs that hold nothing but what the bucket already held when the
+proposal was planned, and one holding keys from both sides of that line makes the whole
+proposal be planned again at the current head and pushed a second time, with only the second
+attempt standing. So the fold's reach is a question about every key in a slab, and its answer
+is not a property the slab can be stamped with when it is made.
+"""
+second_discovery = """
+A put takes keys away from whatever slab held them and a cut removes them outright, so the
+mix of eras inside a slab changes under operations that have nothing to do with folding: a
+slab that would have forced the second attempt stops being one the moment an earlier part of
+the same proposal removes its newer keys. Any per-slab summary of era - a stamp, a first and
+last pair, a cached verdict - is stale the first time a key leaves the slab, and the parts of
+one proposal are exactly what makes keys leave.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped engine on the small program in the brief and reproduce the wrong line it names",
+  "read the frozen store to learn that a slab record carries runs and one stamp, and that a sid is minted per created slab",
+  "work out from the fold rule that era is a property of each key, not of a slab, and move the stamp onto the runs",
+  "rebuild the bucket as a run map ordered by first key so overlap, totals and the at query are logarithmic",
+  "restructure push so parts apply to a staged view with an undo journal, because the second attempt has to start from the state the proposal was pushed against",
+  "work the case where an earlier fold in the same proposal has already re-packed when a later one forces the second attempt, and redo both",
+  "generate wide programs at the stated scale and time the three families against the stated limit",
+]
+
+[search]
+best_page = """
+The concurrency-control page of a public table format, with its matrix of which concurrent
+operation invalidates which, and the rewrite-validation API that goes with it.
+"""
+helps_plan = false
+deviation = """
+That matrix aborts the loser and treats an append as always safe. Here nothing aborts: a
+rewrite narrows to the era it was planned against, an append takes keys away from the slab
+that held them and re-stamps them, and the one case that would be an abort elsewhere is
+instead a second attempt whose base has moved, which widens the same rewrite rather than
+cancelling it.
+"""
+
+[tactics]
+A1 = """
+Every retrievable account of concurrent commit validation ends in abort-and-retry against a
+conflict matrix, and an append that never conflicts. The spec inverts both: the loser widens
+instead of aborting, and the append is the operation that silently changes another slab.
+"""
+A2 = """
+The rule is stated as what the bucket already held when the proposal was planned. The words
+provenance, era, version and visibility never appear, so recognising it as a per-key
+question, and that a slab-level stamp cannot answer it, is the discovery itself.
+"""
+B2 = """
+Six rules hold at once - keys move on a put, a cut reports what it took, a fold's reach is
+decided per key, two slabs or the fold is nothing, the second attempt replaces the first
+entirely, and a proposal that creates and removes no slab takes no number - and each changes
+what another means.
+"""
+C1 = """
+Both sides are graded. A fold that re-packs a slab from the wrong era fails, and a fold that
+refuses one it should have taken fails; a cut that reports the width of its range fails and
+one that reports nothing fails; a proposal that takes a number for doing nothing shifts every
+later base and fails.
+"""
+C2 = """
+A fold prints nothing of its own and no query returns a key's stamp, so a wrong reach shows
+only in a sid printed by a later at query. The shipped engine is the only thing to compare
+against and it is wrong in six places, and the graded programs are generated from a seed
+drawn after the container is gone.
+"""
+C3 = """
+Three naive-but-correct families are measured against the stated limit: the bucket scanned
+per part, the live keys held one key at a time, and a proposal staged by copying the bucket
+it touches.
+"""
+C4 = """
+Exact traces, all-or-nothing, over enumerated programs aimed at each decision and both sides
+of each fence plus generated programs in families that concentrate staggered bases, folds
+across an era line and the parts that unmix a slab.
+"""
+guard = """
+Six files under /app/tab are editable and are the only artifacts; the driver, the op
+language, the commit log, the slab store and the trace writer are the verifier's own pristine
+copy, so the task cannot be reshaped into one the default plan handles.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "a fold's reach is decided by the era of every key in a slab", b = "a put takes keys away from the slab that held them and a cut removes them", why = "the two ordinary operations are what change a slab's mix of eras, so era cannot be settled when the slab is made and every summary of it is stale as soon as a key leaves" },
+  { a = "the second attempt replaces the first entirely", b = "parts apply in order to the state the earlier parts left", why = "a fold cannot be decided without applying the parts before it, and none of those parts may stand if a later fold forces the second attempt, so the engine has to stage and undo rather than apply as it goes" },
+  { a = "a proposal that creates and removes no slab takes no number", b = "a fold compares key stamps with the proposal's base", why = "whether a number is spent moves every later proposal's base, so the era test on a fold turns on a rule about an unrelated proposal that did nothing" },
+  { a = "a put re-stamps the keys it takes", b = "a fold preserves the stamps of the keys it re-packs", why = "the put is the only operation that moves a key forward in era, so which keys a later fold may take is decided by a put that ran against a different bucket state entirely" },
+  { a = "the bucket index has to answer overlap in logarithmic time", b = "an undone attempt has to leave the bucket exactly as it was", why = "the cheap undo is a journal of the spans a part touched, which exists only if the index is the structure that records them, so the performance decision and the atomicity decision are one structure" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A proposal planned against an old base whose range has since been re-packed by somebody else
+must still commit and must still re-pack, and a fold with two ordinary slabs in reach must
+produce one slab; an implementation that turns conservative and refuses whenever the range
+changed since the base fails both.
+"""
+late_case = """
+A proposal plans, a second proposal puts keys inside its range, a third folds that range so
+the new keys and the old ones end up in one slab, and only then does the first push: the slab
+holding both eras appears three commits after the proposal was planned, and forces a second
+attempt whose wider base changes the reach of a fold that already ran earlier in the same
+proposal.
+"""
+oracle_denied = """
+The only local check is the shipped engine, which is wrong in six places at once, so agreeing
+with it proves nothing. A fold emits no event, key stamps cannot be queried, and the trace
+carries proposal-level totals rather than per-part results, so a wrong reach is invisible
+until a later at query in a program the agent did not write.
+"""
+
+[leaks]
+candidates = [
+  { what = "the per-slab born field the shipped engine records", closed_by = "it is the shipped mechanism and is wrong; the correct answer needs an era per key, which that field cannot hold, and nothing in the tree derives one from the other" },
+  { what = "a query returning the stamp or the era of a key", closed_by = "no such query exists in the op language; era is observable only through which slabs a fold re-packs, and only through the sid a later at query prints" },
+  { what = "the example programs shipped under /app/progs", closed_by = "they exercise the op language and the one wrong line the brief names; none of them contains a slab holding two eras, or a part that unmixes one" },
+  { what = "the number of slabs a fold replaced, or a per-part result line", closed_by = "the trace prints one line per proposal carrying keys added and keys removed, both of which a fold leaves unchanged" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+A slab record stores its runs and nothing computed from them: no key count, no era, no
+in-reach flag, no count of the slabs a fold would take. Bucket totals, reach and the era of a
+slab are all derived at the moment they are asked for.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Three families that are each exactly correct: the bucket held as a list of slabs and scanned
+per part, the live keys held one key at a time in a set, and a proposal staged by copying the
+bucket before its parts run so that an undone attempt can be restored.
+"""
+invariant = """
+Two slabs in a bucket never share a key and a part touches only the range it names, so the
+bucket is a run map ordered by first key, overlap is a bisection, and one journal of the
+spans a part touched is a whole proposal's staging.
+"""
+input_scale = "60000 slabs and 24 million keys in one bucket, 20000 proposals against it"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a fold re-packs every slab inside its range", hand_case = "a proposal planned before a put inside its range, folding after that put lands" },
+  { reading = "era is a stamp taken when the slab is made", hand_case = "a fold whose output holds keys from two commits, re-packed again by a proposal planned before the later of them" },
+  { reading = "era is a first and last pair kept on the slab", hand_case = "a slab holding two eras whose newer keys an earlier part of the same proposal cuts away" },
+  { reading = "the second attempt only redoes the fold that forced it", hand_case = "a proposal with two folds where the second forces the attempt and the first re-packed a slab the wider base changes" },
+  { reading = "a put drops a slab in beside the keys already live", hand_case = "a put over a range half of which is already live, then a rows query on the bucket" },
+  { reading = "a cut reports the width of its range", hand_case = "a cut over a range where only part of the keys are live, then the same cut again" },
+  { reading = "a fold with one slab in reach re-packs it anyway", hand_case = "a fold over a range holding exactly one slab, then an at query naming its sid" },
+  { reading = "every pushed proposal takes a number", hand_case = "a fold that reaches nothing between two proposals whose bases straddle it" },
+  { reading = "the second attempt keeps the effects of the first", hand_case = "a proposal whose put and cut ran before a fold forced the attempt" },
+  { reading = "mixedness is scanned for once before the parts run", hand_case = "a proposal whose first part cuts the newer keys out of the slab its second part folds" },
+]
+correct_variants = [
+  "a run map keyed by first key with the era carried inside each run and an explicit undo journal",
+  "immutable per-bucket tuples of runs rebuilt for the ranges a part touches and swapped in on commit, with the attempt discarded by dropping the rebuilt tuple",
+  "era carried in a parallel structure keyed by run start rather than inside the run, with the bucket index holding only sids",
+]
+
+[shape]
+environment_py_lines = 430
+editable_files = 6
+reference_lines = 320

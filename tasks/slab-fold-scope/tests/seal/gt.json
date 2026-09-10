@@ -1,0 +1,254 @@
+{
+ "cut-count": [
+  "land a 1 10 0",
+  "land b 2 0 5",
+  "rows v 5"
+ ],
+ "cut-empty": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 0 10",
+  "at v 5 none",
+  "at v 25 2",
+  "rows v 10"
+ ],
+ "cut-none": [
+  "land a 1 10 0",
+  "void b",
+  "land c 2 10 0",
+  "rows v 20"
+ ],
+ "cut-twice": [
+  "land a 1 10 0",
+  "land b 2 0 5",
+  "void c",
+  "rows v 5"
+ ],
+ "fold-era": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 10 0",
+  "land y 4 0 0",
+  "at v 5 4",
+  "at v 25 4",
+  "at v 45 3"
+ ],
+ "fold-floor": [
+  "land a 1 10 0",
+  "void z",
+  "at v 5 1",
+  "land b 2 10 0"
+ ],
+ "fold-hole": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 0 0",
+  "at v 5 3",
+  "at v 15 none",
+  "at v 25 3",
+  "rows v 20"
+ ],
+ "fold-inside": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 10 0",
+  "land d 4 0 0",
+  "at v 5 4",
+  "at v 15 4",
+  "at v 25 3"
+ ],
+ "fold-keeps": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land e 3 10 0",
+  "land d 4 0 0",
+  "land y 5 0 0",
+  "at v 5 5",
+  "at v 25 5",
+  "at v 65 5"
+ ],
+ "fold-old-base": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 10 0",
+  "land d 4 0 0",
+  "void y",
+  "at v 5 4",
+  "at v 25 4",
+  "at v 105 3"
+ ],
+ "fold-plain": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 0 0",
+  "at v 5 3",
+  "at v 25 3",
+  "rows v 20"
+ ],
+ "mixed-astride": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 10 0",
+  "land d 4 0 0",
+  "land e 5 10 0",
+  "void y",
+  "at v 5 1",
+  "at v 35 5",
+  "at v 65 4",
+  "at v 155 4"
+ ],
+ "mixed-cut-unmix": [
+  "land a 1 10 0",
+  "land e 2 10 0",
+  "land b 3 10 0",
+  "land c 4 0 0",
+  "land d 5 10 0",
+  "land y 6 0 10",
+  "at v 5 6",
+  "at v 25 none",
+  "at v 65 6",
+  "at v 85 5",
+  "rows v 30"
+ ],
+ "mixed-elsewhere": [
+  "land a 1 10 0",
+  "land e 2 10 0",
+  "land b 3 10 0",
+  "land c 4 10 0",
+  "land f 5 10 0",
+  "land g 6 0 0",
+  "land y 7 0 0",
+  "at v 5 7",
+  "at v 25 4",
+  "at v 45 7",
+  "at v 205 6"
+ ],
+ "mixed-number": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 10 0",
+  "land d 4 10 0",
+  "land e 5 10 0",
+  "land f 6 0 0",
+  "land y 7 10 0",
+  "at v 205 7",
+  "at v 105 6"
+ ],
+ "mixed-part-astride": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 10 0",
+  "land d 4 0 0",
+  "land e 5 10 0",
+  "land f 6 10 0",
+  "void y",
+  "at v 25 4",
+  "at v 45 6",
+  "at v 65 4",
+  "at v 85 5",
+  "at v 155 4"
+ ],
+ "mixed-put-unmix": [
+  "land a 1 10 0",
+  "land e 2 10 0",
+  "land b 3 10 0",
+  "land c 4 0 0",
+  "land d 5 10 0",
+  "land y 6 0 0",
+  "at v 5 7",
+  "at v 25 6",
+  "at v 65 7",
+  "at v 85 5",
+  "rows v 40"
+ ],
+ "mixed-retry": [
+  "land a 1 10 0",
+  "land e 2 10 0",
+  "land b 3 10 0",
+  "land c 4 0 0",
+  "at v 5 4",
+  "at v 65 2",
+  "land y 5 0 0",
+  "at v 5 5",
+  "at v 25 5",
+  "at v 65 5",
+  "rows v 30"
+ ],
+ "mixed-two-folds": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land c 3 10 0",
+  "land d 4 10 0",
+  "land e 5 10 0",
+  "land f 6 10 0",
+  "land g 7 0 0",
+  "land y 8 0 0",
+  "at v 5 8",
+  "at v 25 8",
+  "at v 35 8",
+  "at v 105 7",
+  "at v 145 7"
+ ],
+ "own-buckets": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land y 3 10 5",
+  "rows v 20",
+  "rows w 5",
+  "at v 5 1",
+  "at w 3 2"
+ ],
+ "own-fold-first": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land y 3 0 0",
+  "at v 5 4",
+  "at v 25 3",
+  "rows v 20"
+ ],
+ "own-part": [
+  "land a 1 10 0",
+  "land b 2 10 0",
+  "land y 3 10 0",
+  "at v 5 4",
+  "at v 25 4",
+  "at v 45 3"
+ ],
+ "put-add": [
+  "land a 1 20 0",
+  "land b 2 0 0",
+  "rows v 20",
+  "at v 5 2",
+  "at v 12 1"
+ ],
+ "put-fresh": [
+  "land a 1 20 0",
+  "rows v 20",
+  "at v 0 1",
+  "at v 19 1",
+  "at v 20 none"
+ ],
+ "put-refill": [
+  "land a 1 20 0",
+  "land b 2 4 10",
+  "rows v 14",
+  "at v 6 none",
+  "at v 9 2",
+  "at v 12 none"
+ ],
+ "put-steal": [
+  "land a 1 20 0",
+  "land b 2 10 0",
+  "rows v 30",
+  "at v 5 1",
+  "at v 15 2",
+  "at v 25 2"
+ ],
+ "void-number": [
+  "land a 1 10 0",
+  "void z",
+  "land b 2 10 0",
+  "land y 3 0 0",
+  "at v 5 3"
+ ]
+}

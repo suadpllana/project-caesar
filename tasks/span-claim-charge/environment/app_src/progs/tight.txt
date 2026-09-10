@@ -1,0 +1,14 @@
+dev 12
+n a
+w a/f 0 5
+w a/g 0 7
+f
+w a/f 0 5
+w a/g 3 4
+s a/g 0 2 a/g 5
+f
+w a/g 0 7
+m a/g
+f
+w a/h 0 1
+c a

@@ -299,3 +299,45 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-10, `span-claim-charge` easiness recovery)
+
+The easiness probe solved the uploaded bundle 2 of 3. Both solvers formed the whole plan from the
+first read of the tree and wrote all five files before running a program; the failure was a
+misreading of one rule (`g` over a set as the spans every named line stands on), not a planning
+failure. The lessons are from the diagnosis and the rebuild.
+
+- **A shipped tree can carry the plan in its data model even when every function is wrong.**
+  The shipped `Span` had the reference's two indexes (`on`, the claims; `by`, a count per line),
+  `tally` had the spans-per-line set and the `gain`/`lose` hooks, and `item` had the
+  cut/pull/lay/holes/sole skeleton; the reference was about a hundred lines of diff away, and all
+  three agents kept the structure and repaired the functions. The `difficulty_explanation`
+  claimed the first plan was "a reference count on each span" - a prior the shipped tree never
+  made anyone fight. Ship the coherent wrong model (one count per span, charges walked on demand)
+  and the structure has to be designed, not fixed. Check what the shipped record can *express*
+  before claiming a discovery: if the shipped structure can already represent the right answer,
+  the discovery is a patch.
+- **`leakcheck` names the sentences the solvers quoted back, and they were the process
+  narration.** "So a write can land on the ground it just freed" and "is judged against the free
+  total that release produces" appeared verbatim in two of three transcripts. The rule stays
+  (the doctrine forbids hiding it) but is stated once, as the observable, without the
+  restatement; the refutation clause ("a span two lines reach is exclusive to neither of them
+  while ... four claims of its own ...") names the wrong reading and goes. After the rewrite the
+  check finds nothing above the floor in any trial.
+- **A scale boundary has to be swept, not set, and the sweep can find a second fast path.** The
+  first `tree` shape had the family walk at 8 s per program against a 60 s limit for the whole
+  set - alive. Six shapes later the walk is 42 s per program. Along the way a table keyed by each
+  span's standing set turned out to scale only about twice as badly as the reference at every
+  shape, because the tree's branching bounds the number of distinct standing sets at about 1,300
+  whatever the write count. It cannot be killed without killing the reference, so it is a
+  correct variant (`ok-keys`) and the metadata says the fast path is one of two. Measure every
+  alternative you can think of, and when one survives, promote it rather than pretending.
+- **The queries a scale family exists for are not the only queries in it.** With 250 questions
+  per stamp, ten per cent of them `g` over three random lines cost the reference 3 to 4 seconds
+  per program - more than the family question the family was built to time - because `g` walks
+  the named lines' spans by design. Twenty seconds of the reference's 29 were that. Cut to two
+  per cent. Time the reference per command kind before blaming the mechanism under test.
+- **A background daemon started from a tool shell dies with the shell.** `dockerd` started with
+  a bare `nohup ... &` was gone by the time the image build ran; `setsid nohup ... < /dev/null &`
+  survives. The build reported "cannot connect to the Docker daemon" rather than anything about
+  the task - identical failures on unrelated rows, in seconds, are infrastructure.

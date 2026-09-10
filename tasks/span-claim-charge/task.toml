@@ -1,0 +1,242 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/store/dev.py",
+  "/app/store/hold.py",
+  "/app/store/item.py",
+  "/app/store/line.py",
+  "/app/store/tally.py",
+]
+
+[task]
+name = "afterquery/span-claim-charge"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The store is small and every rule is in the brief. What is not in the brief is which of the
+structures the rules seem to ask for survive all of them at once, and that is the work.
+
+The shipped store is the design a copy-on-write allocator is remembered as: one reference
+count on each span, a list of claims per item, allocate and then splice on a write, the
+charges added up from the claims when asked, and a family - a line with everything stamped
+from it - answered by walking the stamp records and adding its members up. It runs every
+shipped program and it is wrong in four places that only show up together. The rules ask two
+different questions of the same claims. The write path asks whether the block under it carries
+a second claim, which a span carrying two claims of one item answers yes and a span carrying
+one claim of each of two lines also answers yes. The charge side asks which lines stand on the
+span, which the first of those answers with one line and the second with two. A count per
+span answers neither, so the span record is designed rather than repaired: the write path
+needs the claim ranges on a span, the charge side needs the set of lines on it, and the limit
+forbids deriving either by walking the claims.
+
+The second finding is the family. A family's referenced space counts a span once however many
+of its lines stand there, and its exclusive space is the spans nothing outside the family
+stands on, so neither number is a sum over the members and neither is the origin's own; a
+stamp collapses the origin's exclusive space and leaves its family's untouched. The graded
+tree programs ask the family question thirty-three thousand times of two hundred and forty
+lines standing on two hundred thousand spans while lines are dropped and their stamps handed up to
+the origin, so a walk over the family's spans is over the limit by itself and a running total
+per line cannot answer a question about a set. What survives is a derivation about the stamp
+tree: a span belongs to a family's exclusive space exactly when the deepest line all its
+standing lines descend from is inside the family, and to its referenced space exactly when
+some standing line is, and both can be carried against the tree and moved, not recomputed,
+when a dropped line hands its stamps to its origin. A table keyed by each span's standing set
+is the other structure that survives the limit, and it is a correct variant, not the
+reference.
+
+The third finding reorders the write path rather than adding a case to it. The fresh blocks
+are taken only after that same write has dropped the claims it replaces and released whatever
+spans that emptied; on a full device a rewrite of an item nobody else stands on has to
+succeed, which means the room check is against the free total the release will produce and
+not the one standing when the command arrives. The run shape at that instant decides how many
+spans the write becomes, because a request no single run holds takes the largest run whole
+and goes on from what is left, so the claims a write leaves are not one per stretch and not
+one per piece: a stretch can straddle two pieces and a piece can serve two stretches.
+
+Around those sit rules that each invalidate a structure rather than a line. A span never
+splits, so overwriting the middle of an item frees nothing and the free map is a function of
+span lifetimes and not of byte ranges. A stamp puts a second line on every span the origin
+stood on. Defragmenting an item that nobody else stands on lands back on its own blocks and
+defragmenting a stamped one cannot. Freed by dropping a set of lines is not the sum of what
+each owns alone. A name made again after a drop is a new line, so the tree cannot be keyed by
+name. Every one of those changes the addresses the next command sees, so a wrong reading does
+not move one field: the tail of the program diverges.
+
+Four exactly-correct methods are over the stated limit against 60 seconds for the whole graded
+set: the family's spans walked per question, the line charge added up per question, the best
+fit found by scanning the free runs, and the in-place test decided from every item's claims.
+TIMING-TBD. All four produce the reference's traces exactly; the limit is the only thing that
+separates them. Two further correct stores written on different structures also pass.
+
+Identifiers are in a legacy register - `spot`, `spare`, `refs`, `kin`, `cl`, `ats`, `store/`,
+`base/` - short but never misleading, and no name misdescribes what it holds. That is a choice
+about the register of real storage code rather than an obstacle: each is recoverable from what
+calls it.
+
+The programs are synthetic, in eleven families, concentrating writes that land where they
+stand, a device with nothing to spare, a free map cut into runs, stamping and dropping, ranges
+shared until several claims stand on one block, defragmenting shared and unshared items, sets
+of lines, and stamp trees that lose lines and share across families, all far above their
+natural rate. A census of unshaped programs put the room check at one per cent and an
+allocation spread across runs at three; in a working store these are rare, and they are
+exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Five modules, settled in the order the rules force rather than one that is tidy.
+
+`hold.py` gives each span two indexes over the claims standing on it, because the rules ask
+two different questions. `on` is the claims themselves, which is what the write path needs: to
+decide a range it takes the other claims' windows on that span, unions them, and what is left
+of the range is what may be rewritten where it stands. `by` is a count per line, which is what
+the charge side needs: a line stands on a span while its count is above zero, and the span is
+exclusive to it while `by` holds one line. A span goes back to the free map when `on` is
+empty, which is why overwriting the middle of an item frees nothing.
+
+`tally.py` carries every charge forward instead of recounting it. The two line numbers move
+only where a line's count on a span leaves or reaches zero, so the span table calls in at
+exactly those moments and the totals move by that span's length. The family numbers are
+carried against the stamp tree from the same two moments: each span keeps a count per line
+above a standing line of how many standing lines descend from it, and the deepest line whose
+count is the whole standing set, which is the first such line on any standing line's way to
+the root. A span lies in a family's exclusive space exactly when that line is inside the
+family, so each line keeps the spans it is that line for and the same summed over everything
+stamped from it, and in a family's referenced space exactly when the count names the family's
+line, so each line keeps that total too. A question reads two numbers. When a line is dropped
+the spans it was the deepest common line of go to its origin, which is where that line now
+sits, and its stamps go with them.
+
+`line.py` is the line table and the stamp tree, kept on line records rather than by name,
+because a dropped name can come back as a line that stands alone. A stamp copies each item's
+claims onto the new line, registering every copy, which is what collapses the origin's own
+exclusive space and leaves its family's where it was; a drop rips them, sweeps, and hands the
+stamps up.
+
+`item.py` is the write path, in the order the rules impose. It settles the range one block at a
+time into stretches that stay and stretches that are fresh, counts what the fresh ones need,
+works out which spans the replacement would empty and checks the room against that total,
+drops the replaced claims so those spans go back, takes the blocks, and only then lays them
+over the fresh stretches in item order, walking pieces and stretches together so a stretch
+can straddle two pieces. Cutting a claim at a boundary keeps the span reference for the part
+that survives. The picture an item prints runs adjacent claims together, so where an
+implementation happened to cut is not observable.
+
+`dev.py` keeps the free runs in the two orders they are asked for: a start map with the starts
+in address order, for the neighbours a release has to merge with, and the lengths with their
+starts in length order, so the smallest run that fits is a bisection.
+
+An expert works in that order because each module consumes the one before it: the span table
+decides what sharing means, sharing decides the charges and the write path, the write path
+decides what the allocator is asked for, and the allocator decides where everything lands
+next. The same contract is settled two further ways in the authoring set - one storing an item
+as an entry per block so nothing has to be split, with the free map indexed by run length and
+the family read off the sorted stamp paths of the standing lines, and one keeping the claims
+but answering the family from a table keyed by each span's standing set - so the shape is
+visibly not what is graded. The sealed model is the per-block one, and its family derivation
+is not the reference's: it takes the longest common prefix of the first and last stamp paths
+on a span, skipping dropped lines, and counts what a family stands on through the paths of
+neighbouring standing lines rather than through a count per ancestor.
+"""
+
+verification_explanation = """
+Only the five files under `/app/store/` are taken from the agent. The verifier lays them over
+its own pristine copy of the tree, so nothing else the agent may have touched can change what
+a program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Fifty-nine hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Four hundred and
+fourteen further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across eleven families that concentrate in-place rewrites, a
+device with nothing to spare, a fragmented free map, stamping and dropping, overlapping
+shares, defragmenting, sets of lines, stamp trees that lose lines and share across families,
+and three sizes that exist for the execution limit. A submission cannot have seen them, so
+fitting the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Copying on every write fails `keep-sole` and `keep-mixed`; rewriting
+in place when a second claim stands on the block fails `keep-shared` and `keep-self`.
+Releasing a span when the claim over it is replaced fails `span-hold`; never releasing fails
+`span-back` and `merge-runs`. Allocating before the release fails `reuse-own`, and checking
+the room before it fails `room-after`, while `room-short` fails a store that stops refusing at
+all. Taking the first run that fits fails `alloc-fit`, breaking a tie high fails `alloc-best`
+and `alloc-low`, refusing a request no single run holds fails `alloc-split`, and one piece per
+stretch fails `lay-straddle`. Charging a line for the blocks it claims fails `ref-whole`;
+charging it once per claim fails `ref-once`; calling a span exclusive because one claim stands
+on it fails `excl-claims`, and because one line does fails `excl-lines`. A stamp that leaves
+the origin exclusive fails `stamp-collapse`, and freed-by-dropping as a sum of exclusives, or
+as the spans every named line stands on, fails `gone-set`. Answering the family from the line
+alone fails `fam-stamp`; a family's exclusive space as the sum of its members' fails
+`fam-sum`, and its referenced space as the sum of theirs fails the same program; letting a
+dropped line's stamps fall out of the family it came from fails `fam-orphan`, while
+`fam-root` holds a store to stamps that stand alone when their origin came from none;
+forgetting what a dropped line was the common line of fails `fam-split`; a family answered
+from the line alone with no stamps must still equal `c`, which `fam-leaf` holds; a line outside
+the family on a span fails `fam-foreign` when it is still counted as exclusive; a name made
+again after a drop that inherits the old stamps fails `fam-reuse`. Defragmenting before the
+release fails `vac-room`, and going ahead when the release would still leave it short fails
+`vac-short`. Printing the coverage where the claims happen to be cut fails `chart-merge`, and
+printing anything after the size of an empty item fails `chart-empty`.
+
+Fifty-two cheats score 0. Thirty-six are wrong readings, and an enumerated case separates
+every one of them. Four are exactly correct and over the limit - the family's spans walked per
+question, the line charge added up per question, the best fit found by scanning, and the
+in-place test taken from every item's claims. One is a forgery carrying the frozen answers for
+all fifty-nine enumerated programs, which passes every one of them and fails on the generated
+programs it could not have seen. The other eleven are probes: the answer key, a planted record,
+a record forged after the worker exits, a grader crash, malformed output, a late reward, a
+shrunken exam, a hijacked reader, a rewrite of the frozen half of the tree, a hunt for the
+grading process, and privilege. Two correct stores written on other structures score 1.
+
+The submitted store runs unprivileged, in its own session, under the wall clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Algorithms"
+
+tags = [
+  "copy-on-write",
+  "extent-allocation",
+  "best-fit-allocator",
+  "space-accounting",
+  "snapshot-lineage",
+]
+
+expert_time_estimate_hours = 12
+
+relevant_experience = """
+Having built or maintained the allocation and accounting half of a copy-on-write block store:
+something that hands out extents from a free map, lets several volumes stand on the same extent,
+decides whether a write can be taken in place or has to be copied, and has to say what a volume is
+using and what dropping it would give back. Familiarity with the fact that an extent is charged
+whole however little of it a volume still references, that a reference count cannot tell sharing
+within a volume from sharing between volumes, and that defragmenting a snapshotted file unshares
+it and costs space rather than saving it. Comfort with the order a write has to take when the
+blocks it frees are the blocks it needs, with the difference between the free map's address
+order and its length order, and with what a volume together with all of its snapshots costs
+when the snapshots keep being taken and deleted.
+"""
+
+[verifier]
+timeout_sec = 1800.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

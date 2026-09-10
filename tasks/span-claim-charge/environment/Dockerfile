@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=0
+
+RUN mkdir -p /app
+
+COPY app_src/ /app/
+
+WORKDIR /app

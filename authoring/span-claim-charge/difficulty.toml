@@ -1,0 +1,218 @@
+# Difficulty record for span-claim-charge, written during the easiness recovery of
+# 2026-09-10, before any code of the recovery existed. Every claim here is restated in
+# tasks/span-claim-charge/STATE.md and is what the build has to deliver. Scored with
+# `python tools/difficultycheck.py span-claim-charge`.
+
+[task]
+slug = "span-claim-charge"
+status = "pending"
+sources = [
+  "tasks/span-claim-charge/STATE.md",
+  "tasks/span-claim-charge/task.toml",
+  "tasks/span-claim-charge/tests/test_outputs.py docstring",
+  "probes/span-claim-charge/notes.md",
+  "authoring/span-claim-charge/cheat_report.py output",
+]
+expert_hours = 12
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep one reference count on every span and a list of claims per item. A write allocates its
+fresh blocks first and splices them in, releasing any span whose count reaches zero; a block is
+rewritten in place when its span carries one claim. Charges are added up when asked by walking
+the line's claims, exclusive being the spans with one claim, and a family is answered by
+walking the stamp records and adding its members' charges up.
+"""
+first_plan_source = "tree"
+breaking_rule = """
+A block is rewritten where it stands exactly when no claim but the one covering it stands on
+that block of its span, a second claim of the same item counting, while referenced space counts
+a span once however many claims a line holds on it and exclusive space is the part no other line
+stands on; a count per span answers neither question, because two claims of one item and one
+claim each of two lines are the same count.
+"""
+second_discovery = """
+The family questions - what a line together with everything stamped from it stands on, and
+what nothing outside that set stands on - are asked thousands of times against thousands of
+spans while lines are dropped and their stamps handed up to the origin, so neither a running
+total per line nor a walk over the family's spans survives: each span has to carry its standing
+set against the stamp tree, as the deepest line every standing line descends from and a count
+per ancestor, and a drop has to move those summaries rather than recompute them.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped store on the small program and reproduce the wrong free total the brief names",
+  "read the frozen driver and the five modules and notice that one count per span cannot say who stands on it",
+  "give the span record the claims on it and a count per line, and derive the in-place test and both charges as running totals from those",
+  "reorder the write path so the replaced claims go first and the room is judged after that release, laying one allocation across the fresh stretches",
+  "index the free runs by length beside the address order so best fit and largest-first are bisections",
+  "record the stamp tree on line records that survive a reused name, and hand stamps up to the origin on a drop",
+  "answer the family questions by walking, time the tree family, then replace the walk with per-span summaries kept against the tree",
+  "re-time both scale families and the whole graded set against the stated limit",
+]
+
+[search]
+best_page = """
+The quota-group and snapshot accounting pages of the public copy-on-write filesystems, which
+define referenced and exclusive space for a subvolume and for a group of subvolumes.
+"""
+helps_plan = false
+deviation = """
+Those pages define the two quantities and settle them at commit time by walking back references;
+nothing there gives a per-block in-place test that counts claims of the same item, a room check
+made against the total a write's own release produces, a largest-run fallback laid across
+stretches, or a way to keep a family's two numbers current when a dropped line's stamps are
+handed up to its origin.
+"""
+
+[tactics]
+A1 = """
+The retrievable model of a copy-on-write allocator is one reference count per extent with
+per-volume totals added up from it, and that is exactly the shipped store; it is wrong about
+the in-place test, about the charges, about the order of a write on a full device and about what
+a drop does to the stamps hanging off the dropped line.
+"""
+A2 = """
+The family is described as a line together with every line stamped from it, and from those in
+turn; the words snapshot tree, hierarchy, lowest common ancestor, subtree sum and back reference
+never appear, so recognising the fast path as a question about the tree is the discovery.
+"""
+A3 = """
+Exact charges on every command, a family question that cannot be walked at the stated scale,
+and drops that move spans between families have no single retrievable structure that gives all
+three; the two-index span record answers the first, and only summaries kept against the tree
+answer the other two.
+"""
+B2 = """
+Twenty graded decisions across five modules, where the in-place test and the charges read the
+same claims differently, the room check depends on a release that has not happened, a stamp
+moves the line charge and the family charge in opposite directions, and a drop moves spans
+between families.
+"""
+C1 = """
+Both sides of every fence are enumerated: a store that copies on every write fails and one that
+rewrites a shared block in place fails; a family answered from the line alone fails and one
+answered as the sum of members fails; a dropped line's stamps kept in the origin's family is
+graded against stamps orphaned by a root's drop.
+"""
+C2 = """
+The shipped store is wrong in nine places at once, so agreeing with it proves nothing; the eight
+shipped programs contain no drop of a stamped line, no share across families and no family
+question after a drop; the graded programs are generated from a seed drawn after the agent's
+container is gone.
+"""
+C3 = """
+Four naive-but-correct families are measured against the stated limit: the family's spans
+walked per question, the line charge recounted per question, the best fit found by scanning the
+free runs, and the in-place test decided from every item's claims.
+"""
+C4 = """
+Exact traces compared line for line, all-or-nothing, over enumerated programs aimed at each
+decision and both sides of each fence, plus nonce programs in eleven families that concentrate
+in-place rewrites, a full device, a fragmented free map, stamping and dropping, shares across
+families and the family questions at scale.
+"""
+guard = """
+Five files under /app/store are editable and are the only artifacts; the driver, the op set,
+the program reader and the trace writer are the verifier's own pristine copy, so the task cannot
+be reshaped into one the default plan handles.
+"""
+
+[decisions]
+graded = 20
+interactions = [
+  { a = "a block is rewritten in place when no claim but the one covering it stands on that block", b = "exclusive space is the part of a line's spans no other line stands on", why = "the same claims answer two different questions and one count per span answers neither, because two claims of one item and one claim each of two lines are the same count" },
+  { a = "inside one write the replaced claims go before the allocation", b = "the room is checked against the free total the write's own release produces", why = "the spans the release will empty have to be found before anything moves, so the room check is a derivation over claims that are still standing" },
+  { a = "a request no run holds takes the largest run whole and goes on", b = "one allocation is laid over the fresh stretches in item order", why = "the run shape at the instant of allocation decides how many pieces a write becomes and a stretch can straddle two of them" },
+  { a = "a stamp collapses the origin's exclusive space", b = "a stamp leaves the origin's family charge where it was", why = "the same event moves the line charge and the family charge in opposite directions, so the family charge cannot be derived from the line charges" },
+  { a = "a dropped line's stamps count as stamped from the line it came from", b = "a family's exclusive space is the spans whose whole standing set lies inside the family", why = "spans standing on two stamps of the dropped line belong to the origin's family afterwards, so whatever a span carries about its standing set has to move up the tree rather than be recomputed" },
+  { a = "a line outside the family standing on a span removes it from the family's exclusive space", b = "a family's referenced space counts a span once however many members stand on it", why = "one share moves the exclusive number of every family on the path and none of the referenced numbers, so the two family quantities need two different summaries" },
+  { a = "a name made again after a drop is a new line standing alone", b = "the stamp tree decides which family a span's standing set belongs to", why = "the tree has to be keyed on line identity rather than on the name the programs use" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+The family charge of a line with no stamps equals its own charge, the family charge of a leaf
+equals its own charge, and a stamp of a leaf leaves the origin's family charge exactly where it
+was; a solution that answers the family from the line alone, or reports the family's exclusive
+space as the sum of the members', fails these plain programs.
+"""
+late_case = """
+A chain of four stamps diverges at different depths, the two middle lines are dropped one after
+the other so the spans standing on their stamps move up the tree twice, then a share puts a line
+from another family onto one of those spans, and only then are the family questions asked.
+"""
+oracle_denied = """
+The shipped store is wrong in nine places at once, so agreeing with it proves nothing; the
+shipped programs contain no drop of a stamped line, no share across families and no family
+question after a drop; a brute-force model written from the brief is right and does not
+transfer to the structure the stated limit needs.
+"""
+
+[leaks]
+candidates = [
+  { what = "the shipped span record", closed_by = "it carries a start, a length and one reference count; nothing per line and nothing per block, so the two-index record has to be designed rather than repaired" },
+  { what = "the shipped stamp record in line.py", closed_by = "a name-keyed parent map, which is the primitive the family rule needs; it is wrong about drops and about a reused name and derives nothing" },
+  { what = "the shipped programs under /app/progs", closed_by = "they exercise the op language and the one wrong number the brief names; none drops a line that has stamps, shares across families or asks a family question after a drop" },
+  { what = "a per-span standing set, deepest common line or per-family total", closed_by = "none ships; the shipped tally walks claims when asked and the shipped family walks the parent map when asked" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+A span stores its start, its length and its claims; a line stores the line it was stamped from
+and its items; no standing set, no deepest common line, no per-family total and no per-line
+running total ships, and every one of them is derived by the reference and by the model at run
+time.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Four families that are each exactly correct: the line charge recounted by walking the line's
+claims per question, the family charge found by walking the family's spans per question, the
+best fit found by scanning the free runs, and the in-place test decided from every item's
+claims.
+"""
+invariant = """
+The two line charges move only when a line's count on a span leaves or reaches zero, and a span
+lies in a family's exclusive space exactly when the deepest line all its standing lines descend
+from is inside the family and in its referenced space exactly when some standing line is, so
+both are summaries kept against the stamp tree and updated by the claim events themselves.
+"""
+input_scale = "sixteen thousand items on a device of 262144 blocks with eighteen thousand questions; two hundred and forty stamps of a line of nine hundred items with thirty-three thousand family questions; a free map cut into sixteen thousand runs with fifty thousand writes against it; three programs of each shape"
+limit_seconds = 60
+measured = false
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a block is rewritten in place when its span carries one claim", hand_case = "keep-sole and keep-self: two claims of one item on one span, then a write over the first" },
+  { reading = "the fresh blocks are taken before the replaced claims go back", hand_case = "reuse-own: a full device and a rewrite of an item nobody else stands on" },
+  { reading = "the room is judged against the free total when the command arrives", hand_case = "room-after: a full device, a shared item, a write over its unshared half" },
+  { reading = "referenced space is the blocks the line claims", hand_case = "ref-whole: a share of three blocks out of a ten-block span" },
+  { reading = "a span is exclusive when one claim stands on it", hand_case = "excl-claims: an item sharing a range with itself" },
+  { reading = "freed by dropping a set is the sum of what each owns alone", hand_case = "gone-set: two stamps of one line, one diverged" },
+  { reading = "the first run that fits is taken", hand_case = "alloc-fit: a small run behind a large one" },
+  { reading = "a request no single run holds is refused", hand_case = "alloc-split: two runs of six and two, a request for eight" },
+  { reading = "each fresh stretch gets one piece", hand_case = "lay-straddle: two stretches over one piece and a stretch across two" },
+  { reading = "a family's exclusive space is the sum of the members' exclusive space", hand_case = "fam-sum: two stamps diverged on different items" },
+  { reading = "a family's referenced space is the sum of the members' referenced space", hand_case = "fam-sum: the same program, the referenced number" },
+  { reading = "a family question is the line's own charge", hand_case = "fam-stamp: a stamp, then the origin asked" },
+  { reading = "a dropped line's stamps fall out of the origin's family", hand_case = "fam-orphan: a chain of three, the middle dropped, the root asked" },
+  { reading = "a dropped root's stamps keep sharing a family", hand_case = "fam-root: two stamps of a root, the root dropped, each stamp asked" },
+  { reading = "the per-span summary is not moved when a line is dropped", hand_case = "fam-split: two sibling stamps share a span their origin left, then the origin is dropped" },
+  { reading = "a name made again after a drop is the old line", hand_case = "fam-reuse: drop a root, make the name again, ask both" },
+  { reading = "the family is walked per question", hand_case = "the tree family, against the stated limit" },
+]
+correct_variants = [
+  "one entry per block per item, the free map indexed by run length, the family settled from the sorted stamp paths of the standing lines with dropped lines skipped",
+  "claims kept and spliced, the in-place test from per-block hit counts, the family settled by a count per ancestor on each span and the deepest line with a full count",
+]
+
+[shape]
+environment_py_lines = 623
+editable_files = 5
+reference_lines = 716

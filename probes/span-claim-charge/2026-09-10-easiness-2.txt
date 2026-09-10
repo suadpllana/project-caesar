@@ -1,0 +1,1411 @@
+Agent trajectory
+
+span-claim-charge__anBj9Vm
+
+9 steps · 7 tool calls
+
+[the instruction, pasted at the top of the transcript, is removed here]
+
+
+I'll start by reading the store code and running the tiny program.
+
+Bash(ls -R . | head -50 && wc -l store/*.py run_store.py && cat run_store.py && cat progs/tiny.txt && python3 run_s…)
+
+.:
+base
+ops.py
+progs
+run_store.py
+store
+
+./base:
+__init__.py
+box.py
+feed.py
+text.py
+
+./progs:
+churn.txt
+frag.txt
+pair.txt
+tight.txt
+tiny.txt
+vac.txt
+weave.txt
+wide.txt
+
+./store:
+__init__.py
+dev.py
+hold.py
+item.py
+line.py
+tally.py
+    0 store/__init__.py
+   48 store/dev.py
+   66 store/hold.py
+  239 store/item.py
+   46 store/line.py
+   47 store/tally.py
+   14 run_store.py
+  460 total
+import sys
+
+from base import feed
+
+
+def main():
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        raw = fh.read().splitlines()
+    for row in feed.run(raw):
+        print(row)
+
+
+if __name__ == "__main__":
+    main()
+dev 32
+n a
+w a/f 0 8
+w a/g 0 2
+s a/f 0 2 a/g 0
+c a
+w a/f 4 2
+m a/f
+f
+dev 32
+n a
+w a/f new=8 keep=0 rel=0
+w a/g new=2 keep=0 rel=0
+s a/g rel=2
+c a ref=10 excl=0
+w a/f new=2 keep=0 rel=0
+m a/f size=8 0:0+0:4 4:8+0:2 6:0+6:2
+f free=22 runs=1 big=22
+
+[stdout]
+.:
+base
+ops.py
+progs
+run_store.py
+store
+
+./base:
+__init__.py
+box.py
+feed.py
+text.py
+
+./progs:
+churn.txt
+frag.txt
+pair.txt
+tight.txt
+tiny.txt
+vac.txt
+weave.txt
+wide.txt
+
+./store:
+__init__.py
+dev.py
+hold.py
+item.py
+line.py
+tally.py
+    0 store/__init__.py
+   48 store/dev.py
+   66 store/hold.py
+  239 store/item.py
+   46 store/line.py
+   47 store/tally.py
+   14 run_store.py
+  460 total
+import sys
+
+from base import feed
+
+
+def main():
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        raw = fh.read().splitlines()
+    for row in feed.run(raw):
+        print(row)
+
+
+if __name__ == "__main__":
+    main()
+dev 32
+n a
+w a/f 0 8
+w a/g 0 2
+s a/f 0 2 a/g 0
+c a
+w a/f 4 2
+m a/f
+f
+dev 32
+n a
+w a/f new=8 keep=0 rel=0
+w a/g new=2 keep=0 rel=0
+s a/g rel=2
+c a ref=10 excl=0
+w a/f new=2 keep=0 rel=0
+m a/f size=8 0:0+0:4 4:8+0:2 6:0+6:2
+f free=22 runs=1 big=22
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cat store/dev.py store/hold.py store/tally.py store/line.py store/item.py)
+
+def setup(st):
+    st.spot = {}
+    st.atlist = []
+    st.spare = 0
+    if st.blocks:
+        st.spot[0] = st.blocks
+        st.atlist.append(0)
+        st.spare = st.blocks
+
+
+def give(st, at, wide):
+    st.spare += wide
+    tail = at + wide
+    if tail in st.spot:
+        wide += st.spot.pop(tail)
+        st.atlist.remove(tail)
+    st.spot[at] = wide
+    i = 0
+    while i < len(st.atlist) and st.atlist[i] < at:
+        i += 1
+    st.atlist.insert(i, at)
+
+
+def take(st, want):
+    for at in st.atlist:
+        wide = st.spot[at]
+        if wide >= want:
+            del st.spot[at]
+            st.atlist.remove(at)
+            if wide > want:
+                st.spot[at + want] = wide - want
+                i = 0
+                while i < len(st.atlist) and st.atlist[i] < at + want:
+                    i += 1
+                st.atlist.insert(i, at + want)
+            st.spare -= want
+            return [(at, want)]
+    return None
+
+
+def stat(st):
+    if not st.atlist:
+        return (0, 0, 0)
+    big = 0
+    for at in st.atlist:
+        if st.spot[at] > big:
+            big = st.spot[at]
+    return (st.spare, len(st.atlist), big)
+from store import dev, tally
+
+
+class Span:
+    __slots__ = ("at", "wide", "on", "by")
+
+    def __init__(self, at, wide):
+        self.at = at
+        self.wide = wide
+        self.on = {}
+        self.by = {}
+
+
+class Claim:
+    __slots__ = ("own", "at", "sp", "off", "wide")
+
+    def __init__(self, own, at, sp, off, wide):
+        self.own = own
+        self.at = at
+        self.sp = sp
+        self.off = off
+        self.wide = wide
+
+
+def setup(st):
+    return None
+
+
+def add(st, cl):
+    sp = cl.sp
+    sp.on[cl] = True
+    seen = sp.by.get(cl.own.line, 0)
+    sp.by[cl.own.line] = seen + 1
+    if not seen:
+        tally.gain(st, cl.own.line, sp)
+
+
+def rip(st, cl):
+    sp = cl.sp
+    del sp.on[cl]
+    left = sp.by[cl.own.line] - 1
+    if left:
+        sp.by[cl.own.line] = left
+    else:
+        del sp.by[cl.own.line]
+        tally.lose(st, cl.own.line, sp)
+    return sp
+
+
+def sweep(st, touched):
+    rel = 0
+    done = set()
+    for sp in touched:
+        if sp in done:
+            continue
+        done.add(sp)
+        if not sp.on:
+            dev.give(st, sp.at, sp.wide)
+            rel += sp.wide
+    return rel
+
+
+def bare(cl, lo, hi):
+    if len(cl.sp.on) == 1:
+        return [(lo, hi)]
+    return []
+def setup(st):
+    st.ref = {}
+    st.excl = {}
+    st.own = {}
+
+
+def start(st, name):
+    st.ref[name] = 0
+    st.excl[name] = 0
+    st.own[name] = set()
+
+
+def end(st, name):
+    del st.ref[name]
+    del st.excl[name]
+    del st.own[name]
+
+
+def gain(st, name, sp):
+    st.own[name].add(sp)
+
+
+def lose(st, name, sp):
+    st.own[name].discard(sp)
+
+
+def charge(st, name):
+    if name not in st.own:
+        return "nosuch"
+    ref = 0
+    excl = 0
+    for sp in st.own[name]:
+        for cl in sp.on:
+            if cl.own.line == name:
+                ref += cl.wide
+        if len(sp.on) == 1:
+            excl += sp.wide
+    return (ref, excl)
+
+
+def gone(st, names):
+    rel = 0
+    for name in names:
+        if name not in st.own:
+            return "nosuch"
+        rel += charge(st, name)[1]
+    return (rel,)
+from store import hold, item, tally
+
+
+def setup(st):
+    st.lines = {}
+
+
+def fresh(st, name):
+    if name in st.lines:
+        return "dup"
+    st.lines[name] = {}
+    tally.start(st, name)
+    return None
+
+
+def stamp(st, src, dst):
+    if src not in st.lines:
+        return "nosuch"
+    if dst in st.lines:
+        return "dup"
+    st.lines[dst] = {}
+    tally.start(st, dst)
+    kit = st.lines[dst]
+    for nm, it in st.lines[src].items():
+        twin = item.Item(dst)
+        twin.size = it.size
+        for cl in it.cl:
+            copy = hold.Claim(twin, cl.at, cl.sp, cl.off, cl.wide)
+            twin.cl.append(copy)
+            twin.ats.append(cl.at)
+            hold.add(st, copy)
+        kit[nm] = twin
+    return (len(kit),)
+
+
+def drop(st, name):
+    if name not in st.lines:
+        return "nosuch"
+    for it in st.lines[name].values():
+        for cl in it.cl:
+            hold.rip(st, cl)
+        it.cl = []
+        it.ats = []
+    del st.lines[name]
+    tally.end(st, name)
+    return (0,)
+import bisect
+
+from store import dev, hold
+
+
+class Item:
+    __slots__ = ("line", "size", "cl", "ats")
+
+    def __init__(self, line):
+        self.line = line
+        self.size = 0
+        self.cl = []
+        self.ats = []
+
+
+def setup(st):
+    return None
+
+
+def _get(st, ln, nm):
+    kit = st.lines.get(ln)
+    if kit is None:
+        return None
+    return kit.get(nm)
+
+
+def _cut(st, it, at):
+    i = bisect.bisect_right(it.ats, at) - 1
+    cl = it.cl[i]
+    if cl.at == at:
+        return
+    left = at - cl.at
+    tail = hold.Claim(it, at, cl.sp, cl.off + left, cl.wide - left)
+    cl.wide = left
+    it.cl.insert(i + 1, tail)
+    it.ats.insert(i + 1, at)
+    hold.add(st, tail)
+
+
+def _pull(st, it, lo, hi, touched):
+    if lo >= hi:
+        return
+    if lo:
+        _cut(st, it, lo)
+    if hi < it.size:
+        _cut(st, it, hi)
+    i = bisect.bisect_left(it.ats, lo)
+    j = bisect.bisect_left(it.ats, hi)
+    for cl in it.cl[i:j]:
+        touched.append(hold.rip(st, cl))
+    del it.cl[i:j]
+    del it.ats[i:j]
+
+
+def _lay(st, it, gaps, spans):
+    made = []
+    k = 0
+    off = 0
+    for lo, hi in gaps:
+        left = hi - lo
+        cur = lo
+        while left:
+            sp = spans[k]
+            step = sp.wide - off
+            if step > left:
+                step = left
+            cl = hold.Claim(it, cur, sp, off, step)
+            made.append(cl)
+            hold.add(st, cl)
+            cur += step
+            off += step
+            left -= step
+            if off == sp.wide:
+                k += 1
+                off = 0
+    for cl in made:
+        i = bisect.bisect_left(it.ats, cl.at)
+        it.cl.insert(i, cl)
+        it.ats.insert(i, cl.at)
+
+
+def _holes(at, end, keep):
+    out = []
+    pos = at
+    for a, b in keep:
+        if a > pos:
+            out.append((pos, a))
+        pos
+… [clipped]
+collapse
+Bash(cat base/feed.py base/box.py base/text.py; head -30 progs/*.txt | head -150; wc -l progs/*)
+
+from base import box, text
+import ops
+
+
+def clean(raw):
+    out = []
+    for row in raw:
+        row = row.split("#")[0].strip()
+        if row:
+            out.append(row)
+    return out
+
+
+def run(raw):
+    rows = clean(raw)
+    acc = []
+    head = rows[0].split()
+    blocks = int(head[1])
+    st = box.Store(blocks)
+    acc.append(text.dev(blocks))
+    for row in rows[1:]:
+        ops.ex(st, tuple(row.split()), acc)
+    return acc
+from store import dev, hold, item, line, tally
+
+
+class Store:
+    def __init__(self, blocks):
+        self.blocks = blocks
+        dev.setup(self)
+        hold.setup(self)
+        tally.setup(self)
+        line.setup(self)
+        item.setup(self)
+def dev(blocks):
+    return "dev %d" % blocks
+
+
+def fresh(name):
+    return "n %s" % name
+
+
+def stamp(name, items):
+    return "p %s items=%d" % (name, items)
+
+
+def drop(name, rel):
+    return "d %s rel=%d" % (name, rel)
+
+
+def write(who, new, keep, rel):
+    return "w %s new=%d keep=%d rel=%d" % (who, new, keep, rel)
+
+
+def share(who, rel):
+    return "s %s rel=%d" % (who, rel)
+
+
+def trim(who, rel):
+    return "t %s rel=%d" % (who, rel)
+
+
+def erase(who, rel):
+    return "x %s rel=%d" % (who, rel)
+
+
+def vac(who, new, rel):
+    return "v %s new=%d rel=%d" % (who, new, rel)
+
+
+def charge(name, ref, excl):
+    return "c %s ref=%d excl=%d" % (name, ref, excl)
+
+
+def gone(names, rel):
+    return "g %s rel=%d" % (names, rel)
+
+
+def room(total, runs, big):
+    return "f free=%d runs=%d big=%d" % (total, runs, big)
+
+
+def chart(who, size, bits):
+    head = "m %s size=%d" % (who, size)
+    if not bits:
+        return head
+    return head + " " + " ".join("%d:%d+%d:%d" % b for b in bits)
+
+
+def bad(cmd, who, code):
+    if who is None:
+        return "%s err=%s" % (cmd, code)
+    return "%s %s err=%s" % (cmd, who, code)
+==> progs/churn.txt <==
+dev 262144
+n a
+w a/i0 0 4
+w a/i1 0 4
+w a/i2 0 4
+w a/i3 0 4
+w a/i4 0 4
+w a/i5 0 4
+w a/i6 0 4
+w a/i7 0 4
+w a/i8 0 4
+w a/i9 0 4
+w a/i10 0 4
+w a/i11 0 4
+w a/i12 0 4
+w a/i13 0 4
+w a/i14 0 4
+w a/i15 0 4
+w a/i16 0 4
+w a/i17 0 4
+w a/i18 0 4
+w a/i19 0 4
+w a/i20 0 4
+w a/i21 0 4
+w a/i22 0 4
+w a/i23 0 4
+w a/i24 0 4
+w a/i25 0 4
+w a/i26 0 4
+w a/i27 0 4
+
+==> progs/frag.txt <==
+dev 40
+n a
+w a/f 0 4
+w a/g 0 3
+w a/h 0 4
+w a/i 0 3
+w a/j 0 6
+x a/g
+x a/i
+x a/j
+f
+w a/k 0 9
+m a/k
+f
+w a/l 0 2
+m a/l
+f
+
+==> progs/pair.txt <==
+dev 48
+n a
+w a/f 0 6
+w a/g 0 4
+c a
+p a b
+c a
+c b
+w b/f 2 2
+c a
+c b
+m a/f
+m b/f
+g a
+g a,b
+d b
+c a
+f
+
+==> progs/tight.txt <==
+dev 12
+n a
+w a/f 0 5
+w a/g 0 7
+f
+w a/f 0 5
+w a/g 3 4
+s a/g 0 2 a/g 5
+f
+w a/g 0 7
+m a/g
+f
+w a/h 0 1
+c a
+
+==> progs/tiny.txt <==
+dev 32
+n a
+w a/f 0 8
+w a/g 0 2
+s a/f 0 2 a/g 0
+c a
+w a/f 4 2
+m a/f
+f
+
+==> progs/vac.txt <==
+dev 40
+n a
+w a/f 0 5
+w a/g 0 5
+w a/h 0 5
+x a/g
+f
+v a/h
+m a/h
+f
+p a b
+v a/f
+m a/f
+c a
+c b
+f
+
+==> progs/weave.txt <==
+dev 40
+n a
+n b
+w a/f 0 10
+s a/f 0 4 a/f 6
+m a/f
+w a/f 6 2
+m a/f
+s a/f 2 4 b/g 0
+c a
+c b
+w a/f 2 4
+c a
+c b
+g a
+g b
+g a,b
+f
+
+==> progs/wide.txt <==
+dev 262144
+n a
+w a/i0 0 4
+w a/i1 0 4
+w a/i2 0 4
+w a/i3 0 4
+w a/i4 0 4
+w a/i5 0 4
+w a/i6 0 4
+w a/i7 0 4
+w a/i8 0 4
+w a/i9 0 4
+w a/i10 0 4
+ 108025 progs/churn.txt
+     17 progs/frag.txt
+     18 progs/pair.txt
+     14 progs/tight.txt
+      9 progs/tiny.txt
+     16 progs/vac.txt
+     18 progs/weave.txt
+  42341 progs/wide.txt
+ 150458 total
+
+[stdout]
+from base import box, text
+import ops
+
+
+def clean(raw):
+    out = []
+    for row in raw:
+        row = row.split("#")[0].strip()
+        if row:
+            out.append(row)
+    return out
+
+
+def run(raw):
+    rows = clean(raw)
+    acc = []
+    head = rows[0].split()
+    blocks = int(head[1])
+    st = box.Store(blocks)
+    acc.append(text.dev(blocks))
+    for row in rows[1:]:
+        ops.ex(st, tuple(row.split()), acc)
+    return acc
+from store import dev, hold, item, line, tally
+
+
+class Store:
+    def __init__(self, blocks):
+        self.blocks = blocks
+        dev.setup(self)
+        hold.setup(self)
+        tally.setup(self)
+        line.setup(self)
+        item.setup(self)
+def dev(blocks):
+    return "dev %d" % blocks
+
+
+def fresh(name):
+    return "n %s" % name
+
+
+def stamp(name, items):
+    return "p %s items=%d" % (name, items)
+
+
+def drop(name, rel):
+    return "d %s rel=%d" % (name, rel)
+
+
+def write(who, new, keep, rel):
+    return "w %s new=%d keep=%d rel=%d" % (who, new, keep, rel)
+
+
+def share(who, rel):
+    return "s %s rel=%d" % (who, rel)
+
+
+def trim(who, rel):
+    return "t %s rel=%d" % (who, rel)
+
+
+def erase(who, rel):
+    return "x %s rel=%d" % (who, rel)
+
+
+def vac(who, new, rel):
+    return "v %s new=%d rel=%d" % (who, new, rel)
+
+
+def charge(name, ref, excl):
+    return "c %s ref=%d excl=%d" % (name, ref, excl)
+
+
+def gone(names, rel):
+    return "g %s rel=%d" % (names, rel)
+
+
+def room(total, runs, big):
+    return "f free=%d runs=%d big=%d" % (total, runs, big)
+
+
+def chart(who, size, bits):
+    head = "m %s size=%d" % (who, size)
+    if not bits:
+        return head
+    return head + " " + " ".join("%d:%d+%d:%d" % b for b in bits)
+
+
+def bad(cmd, who, code):
+    if who is None:
+        return "%s err=%s" % (cmd, code)
+    return "%s %s err=%s" % (cmd, who, code)
+==> progs/churn.txt <==
+dev 262144
+n a
+w a/i0 0 4
+w a/i1 0 4
+w a/i2 0 4
+w a/i3 0 4
+w a/i4 0 4
+w a/i5 0 4
+w a/i6 0 4
+w a/i7 0 4
+w a/i8 0 4
+w a/i9 0 4
+w a/i10 0 4
+w a/i11 0 4
+w a/i12 0 4
+w a/i13 0 4
+w a/i14 0 4
+w a/i15 0 4
+w a/i16 0 4
+w a/i17 0 4
+w a/i18 0 4
+w a/i19 0 4
+w a/i20 0 4
+w a/i21 0 4
+w a/i22 0 4
+w a/i23 0 4
+w a/i24 0 4
+w a/i25 0 4
+w a/i26 0 4
+w a/i27 0 4
+
+==> progs/frag.txt <==
+dev 40
+n a
+w a/f 0 4
+w a/g 0 3
+w a/h 0 4
+w a/i 0 3
+w a/j 0 6
+x a/g
+x a/i
+x a/j
+f
+w a/k 0 9
+m a/k
+f
+w a/l 0 2
+m a/l
+f
+
+==> progs/pair.txt <==
+dev 48
+n a
+w a/f 0 6
+w a/g 0 4
+c a
+p a b
+c a
+c b
+w b/f 2 2
+c a
+c b
+m a/f
+m b/f
+g a
+g a,b
+d b
+c a
+f
+
+==> progs/tight.txt <==
+dev 12
+n a
+w a/f 0 5
+w a/g 0 7
+f
+w a/f 0 5
+w a/g 3 4
+s a/g 0 2 a/g 5
+f
+w a/g 0 7
+m a/g
+f
+w a/h 0 1
+c a
+
+==> progs/tiny.txt <==
+dev 32
+n a
+w a/f 0 8
+w a/g 0 2
+s a/f 0 2 a/g 0
+c a
+w a/f 4 2
+m a/f
+f
+
+==> progs/vac.txt <==
+dev 40
+n a
+w a/f 0 5
+w a/g 0 5
+w a/h 
+… [clipped]
+collapse
+Bash(cat ops.py; tail -20 progs/wide.txt; sed -n 16000,16040p progs/churn.txt; tail -5 progs/churn.txt; grep -v '^w…)
+
+from base import text
+from store import dev, item, line, tally
+
+
+def _pair(word):
+    ln, _, nm = word.partition("/")
+    return ln, nm
+
+
+def ex(st, parts, acc):
+    cmd = parts[0]
+    if cmd == "n":
+        who = parts[1]
+        res = line.fresh(st, who)
+        acc.append(text.bad(cmd, who, res) if res else text.fresh(who))
+    elif cmd == "p":
+        who = parts[2]
+        res = line.stamp(st, parts[1], who)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.stamp(who, res[0]))
+    elif cmd == "d":
+        who = parts[1]
+        res = line.drop(st, who)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.drop(who, res[0]))
+    elif cmd == "w":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.write(st, ln, nm, int(parts[2]), int(parts[3]))
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.write(who, res[0], res[1], res[2]))
+    elif cmd == "s":
+        who = parts[4]
+        sl, sn = _pair(parts[1])
+        dl, dn = _pair(who)
+        res = item.share(st, sl, sn, int(parts[2]), int(parts[3]), dl, dn, int(parts[5]))
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.share(who, res[0]))
+    elif cmd == "t":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.trim(st, ln, nm, int(parts[2]))
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.trim(who, res[0]))
+    elif cmd == "x":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.erase(st, ln, nm)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.erase(who, res[0]))
+    elif cmd == "v":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.vac(st, ln, nm)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.vac(who, res[0], res[1]))
+    elif cmd == "c":
+        who = parts[1]
+        res = tally.charge(st, who)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.charge(who, res[0], res[1]))
+    elif cmd == "g":
+        who = parts[1]
+        res = tally.gone(st, who.split(","))
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.gone(who, res[0]))
+    elif cmd == "f":
+        res = dev.stat(st)
+        acc.append(text.room(res[0], res[1], res[2]))
+    elif cmd == "m":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.chart(st, ln, nm)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.chart(who, res[0], res[1]))
+    else:
+        acc.append(text.bad(cmd, None, "form"))
+c b
+w a/i11804 2 2
+c b
+c a
+c b
+c a
+c b
+c a
+w a/i7618 2 2
+c a
+c b
+c a
+c b
+c a
+c b
+w a/i956 1 2
+g a,b
+c a
+c b
+f
+w a/i15997 0 4
+w a/i15998 0 4
+w a/i15999 0 4
+w a/i16000 0 4
+w a/i16001 0 4
+w a/i16002 0 4
+w a/i16003 0 4
+w a/i16004 0 4
+w a/i16005 0 4
+w a/i16006 0 4
+w a/i16007 0 4
+w a/i16008 0 4
+w a/i16009 0 4
+w a/i16010 0 4
+w a/i16011 0 4
+w a/i16012 0 4
+w a/i16013 0 4
+w a/i16014 0 4
+w a/i16015 0 4
+w a/i16016 0 4
+w a/i16017 0 4
+w a/i16018 0 4
+w a/i16019 0 4
+w a/i16020 0 4
+w a/i16021 0 4
+w a/i16022 0 4
+w a/i16023 0 4
+w a/i16024 0 4
+w a/i16025 0 4
+w a/i16026 0 4
+w a/i16027 0 4
+w a/i16028 0 4
+w a/i16029 0 4
+w a/i16030 0 4
+w a/i16031 0 4
+w a/i16032 0 4
+w a/i16033 0 4
+w a/i16034 0 4
+w a/i16035 0 4
+w a/i16036 0 4
+w a/i16037 0 4
+w a/j49999 0 1
+x a/j49997
+f
+f
+c a
+     22 f
+      1 x a/j9997
+      1 x a/j9992
+      1 x a/j9987
+      1 x a/j9982
+      1 x a/j9977
+      1 x a/j9972
+      1 x a/j997
+      1 x a/j9967
+      1 x a/j9962
+
+[stdout]
+from base import text
+from store import dev, item, line, tally
+
+
+def _pair(word):
+    ln, _, nm = word.partition("/")
+    return ln, nm
+
+
+def ex(st, parts, acc):
+    cmd = parts[0]
+    if cmd == "n":
+        who = parts[1]
+        res = line.fresh(st, who)
+        acc.append(text.bad(cmd, who, res) if res else text.fresh(who))
+    elif cmd == "p":
+        who = parts[2]
+        res = line.stamp(st, parts[1], who)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.stamp(who, res[0]))
+    elif cmd == "d":
+        who = parts[1]
+        res = line.drop(st, who)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.drop(who, res[0]))
+    elif cmd == "w":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.write(st, ln, nm, int(parts[2]), int(parts[3]))
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.write(who, res[0], res[1], res[2]))
+    elif cmd == "s":
+        who = parts[4]
+        sl, sn = _pair(parts[1])
+        dl, dn = _pair(who)
+        res = item.share(st, sl, sn, int(parts[2]), int(parts[3]), dl, dn, int(parts[5]))
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.share(who, res[0]))
+    elif cmd == "t":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.trim(st, ln, nm, int(parts[2]))
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.trim(who, res[0]))
+    elif cmd == "x":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.erase(st, ln, nm)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.erase(who, res[0]))
+    elif cmd == "v":
+        who = parts[1]
+        ln, nm = _pair(who)
+        res = item.vac(st, ln, nm)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.vac(who, res[0], res[1]))
+    elif cmd == "c":
+        who = parts[1]
+        res = tally.charge(st, who)
+        acc.append(text.bad(cmd, who, res) if isinstance(res, str)
+                   else text.charge(who, res[0], res[1]))
+    elif cmd == "g":
+        who = parts[1]
+        res
+… [clipped]
+collapse
+Thinking…
+I've identified several spec deviations in the current code: take-before-release in writes, a whole-span "bare" test, right-only free-map coalescing, drop reporting 0, and charges recomputed via scanning. Now I'll rewrite the five store modules to align with the spec while preserving the interfaces `ops.py` and `box.py` rely on.
+
+Bash({"command":"cat > store/dev.py <<'EOF'\nimport bisect\n\n\ndef setup(st):\n st.spot = {} # start -> width\n st…)
+
+== tiny
+dev 32
+n a
+w a/f new=8 keep=0 rel=0
+w a/g new=2 keep=0 rel=0
+s a/g rel=2
+c a ref=8 excl=8
+w a/f new=0 keep=2 rel=0
+m a/f size=8 0:0+0:8
+f free=24 runs=1 big=24
+== tight
+dev 12
+n a
+w a/f new=5 keep=0 rel=0
+w a/g new=7 keep=0 rel=0
+f free=0 runs=0 big=0
+w a/f new=0 keep=5 rel=0
+w a/g new=0 keep=4 rel=0
+s a/g rel=0
+f free=0 runs=0 big=0
+w a/g err=noroom
+m a/g size=7 0:5+0:5 5:5+0:2
+f free=0 runs=0 big=0
+w a/h err=noroom
+c a ref=12 excl=12
+== frag
+dev 40
+n a
+w a/f new=4 keep=0 rel=0
+w a/g new=3 keep=0 rel=0
+w a/h new=4 keep=0 rel=0
+w a/i new=3 keep=0 rel=0
+w a/j new=6 keep=0 rel=0
+x a/g rel=3
+x a/i rel=3
+x a/j rel=6
+f free=32 runs=2 big=29
+w a/k new=9 keep=0 rel=0
+m a/k size=9 0:11+0:9
+f free=23 runs=2 big=20
+w a/l new=2 keep=0 rel=0
+m a/l size=2 0:4+0:2
+f free=21 runs=2 big=20
+== pair
+dev 48
+n a
+w a/f new=6 keep=0 rel=0
+w a/g new=4 keep=0 rel=0
+c a ref=10 excl=10
+p b items=2
+c a ref=10 excl=0
+c b ref=10 excl=0
+w b/f new=2 keep=0 rel=0
+c a ref=10 excl=0
+c b ref=12 excl=2
+m a/f size=6 0:0+0:6
+m b/f size=6 0:0+0:2 2:10+0:2 4:0+4:2
+g a rel=0
+g a,b rel=12
+d b rel=2
+c a ref=10 excl=10
+f free=38 runs=1 big=38
+== vac
+dev 40
+n a
+w a/f new=5 keep=0 rel=0
+w a/g new=5 keep=0 rel=0
+w a/h new=5 keep=0 rel=0
+x a/g rel=5
+f free=30 runs=2 big=25
+v a/h new=5 rel=5
+m a/h size=5 0:5+0:5
+f free=30 runs=1 big=30
+p b items=2
+v a/f new=5 rel=0
+m a/f size=5 0:10+0:5
+c a ref=10 excl=5
+c b ref=10 excl=5
+f free=25 runs=1 big=25
+== weave
+dev 40
+n a
+n b
+w a/f new=10 keep=0 rel=0
+s a/f rel=0
+m a/f size=10 0:0+0:6 6:0+0:4
+w a/f new=2 keep=0 rel=0
+m a/f size=10 0:0+0:6 6:10+0:2 8:0+2:2
+s b/g rel=0
+c a ref=12 excl=2
+c b ref=10 excl=0
+w a/f new=4 keep=0 rel=0
+c a ref=16 excl=6
+c b ref=10 excl=0
+g a rel=6
+g b rel=0
+g a,b rel=16
+f free=24 runs=1 big=24
+
+[stdout]
+== tiny
+dev 32
+n a
+w a/f new=8 keep=0 rel=0
+w a/g new=2 keep=0 rel=0
+s a/g rel=2
+c a ref=8 excl=8
+w a/f new=0 keep=2 rel=0
+m a/f size=8 0:0+0:8
+f free=24 runs=1 big=24
+== tight
+dev 12
+n a
+w a/f new=5 keep=0 rel=0
+w a/g new=7 keep=0 rel=0
+f free=0 runs=0 big=0
+w a/f new=0 keep=5 rel=0
+w a/g new=0 keep=4 rel=0
+s a/g rel=0
+f free=0 runs=0 big=0
+w a/g err=noroom
+m a/g size=7 0:5+0:5 5:5+0:2
+f free=0 runs=0 big=0
+w a/h err=noroom
+c a ref=12 excl=12
+== frag
+dev 40
+n a
+w a/f new=4 keep=0 rel=0
+w a/g new=3 keep=0 rel=0
+w a/h new=4 keep=0 rel=0
+w a/i new=3 keep=0 rel=0
+w a/j new=6 keep=0 rel=0
+x a/g rel=3
+x a/i rel=3
+x a/j rel=6
+f free=32 runs=2 big=29
+w a/k new=9 keep=0 rel=0
+m a/k size=9 0:11+0:9
+f free=23 runs=2 big=20
+w a/l new=2 keep=0 rel=0
+m a/l size=2 0:4+0:2
+f free=21 runs=2 big=20
+== pair
+dev 48
+n a
+w a/f new=6 keep=0 rel=0
+w a/g new=4 keep=0 rel=0
+c a ref=10 excl=10
+p b items=2
+c a ref=10 excl=0
+c b ref=10 excl=0
+w b/f new=2 keep=0 rel=0
+c a ref=10 excl=0
+c b ref=12 excl=2
+m a/f size=6 0:0+0:6
+m b/f size=6 0:0+0:2 2:10+0:2 4:0+4:2
+g a rel=0
+g a,b rel=12
+d b rel=2
+c a ref=10 excl=10
+f free=38 runs=1 big=38
+== vac
+dev 40
+n a
+w a/f new=5 keep=0 rel=0
+w a/g new=5 keep=0 rel=0
+w a/h new=5 keep=0 rel=0
+x a/g rel=5
+f free=30 runs=2 big=25
+v a/h new=5 rel=5
+m a/h size=5 0:5+0:5
+f free=30 runs=1 big=30
+p b items=2
+v a/f new=5 rel=0
+m a/f size=5 0:10+0:5
+c a ref=10 excl=5
+c b ref=10 excl=5
+f free=25 runs=1 big=25
+== weave
+dev 40
+n a
+n b
+w a/f new=10 keep=0 rel=0
+s a/f rel=0
+m a/f size=10 0:0+0:6 6:0+0:4
+w a/f new=2 keep=0 rel=0
+m a/f size=10 0:0+0:6 6:10+0:2 8:0+2:2
+s b/g rel=0
+c a ref=12 excl=2
+c b ref=10 excl=0
+w a/f new=4 keep=0 rel=0
+c a ref=16 excl=6
+c b ref=10 excl=0
+g a rel=6
+g b rel=0
+g a,b rel=16
+f free=24 runs=1 big=24
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(time python3 run_store.py progs/wide.txt | tail -4; time python3 run_store.py progs/churn.txt | tail -4)
+
+g a,b rel=89183
+c a ref=67671 excl=25183
+c b ref=64000 excl=21512
+f free=172961 runs=1 big=172961
+
+real	0m0.692s
+user	0m0.512s
+sys	0m0.170s
+x a/j49997 rel=5
+f free=54051 runs=4376 big=37200
+f free=54051 runs=4376 big=37200
+c a ref=208093 excl=208093
+
+real	0m2.359s
+user	0m1.883s
+sys	0m0.464s
+
+[stdout]
+g a,b rel=89183
+c a ref=67671 excl=25183
+c b ref=64000 excl=21512
+f free=172961 runs=1 big=172961
+
+real	0m0.692s
+user	0m0.512s
+sys	0m0.170s
+x a/j49997 rel=5
+f free=54051 runs=4376 big=37200
+f free=54051 runs=4376 big=37200
+c a ref=208093 excl=208093
+
+real	0m2.359s
+user	0m1.883s
+sys	0m0.464s
+[metadata] {"noOutputExpected": false}
+collapse
+Both big programs run in well under the budget. One last sanity check: verify internal invariants at the end of the big runs against a brute-force recount.
+
+Bash(python3 - <<'EOF' import sys sys.argv=['x'] from base import box, feed import ops from store import tally, dev…)
+
+progs/churn.txt ok
+progs/wide.txt ok
+progs/weave.txt ok
+progs/pair.txt ok
+
+[stdout]
+progs/churn.txt ok
+progs/wide.txt ok
+progs/weave.txt ok
+progs/pair.txt ok
+[metadata] {"noOutputExpected": false}
+collapse
+Done. The tiny program now ends with `f free=24 runs=1 big=24`, and both big programs finish in a few seconds.
+
+**What was wrong** in the rewritten store, all fixed within the five allowed files:
+
+- **Writes took blocks before releasing.** The claims over fresh stretches are now dropped first, the room is judged against the free total that release produces, and only then is the allocation taken. So a write can land on ground it just freed, and a refused write or relayout changes nothing.
+- **The "rewrite in place" test was per span, not per block.** A block was only kept when its whole span had a single claim. `hold.bare` now subtracts the other claims on the span, so blocks under only the item's own claim are kept even when a share covers another part of the span. This was the tiny failure.
+- **The free map only coalesced rightward.** A returned span now joins a free run on either side. Allocation also now honors the smallest-fit rule and falls back to taking the largest run whole and continuing with the rest.
+- **Dropping a line reported zero released blocks.** It now sweeps the spans it empties and reports them.
+- **Charges were recomputed by scanning every span.** Referenced and exclusive space are now maintained incrementally as lines gain and lose spans, and `g` sums a small table keyed by each span's standing set. Trim also refuses a negative length.
+
+**Timing** for the two big programs:
+
+| program | wall time |
+|---|---|
+| wide.txt | 0.7 s |
+| churn.txt | 2.4 s |
+
+I checked the seven small programs by hand against the spec, and a brute-force recount after the big runs confirmed the charges, the drop totals, and that live spans plus free blocks equal the device size.

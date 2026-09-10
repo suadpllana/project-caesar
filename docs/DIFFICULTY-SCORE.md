@@ -86,6 +86,7 @@ rejected, transcribed from the same state files, and each must score below the f
 | `note-carry-forward-round3` | 48 | quality review, `difficult`: the work reduces to a per-revision walk and one predicate change; 98-line reference, one insight |
 | `publish-settle-order-first-build` | 40, hard stop | quality review, `difficult`: roughly 100 lines across five files; the two inventions are standard techniques |
 | `alias-settle-report-first-build` | 40, hard stop | easiness 2 of 3: the definition itself supplied the algorithmic plan |
+| `span-claim-charge-as-probed` | 40, hard stop | easiness 2 of 3: the shipped tree carried the reference's two-index span record with a hundred lines of diff, the brief narrated the write path in execution order, and every fast structure was the first idea |
 
 The four tasks in `tasks/` that have not passed the pipeline are scored for context, not
 calibration; the external probe is the authority on them:
@@ -96,6 +97,7 @@ calibration; the external probe is the authority on them:
 | `reach-pair-sweep` | 96 | rebuilt after two `difficult` rejections; not yet resubmitted |
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
+| `span-claim-charge` | 100 | easiness recovery of 2026-09-10 after a 2-of-3 probe; the design as probed is the control above; pending the platform probe |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them

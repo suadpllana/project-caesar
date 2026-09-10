@@ -1,0 +1,138 @@
+# Negative control: span-claim-charge as it was uploaded and probed on 2026-09-10, when the
+# easiness probe solved it 2 of 3. Transcribed from the uploaded task.toml explanations, the
+# shipped tree and the three trajectories (probes/span-claim-charge/). It must score below the
+# floor; a rubric that lets it into the band would have passed a design the probe rejected.
+
+[task]
+slug = "span-claim-charge-as-probed"
+status = "pending"
+sources = [
+  "the uploaded span-claim-charge bundle (task.toml difficulty_explanation)",
+  "probes/span-claim-charge/notes.md",
+]
+expert_hours = 10
+estimated_solves = 6
+
+[plan]
+first_plan = """
+Read the five store modules and the frozen driver, list every defect against the sentence of
+the brief it breaks - the span-level in-place test, first-fit allocation, forward-only merge,
+blocks taken before the replaced claims go, charges added up from claim widths and recounted,
+a drop that gives nothing back - and rewrite the five files in one pass keeping the shipped
+two-index span record, the spans-per-line set and the cut, pull, lay and sole helpers.
+"""
+first_plan_source = "tree"
+breaking_rule = """
+The shipped in-place test asks whether the span carries one claim; the rule asks whether the
+block does, and the shipped tree already carries the claims per span that answer it.
+"""
+second_discovery = """
+The replaced claims go before the allocation and the room is judged against the free total
+that release produces, which the brief states in as many words and the shipped write path
+does in the other order.
+"""
+second_discovery_effect = "patch"
+first_plan_correct = true
+expert_path = [
+  "run tiny.txt and see the wrong free total",
+  "read the five modules and the brief side by side",
+  "repair the functions inside the shipped structures",
+  "time wide.txt and churn.txt once",
+]
+
+[search]
+best_page = """
+The quota-group accounting page of a public copy-on-write filesystem, defining referenced and
+exclusive space.
+"""
+helps_plan = false
+deviation = """
+The in-place test per block and the release-before-take order are not on that page, but both
+are stated in the brief and embodied in the shipped skeleton.
+"""
+
+[tactics]
+A1 = """
+The brief claims the reference-count prior is poisoned, but the shipped store already carries
+the two indexes per span, so the prior never has to be fought.
+"""
+B2 = """
+Thirteen rules, each implementable on its own against the shipped skeleton, with the shipped
+programs giving feedback per rule.
+"""
+C1 = """
+Both sides of each fence are enumerated.
+"""
+C3 = """
+Three slow families measured, but the fast structures they demand are the first idea.
+"""
+C4 = """
+Exact all-or-nothing traces over enumerated and nonce programs.
+"""
+guard = """
+Five editable files declared as the only artifacts.
+"""
+
+[decisions]
+graded = 13
+interactions = [
+  { a = "a block is rewritten in place when no claim but the one covering it stands on it", b = "exclusive space is the part no other line stands on", why = "two questions of the same claims, but the shipped Span.on and Span.by already separate them" },
+]
+per_decision_feedback = true
+
+[fences]
+ordinary_case = """
+A rewrite by the only claimant takes nothing from the free map; copying on every write fails it.
+"""
+late_case = """
+A write on a full device that has to land on the ground it frees.
+"""
+oracle_denied = """
+The shipped store is wrong, but the brief fully specifies a brute-force model and one trial
+wrote it.
+"""
+
+[leaks]
+candidates = [
+  { what = "the shipped Span.on and Span.by indexes", closed_by = "not closed: they are the reference's structure and were kept by every agent" },
+  { what = "the brief's narration of the write path", closed_by = "not closed: quoted back by two of three agents" },
+  { what = "the brief's refutation of the count-per-span reading", closed_by = "not closed: it names the wrong reading and declares it wrong" },
+]
+derived_quantities = """
+The two-index span record and the spans-per-line set ship; only the functions over them are
+wrong.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+The charge recounted per query, the best fit found by scanning, the in-place test from every
+item's claims.
+"""
+invariant = """
+The charges move only at count transitions; best fit is a bisection over lengths.
+"""
+input_scale = "sixteen thousand items and eighteen thousand charges; a free map cut into sixteen thousand runs"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "the in-place test per span", hand_case = "keep-sole" },
+  { reading = "take before release", hand_case = "reuse-own" },
+  { reading = "room on arrival", hand_case = "room-after" },
+  { reading = "referenced by blocks", hand_case = "ref-whole" },
+  { reading = "exclusive by claims", hand_case = "excl-claims" },
+  { reading = "freed by dropping as a sum", hand_case = "gone-set" },
+]
+correct_variants = [
+  "one entry per block per item",
+  "claims with per-block marks",
+]
+
+[shape]
+environment_py_lines = 630
+editable_files = 5
+reference_lines = 605

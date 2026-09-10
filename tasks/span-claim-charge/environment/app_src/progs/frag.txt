@@ -1,0 +1,17 @@
+dev 40
+n a
+w a/f 0 4
+w a/g 0 3
+w a/h 0 4
+w a/i 0 3
+w a/j 0 6
+x a/g
+x a/i
+x a/j
+f
+w a/k 0 9
+m a/k
+f
+w a/l 0 2
+m a/l
+f

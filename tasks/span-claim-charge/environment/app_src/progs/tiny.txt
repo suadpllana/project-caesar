@@ -1,0 +1,9 @@
+dev 32
+n a
+w a/f 0 8
+w a/g 0 2
+s a/f 0 2 a/g 0
+c a
+w a/f 4 2
+m a/f
+f

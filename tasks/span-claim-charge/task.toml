@@ -65,11 +65,13 @@ each owns alone. A name made again after a drop is a new line, so the tree canno
 name. Every one of those changes the addresses the next command sees, so a wrong reading does
 not move one field: the tail of the program diverges.
 
-Four exactly-correct methods are over the stated limit against 60 seconds for the whole graded
-set: the family's spans walked per question, the line charge added up per question, the best
-fit found by scanning the free runs, and the in-place test decided from every item's claims.
-TIMING-TBD. All four produce the reference's traces exactly; the limit is the only thing that
-separates them. Two further correct stores written on different structures also pass.
+Four exactly-correct methods are over the stated limit. Over the whole graded set, against 60
+seconds, the family's spans walked per question take 354 seconds, the line charge added up per
+question 145, the best fit found by scanning the free runs 142, and the in-place test decided
+from every item's claims more than 360, where the run was cut off; the reference takes about
+20. All four produce the reference's traces exactly; the limit is the only thing that separates
+them. Two further correct stores written on different structures come in at 25 and 21 seconds,
+so the limit is not tuned to one implementation.
 
 Identifiers are in a legacy register - `spot`, `spare`, `refs`, `kin`, `cl`, `ats`, `store/`,
 `base/` - short but never misleading, and no name misdescribes what it holds. That is a choice

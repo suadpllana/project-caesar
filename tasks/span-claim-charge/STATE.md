@@ -507,3 +507,37 @@ consequences (the drop), not by an order of magnitude.
 What did not survive the build, and is recorded rather than hidden: the standing-set table was
 meant to die at scale and did not; it is a correct variant now. The gate against the walk
 holds with the margins in the whole-set table below.
+
+## Measured (final shape, 2026-09-10)
+
+Whole graded set as the worker runs it - one process, 59 hand programs plus 414 generated
+(`time_all.py`, seed `timing`, 45 per small family), against the 60 second wall clock:
+
+| store | tree family (3 programs) | whole set |
+|---|---|---|
+| reference | 12.0 s | 20.2 s |
+| `variants/ok-keys` (standing-set table) | 18.0 s | 24.9 s |
+| `variants/ok-cells` (one entry per block) | 12.3 s | 20.5 s |
+| `slow-family` (the family walked per question) | 224.0 s | 354.1 s |
+| `slow-charge` (the line charge recounted per question) | | 145 s |
+| `slow-fit` (best fit by scanning the runs) | | 142 s |
+| `slow-sole` (the in-place test from every item's claims) | | over 360 s, cut off |
+
+The sealed model's own time on the three tree programs is 11.5 s and the reference's 12.5 s
+under `agree.py`, with 0 disagreements over 99,581 family questions and 48 drops that hand
+stamps up.
+
+`cheat_report.py` over 59 hand programs and 54 generated: every one of the 36 readings is
+caught by a named hand case (`alloc-fit`, `alloc-best`, `alloc-split`, `alloc-order`,
+`keep-mixed`, `keep-self`, `reuse-own`, `vac-room`, `noroom-hold`, `err-gap`, `err-range`,
+`chart-merge`, `chart-empty`, `drop-frees`, `drop-keeps`, `excl-lines`, `excl-claims`,
+`err-dup`, `fam-deep`, `fam-late`, `fam-split`, `fam-reuse`). The first report found the
+forgery reproducing 48 of 59 hand programs: the emitter keyed it on the raw case text, comment
+lines included, while the driver strips comments before a command reaches `ops.ex`. The key is
+now built from the cleaned rows and the forgery reproduces all 59 and fails every generated
+program it is shown. `tools/readingcheck.py` first reported two readings as equivalent -
+`fam-lca-stale`, because no program had a dropped line with two sibling stamps sharing a span
+the line had left, and `fam-name-reuse`, because the reading had been built on top of the
+reference's summaries, which a name-keyed adoption never replays, so the bug was unobservable;
+the first got the hand case `fam-split` and a fork event in the `fam` generator, the second was
+rebuilt on the walked family, and both are separated by a hand case now.

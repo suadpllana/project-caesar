@@ -809,7 +809,10 @@ def forge():
     key = {}
     pre = set()
     for name in cases.ORDER:
-        rows = cases.ops(name)[1:]
+        # The driver strips comments and blank rows before a command reaches ops.ex, and the
+        # forgery keys on what ops.ex sees, so the key is built from the same cleaned rows.
+        rows = [r.split("#")[0].strip() for r in cases.ops(name)]
+        rows = [r for r in rows if r][1:]
         key["\n".join(rows)] = truth[name][1:]
         for k in range(1, len(rows)):
             pre.add("\n".join(rows[:k]))

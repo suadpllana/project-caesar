@@ -184,7 +184,7 @@ both are summaries kept against the stamp tree and updated by the claim events t
 """
 input_scale = "sixteen thousand items on a device of 262144 blocks with eighteen thousand questions; two hundred and forty stamps of a line of nine hundred items with thirty-three thousand family questions; a free map cut into sixteen thousand runs with fifty thousand writes against it; three programs of each shape"
 limit_seconds = 60
-measured = false
+measured = true
 why_not = ""
 
 [cheats]

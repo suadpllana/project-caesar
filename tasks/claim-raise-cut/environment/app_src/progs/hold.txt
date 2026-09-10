@@ -1,0 +1,50 @@
+take t4 k2 scan
+take t5 k1 pin
+take t2 k2 scan
+take t1 k1 pin
+take t2 k2 edit
+take t2 k2 seal
+take t1 k1 pin
+take t3 k2 grow
+take t2 k2 pin
+take t2 k2 pin
+take t5 k0 scan
+take t3 k2 grow
+take t3 k2 pin
+take t4 k2 grow
+take t1 k1 scan
+take t5 k0 seal
+take t1 k1 scan
+take t2 k2 pin
+take t3 k2 edit
+take t2 k2 edit
+take t1 k0 grow
+take t5 k1 edit
+take t5 k0 grow
+take t4 k2 scan
+take t3 k2 pin
+take t4 k2 seal
+take t5 k1 edit
+take t1 k1 edit
+take t3 k2 edit
+take t1 k0 scan
+take t2 k1 pin
+take t5 k0 seal
+take t2 k2 edit
+take t3 k2 grow
+take t4 k1 scan
+take t3 k2 seal
+end t2
+take t5 k2 seal
+take t4 k1 scan
+take t3 k2 seal
+take t5 k0 seal
+end t5
+take t1 k1 edit
+end t3
+take t1 k2 scan
+take t4 k2 grow
+take t4 k2 edit
+take t4 k2 scan
+end t1
+end t4

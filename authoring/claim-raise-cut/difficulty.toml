@@ -1,0 +1,191 @@
+# Difficulty record for claim-raise-cut, written before any environment code exists.
+# The design is a coordination service inside a storage engine: transactions take claims on
+# items in one of five marks, a claim by a holder raises its mark, and the engine cuts a
+# transaction when a set of them can no longer make progress.
+
+[task]
+slug = "claim-raise-cut"
+status = "pending"
+sources = [
+  "docs/DIFFICULTY.md",
+  "docs/PASSING-TASK-RESEARCH.md",
+  "docs/DIFFICULTY-SCORE.md",
+  "authoring/claim-raise-cut/lattice check on the shipped mark table",
+]
+expert_hours = 10
+estimated_solves = 2  # range 2 to 4 after the build
+
+[plan]
+first_plan = """
+Keep per item a granted set and one wait queue. A request is grantable when its mark is
+compatible with every granted mark; grant from the front of the queue while compatible; put a
+holder that asks again at the front so it cannot starve. Build the wait relation the way every
+textbook and every course project does: an edge from a waiter to each holder whose mark
+conflicts with what the waiter asked for. Search that graph for a cycle whenever someone
+blocks and abort the youngest transaction on it.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A claim by a transaction that already holds the item is a raise: it is tested against the
+item's other claims with its own set out of the picture, it takes the mark that excludes
+everything the held and the asked mark exclude rather than the mark asked for, raises are
+served before every first-time claim in the order their claimants first took the item rather
+than in request order, and while one raise is ungrantable no first-time claim is granted on
+that item even when nothing it conflicts with is held.
+"""
+second_discovery = """
+The wait relation is stated as a removal, not as a conflict: T waits for U when the sweep of
+T's item, run with U's claims and U's request taken out, would grant T. Behind a stuck raise a
+first-time claimant does not wait for the holders that conflict with it, because removing one
+of those still leaves the item pinned, and it does wait for holders that conflict with nothing
+it asked for, because removing one of those lets the stuck raise through and unpins the item.
+Edges appear where the conflict rule sees none and vanish where it sees one, so the cycles and
+therefore the cut transactions differ.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped engine on the shipped programs and read the trace it prints for a raise",
+  "read the mark table and derive the join, since only the pair table ships and no rank reproduces it",
+  "rebuild the item as two ordered groups with the raise group in first-take order and the pin rule",
+  "make every grant test exclude the asking transaction's own claims, which the aggregate mark cannot express",
+  "write the wait relation from the removal definition and check it against a stuck raise by hand",
+  "derive that only transactions present on the item can change its sweep, and restrict the removal set to those",
+  "find cycles, cut by fewest claims held, release, resweep and repeat until no cycle is left",
+  "when the wide programs miss the limit, recompute the relation only for items the step touched, and count marks instead of walking holders",
+]
+
+[search]
+best_page = """
+The lock manager chapter of a transaction processing text, plus the public course projects
+that ask for a lock manager with upgrades and deadlock detection and whose solutions are on
+public forges: granted queue and convert queue, a barrier against starvation, a wait-for graph
+built from conflicting holders, abort the youngest transaction.
+"""
+helps_plan = false
+deviation = """
+Every graded decision departs from that page. The mark table is not the shared/exclusive
+family and its join is not the maximum of a rank; raises are ordered by first-take order, not
+request order; the wait relation is a removal counterfactual, not a conflict test, and differs
+from it in both directions; the cut transaction is the one holding fewest claims. An agent
+that transcribes the retrieved design gets a coherent engine whose cuts are wrong.
+"""
+
+[tactics]
+A1 = """
+The conflict-based wait-for graph is the memorised answer, is coherent, and agrees with the
+removal definition on every item that has no stuck raise, so it survives casual testing and is
+specifically wrong exactly where the task grades.
+"""
+A2 = """
+The brief describes marks, raises, pinning and cutting operationally and never uses the words
+the literature indexes them under, so the query that would retrieve the algorithm has to be
+formed from the recognition that is itself the work.
+"""
+B2 = """
+Ten rules must hold at once and several change what another means: the join decides the mark a
+raise is tested in, self-exclusion decides whether it is grantable, the pin rule decides which
+removals matter, and the removal set decides which transaction is cut.
+"""
+C1 = """
+Programs with no raise and no cycle must produce the exact trace, so an engine that cuts on a
+phantom cycle fails the ordinary side as surely as one that misses a real cycle fails the other.
+"""
+C3 = """
+Recomputing the whole wait relation after every step is exactly correct and quadratic; the fast
+path follows from the invariant that a sweep reads only its own item's claims and requests.
+"""
+C4 = """
+Exact traces over enumerated programs aimed at each decision plus generated families drawn from
+a seed the submission never sees, all-or-nothing, so fitting the shipped programs fails.
+"""
+guard = """
+Only the five modules under /app/hold/ are taken from the agent; the driver, the program
+reader, the trace writer and the mark table are frozen and the verifier lays the taken files
+over its own pristine copy of the tree, so the engine's interface and its input cannot move.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "the mark a raise is tested in is the join of the held and the asked mark", b = "a raise is tested with the asking transaction's own claims removed", why = "the join decides which marks conflict and self-exclusion decides which holders count, so either alone grants a raise the other refuses" },
+  { a = "an ungrantable raise pins the item against first-time claims", b = "the wait relation is a removal", why = "the pin makes removing a conflicting holder useless and removing an unrelated holder decisive, inverting the edge set on exactly the items that deadlock" },
+  { a = "raises are served in the order their claimants first took the item", b = "a grant changes the item's marks before the rest of the sweep is tested", why = "the order decides which raise is tested against which already-granted marks, so a different order grants a different set" },
+  { a = "the cut transaction is the one holding fewest claims", b = "cutting releases its claims and the sweep runs again", why = "the release can grant a raise that pins another item, creating a cycle that the same rule must then cut, so the choice decides the rest of the trace" },
+  { a = "a drop releases the most recent claim and the effective mark falls back to the join of what is left", b = "grant tests are made against counts of marks held", why = "a join cannot be subtracted, so the fallback mark has to be rebuilt from the remaining claims before the counts can be corrected" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A program where two transactions share an item in compatible marks, one drops and the other
+takes a stronger mark, must produce grants in the exact order with no cut at all.
+"""
+late_case = """
+Three transactions on two items where the middle one is a first-time claimant standing behind
+a stuck raise: the conflict rule sees a two-cycle and cuts the wrong transaction, the removal
+rule sees a three-cycle and cuts another, and every earlier line of the trace agrees.
+"""
+oracle_denied = """
+Nothing in the tree computes a correct trace, the wait relation is never printed, and the
+service's marks and rules do not match any shipped or installed lock manager, so running the
+engine confirms only that it is self-consistent.
+"""
+
+[leaks]
+candidates = [
+  { what = "a join table for the marks, which is the derivation the task is about", closed_by = "only the pair table of compatible marks ships; the join is computed from it and appears nowhere as data" },
+  { what = "the wait relation printed in the trace or exposed by a helper", closed_by = "the trace carries only takes, grants, blocks, drops, cuts and ends; the relation is internal and no shipped function returns it" },
+  { what = "expected traces beside the shipped programs, which would score each decision", closed_by = "the environment ships programs only; every expected trace lives in the sealed verifier and the graded programs are generated there from a seed drawn after the run" },
+  { what = "a helper that names conversions, pinning or cycles and so announces where the traps are", closed_by = "the shipped modules carry no unused entry points; every function is reached by the driver and named in a legacy register" },
+  { what = "a per-item counter or flag that records that a raise is stuck", closed_by = "the item stores claims and requests only; whether it is pinned is derived by the sweep each time it runs" },
+]
+derived_quantities = """
+The stored values are the pair table, the claims, the requests and the step numbers; the join,
+the effective mark, the pinned state, the wait relation and the cut order are all derived.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Four, all exactly correct and all measured: rebuilding the relation for every item that holds a
+request after every step (179 s), asking the removal question of every participant one at a
+time (181 s), asking it of every live transaction (193 s), and asking it of every holder whose
+mark excludes what a request asked for (243 s), against a 60 s limit the reference meets in 5.3.
+"""
+invariant = """
+A sweep reads only its own item's claims and requests, so a step can change the relation only
+for requests on the items it touched, and only a transaction present on that item can change
+its outcome.
+"""
+input_scale = "437 programs, 92000 steps; one item held by 6000 transactions, and 1000 items each holding a request"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "the join is the maximum of a strength rank over the marks", hand_case = "a holder of scan raises to pin: the rank says pin, the table says edit, and a scan held by another transaction then conflicts" },
+  { reading = "a raise is granted in the mark it asked for", hand_case = "a holder of edit takes scan and keeps edit; granting scan lets a grow in beside it" },
+  { reading = "a raise is tested against every claim including its own", hand_case = "the only holder of edit takes edit again and blocks forever on itself" },
+  { reading = "raises are served in request order", hand_case = "two holders raise, the later taker asks first, and the order decides which of the two incompatible raises is granted" },
+  { reading = "a stuck raise does not stop first-time claims that conflict with nothing held", hand_case = "a scan waits behind a stuck raise on an item holding only scan and is granted early" },
+  { reading = "the wait relation is an edge to each holder whose mark conflicts with the request", hand_case = "edge-miss: a first-time claim behind a stuck raise, where the conflicting holder is not what is stopping it" },
+  { reading = "a waiter waits for every conflicting holder even when two of them hold it", hand_case = "edge-share: three holders of one mark, two raising, where no single departure grants either" },
+  { reading = "the cut transaction is the youngest on the cycle", hand_case = "a cycle whose youngest member holds four claims and whose oldest holds one" },
+  { reading = "one cut per detection, without repeating until no cycle is left", hand_case = "two independent cycles created by one grant, where the second survives the first cut" },
+  { reading = "a drop releases every claim the transaction has on the item", hand_case = "a transaction that took scan then raised to edit drops once and should be back at scan" },
+  { reading = "a cut transaction's later steps are still executed", hand_case = "a cut transaction's next take grants it a claim nobody can ever drop" },
+  { reading = "a granted transaction runs its backlog immediately rather than in grant order", hand_case = "two transactions granted by one drop, whose backlogs both take a third item" },
+]
+correct_variants = [
+  "the whole relation searched for rings on every step rather than the part reachable from the edges that changed, measured at 9.1 s",
+  "marks carried as frozen exclusion sets with the join taken by closure and the item indexed by mark rather than counted, measured at 10.1 s",
+  "the removal question asked of every participant but answered from a cache keyed by the mark held and the request made, measured at 10.4 s",
+]
+
+[shape]
+environment_py_lines = 334
+editable_files = 5
+reference_lines = 452

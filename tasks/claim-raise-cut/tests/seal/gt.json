@@ -1,0 +1,230 @@
+{
+ "again-life": [
+  "give t3 ka edit",
+  "give t1 ka pin",
+  "give t2 ka pin",
+  "free t1 ka -",
+  "give t1 ka pin",
+  "wait t1 ka edit",
+  "wait t2 ka edit",
+  "free t3 ka -",
+  "give t2 ka edit"
+ ],
+ "cut-again": [
+  "give t2 kb scan",
+  "give t3 kb scan",
+  "give t4 kc scan",
+  "give t5 kc scan",
+  "give t1 ka seal",
+  "wait t2 ka scan",
+  "wait t3 ka scan",
+  "wait t4 ka scan",
+  "wait t5 ka scan",
+  "done t1",
+  "give t2 ka scan",
+  "give t3 ka scan",
+  "give t4 ka scan",
+  "give t5 ka scan",
+  "wait t2 kb edit",
+  "wait t3 kb edit",
+  "wait t4 kc edit",
+  "wait t5 kc edit",
+  "cut t5",
+  "give t4 kc edit",
+  "cut t3",
+  "give t2 kb edit"
+ ],
+ "cut-fewest": [
+  "give t1 ka scan",
+  "give t1 kb scan",
+  "give t1 kc scan",
+  "give t2 ka scan",
+  "wait t1 ka edit",
+  "wait t2 ka edit",
+  "cut t2",
+  "give t1 ka edit"
+ ],
+ "cut-late": [
+  "give t1 ka scan",
+  "give t2 ka scan",
+  "wait t1 ka edit",
+  "wait t2 ka edit",
+  "cut t2",
+  "give t1 ka edit"
+ ],
+ "cut-wake": [
+  "give t5 kx pin",
+  "give t5 kz scan",
+  "give t2 ky scan",
+  "wait t2 kx grow",
+  "wait t4 kx scan",
+  "wait t5 ky edit",
+  "cut t2",
+  "give t5 ky edit",
+  "give t4 kx scan"
+ ],
+ "drop-mark": [
+  "give t1 ka pin",
+  "give t1 ka edit",
+  "give t1 ka seal",
+  "free t1 ka edit",
+  "free t1 ka pin",
+  "give t2 ka edit"
+ ],
+ "drop-pop": [
+  "give t1 ka scan",
+  "give t1 ka edit",
+  "wait t2 ka scan",
+  "free t1 ka scan",
+  "give t2 ka scan"
+ ],
+ "edge-miss": [
+  "give t1 ka scan",
+  "give t2 ka scan",
+  "give t3 kb edit",
+  "wait t2 kb scan",
+  "wait t1 ka edit",
+  "wait t3 ka scan",
+  "cut t3",
+  "give t2 kb scan"
+ ],
+ "edge-phantom": [
+  "give t3 kb edit",
+  "give t1 ka edit",
+  "give t2 ka pin",
+  "wait t2 ka seal",
+  "wait t1 kb scan",
+  "wait t3 ka scan"
+ ],
+ "edge-share": [
+  "give t1 ka scan",
+  "give t2 ka scan",
+  "give t3 ka scan",
+  "wait t1 ka edit",
+  "wait t2 ka edit"
+ ],
+ "gone-ignore": [
+  "give t1 ka scan",
+  "done t1",
+  "give t2 ka edit",
+  "done t2"
+ ],
+ "join-cross": [
+  "give t1 ka edit",
+  "give t2 ka pin",
+  "wait t1 ka seal"
+ ],
+ "join-pair": [
+  "give t1 ka scan",
+  "give t2 ka scan",
+  "wait t1 ka edit"
+ ],
+ "pin-fresh": [
+  "give t1 ka scan",
+  "give t2 ka scan",
+  "wait t1 ka edit",
+  "wait t3 ka scan"
+ ],
+ "pin-lift": [
+  "give t1 ka scan",
+  "give t2 ka scan",
+  "wait t1 ka edit",
+  "wait t3 ka scan",
+  "free t2 ka -",
+  "give t1 ka edit",
+  "free t1 ka scan",
+  "give t3 ka scan"
+ ],
+ "plain-flow": [
+  "give t1 k1 scan",
+  "give t2 k1 grow",
+  "give t3 k1 scan",
+  "give t1 k2 pin",
+  "give t2 k2 edit",
+  "free t1 k1 -",
+  "done t2",
+  "done t1",
+  "done t3"
+ ],
+ "queue-stop": [
+  "give t1 ka pin",
+  "wait t2 ka grow",
+  "wait t3 ka scan"
+ ],
+ "raise-order": [
+  "give t1 ka pin",
+  "give t2 ka pin",
+  "give t3 ka edit",
+  "wait t2 ka edit",
+  "wait t1 ka edit",
+  "free t3 ka -",
+  "give t1 ka edit"
+ ],
+ "raise-pass": [
+  "give t1 ka scan",
+  "give t2 ka scan",
+  "give t3 ka scan",
+  "wait t1 ka edit",
+  "give t2 ka grow"
+ ],
+ "resume-order": [
+  "give t1 ka seal",
+  "wait t2 ka scan",
+  "wait t3 ka scan",
+  "done t1",
+  "give t2 ka scan",
+  "give t3 ka scan",
+  "give t2 kb scan",
+  "give t3 kb scan"
+ ],
+ "resume-run": [
+  "give t1 ka seal",
+  "wait t2 ka scan",
+  "wait t3 ka scan",
+  "done t1",
+  "give t2 ka scan",
+  "give t3 ka scan",
+  "give t2 kb scan",
+  "give t2 kc scan",
+  "give t3 kb scan"
+ ],
+ "ring-pair": [
+  "give t4 r1 scan",
+  "give t5 r1 scan",
+  "give t6 r2 scan",
+  "give t7 r2 scan",
+  "give t1 gate seal",
+  "wait t4 gate scan",
+  "wait t7 gate scan",
+  "wait t5 r1 edit",
+  "wait t6 r2 edit",
+  "done t1",
+  "give t4 gate scan",
+  "give t7 gate scan",
+  "wait t4 r1 edit",
+  "wait t7 r2 edit",
+  "cut t6",
+  "give t7 r2 edit",
+  "cut t5",
+  "give t4 r1 edit"
+ ],
+ "self-alone": [
+  "give t1 ka scan",
+  "give t1 ka edit",
+  "done t1"
+ ],
+ "self-mate": [
+  "give t1 ka scan",
+  "give t2 ka pin",
+  "give t1 ka scan"
+ ],
+ "shed-order": [
+  "give t1 kb scan",
+  "give t1 ka scan",
+  "wait t2 ka edit",
+  "wait t3 kb edit",
+  "done t1",
+  "give t3 kb edit",
+  "give t2 ka edit"
+ ]
+}

@@ -299,3 +299,48 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-10, `claim-raise-cut`)
+
+- **The differential against an independently written model found two defects in the reference
+  that no hand case reached, and both were set-iteration-order bugs.** Popping and rebuilding the
+  cached wait relation in one interleaved pass over a *set* of dirty items let a later item delete
+  edges an earlier one had just added; clearing the cycle-search roots before the cut rather than
+  after it left a second ring with no root to be found from. Each showed up as exactly one
+  mismatch in a few hundred programs, each was invisible to two dozen hand cases, and both are now
+  enumerated (`cut-again`, `ring-pair`). Where the structure is a set, "it worked" is a statement
+  about this process's hash seed and nothing more.
+- **A wrong reading that separates only on iteration order cannot be reported as caught.**
+  `cut-one-ring` - compare inside the first ring found rather than across all of them - differs
+  from the reference only when the traversal reaches the wrong ring first. Measured: caught by
+  `cut-again` in one process and by no enumerated case in the next, same code both times. It is
+  recorded with that caveat and backed by the 8.5% of the generated population it moves, rather
+  than claimed as pinned by a case.
+- **A variant that patches cleanly can still change nothing.** The first `cut-one-ring` patch
+  returned early from the SCC helper, whose caller looped over every root anyway, so the file was
+  byte-different and the behaviour identical and the reading reported 0.0% moved. The rule from
+  `reach-pair-sweep` was that a rename must assert it fired; the rule this adds is that a
+  behavioural patch must assert the behaviour moved, because a patch that fires and changes
+  nothing reads exactly like a reading nothing separates.
+- **Three of four scaling boundaries bit, and the fourth taught the most.** Restricting the
+  removal question to the item's own participants was meant to be the fast path; it measures 181 s
+  against a 60 s limit, because one raise stuck across a crowd of holders excludes the whole crowd.
+  The fast path needs the grouping - holders carrying the same mark with no request of their own
+  answer alike - and a variant that groups but then does per-member work proportional to the queue
+  measures 83 s. Two asymptotics hide in one loop and only the clock separated them.
+- **An `apt` layer that installs nothing the verifier uses costs the container gates.** `procps`
+  and `util-linux` were carried over from the house pattern; `setpriv`, `setsid` and `timeout` are
+  already in `python:3.11-slim`, and the reap reads `/proc` instead of calling `pkill`. Dropping
+  the layer removed the only part of the build that needed a Debian mirror, which is what let the
+  oracle, the nop, the variants and the probes run in a sandbox with no apt egress. Check the base
+  image before copying an install line.
+- **A cheat script written against `/app` is a silent no-op in a harness that stages the tree
+  elsewhere.** The host trial ran the scripts with cwd set to a temporary copy while the scripts
+  wrote absolute `/app` paths, `set -euo pipefail` made them exit non-zero, the harness ignored the
+  status, and four cheats came back "caught by the limit" - because what was actually graded was
+  the shipped tree. Stage the path the scripts expect, and fail the run on a non-zero status from
+  anything you shell out to.
+- **`open('w')` truncates before it validates, again.** `newline="\\n"` written through a shell
+  heredoc put a literal backslash-n into the Python source, `io.open` raised on the argument, and
+  the target file was already zero bytes. Same shape as the 2026-09-09 entry, one session later,
+  because the rule was read and not applied: escapes go through a script file, once.

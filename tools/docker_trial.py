@@ -83,7 +83,11 @@ class Trial:
             for tag, ctx in ((self.env_img, self.task / "environment"),
                              (self.test_img, self.task / "tests")):
                 print("building", tag)
-                proc = sh(["docker", "build", "-q", "-t", tag, str(local_context(ctx, tmp))])
+                # --network host is the same class of local accommodation as the CA
+                # above: this sandbox gives containers no DNS, and the egress proxy it
+                # does have only listens on the host loopback.
+                proc = sh(["docker", "build", "--network", "host", "-q", "-t", tag,
+                           str(local_context(ctx, tmp))])
                 if proc.returncode != 0:
                     print(proc.stdout[-3000:], proc.stderr[-3000:])
                     return 1

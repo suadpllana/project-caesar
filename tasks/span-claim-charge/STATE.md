@@ -2,7 +2,9 @@
 
 ## Current stage
 
-`Easiness recovery` (RAISE-DIFFICULTY.md), re-entered at Stage 2. The bundle as it was probed
+`Easiness recovery` (RAISE-DIFFICULTY.md) - every local gate and both container gates pass on
+the rebuilt bundle; the recovery stays open until the platform's easiness probe runs on it,
+which is the exit gate and the one thing this session cannot run. Re-entered at Stage 2. The bundle as it was probed
 is the one the contributor uploaded on 2026-09-10; it shipped without a STATE.md, so this file
 was written from the bundle, the three probe trajectories and the recovery work below.
 
@@ -389,7 +391,7 @@ are unchanged):
 | `variants/ok-keys` | reward 1 | the standing-set table, 62 passed in 26.2 s |
 | `variants/ok-cells` | reward 1 | one entry per block, 62 passed in 24.8 s |
 | `cheat-forge-frozen` (corrected) | reward 0 | fails every generated program |
-| the 52 cheats | see the sweep line below | |
+| the 52 cheats | reward 0, every one | 36 readings, 4 exactly-correct-and-slow, the forgery, 11 isolation probes; the probes' notes in `/work/probe.log` show the sealed directory and the reward channel refused to the sandbox uid |
 
 Local gates: `preflight` no errors (35 warnings, all the driver's entry points reported as
 uncalled from inside the tree, as in the uploaded bundle); `difficultycheck` 100/100 on the

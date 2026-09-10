@@ -286,12 +286,18 @@ cluster running is Operations and is therefore out of scope for that prompt.
 | Category | What it covers | Labels |
 |---|---|---|
 | **Science** | Natural sciences, mathematics, and engineering science — genomics, chemistry, physical simulation, climate modeling, robotics control, formal mathematics, computational linguistics. | Biology · Chemistry · Physics · Earth · Robotics · Math · Linguistics |
-| **Software** | General software engineering where the domain is software itself — algorithms and solvers, systems and infrastructure, storage engines, data pipelines, web applications, language tooling. | Algorithms · Systems · Databases · Data engineering · Frontend · Languages |
+| **Software** | General software engineering where the domain is software itself — algorithms and solvers, systems and infrastructure, storage engines, data pipelines, web applications, language tooling. | Algorithms · Databases · Data engineering · Frontend · Languages |
 | **ML** | Machine-learning training, serving, evaluation, and infrastructure — training loops and checkpointing, inference and serving stacks, eval harnesses, custom GPU kernels. | Training · Inference · Evaluation · Kernels |
 | **Operations** | Business, financial, and operational reasoning — quantitative finance and risk, dispatch and routing, procurement and production planning, claims adjudication, regulatory reporting, marketing analytics. | Finance · Logistics · Supply chain · Claims · Compliance · Marketing |
 | **Security** | Offensive and defensive security — cryptographic analysis, binary reverse engineering, network and host forensics, application-layer vulnerabilities and defenses. | Cryptography · Reverse engineering · Forensics · AppSec |
 | **Hardware** | Physical and digital hardware design — parametric CAD and mechanical parts, HDL/RTL and digital logic. | CAD · RTL |
 | **Media** | Creative and design work — music theory and audio processing, visual and layout design. | Music · Design |
+
+`Software` / `Systems` was retired by the contributor on 2026-09-10 and is gone from the row
+above: no new task is filed under it. Two retained bundles (`publish-settle-order`,
+`scope-hold-release`) still declare it and are left alone; `preflight.py` accepts the label so
+they keep passing and warns on it so a new task cannot pick it up by accident. Where the graded
+work would once have been Systems, file it under the Software label it actually exercises.
 
 If the idea seems to span two categories, that is usually a signal the task is doing two unrelated
 things. Keep the part carrying the real difficulty and cut the rest unless that changes the

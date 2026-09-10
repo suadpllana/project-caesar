@@ -26,6 +26,9 @@ from pathlib import Path, PurePosixPath
 CATEGORIES = {"science", "software", "ml", "operations", "security", "hardware", "media"}
 
 # The guideline's category -> label table. `subcategory` must be one of its category's labels.
+# `Software / Systems` was retired by the contributor on 2026-09-10 (AGENTS.md Stage 1). It stays
+# in this table so the two retained bundles that declare it keep passing; RETIRED below makes a
+# new task that reaches for it say so out loud instead of picking it up by accident.
 SUBCATEGORIES = {
     "science": ["Biology", "Chemistry", "Physics", "Earth", "Robotics", "Math", "Linguistics"],
     "software": ["Algorithms", "Systems", "Databases", "Data engineering", "Frontend", "Languages"],
@@ -35,6 +38,10 @@ SUBCATEGORIES = {
     "hardware": ["CAD", "RTL"],
     "media": ["Music", "Design"],
 }
+
+# Labels that are still accepted but must not be chosen for new work.
+RETIRED = {("software", "systems"): "retired 2026-09-10; file the work under the Software label "
+                                    "it actually exercises"}
 
 
 def norm_label(value: str) -> str:
@@ -305,6 +312,13 @@ def check_subcategory(category: str, md: dict) -> None:
         error(
             f"task.toml: [metadata] subcategory {sub!r} is not a label of category "
             f"{category!r} - choose one of: {', '.join(valid)}"
+        )
+        return
+    why = RETIRED.get((category.lower(), sub.strip().lower()))
+    if why:
+        warn(
+            f"task.toml: [metadata] subcategory {sub!r} under {category!r} is {why}. Retained "
+            "bundles that already declare it are left alone; a new task should not"
         )
 
 

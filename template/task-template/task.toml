@@ -29,7 +29,7 @@ category = ""
 
 # One label from THIS category's row in the guideline table:
 #   Science    Biology · Chemistry · Physics · Earth · Robotics · Math · Linguistics
-#   Software   Algorithms · Systems · Databases · Data engineering · Frontend · Languages
+#   Software   Algorithms · Databases · Data engineering · Frontend · Languages
 #   ML         Training · Inference · Evaluation · Kernels
 #   Operations Finance · Logistics · Supply chain · Claims · Compliance · Marketing
 #   Security   Cryptography · Reverse engineering · Forensics · AppSec

@@ -59,6 +59,11 @@ excluded category, do not disguise it with a Software or ML label; report the mi
 judgment to reshape or replace the seed. Choose the subcategory from the matching row of the exact
 table in `AGENTS.md`, and use tags for the specific techniques rather than the taxonomy label.
 
+`Software` / `Systems` is retired and no new task is filed under it. If the seed's natural home is
+that label, file it under whichever of the remaining Software labels the graded work actually
+exercises, or pick a different seed; do not relabel a Systems task and leave it otherwise
+unchanged.
+
 Do not stop because authoring material is absent. Own the task bundle end to end: research,
 category and tags, domain role, task selection, environment, verifier, reference solution, cheats,
 `instruction.md`, every explanatory metadata field, validation, packaging, and delivery. Infer and

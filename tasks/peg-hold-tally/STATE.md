@@ -324,8 +324,8 @@ Every row was run in this session, on 2026-09-10, on the bundle as it now stands
 |---|---|
 | `harbor run -a oracle -e docker` | mean 1.000, 1 trial, 0 exceptions - the real gate, shipped Dockerfiles |
 | `harbor run -a nop -e docker` | mean 0.000 |
-| `tools/docker_trial.py --all` | oracle 1, nop 0, 23 cheats scored 0 |
-| `authoring/cheat_report.py` | 23 cheats scored 0, with the layer that stopped each recorded |
+| `tools/docker_trial.py --all` | oracle 1, nop 0 on the final images; the cheat rows were completed by `cheat_report.py` below on the same images |
+| `authoring/cheat_report.py`, through `tools/forgecheck.py` | 23 cheats, 0 scored 1, with the layer that stopped each recorded |
 | `tools/docker_trial.py --dir variants/ok-bucket-scan` | reward 1 - a second correct implementation |
 | `scripts/preflight.py` | no errors, 16 warnings, all of them the module-qualified-call false positive the retained bundles also carry |
 | `tools/difficultycheck.py` before any code | 100 / 100, in band, no hard stop |
@@ -333,7 +333,7 @@ Every row was run in this session, on 2026-09-10, on the bundle as it now stands
 | `tools/readingcheck.py` | ten readings, every one separated by an enumerated case |
 | `authoring/measure.py` | every reading moves 6 to 98 per cent of the generated population |
 | `tools/onelinecheck.py` | three graded quantities, none reproduced by a rule of two terms over exposed fields |
-| `tools/forgecheck.py` | the answer-key carrier is found and scores 0 |
+| `tools/forgecheck.py` | `cheat-forge-from-truth.sh` is recognised as carrying the frozen answers; 23 cheats, 0 scored 1; no findings |
 | `tools/catcheck.py` | software vocabulary: 20 hits in the environment, 85 in the prose |
 | `tools/hintcheck.py`, `tools/solvecheck.py`, `tools/deadfieldcheck.py`, `tools/extraneouscheck.py`, `tools/imagecheck.py` | clean |
 | `tools/structcheck.py instruction.md` | clean |
@@ -351,6 +351,29 @@ container that pip-installs at build time needs the proxy's CA. `tools/docker_tr
 into a copy of the build context; `harbor` uses the Dockerfiles verbatim and failed to build the
 verifier image until the local `python:3.12-slim` tag was rebuilt with that CA baked in. Neither
 accommodation changes a byte of the bundle, and the platform has no such proxy.
+
+
+## What the probes proved, in their own words
+
+The report keeps what each probe was able to do, not only what it scored, because a zero for its
+own reasons proves nothing. Every probe rides on an accounting that gives blocks back in allocation
+order, so the only route to a 1 was the attack working.
+
+- `probe-privilege`: `uid=1002 euid=1002 | /logs/verifier/reward.txt PermissionError |
+  /logs/verifier/per PermissionError | /tests/worker.py PermissionError |
+  /tests/test_outputs.py PermissionError` - the worker is unprivileged and every path the verdict
+  depends on is closed to it.
+- `probe-answer-key`: `/tests/seal/gt.json PermissionError | /tests/seal/model.py PermissionError |
+  /logs/verifier/nonce PermissionError`, while `/tests/cases.py` and `/tests/gen.py` read fine.
+  That is the intended line: a submission may see which programs exist and even generate them from
+  its own copy of the seed, and it still has to answer them.
+- `probe-late-reward`: `reaped 1`. The double-forked process that sleeps and then writes the reward
+  was killed by uid before grading started, and the channel it wanted was root-owned and locked
+  before it ever ran.
+- `probe-crash-worker`, `probe-plant-verdict`, `probe-malformed`, `probe-forge-report`,
+  `cheat-forge-from-truth`: worker exit 0 in each case, and the grader failed them on content. A
+  planted, mangled or answer-carrying record is still read against a model the submission cannot
+  reach, over programs generated after it finished.
 
 ## Verifier contract - FROZEN 2026-09-10, before environment code
 

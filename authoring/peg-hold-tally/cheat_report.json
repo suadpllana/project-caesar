@@ -12,6 +12,12 @@
   "probe": ""
  },
  {
+  "cheat": "cheat-count-at-peg.sh",
+  "reward": 0,
+  "caught_by": "worker exit 124\nreaped 0\nERROR tests/test_outputs.py::test_hand_case[back-after-shed] - Failed: worker...\nERROR tests/test_outputs.py::test_hand_case[back-other-volume] - Failed: work...\nERROR tests/test_outputs.py::test_hand_case[back-while-held] - Failed: worker...\nERROR tests/test_outputs.py::test_hand_case[deferred] - Failed: worker produc...",
+  "probe": ""
+ },
+ {
   "cheat": "cheat-first-slot-out.sh",
   "reward": 0,
   "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[two-slots] - AssertionError: ass...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",

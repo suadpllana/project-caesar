@@ -96,6 +96,7 @@ calibration; the external probe is the authority on them:
 | `reach-pair-sweep` | 96 | rebuilt after two `difficult` rejections; not yet resubmitted |
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
+| `span-claim-charge` | 100 | scored before any code and again against the built tree; not yet submitted |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them
 is not prose volume: the controls lose on a missing second discovery, `patch` instead of

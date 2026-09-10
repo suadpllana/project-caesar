@@ -1,0 +1,186 @@
+[task]
+slug = "span-claim-charge"
+status = "pending"
+sources = ["tasks/span-claim-charge/STATE.md", "tasks/span-claim-charge/task.toml",
+           "authoring/span-claim-charge/timeit.py"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Model each item as a list of claims, register every claim on the span it points into, keep one
+reference count per span, and implement a write as: allocate blocks for the whole written range,
+replace the claims that overlap it, release any span whose count fell to zero. Report referenced
+space as the sum of the span lengths a line touches and exclusive space as the spans whose count
+is one.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Whether a write reuses the blocks under it is decided one block at a time: a block is rewritten
+in place only when exactly one claim in the whole store covers it, so a span carrying two claims
+of the same item is not writable in place yet is still exclusive to that line, and a span carrying
+one claim from each of two lines is neither. A count per span answers neither question, and the
+two questions want different structures over the same claims.
+"""
+second_discovery = """
+The blocks a write needs are taken from the free map only after that same write has dropped the
+claims it replaces and released whatever spans that emptied, so a write can land on the ground it
+just freed; the run shape at that instant decides how many spans it becomes, the allocated pieces
+are laid over the gaps in item order across piece boundaries, and the room check has to be made
+against the free total the release will produce rather than the one standing when the command
+arrives.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs and read the trace fields new, keep and rel against the stated rules",
+  "Separate the two sharing questions: claim multiplicity under a block, and the set of lines on a span",
+  "Give each span its claim list and a count per line, and derive both answers from those",
+  "Rebuild the write path as boundaries, then drop and release, then allocate, then splice",
+  "Lay the allocated pieces over the fresh gaps in item order, splitting a gap across two pieces",
+  "Index the free map by run length as well as by start so best fit and coalescing are both cheap",
+  "Keep referenced and exclusive as running totals updated on the zero-to-one and one-to-two transitions",
+  "Check the room against the free total that the write's own releases will produce",
+]
+
+[search]
+best_page = """
+The quota-group documentation of a copy-on-write filesystem, which defines referenced and
+exclusive space for volumes that share extents, alongside general write-ups of extent allocators
+and of why deleting most of a file frees nothing.
+"""
+helps_plan = false
+deviation = """
+Those pages define two accounting numbers and describe sharing at volume granularity. They state
+no allocation policy, no in-place rewrite test, no rule for the order in which a write releases
+and then allocates, and nothing about laying one allocation across several gaps of an item.
+"""
+
+[tactics]
+A1 = """
+The prior for a copy-on-write store is that every write allocates fresh blocks. Here a write
+rewrites in place exactly where no other claim covers the block, so the memorized rule is wrong
+on the common case and produces different addresses for everything that follows.
+"""
+A3 = """
+Charges want the set of lines on a span; the write path wants claim multiplicity under each block;
+the execution limit wants both answered without walking the claims. No one structure satisfies all
+three, so the plan has to carry two indexes over the same claims and keep them in step.
+"""
+B2 = """
+Best fit with a split across runs, release only when no claim survives, coalescing, in-place
+rewrite, charge per line set, stamp duplication and the room check all have to hold at once, and
+each one decides the addresses the next command sees.
+"""
+C1 = """
+Always copying fails the ordinary programs on the kept-in-place counts and on every later address;
+never copying fails the shared programs. The traces carry both the blocks kept and the blocks
+allocated, so overshooting in either direction is caught.
+"""
+C2 = """
+The five shipped modules are wrong in different ways at once, no expected output ships, and the
+only local check is the store's own trace, which a wrong reading makes self-consistent rather
+than visibly wrong.
+"""
+C3 = """
+Recomputing charges by walking the spans, testing in-place rewrite by walking every item's claims,
+and scanning the free runs for best fit are each exactly correct and each blow the stated limit on
+the wide programs.
+"""
+C4 = """
+Every command prints one line, traces are compared byte for byte over enumerated and generated
+programs, and a wrong release rule shifts every later allocation so the tail of a program diverges
+completely rather than in one field.
+"""
+guard = """
+Only the five modules under /app/store are taken from the agent and laid over a pristine tree; the
+program reader, the trace formatter, the command table and the shipped programs are frozen, so the
+output format and the command semantics cannot be reshaped.
+"""
+
+[decisions]
+graded = 13
+interactions = [
+  { a = "release only when no claim survives", b = "best fit allocation", why = "whether a span goes back decides the run shape, which decides where and in how many pieces the next write lands" },
+  { a = "in-place rewrite per block", b = "exclusive space per line set", why = "a span with two claims of one item is exclusive but not in-place writable, so one structure cannot answer both" },
+  { a = "drop before allocate inside one write", b = "the room check", why = "the free total the check must use is the one the write's own releases produce, not the one standing on arrival" },
+  { a = "stamp duplicates claims", b = "in-place rewrite", why = "stamping collapses the origin's exclusivity and turns its next writes from in-place into fresh allocations" },
+  { a = "one allocation laid over several gaps", b = "claim splitting at boundaries", why = "a gap can straddle two allocated pieces, so the claims a write leaves are not one per gap nor one per piece" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+An item written once and overwritten in the middle by its owner alone: every block is covered by
+exactly one claim, so nothing is allocated and nothing is released, and a solver that copies on
+every write reports allocations that never happened and moves every later address.
+"""
+late_case = """
+A line stamped, the origin's item partly overwritten, the stamp dropped, then the origin's item
+overwritten again: the first overwrite must copy, the drop must release only the spans no claim
+survives on, and the second overwrite must go back to writing in place on the blocks it still
+owns alone.
+"""
+oracle_denied = """
+The agent can run any program, but the store ships wrong in five places at once and no expected
+trace ships, so a self-consistent wrong reading prints a plausible trace; the only signal is the
+rules themselves and the two execution limits.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored count of lines or claims on a span", closed_by = "spans store only their start and length; every sharing answer is derived from the claim table the agent builds" },
+  { what = "the trace field naming blocks kept in place", closed_by = "it reports what the shipped store did, which is wrong, so it confirms the reading only after the reading is right" },
+  { what = "a helper that answers whether a span is shared", closed_by = "no such entry point exists; the frozen modules only parse programs and format lines" },
+  { what = "the shipped example programs acting as a test suite", closed_by = "no expected output ships for them and the graded programs are generated inside the verifier from a seed drawn after the run" },
+]
+derived_quantities = """
+The stored primitives are a device size, free runs, span start and length, and per-item claim
+tuples. Referenced space, exclusive space, freed-by-dropping and the in-place decision are all
+derivations and none of them is stored or printed by any frozen module.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Recomputing each line's referenced and exclusive totals by walking the span table, deciding the
+in-place rewrite by walking every item's claims, and choosing the best-fit run by scanning the
+free list are all exactly correct. Measured on the graded population, each producing the
+reference's trace on every program: 90.8 s, 149.5 s and 112.3 s, against 11.2 s for the
+reference and 8.9 s and 8.8 s for two independently written correct stores.
+"""
+invariant = """
+Sharing changes only where a claim is added or removed and each such event touches one span, and a
+free run changes only by a split at allocation or a merge at release, so both the per-line totals
+and the length-ordered free index can be carried forward instead of recomputed.
+"""
+input_scale = "sixteen thousand items with eighteen thousand charges, and a free map of sixteen thousand runs with fifty thousand writes against it, three programs of each, stated in the brief"
+limit_seconds = 60
+measured = true
+
+[cheats]
+wrong_readings = [
+  { reading = "always allocate on a write", hand_case = "one item written then overwritten in the middle by its only owner reports blocks allocated and moves every later address" },
+  { reading = "in place whenever the span has one line", hand_case = "an item that shares a range with a second item of the same line must copy, because two claims cover the block" },
+  { reading = "exclusive means the span has one claim", hand_case = "a line holding two claims on one span must still count that span as exclusive to it" },
+  { reading = "referenced counts the blocks a line claims", hand_case = "a line claiming three blocks of a twelve-block span must be charged the whole twelve" },
+  { reading = "release the span when the claim over it is replaced", hand_case = "overwriting the middle of a claim leaves two remnants, so the span stays and nothing is freed" },
+  { reading = "allocate before dropping the replaced claims", hand_case = "a full overwrite of an item nobody shares must land back on the blocks it just freed" },
+  { reading = "first fit instead of best fit", hand_case = "a four block request with free runs of six and four must take the four" },
+  { reading = "fail a write that does not fit one run", hand_case = "a six block write with free runs of four and two must take both, largest first" },
+  { reading = "check the room before the release", hand_case = "a full overwrite on a device with no free space must succeed on the blocks the overwrite frees" },
+  { reading = "stamp leaves the origin exclusive", hand_case = "a charge on a line taken immediately after it is stamped must report no exclusive space" },
+  { reading = "freed-by-dropping is the sum of exclusives", hand_case = "two lines sharing one span, dropped together, free a span neither of them owns alone" },
+  { reading = "vac allocates before releasing", hand_case = "vaccing an item nobody shares must land on its own blocks, and vaccing a stamped one must not" },
+]
+correct_variants = [
+  "One module holding the whole store, with charges recomputed from a per-line span dictionary maintained on every claim event and a free map kept as a length-keyed heap with lazy deletion",
+  "Claims kept as an interval tree per item and per span, with referenced and exclusive carried as running totals and the free map indexed by a sorted list of (length, start) pairs",
+  "A block-resolution coverage array under each span for the in-place test, with the line sets carried per span and totals updated on set transitions",
+]
+
+[shape]
+environment_py_lines = 630
+editable_files = 5
+reference_lines = 605

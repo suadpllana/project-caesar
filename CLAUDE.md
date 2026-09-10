@@ -299,3 +299,51 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-10, `span-claim-charge`)
+
+- **A check that reports every function in a package-shaped tree as unused reports nothing.**
+  `preflight`'s unused-affordance rule counted a reference only when the name was not preceded by
+  a dot, so `text.room(...)` did not count as a call to `room`. It printed 23 warnings on
+  `publish-settle-order`, a bundle that passed, and 39 on this one - and the single real finding
+  here, an allocator entry point nothing reached, was buried in them. Counting an optional
+  `module.` or `self.` prefix drops the false ones to zero on six of the ten bundles and still
+  fires on a planted unused function, which was checked both ways before the change was kept.
+  A warning class that is almost always wrong trains you to skip the one time it is right.
+- **A cheat sweep that runs submitted code in its own process dies without saying so.** Three
+  isolation probes call `os._exit(0)`, which is their attack; run in-process by the reporter they
+  took the reporter with them, and because the rows were printed at the end, the whole sweep
+  produced an empty file and exit 0. Judge each policy in a child process, print each row as it
+  is decided, and treat "the runner exited" as a verdict rather than as a crash.
+- **An enumerated case named for a rule can fail to separate it.** `alloc-best` was written to pin
+  best fit against first fit and gave every free run the same length, where the two agree.
+  `tools/readingcheck.py` found it - BLIND, with a ten-line counterexample - and the repair was one
+  more case with runs of six, four and eight against a request of four. Naming a case after a rule
+  is not evidence; running the wrong reading against it is.
+- **A patch table over the reference goes stale the moment the reference changes.** Removing an
+  unread `Item.name` field left two readings still constructing `Item(ln, nm)`. Both then scored 0
+  as `TypeError`, which looks like a pass in a sweep that only reads the reward, and readingcheck
+  reported them as "separated ... (raised TypeError)" - the string that gave it away. Every reading
+  asserts that its edit fired; they now also have to assert what the edit *does*.
+- **`pkill -f <pattern>` matches the shell that runs it.** Twice in this session a background job
+  was killed by a command whose own command line contained the pattern, once taking the heredoc
+  that was writing `task.toml` with it and leaving no file behind.
+- **Two of three scaling boundaries did not bite at the first scale, and the lever that fixed it
+  was not the obvious one.** Scanning the free runs for a best fit measured 40 s against a 60 s
+  limit - correct, and comfortably inside it. Raising the run count raises the reference's cost
+  too; raising the *number of allocations* costs the naive method one scan each and the reference
+  one bisection each, so 18000 writes to 50000 moved the naive reading to 112 s and the reference
+  from 4.8 s to 11.2 s. Pick the axis the two methods disagree about, not the one that makes the
+  program bigger.
+- **A blocked distro mirror turned out to be a defect in the Dockerfile, not in the sandbox.**
+  Docker Hub blob storage answers 403 through this environment's proxy and `deb.debian.org` does
+  too, so neither the base image nor `apt-get update` works here; the base came from
+  `mirror.gcr.io` retagged locally. Chasing the apt failure showed the verifier image never needed
+  apt: `setpriv`, `setsid`, `runuser` and `useradd` are already in `python:3.12-slim`, and the only
+  reason `procps` was there was a `pkill` this task's reaper does not use. The shipped image now
+  installs nothing from a distro at build time, which is one less thing to fail on the platform.
+- **Print the coverage canonically or grade an implementation choice.** The item map first printed
+  claims where they happened to be cut, which two correct implementations disagree about after a
+  share lands next to an existing claim on the same span. Running adjacent stretches together at
+  print time makes the picture a function of the contract; both correct variants, one keeping
+  claims and one keeping a cell per block, then print the same line.

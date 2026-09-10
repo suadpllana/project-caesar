@@ -1,0 +1,201 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/store/dev.py",
+  "/app/store/hold.py",
+  "/app/store/item.py",
+  "/app/store/line.py",
+  "/app/store/tally.py",
+]
+
+[task]
+name = "afterquery/span-claim-charge"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The store is small and every rule is in the brief. What is not in the brief is which of the
+structures the rules seem to ask for survive all of them at once, and that is the work.
+
+The first plan is a reference count on each span, a list of claims per item, allocate and then
+splice on a write, and charges added up from the spans a line touches. It is coherent, it is what
+a copy-on-write store is remembered as, and it is wrong in four places that only show up
+together. The rules ask two different questions of the same claims. The write path asks whether
+the block under it carries a second claim, which a span carrying two claims of one item answers
+yes and a span carrying one claim of each of two lines also answers yes. The charge side asks
+which lines stand on the span, which the first of those answers with one line and the second with
+two. A count per span answers neither, and the two questions want different structures over the
+same data: the write path needs the claim ranges on a span, the charge side needs the line set on
+it, and the limit forbids deriving either by walking the claims.
+
+The second finding reorders the write path rather than adding a case to it. The fresh blocks are
+taken only after that same write has dropped the claims it replaces and released whatever spans
+that emptied, so a write can land on the ground it just freed; on a full device a rewrite of an
+item nobody else stands on has to succeed, which means the room check is against the free total
+the release will produce and not the one standing when the command arrives. The run shape at that
+instant then decides how many spans the write becomes, because a request no single run holds
+takes the largest run whole and goes on from what is left, so the claims a write leaves are not
+one per stretch and not one per piece: a stretch can straddle two pieces and a piece can serve
+two stretches. An implementation that allocates first is semantically reasonable, passes every
+program with room to spare, and refuses the ones that have none.
+
+Around those sit rules that each invalidate a structure rather than a line. A span never splits,
+so overwriting the middle of an item frees nothing and the free map is a function of span
+lifetimes and not of byte ranges. A stamp puts a second line on every span the origin stood on,
+so the origin has no exclusive space left the moment it is stamped and its next write stops
+landing in place. Defragmenting an item that nobody else stands on lands back on its own blocks
+and defragmenting a stamped one cannot, which doubles what the pair uses. Freed by dropping a set
+of lines is not the sum of what each owns alone. Every one of those changes the addresses the
+next command sees, so a wrong reading does not move one field: the tail of the program diverges.
+
+Three exactly-correct methods are over the stated limit. Adding the charges up per query takes
+90.8 seconds, choosing the best fit by scanning the free runs 112.3 seconds, and deciding the
+in-place test by walking every item's claims 149.5 seconds, against 60 seconds for the whole
+graded set and about 11 seconds for the reference. All three produce the reference's traces
+exactly; the limit is the only thing that separates them. Two independently written correct
+stores come in at 8.9 and 8.8 seconds, so the limit is not tuned to one implementation.
+
+Identifiers are in a legacy register - `spot`, `spare`, `szlist`, `on`, `by`, `cl`, `ats`,
+`store/`, `base/` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real storage code rather than an obstacle: each is recoverable from
+what calls it.
+
+The programs are synthetic, in ten families, concentrating writes that land where they stand, a
+device with nothing to spare, a free map cut into runs, stamping and dropping, ranges shared until
+several claims stand on one block, defragmenting shared and unshared items, and sets of lines,
+all far above their natural rate. A census of unshaped programs put the room check at one per cent
+and an allocation spread across runs at three; in a working store these are rare, and they are
+exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Five modules, settled in the order the rules force rather than one that is tidy.
+
+`hold.py` gives each span two indexes over the claims standing on it, because the rules ask two
+different questions. `on` is the claims themselves, which is what the write path needs: to decide
+a range it takes the other claims' windows on that span, unions them, and what is left of the
+range is what may be rewritten where it stands. `by` is a count per line, which is what the charge
+side needs: a line stands on a span while its count is above zero, and the span is exclusive to it
+while `by` holds one name. A span goes back to the free map when `on` is empty, which is why
+overwriting the middle of an item frees nothing.
+
+`tally.py` carries referenced and exclusive forward instead of recounting them. The two numbers
+move only where a line's count on a span leaves or reaches zero, so the span table calls in at
+exactly those moments and the totals move by that span's length; the transitions that matter are
+zero to one for referenced, and one to two, and back, for exclusive. It also keeps the spans per
+line, because the freed-by-dropping question is asked of a set and no running total can answer it.
+
+`item.py` is the write path, in the order the rules impose. It settles the range one block at a
+time into stretches that stay and stretches that are fresh, counts what the fresh ones need,
+works out which spans the replacement would empty and checks the room against that total, drops
+the replaced claims so those spans go back, takes the blocks, and only then lays them over the
+fresh stretches in item order, walking pieces and stretches together so a stretch can straddle
+two pieces. Cutting a claim at a boundary keeps the span reference for the part that survives.
+The picture an item prints runs adjacent claims together, so where an implementation happened to
+cut is not observable.
+
+`dev.py` keeps the free runs in the two orders they are asked for: a start map with the starts in
+address order, for the neighbours a release has to merge with, and the lengths with their starts
+in length order, so the smallest run that fits is a bisection. `line.py` is the line table, where
+a stamp copies each item's claims onto the new line - registering every copy, which is what
+collapses the origin's exclusive space - and a drop rips them and sweeps.
+
+An expert works in that order because each module consumes the one before it: the span table
+decides what sharing means, sharing decides the charges and the write path, the write path decides
+what the allocator is asked for, and the allocator decides where everything lands next. The same
+contract is implemented two further ways in the authoring set - one storing an item as an entry
+per block so nothing has to be split, with the free map indexed by run length, and one keeping the
+claim shape but marking the in-place test off block by block and tracking exclusivity through the
+single line that holds a span - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the five files under `/app/store/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Forty-eight hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and sixty-six further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across ten families that concentrate in-place rewrites, a device with nothing to spare, a
+fragmented free map, stamping and dropping, overlapping shares, defragmenting, sets of lines, and
+two sizes that exist for the execution limit. A submission cannot have seen them, so fitting the
+shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Copying on every write fails `keep-sole` and `keep-mixed`; rewriting in
+place when a second claim stands on the block fails `keep-shared` and `keep-self`. Releasing a
+span when the claim over it is replaced fails `span-hold`; never releasing fails `span-back` and
+`merge-runs`. Allocating before the release fails `reuse-own`, and checking the room before it
+fails `room-after`, while `room-short` fails a store that stops refusing at all. Taking the first
+run that fits fails `alloc-fit`, breaking a tie high fails `alloc-best` and `alloc-low`,
+refusing a request no single run holds fails `alloc-split`, and one piece per stretch fails
+`lay-straddle`. Charging a line for the blocks it claims fails `ref-whole`; charging it once per
+claim fails `ref-once`; calling a span exclusive because one claim stands on it fails
+`excl-claims`, and because one line does fails `excl-lines`. A stamp that leaves the origin
+exclusive fails `stamp-collapse`, and freed-by-dropping as a sum of exclusives fails `gone-set`.
+Defragmenting before the release fails `vac-room`, and going ahead when the release would still
+leave it short fails `vac-short`. Printing the coverage where the claims happen to be cut fails
+`chart-merge`, and printing anything after the size of an empty item fails `chart-empty`.
+
+Forty-four cheats score 0. Twenty-nine are wrong readings, and an enumerated case separates every
+one of them. Three are exactly correct and over the limit - the charges added up per query, the
+best fit found by scanning, and the in-place test taken from every item's claims. One is a
+forgery carrying the frozen answers for all forty-eight enumerated programs, which passes every
+one of them and fails on the generated programs it could not have seen. The other eleven are
+probes: the answer
+key, a planted record, a record forged after the worker exits, a grader crash, malformed output, a
+late reward, a shrunken exam, a hijacked reader, a rewrite of the frozen half of the tree, a
+hunt for the grading process, and privilege. Two independently written correct stores score 1.
+
+The submitted store runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Systems"
+
+tags = [
+  "copy-on-write",
+  "extent-allocation",
+  "best-fit-allocator",
+  "space-accounting",
+  "free-space-coalescing",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having built or maintained the allocation and accounting half of a copy-on-write block store:
+something that hands out extents from a free map, lets several volumes stand on the same extent,
+decides whether a write can be taken in place or has to be copied, and has to say what a volume is
+using and what dropping it would give back. Familiarity with the fact that an extent is charged
+whole however little of it a volume still references, that a reference count cannot tell sharing
+within a volume from sharing between volumes, and that defragmenting a snapshotted file unshares
+it and costs space rather than saving it. Comfort with the order a write has to take when the
+blocks it frees are the blocks it needs, and with the difference between the free map's address
+order and its length order.
+"""
+
+[verifier]
+timeout_sec = 1800.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

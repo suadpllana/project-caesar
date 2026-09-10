@@ -717,8 +717,12 @@ def check_leaks_by_affordance(root: Path) -> None:
             for name in set(DEF_NAME_RE.findall(text)):
                 if DUNDER_OR_PRIVATE.match(name) or name in ENTRYPOINT_NAMES:
                     continue
-                # Count references outside the definition line itself.
-                refs = len(re.findall(rf"(?<![\w.]){re.escape(name)}\s*\(", corpus))
+                # Count references outside the definition line itself. A call through the
+                # module or the instance that owns it - `text.room(...)`, `self.room(...)` -
+                # is a call; excluding it reported every function in a package-shaped tree
+                # as unused, on this bundle and on every retained one.
+                refs = len(re.findall(
+                    rf"(?<![\w.])(?:[A-Za-z_]\w*\s*\.\s*)?{re.escape(name)}\s*\(", corpus))
                 defs = len(re.findall(rf"def\s+{re.escape(name)}\s*\(", corpus))
                 if refs <= defs and f'"{name}"' not in corpus and f"'{name}'" not in corpus:
                     rel = "/".join(path.relative_to(root).parts)

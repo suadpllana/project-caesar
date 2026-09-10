@@ -1,0 +1,18 @@
+dev 48
+n a
+w a/f 0 6
+w a/g 0 4
+c a
+p a b
+c a
+c b
+w b/f 2 2
+c a
+c b
+m a/f
+m b/f
+g a
+g a,b
+d b
+c a
+f

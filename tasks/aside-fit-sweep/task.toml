@@ -1,0 +1,211 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pool/find.py",
+  "/app/pool/cut.py",
+  "/app/pool/side.py",
+  "/app/pool/back.py",
+  "/app/pool/edge.py",
+]
+
+[task]
+name = "afterquery/aside-fit-sweep"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+The arena is small and every rule is in the brief. What is not in the brief is which of the
+structures the rules seem to ask for survive all of them at once, and that is where the work is.
+
+The rules that look ordinary are the ones a first plan gets right. Ranges come back to a free map
+and join what they touch; a request takes the lowest free run that is large enough; a resize frees
+the old range and takes a new one; a per-size list holds what is waiting to be reused. Every one of
+those is right until a range is set aside.
+
+A freed range of 256 bytes or less is set aside whole and stays out of the map, so the map is
+neither the free bytes nor the complement of the live ranges, and any structure rebuilt from the
+live set is wrong. A range that is aside joins nothing, which means the joining step has to know
+which neighbours it may look at. Nothing grows into it either, so a range freed one operation
+before its neighbour is asked to grow is invisible to that growth and the growth moves - and every
+address after it differs. The list hands out by exact size and most recently set aside, and gives
+back by earliest set aside, so one collection carries two orders over the same entries with
+removals from the middle, and an entry needs an identity because the same address and size can be
+set aside, taken and set aside again. The size that identity is keyed on is the size the range was
+carved at, not the size that was asked for, because free bytes under sixteen at the end of a
+placement go to the range; an implementation that keys the list by the request diverges thousands
+of operations later with no local symptom. And a resize that has to move places the new range
+before it frees the old one, because the other order offers the old range back to the request that
+displaced it. Each of those is a stated consequence of one sentence, and each invalidates a
+structure rather than a line.
+
+Two scale boundaries decide what a correct structure is allowed to cost, and the fast path follows
+from an invariant rather than from a technique. No range crosses a part, so every change to the map
+is confined to one part and free runs clipped to parts can be maintained with a maximum per part;
+the same rule makes a tree keyed by the largest free range answer the wrong address, because a run
+that straddles a boundary can be large and hold nothing. Measured against the 60 second limit for
+all 436 programs, which the reference settles in 3.3 seconds: one wide program alone takes 72
+seconds with the free ranges scanned from the left and 29 seconds with every part looked at in
+turn, and 105 seconds with every part's maximum re-derived whenever one part changes; one churn
+program takes 27 seconds with the neighbours of a returned range found by scanning. All four
+produce exactly the reference's traces; the limit is the only thing that separates them.
+
+Around those sit the decisions that were already there: the rounding and the size a part can hold,
+the lowest address rather than the lowest run, the sliver on both sides of sixteen bytes, the
+threshold at exactly 256, a failed request that returns everything aside to the map and leaves it
+returned, a resize down that releases its tail through the same path a `put` uses, and three
+operations on ids that are not events at all. All five editable modules ship wrong, the shipped
+free path is wrong in three ways at once, and a free prints nothing, so the only feedback on any
+of it is an address several thousand operations later.
+
+Identifiers are in a legacy register - `find`, `cut`, `side`, `back`, `edge`, `spot`, `park`,
+`grab`, `mx`, `runs` - short but never misleading, and no name misdescribes what it holds. That is
+a choice about the register of real allocator code rather than an obstacle: each is recoverable
+from what calls it.
+
+The programs are synthetic, in twelve families, with slivers on both sides of the bound, ranges
+set aside and taken and set aside again under pressure, free runs straddling part boundaries,
+requests that fail and leave the arena joined behind them, growths into bytes freed one operation
+earlier, and resizes that move to a size the old range would have matched, all concentrated far
+above their natural rate. In a working allocator they are rare, and they are exactly where this
+class of bug lives.
+"""
+
+solution_explanation = """
+Five modules, settled in the order the rules force rather than one that is tidy.
+
+`find.py` is the free map and the placement search. The rule is the lowest address whose rounded
+bytes are all free and all inside one part, which read literally is a scan and is far too slow once
+an arena holds tens of thousands of free ranges. The rule also supplies the structure that is not:
+because no range crosses a part, a free region straddling a boundary is two candidates and not one,
+and every change to the map is confined to a single part. So the map is free runs clipped to parts,
+joined only with runs in the same part, with a maximum per part carried in a segment tree over the
+parts; a request descends to the leftmost part whose maximum is large enough and takes the leftmost
+run there, which is the leftmost address by construction. A tree keyed by the largest free range
+anywhere answers this wrongly.
+
+`side.py` holds what has been set aside. One collection carries an order by age for the giving back
+and an order by size for the reuse, and the reuse takes entries out of the middle of the age order,
+so each entry is named by a tag minted when it was set aside rather than by its address and size:
+the same range can be set aside, taken and set aside again, and only the tag tells the two apart.
+Live entries sit in a dictionary in the order they were minted, which is the age order; the
+per-size stacks may hold tags of entries that have gone, which is harmless because a tag is never
+reused.
+
+`cut.py` serves a request, in the order the rules give rather than the order an allocator usually
+has: the aside list by exact size first, the map second, and only when the map cannot answer does
+everything aside go back to it for one more try, which is a change to the arena that stands whether
+or not the try succeeds. A range from the aside list is taken whole. A range carved from the map
+takes the free bytes standing after it, up to the end of its part, when there are fewer than
+sixteen of them, and that carved size is what the record keeps and what the range is later set
+aside under.
+
+`back.py` is where the two worlds meet: at or under 256 bytes the range is set aside, over it the
+range goes into the map and joins what it touches there. Three paths call it - a `put`, the tail a
+resize down leaves, and the range a resize that moved has finished with.
+
+`edge.py` resizes. Down is a release of the tail through that same path, so a tail at or under the
+threshold is set aside rather than joined, and a tail under sixteen bytes is not released at all.
+Up takes the bytes that follow only when they are in the map and the whole range stays inside one
+part, so a neighbour freed one operation earlier is invisible; when the growth cannot be had, the
+new range is placed first and the old one freed afterwards, because freeing first would set the old
+range aside at exactly its own size where the request about to be served would match it.
+
+An expert works in that order because each module consumes the one before it: the map decides where
+a range can go, the placement decides what size it ends up with, that size decides what the aside
+list can hand back, and the aside list decides what a growth is allowed to see. The same contract
+is implemented three further ways in the authoring set - one integer of bits per part with a
+maximum per group, the aside list as one stack per size and a queue of tokens with tombstones, and
+the whole allocator in a single module with the other four handing straight over to it - so the
+shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the five files under `/app/pool/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a program
+prints, and every trace is compared line for line.
+
+Correct is defined twice over. Thirty hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Four hundred and six further programs
+are generated inside the verifier from a seed drawn after the agent's container is gone, across
+twelve families that concentrate slivers, re-parked ranges under pressure, part boundaries inside
+free runs, failed requests, blocked growths and displacing resizes. A submission cannot have seen
+them, so fitting the shipped examples fails, and so does carrying an answer key.
+
+The model is an independent implementation rather than a copy: the reference keeps runs clipped to
+parts and joins them by hand, the model keeps one integer of bits per part where setting bits joins
+neighbours for free, and its aside list is a plain list in age order with linear scans, which
+cannot make the mistake a tagged queue can. The two agree on all 436 graded programs.
+
+The fences run both ways. Leaving every leftover free fails `sliver-take` and `sliver-end`; taking
+any leftover fails `sliver-leave`. Returning every freed range to the map fails `aside-blind` and
+`aside-join`; never returning one fails `flush-once`. Giving back the newest of the aside list
+fails `aside-oldest`; keeping a stale entry for a range that was taken and set aside again fails
+`aside-again`. Refusing to grow where a range stands fails `grow-open` and `grow-sliver`; growing
+into bytes that are aside fails `grow-blocked`, and growing past a part boundary fails `grow-part`.
+Freeing before placing fails `move-order` and `move-fail`. Placing across a boundary fails
+`part-edge`. Recording the size that was asked for rather than the size carved fails
+`sliver-aside`. Releasing the tail of a resize straight into the map fails `shrink-aside`, and not
+releasing it at all fails `shrink-tail`.
+
+Forty-three cheats score 0. Twenty-eight are wrong readings, each caught by the enumerated case
+named for it, and three more are exactly correct and too slow - the free ranges scanned from the
+left, every part looked at in turn, and every part's maximum re-derived on every change - caught by
+the execution limit alone. One is a forgery carrying the frozen answer for every enumerated
+program, which passes all thirty and fails on the programs it could not have seen. The other eleven
+are probes: the answer key, a planted report, a report forged after the worker exits, a grader
+crash, malformed records, a late reward from a double-forked survivor, a signal sweep, privilege, a
+shrunken population, and two rewrites of the parts of the tree the verifier does not take. Three
+independently written correct allocators score 1.
+
+The submitted allocator runs unprivileged, in its own session, under the wall clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward defaults
+to 0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Systems"
+
+tags = [
+  "heap-allocator",
+  "deferred-coalescing",
+  "free-space-index",
+  "in-place-resize",
+  "arena-partitioning",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having written and debugged the placement half of a heap allocator: arena geometry that forbids a
+range from straddling a boundary, a free map that is not simply the bytes nobody is using, a
+reuse list that holds freed ranges back from joining, and a resize that has to decide between
+growing where it stands and moving. Familiarity with the fact that a range freed a moment ago is
+not the same thing as free space, that the size a range was carved at is not the size that was
+asked for, and that the order of the free and the placement in a move decides which address comes
+back. Comfort with the class of bug that shows up as a different address ten thousand operations
+later and nowhere else, and with the habit of asking what a placement rule costs before choosing
+the structure that answers it.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

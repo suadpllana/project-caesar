@@ -45,6 +45,11 @@ template/               new-task skeleton
 tools/                  generic local checks and two-image trial runner
 ```
 
+Four projects in `tasks/` have not been through the pipeline yet: `token-seam-emit`,
+`reach-pair-sweep`, `publish-settle-order` and `aside-fit-sweep`. Their design scores and state
+are in [`docs/DIFFICULTY-SCORE.md`](docs/DIFFICULTY-SCORE.md); the external probe is the authority
+on all four.
+
 `STATE.md`, root-level research, caches, and harness output do not ship in a submission. Build
 archives with `scripts/package.py`; do not zip task folders by hand.
 

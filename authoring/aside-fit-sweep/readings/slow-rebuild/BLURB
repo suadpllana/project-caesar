@@ -1,0 +1,1 @@
+re-derives every part's maximum whenever one part changes, which is correct and too slow

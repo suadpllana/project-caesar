@@ -1,0 +1,10 @@
+span 1024
+part 512
+get a 256
+get b 256
+get c 256
+get d 256
+put a
+put b
+get e 512
+get f 8

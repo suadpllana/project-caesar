@@ -299,3 +299,55 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-10, `aside-fit-sweep`)
+
+- **A cheat that signals every process it can reach will signal yours.** `cheat_report.py` ran the
+  whole `cheat/` directory on the host to name what catches each one. Nineteen in, it reached the
+  probe that walks `/proc` and sends SIGTERM to everything it can, which killed the shell, the
+  running `docker_trial.py --all` sweep 11 cheats from the end, and `dockerd` itself; the sweep had
+  to start over, and the daemon had to be restarted before it could. Probes that fork, signal or
+  write outside the tree only mean anything inside the verifier container, so `cheat_report.py`
+  now refuses to run any `cheat-probe-*` on the host and reports the allocator they are built on
+  instead, which is the half a host can measure honestly.
+- **A script that measures the reference has to stage the overlay the verifier stages.** The
+  agreement harness imported the pool modules from `environment/app_src`, which is correct only
+  until the shipped modules are replaced by the broken ones they are supposed to be. After that it
+  spent one run reporting 106 of 106 programs differing and a reference time of 303.9 s against
+  the true 3.3 s, and the "first difference" it printed was a real defect - in the shipped
+  allocator, which is meant to have them. Every measuring script now copies the tree and lays the
+  five solution files over it exactly as `worker.py` does.
+- **The independence of the sealed model is not decoration; it found the bug on day one.** The
+  model checked that the bytes a growth needs lie in one part, which is not the rule: the rule is
+  that the *whole grown range* lies in one part. A block at 496 growing to 24 bytes has a tail at
+  512 that sits neatly inside the next part, so the model grew in place where the reference moved.
+  Four hundred generated programs found it in the first run. Had the model been written from the
+  reference instead of from the contract, both would have been wrong together and nothing would
+  have said so.
+- **A reading that moves 0% of the population is a reading the families are not shaped for, and
+  the shape has to be derived rather than guessed.** The aside list's identity bug - a range set
+  aside, taken, and set aside again, given back at the wrong turn - needs entries parked *between*
+  the taking and the re-parking, and the first shaping re-parked immediately, where the stale entry
+  and the true entry are adjacent in age and agree. Reshaped so the reuse is returned three parks
+  later, it moves 9.2%. The hand case caught it either way; the population is what says the case is
+  not the only thing standing between a wrong reading and a pass.
+- **Two patches through a heredoc corrupted the emitter, and the second spliced at a `def main():`
+  that was inside a probe's own heredoc string.** Splicing Python by `text.index("def main():")`
+  found the copy that lives inside a shell heredoc inside a string literal, 130 lines from the one
+  intended. The repair is the same one this file already records for escapes: put the new text in
+  a file, splice on a marker that is unique in the file, and parse the result with `ast` before
+  running it.
+- **The base image and the apt layer are both sandbox-blocked here, and only one of them matters.**
+  Docker Hub's blob CDN and `deb.debian.org` are both 403 under this session's egress policy, so no
+  image could be built at all. `mirror.gcr.io/library/python:3.12-slim` is allowed and is the same
+  image, tagged locally; the apt layer is now commented out for local builds only, behind
+  `DOCKER_TRIAL_NO_APT=1` in `tools/docker_trial.py`. Before trusting a trial run that way, check
+  what the apt layer would have installed: here it is `procps` and `util-linux`, and `setpriv`,
+  `setsid`, `timeout` and `install` are all already in the base image while `ps` is never called,
+  so the isolation the trial exercised is the isolation the shipped image will have. The
+  accommodation is recorded in the task's state file rather than assumed away.
+- **Splitting the apt layer from the pip layer is worth doing before it is needed.** The first
+  local build commented out one `RUN apt-get ... && pip install pytest`, which took pytest with it
+  and produced a verifier image that could not grade. Two instructions, so a local accommodation
+  can drop one without taking the other - the same reasoning that already gives every artifact
+  parent its own `RUN mkdir`.

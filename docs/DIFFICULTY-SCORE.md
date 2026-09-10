@@ -95,6 +95,7 @@ calibration; the external probe is the authority on them:
 | `publish-settle-order` | 98 | easiness recovery pending the platform probe |
 | `reach-pair-sweep` | 96 | rebuilt after two `difficult` rejections; not yet resubmitted |
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
+| `aside-fit-sweep` | 100 | built 2026-09-10, first submission; scored 100 before any code and 100 again with the tree measured |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them

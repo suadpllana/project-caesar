@@ -1,0 +1,6 @@
+span 1024
+part 512
+get a 264
+get b 8
+get c 128
+get d 264

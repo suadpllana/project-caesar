@@ -1,0 +1,9 @@
+span 2048
+part 512
+get a 448
+get b 128
+get c 64
+put b
+put c
+get d 128
+get e 64

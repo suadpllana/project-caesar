@@ -1,0 +1,8 @@
+span 1024
+part 512
+get a 64
+get b 64
+put b
+fit a 128
+sweep
+fit a 192

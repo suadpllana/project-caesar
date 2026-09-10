@@ -20,6 +20,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -51,6 +52,23 @@ def local_context(ctx: Path, tmp: Path) -> Path:
     """
     dst = tmp / ctx.name
     shutil.copytree(ctx, dst)
+    if os.environ.get("DOCKER_TRIAL_NO_APT") == "1":
+        # Local accommodation, off by default. Some sandboxes deny deb.debian.org, so an
+        # apt layer cannot be built here at all. Commenting it out lets the rest of the
+        # image build and the trial run; anything the apt layer would have installed is
+        # then whatever the base image already carries, so check that before trusting a
+        # result obtained this way, and say in the report that it was used.
+        df = dst / "Dockerfile"
+        keep, drop = [], False
+        for line in df.read_text().splitlines():
+            if re.match(r"\s*RUN\s+apt-get", line):
+                drop = True
+            if drop:
+                keep.append("# [local-no-apt] " + line)
+                drop = line.rstrip().endswith("\\")
+            else:
+                keep.append(line)
+        df.write_text("\n".join(keep) + "\n")
     if not CA.is_file():
         return dst
     shutil.copyfile(CA, dst / "__ca.crt")

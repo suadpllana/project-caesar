@@ -1,0 +1,244 @@
+# Difficulty record for aside-fit-sweep, written at Stage 1 before any code exists.
+# Every claim here is restated in tasks/aside-fit-sweep/STATE.md and is what the build has
+# to deliver. Sizes under [shape] are the plan; the checker measures the tree at Stage 7.
+
+[task]
+slug = "aside-fit-sweep"
+status = "pending"
+sources = [
+  "tasks/aside-fit-sweep/STATE.md",
+  "tasks/aside-fit-sweep/task.toml",
+  "tasks/aside-fit-sweep/instruction.md",
+  "tasks/aside-fit-sweep/tests/test_outputs.py",
+  "tasks/aside-fit-sweep/cheat/",
+  "authoring/aside-fit-sweep/readings.py",
+  "authoring/aside-fit-sweep/variants/",
+]
+expert_hours = 10
+estimated_solves = 3
+
+[plan]
+first_plan = """
+Read the five editable modules against the paragraphs of the brief and rewrite all five in one
+pass: a dict from address to range with a state, one address-ordered list of the free ranges
+scanned from the left for the first one big enough, a dict from size to a list of the ranges
+set aside so the exact-size reuse is a pop, a counter for how many are set aside, coalescing
+with both neighbours whenever a range is returned to the free map, and a resize that frees the
+old range and allocates the new one. Then run the shipped programs and compare the traces by
+eye. This is the plan the brief invites, because every rule in it is individually stated.
+"""
+first_plan_source = "instruction"
+breaking_rule = """
+A freed range of 256 bytes or less is set aside whole: it is not returned to the free map, it
+does not join its neighbours, and while it is aside no allocation may be placed in it and no
+range may grow into it, yet a request of exactly its size takes the one set aside most
+recently, and when more than thirty-two are aside the one set aside earliest is returned to
+the free map and joined. One collection carries two orders over the same entries, entries
+leave it from the middle, and the free map is therefore neither the free bytes nor the
+complement of the live allocations.
+"""
+second_discovery = """
+The fit is not the leftmost free range that is large enough; it is the leftmost address whose
+next n bytes are free and lie inside one part, so a range that straddles a part boundary can
+be large and hold nothing, and a tree keyed by the largest free range answers wrongly. The
+same rule gives the structure that does work: because no allocation crosses a boundary, every
+change to the free map is confined to one part, so the index is free runs clipped to parts,
+a maximum per part, and a tree over the parts. The first implementation recomputes; the second
+has to maintain, at seven separate mutation points, an index whose content is neither the free
+bytes nor the free ranges.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read ops.py and reg/text.py to learn the op set and which entry point each op reaches",
+  "read the shipped pool modules and notice that the free map they keep is not the free bytes: a range that has been set aside is physically free and out of the map",
+  "read reg/live.py and notice a record is reused when an id is allocated again, so the size a range was set aside under is the size it was carved at and not the size that was asked for",
+  "write the placement: round up, take the leftmost address whose n bytes are free and inside one part, and give the allocation the tail sliver when what would be left over is under sixteen bytes",
+  "write the set-aside list as one queue with an index by size, so the reuse takes the newest of a size and the eviction takes the oldest of all, and an entry reused from the middle leaves the queue",
+  "write the free path: under the threshold set aside whole, over it return to the map and join the neighbours that are in the map and not the ones set aside",
+  "write the failure path: a request that neither the aside list nor the map can serve returns everything aside to the map and tries once more, and the list stays empty whether or not the retry succeeds",
+  "write the resize: grow in place only over bytes that are in the map and inside the same part, otherwise place the new range before freeing the old one",
+  "replace the scan with free runs clipped to parts, a maximum per part and a tree over the parts, and update it at every one of the seven points that change the map",
+  "time progs/wide.txt and progs/churn.txt, multiply by three, and check the total against the limit in the brief",
+]
+
+[search]
+best_page = """
+Write-ups of glibc malloc internals - fastbins and the per-thread cache, deferred consolidation,
+the malloc_consolidate that a large request triggers - and the buddy and segregated-fit chapters
+of any allocator survey.
+"""
+helps_plan = false
+deviation = """
+Those describe per-size lists that are never evicted by age, consolidation triggered by request
+size rather than by population, best or first fit over blocks rather than the leftmost address
+inside a part, and no sliver rule; retrieval supplies a coherent design whose every detail is
+specifically the wrong one here, and the graded object is this host's exact trace.
+"""
+
+[tactics]
+A1 = """
+The prior is coherent and specifically wrong three times: an allocator joins a freed range with
+its neighbours, grows a range into the free bytes that follow it, and frees the old range before
+placing the new one. Here a freed small range joins nothing, is invisible to a range growing
+into it, and a move places first.
+"""
+A2 = """
+Nothing is named: no deferred coalescing, no quick list, no bitmap run index, no order
+statistics. The brief says which range is taken and where an allocation may sit.
+"""
+A3 = """
+Reuse by exact size wants an index by size, eviction by age wants a queue, and a reuse from the
+middle of that queue wants identity per entry, because a range at the same address and size can
+be set aside, taken, and set aside again. No single container gives all three.
+"""
+B2 = """
+One event, the free of a small range, is an allocation event, a joining event, a growth event
+and an eviction event at once, and the four modules that own those have to agree about it. All
+five shipped modules are wrong and the shipped free path is wrong in three ways at once.
+"""
+C1 = """
+Both fences on every axis: sliver-take against sliver-leave, aside-newest against aside-oldest,
+grow-blocked against grow-open, flush-stays against flush-once, move-order against move-keep.
+"""
+C2 = """
+No oracle: a brute-force model written from the brief is correct for free - a byte array and a
+scan need no index - and confirms nothing about the structures that have to replace it; every
+plausible allocator prints plausible addresses, so a wrong one cannot be seen by eye.
+"""
+C3 = """
+Five measured boundaries, each with a fast path that follows from an invariant: no allocation
+crosses a part, so every change to the free map is confined to one part and the index is runs
+clipped to parts with a maximum per part.
+"""
+C4 = """
+All-or-nothing over enumerated programs and several hundred nonce programs in a dozen families,
+generated inside the verifier from a seed drawn after the agent's container is gone.
+"""
+guard = """
+Only the five files under /app/pool/ are declared artifacts; the verifier overlays them onto its
+own pristine copy, so the op dispatch, the program reader, the id table, the geometry and the
+event printer cannot be reshaped, and the trace format cannot be changed.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "the sliver rule, which gives an allocation the leftover under sixteen bytes", b = "reuse from the aside list by exact size", why = "the size a range is set aside under is the size it was carved at, so a request of the size that was originally asked for does not match it, and an implementation that keys the aside list by the request diverges thousands of operations later with no local symptom" },
+  { a = "a small freed range is set aside and joins nothing", b = "a range grows in place over the bytes that follow it", why = "a range freed immediately before its neighbour grows is invisible to that growth, so the growth moves, and every address after it differs; getting the free path right changes what the resize path is allowed to see" },
+  { a = "reuse takes the newest of a size", b = "eviction takes the oldest of all sizes", why = "one collection carries two orders and entries leave it from the middle, so an entry needs an identity: the same address and size can be set aside, taken and set aside again, and a queue that deletes lazily by address and size evicts the wrong one" },
+  { a = "a request that cannot be served returns everything aside to the map and tries once more", b = "which address a later allocation is given", why = "the failure path is a state change that persists whether or not the retry succeeds, so a request that prints no leaves the arena joined, and an implementation that only flushes on the way to a success gives a different address to every allocation after it" },
+  { a = "an allocation lies inside one part", b = "the index that answers the fit in time", why = "a free range straddling a boundary can be large and hold nothing, so a tree keyed by the largest free range is wrong, while the same rule makes every change confined to one part, which is what lets runs clipped to parts be maintained instead of recomputed" },
+  { a = "a resize that cannot grow in place places the new range before freeing the old one", b = "reuse of an exactly matching range from the aside list", why = "freeing first would put the old range in the aside list at exactly its own size, where the new request may match it, so the two orderings differ whenever the new size equals the old and diverge from there" },
+  { a = "a range returned to the map joins its neighbours in the map", b = "ranges that are aside are physically free", why = "joining has to skip a neighbour that is aside, so the free map is neither the free bytes nor the complement of the live allocations, and any structure rebuilt from the live set is wrong" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+An overconservative reading fails the everyday side: never taking the sliver fails sliver-take,
+never setting a range aside fails aside-blind and aside-join, refusing to grow in place fails
+grow-open and grow-sliver, returning everything aside to the map before every search fails the
+same two as never setting one aside, and never releasing the tail of a resize down fails
+shrink-tail. Every enumerated case is the case named for at least one wrong reading; the
+last four rules to get one - the sweep, the size a part holds, and the two operations on an id
+that is not live - got sweep-drop, part-strict, put-dead and fit-dead.
+"""
+late_case = """
+The structures fail on programs an agent does not write unprompted: a range set aside, taken and
+set aside again while thirty-one others queue behind it, a growth into bytes freed one operation
+earlier, a request that fails and leaves the arena joined behind it, a resize to exactly its own
+size, and a part boundary inside a free range large enough to look like a fit.
+"""
+oracle_denied = """
+The natural check is to write a brute-force model from the brief and compare, but that model is
+correct for free and says nothing about the index that has to replace the scan; the shipped host
+is wrong in every module, no expected trace ships with any program, and addresses from a wrong
+allocator look exactly as plausible as addresses from a right one.
+"""
+
+[leaks]
+candidates = [
+  { what = "an expected trace beside a shipped program", closed_by = "the tree ships programs and no trace for any of them; the answer is the sequence of events a program produces, and nothing in the tree stores one" },
+  { what = "a free-run index, a per-part maximum, an aside queue with ages, or a joined-neighbour cache", closed_by = "none ships; each is the agent's to invent, and an index nothing reads would be a dead field that deadfieldcheck exists to catch" },
+  { what = "any shipped representation of arena state naming the aside condition", closed_by = "none ships: the frozen tree holds only the op dispatch, the reader, the id table, the geometry and the printer, and every representation of free space belongs to the five editable modules" },
+  { what = "the size recorded on a live allocation, which the sliver rule makes differ from the request", closed_by = "the record stores the range it was carved, which is what the free path needs; the request is not stored, so the difference has to be derived rather than read off" },
+  { what = "the answers and the sealed model", closed_by = "baked into the verifier image only, under tests/seal chmod 700 before any agent code runs, so the answer-key probe reports PermissionError rather than a zero" },
+  { what = "per-axis confirmation before commit", closed_by = "one trace per program, all-or-nothing; a free prints nothing at all, so the only feedback on the free path is an address several thousand operations later" },
+]
+derived_quantities = """
+Records store what the program declared and what was carved - the id, its address and the size of
+the range - and nothing else. No run length, no per-part maximum, no age, no join
+candidate and no count of what is aside ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Placements that are exactly correct and too slow: scanning the address-ordered free ranges from
+the left on every request, recomputing the free map from the live allocations and the aside list
+on every request, rebuilding the whole index when a range is returned to the map, finding the
+neighbours of a freed range by scanning, and answering a growth by scanning for the range that
+follows.
+"""
+invariant = """
+No allocation crosses a part boundary, so every change to the free map is confined to one part;
+free runs clipped to parts are therefore maintainable, with a maximum per part and a tree over
+the parts answering the leftmost part that can hold the request.
+"""
+input_scale = "three programs of each large size - a fragmenting program of about 150,000 operations over a four megabyte arena, and a churning program that drives the aside list past its bound tens of thousands of times over the same arena - plus four hundred small ones, 436 graded programs in all"
+limit_seconds = 60
+measured = true
+# Measured on a quiet machine against the 60 s limit for the whole graded set, which the
+# reference settles in 3.3 s: one wide program alone takes 72.0 s with the free ranges scanned
+# from the left, 29.3 s with every part looked at in turn, and 105.1 s with every part's maximum
+# re-derived whenever one part changes; one churn program takes 27.2 s with the neighbours of a
+# returned range found by scanning. All four produce exactly the reference's traces. The three
+# correct variants come in at 7.5 s, 1.3 s and 0.6 s on the same wide program.
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "aside-after: looks in the map before the aside list", hand_case = "aside-plain, aside-newest, aside-again" },
+  { reading = "aside-lazy: keeps the aside list as one list per size and a queue of addresses, so a range set aside, taken and set aside again is given back at the wrong turn", hand_case = "aside-again" },
+  { reading = "aside-none: returns every freed range to the map, joining it with its neighbours", hand_case = "aside-blind, aside-join, aside-again" },
+  { reading = "dup-get: serves a request for an id that is already live", hand_case = "dup-get" },
+  { reading = "evict-newest: returns the range set aside latest when more than thirty-two are aside", hand_case = "aside-oldest, aside-again" },
+  { reading = "fit-best: takes the smallest free range that fits rather than the leftmost address", hand_case = "left-most" },
+  { reading = "flush-eager: returns everything aside to the map before every search", hand_case = "aside-blind, aside-join, aside-again" },
+  { reading = "flush-none: lets a request fail without returning what is aside to the map", hand_case = "flush-once, flush-stays" },
+  { reading = "grow-aside: grows a range into bytes that are set aside", hand_case = "grow-blocked" },
+  { reading = "grow-never: moves a range that is asked to grow rather than growing it where it is", hand_case = "grow-open, grow-sliver" },
+  { reading = "join-never: returns a range to the map without joining it to its neighbours", hand_case = "aside-oldest, flush-once, grow-sliver" },
+  { reading = "keep-strict: sets aside only ranges under 256 bytes, not ranges of exactly 256", hand_case = "keep-edge" },
+  { reading = "move-free-first: frees the old range before placing the new one", hand_case = "move-order, move-fail" },
+  { reading = "no-round: places the size that was asked for without rounding it up", hand_case = "round-up" },
+  { reading = "part-cross: places a range across a part boundary when the free bytes run that far", hand_case = "part-edge, grow-part, keep-edge, move-order" },
+  { reading = "reuse-oldest: takes the range of a size set aside earliest rather than latest", hand_case = "aside-newest, aside-again" },
+  { reading = "shrink-any: releases the tail a resize down leaves however small it is", hand_case = "shrink-keep" },
+  { reading = "shrink-map: puts the tail a resize down leaves straight into the map", hand_case = "shrink-aside" },
+  { reading = "shrink-none: never releases the tail a resize down leaves", hand_case = "shrink-tail, shrink-aside" },
+  { reading = "size-req: records the size that was asked for rather than the size carved", hand_case = "sliver-aside" },
+  { reading = "sliver-all: gives the allocation any leftover, not only one under sixteen bytes", hand_case = "sliver-take, aside-blind, aside-join" },
+  { reading = "sliver-none: leaves every leftover free instead of giving it to the allocation", hand_case = "sliver-take, sliver-end, sliver-aside" },
+  { reading = "sliver-wide: takes a leftover of exactly sixteen bytes as well", hand_case = "sliver-leave" },
+  { reading = "zero-ok: serves a request that rounds to nothing", hand_case = "round-up" },
+  { reading = "sweep-drop: empties the aside list without returning anything to the map", hand_case = "sweep-op, flush-once, grow-open" },
+  { reading = "put-dead: gives a range back for an id that has one recorded but is not live", hand_case = "dead-put" },
+  { reading = "fit-dead: resizes the range an id last held even after it has been given back", hand_case = "dead-fit" },
+  { reading = "part-strict: refuses a request of exactly the size a part holds", hand_case = "too-big, keep-edge" },
+  { reading = "slow-scan: scans the free ranges from the left on every request, which is correct and too slow", hand_case = "" },
+  { reading = "slow-max: looks at every part in turn for the leftmost that can hold the request, which is correct and too slow", hand_case = "" },
+  { reading = "slow-rebuild: re-derives every part's maximum whenever one part changes, which is correct and too slow", hand_case = "" },
+]
+correct_variants = [
+  "ok-flat: the whole allocator in one module with the other four handing straight over to it, a maximum per part and a scan across the parts",
+  "ok-mask: the free map as one integer of bits per part with a maximum per group of thirty-two parts, runs found by anding the mask with shifted copies of itself",
+  "ok-token: the aside list as one stack per size and one queue of tokens with tombstones, over the reference free map",
+]
+
+[shape]
+environment_py_lines = 330
+editable_files = 5
+reference_lines = 330

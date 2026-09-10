@@ -1,0 +1,1 @@
+scans the free ranges from the left on every request, which is correct and too slow

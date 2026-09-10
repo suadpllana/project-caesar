@@ -5,7 +5,16 @@ it. Assume the next session starts with no memory of this one.
 
 ## Current stage
 
-`Stage 2 - verifier contract`, frozen below before any environment code was written.
+`Stage 7 - pre-flight and packaging`. Everything below has been run in this session on the bundle
+as it stands: both real harbor gates, the two-container trial with every cheat, the reading
+separations, the execution-limit measurements and the packaging. The one gate that cannot be run
+from here is the platform's own easiness probe, and the cold self-attack is recorded as not run,
+honestly, in the section that says why.
+
+The verifier contract was frozen before any environment code was written and has not changed
+since. Two things about the graded set were tuned after it: the `crop` family grew from 120,000 to
+180,000 ops and the execution limit went from 90 to 120 seconds, both to move a timing verdict off
+a knife edge. Neither changes what any program's correct output is.
 
 ## Infrastructure in this session
 
@@ -146,8 +155,8 @@ run.
   accounting, which is wrong, and the graded programs are generated from a seed drawn after the
   agent's container is gone.
 - Expert path, step by step: run the shipped runner and find the printed lines that disagree
-  with the brief; write the definitional model and use it as a differential oracle on small
-  programs; settle each rule against it; time the large programs and find the rescan cannot
+  with the brief; write the definitional model - what the volume holds, frozen at each peg - and use it as a
+  differential oracle on small programs; settle each rule against it; time the large programs and find the rescan cannot
   finish; derive the interval invariant; carry the two youngest living pegs of each run; file
   runs under those two pegs so a shed walks two buckets; carry the sole-keeper counters and the
   stopped-being-kept queue; differential-test and time again.
@@ -221,24 +230,32 @@ generates that shape deliberately.
 
 ## Stage 7 - the measured execution limit
 
-The brief states 90 seconds for the whole graded set and the worker's wall clock enforces it.
-Measured on this machine, host emulation, 459 programs (450 small, 9 large):
+The brief states 120 seconds for the whole graded set and the worker's wall clock enforces it.
+Measured on this machine, host emulation, 459 programs (450 small, 9 large), after the `crop`
+family was scaled to settle the boundary:
 
 | accounting | worker | verdict |
 |---|---|---|
-| reference | 14.2 s | reward 1 |
-| the memorised model - a peg takes a reference over the live map | ~208 s | over the limit |
-| the shipped rescan | hours (9.8 s on a crop program 15 times smaller) | over the limit |
+| the reference: runs filed under the two youngest living pegs they cover | 16.2 s | reward 1 |
+| a second correct one: runs filed under the youngest only, tally worked out when asked | 14.7 s | reward 1 |
+| correct, but a shed walks every run there is | 174.3 s | over the limit |
+| correct, but a peg takes a reference over everything the volume holds | 324.3 s | over the limit |
+| the shipped accounting, which rescans at every trim, tally and shed | hours - 9.8 s on a crop program fifteen times smaller | over the limit |
 
-Per large program, reference against that same correct-but-infeasible family: `crop` 1.5 s against
-62.0 s, `wide` 0.8 s against 4.3 s, `fan` 0.55 s against 0.46 s. `crop` is the shape that decides
-the gate: thirteen thousand pegs made and shed over a volume of forty-five thousand slots. The
-frozen core's own cost is 0.2 to 0.4 s per large program, so the limit is not measuring the store.
+Per large program, the reference against the family that walks every run on a shed: `crop` 2.5 s
+against 50.8 s, and `crop` is the shape that decides it - twenty thousand pegs made and shed over a
+volume of forty-five thousand slots. The frozen core's own cost is 0.5 s of that, so the limit is
+not measuring the store.
 
-The boundary therefore sits at about six times the reference: an accounting that carries its
-answers forward passes with room, and one that walks the live map at every peg, shed or tally does
-not. That is a measured invariant boundary, not an undisclosed timeout - both the limit and the
-input scale are in the brief.
+Two correct implementations sit seven to eight times inside the limit; the nearest
+correct-but-recomputing family is half again outside it and the memorised one is nearly three times
+outside it. Both halves of that gap were built rather than found. At the first `crop` size the
+rescanning family came in at 92.1 s against a 90 s limit, which is a verdict that depends on how
+loaded the machine is rather than on what was written; scaling `crop` from 120,000 to 180,000 ops
+moved it to 174.3 s and left the reference where it was. The limit then went from 90 to 120 s,
+which keeps that family out even on a machine half this speed and leaves a correct implementation
+room to be several times heavier than this one - the risk being guarded against there is a zero-solve
+run, not an easy pass.
 
 ## Stage 7 - the cold self-attack, and why it is recorded as not run
 
@@ -297,6 +314,43 @@ against 85 in the prose, so the category is carried by the code. Tags name mecha
 the taxonomy. `difficulty_explanation` names the step that breaks - the count settled when a hold
 closes, against forks and restores - and says the terse naming and missing comments are deliberate.
 `expert_time_estimate_hours = 9` matches the difficulty record.
+
+
+## Validation, and what each row actually ran
+
+Every row was run in this session, on 2026-09-10, on the bundle as it now stands.
+
+| check | result |
+|---|---|
+| `harbor run -a oracle -e docker` | mean 1.000, 1 trial, 0 exceptions - the real gate, shipped Dockerfiles |
+| `harbor run -a nop -e docker` | mean 0.000 |
+| `tools/docker_trial.py --all` | oracle 1, nop 0, 23 cheats scored 0 |
+| `authoring/cheat_report.py` | 23 cheats scored 0, with the layer that stopped each recorded |
+| `tools/docker_trial.py --dir variants/ok-bucket-scan` | reward 1 - a second correct implementation |
+| `scripts/preflight.py` | no errors, 16 warnings, all of them the module-qualified-call false positive the retained bundles also carry |
+| `tools/difficultycheck.py` before any code | 100 / 100, in band, no hard stop |
+| `tools/difficultycheck.py` on the built tree | 100 / 100; environment 229 lines against 420 declared, which is reported and recorded above |
+| `tools/readingcheck.py` | ten readings, every one separated by an enumerated case |
+| `authoring/measure.py` | every reading moves 6 to 98 per cent of the generated population |
+| `tools/onelinecheck.py` | three graded quantities, none reproduced by a rule of two terms over exposed fields |
+| `tools/forgecheck.py` | the answer-key carrier is found and scores 0 |
+| `tools/catcheck.py` | software vocabulary: 20 hits in the environment, 85 in the prose |
+| `tools/hintcheck.py`, `tools/solvecheck.py`, `tools/deadfieldcheck.py`, `tools/extraneouscheck.py`, `tools/imagecheck.py` | clean |
+| `tools/structcheck.py instruction.md` | clean |
+| `tools/textcheck.py` against `focus-return-point` | no axis on which this reads more regular |
+| `tools/simcheck.py` | conceptually distinct from every retained task; NEAR on both Dockerfiles, which are six lines of boilerplate each |
+| `scripts/package.py` + `tools/zipcheck.py` | 71 entries, 1.8 MB, no findings |
+| `harbor check -m <model>` | NOT RUN - no API key in this session |
+| reference against the definitional oracle | 0 of 2,400 generated programs differ, 0 of 30 hand cases |
+| sealed model against the definitional oracle | 0 of 2,400 generated programs differ, 0 of 30 hand cases |
+| second correct variant against the oracle | 0 of 600 |
+| the memorised-model implementation against the oracle | 0 of 400 - correct, and killed by the limit alone |
+
+The one local limitation worth writing down: this sandbox terminates TLS at an egress proxy, so a
+container that pip-installs at build time needs the proxy's CA. `tools/docker_trial.py` injects it
+into a copy of the build context; `harbor` uses the Dockerfiles verbatim and failed to build the
+verifier image until the local `python:3.12-slim` tag was rebuilt with that CA baked in. Neither
+accommodation changes a byte of the bundle, and the platform has no such proxy.
 
 ## Verifier contract - FROZEN 2026-09-10, before environment code
 

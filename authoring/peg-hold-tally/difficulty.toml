@@ -35,7 +35,7 @@ second_discovery_effect = "replan"
 first_plan_correct = false
 expert_path = [
   "Run the shipped runner on the sample programs and find which printed lines disagree with the brief",
-  "Write the definitional model - rebuild every peg's contents from the slot histories and recompute what is kept after each op - and use it as a differential oracle on small programs",
+  "Write the definitional model - record what the volume holds at each peg and recompute what is kept after each op - and use it as a differential oracle on small programs",
   "Settle each rule against that model: several slots holding one block, the gap a restore leaves, a fork's own holds, what shedding a peg releases, and the order the reclaim list is printed in",
   "Time the shipped tree on the large programs, find the rescan cannot finish inside the stated limit, and decide what has to be carried forward instead of recomputed",
   "Derive the invariant: one volume's hold on one block is an interval of stamps, so the pegs of that volume that keep it are consecutive in that volume's peg list, one such run per episode",
@@ -147,7 +147,7 @@ of that volume that keep it are consecutive in that volume's peg list - one run 
 makes the count a pair of endpoints instead of a scan.
 """
 input_scale = "three programs of each of three large shapes - 117k, 205k and 79k ops - alongside 450 small ones"
-limit_seconds = 90
+limit_seconds = 120
 measured = true
 why_not = ""
 

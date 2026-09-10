@@ -4,7 +4,7 @@ set -euo pipefail
 LOGS=/logs/verifier
 WORK=/work
 SANDBOX=1002
-LIMIT=90
+LIMIT=120
 PER=75
 
 # The reward channel and the sealed answers are locked before anything the agent wrote runs, and

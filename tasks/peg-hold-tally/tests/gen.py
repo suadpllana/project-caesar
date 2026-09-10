@@ -221,7 +221,7 @@ def wide(seed, slots=24000, ops=90000):
     return out
 
 
-def crop(seed, slots=45000, ops=120000, window=150):
+def crop(seed, slots=45000, ops=180000, window=220):
     """Two large volumes under a rolling window of pegs: the oldest is shed as new ones are made."""
     rng = random.Random(str(seed))
     out = ["vol v1", "vol v2"]

@@ -1,0 +1,134 @@
+[
+ {
+  "cheat": "cheat-at-release.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-by-id.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-first-slot-out.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[two-slots] - AssertionError: ass...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-forge-from-truth.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[empty-reads] - AssertionError: a...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-hardcode.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[back-after-shed] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[back-other-volume] - AssertionEr...\nFAILED tests/test_outputs.py::test_hand_case[back-while-held] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[deferred] - AssertionError: asse...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-hull.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[gap-peg] - AssertionError: asser...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-no-volume-key.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[tally-fork] - AssertionError: as...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-own-volume.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[back-other-volume] - AssertionEr...\nFAILED tests/test_outputs.py::test_hand_case[fork-peg-keeps] - AssertionError...\nFAILED tests/test_outputs.py::test_hand_case[shed-fork-origin] - AssertionErr...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-print-again.sh",
+  "reward": 0,
+  "caught_by": "worker exit 124\nreaped 0\nERROR tests/test_outputs.py::test_hand_case[back-after-shed] - Failed: worker...\nERROR tests/test_outputs.py::test_hand_case[back-other-volume] - Failed: work...\nERROR tests/test_outputs.py::test_hand_case[back-while-held] - Failed: worker...\nERROR tests/test_outputs.py::test_hand_case[deferred] - Failed: worker produc...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-answer-key.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": "answer-key: /tests/seal/gt.json PermissionError | /tests/seal/model.py PermissionError | READ /tests/cases.py 10695 bytes | READ /tests/gen.py 12280 bytes | /logs/verifier/nonce PermissionError | /logs/verifier/per PermissionError | import model ModuleNotFoundError"
+ },
+ {
+  "cheat": "cheat-probe-crash-worker.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[back-after-shed] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[back-other-volume] - AssertionEr...\nFAILED tests/test_outputs.py::test_hand_case[back-while-held] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[deferred] - AssertionError: no r...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-forge-report.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[back-after-shed] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[back-other-volume] - AssertionEr...\nFAILED tests/test_outputs.py::test_hand_case[back-while-held] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[deferred] - AssertionError: asse...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-hijack-driver.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-late-reward.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 1\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-malformed.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-plant-verdict.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-privilege.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": "privilege: uid=1002 euid=1002 | /logs/verifier/reward.txt PermissionError | /logs/verifier/per PermissionError | /tests/worker.py PermissionError | /tests/test_outputs.py PermissionError | /tests/seal/gt.json PermissionError"
+ },
+ {
+  "cheat": "cheat-probe-rewrite-frozen.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-probe-shrink-set.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[loose-order] - AssertionError: a...\nFAILED tests/test_outputs.py::test_hand_case[order-by-stop] - AssertionError:...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-shed-quiet.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[back-other-volume] - AssertionEr...\nFAILED tests/test_outputs.py::test_hand_case[back-while-held] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[deferred] - AssertionError: asse...\nFAILED tests/test_outputs.py::test_hand_case[empty-reads] - AssertionError: a...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-tally-all.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[gap-both-sides] - AssertionError...\nFAILED tests/test_outputs.py::test_hand_case[late-case] - AssertionError: ass...\nFAILED tests/test_outputs.py::test_hand_case[tally-two-pegs] - AssertionError...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ },
+ {
+  "cheat": "cheat-tally-held.sh",
+  "reward": 0,
+  "caught_by": "worker exit 0\nreaped 0\nFAILED tests/test_outputs.py::test_hand_case[back-after-shed] - AssertionErro...\nFAILED tests/test_outputs.py::test_hand_case[shed-fork-origin] - AssertionErr...\nFAILED tests/test_outputs.py::test_every_nonce_program_matches - AssertionErr...",
+  "probe": ""
+ }
+]

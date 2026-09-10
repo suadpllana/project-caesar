@@ -6,136 +6,136 @@ dup v2 0 2
 set v2 1
 peg p1 v2
 trim
-back v3 1 p1 1
-clr v3 1
-tally p1
-set v3 0
-tally p1
-trim
-peg p2 v1
+peg p2 v2
+clr v2 1
+peg p3 v2
+back v2 1 p2 1
+clr v2 1
 shed p2
 trim
-back v3 0 p1 2
-peg p3 v3
-dup v2 4 2
-set v2 3
-clr v3 0
-set v2 6
-back v2 1 p1 2
-shed p1
-tally p3
-set v3 1
-back v2 2 p3 0
-back v1 1 p3 0
-shed p3
-peg p4 v2
+trim
+set v1 1
+back v2 5 p1 0
+back v2 6 p3 2
+fork v4 p1
+peg p4 v3
 tally p4
-shed p4
-set v3 6
+shed p3
+set v4 6
 peg p5 v2
-peg p6 v3
-clr v2 1
-trim
-tally p5
-peg p7 v3
-shed p7
+clr v2 6
+peg p6 v2
+back v2 6 p5 6
+set v2 6
 clr v1 1
-tally p6
-peg p8 v1
-peg p9 v1
-peg p10 v1
+shed p1
+peg p7 v3
+set v3 6
+set v3 4
+set v1 6
+dup v2 5 6
+peg p8 v4
+set v4 3
 trim
-tally p6
-set v2 3
-fork v4 p5
-peg p11 v1
-tally p5
+clr v4 1
+trim
+peg p9 v1
+shed p8
+clr v2 2
 tally p9
-set v4 2
+shed p4
+peg p10 v1
+peg p11 v2
+tally p6
+set v4 3
+fork v5 p10
+set v1 0
+tally p11
+fork v6 p6
+tally p7
 tally p5
 set v2 4
 shed p9
-set v1 2
-tally p8
-trim
-shed p10
-shed p8
-clr v1 2
-tally p11
-set v1 3
-shed p6
+dup v1 5 0
+set v6 2
 shed p5
-clr v1 3
-peg p12 v1
-fork v5 p12
-set v3 4
-trim
-shed p12
-dup v3 2 4
-shed p11
-peg p13 v1
-fork v6 p13
-clr v2 0
-set v1 6
-set v1 4
-peg p14 v1
-shed p14
+tally p11
+set v5 6
+peg p12 v4
+back v4 5 p10 6
+peg p13 v2
+clr v2 5
+peg p14 v2
+back v2 5 p13 5
+clr v2 5
 shed p13
-set v4 2
-peg p15 v2
 trim
-set v1 3
-back v3 1 p15 6
-shed p15
-dup v3 5 2
-peg p16 v5
-set v1 1
-tally p16
-set v3 6
-fork v7 p16
-shed p16
-set v1 6
-set v3 6
-set v2 1
-peg p17 v7
-shed p17
-set v3 4
-set v7 3
-set v3 2
-set v7 2
-dup v2 1 4
-peg p18 v2
-tally p18
-dup v2 0 2
-shed p18
 set v1 5
-set v1 2
+fork v7 p10
+set v3 4
+dup v3 0 6
+shed p14
+dup v7 3 6
+clr v5 6
+set v1 6
+tally p6
 clr v7 3
+fork v8 p6
+clr v4 0
+set v2 6
+set v2 4
+peg p15 v1
+set v3 2
+dup v4 2 6
+peg p16 v3
+trim
+set v2 3
+peg p17 v1
+clr v1 0
+peg p18 v1
+back v1 0 p17 0
+clr v1 0
+clr v4 3
+set v6 6
+fork v9 p11
+shed p16
+shed p6
+trim
+fork v10 p11
+clr v4 5
+back v3 2 p10 6
+tally p11
 peg p19 v1
-set v4 5
-peg p20 v1
-trim
-tally p20
-tally p20
-peg p21 v2
-peg p22 v5
-peg p23 v1
-set v4 4
-peg p24 v3
-peg p25 v4
+set v9 1
+set v8 0
+back v6 3 p12 0
+set v3 3
+set v7 1
+peg p20 v4
 clr v4 2
-tally p22
-clr v3 2
-back v4 6 p19 2
-peg p26 v4
-clr v7 2
-set v3 5
+peg p21 v4
+back v4 2 p20 2
+clr v4 2
+peg p22 v10
+shed p15
+set v1 2
+clr v8 2
+clr v8 0
+peg p23 v4
+clr v4 6
+peg p24 v4
+back v4 6 p23 6
+clr v4 6
+shed p23
 trim
+shed p18
+set v7 5
+tally p20
+tally p17
+peg p25 v3
+peg p26 v9
+peg p27 v10
 shed p26
-back v4 1 p19 3
-set v2 1
-trim
-dup v4 3 0
-shed p20
-peg p27 v2
+tally p10
+set v3 0
 trim

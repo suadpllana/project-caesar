@@ -29,6 +29,8 @@ TREES = {
     "ref": stage("../../tasks/peg-hold-tally/solution"),
     "naive": stage("naive"),
     "shipped": stage(None),
+    "rescan": stage("probe-shed"),
+    "bucket": stage("variants/ok-bucket-scan"),
 }
 
 

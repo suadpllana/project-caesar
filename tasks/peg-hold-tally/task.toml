@@ -32,7 +32,7 @@ The first plan is the memorised one: a checkpoint takes a reference over everyth
 so a count per block is enough, and the count is decremented when the checkpoint goes. It
 settles every rule correctly and it cannot get through the stated set inside the stated
 limit, because taking a peg is constant work in this store and walking a volume of forty
-thousand slots thirteen thousand times is not. The plan that replaces it is a count settled
+thousand slots twenty thousand times is not. The plan that replaces it is a count settled
 when a volume gives a block up: the pegs of that volume that keep the block are the ones
 whose stamps fall inside the stretch it was held for, which is a pair of endpoints rather
 than a scan.
@@ -86,7 +86,7 @@ is then a sweep over stretches rather than a counter carried forward.
 
 verification_explanation = """
 Every line of every graded program is compared exactly and the score is all or nothing.
-Twenty-nine enumerated programs carry one graded decision each and both sides of every
+Thirty enumerated programs carry one graded decision each and both sides of every
 fence, with expected output frozen in a file the sealed model has to reproduce before any
 submission is graded. Four hundred and fifty further programs are generated inside the
 verifier from a seed drawn after the agent's container is gone, across six shapes: ordinary

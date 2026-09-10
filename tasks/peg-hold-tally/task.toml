@@ -1,0 +1,148 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/keep/live.py",
+  "/app/keep/cover.py",
+  "/app/keep/edge.py",
+  "/app/keep/gone.py",
+  "/app/keep/sole.py",
+]
+
+[task]
+name = "afterquery/peg-hold-tally"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Who does this for a living: an engineer on the space accounting of a copy-on-write store.
+Two questions have to be answered continuously and neither is a property of the current
+state of the store: what can be given back to the free pool, and how much would come back
+if this one checkpoint were deleted. Both are decided by when a block was held rather than
+by what anything currently points at.
+
+The graded programs are synthetic. Ops, volumes and slots are ordinary; the concentration
+of restores, of one block held at several slots, and of forks whose pegs outlive the blocks
+their origin wrote is deliberate, and it reproduces cases that appear rarely in a day of
+real traffic and constantly over a year of it. The three large families fill twenty-four
+thousand, forty-five thousand and five thousand slots respectively.
+
+The first plan is the memorised one: a checkpoint takes a reference over everything live,
+so a count per block is enough, and the count is decremented when the checkpoint goes. It
+settles every rule correctly and it cannot get through the stated set inside the stated
+limit, because taking a peg is constant work in this store and walking a volume of forty
+thousand slots thirteen thousand times is not. The plan that replaces it is a count settled
+when a volume gives a block up: the pegs of that volume that keep the block are the ones
+whose stamps fall inside the stretch it was held for, which is a pair of endpoints rather
+than a scan.
+
+That plan is wrong in two ways that ordinary programs do not show. A fork gives the new
+volume its own hold, so the pegs that keep one block are drawn from several volumes at
+once and are not a range of any one volume's peg list. A restore puts a block back into a
+volume it had already left, so a volume's hold is a series of stretches rather than one,
+and a peg made while the block was away keeps nothing of it - which the first-held and
+last-let-go pair the count was built on cannot express at all. Both have to be found, and
+the second one takes the structure with it rather than adding a case to it.
+
+Shedding a peg is where the two halves meet. Nothing can be recomputed at that point, so
+what a shed changes has to have been written down when each hold closed, and what was
+written down has to be enough to tell no keeper from one keeper without listing them.
+
+The environment uses terse internal names and ships no comments or documentation. It is a
+small store, not an exploration maze: the work is reconciling what the ops do with what the
+brief says is kept, not finding files. The runner reports what the shipped accounting
+believes and is not an oracle for any of it.
+"""
+
+solution_explanation = """
+A volume's hold on one block is an interval: it opens when the first slot of that volume
+takes the block and closes when the last one lets it go. So the pegs of that volume that
+keep the block are consecutive in that volume's peg list, and a block collects one such run
+per interval - per volume, and one more each time a restore brings it back.
+
+The reference carries a run only as the two youngest living pegs it covers. That is all the
+two questions need: no living peg in the run means the run is gone, and a run whose second
+peg is missing stands for exactly one keeper. Both change only when one of those two pegs is
+shed, so a shed walks the two buckets those pegs are filed under instead of every run that
+contains them, and a run that merely contains the shed peg still has two younger living pegs
+above it and is left alone. A skip list over each volume's pegs answers "the living peg
+below this one" after any number of sheds. Blocks that stop being kept are queued as it
+happens, so a trim prints a queue and a tally reads a counter.
+
+An expert works this way because the alternative is to ask the store a question it cannot
+answer cheaply - what does this peg hold - and this store is built so that question is never
+asked: a peg is a stamp, and what it keeps is decided afterwards from the stretch a block was
+held for.
+
+The sealed model settles the same contract offline and shares none of that. It replays the
+program once to collect every hold interval, every peg stamp and every shed stamp, then
+answers both questions from those facts: the stamp a block stops being kept at is the largest
+of its interval ends and the shed stamps of its keepers, taken from a per-volume segment tree
+over shed stamps, and the stretch one peg alone keeps a block is the gap between the two
+largest of those shed stamps, cut down to the stretches when no volume holds it. Each tally
+is then a sweep over stretches rather than a counter carried forward.
+"""
+
+verification_explanation = """
+Every line of every graded program is compared exactly and the score is all or nothing.
+Twenty-nine enumerated programs carry one graded decision each and both sides of every
+fence, with expected output frozen in a file the sealed model has to reproduce before any
+submission is graded. Four hundred and fifty further programs are generated inside the
+verifier from a seed drawn after the agent's container is gone, across six shapes: ordinary
+traffic, one block at several slots, restores, forks, pegs shed in every order, and all of it
+at once. Nine more are the large families, three of each, and the wall clock on the worker is
+the execution limit the brief states, so an accounting that settles every rule and recomputes
+what is kept at each trim, tally or shed is scored exactly like a wrong one.
+
+The worker runs the submitted files under an unprivileged uid, in its own session, over a
+pristine copy of the tree with only the five declared files laid over it, so nothing else can
+change what a program prints. It hashes each program it ran, and the grader checks those
+hashes against the programs it generated itself. The reward directory is root-owned and
+locked before any submitted code runs, the reward starts at zero, survivors of the worker are
+killed by uid before grading, and the grader runs as root, treats the worker's output as
+hostile input, and imports nothing the agent wrote.
+"""
+
+category = "Software"
+subcategory = "Systems"
+
+tags = [
+  "copy-on-write",
+  "snapshot-accounting",
+  "reclamation",
+  "interval-containment",
+  "incremental-bookkeeping",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+I work on the space accounting of a copy-on-write block store: what a checkpoint keeps, what
+a clone keeps, and what actually comes back when one of them is deleted. The bug this task is
+built from is the one that reaches support every time: an operator deletes a checkpoint whose
+reported size is a terabyte, gets back forty gigabytes, and wants to know where the rest went.
+The answer is always the same and never satisfying - the other checkpoints keep it too - and
+the first accounting anyone writes gets it wrong in the same two places. It charges a block to
+the volume that wrote it, which is wrong the moment a clone outlives its origin, and it treats
+a block's life as one stretch from written to overwritten, which is wrong the moment a single
+file is restored out of an old checkpoint and the block comes back after two checkpoints that
+never saw it. Both are invisible until someone deletes the wrong thing and the numbers stop
+adding up.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

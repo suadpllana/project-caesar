@@ -1,0 +1,9 @@
+vol v1
+set v1 1
+set v1 2
+peg p1 v1
+set v1 1
+tally p1
+trim
+shed p1
+trim

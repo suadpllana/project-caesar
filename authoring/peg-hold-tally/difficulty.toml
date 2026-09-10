@@ -1,0 +1,176 @@
+# Difficulty record for peg-hold-tally, written before any environment code.
+# Scored with: python tools/difficultycheck.py peg-hold-tally
+
+[task]
+slug = "peg-hold-tally"
+status = "idea"
+sources = [
+  "docs/DIFFICULTY.md (planning attack, prongs, leak audit)",
+  "docs/PASSING-TASK-RESEARCH.md (ten intake questions)",
+  "originality search 2026-09-10: OpenZFS deadlist/livelist material and COW snapshot patents",
+]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Read the accounting module, keep its shape, and patch it rule by rule: a block records the volume
+that wrote it, the stamp it was written and the stamp it was overwritten, and the number of pegs
+that keep it is the number of that volume's pegs whose stamps fall between those two. Add a case
+for a fork, add a case for a restore, sort the reclaimed blocks by allocation order, and rescan
+when a peg is shed.
+"""
+first_plan_source = "tree"
+breaking_rule = """
+A fork gives the new volume its own hold on everything the peg keeps, and pegs of that volume keep
+those blocks too, so the pegs that keep one block are drawn from several volumes at once and are
+not a range of any one volume's peg list.
+"""
+second_discovery = """
+A restore puts a block back into a volume it had already left, so a volume's hold on a block is not
+one stretch of time but a series of them, and pegs made while the block was away keep nothing; the
+per-block first-and-last stamps the earlier repair rests on cannot express a gap at all.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped runner on the sample programs and find which printed lines disagree with the brief",
+  "Write the definitional model - rebuild every peg's contents from the slot histories and recompute what is kept after each op - and use it as a differential oracle on small programs",
+  "Settle each rule against that model: several slots holding one block, the gap a restore leaves, a fork's own holds, what shedding a peg releases, and the order the reclaim list is printed in",
+  "Time the shipped tree on the large programs, find the rescan cannot finish inside the stated limit, and decide what has to be carried forward instead of recomputed",
+  "Derive the invariant: one volume's hold on one block is an interval of stamps, so the pegs of that volume that keep it are consecutive in that volume's peg list, one such run per episode",
+  "Normalise every run to living end pegs, which turns kept-by-exactly-one into a run whose ends coincide and kept-by-nothing into no run at all",
+  "File each run under both of its end pegs and keep the living pegs of a volume in a structure that still answers neighbour after a deletion, so shedding a peg costs the two buckets",
+  "Carry the sole-keeper counters and the stopped-being-kept order forward as events happen, so tally is a lookup and the reclaim list is a queue",
+  "Differential-test the fast implementation against the definitional model over generated programs of every shape, then time the three large families under the stated limit",
+]
+
+[search]
+best_page = """
+OpenZFS material on deadlists and livelists - the pull request and talks describing how a snapshot
+records the blocks freed during its era and how deleting a snapshot walks the next snapshot's
+deadlist, filtering entries by birth transaction group.
+"""
+helps_plan = false
+deviation = """
+That algorithm assumes one linear chain of snapshots per dataset, one reference per block and no
+way back: it has no answer for a block restored into a volume it had left, for several slots of one
+volume holding one block, or for a per-peg count of what a single peg alone keeps, and its
+birth-filter rule silently gives the wrong count for every block a fork shares.
+"""
+
+[tactics]
+A1 = """
+The memorised model of a snapshot is a reference count bumped over the live set when the snapshot
+is taken; here pegs are made in constant time and whether a peg keeps a block is decided after the
+fact by when the block was held, so any plan built on counting at peg time is wrong at both ends.
+"""
+A2 = """
+Nothing in the brief is called a snapshot, a clone, a reference count or garbage: volumes, slots,
+blocks, pegs and holds are described operationally, so the recognition that this is copy-on-write
+space accounting has to be made rather than looked up.
+"""
+B2 = """
+Nine rules hold at once - episodes per volume, several slots per block, the gap a restore leaves,
+a fork's own holds, what a shed releases, deferred reclaim, its order, printed once, and the
+sole-keeper count - and the printed output shows none of them separately.
+"""
+C1 = """
+Both sides are graded: a block a peg still keeps must never be reclaimed, and a block no peg keeps
+must be reclaimed at the very next trim, so holding everything scores the same as holding nothing.
+"""
+C3 = """
+The correct definitional implementation is a rescan of every peg's contents at each trim and tally;
+it is exact and cannot finish the stated set inside the stated limit, so semantics alone do not pass.
+"""
+C4 = """
+Every printed line of every program is compared exactly, over programs generated from a seed drawn
+after the agent's container is gone, so a reading that moves one line of one program scores zero.
+"""
+guard = """
+Five files under /app/keep are the declared artifacts and the only editable paths; the block
+allocator, the volume slots and their history, the peg registry, the program reader and the printer
+are frozen and re-staged from a pristine copy before the graded run.
+"""
+
+[decisions]
+graded = 9
+interactions = [
+  { a = "several slots of one volume may hold one block", b = "the gap a restore leaves", why = "a volume stops keeping a block only when its last slot lets go, so whether a later peg falls inside a gap or inside a still-open episode depends on getting the slot count right first" },
+  { a = "a fork's own holds", b = "the sole-keeper count behind tally", why = "a block kept by one peg of the origin and one peg of the fork is kept twice, so an event in another volume changes the number printed for the origin's peg" },
+  { a = "shedding a peg", b = "the order the reclaim list is printed in", why = "shedding is what makes a block stop being kept, so the order blocks are printed in is decided by shed order rather than by when they were overwritten" },
+  { a = "the gap a restore leaves", b = "which pegs keep a block", why = "a peg made while the block was away keeps nothing of it, so first-held and last-released cannot stand in for the set of pegs that keep it" },
+  { a = "a fork's own holds", b = "shedding a peg", why = "shedding the peg a volume was forked from releases nothing the fork still holds, so the release cannot be decided from the peg's own contents alone" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A block overwritten while a peg of its volume still keeps it must never appear in a reclaim list,
+and a block overwritten with no peg keeping it must appear at the very next trim and never again.
+"""
+late_case = """
+A block held at two slots, let go at one, kept by a peg, let go at the other, restored into the
+volume after a second peg, let go again, and then released only when the earlier peg is shed: the
+count, the reclaim time and the order all differ from every reading that stores one stretch of time.
+"""
+oracle_denied = """
+The runner prints the shipped accounting, which is wrong, and no expected output ships. The only
+oracle an agent can build is the definitional rescan, which cannot run at the graded scale, so
+agreement on the programs it can handle says nothing about the structure that carries the rest.
+"""
+
+[leaks]
+candidates = [
+  { what = "a per-block count of how many pegs keep it, stored on the block record", closed_by = "the core stores allocation order and birth stamp only; how many pegs keep a block is computed nowhere outside the editable files" },
+  { what = "a core helper that lists what a peg keeps", closed_by = "the core exposes point queries on slot history, which fork and restore genuinely need, and never enumerates a peg's contents" },
+  { what = "expected output for the shipped sample programs", closed_by = "no expected output ships; the runner prints the shipped accounting, which is wrong, and graded programs are generated from a seed drawn after the run" },
+  { what = "sample programs each isolating one rule, which would let the agent confirm rules one at a time", closed_by = "the shipped programs are ordinary mixed workloads and the printed lines show only reclaim and tally, never intermediate state" },
+  { what = "the reclaim order readable off allocation order", closed_by = "the order is the order blocks stopped being kept, which allocation order only coincides with when nothing is shed and nothing is restored" },
+]
+derived_quantities = """
+The tree stores primitives only: each block's allocation order and birth stamp, each slot's record of
+what it held and when, and each peg's volume and stamp. Which pegs keep a block, how many keep it,
+and when it stopped being kept are derived and are stored nowhere the agent can read.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Recomputing what is kept by rebuilding every peg's contents from the slot histories at each trim and
+each tally, which is exact and is what the definitional model does.
+"""
+invariant = """
+One volume's hold on one block runs from the stamp it took it to the stamp it let it go, so the pegs
+of that volume that keep it are consecutive in that volume's peg list - one run per episode - which
+makes the count a pair of endpoints instead of a scan.
+"""
+input_scale = "three programs of each of three large shapes - 117k, 205k and 79k ops - alongside 450 small ones"
+limit_seconds = 90
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a peg keeps every block born in its volume before its stamp", hand_case = "write a slot, overwrite it, then peg: the first block is not kept and must be reclaimed at the next trim" },
+  { reading = "a volume stops keeping a block when any slot lets go", hand_case = "hold one block at two slots, clear one, peg, clear the other: the peg keeps the block" },
+  { reading = "the pegs that keep a block are those between its first hold and its last release", hand_case = "hold, release, peg, restore, release: the peg made in the gap keeps nothing" },
+  { reading = "only pegs of the volume that allocated a block can keep it", hand_case = "fork a volume from a peg, overwrite the slot in the origin, peg the fork: the fork's peg keeps the block" },
+  { reading = "shedding the peg a volume was forked from releases what the fork inherited", hand_case = "fork from a peg, shed that peg, trim: the fork still holds the block, so nothing is reclaimed" },
+  { reading = "reclaimed blocks are printed in allocation order", hand_case = "let go of a late block, then shed the peg holding an early one, then trim: the late block is printed first" },
+  { reading = "a block is reclaimed at the trim after it is overwritten", hand_case = "overwrite a block a peg keeps, trim, shed the peg, trim: it appears only at the second trim" },
+  { reading = "tally counts every block a peg keeps", hand_case = "peg a volume twice without changing it and tally the first: both pegs keep every block, so the count is zero" },
+  { reading = "tally counts a block a peg keeps even while a volume still holds it", hand_case = "peg a volume and tally without overwriting anything: the volume still holds every block, so the count is zero" },
+  { reading = "a reclaimed block is printed again at the next trim", hand_case = "overwrite an unkept block and trim twice: the second trim prints nothing" },
+]
+correct_variants = [
+  "runs filed under both end pegs, with the living pegs of each volume in a doubly linked list so a shed costs its two buckets",
+  "a per-volume Fenwick tree over living pegs, with a block's cover recomputed on demand at the events that touch it",
+  "per-peg buckets of episodes keyed by the peg that follows the release, merged into the neighbour when a peg is shed, with exact counts carried per block",
+]
+
+[shape]
+environment_py_lines = 420
+editable_files = 5
+reference_lines = 330

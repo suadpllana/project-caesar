@@ -347,3 +347,16 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   share lands next to an existing claim on the same span. Running adjacent stretches together at
   print time makes the picture a function of the contract; both correct variants, one keeping
   claims and one keeping a cell per block, then print the same line.
+
+- **`difficulty_explanation` is read by someone outside the domain, and it has to say who does
+  the work.** `span-claim-charge` cleared structural, AI, similarity and reference verification
+  and then failed the quality review on that one field: thorough on the mechanism, but it never
+  said who would meet this problem in the real world, and it was dense enough in storage jargon
+  that a non-domain reviewer could not follow it. The practitioner sentence was in
+  `relevant_experience`, which the rubric reads as a separate field and does not carry across.
+  The two retained bundles that open `Who does this for a living: an engineer who ...` both
+  passed the criterion; the repair copies that shape, names the two bug reports the work arrives
+  as, and glosses `span`, `line`, `item` and `claim` before using them. Worth knowing before
+  reaching for a linter: six of the ten retained bundles name no practitioner in that field and
+  passed anyway, so the rule is the conjunction with density, and density is not mechanically
+  checkable. It went into `docs/QUALITY-REVIEW.md` and stayed out of `preflight.py`.

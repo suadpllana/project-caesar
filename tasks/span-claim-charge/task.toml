@@ -16,58 +16,77 @@ author_name = "Suad Pllana"
 author_email = "suadpllana12@gmail.com"
 
 difficulty_explanation = """
-The store is small and every rule is in the brief. What is not in the brief is which of the
-structures the rules seem to ask for survive all of them at once, and that is the work.
+Who does this for a living: an engineer on the storage side of a filesystem or volume manager
+that supports snapshots, owning the allocator and the space accounting that sits on top of it.
+They are the person who gets the bug report saying "I deleted most of a huge file and nothing
+was freed", and the one saying "the snapshot claims to use no space, and deleting it gave none
+back". Both reports are usually accurate. Both surprise the person who filed them. Answering
+either means knowing exactly which volume is charged for which stretch of the disk, and why.
+
+The graded data is synthetic: programs in ten families, each concentrating one situation far
+above its natural rate. Overwrites that land where they already are, a device with nothing to
+spare, a free map cut into many small runs, snapshots taken and dropped, ranges shared until
+several references sit on one block, defragmenting files that are shared and files that are
+not, and sets of volumes asked what dropping them together would give back. A census of
+unshaped programs put the out-of-room check at one per cent of programs and an allocation
+spread across several runs at three. In a working store these are rare, and they are exactly
+where this class of bug lives.
+
+The system is small enough to describe in a paragraph. A device is a run of blocks. An
+allocation hands back a `span`, one contiguous stretch of them. A `line` is a named set of
+`item`s - read that as a volume and its files, or as a snapshot of one - and an item holds
+`claim`s, each saying that a range of the item lives at a range of some span. Two lines can
+hold claims on the same span, which is what makes a snapshot cheap. One line can hold several
+claims on the same span, which is what makes the accounting hard.
 
 The first plan is a reference count on each span, a list of claims per item, allocate and then
-splice on a write, and charges added up from the spans a line touches. It is coherent, it is what
-a copy-on-write store is remembered as, and it is wrong in four places that only show up
-together. The rules ask two different questions of the same claims. The write path asks whether
-the block under it carries a second claim, which a span carrying two claims of one item answers
-yes and a span carrying one claim of each of two lines also answers yes. The charge side asks
-which lines stand on the span, which the first of those answers with one line and the second with
-two. A count per span answers neither, and the two questions want different structures over the
-same data: the write path needs the claim ranges on a span, the charge side needs the line set on
-it, and the limit forbids deriving either by walking the claims.
+splice on a write, and each volume's usage added up from the spans it touches. It is coherent,
+it is what a copy-on-write store is remembered as, and it is wrong in four places that only
+show up together.
 
-The second finding reorders the write path rather than adding a case to it. The fresh blocks are
-taken only after that same write has dropped the claims it replaces and released whatever spans
-that emptied, so a write can land on the ground it just freed; on a full device a rewrite of an
-item nobody else stands on has to succeed, which means the room check is against the free total
-the release will produce and not the one standing when the command arrives. The run shape at that
-instant then decides how many spans the write becomes, because a request no single run holds
-takes the largest run whole and goes on from what is left, so the claims a write leaves are not
-one per stretch and not one per piece: a stretch can straddle two pieces and a piece can serve
-two stretches. An implementation that allocates first is semantically reasonable, passes every
-program with room to spare, and refuses the ones that have none.
+The trouble is that the rules ask two different questions of the same claims, and one count
+answers neither. The write path asks whether a block may be overwritten where it lies or has
+to be copied first, which is a question about how many claims cover that one block. The
+accounting asks whether a span belongs to one volume or to several, which is a question about
+which volumes hold claims on it. Picture a span with two claims. If both belong to the same
+volume, because one file was cloned into another beside it, the block cannot be overwritten in
+place and yet the span is still that volume's alone. If instead the two claims belong to a
+volume and its snapshot, both answers flip. A count returns the same number in both cases, and
+the two cases differ in both answers, in opposite directions.
 
-Around those sit rules that each invalidate a structure rather than a line. A span never splits,
-so overwriting the middle of an item frees nothing and the free map is a function of span
-lifetimes and not of byte ranges. A stamp puts a second line on every span the origin stood on,
-so the origin has no exclusive space left the moment it is stamped and its next write stops
-landing in place. Defragmenting an item that nobody else stands on lands back on its own blocks
-and defragmenting a stamped one cannot, which doubles what the pair uses. Freed by dropping a set
-of lines is not the sum of what each owns alone. Every one of those changes the addresses the
-next command sees, so a wrong reading does not move one field: the tail of the program diverges.
+The second finding reorders the write path rather than adding a case to it. Blocks are taken
+from the free map only after that same write has given back the spans it emptied. So a write
+can land on the ground it just freed, and on a full device an overwrite of a file nobody else
+shares has to succeed - which means the space check is made against the free total the release
+will produce, not against the one standing when the command arrives. What the free map looks
+like at that instant then decides how many spans the write becomes, because a request that no
+single free run can hold takes the largest run whole and carries on from what is left. So the
+claims a write leaves behind are not one per hole, and not one per allocated piece. Allocating
+first is a reasonable reading. It passes every program with room to spare and refuses the ones
+that have none.
 
-Three exactly-correct methods are over the stated limit. Adding the charges up per query takes
-90.8 seconds, choosing the best fit by scanning the free runs 112.3 seconds, and deciding the
-in-place test by walking every item's claims 149.5 seconds, against 60 seconds for the whole
-graded set and about 11 seconds for the reference. All three produce the reference's traces
-exactly; the limit is the only thing that separates them. Two independently written correct
-stores come in at 8.9 and 8.8 seconds, so the limit is not tuned to one implementation.
+Three further rules each invalidate a structure rather than a line of code. A span is never
+split, so overwriting the middle of a file frees nothing, and the free map is a function of
+when spans die rather than of how many bytes are live - the first bug report above. A snapshot
+puts a second volume on every span the original stood on, so the original has no space of its
+own left the instant it is taken, and its next write stops landing in place - the second.
+Defragmenting a file nobody shares puts it back on its own blocks, and defragmenting a
+snapshotted one cannot, so tidying a file can double what the pair uses between them. Every one
+of those changes the addresses that every later command sees, so a wrong reading does not move
+a single number: the tail of the program diverges.
 
-Identifiers are in a legacy register - `spot`, `spare`, `szlist`, `on`, `by`, `cl`, `ats`,
-`store/`, `base/` - short but never misleading, and no name misdescribes what it holds. That is a
-choice about the register of real storage code rather than an obstacle: each is recoverable from
-what calls it.
+Three methods that are exactly correct are over the stated limit. Adding a volume's usage up on
+every query takes 90.8 seconds. Choosing the best-fitting free run by looking at all of them
+takes 112.3 seconds. Deciding the overwrite-in-place question by walking every item's claims
+takes 149.5 seconds. The limit for the whole graded set is 60 seconds, and the reference
+settles it in about 11. All three produce the reference's traces exactly, so the limit is the
+only thing that separates them. Two independently written correct stores come in at 8.9 and 8.8
+seconds, which is how the limit is known not to be tuned to one implementation.
 
-The programs are synthetic, in ten families, concentrating writes that land where they stand, a
-device with nothing to spare, a free map cut into runs, stamping and dropping, ranges shared until
-several claims stand on one block, defragmenting shared and unshared items, and sets of lines,
-all far above their natural rate. A census of unshaped programs put the room check at one per cent
-and an allocation spread across runs at three; in a working store these are rare, and they are
-exactly where this class of bug lives.
+Identifiers are in a legacy register - `spot`, `spare`, `szlist`, `on`, `by`, `cl`, `ats` -
+short but never misleading, and no name misdescribes what it holds. That is a choice about the
+register of real storage code rather than an obstacle: each one is recoverable from what calls
+it.
 """
 
 solution_explanation = """

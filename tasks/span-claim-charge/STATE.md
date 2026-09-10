@@ -4,7 +4,38 @@ Working memory for `afterquery/span-claim-charge`. Updated after every stage.
 
 ## Current stage
 
-`Stage 7 - Pre-flight and packaging` (Stages 1 to 6 complete; see Validation status)
+`Stage 7 - resubmission after one quality-review finding` (all other gates passed)
+
+## Pipeline result, 2026-09-10
+
+Submitted 10 Sept 19:08. Structural checks, the AI check, similarity and reference
+verification all passed. The quality review (`claude-fable-5-1`) failed one blocking
+criterion and passed the rest:
+
+> difficulty explanation quality - FAIL. The explanation is thorough on where the difficulty
+> lies (two different questions over the same claims, release-before-allocate ordering,
+> performance limit ruling out recount/scan) and states the data is synthetic in ten
+> families. However it never says who would perform this task in the real world (that only
+> appears in the separate relevant_experience field), and it is written so densely in domain
+> jargon that a non-domain expert would struggle to follow it. A narrow miss on an otherwise
+> strong field.
+
+This is a prose finding on one metadata field, not an easiness rejection, so
+`RAISE-DIFFICULTY.md` does not apply and nothing about the contract, the environment, the
+verifier or the reference moved. `difficulty_explanation` was rewritten: it opens
+`Who does this for a living: an engineer on the storage side of a filesystem or volume
+manager that supports snapshots`, names the two bug reports the work actually arrives as
+("I deleted most of a huge file and nothing was freed", "the snapshot claims to use no
+space, and deleting it gave none back"), and spends a paragraph glossing `span`, `line`,
+`item` and `claim` before leaning on any of them. Every substantive claim the reviewer
+called thorough is kept, including the measured timings.
+
+The shape was taken from the retained set rather than invented: `focus-return-point` and
+`note-carry-forward` both open `Who does this for a living: an engineer ...` and both passed
+this criterion. Six of the ten retained bundles name no practitioner in that field at all and
+passed, so the finding is the conjunction of the missing practitioner and the density - which
+is why the repair went into `docs/QUALITY-REVIEW.md` and deliberately not into
+`preflight.py`, where it would have warned on more passing bundles than failing ones.
 
 ## Assistant's assigned role
 

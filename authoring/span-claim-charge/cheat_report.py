@@ -73,6 +73,7 @@ print("%%.1f" %% (time.time() - t))
 
 
 def main():
+    emit.DRY = True
     per = int(sys.argv[1]) if len(sys.argv) > 1 else 6
     work = [("hand", n, cases.ops(n)) for n in cases.ORDER]
     for fam, small in gen.FAMILIES:

@@ -23,6 +23,7 @@ import gen  # noqa: E402
 
 REFERENCE = str(lab.TASK / "solution")
 
+emit.DRY = True
 for _build in emit.READINGS:
     _build()
 READINGS = dict(emit.BUILT)

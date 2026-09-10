@@ -576,3 +576,9 @@ the line had left, and `fam-name-reuse`, because the reading had been built on t
 reference's summaries, which a name-keyed adoption never replays, so the bug was unobservable;
 the first got the hand case `fam-split` and a fork event in the `fam` generator, the second was
 rebuilt on the walked family, and both are separated by a hand case now.
+
+One more defect found by the stop hook rather than by a gate: `cheat_report.py` built the slow
+families through `emit.slow(name, "")` to run them, and `emit.write` wrote each one into the
+bundle with that empty comment, so `cheat-slow-fit.sh` shipped in the archive with no header.
+The emitter has a `DRY` flag now, set by the report and by `readings.py`, so measuring a cheat
+never rewrites one; the suite was regenerated and the archive rebuilt.

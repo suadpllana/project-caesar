@@ -25,6 +25,9 @@ PARTS = ("dev.py", "hold.py", "item.py", "line.py", "tally.py")
 
 MADE = []
 BUILT = {}
+# cheat_report.py builds readings in memory to run them; with DRY set nothing is written into
+# the bundle, because a report that rewrites a shipped cheat with its own comment ships that.
+DRY = False
 
 
 def base():
@@ -52,6 +55,8 @@ def strip_doc(files, name):
 
 def write(name, comment, files):
     BUILT[name] = dict(files)
+    if DRY:
+        return
     body = ["#!/bin/bash", "# " + comment, "set -euo pipefail", ""]
     for part in PARTS:
         if part not in files:

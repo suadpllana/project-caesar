@@ -87,11 +87,12 @@ rejected, transcribed from the same state files, and each must score below the f
 | `publish-settle-order-first-build` | 40, hard stop | quality review, `difficult`: roughly 100 lines across five files; the two inventions are standard techniques |
 | `alias-settle-report-first-build` | 40, hard stop | easiness 2 of 3: the definition itself supplied the algorithmic plan |
 
-The four tasks in `tasks/` that have not passed the pipeline are scored for context, not
+The five tasks in `tasks/` that have not passed the pipeline are scored for context, not
 calibration; the external probe is the authority on them:
 
 | pending task | score | state |
 |---|---|---|
+| `peg-hold-tally` | 100 | built 2026-09-10; both harbor gates and every cheat run locally, external result not yet recorded |
 | `publish-settle-order` | 98 | easiness recovery pending the platform probe |
 | `reach-pair-sweep` | 96 | rebuilt after two `difficult` rejections; not yet resubmitted |
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |

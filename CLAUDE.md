@@ -299,3 +299,48 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-10, `peg-hold-tally`)
+
+- **A generator seeded from a tuple's hash makes a different program in every process, and the
+  comparison you were making was between two programs.** `random.Random(("wide", seed).__hash__())`
+  uses string hashing, which `PYTHONHASHSEED` randomises per process, so the reference and the
+  naive family were run on different inputs and "disagreed" on 1,272 lines against 1,014. There was
+  no bug. `random.Random("wide-%s" % seed)` hashes the string with sha512 and is stable across
+  processes, which the verifier needs anyway: the worker and the grader generate the graded set
+  independently and have to get the same programs.
+- **An isolation probe built on a correct submission scores 1 when its attack is denied.** Ten
+  probes were bolted onto the reference so that a zero would mean the attack was stopped. Nine of
+  them attack something the isolation refuses, so they did the work and scored 1 - `hijack-driver`
+  came back `reward=1 expected=0` and the finding was in the probe, not the verifier. A probe sits
+  on a deliberately wrong accounting, so the only route to a 1 is the attack working; the evidence
+  that the attack itself was stopped is the note the probe leaves (`uid=1002 ...
+  /logs/verifier/reward.txt PermissionError`, `reaped 1`), not the reward.
+- **A resource gate measured once is measured at one size.** The family the gate is aimed at -
+  correct, but a shed walks every run there is - came in at 92.1 s against a 90 s limit. That is
+  not a boundary, it is a coin flip on machine load. Scaling the family that decides it from
+  120,000 to 180,000 ops moved that implementation to 174.3 s and left the reference at 16.2 s;
+  the limit then went to 120 s so the kill survives a machine half this speed and a correct
+  implementation keeps seven times the room it needs. Measure the family you mean to kill, not
+  only the one you mean to pass.
+- **Two hand cases printed the same single line under both readings.** `two-slots` and `deferred`
+  were written to separate an accounting that gives a block back too early, and both printed
+  `gone b1` either way, because a trim with nothing to give back prints nothing and the two trims
+  were adjacent. A reading that only moves *which* trim prints a block needs something printed
+  between them; a tally now sits there. `tools/readingcheck.py` found it - the reading was
+  separated by 38 of 72 generated programs and by no enumerated case at all.
+- **A reading that needs a four-step shape never turns up by chance.** The one that reads a
+  volume's hold as one stretch from first taken to last let go needs a block to leave its volume, a
+  peg to be made, *that same block* to come back, and the pegs that do keep it to go. Unshaped
+  generation produced it 0 times in 72 programs. A `gap()` burst in the generator emits the four
+  steps deliberately, with a peg made immediately before the release so the block that returns is
+  the one that left; the reading now moves 51 of 240.
+- **`readingcheck` imports the task's `readings.py`, so a script with work at import time runs
+  itself.** The first `readings.py` was a measurement script ending in `sys.exit(main())`. Imported
+  from the repo root its relative paths resolved to nothing, the overlay silently did not happen,
+  and it printed a plausible table in which every reading differed from the "reference" on 70 of 72
+  programs - the reference being the shipped broken tree. Two tools disagreeing is the signal; the
+  contract module is now data plus functions, and the measurement lives in `measure.py`.
+- **stdout buffering, again.** A cheat suite redirected to a file sat at "2 of 25" for ten minutes
+  while `docker ps` showed containers finishing every forty seconds. Nothing was stuck. Any run
+  whose progress you intend to read while it happens needs `python -u`.

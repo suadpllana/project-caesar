@@ -1,0 +1,92 @@
+take t7 k1 pin
+take t3 k2 pin
+take t4 k1 grow
+take t3 k2 edit
+take t6 k2 pin
+take t4 k2 grow
+take t3 k2 pin
+take t4 k0 seal
+take t8 k0 grow
+take t8 k0 edit
+take t3 k1 grow
+drop t6 k2
+drop t8 k0
+take t7 k2 pin
+take t6 k1 grow
+take t8 k1 grow
+take t3 k1 pin
+drop t7 k2
+drop t8 k1
+take t6 k1 pin
+take t8 k0 grow
+take t2 k1 pin
+take t5 k2 seal
+take t7 k1 grow
+take t6 k1 pin
+take t6 k1 edit
+take t6 k0 seal
+take t5 k2 grow
+drop t8 k0
+take t7 k1 edit
+take t6 k0 pin
+take t4 k2 pin
+drop t6 k1
+take t3 k1 scan
+take t4 k1 seal
+take t5 k0 grow
+take t1 k0 grow
+drop t3 k2
+drop t3 k1
+take t2 k1 seal
+drop t4 k1
+take t6 k0 pin
+drop t3 k2
+take t8 k2 seal
+take t4 k0 pin
+take t8 k1 scan
+take t7 k1 seal
+take t4 k1 edit
+take t5 k1 seal
+take t5 k2 grow
+take t3 k0 scan
+drop t5 k0
+drop t2 k1
+take t1 k0 edit
+drop t5 k2
+end t3
+take t5 k2 grow
+end t6
+take t2 k0 scan
+take t3 k2 edit
+take t4 k1 seal
+take t1 k1 scan
+take t5 k2 seal
+take t2 k1 seal
+drop t8 k1
+take t1 k1 grow
+take t5 k1 pin
+drop t1 k1
+take t4 k1 seal
+drop t7 k1
+take t2 k0 edit
+end t8
+drop t2 k1
+take t2 k0 pin
+take t7 k1 seal
+take t7 k1 seal
+take t1 k0 edit
+end t4
+drop t1 k0
+take t1 k0 scan
+end t5
+take t2 k2 pin
+drop t1 k1
+drop t1 k0
+end t1
+take t1 k1 pin
+take t7 k0 pin
+take t2 k2 edit
+end t2
+take t5 k0 pin
+take t2 k2 seal
+end t7

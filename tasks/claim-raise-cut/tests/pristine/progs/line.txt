@@ -1,0 +1,18 @@
+take t5 k1 edit
+end t5
+take t6 k1 scan
+take t6 k0 scan
+take t7 k0 scan
+take t7 k1 edit
+take t1 k0 seal
+end t7
+take t4 k0 seal
+end t6
+take t3 k1 edit
+take t4 k1 grow
+end t3
+take t1 k1 seal
+end t1
+end t4
+take t2 k0 seal
+end t2

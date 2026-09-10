@@ -1,0 +1,360 @@
+take t1 k0 edit
+take t2 k0 scan
+take t3 k1 edit
+take t4 k1 scan
+take t5 k2 edit
+take t6 k2 scan
+take t7 k3 edit
+take t8 k3 scan
+take t9 k4 edit
+take t10 k4 scan
+take t11 k5 edit
+take t12 k5 scan
+take t13 k6 edit
+take t14 k6 scan
+take t15 k7 edit
+take t16 k7 scan
+take t17 k8 edit
+take t18 k8 scan
+take t19 k9 edit
+take t20 k9 scan
+take t21 k10 edit
+take t22 k10 scan
+take t23 k11 edit
+take t24 k11 scan
+take t25 k12 edit
+take t26 k12 scan
+take t27 k13 edit
+take t28 k13 scan
+take t29 k14 edit
+take t30 k14 scan
+take t31 k15 edit
+take t32 k15 scan
+take t33 k16 edit
+take t34 k16 scan
+take t35 k17 edit
+take t36 k17 scan
+take t37 k18 edit
+take t38 k18 scan
+take t39 k19 edit
+take t40 k19 scan
+take t41 k20 edit
+take t42 k20 scan
+take t43 k21 edit
+take t44 k21 scan
+take t45 k22 edit
+take t46 k22 scan
+take t47 k23 edit
+take t48 k23 scan
+take t49 k24 edit
+take t50 k24 scan
+take t51 k25 edit
+take t52 k25 scan
+take t53 k26 edit
+take t54 k26 scan
+take t55 k27 edit
+take t56 k27 scan
+take t57 k28 edit
+take t58 k28 scan
+take t59 k29 edit
+take t60 k29 scan
+take t61 k30 edit
+take t62 k30 scan
+take t63 k31 edit
+take t64 k31 scan
+take t65 k32 edit
+take t66 k32 scan
+take t67 k33 edit
+take t68 k33 scan
+take t69 k34 edit
+take t70 k34 scan
+take t71 k35 edit
+take t72 k35 scan
+take t73 k36 edit
+take t74 k36 scan
+take t75 k37 edit
+take t76 k37 scan
+take t77 k38 edit
+take t78 k38 scan
+take t79 k39 edit
+take t80 k39 scan
+take t81 k40 edit
+take t82 k40 scan
+take t83 k41 edit
+take t84 k41 scan
+take t85 k42 edit
+take t86 k42 scan
+take t87 k43 edit
+take t88 k43 scan
+take t89 k44 edit
+take t90 k44 scan
+take t91 k45 edit
+take t92 k45 scan
+take t93 k46 edit
+take t94 k46 scan
+take t95 k47 edit
+take t96 k47 scan
+take t97 k48 edit
+take t98 k48 scan
+take t99 k49 edit
+take t100 k49 scan
+take t101 k50 edit
+take t102 k50 scan
+take t103 k51 edit
+take t104 k51 scan
+take t105 k52 edit
+take t106 k52 scan
+take t107 k53 edit
+take t108 k53 scan
+take t109 k54 edit
+take t110 k54 scan
+take t111 k55 edit
+take t112 k55 scan
+take t113 k56 edit
+take t114 k56 scan
+take t115 k57 edit
+take t116 k57 scan
+take t117 k58 edit
+take t118 k58 scan
+take t119 k59 edit
+take t120 k59 scan
+take t130 p9-2 seal
+take t152 p31-0 seal
+take t159 p38-0 grow
+take t140 p19-1 grow
+take t159 p38-1 edit
+take t148 p27-1 seal
+take t133 p12-0 scan
+take t147 p26-1 scan
+take t150 p29-2 seal
+take t157 p36-2 seal
+take t127 p6-1 edit
+take t131 p10-1 seal
+take t143 p22-2 seal
+take t136 p15-1 pin
+take t134 p13-1 pin
+take t158 p37-0 seal
+take t136 p15-0 scan
+take t123 p2-0 edit
+take t154 p33-0 scan
+take t157 p36-2 edit
+take t153 p32-1 edit
+take t133 p12-2 scan
+take t136 p15-1 pin
+take t139 p18-2 grow
+take t154 p33-1 grow
+take t122 p1-1 scan
+take t155 p34-2 pin
+take t159 p38-2 pin
+take t158 p37-0 edit
+take t154 p33-1 seal
+take t136 p15-0 seal
+take t124 p3-1 seal
+take t154 p33-1 seal
+take t160 p39-2 scan
+take t128 p7-0 scan
+take t150 p29-0 grow
+take t155 p34-1 scan
+take t147 p26-2 scan
+take t144 p23-2 pin
+take t141 p20-0 seal
+take t134 p13-0 scan
+take t125 p4-2 scan
+take t133 p12-0 grow
+take t137 p16-0 grow
+take t138 p17-1 edit
+take t147 p26-1 edit
+take t135 p14-0 edit
+take t157 p36-0 grow
+take t139 p18-2 edit
+take t153 p32-1 grow
+take t122 p1-2 edit
+take t131 p10-0 edit
+take t159 p38-0 pin
+take t145 p24-0 scan
+take t136 p15-0 grow
+take t133 p12-1 seal
+take t160 p39-1 scan
+end t136
+take t124 p3-2 grow
+take t135 p14-0 pin
+take t130 p9-1 grow
+take t145 p24-0 edit
+take t146 p25-0 grow
+take t140 p19-2 scan
+take t150 p29-2 seal
+take t129 p8-2 edit
+take t145 p24-2 edit
+take t145 p24-1 scan
+take t154 p33-0 edit
+take t139 p18-2 pin
+take t153 p32-2 pin
+take t129 p8-0 scan
+take t140 p19-0 seal
+take t141 p20-0 edit
+take t158 p37-2 grow
+take t144 p23-0 seal
+take t123 p2-0 edit
+take t129 p8-0 pin
+take t122 p1-2 scan
+take t123 p2-1 scan
+take t149 p28-0 edit
+take t139 p18-0 grow
+take t126 p5-1 pin
+take t127 p6-2 pin
+take t124 p3-0 grow
+take t134 p13-1 scan
+take t148 p27-0 pin
+take t151 p30-2 scan
+take t134 p13-1 edit
+take t144 p23-0 pin
+take t151 p30-1 seal
+take t124 p3-1 grow
+take t145 p24-0 edit
+take t156 p35-2 grow
+take t132 p11-2 edit
+take t133 p12-2 grow
+take t160 p39-2 edit
+take t155 p34-0 seal
+take t139 p18-1 edit
+take t124 p3-2 grow
+take t137 p16-2 grow
+take t128 p7-0 pin
+take t125 p4-2 edit
+end t133
+take t146 p25-0 grow
+take t130 p9-0 grow
+take t126 p5-2 scan
+take t137 p16-1 grow
+take t150 p29-2 edit
+take t147 p26-2 edit
+end t154
+take t148 p27-2 edit
+take t128 p7-2 grow
+take t146 p25-2 scan
+take t141 p20-2 seal
+take t127 p6-0 grow
+take t127 p6-1 seal
+end t139
+take t153 p32-0 seal
+take t123 p2-1 edit
+take t156 p35-2 grow
+take t122 p1-2 edit
+take t122 p1-1 scan
+take t160 p39-0 scan
+take t135 p14-2 scan
+take t156 p35-0 seal
+take t130 p9-1 edit
+take t129 p8-0 edit
+take t129 p8-0 seal
+take t131 p10-0 seal
+take t155 p34-0 pin
+take t123 p2-2 scan
+take t143 p22-0 seal
+take t156 p35-0 scan
+take t143 p22-2 seal
+take t153 p32-0 grow
+take t157 p36-0 pin
+take t130 p9-2 pin
+take t158 p37-0 grow
+take t141 p20-0 grow
+take t127 p6-2 scan
+end t124
+take t141 p20-2 pin
+take t151 p30-1 seal
+end t153
+take t126 p5-2 edit
+take t151 p30-2 grow
+take t160 p39-1 pin
+end t145
+take t155 p34-2 pin
+take t134 p13-2 pin
+take t159 p38-0 scan
+end t159
+take t132 p11-1 seal
+take t152 p31-1 scan
+end t130
+take t126 p5-0 pin
+take t149 p28-2 edit
+end t122
+take t138 p17-1 edit
+end t123
+take t128 p7-1 edit
+take t135 p14-1 edit
+take t137 p16-0 pin
+take t150 p29-2 grow
+take t128 p7-1 pin
+take t148 p27-1 grow
+take t156 p35-1 pin
+take t140 p19-2 seal
+take t121 p0-1 pin
+take t142 p21-1 seal
+take t125 p4-2 scan
+end t160
+take t144 p23-1 scan
+take t143 p22-0 edit
+end t155
+take t148 p27-2 pin
+end t128
+take t152 p31-1 scan
+take t138 p17-2 pin
+take t126 p5-1 grow
+end t134
+end t127
+take t158 p37-2 scan
+take t146 p25-2 pin
+take t149 p28-2 seal
+take t140 p19-2 scan
+end t158
+end t148
+take t151 p30-1 seal
+take t142 p21-0 edit
+end t140
+end t141
+take t144 p23-2 seal
+take t121 p0-1 edit
+take t131 p10-2 grow
+end t126
+take t149 p28-2 scan
+take t131 p10-0 scan
+take t152 p31-0 scan
+end t150
+end t156
+take t125 p4-0 scan
+take t135 p14-2 pin
+take t142 p21-0 seal
+take t147 p26-1 edit
+take t149 p28-1 scan
+end t144
+take t152 p31-0 edit
+take t121 p0-2 edit
+end t149
+end t135
+end t131
+end t129
+take t143 p22-0 grow
+take t157 p36-1 seal
+end t147
+end t151
+take t142 p21-0 grow
+end t157
+take t138 p17-2 pin
+take t132 p11-0 edit
+take t132 p11-2 scan
+take t138 p17-1 scan
+take t146 p25-2 grow
+take t132 p11-2 seal
+take t125 p4-0 grow
+end t146
+end t132
+end t138
+end t125
+take t142 p21-1 seal
+end t143
+take t137 p16-1 pin
+take t121 p0-0 grow
+end t142
+end t137
+end t152
+take t121 p0-0 pin
+end t121

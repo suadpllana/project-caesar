@@ -1,0 +1,212 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/hold/mark.py",
+  "/app/hold/item.py",
+  "/app/hold/wait.py",
+  "/app/hold/cyc.py",
+  "/app/hold/txn.py",
+]
+
+[task]
+name = "afterquery/claim-raise-cut"
+
+[metadata]
+author_name = "Suad Pllana"
+author_email = "suadpllana12@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief and the service is small. What is not in the brief is which of the
+structures the rules seem to ask for survive all of them at once, and one rule in particular is
+not a rule at all but a definition whose consequences have to be worked out.
+
+The first plan is a lock manager, and it is a good one: a granted set and a wait queue per item, a
+single mark for what the item is currently held in, an edge from each waiting transaction to every
+holder whose mark conflicts with what it asked for, a cycle search on that graph, and the youngest
+transaction on the cycle taken out. Four of those five are wrong here, and three of them are wrong
+quietly. The mark an item is held in cannot be one value, because a request is tested with the
+asking transaction's own claims taken out and a covering mark cannot be un-covered. The queue
+cannot be one queue, because a raise is served ahead of every first-time claim and in the order its
+transaction came to hold the item, which is not the order it asked in. And a raise that cannot be
+granted pins the item against first-time claims that nothing held excludes.
+
+The definition is the wait relation. A transaction waits for another when taking that other one
+out of the service - its claims and its request - would leave the sweep granting the request. That
+is not the conflict rule, and it differs from it in three directions at once. Behind a pinned item
+a first-time claim does not wait for the holders whose marks exclude it, because removing one of
+those leaves the item pinned; it does wait for a holder whose mark excludes nothing it asked for,
+because removing that one lets the stuck raise through and unpins the item; and where two holders
+both exclude it, it waits for neither, because neither leaving alone would grant it. An engine
+built on the conflict rule agrees with all of this on every item that has no raise outstanding, so
+it passes ordinary testing and then cuts a different transaction several hundred steps in, or cuts
+one where the service cuts none. `edge-miss` and `edge-phantom` are the two enumerated programs
+that name those, and the conflict reading moves 30 per cent of the generated population.
+
+Then the limit decides what a correct structure is allowed to cost, and every fast path follows
+from an invariant rather than a technique. A sweep reads its own item's claims and requests and
+nothing else, so the relation only has to be rebuilt where the item moved: rebuilding it for every
+item that holds a request takes 180 seconds against a 60 second limit for all 439 programs. Only a
+transaction present on the item can change that item's sweep, and holders carrying the same mark
+with no request of their own are interchangeable in it: asking the removal question of every live
+transaction takes 181 seconds, asking it of every participant one at a time takes 172, and asking
+it of every holder whose mark excludes what a request asked for takes 242, because one raise stuck
+across a crowd excludes the whole crowd. The reference settles the whole set in 5.5 seconds. All
+four of those readings produce exactly the reference's traces; the limit is the only thing that
+separates them, and a fifth correct reading, a ring search over the whole relation whenever any
+row of it moved, passes with time to spare.
+
+Around those sit the decisions that were already there: the mark covering a set of marks, which is
+a join over the shipped pair table and which no rank over the five marks reproduces, since it makes
+scan with pin into edit and edit with grow into seal; a claim stack, so a drop puts back the mark
+covering what is left rather than clearing the item; a cut that is repeated while a ring is left,
+that takes the fewest-claims transaction and not the youngest, and that sweeps the item the victim
+was only waiting on; and the line granted transactions run from, which fills from the back while
+one of them runs and never lets what it grants cut in ahead of what was granted before. All five
+editable modules ship wrong, in nine ways, and the trace never shows the relation, so nothing
+confirms a wrong reading of it until a cut lands somewhere else.
+
+Identifiers are in a legacy register - `eff`, `cnt`, `pend`, `nk`, `ups`, `stands`, `hold/`,
+`tab.py` - short but never misleading, and no name misdescribes what it holds. That is a choice
+about the register of real storage-engine code rather than an obstacle: each is recoverable from
+what calls it.
+
+The programs are synthetic, in twelve families, concentrating raises that cross, pins with claims
+queued behind them, rings that appear several at a time, holders that leave and come back, and two
+large shapes, all far above their natural rate. In a working service they are rare, and they are
+exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Five modules, settled in the order the rules force rather than one that is tidy.
+
+`mark.py` reads the pair table and turns it into, for each mark, the set of marks it excludes. The
+mark covering two others is then the one whose exclusion set covers both and is contained in every
+other such set; the table is a lattice, so there is exactly one, and it is memoised per pair. No
+rank produces it.
+
+`item.py` holds the claims. A transaction's claims on an item are a stack, its effective mark is
+the mark covering that stack, and the item keeps a count per mark over its holders. The count is
+what makes the two rules that pull against each other both cheap: a request stands when every mark
+excluding it has a count of zero once the asking transaction's own mark is taken off, which a
+single covering mark for the item cannot express, and the same count answers the removal question
+with one subtraction instead of a walk. The sweep is pure and takes the transaction to leave out as
+an argument: raises first, ordered by when their transactions came to hold the item, each granted
+against a working copy of the counts, one that fails passing the item as pinned; then, if nothing
+was passed over, the first-time claims in request order, stopping at the first that does not stand.
+
+`wait.py` runs that sweep once for the item and once per removal candidate. The candidates are not
+every live transaction and not every participant: a transaction absent from the item cannot change
+a sweep that reads only the item, and two holders carrying the same mark with no request of their
+own are interchangeable in it, so one of them stands for the group and the whole group takes the
+edge. The candidate list is therefore the item's own requesters plus one holder per distinct mark,
+which is bounded by the queue and by five however many transactions hold the item.
+
+`cyc.py` finds the rings. The settle loop leaves the relation acyclic, so a ring that has appeared
+must run through an edge that changed, and Tarjan over the part reachable from those edges finds
+every one of them. It reports every transaction on a ring rather than the first ring it meets,
+because the cut compares across rings. `txn.py` drives a program: it keeps the items whose claims
+or requests moved since the last look, rebuilds those parts of the relation and no others, keeps
+the granted transactions in one list they run from in grant order once the step is over, appending
+whatever a running one grants at the back, and runs the cut loop, where a victim's request and claims
+come out first and the sweeps follow in the order it came to hold them.
+
+An expert works in that order because each module consumes the one before it: the covering mark
+decides what a request is tested in, the counts decide what a sweep grants, the sweep decides who
+waits for whom, and the relation decides who is cut. The same contract is implemented two further
+ways in the authoring set, both scoring 1 - a cycle search over the whole relation whenever any row
+of it moved, with no changed-root pruning, and marks carried as frozen exclusion sets with the join taken by closure and
+the holders indexed by mark in sets read through an overlay - and four more ways that are right and
+only slow, kept as cheats, so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the five modules under `/app/hold/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a program
+prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-seven hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Four hundred and twelve further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across twelve families that concentrate raises crossing on one item, pins with claims queued
+behind them, rings appearing several at a time, deep claim stacks, holders that leave and come
+back, and the two large shapes. A submission cannot have seen them, so fitting the shipped
+programs fails, and so does carrying an answer key.
+
+The fences run both ways. Cutting on a ring the removal definition does not have fails
+`edge-phantom` and `edge-share`; missing the one it does have fails `edge-miss`. Granting a
+first-time claim behind a stuck raise fails `pin-fresh`; stopping a later raise as well fails
+`raise-pass`. Serving raises in request order fails `raise-order` and `again-life`; testing a raise
+against its own claims fails `self-alone`. Cutting the youngest fails `cut-wake`, cutting the most
+loaded fails `cut-fewest`, breaking a tie the other way fails `cut-late`, and cutting once and
+stopping fails `cut-again`. Clearing an item on a drop fails `drop-pop` and `drop-mark`; sweeping a
+leaving transaction's items in name order fails `shed-order`; resuming a granted transaction on the
+spot fails `resume-order`; running what a resumed transaction grants ahead of what was granted
+before it, nested or at the front of the line, fails `resume-line`; running anything before an
+ending transaction's last item is swept fails `resume-shed`. `plain-flow` is a program with no raise
+and no ring at all, and an engine that has turned conservative fails it before it reaches anything
+subtle.
+
+Thirty-six cheats score 0. Twenty-two are wrong readings, each caught by the enumerated case named
+for it, though four of those are also slow enough that the limit reaches them first on the two
+large families, and one, cutting out of the first ring found, depends on the order a set is
+walked in, so `ring-pair` names it only when the other ring comes first and the `ring` family of
+forty generated programs is what catches it every time. Four more are exactly correct and too slow, caught by the limit alone. The other
+ten are probes: an answer key reaching for the sealed model, a reward written early, a reward
+written by a process left behind, a planted record file with the worker killed before it can write
+the real one, records that are not lines, a privilege check, an attempt to shrink the population,
+a rewrite of the parts of the tree the verifier does not take, a service that never returns, and a
+forgery carrying the frozen answers for every enumerated program, which passes all twenty-five and
+fails on the four hundred and twelve it could not have seen.
+
+The submitted service runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit, and is imported fresh for every program. The model and the frozen answers
+sit in a directory that uid cannot read, so code running inside the verifier cannot compute its
+answers from them. The reward defaults to 0, is written last by the privileged stage into a
+root-owned directory locked before any agent code runs, and anything the run left behind is reaped
+by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "lock-manager",
+  "deadlock-detection",
+  "wait-for-graph",
+  "lock-conversion",
+  "compatibility-lattice",
+  "cycle-detection",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the coordination layer of a transactional store: the part that hands out claims on
+items, decides which waiting transaction may go next when one is given back, and decides which
+transaction to take out when a set of them can no longer make progress. Familiarity with mark
+tables that are not the shared and exclusive pair, with the difference between the mark a
+transaction asked for and the mark it ends up holding once its earlier claims are counted, and with
+the reason a request is never tested against its own claims. Comfort with the ordinary failure of
+the textbook wait-for graph, which is that who is waiting for whom is a question about what would
+happen if somebody left rather than about who conflicts, and with what it costs to ask that
+question over a whole service instead of over the item that moved.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

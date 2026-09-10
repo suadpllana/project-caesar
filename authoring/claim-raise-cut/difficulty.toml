@@ -1,0 +1,197 @@
+# Difficulty record for claim-raise-cut, transcribed from the task's own documentation after
+# the 2026-09-10 difficulty recovery. Every claim below restates one already made in the files
+# listed under task.sources; nothing is added for the score.
+
+[task]
+slug = "claim-raise-cut"
+status = "pending"
+sources = [
+  "tasks/claim-raise-cut/STATE.md",
+  "tasks/claim-raise-cut/task.toml",
+  "tasks/claim-raise-cut/instruction.md",
+  "tasks/claim-raise-cut/tests/test_outputs.py",
+  "tasks/claim-raise-cut/cheat/",
+  "authoring/claim-raise-cut/readings.py",
+  "authoring/claim-raise-cut/measure.py",
+  "authoring/claim-raise-cut/variants/",
+  "authoring/claim-raise-cut/cheat_report.py",
+  "probes/claim-raise-cut/",
+]
+expert_hours = 10
+estimated_solves = 4
+
+[plan]
+first_plan = """
+Rewrite the five modules as a lock manager: one mark per item for what it is currently held in,
+one wait queue per item in request order, an edge from every waiting transaction to every holder
+whose mark conflicts with what it asked for, a cycle search over that graph after each blocked
+take, and the youngest transaction on the cycle killed. This is the textbook plan and the one
+the three retained trajectories formed before running a program.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A request stands when its mark stands beside the mark every other transaction holds on the item
+and its own claims never count, so the item has no single mark; raises are served first, in the
+order their transactions came to hold the item, and a passed-over raise pins the item against
+every first-time claim whatever it asked for, so there is no single queue.
+"""
+second_discovery = """
+Waiting is defined by removal, not by conflict: a transaction waits for another when the sweep
+of its item would grant its request once that other one is taken out with its claims and its
+request. Behind a pinned item a first-time claim does not wait for the holders whose marks exclude
+it, does wait for a holder whose mark excludes nothing it asked for, and where two holders both
+exclude it waits for neither; the conflict-edge engine agrees on every item without a raise
+outstanding and cuts the wrong transaction hundreds of steps in. Then the limit rejects the
+first correct implementation of the definition, which asks the removal question of every live
+transaction, at 181 s against 60 s.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read tab.py and derive for each mark the set of marks it excludes",
+  "define the cover as the least mark whose exclusion set contains the union and check it is unique and pairwise",
+  "keep a stack per transaction per item and a count of holders per effective mark",
+  "write the sweep as raises in hold order against a working copy of the counts with the asker's own mark taken off, a pass-over flag, then first-time claims in request order until one fails",
+  "write the removal question as the same sweep with one transaction left out and prune the candidates to the item's requesters plus one holder per distinct mark",
+  "keep the set of items whose claims or requests moved and rebuild only their rows of the relation",
+  "find every transaction on a ring with Tarjan from the changed rows and pick by items held, later request, larger number",
+  "drive the program with one line the granted transactions join at the back and run from after the step",
+  "time the two large shapes at graded scale and check the whole set against 60 s",
+]
+
+[search]
+best_page = """
+A textbook treatment of lock managers: Gray's compatibility matrix for lock modes, lock
+conversion queues, wait-for-graph deadlock detection with a youngest-transaction victim.
+"""
+helps_plan = false
+deviation = """
+The pair table is not the shared and exclusive pair and its cover is a join no rank gives;
+conversions are served in hold order ahead of fresh requests and a stuck conversion blocks
+compatible fresh requests; waiting is defined by removal rather than conflict; the victim is
+the one holding the fewest items, then the later request, never the youngest.
+"""
+
+[tactics]
+A1 = """
+The textbook wait-for graph, the single held mark and the youngest-victim rule are the model's
+prior, and each is specified the other way: removal-defined waiting, per-transaction covers with
+the asker excluded, fewest items held.
+"""
+A2 = """
+Nothing is named. No lock manager, lock mode, conversion, wait-for graph or deadlock appears;
+the brief says what stands, what a sweep grants, who waits for whom and who is cut.
+"""
+A3 = """
+Raises in hold order ahead of first-time claims in request order, with a passed-over raise
+pinning the item, is a queue discipline no single known structure gives; and the removal
+relation is affordable only with a candidate set derived from what a sweep reads.
+"""
+B2 = """
+Twelve graded rules across five modules with no per-decision feedback: the trace never shows the
+relation, the pin changes what waiting means, and the cover changes what a test means, so the
+rules cannot be confirmed one at a time.
+"""
+C1 = """
+Both sides on every axis: pin-fresh against raise-pass, edge-miss against edge-phantom and
+edge-share, cut-fewest against cut-late, resume-line against resume-shed, drop-pop against
+drop-mark, and plain-flow for the engine that has turned conservative.
+"""
+C2 = """
+No expected trace ships; the bug report is one line of one program, and a conflict-edge engine
+reproduces every shipped program's trace on every item without a raise outstanding, so local
+testing confirms the wrong relation.
+"""
+C3 = """
+Four correct readings measured at 172 to 242 s against the 60 s limit for the set, the
+reference at 5.5 s; the fast path follows from a sweep reading only its own item and from
+holders of one mark with no request being interchangeable.
+"""
+C4 = """
+27 enumerated programs and 412 nonce programs generated inside the verifier from a seed drawn
+after the agent's container is gone, in twelve shaped families, all-or-nothing on every line.
+"""
+guard = """
+Only the five modules under /app/hold are taken; the verifier overlays them on its own pristine
+tree, so run.py, tab.py, out.py and the programs cannot be reshaped, and the trace format is
+frozen by out.py.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "the cover of a stack", b = "the test against the mark each other transaction holds", why = "what a raise is tested in and what it is tested against are both covers, and a cover cannot be un-covered, so the item cannot carry one mark and the asker's own claims must come out of the count" },
+  { a = "the pin", b = "the removal-defined relation", why = "behind a pinned item the holders whose marks exclude a claim are not what it waits for; the holder whose departure lets the raise through is" },
+  { a = "raises in hold order", b = "the wait relation", why = "which raise a removal lets through depends on the order raises are walked, so the relation cannot be read off marks alone" },
+  { a = "the cut loop", b = "the resumption line", why = "a cut's sweeps fill the line, the line runs before the service looks again, and what it grants can close or open the next ring" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+plain-flow: compatible claims, a pop, two ends and nothing cut; an engine that pins too much or
+waits too much fails it before anything subtle.
+"""
+late_case = """
+edge-miss and edge-phantom: the conflict-edge engine passes every program without a stuck
+raise and then cuts a transaction the service does not cut, or fails to cut the one it does,
+hundreds of steps into a generated program.
+"""
+oracle_denied = """
+The agent's natural check is to run the shipped programs and read the trace, and the trace
+never shows the relation; a wrong relation only surfaces when a cut lands elsewhere.
+"""
+
+[leaks]
+candidates = [
+  { what = "an expected trace for a shipped program", closed_by = "none ships; the brief quotes one wrong line of one program" },
+  { what = "a cover or rank table in the tree", closed_by = "tab.py holds the pair table only; the shipped RANK in mark.py is wrong and the reason the bug report exists" },
+  { what = "a stored relation, count or candidate list", closed_by = "Item and Tx hold stack, first, eff, pend, order, nk, req, back; every derived quantity is the agent's to compute" },
+  { what = "the sealed model reachable from the worker's sys.path", closed_by = "tests/seal is chmod 700 before the privilege drop; the answer-key probe sees PermissionError" },
+]
+derived_quantities = """
+The tree stores what programs declare and the shipped engine's own wrong state; no cover table,
+exclusion set, relation, ring or victim is stored anywhere the agent can read.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = "rebuild the whole relation after every step, or ask the removal question of every live transaction, every participant, or every holder whose mark excludes the request"
+invariant = "a sweep reads only its own item's claims and requests, and holders carrying one mark with no request of their own are interchangeable in it"
+input_scale = "one item held by six thousand transactions with a raise stuck across it, and a thousand items each carrying a stuck request under several thousand steps elsewhere"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "conflict edges instead of removal", hand_case = "edge-miss: t3 asks scan behind a pinned item of scans and waits for t1" },
+  { reading = "wait for every conflicting holder and the queue ahead", hand_case = "edge-phantom: t1 excludes t3's scan yet t3 does not wait for it" },
+  { reading = "rank the marks instead of the join", hand_case = "join-pair: two scans and a raise to pin, tested in edit" },
+  { reading = "count the asker's own claims", hand_case = "self-alone: the only holder raises and is not tested against itself" },
+  { reading = "serve raises in request order", hand_case = "raise-order: two raises served in hold order, the reverse of request order" },
+  { reading = "let first-time claims through under a stuck raise", hand_case = "pin-fresh: nothing held excludes t3's scan and it still waits" },
+  { reading = "stop later raises when one is passed over", hand_case = "raise-pass: a passed-over raise does not stop the raise after it" },
+  { reading = "walk past a failing first-time claim", hand_case = "queue-stop: the fresh walk stops at the first claim it cannot grant" },
+  { reading = "cut the youngest", hand_case = "cut-wake: the item the victim waited on is swept and the queued request goes through" },
+  { reading = "cut the most loaded", hand_case = "cut-fewest: the transaction holding claims on the fewest items is cut" },
+  { reading = "break the tie on the earlier request", hand_case = "cut-late: same count on both sides, the later request goes" },
+  { reading = "cut once and stop", hand_case = "cut-again: one step leaves two rings and both are cut" },
+  { reading = "cut out of the first ring found", hand_case = "ring-pair: two rings in one step compared across rather than the first found" },
+  { reading = "clear the item on a drop", hand_case = "drop-pop: a drop takes one mark off, not the whole stack" },
+  { reading = "sweep a leaving transaction's items in name order", hand_case = "shed-order: an ending transaction's items swept in hold order, not name order" },
+  { reading = "resume a granted transaction on the spot", hand_case = "resume-order: two transactions granted by one release run in grant order" },
+  { reading = "run what a resumed transaction grants nested, at once", hand_case = "resume-line: what a running transaction grants runs after everything granted before it" },
+  { reading = "put a batch granted mid-run at the front of the line", hand_case = "resume-line: what a running transaction grants runs after everything granted before it" },
+]
+correct_variants = [
+  "variants/ok-whole-ring: Kosaraju over the whole relation whenever any row moved, with no changed-root pruning, 9.2 s, scores 1 through the host trial",
+  "variants/ok-set-marks: marks as frozen exclusion sets with the join by closure and holders indexed by mark in sets behind an overlay, scores 1 through the host trial",
+  "cheat-whole-rebuild, cheat-all-live, cheat-per-participant, cheat-candidate-verify: right and only slow, separated by the limit alone",
+]
+
+[shape]
+environment_py_lines = 256
+editable_files = 5
+reference_lines = 350

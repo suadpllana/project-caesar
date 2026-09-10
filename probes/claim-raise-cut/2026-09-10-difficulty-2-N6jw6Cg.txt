@@ -1,0 +1,2413 @@
+Agent trajectory
+
+claim-raise-cut__N6jw6Cg
+
+34 steps · 32 tool calls
+
+
+I'll start by reading the service code, the mark table, and the sample programs to understand the current behavior before touching anything.
+
+Bash(find . -type f | head -100 && echo "---" && cat run.py && echo "--- tab.py ---" && cat hold/tab.py && echo "--…)
+
+./run.py
+./hold/item.py
+./hold/tab.py
+./hold/txn.py
+./hold/mark.py
+./hold/cyc.py
+./hold/out.py
+./hold/__init__.py
+./hold/wait.py
+./progs/stack.txt
+./progs/line.txt
+./progs/turn.txt
+./progs/hold.txt
+./progs/small.txt
+./progs/many.txt
+./progs/spread.txt
+---
+import sys
+
+from hold import out, txn
+
+
+def read(path):
+    steps = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            f = line.split()
+            if f[0] == "take" and len(f) == 4:
+                steps.append((f[0], f[1], f[2], f[3]))
+            elif f[0] == "drop" and len(f) == 3:
+                steps.append((f[0], f[1], f[2]))
+            elif f[0] == "end" and len(f) == 2:
+                steps.append((f[0], f[1]))
+            else:
+                raise SystemExit("bad step: %s" % line)
+    return steps
+
+
+def main(argv):
+    if len(argv) != 2:
+        raise SystemExit("usage: run.py <program>")
+    tr = out.Trace()
+    svc = txn.Svc(tr)
+    for st in read(argv[1]):
+        svc.step(st)
+    sys.stdout.write(tr.text() + "\n")
+
+
+if __name__ == "__main__":
+    main(sys.argv)
+--- tab.py ---
+MARKS = ("scan", "edit", "grow", "pin", "seal")
+
+PAIRS = (
+    ("scan", "scan"),
+    ("scan", "grow"),
+    ("scan", "pin"),
+    ("edit", "pin"),
+    ("grow", "grow"),
+    ("pin", "pin"),
+)
+--- out.py ---
+class Trace:
+    def __init__(self):
+        self.lines = []
+
+    def give(self, t, k, m):
+        self.lines.append("give %s %s %s" % (t, k, m))
+
+    def wait(self, t, k, m):
+        self.lines.append("wait %s %s %s" % (t, k, m))
+
+    def free(self, t, k, m):
+        self.lines.append("free %s %s %s" % (t, k, m))
+
+    def cut(self, t):
+        self.lines.append("cut %s" % t)
+
+    def done(self, t):
+        self.lines.append("done %s" % t)
+
+    def text(self):
+        return "\n".join(self.lines)
+
+[stdout]
+./run.py
+./hold/item.py
+./hold/tab.py
+./hold/txn.py
+./hold/mark.py
+./hold/cyc.py
+./hold/out.py
+./hold/__init__.py
+./hold/wait.py
+./progs/stack.txt
+./progs/line.txt
+./progs/turn.txt
+./progs/hold.txt
+./progs/small.txt
+./progs/many.txt
+./progs/spread.txt
+---
+import sys
+
+from hold import out, txn
+
+
+def read(path):
+    steps = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            f = line.split()
+            if f[0] == "take" and len(f) == 4:
+                steps.append((f[0], f[1], f[2], f[3]))
+            elif f[0] == "drop" and len(f) == 3:
+                steps.append((f[0], f[1], f[2]))
+            elif f[0] == "end" and len(f) == 2:
+                steps.append((f[0], f[1]))
+            else:
+                raise SystemExit("bad step: %s" % line)
+    return steps
+
+
+def main(argv):
+    if len(argv) != 2:
+        raise SystemExit("usage: run.py <program>")
+    tr = out.Trace()
+    svc = txn.Svc(tr)
+    for st in read(argv[1]):
+        svc.step(st)
+    sys.stdout.write(tr.text() + "\n")
+
+
+if __name__ == "__main__":
+    main(sys.argv)
+--- tab.py ---
+MARKS = ("scan", "edit", "grow", "pin", "seal")
+
+PAIRS = (
+    ("scan", "scan"),
+    ("scan", "grow"),
+    ("scan", "pin"),
+    ("edit", "pin"),
+    ("grow", "grow"),
+    ("pin", "pin"),
+)
+--- out.py ---
+class Trace:
+    def __init__(self):
+        self.lines = []
+
+    def give(self, t, k, m):
+        self.lines.append("give %s %s %s" % (t, k, m))
+
+    def wait(self, t, k, m):
+        self.lines.append("wait %s %s %s" % (t, k, m))
+
+    def free(self, t, k, m):
+        self.lines.append("free %s %s %s" % (t, k, m))
+
+    def cut(self, t):
+        self.lines.append("cut %s" % t)
+
+    def done(self, t):
+        self.lines.append("done %s" % t)
+
+    def text(self):
+        return "\n".join(self.lines)
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(echo "--- mark.py ---" && cat hold/mark.py && echo "--- item.py ---" && cat hold/item.py && echo "--- wait.py …)
+
+--- mark.py ---
+from hold import tab
+
+RANK = ("scan", "grow", "pin", "edit", "seal")
+
+OK = set()
+for _a, _b in tab.PAIRS:
+    OK.add((_a, _b))
+    OK.add((_b, _a))
+
+
+def fits(a, b):
+    return (a, b) in OK
+
+
+def join2(a, b):
+    return a if RANK.index(a) >= RANK.index(b) else b
+
+
+def join(marks):
+    out = None
+    for m in marks:
+        out = m if out is None else join2(out, m)
+    return out
+--- item.py ---
+from hold import mark
+
+
+class Req(object):
+    __slots__ = ("tx", "kn", "ask", "seq")
+
+    def __init__(self, tx, kn, ask, seq):
+        self.tx = tx
+        self.kn = kn
+        self.ask = ask
+        self.seq = seq
+
+
+class Item(object):
+    __slots__ = ("name", "stack", "first", "eff", "pend")
+
+    def __init__(self, name):
+        self.name = name
+        self.stack = {}
+        self.first = {}
+        self.eff = {}
+        self.pend = []
+
+
+def want(it, r):
+    st = it.stack.get(r.tx)
+    return r.ask if st is None else mark.join(st + [r.ask])
+
+
+def add(it, t, ask, now):
+    st = it.stack.get(t)
+    if st is None:
+        it.stack[t] = [ask]
+        it.first[t] = now
+        it.eff[t] = ask
+    else:
+        st.append(ask)
+        it.eff[t] = mark.join(st)
+    return it.eff[t]
+
+
+def sub(it, t):
+    it.stack.pop(t, None)
+    it.first.pop(t, None)
+    it.eff.pop(t, None)
+    return None
+
+
+def wipe(it, t):
+    it.stack.pop(t, None)
+    it.first.pop(t, None)
+    it.eff.pop(t, None)
+
+
+def sweep(it):
+    got = []
+    seen = dict(it.eff)
+    for r in it.pend:
+        w = want(it, r)
+        g = mark.join(seen.values()) if seen else None
+        if g is None or mark.fits(w, g):
+            seen[r.tx] = w
+            got.append(r)
+        else:
+            break
+    return got
+--- wait.py ---
+from hold import item, mark
+
+
+def edges(it):
+    if not it.pend:
+        return {}
+    got = set()
+    for r in item.sweep(it):
+        got.add(id(r))
+    out = {}
+    for r in it.pend:
+        if id(r) in got:
+            continue
+        w = item.want(it, r)
+        near = set()
+        for t, m in it.eff.items():
+            if t != r.tx and not mark.fits(w, m):
+                near.add(t)
+        out[r.tx] = near
+    return out
+--- cyc.py ---
+def onloop(rel):
+    for start in rel:
+        path = [start]
+        seen = {start}
+        found = walk(rel, start, start, path, seen)
+        if found:
+            return found
+    return []
+
+
+def walk(rel, start, node, path, seen):
+    for step in rel.get(node, ()):
+        if step == start:
+            return list(path)
+        if step in seen or step not in rel:
+            continue
+        seen.add(step)
+        path.append(step)
+        got = walk(rel, start, step, path, seen)
+        if got:
+            return got
+        path.pop()
+    return []
+
+
+def pick(txs):
+    best = None
+    for t in txs:
+        if best is None or t.num > best.num:
+            best = t
+    return best
+--- txn.py ---
+from hold import cyc, item, mark, wait
+
+
+class Tx(object):
+    __slots__ = ("name", "num", "state", "order", "nk", "req", "back")
+
+    def __init__(self, name):
+        self.name = name
+        self.num = int(name[1:]) if name[1:].isdigit() else 0
+        self.state = "run"
+        self.order = []
+        self.nk = 0
+        self.req = None
+        self.back = []
+
+
+class Svc(object):
+    def __init__(self, tr):
+        self.tr = tr
+        self.tx = {}
+        self.it = {}
+        self.now = 0
+
+    def txof(self, name):
+        t = self.tx.get(name)
+        if t is None:
+            t = self.tx[name] = Tx(name)
+        return t
+
+    def itof(self, name):
+        k = self.it.get(name)
+        if k is None:
+            k = self.it[name] = item.Item(name)
+        return k
+
+    def step(self, st):
+        self.do(st)
+
+    def do(self, st):
+        t = self.txof(st[1])
+        if t.state == "gone":
+            return
+        if t.state == "held":
+            t.back.append(st)
+            return
+        if st[0] == "take":
+            self.take(t, st[2], st[3])
+        elif st[0] == "drop":
+            self.give_back(t, st[2])
+        else:
+            self.stop(t)
+
+    def take(self, t, kn, ask):
+        k = self.itof(kn)
+        self.now += 1
+        t.req = item.Req(t.name, kn, ask, self.now)
+        t.state = "held"
+        k.pend.append(t.req)
+        self.pass_over(k)
+        if t.state == "held":
+            self.tr.wait(t.name, kn, item.want(k, t.req))
+            self.settle()
+
+    def give_back(self, t, kn):
+        k = self.it[kn]
+        item.sub(k, t.name)
+        if kn in t.order:
+            t.order.remove(kn)
+            t.nk -= 1
+        self.tr.free(t.name, kn, "-")
+        self.pass_over(k)
+
+    def stop(self, t):
+        self.tr.done(t.name)
+        t.state = "gone"
+        t.back = []
+        self.shed(t)
+
+    def cut(self, t):
+        self.tr.cut(t.name)
+        t.state = "gone"
+        t.back = []
+        if t.req is not None:
+            k = self.it[t.req.kn]
+            k.pend = [r for r in k.pend if r.tx != t.name]
+            t.req = None
+        self.shed(t)
+
+    def shed(self, t):
+        ks = sorted(t.order)
+        t.order = []
+        t.nk = 0
+        for kn in ks:
+            item.wipe(self.it[kn], t.name)
+        for kn in ks:
+            self.pass_over(self.it[kn])
+
+    def pass_over(self, k):
+        got = item.sweep(k)
+        if not got:
+            return
+        done = set()
+        for r in got:
+            done.add(id(r))
+        k.pend = [r for r in k.pend if id(r) not in done]
+        for r in got:
+            t = self.tx[r.tx]
+            new = r.tx not in k.stack
+            self.now += 1
+            got_mark = item.add(k, r.tx, r.ask, self.now)
+            if new:
+                t.order.append(k.name)
+                t.nk += 1
+            t.req = None
+            t.state = "run"
+            self.tr.give(t.name, k.name, got_mark)
+            while t.state == "run" and t.back:
+                self.do(t.back.pop(0))
+
+    def settle(self):
+        rel = {}
+        for k in self.it.values():
+            rel.update(wait.edges
+… [clipped]
+collapse
+Bash(for f in progs/turn.txt progs/small.txt progs/hold.txt progs/line.txt progs/stack.txt; do echo "=== $f ==="; c…)
+
+=== progs/turn.txt ===
+take t7 k1 pin
+take t3 k2 pin
+take t4 k1 grow
+take t3 k2 edit
+take t6 k2 pin
+take t4 k2 grow
+take t3 k2 pin
+take t4 k0 seal
+take t8 k0 grow
+take t8 k0 edit
+take t3 k1 grow
+drop t6 k2
+drop t8 k0
+take t7 k2 pin
+take t6 k1 grow
+take t8 k1 grow
+take t3 k1 pin
+drop t7 k2
+drop t8 k1
+take t6 k1 pin
+take t8 k0 grow
+take t2 k1 pin
+take t5 k2 seal
+take t7 k1 grow
+take t6 k1 pin
+take t6 k1 edit
+take t6 k0 seal
+take t5 k2 grow
+drop t8 k0
+take t7 k1 edit
+take t6 k0 pin
+take t4 k2 pin
+drop t6 k1
+take t3 k1 scan
+take t4 k1 seal
+take t5 k0 grow
+take t1 k0 grow
+drop t3 k2
+drop t3 k1
+take t2 k1 seal
+drop t4 k1
+take t6 k0 pin
+drop t3 k2
+take t8 k2 seal
+take t4 k0 pin
+take t8 k1 scan
+take t7 k1 seal
+take t4 k1 edit
+take t5 k1 seal
+take t5 k2 grow
+take t3 k0 scan
+drop t5 k0
+drop t2 k1
+take t1 k0 edit
+drop t5 k2
+end t3
+take t5 k2 grow
+end t6
+take t2 k0 scan
+take t3 k2 edit
+take t4 k1 seal
+take t1 k1 scan
+take t5 k2 seal
+take t2 k1 seal
+drop t8 k1
+take t1 k1 grow
+take t5 k1 pin
+drop t1 k1
+take t4 k1 seal
+drop t7 k1
+take t2 k0 edit
+end t8
+drop t2 k1
+take t2 k0 pin
+take t7 k1 seal
+take t7 k1 seal
+take t1 k0 edit
+end t4
+drop t1 k0
+take t1 k0 scan
+end t5
+take t2 k2 pin
+drop t1 k1
+drop t1 k0
+end t1
+take t1 k1 pin
+take t7 k0 pin
+take t2 k2 edit
+end t2
+take t5 k0 pin
+take t2 k2 seal
+end t7
+--- output ---
+give t7 k1 pin
+give t3 k2 pin
+wait t4 k1 grow
+give t3 k2 edit
+give t6 k2 pin
+wait t3 k2 edit
+give t8 k0 grow
+wait t8 k0 edit
+free t6 k2 -
+wait t7 k2 pin
+wait t6 k1 grow
+wait t2 k1 pin
+wait t5 k2 seal
+wait t1 k0 grow
+=== progs/small.txt ===
+take t5 k1 grow
+take t3 k5 scan
+take t6 k0 scan
+take t1 k5 scan
+take t4 k5 pin
+take t6 k3 pin
+take t3 k5 pin
+take t4 k2 grow
+drop t3 k5
+drop t4 k5
+take t5 k1 grow
+drop t1 k5
+take t2 k3 scan
+take t4 k1 grow
+drop t5 k1
+take t1 k1 scan
+take t5 k1 pin
+take t4 k5 pin
+take t4 k1 pin
+take t2 k3 grow
+take t3 k2 grow
+take t6 k3 pin
+take t3 k5 pin
+take t3 k3 grow
+take t6 k0 pin
+take t5 k4 scan
+take t6 k3 grow
+take t1 k3 pin
+end t4
+take t1 k2 scan
+drop t2 k3
+drop t2 k3
+take t2 k3 grow
+take t6 k3 scan
+drop t5 k1
+end t3
+take t1 k1 scan
+end t5
+end t6
+take t2 k3 pin
+end t2
+end t1
+--- output ---
+give t5 k1 grow
+give t3 k5 scan
+give t6 k0 scan
+give t1 k5 scan
+give t4 k5 pin
+give t6 k3 pin
+give t3 k5 pin
+give t4 k2 grow
+free t3 k5 -
+free t4 k5 -
+give t5 k1 grow
+free t1 k5 -
+give t2 k3 scan
+give t4 k1 grow
+free t5 k1 -
+give t1 k1 scan
+wait t5 k1 pin
+give t4 k5 pin
+wait t4 k1 pin
+wait t2 k3 grow
+give t3 k2 grow
+wait t6 k3 pin
+give t3 k5 pin
+wait t3 k3 grow
+wait t1 k3 pin
+=== progs/hold.txt ===
+take t4 k2 scan
+take t5 k1 pin
+take t2 k2 scan
+take t1 k1 pin
+take t2 k2 edit
+take t2 k2 seal
+take t1 k1 pin
+take t3 k2 grow
+take t2 k2 pin
+take t2 k2 pin
+take t5 k0 scan
+take t3 k2 grow
+take t3 k2 pin
+take t4 k2 grow
+take t1 k1 scan
+take t5 k0 seal
+take t1 k1 scan
+take t2 k2 pin
+take t3 k2 edit
+take t2 k2 edit
+take t1 k0 grow
+take t5 k1 edit
+take t5 k0 grow
+take t4 k2 scan
+take t3 k2 pin
+take t4 k2 seal
+take t5 k1 edit
+take t1 k1 edit
+take t3 k2 edit
+take t1 k0 scan
+take t2 k1 pin
+take t5 k0 seal
+take t2 k2 edit
+take t3 k2 grow
+take t4 k1 scan
+take t3 k2 seal
+end t2
+take t5 k2 seal
+take t4 k1 scan
+take t3 k2 seal
+take t5 k0 seal
+end t5
+take t1 k1 edit
+end t3
+take t1 k2 scan
+take t4 k2 grow
+take t4 k2 edit
+take t4 k2 scan
+end t1
+end t4
+--- output ---
+give t4 k2 scan
+give t5 k1 pin
+give t2 k2 scan
+give t1 k1 pin
+wait t2 k2 edit
+give t1 k1 pin
+wait t3 k2 grow
+give t5 k0 scan
+wait t4 k2 grow
+give t1 k1 pin
+wait t5 k0 seal
+give t1 k1 pin
+wait t1 k0 grow
+=== progs/line.txt ===
+take t5 k1 edit
+end t5
+take t6 k1 scan
+take t6 k0 scan
+take t7 k0 scan
+take t7 k1 edit
+take t1 k0 seal
+end t7
+take t4 k0 seal
+end t6
+take t3 k1 edit
+take t4 k1 grow
+end t3
+take t1 k1 seal
+end t1
+end t4
+take t2 k0 seal
+end t2
+--- output ---
+give t5 k1 edit
+done t5
+give t6 k1 scan
+give t6 k0 scan
+give t7 k0 scan
+wait t7 k1 edit
+wait t1 k0 seal
+wait t4 k0 seal
+done t6
+give t7 k1 edit
+done t7
+give t1 k0 seal
+give t3 k1 edit
+done t3
+give t1 k1 seal
+done t1
+give t4 k0 seal
+give t4 k1 grow
+done t4
+give t2 k0 seal
+done t2
+=== progs/stack.txt ===
+take t1 k2 pin
+take t4 k2 seal
+drop t4 k2
+drop t1 k2
+take t1 k1 seal
+take t3 k1 scan
+take t3 k0 grow
+take t4 k1 grow
+take t3 k0 edit
+drop t3 k0
+drop t1 k1
+take t3 k2 scan
+drop t4 k1
+take t4 k0 scan
+take t1 k1 scan
+take t3 k0 scan
+take t1 k2 pin
+take t4 k2 seal
+take t1 k2 seal
+take t2 k0 edit
+take t4 k1 scan
+take t2 k1 edit
+take t2 k0 edit
+take t1 k2 scan
+drop t4 k2
+take t2 k2 grow
+take t4 k1 pin
+take t2 k2 seal
+take t4 k0 pin
+end t4
+drop t2 k1
+drop t3 k0
+take t1 k1 edit
+take t3 k0 grow
+drop t1 k2
+take t3 k2 edit
+end t1
+take t2 k0 seal
+drop t2 k0
+take t3 k2 pin
+take t2 k0 seal
+take t2 k1 pin
+end t2
+end t3
+--- output ---
+give t1 k2 pin
+wait t4 k2 seal
+free t1 k2 -
+give t4 k2 seal
+free t4 k2 -
+give t1 k1 seal
+wait t3 k1 scan
+wait t4 k1 grow
+free t1 k1 -
+give t3 k1 scan
+give t3 k0 grow
+wait t3 k0 edit
+wait t3 k0 edit
+give t4 k1 grow
+free t4 k1 -
+wait t4 k0 scan
+give t1 k1 scan
+give t1 k2 pin
+wait t1 k2 seal
+wait t2 k0 edit
+
+   50 progs/hold.txt
+   18 progs/line.txt
+  369 progs/many.txt
+   42 progs/small.txt
+  360 progs/spread.txt
+   44 progs/stack.txt
+   92 progs/turn.txt
+  975 total
+
+[stdout]
+=== progs/turn.txt ===
+take t7 k1 pin
+take t3 k2 pin
+take t4 k1 grow
+take t3 k2 edit
+take t6 k2 pin
+take t4 k2 grow
+take t3 k2 pin
+take t4 k0 seal
+take t8 k0 grow
+take t8 k0 edit
+take t3 k1 grow
+drop t6 k2
+drop t8 k0
+take t7 k2 pin
+take t6 k1 grow
+take t8 k1 grow
+take t3 k1 pin
+drop t7 k2
+drop t8 k1
+take t6 k1 pin
+take t8 k0 grow
+take t2 k1 pin
+take t5 k2 seal
+take t7 k1 grow
+take t6 k1 pin
+take t6 k1 edit
+take t6 k0 seal
+take t5 k2 grow
+drop t8 k0
+take t7 k1 edit
+take t6 k0 pin
+take t4 k2 pin
+drop t6 k1
+take t3 k1 scan
+take t4 k1 seal
+take t5 k0 grow
+take t1 k0 grow
+drop t3 k2
+drop t3 k1
+take t2 k1 seal
+drop t4 k1
+take t6 k0 pin
+drop t3 k2
+take t8 k2 seal
+take t4 k0 pin
+take t8 k1 scan
+take t7 k1 seal
+take t4 k1 edit
+take t5 k1 seal
+take t5 k2 grow
+take t3 k0 scan
+drop t5 k0
+drop t2 k1
+take t1 k0 edit
+
+… [clipped]
+collapse
+Thinking…
+The five modules need a near-complete rewrite: the mark cover uses linear rank instead of exclusion-based cover, the sweep miscounts claims and ignores raise ordering, the wait relation is approximated, victim choice only uses the number, and cut/end sweeps alphabetically. I'll first check the cover algebra computationally to see if a stack's cover can be folded pairwise.
+
+Bash(python3 - <<'EOF' import itertools from hold import tab MARKS = tab.MARKS OK=set() for a,b in tab.PAIRS: OK.ad…)
+
+scan ['edit', 'seal']
+edit ['edit', 'grow', 'scan', 'seal']
+grow ['edit', 'pin', 'seal']
+pin ['grow', 'seal']
+seal ['edit', 'grow', 'pin', 'scan', 'seal']
+['edit'] -> edit
+['grow'] -> grow
+['pin'] -> pin
+['scan'] -> scan
+['seal'] -> seal
+['edit', 'grow'] -> seal
+['edit', 'pin'] -> edit
+['edit', 'scan'] -> edit
+['edit', 'seal'] -> seal
+['grow', 'pin'] -> seal
+['grow', 'scan'] -> grow
+['grow', 'seal'] -> seal
+['pin', 'scan'] -> edit
+['pin', 'seal'] -> seal
+['scan', 'seal'] -> seal
+closure violations 0
+not tight ['pin', 'scan'] edit ['pin'] ['pin', 'scan']
+not tight ['grow', 'pin'] seal [] ['scan']
+not tight ['grow', 'pin', 'scan'] seal [] ['scan']
+
+[stdout]
+scan ['edit', 'seal']
+edit ['edit', 'grow', 'scan', 'seal']
+grow ['edit', 'pin', 'seal']
+pin ['grow', 'seal']
+seal ['edit', 'grow', 'pin', 'scan', 'seal']
+['edit'] -> edit
+['grow'] -> grow
+['pin'] -> pin
+['scan'] -> scan
+['seal'] -> seal
+['edit', 'grow'] -> seal
+['edit', 'pin'] -> edit
+['edit', 'scan'] -> edit
+['edit', 'seal'] -> seal
+['grow', 'pin'] -> seal
+['grow', 'scan'] -> grow
+['grow', 'seal'] -> seal
+['pin', 'scan'] -> edit
+['pin', 'seal'] -> seal
+['scan', 'seal'] -> seal
+closure violations 0
+not tight ['pin', 'scan'] edit ['pin'] ['pin', 'scan']
+not tight ['grow', 'pin'] seal [] ['scan']
+not tight ['grow', 'pin', 'scan'] seal [] ['scan']
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cat > /app/hold/mark.py <<'EOF' """Marks, the pair table and the cover. A mark excludes every mark it may not …)
+
+done
+
+[stdout]
+done
+[metadata] {"noOutputExpected": false}
+collapse
+Bash({"command":"cat > /app/hold/item.py <<'EOF'\n\"\"\"One item: the claims held on it and the requests queued aga…)
+
+give t7 k1 pin
+give t3 k2 pin
+wait t4 k1 grow
+give t3 k2 edit
+give t6 k2 pin
+give t3 k2 edit
+give t8 k0 grow
+give t8 k0 seal
+wait t3 k1 grow
+free t6 k2 -
+free t8 k0 grow
+give t7 k2 pin
+wait t6 k1 grow
+wait t8 k1 grow
+free t7 k2 -
+wait t2 k1 pin
+wait t5 k2 seal
+give t7 k1 seal
+give t7 k1 seal
+give t1 k0 grow
+give t7 k1 seal
+wait t1 k0 seal
+free t7 k1 seal
+give t7 k1 seal
+give t7 k1 seal
+wait t7 k0 pin
+
+[stdout]
+give t7 k1 pin
+give t3 k2 pin
+wait t4 k1 grow
+give t3 k2 edit
+give t6 k2 pin
+give t3 k2 edit
+give t8 k0 grow
+give t8 k0 seal
+wait t3 k1 grow
+free t6 k2 -
+free t8 k0 grow
+give t7 k2 pin
+wait t6 k1 grow
+wait t8 k1 grow
+free t7 k2 -
+wait t2 k1 pin
+wait t5 k2 seal
+give t7 k1 seal
+give t7 k1 seal
+give t1 k0 grow
+give t7 k1 seal
+wait t1 k0 seal
+free t7 k1 seal
+give t7 k1 seal
+give t7 k1 seal
+wait t7 k0 pin
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+The turn.txt output now correctly shows `give t3 k2 edit`. Next, I'll build an independent, literal reference implementation of the spec along with a random program generator, then compare outputs across thousands of programs to verify correctness.
+
+Bash({"command":"mkdir -p /tmp/ref && cat > /tmp/ref/ref.py <<'EOF'\n\"\"\"Slow, literal implementation of the spec…)
+
+turn: same (26 lines)
+small: same (41 lines)
+hold: same (45 lines)
+line: same (21 lines)
+stack: same (50 lines)
+many: same (369 lines)
+spread: same (360 lines)
+Shell cwd was reset to /app
+
+[stdout]
+turn: same (26 lines)
+small: same (41 lines)
+hold: same (45 lines)
+line: same (21 lines)
+stack: same (50 lines)
+many: same (369 lines)
+spread: same (360 lines)
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(grep -c "cut" /tmp/ref/*.out; cat > /tmp/ref/gen.py <<'EOF' """Random program generator. Uses a light simulati…)
+
+/tmp/ref/line.out:0
+/tmp/ref/many.out:0
+/tmp/ref/small.out:2
+/tmp/ref/stack.out:0
+/tmp/ref/hold.out:2
+/tmp/ref/spread.out:0
+/tmp/ref/turn.out:0
+seed 162 DIFF
+  length 33 54
+seed 236 DIFF
+  length 26 44
+seed 279 DIFF
+  length 33 50
+done 300 bad 3 cuts 95 waits 973
+Shell cwd was reset to /app
+
+[stdout]
+/tmp/ref/line.out:0
+/tmp/ref/many.out:0
+/tmp/ref/small.out:2
+/tmp/ref/stack.out:0
+/tmp/ref/hold.out:2
+/tmp/ref/spread.out:0
+/tmp/ref/turn.out:0
+seed 162 DIFF
+  length 33 54
+seed 236 DIFF
+  length 26 44
+seed 279 DIFF
+  length 33 50
+done 300 bad 3 cuts 95 waits 973
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /tmp/ref && cat bad_162.txt | head -80; echo ---; python3 /app/run.py bad_162.txt > m.txt; python3 ref.py b…)
+
+take t1 k3 pin
+take t2 k0 edit
+take t1 k2 seal
+take t1 k0 grow
+drop t1 k2
+take t1 k1 edit
+take t1 k3 seal
+drop t2 k0
+take t1 k5 edit
+take t2 k5 seal
+take t2 k5 seal
+drop t1 k3
+drop t1 k1
+take t2 k4 pin
+take t2 k3 edit
+take t1 k3 seal
+take t2 k3 grow
+take t2 k3 edit
+take t1 k3 edit
+drop t1 k3
+take t2 k5 edit
+take t2 k1 seal
+take t1 k2 pin
+take t2 k3 scan
+take t2 k5 pin
+take t1 k0 seal
+drop t1 k0
+drop t1 k2
+take t2 k0 grow
+take t1 k1 seal
+take t2 k2 pin
+drop t2 k0
+take t2 k3 seal
+drop t1 k5
+drop t1 k0
+take t2 k2 pin
+take t2 k5 grow
+take t2 k4 edit
+take t2 k5 pin
+take t2 k2 pin
+take t1 k4 edit
+take t2 k4 pin
+take t1 k1 scan
+drop t1 k4
+take t2 k2 grow
+take t2 k5 pin
+take t1 k4 grow
+end t2
+take t1 k5 edit
+drop t1 k3
+take t1 k0 grow
+drop t1 k1
+take t1 k1 grow
+take t1 k2 edit
+drop t1 k1
+drop t1 k2
+drop t1 k0
+take t1 k4 pin
+take t1 k0 seal
+drop t1 k4
+take t1 k3 pin
+take t1 k2 edit
+take t1 k4 grow
+drop t1 k0
+take t1 k5 edit
+take t1 k1 edit
+drop t1 k4
+take t1 k5 scan
+take t1 k5 pin
+take t1 k0 edit
+drop t1 k5
+take t1 k4 edit
+drop t1 k0
+take t1 k4 edit
+take t1 k4 pin
+take t1 k4 scan
+drop t1 k1
+drop t1 k3
+drop t1 k1
+drop t1 k2
+---
+Shell cwd was reset to /app
+
+[stdout]
+take t1 k3 pin
+take t2 k0 edit
+take t1 k2 seal
+take t1 k0 grow
+drop t1 k2
+take t1 k1 edit
+take t1 k3 seal
+drop t2 k0
+take t1 k5 edit
+take t2 k5 seal
+take t2 k5 seal
+drop t1 k3
+drop t1 k1
+take t2 k4 pin
+take t2 k3 edit
+take t1 k3 seal
+take t2 k3 grow
+take t2 k3 edit
+take t1 k3 edit
+drop t1 k3
+take t2 k5 edit
+take t2 k1 seal
+take t1 k2 pin
+take t2 k3 scan
+take t2 k5 pin
+take t1 k0 seal
+drop t1 k0
+drop t1 k2
+take t2 k0 grow
+take t1 k1 seal
+take t2 k2 pin
+drop t2 k0
+take t2 k3 seal
+drop t1 k5
+drop t1 k0
+take t2 k2 pin
+take t2 k5 grow
+take t2 k4 edit
+take t2 k5 pin
+take t2 k2 pin
+take t1 k4 edit
+take t2 k4 pin
+take t1 k1 scan
+drop t1 k4
+take t2 k2 grow
+take t2 k5 pin
+take t1 k4 grow
+end t2
+take t1 k5 edit
+drop t1 k3
+take t1 k0 grow
+drop t1 k1
+take t1 k1 grow
+take t1 k2 edit
+drop t1 k1
+drop t1 k2
+drop t1 k0
+take t1 k4 pin
+take t1 k0 seal
+drop t1 k4
+take t1 k3 pin
+take t1 k2 edit
+take t1 k4 grow
+drop t1 k0
+take t1 k5 edit
+take t1 k1 edit
+drop t1 k4
+take t1 k5 scan
+take t1 k5 pin
+take t1 k0 edit
+drop t1 k5
+take t1 k4 edit
+drop t1 k0
+take t1 k4 edit
+take t1 k4 pin
+take t1 k4 scan
+drop t1 k1
+drop t1 k3
+drop t1 k1
+drop t1 k2
+---
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /tmp/ref && python3 - <<'EOF' import sys sys.path.insert(0, "/app"); sys.path.insert(0, "/tmp/ref") import …)
+
+54 54
+files equal: True
+['give t2 k2 seal', 'give t2 k5 seal', 'done t2'] ['give t1 k1 seal', 'free t1 k4 -', 'wait t1 k4 grow', 'cut t1', 'give t2 k3 edit', 'give t2 k3 seal']
+Shell cwd was reset to /app
+
+[stdout]
+54 54
+files equal: True
+['give t2 k2 seal', 'give t2 k5 seal', 'done t2'] ['give t1 k1 seal', 'free t1 k4 -', 'wait t1 k4 grow', 'cut t1', 'give t2 k3 edit', 'give t2 k3 seal']
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /tmp/ref && python3 - <<'EOF' import sys sys.path.insert(0, "/app"); sys.path.insert(0, "/tmp/ref") import …)
+
+161 35
+162 33
+['give t1 k1 seal', 'free t1 k4 -', 'wait t1 k4 grow']
+t1 held ['k3', 'k1'] ('k4', 'grow') [('take', 't1', 'k5', 'edit'), ('drop', 't1', 'k3'), ('take', 't1', 'k0', 'grow')]
+t2 held ['k5', 'k4'] ('k3', 'edit') [('take', 't2', 'k3', 'grow'), ('take', 't2', 'k3', 'edit'), ('take', 't2', 'k5', 'edit')]
+k3 {'t1': ['pin', 'seal']} {'seal': 1} dict_keys([]) [('t2', 'edit')]
+k0 {} {} dict_keys([]) []
+k2 {} {} dict_keys([]) []
+k1 {'t1': ['seal', 'scan']} {'seal': 1} dict_keys([]) []
+k5 {'t2': ['seal', 'seal']} {'seal': 1} dict_keys([]) []
+k4 {'t2': ['pin']} {'pin': 1} dict_keys([]) [('t1', 'grow')]
+rel {'t1': {'t2'}}
+Shell cwd was reset to /app
+
+[stdout]
+161 35
+162 33
+['give t1 k1 seal', 'free t1 k4 -', 'wait t1 k4 grow']
+t1 held ['k3', 'k1'] ('k4', 'grow') [('take', 't1', 'k5', 'edit'), ('drop', 't1', 'k3'), ('take', 't1', 'k0', 'grow')]
+t2 held ['k5', 'k4'] ('k3', 'edit') [('take', 't2', 'k3', 'grow'), ('take', 't2', 'k3', 'edit'), ('take', 't2', 'k5', 'edit')]
+k3 {'t1': ['pin', 'seal']} {'seal': 1} dict_keys([]) [('t2', 'edit')]
+k0 {} {} dict_keys([]) []
+k2 {} {} dict_keys([]) []
+k1 {'t1': ['seal', 'scan']} {'seal': 1} dict_keys([]) []
+k5 {'t2': ['seal', 'seal']} {'seal': 1} dict_keys([]) []
+k4 {'t2': ['pin']} {'pin': 1} dict_keys([]) [('t1', 'grow')]
+rel {'t1': {'t2'}}
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Found the bug: it's an ordering hazard where a stale candidate can unlink an edge just added by a transaction's new item. I'll fix this by giving each item its own edge table, so only the item currently owning a transaction's request can publish into the global relation.
+
+Bash({"command":"python3 - <<'EOF'\nimport re\np = \"hold/item.py\"; s = open(p).read()\ns = s.replace(''' __slots_…)
+
+done 400 bad 0 cuts 115 waits 1233
+Shell cwd was reset to /app
+
+[stdout]
+done 400 bad 0 cuts 115 waits 1233
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Testing found zero divergences across 400 programs, but I spotted a latent bug: the final sync loop could wrongly delete a missing key when comparing None to None. I'll fix that guard, then run harsher differential tests and build the two large timing scenarios.
+
+Bash(python3 - <<'EOF' p = "hold/wait.py"; s = open(p).read() s = s.replace(''' else: if s is not None: del out[r] …)
+
+written
+ 15001 /tmp/ref/bigA.txt
+  8040 /tmp/ref/bigB.txt
+ 23041 total
+seed 1030 DIFF
+  length 27 35
+done 300 bad 1 cuts 81 waits 595
+seed 2240 DIFF
+  line 22 mine: wait t6 k1 edit | ref: cut t11
+seed 2284 DIFF
+  line 41 mine: done t3 | ref: cut t1
+done 300 bad 2 cuts 166 waits 2752
+done 300 bad 0 cuts 120 waits 1169
+
+[stdout]
+written
+ 15001 /tmp/ref/bigA.txt
+  8040 /tmp/ref/bigB.txt
+ 23041 total
+seed 1030 DIFF
+  length 27 35
+done 300 bad 1 cuts 81 waits 595
+seed 2240 DIFF
+  line 22 mine: wait t6 k1 edit | ref: cut t11
+seed 2284 DIFF
+  line 41 mine: done t3 | ref: cut t1
+done 300 bad 2 cuts 166 waits 2752
+done 300 bad 0 cuts 120 waits 1169
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+There are still a few missed rings under heavier conflict, so I'll run both implementations side by side and compare the waiting relation step by step to find the first point where my edges diverge from the reference.
+
+Bash(cat > /tmp/ref/lock.py <<'EOF' import sys sys.path.insert(0, "/app"); sys.path.insert(0, "/tmp/ref") import ge…)
+
+step 19 ('drop', 't9', 'k0')
+mine rel {'t11': {'t12'}}
+ref  rel {}
+mine out ['free t9 k0 -', 'give t12 k0 pin', 'wait t12 k1 scan', 'cut t4', 'give t12 k1 scan', 'wait t12 k1 seal']
+ref  out ['free t9 k0 -', 'give t12 k0 pin', 'wait t12 k1 scan', 'cut t4', 'give t12 k1 scan', 'wait t12 k1 seal', 'cut t11', 'give t12 k1 seal', 'give t12 k0 seal']
+k0 stack {'t12': ['pin', 'seal']} first {'t12': 19} pend []
+k1 stack {'t12': ['scan', 'seal']} first {'t12': 21} pend []
+k2 stack {'t6': ['scan', 'seal']} first {'t6': 6} pend []
+k3 stack {'t1': ['seal', 'grow']} first {'t1': 12} pend []
+k0 mine stack {'t12': ['pin']} raises [] firsts [('t11', 'seal')] cands {('f',): ('t11', set(), []), ('g', 'pin'): ('t12', set(), ['t11'])} out {'t11': {'t12'}}
+k1 mine stack {'t11': ['scan', 'grow'], 't12': ['scan']} raises ['t12'] firsts [] cands {('g', 'grow'): ('t11', {'t12'}, []), ('t', 't12'): ('t12', set(), [])} out {}
+k2 mine stack {'t6': ['scan', 'seal']} raises [] firsts [] cands {} out {}
+k3 mine stack {'t1': ['seal', 'grow']} raises [] firsts [] cands {} out {}
+Shell cwd was reset to /app
+
+[stdout]
+step 19 ('drop', 't9', 'k0')
+mine rel {'t11': {'t12'}}
+ref  rel {}
+mine out ['free t9 k0 -', 'give t12 k0 pin', 'wait t12 k1 scan', 'cut t4', 'give t12 k1 scan', 'wait t12 k1 seal']
+ref  out ['free t9 k0 -', 'give t12 k0 pin', 'wait t12 k1 scan', 'cut t4', 'give t12 k1 scan', 'wait t12 k1 seal', 'cut t11', 'give t12 k1 seal', 'give t12 k0 seal']
+k0 stack {'t12': ['pin', 'seal']} first {'t12': 19} pend []
+k1 stack {'t12': ['scan', 'seal']} first {'t12': 21} pend []
+k2 stack {'t6': ['scan', 'seal']} first {'t6': 6} pend []
+k3 stack {'t1': ['seal', 'grow']} first {'t1': 12} pend []
+k0 mine stack {'t12': ['pin']} raises [] firsts [('t11', 'seal')] cands {('f',): ('t11', set(), []), ('g', 'pin'): ('t12', set(), ['t11'])} out {'t11': {'t12'}}
+k1 mine stack {'t11': ['scan', 'grow'], 't12': ['scan']} raises ['t12'] firsts [] cands {('g', 'grow'): ('t11', {'t12'}, []), ('t', 't12'): ('t12', set(), [])} out {}
+k2 mine stack {'t6': ['scan', 'seal']} raises [] firsts [] cands {} out {}
+k3 mine stack {'t1': ['seal', 'grow']} raises [] firsts [] cands {} out {}
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+The candidate on k1 references edge t12→t11, but the item's edge table is empty—likely removed by an unlink or the final sync. I'll add instrumentation to the refresh calls in step 19 to trace the sequence.
+
+Bash(cd /tmp/ref && python3 - <<'EOF' import sys sys.path.insert(0, "/app"); sys.path.insert(0, "/tmp/ref") import …)
+
+refresh k0 raises [] fset {'t11'} firsts ['t11']
+     cands before {('f',): ('t12', set(), []), ('g', 'seal'): ('t9', set(), ['t12'])}
+     cands after  {('f',): ('t11', set(), []), ('g', 'pin'): ('t12', set(), ['t11'])}
+     out before {'t12': {'t9'}} after {'t11': {'t12'}} rel {'t4': {'t11'}, 't11': {'t12'}}
+  refresh k1 raises [] fset {'t4', 't12'} firsts ['t4', 't12']
+     cands before {('f',): ('t4', set(), []), ('g', 'grow'): ('t11', set(), ['t4'])}
+     cands after  {('f',): ('t4', set(), ['t12']), ('g', 'grow'): ('t11', set(), ['t4', 't12'])}
+     out before {'t4': {'t11'}} after {'t4': {'t11'}, 't12': {'t11', 't4'}} rel {'t4': {'t11'}, 't11': {'t12'}, 't12': {'t11', 't4'}}
+  refresh k1 raises ['t12'] fset set() firsts []
+     cands before {('f',): ('t4', set(), ['t12']), ('g', 'grow'): ('t11', set(), ['t4', 't12'])}
+     cands after  {('g', 'grow'): ('t11', {'t12'}, []), ('t', 't12'): ('t12', set(), [])}
+     out before {'t4': {'t11'}, 't12': {'t11', 't4'}} after {} rel {'t11': {'t12'}}
+out ['free t9 k0 -', 'give t12 k0 pin', 'wait t12 k1 scan', 'cut t4', 'give t12 k1 scan', 'wait t12 k1 seal']
+Shell cwd was reset to /app
+
+[stdout]
+  refresh k0 raises [] fset {'t11'} firsts ['t11']
+     cands before {('f',): ('t12', set(), []), ('g', 'seal'): ('t9', set(), ['t12'])}
+     cands after  {('f',): ('t11', set(), []), ('g', 'pin'): ('t12', set(), ['t11'])}
+     out before {'t12': {'t9'}} after {'t11': {'t12'}} rel {'t4': {'t11'}, 't11': {'t12'}}
+  refresh k1 raises [] fset {'t4', 't12'} firsts ['t4', 't12']
+     cands before {('f',): ('t4', set(), []), ('g', 'grow'): ('t11', set(), ['t4'])}
+     cands after  {('f',): ('t4', set(), ['t12']), ('g', 'grow'): ('t11', set(), ['t4', 't12'])}
+     out before {'t4': {'t11'}} after {'t4': {'t11'}, 't12': {'t11', 't4'}} rel {'t4': {'t11'}, 't11': {'t12'}, 't12': {'t11', 't4'}}
+  refresh k1 raises ['t12'] fset set() firsts []
+     cands before {('f',): ('t4', set(), ['t12']), ('g', 'grow'): ('t11', set(), ['t4', 't12'])}
+     cands after  {('g', 'grow'): ('t11', {'t12'}, []), ('t', 't12'): ('t12', set(), [])}
+     out before {'t4': {'t11'}, 't12': {'t11', 't4'}} after {} rel {'t11': {'t12'}}
+out ['free t9 k0 -', 'give t12 k0 pin', 'wait t12 k1 scan', 'cut t4', 'give t12 k1 scan', 'wait t12 k1 seal']
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Found the bug: within a candidate, the fresh raise-phase link t12→t11 got created first, then a stale walk list unlinked that same pair since both phases share the same edge key. I'll fix this by ensuring all unlinks happen before any links within a candidate.
+
+Bash(python3 - <<'EOF' p = "hold/wait.py"; s = open(p).read() old_start = s.index(" if rset != c.rset:") old_end = …)
+
+for m in MARKS:
+            s = it.by_eff[m]
+            if s and len(s) - rcnt.get(m, 0) == 1:
+                for tx in s:
+                    if tx not in raises:
+                        keys[("g", m)] = tx
+                        break
+    if cands:
+        for key in list(cands):
+            if keys.get(key) != cands[key].x:
+                _drop_cand(it, key, touched)
+    if keys:
+        order = sorted(raises, key=it.held.__getitem__) if raises else ()
+        for key, x in keys.items():
+            c = cands.get(key)
+            if c is None:
+                c = cands[key] = Cand(x)
+            cnt = dict(it.cnt)
+            ex = it.eff.get(x)
+            if ex is not None:
+                cnt[ex] -= 1
+            passed = False
+            rset = set()
+            for tx in order:
+                if tx == x:
+                    continue
+                e = it.eff[tx]
+                w = join2(e, raises[tx].ask)
+                if stands(cnt, w, e):
+                    cnt[e] -= 1
+                    cnt[w] += 1
+                    rset.add(tx)
+                else:
+                    passed = True
+            unl = []
+            lnk = []
+            if rset != c.rset:
+                unl.extend(c.rset - rset)
+                lnk.extend(rset - c.rset)
+                c.rset = rset
+            if passed:
+                unl.extend(c.wlist)
+                c.wlist = []
+                c.pres = None
+            else:
+                pres = 0
+                for m in MARKS:
+                    if cnt[m] > 0:
+                        pres |= BIT[m]
+                walk = True
+                if c.pres == pres and c.fver == it.fver:
+                    if c.stopped:
+                        walk = False
+                    else:
+                        pos = c.pos
+                        wp = c.wpres
+                else:
+                    unl.extend(c.wlist)
+                    c.wlist = []
+                    pos = 1 if key[0] == "f" else 0
+                    wp = pres
+                if walk:
+                    n = len(firsts)
+                    stopped = False
+                    while pos < n:
+                        r = firsts[pos]
+                        if EXM[r.ask] & wp:
+                            stopped = True
+                            break
+                        wp |= BIT[r.ask]
+                        lnk.append(r.tx)
+                        c.wlist.append(r.tx)
+                        pos += 1
+                    c.pres = pres
+                    c.fver = it.fver
+                    c.pos = pos
+                    c.stopped = stopped
+                    c.wpres = wp
+            # Every stale edge goes before any fresh one: the two phases
+            # may name the same pair, and the fresh one must win.
+            for r in unl:
+                _unlink(out, touched, r, x)
+            for r in lnk:
+                _link(out, touched, r, x)
+    if not touched:
+        return
+    fset = it.fset
+    for r in touched:
+        s = out.get(r)
+        if r in raises or r in fset:
+            if s:
+
+[stdout]
+        for m in MARKS:
+            s = it.by_eff[m]
+            if s and len(s) - rcnt.get(m, 0) == 1:
+                for tx in s:
+                    if tx not in raises:
+                        keys[("g", m)] = tx
+                        break
+    if cands:
+        for key in list(cands):
+            if keys.get(key) != cands[key].x:
+                _drop_cand(it, key, touched)
+    if keys:
+        order = sorted(raises, key=it.held.__getitem__) if raises else ()
+        for key, x in keys.items():
+            c = cands.get(key)
+            if c is None:
+                c = cands[key] = Cand(x)
+            cnt = dict(it.cnt)
+            ex = it.eff.get(x)
+            if ex is not None:
+                cnt[ex] -= 1
+            passed = False
+            rset = set()
+            for tx in order:
+                if tx == x:
+                    continue
+                e = it.eff[tx]
+                w = join2(e, raises[tx].ask)
+                if stands(cnt, w, e):
+                    cnt[e] -= 1
+                    cnt[w] += 1
+                    rset.add(tx)
+                else:
+                    passed = True
+            unl = []
+            lnk = []
+            if rset != c.rset:
+                unl.extend(c.rset - rset)
+                lnk.extend(rset - c.rset)
+                c.rset = rset
+            if passed:
+                unl.extend(c.wlist)
+                c.wlist = []
+                c.pres = None
+            else:
+                pres = 0
+                for m in MARKS:
+                    if cnt[m] > 0:
+                        pres |= BIT[m]
+                walk = True
+                if c.pres == pres and c.fver == it.fver:
+                    if c.stopped:
+                        walk = False
+                    else:
+                        pos = c.pos
+                        wp = c.wpres
+                else:
+                    unl.extend(c.wlist)
+                    c.wlist = []
+                    pos = 1 if key[0] == "f" else 0
+                    wp = pres
+                if walk:
+                    n = len(firsts)
+                    stopped = False
+                    while pos < n:
+                        r = firsts[pos]
+                        if EXM[r.ask] & wp:
+                            stopped = True
+                            break
+                        wp |= BIT[r.ask]
+                        lnk.append(r.tx)
+                        c.wlist.append(r.tx)
+                        pos += 1
+                    c.pres = pres
+                    c.fver = it.fver
+                    c.pos = pos
+                    c.stopped = stopped
+                    c.wpres = wp
+            # Every stale edge goes before any fresh one: the two phases
+            # may name the same pair, and the fresh one must win.
+            for r in unl:
+                _unlink(out, touched, r, x)
+            for r in lnk:
+                _link(out, touched, 
+… [clipped]
+collapse
+Bash(cd /tmp/ref && python3 diff.py 0 400 && python3 diff.py 1000 400 "dict(ntx=4, nk=2, nsteps=200)" && python3 di…)
+
+done 400 bad 0 cuts 115 waits 1233
+done 400 bad 0 cuts 125 waits 821
+done 400 bad 0 cuts 209 waits 3688
+done 300 bad 0 cuts 120 waits 1169
+done 300 bad 0 cuts 174 waits 2216
+Shell cwd was reset to /app
+
+[stdout]
+done 400 bad 0 cuts 115 waits 1233
+done 400 bad 0 cuts 125 waits 821
+done 400 bad 0 cuts 209 waits 3688
+done 300 bad 0 cuts 120 waits 1169
+done 300 bad 0 cuts 174 waits 2216
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+All five suites are clean: 1800 programs with 743 cuts total. Next I'll check timing on the two large scenarios, the sample set, and a scaled-down version of the big scenarios against the literal reference.
+
+Bash(for f in bigA bigB; do /usr/bin/time -f "$f: %es %MKB" python3 run.py /tmp/ref/$f.txt > /tmp/ref/$f.out; echo …)
+
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+bigA lines: 0, cuts: 0, waits: 0
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+bigB lines: 0, cuts: 0, waits: 0
+
+real	0m0.561s
+user	0m0.390s
+sys	0m0.094s
+
+[stdout]
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+bigA lines: 0, cuts: 0, waits: 0
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+bigB lines: 0, cuts: 0, waits: 0
+
+real	0m0.561s
+user	0m0.390s
+sys	0m0.094s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(for f in bigA bigB; do s=$(date +%s.%N); python3 run.py /tmp/ref/$f.txt > /tmp/ref/$f.out; e=$(date +%s.%N); e…)
+
+/bin/bash: line 1: bc: command not found
+bigA: s, lines 16502, cuts 0, waits 1501, gives 7501
+/bin/bash: line 1: bc: command not found
+bigB: s, lines 2277, cuts 1, waits 1058, gives 1139
+
+[stdout]
+/bin/bash: line 1: bc: command not found
+bigA: s, lines 16502, cuts 0, waits 1501, gives 7501
+/bin/bash: line 1: bc: command not found
+bigB: s, lines 2277, cuts 1, waits 1058, gives 1139
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+I'll use the shell's `time` command to measure wall-clock timing for both programs, while also comparing scaled-down versions against the literal reference in the same pass.
+
+Bash(time python3 run.py /tmp/ref/bigA.txt > /tmp/ref/bigA.out; time python3 run.py /tmp/ref/bigB.txt > /tmp/ref/bi…)
+
+real	0m0.240s
+user	0m0.204s
+sys	0m0.021s
+
+real	0m0.129s
+user	0m0.105s
+sys	0m0.017s
+
+[stdout]
+real	0m0.240s
+user	0m0.204s
+sys	0m0.021s
+
+real	0m0.129s
+user	0m0.105s
+sys	0m0.017s
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Both large programs run in under a quarter second. Next I'll verify correctness by testing scaled-down versions of the same shapes against the literal reference, since the random generator doesn't produce long queues behind a stuck raise.
+
+Bash(cat > /tmp/ref/shape.py <<'EOF' """Scaled-down versions of the graded shapes, compared against the literal ref…)
+
+shapes done, bad 0
+Shell cwd was reset to /app
+
+[stdout]
+shapes done, bad 0
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+I'll add a switch to test whether requests match against each holder's held mark versus their individual claims, then measure how often these two interpretations produce different results.
+
+Bash(cd /tmp/ref && python3 - <<'EOF' import sys, random sys.path.insert(0, "/app"); sys.path.insert(0, "/tmp/ref")…)
+
+turn same
+small same
+hold same
+line same
+stack same
+many same
+spread same
+random programs differing: 5 of 300
+Shell cwd was reset to /app
+
+[stdout]
+turn same
+small same
+hold same
+line same
+stack same
+many same
+spread same
+random programs differing: 5 of 300
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+The two interpretations agree except on under 2% of random programs, so I'll stick with the held-mark reading since it matches the spec's intent. Next I'll test performance on stacked raises against a single item and verify output stays consistent across hash seeds.
+
+Bash(python3 - <<'EOF' p = "hold/wait.py"; s = open(p).read() old = ''' cnt = dict(it.cnt) ex = it.eff.get(x) if ex…)
+
+done t2979
+done t2986
+done t2988
+
+real	0m10.652s
+user	0m10.457s
+sys	0m0.031s
+done 200 bad 0 cuts 65 waits 674
+done 200 bad 0 cuts 116 waits 1853
+shapes done, bad 0
+93fecbd297667cf6533af2067ade22b0  -
+411c53d9fc532c1967dcf0be9c7c0a62  -
+93fecbd297667cf6533af2067ade22b0  -
+411c53d9fc532c1967dcf0be9c7c0a62  -
+93fecbd297667cf6533af2067ade22b0  -
+411c53d9fc532c1967dcf0be9c7c0a62  -
+Shell cwd was reset to /app
+
+[stdout]
+done t2979
+done t2986
+done t2988
+
+real	0m10.652s
+user	0m10.457s
+sys	0m0.031s
+done 200 bad 0 cuts 65 waits 674
+done 200 bad 0 cuts 116 waits 1853
+shapes done, bad 0
+93fecbd297667cf6533af2067ade22b0  -
+411c53d9fc532c1967dcf0be9c7c0a62  -
+93fecbd297667cf6533af2067ade22b0  -
+411c53d9fc532c1967dcf0be9c7c0a62  -
+93fecbd297667cf6533af2067ade22b0  -
+411c53d9fc532c1967dcf0be9c7c0a62  -
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Results are consistent across seeds and the tests pass, but the many-raise case runs a slow 10s due to per-sweep/per-refresh loops over all raisers. I'll optimize by first checking the at-most-25 groups and only walking raisers in hold order when a group could pass, updating the bookkeeping in item.py and candidate logic in wait.py.
+
+Bash({"command":"cat > /app/hold/item.py <<'EOF'\n\"\"\"One item: the claims held on it and the requests queued aga…)
+
+_unlink(out, touched, r, c.x)
+
+
+def refresh(it, rel, changed):
+    """Bring the edges out of every requester on ``it`` up to date.
+
+    ``rel`` is the shared relation, ``changed`` collects every name whose
+    row may have moved.
+    """
+    cands = it.cands
+    raises = it.raises
+    firsts = it.firsts
+    out = it.out
+    cnt0 = it.cnt
+    touched = set()
+    keys = {}
+    nraise = len(raises)
+    if nraise or firsts:
+        if nraise:
+            # A raiser whose mark two others still hold changes no test by
+            # leaving, so only the others are worth simulating.
+            for key, txs in it.rga.items():
+                if nraise == 1 or cnt0[key[0]] < 3:
+                    for tx in txs:
+                        keys[("t", tx)] = tx
+        else:
+            keys[("f",)] = firsts[0].tx
+        for m in MARKS:
+            s = it.by_eff[m]
+            if s:
+                rc = 0
+                if nraise:
+                    for a in MARKS:
+                        g = it.rga.get((m, a))
+                        if g:
+                            rc += len(g)
+                if len(s) - rc == 1:
+                    for tx in s:
+                        if tx not in raises:
+                            keys[("g", m)] = tx
+                            break
+    if cands:
+        for key in list(cands):
+            if keys.get(key) != cands[key].x:
+                _drop_cand(it, key, touched)
+    if keys:
+        for key, x in keys.items():
+            c = cands.get(key)
+            if c is None:
+                c = cands[key] = Cand(x)
+            cnt = dict(cnt0)
+            ex = it.eff.get(x)
+            if ex is not None:
+                cnt[ex] -= 1
+            passed = False
+            rset = set()
+            if nraise:
+                if any_raise_stands(it, cnt, x):
+                    for ent in it.rorder:
+                        tx = ent[1]
+                        if tx == x:
+                            continue
+                        e = it.eff[tx]
+                        w = join2(e, raises[tx].ask)
+                        if stands(cnt, w, e):
+                            cnt[e] -= 1
+                            cnt[w] += 1
+                            rset.add(tx)
+                        else:
+                            passed = True
+                elif nraise > 1 or x not in raises:
+
+[stdout]
+        _unlink(out, touched, r, c.x)
+
+
+def refresh(it, rel, changed):
+    """Bring the edges out of every requester on ``it`` up to date.
+
+    ``rel`` is the shared relation, ``changed`` collects every name whose
+    row may have moved.
+    """
+    cands = it.cands
+    raises = it.raises
+    firsts = it.firsts
+    out = it.out
+    cnt0 = it.cnt
+    touched = set()
+    keys = {}
+    nraise = len(raises)
+    if nraise or firsts:
+        if nraise:
+            # A raiser whose mark two others still hold changes no test by
+            # leaving, so only the others are worth simulating.
+            for key, txs in it.rga.items():
+                if nraise == 1 or cnt0[key[0]] < 3:
+                    for tx in txs:
+                        keys[("t", tx)] = tx
+        else:
+            keys[("f",)] = firsts[0].tx
+        for m in MARKS:
+            s = it.by_eff[m]
+            if s:
+                rc = 0
+                if nraise:
+                    for a in MARKS:
+                        g = it.rga.get((m, a))
+                        if g:
+                            rc += len(g)
+                if len(s) - rc == 1:
+                    for tx in s:
+                        if tx not in raises:
+                            keys[("g", m)] = tx
+                            break
+    if cands:
+        for key in list(cands):
+            if keys.get(key) != cands[key].x:
+                _drop_cand(it, key, touched)
+    if keys:
+        for key, x in keys.items():
+            c = cands.get(key)
+            if c is None:
+                c = cands[key] = Cand(x)
+            cnt = dict(cnt0)
+            ex = it.eff.get(x)
+            if ex is not None:
+                cnt[ex] -= 1
+            passed = False
+            rset = set()
+            if nraise:
+                if any_raise_stands(it, cnt, x):
+                    for ent in it.rorder:
+                        tx = ent[1]
+                        if tx == x:
+                            continue
+                        e = it.eff[tx]
+                        w = join2(e, raises[tx].ask)
+                        if stands(cnt, w, e):
+                            cnt[e] -= 1
+                            cnt[w] += 1
+                            rset.add(tx)
+                        else:
+                            passed = True
+                elif nraise > 1 or x not in raises:
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /tmp/ref && time python3 /app/run.py manyraise.txt | md5sum && time python3 /app/run.py bigA.txt | md5sum &…)
+
+9106552541ede4b5f4ff212b05b72522  -
+
+real	0m0.589s
+user	0m0.539s
+sys	0m0.025s
+65fd257624fbe3cb52771ef5fab14408  -
+
+real	0m0.278s
+user	0m0.227s
+sys	0m0.030s
+65fd257624fbe3cb52771ef5fab14408  bigA.out
+93fecbd297667cf6533af2067ade22b0  -
+
+real	0m0.200s
+user	0m0.136s
+sys	0m0.035s
+93fecbd297667cf6533af2067ade22b0  bigB.out
+done 300 bad 0 cuts 95 waits 973
+done 300 bad 0 cuts 166 waits 2766
+done 200 bad 0 cuts 81 waits 815
+shapes done, bad 0
+turn ok
+small ok
+hold ok
+line ok
+stack ok
+many ok
+spread ok
+Shell cwd was reset to /app
+
+[stdout]
+9106552541ede4b5f4ff212b05b72522  -
+
+real	0m0.589s
+user	0m0.539s
+sys	0m0.025s
+65fd257624fbe3cb52771ef5fab14408  -
+
+real	0m0.278s
+user	0m0.227s
+sys	0m0.030s
+65fd257624fbe3cb52771ef5fab14408  bigA.out
+93fecbd297667cf6533af2067ade22b0  -
+
+real	0m0.200s
+user	0m0.136s
+sys	0m0.035s
+93fecbd297667cf6533af2067ade22b0  bigB.out
+done 300 bad 0 cuts 95 waits 973
+done 300 bad 0 cuts 166 waits 2766
+done 200 bad 0 cuts 81 waits 815
+shapes done, bad 0
+turn ok
+small ok
+hold ok
+line ok
+stack ok
+many ok
+spread ok
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Many-raise runtime dropped from 10.6s to 0.6s with all suites still passing. Next I'll verify a scaled-down many-raiser against the reference, test larger random programs, check fresh-import overhead, and do a final read-through of the modules.
+
+Bash(cat >> /tmp/ref/shape.py <<'EOF' def shapeC(seed): """Many holders, several of them raising, queue behind, the…)
+
+shapes done, bad 0
+shapeC done, bad 0
+done 60 bad 0 cuts 18 waits 1273
+import 0.027s
+420 sample programs with fresh imports: 5.92s
+Shell cwd was reset to /app
+
+[stdout]
+shapes done, bad 0
+shapeC done, bad 0
+done 60 bad 0 cuts 18 waits 1273
+import 0.027s
+420 sample programs with fresh imports: 5.92s
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+All tests pass: the many-raiser shape, 60 large random programs, and roughly 14 ms per sample-sized program with a fresh import all check out. Next I'll break down that cost between import and execution, then do a final read-through of the modules.
+
+Bash(python3 -c " import time, sys sys.path.insert(0, '/app') import run t = time.time() for _ in range(100): for m…)
+
+fresh import: 9.2 ms each
+turn      92 steps  0.29 ms
+small     42 steps  0.44 ms
+hold      50 steps  0.39 ms
+line      18 steps  0.15 ms
+stack     44 steps  0.38 ms
+many     369 steps  2.11 ms
+spread   360 steps  3.22 ms
+        self.shed(t, None)
+
+    def cut(self, t):
+        self.tr.cut(t.name)
+        t.state = "gone"
+        t.back = deque()
+        r = t.req
+        t.req = None
+        extra = None
+        if r is not None:
+            k = self.it[r.kn]
+            item.unqueue(k, t.name)
+            extra = k
+        self.shed(t, extra)
+
+    def shed(self, t, extra):
+        """Take every claim out, then sweep the items in hold order."""
+        ks = t.order
+        t.order = []
+        for kn in ks:
+            item.wipe(self.it[kn], t.name)
+        for kn in ks:
+            self.pass_over(self.it[kn])
+        if extra is not None and extra.name not in ks:
+            self.pass_over(extra)
+
+    # -- sweeping and resumption -------------------------------------------
+
+    def pass_over(self, k):
+        self.dirty.add(k)
+        got = item.sweep(k, self.tick)
+        if not got:
+            return
+        txs = self.tx
+        for r, m, new in got:
+            t = txs[r.tx]
+
+[stdout]
+fresh import: 9.2 ms each
+turn      92 steps  0.29 ms
+small     42 steps  0.44 ms
+hold      50 steps  0.39 ms
+line      18 steps  0.15 ms
+stack     44 steps  0.38 ms
+many     369 steps  2.11 ms
+spread   360 steps  3.22 ms
+        self.shed(t, None)
+
+    def cut(self, t):
+        self.tr.cut(t.name)
+        t.state = "gone"
+        t.back = deque()
+        r = t.req
+        t.req = None
+        extra = None
+        if r is not None:
+            k = self.it[r.kn]
+            item.unqueue(k, t.name)
+            extra = k
+        self.shed(t, extra)
+
+    def shed(self, t, extra):
+        """Take every claim out, then sweep the items in hold order."""
+        ks = t.order
+        t.order = []
+        for kn in ks:
+            item.wipe(self.it[kn], t.name)
+        for kn in ks:
+            self.pass_over(self.it[kn])
+        if extra is not None and extra.name not in ks:
+            self.pass_over(extra)
+
+    # -- sweeping and resumption -------------------------------------------
+
+    def pass_over(self, k):
+        self.dirty.add(k)
+        got = item.sweep(k, self.tick)
+        if not got:
+            return
+        txs = self.tx
+        for r, m, new in got:
+            t = txs[r.tx]
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Program execution only takes a few milliseconds, but the fresh import dominates at 9 ms. I'll optimize the cover-table construction in mark.py to speed up the import, then run final verification and log the interpretive decisions.
+
+Bash(python3 - <<'EOF' p = "/app/hold/mark.py"; s = open(p).read() old = s[s.index("# EXCL[m]: the marks m may not …)
+
+fresh import: 11.1 ms each
+mark alone: 0.0 ms each
+give t3 k2 edit
+done 200 bad 0 cuts 51 waits 625
+shapes done, bad 0
+shapeC done, bad 0
+65fd257624fbe3cb52771ef5fab14408  -
+
+real	0m0.244s
+user	0m0.201s
+sys	0m0.035s
+93fecbd297667cf6533af2067ade22b0  -
+
+real	0m0.125s
+user	0m0.090s
+sys	0m0.026s
+9106552541ede4b5f4ff212b05b72522  -
+
+real	0m0.543s
+user	0m0.501s
+sys	0m0.028s
+Shell cwd was reset to /app
+
+[stdout]
+fresh import: 11.1 ms each
+mark alone: 0.0 ms each
+give t3 k2 edit
+done 200 bad 0 cuts 51 waits 625
+shapes done, bad 0
+shapeC done, bad 0
+65fd257624fbe3cb52771ef5fab14408  -
+
+real	0m0.244s
+user	0m0.201s
+sys	0m0.035s
+93fecbd297667cf6533af2067ade22b0  -
+
+real	0m0.125s
+user	0m0.090s
+sys	0m0.026s
+9106552541ede4b5f4ff212b05b72522  -
+
+real	0m0.543s
+user	0m0.501s
+sys	0m0.028s
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Line-6 output matches expected results across all suites, with the large programs running in 0.12–0.55s and remaining import overhead just being interpreter file loading, not fixable further. I'll now review wait.py as a whole since it was edited piecemeal, and save the interpretive decisions to memory.
+
+Bash(sed -n 1,30p /app/hold/wait.py && echo ... && sed -n 128,200p /app/hold/wait.py && python3 -m pyflakes /app/ho…)
+
+"""The waiting relation, kept up to date item by item.
+
+A requester waits for another transaction when the sweep of its item would
+grant it once that transaction is taken out with its claims and request.
+Only a few removals can change a stable sweep at all:
+
+* a holder with a request on the item (its claims and its raise go);
+* the head of the first-time queue, when no raise is outstanding;
+* a holder that is the only one, apart from those with a raise, holding
+  its mark there.  Taking out one of two or more such holders leaves the
+  same marks present for every tester, so the sweep goes exactly as before
+  and grants nothing.
+
+Anything else (other first-time requesters, holders sharing their mark) has
+no effect.  Each candidate's removal is simulated once against the item,
+which hands every edge into it at once.  The walk over first-time claims
+depends only on which marks are present and on the queue, so its result is
+cached and merely extended while requests are only being pushed.
+
+Each item keeps its own table ``out`` of edges; only the item a requester
+is queued on publishes that requester's row into the shared relation, so a
+stale row left on the item it waited on before cannot clobber the new one.
+"""
+
+from hold import mark
+from hold.item import stands, join2, any_raise_stands
+
+MARKS = mark.MARKS
+BIT = mark.BIT
+EXM = mark.EXM
+...
+                    for ent in it.rorder:
+                        tx = ent[1]
+                        if tx == x:
+                            continue
+                        e = it.eff[tx]
+                        w = join2(e, raises[tx].ask)
+                        if stands(cnt, w, e):
+                            cnt[e] -= 1
+                            cnt[w] += 1
+                            rset.add(tx)
+                        else:
+                            passed = True
+                elif nraise > 1 or x not in raises:
+                    passed = True
+            unl = []
+            lnk = []
+            if rset != c.rset:
+                unl.extend(c.rset - rset)
+                lnk.extend(rset - c.rset)
+                c.rset = rset
+            if passed:
+                unl.extend(c.wlist)
+                c.wlist = []
+                c.pres = None
+            else:
+                pres = 0
+                for m in MARKS:
+                    if cnt[m] > 0:
+                        pres |= BIT[m]
+                walk = True
+                if c.pres == pres and c.fver == it.fver:
+                    if c.stopped:
+                        walk = False
+                    else:
+                        pos = c.pos
+                        wp = c.wpres
+                else:
+                    unl.extend(c.wlist)
+                    c.wlist = []
+                    pos = 1 if key[0] == "f" else 0
+                    wp = pres
+                if walk:
+                    n = len(firsts)
+                    stopped = False
+                    while pos < n:
+                        r = firsts[pos]
+                        if EXM[r.ask] & wp:
+                            stopped = True
+                            break
+                        wp |= BIT[r.ask]
+                        lnk.append(r.tx)
+                        c.wlist.append(r.tx)
+                        pos += 1
+                    c.pres = pres
+                    c.fver = it.fver
+                    c.pos = pos
+                    c.stopped = stopped
+                    c.wpres = wp
+            # Every stale edge goes before any fresh one: the two phases
+            # may name the same pair, and the fresh one must win.
+            for r in unl:
+                _unlink(out, touched, r, x)
+            for r in lnk:
+                _link(out, touched, r, x)
+    if not touched:
+        return
+    fset = it.fset
+    for r in touched:
+        s = out.get(r)
+        if r in raises or r in fset:
+            if s:
+                rel[r] = s
+            else:
+compiled-ok
+
+[stdout]
+"""The waiting relation, kept up to date item by item.
+
+A requester waits for another transaction when the sweep of its item would
+grant it once that transaction is taken out with its claims and request.
+Only a few removals can change a stable sweep at all:
+
+* a holder with a request on the item (its claims and its raise go);
+* the head of the first-time queue, when no raise is outstanding;
+* a holder that is the only one, apart from those with a raise, holding
+  its mark there.  Taking out one of two or more such holders leaves the
+  same marks present for every tester, so the sweep goes exactly as before
+  and grants nothing.
+
+Anything else (other first-time requesters, holders sharing their mark) has
+no effect.  Each candidate's removal is simulated once against the item,
+which hands every edge into it at once.  The walk over first-time claims
+depends only on which marks are present and on the queue, so its result is
+cached and merely extended while requests are only being pushed.
+
+Each item keeps its own table ``out`` of edges; only the item a requester
+is queued on publishes that requester's row into the shared relation, so a
+stale row left on the item it waited on before cannot clobber the new one.
+"""
+
+from hold import mark
+from hold.item import stands, join2, any_raise_stands
+
+MARKS = mark.MARKS
+BIT = mark.BIT
+EXM = mark.EXM
+...
+                    for ent in it.rorder:
+                        tx = ent[1]
+                        if tx == x:
+                            continue
+                        e = it.eff[tx]
+                        w = join2(e, raises[tx].ask)
+                        if stands(cnt, w, e):
+                            cnt[e] -= 1
+                            cnt[w] += 1
+                            rset.add(tx)
+                        else:
+                            passed = True
+                elif nraise > 1 or x not in raises:
+                    passed = True
+            unl = []
+            lnk = []
+            if rset != c.rset:
+                unl.extend(c.rset - rset)
+                ln
+… [clipped]
+collapse
+Bash(python3 - <<'EOF' p = "/app/hold/wait.py"; s = open(p).read() s = s.replace("""* a holder with a request on th…)
+
+give t7 k1 pin
+give t3 k2 pin
+wait t4 k1 grow
+give t3 k2 edit
+give t6 k2 pin
+give t3 k2 edit
+give t8 k0 grow
+give t8 k0 seal
+
+[stdout]
+give t7 k1 pin
+give t3 k2 pin
+wait t4 k1 grow
+give t3 k2 edit
+give t6 k2 pin
+give t3 k2 edit
+give t8 k0 grow
+give t8 k0 seal
+[metadata] {"noOutputExpected": false}
+collapse
+Write(/logs/agent/sessions/projects/-app/memory/claim-service-spec-readings.md)
+
+Wrote 26 lines
+---
+name: claim-service-spec-readings
+description: Interpretive choices made when rewriting /app/hold (claim service) from its prose spec, and how they were validated
+metadata:
+  type: project
+---
+ 
+Rewrite of `/app/hold/{mark,item,wait,cyc,txn}.py` on 2026-09-10 settled two
+ambiguities in the spec that the sample programs cannot distinguish:
+ 
+- A request is tested against each other transaction's *held mark* (the
+  cover of its stack), not against every individual claim in the stack. The
+  pair table is not tight (cover(scan,pin)=edit), so the readings differ on
+  roughly 2% of random programs. Chosen because "a raise never gives up what
+  it had" only makes sense with one held mark per transaction per item.
+- The ring victim is chosen among *all* transactions on any ring (non-trivial
+  strongly connected components), not from one DFS-found ring.
+ 
+**Why:** No expected outputs exist for the samples; the only anchor was the
+single line `give t3 k2 edit` in turn.txt. Validation was by differential
+testing against a deliberately literal reference implementation of the same
+readings (kept in /tmp/ref, not persistent).
+ 
+**How to apply:** If graded results show mismatches concentrated on programs
+with mixed scan/pin stacks or with several simultaneous rings, revisit these
+two choices first rather than the sweep or wait logic.
+collapse
+File created successfully at: /logs/agent/sessions/projects/-app/memory/claim-service-spec-readings.md
+
+[metadata] {"type": "create", "filePath": "/logs/agent/sessions/projects/-app/memory/claim-service-spec-readings.md", "content": "---\nname: claim-service-spec-readings\ndescription: \"Interpretive choices made when rewriting /app/hold (claim service) from its prose spec, and how they were validated\"\nmetadata: \n  node_type: memory\n  type: project\n  originSessionId: 89cb0980-e3aa-4dd6-a402-c8f1af6b1a5d\n  modified: 2026-09-10T19:13:58.155Z\n---\n\nRewrite of `/app/hold/{mark,item,wait,cyc,txn}.py` on 2026-09-10 settled two\nambiguities in the spec that the sample programs cannot distinguish:\n\n- A request is tested against each other transaction's *held mark* (the\n  cover of its stack), not against every individual claim in the stack. The\n  pair table is not tight (cover(scan,pin)=edit), so the readings differ on\n  roughly 2% of random programs. Chosen because \"a raise never gives up what\n  it had\" only makes sense with one held mark per transaction per item.\n- The ring victim is chosen among *all* transactions on any ring (non-trivial\n  strongly connected components), not from one DFS-found ring.\n\n**Why:** No expected outputs exist for the samples; the only anchor was the\nsingle line `give t3 k2 edit` in turn.txt. Validation was by differential\ntesting against a deliberately literal reference implementation of the same\nreadings (kept in /tmp/ref, not persistent).\n\n**How to apply:** If graded results show mismatches concentrated on programs\nwith mixed scan/pin stacks or with several simultaneous rings, revisit these\ntwo choices first rather than the sweep or wait logic.\n", "structuredPatch": [], "originalFile": null, "userModified": false, "memdirStamped": true}
+Bash(cat >> /logs/agent/sessions/projects/-app/memory/MEMORY.md <<'EOF' - [Claim service spec readings](claim-servi…)
+
+indexed
+
+[stdout]
+indexed
+[metadata] {"noOutputExpected": false}
+collapse
+The fix is complete and verified. `run.py progs/turn.txt` now prints `give t3 k2 edit` at the reported step, and the five modules were rewritten from the spec rather than patched.
+
+**What was wrong**
+
+- The cover used a linear rank, so grow∨pin came out as pin instead of seal and scan∨pin as pin instead of edit.
+- The sweep counted the requester's own claims, merged all holders into one mark, ignored raise ordering, and let first-time claims through while a raise was outstanding.
+- The waiting relation was a direct-conflict approximation instead of the removal test, the victim was picked by number alone, and cut and end swept items alphabetically.
+- Rings were only checked after a wait, and only one cut was made per check.
+
+**What the rewrite does**
+
+- `mark.py` builds the cover from exclusion sets. Covering is a closure, so a held mark is maintained pairwise.
+- `item.py` keeps per-mark holder counts, so any test is five lookups regardless of how many hold the item.
+- `wait.py` simulates removal only for the few transactions whose removal can change a stable sweep, caches the queue walk, and lets only the item that owns a request publish its edges. Two ordering hazards found by testing are fixed there.
+- `cyc.py` finds every node on a ring with Tarjan seeded from changed edges. `txn.py` applies all grants before resuming, sweeps in hold order, and loops cuts until no ring remains.
+
+**Verification**
+
+- A separate, literal reference implementation of the spec agrees with the service on all seven samples and on about 2,500 random programs, covering more than 1,000 cuts.
+- Timing for the large shapes: 6,000 holders plus a 1,500-deep queue runs in 0.24 s, 1,000 stuck items plus 6,000 steps in 0.13 s, and a 3,000-raiser stress case in 0.55 s. Sample-sized programs take a few milliseconds each plus about 10 ms to import.
+
+**One judgment call to flag.** The spec's "every claim held by every other transaction" is read as each transaction's held mark, not each stack entry. The table is not tight, so the readings differ on roughly 2% of random programs, though on none of the samples. I chose the held-mark reading because "a raise never gives up what it had" only makes sense with one mark per transaction per item. If graded mismatches cluster on programs with mixed scan and pin stacks, that reading is the first place to look.

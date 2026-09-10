@@ -299,3 +299,42 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-10, `claim-raise-cut`)
+
+The difficulty probe returned 0 of 8 with Fable 5.1 at xhigh effort, after an easiness pass of
+0 of 3. Three of the eight trajectories were available, and every one of them had rewritten
+all five modules, built a literal model of the brief, fuzzed thousands of programs against it
+with zero mismatches, and timed the large shapes in under a second.
+
+- **0 of 8 from three engines that were otherwise right is a defect, not difficulty.** All
+  three agents listed their judgement calls, and one item is on every list: what a resumed
+  transaction's own grants do. The brief said "they resume in the order they were granted, one
+  at a time" and nothing more; the shipped `txn.py` ran them nested, so the agents kept that
+  structure while fixing everything around it; the sealed model keeps one FIFO line. Measured
+  with the model opened up by a flag, the nested reading moves 20.3 % of the population and no
+  hand case catches it. A reading that no cheat expresses is a reading the fence set never
+  tested - the same lesson as `reach-pair-sweep`'s remembered set, from the other side.
+- **Diagnose from the sealed model, reading by reading, before touching the brief.** Seven
+  candidate readings were written as flags on a copy of the model and counted against the
+  verifier's own generator in four seconds. Two were fatal and unfenced (nested, 20.3 %;
+  newest batch first, 12.7 %), three were already fenced by a named case, and two moved
+  nothing - one of them provably, because a grant only grows a cover and cannot make a failed
+  raise stand. The repair then wrote itself: state the line, add the two cases, emit the two
+  cheats. Without the numbers the tempting repair was "add more rules", which RAISE-DIFFICULTY
+  forbids and which would have left the actual hole open.
+- **A variant model can lie about the reading it claims to express.** The first nested
+  variant printed the `wait` line for the wrong request, because it checked "still blocked"
+  after a nested cascade had blocked a later request; it reported 28.4 % and the shrunk
+  counterexamples showed a spurious line no agent's engine would print. Checking the request
+  identity brought it to 20.3 %. Read the shrunk counterexample, not only the percentage.
+- **A readings harness that overlays a reading on the wrong base reports everything as
+  caught.** The first run of `readings.py` laid each reading over the shipped tree instead of
+  the reference and reported 98.8 % moved and `join-pair` as the catcher for all 22 readings.
+  The numbers were plausible enough to ship; what gave it away was that they were all the
+  same. Assert the base before trusting a table whose rows agree too well.
+- **A forgery probe goes stale when a hand case is added.** Two cases added to `cases.py` left
+  `cheat-probe-forge-frozen.sh` carrying 25 of 27 answers, so it would have failed a hand case
+  and stopped proving that a submission holding every hand answer still loses on the nonce
+  population. `emit_forge.py` now rebuilds it from `gt.json`, and `cheat_report.py` asserts
+  the layer (all hand cases pass, the nonce test fails), not the reward.

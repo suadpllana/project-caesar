@@ -378,7 +378,40 @@ family settled by counts per ancestor).
 
 ## Gate results
 
-(filled in as the stages complete)
+Two-image trials with `tools/docker_trial.py` (the daemon started by hand, the base image pulled
+through `mirror.gcr.io` because Docker Hub's blob CDN is refused here; the shipped Dockerfiles
+are unchanged):
+
+| trial | result | note |
+|---|---|---|
+| oracle | reward 1 | 62 tests passed in 24.7 s inside the verifier; the worker finished the graded set under the 60 s wall |
+| nop | reward 0 | 1 passed, 61 errors: the shipped store's records differ |
+| `variants/ok-keys` | reward 1 | the standing-set table, 62 passed in 26.2 s |
+| `variants/ok-cells` | reward 1 | one entry per block, 62 passed in 24.8 s |
+| `cheat-forge-frozen` (corrected) | reward 0 | fails every generated program |
+| the 52 cheats | see the sweep line below | |
+
+Local gates: `preflight` no errors (35 warnings, all the driver's entry points reported as
+uncalled from inside the tree, as in the uploaded bundle); `difficultycheck` 100/100 on the
+measured tree with `gate.measured = true`; `sync_pristine --check` clean; `extraneouscheck`,
+`imagecheck`, `deadfieldcheck`, `solvecheck`, `catcheck` clean; `simcheck` reports the harness
+plumbing (`Dockerfile`, `test.sh`, `tests/Dockerfile`, `test_outputs.py`) as mechanically close
+to the other bundles, as it was when the bundle was uploaded, and no conceptual overlap;
+`readingcheck` 36 of 36 readings separated by the enumerated set; `hintcheck`, `structcheck`,
+`textcheck` clean; `leakcheck` nothing above the floor in any of the three trajectories;
+`package.py` built `tasks/span-claim-charge.zip` (105 entries) and `zipcheck` is clean.
+`forgecheck` was cut off by the 900 s cap this session put on it - it runs every cheat through
+the host emulation - and the two questions it asks are answered elsewhere: the forgery
+generated from `gt.json` exists (`cheat-forge-frozen`, reproducing 59 of 59 and failing every
+generated program in `cheat_report.py`), and every cheat's reward comes from the container
+sweep rather than from the emulation. `onelinecheck` was not run: no `decisions.py` was written
+for this task, and the claim it would measure - that the family and in-place answers have no
+short rule over exposed fields - rests on the reading separations and the C3 measurements
+instead.
+
+Not run, and said plainly: the platform's own easiness probe, which is the exit gate of this
+recovery; `harbor` is not installed in this session, so the trials above are the two-image
+emulation and not `harbor run`.
 
 ## Stages 3 to 6 - what was built in the recovery
 

@@ -1,0 +1,230 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/cfg/pile.py",
+  "/app/cfg/past.py",
+  "/app/cfg/made.py",
+  "/app/cfg/roll.py",
+  "/app/cfg/work.py",
+  "/app/cfg/ans.py",
+]
+
+[task]
+name = "afterquery/layer-graft-ask"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is close to what the shipped service already is, and a good deal of it is
+right. Hold the settings as a dictionary from path to the expression that stands there and the
+layer that wrote it; fold the layers in order; keep a copy of the dictionary before each layer
+so a query naming a layer can index the right one; expand a subtree copy by walking the source
+paths; then evaluate lazily, a forward reference meaning the path in the finished dictionary
+and a backward one meaning the dictionary before the definition's layer. Each of those is a
+structure and each is right until a question has to be answered.
+
+Every question in this service carries how much of the plan counts when it is answered. A
+query names a number or counts the whole plan, and a guard counts the plan up to its own
+layer, which is the part that does the damage: the same definition answers one value to a
+guard written in layer three and another to a plain query, so there is no finished result for
+a forward reference to mean. It also settles the order of the work. Guards are questions, so
+the layers cannot be folded first and the values computed afterwards; the two have to advance
+together, one layer at a time, and what is remembered has to be keyed on how far the plan
+counted or a value computed for a guard comes back later as the answer to something else.
+
+A copy is the second half. It hands over the definitions themselves rather than the values
+they had, so a copied path goes on following the same expression and changes when what that
+expression names changes; and the definition it hands over still belongs to the layer that
+wrote it, both for the backward references inside it and for the layer a query reports. That
+rules out rebuilding a copied subtree, which is the obvious way to write it, and it is also
+what makes one definition stand at many paths at once. Circularity then stops being a property
+of the text: a definition naming its own path forward is circular where it is the one in force
+and an ordinary number where a later layer has replaced it, which the same plan can ask on
+both sides of.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in
+each follows from a fact about the plan rather than from a technique: only the paths an entry
+names differ between one layer's view and the next, and a copy is the whole of a subtree rather
+than a set of paths. Measured here against the 60 second limit for the whole graded set, one
+wide plan alone takes 28.8 seconds with the number of defined paths under a prefix worked out
+by walking, one doubling plan takes 98.3 seconds with a copy expanded path by path, and a wide
+plan had not finished after four minutes without a value being remembered once it is worked
+out. The reference answers all 359 graded plans in a little over a second. All three of those
+readings produce exactly the reference's answers on everything they finish; the limit is the
+only thing that separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: entries applying in the
+order written while their guards read the plan before the whole layer, a removal taking
+everything under the path it names, a copy clearing the destination before it carries anything
+and fixing its sources before it writes any of them, absent and circular kept apart with the
+left side of an expression deciding which is reported, a conditional testing whether a path
+holds a definition rather than what it answers and asking for only the side it takes, and a
+count reporting the paths that hold a definition rather than the paths that exist. Six files
+ship wrong in eight of those places, and the only feedback a wrong structure gets is a line of
+a trace, because no op prints a view and no query returns a definition's layer on its own.
+
+Identifiers are in a legacy register - `cfg/`, `pile`, `past`, `made`, `roll`, `work`, `ans`,
+`lay`, `mix`, `tot`, `dfn`, `home` - short but never misleading, and no name misdescribes what
+it holds. That is a choice about the register of real settings-service code rather than an
+obstacle: each is recoverable from what calls it.
+
+The plans are synthetic, in ten families, with definitions whose forward reference moves
+between one count and another, copies taken between two changes to what a carried definition
+reads backwards, guards that answer differently at their own layer than at the finished plan,
+self-references on both sides of the layer that replaces them, destinations that sit inside
+their own sources, and the two scale families. In a working service these are rare, and they
+are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`pile.py` holds the store as nodes that are never changed after they are built: the definition
+standing at a node's own path, its children by segment, and the number of defined paths at or
+under it. Because nothing is mutated, two layers' views share every node they have in common,
+an edit copies only the nodes along the path it touches, and a copy hands the destination the
+source's node itself - which is the whole of why a copy costs the depth of a path rather than
+the size of a subtree, and why a destination sitting inside its own source doubles once instead
+of forever. The count is carried on the node and maintained by arithmetic on the way back up,
+old child out and new child in, so a node with many children does not make an edit linear in
+its fan-out and a count query never walks anything.
+
+`past.py` keeps one root per layer and says how far a question counts: the number a query
+named, the whole plan when it named none. It also owns what is remembered for the plan, because
+a value depends on the definition and on the count and on nothing else, so the same definition
+reached from four paths after a copy is one entry and the same definition read at two counts is
+two.
+
+`made.py` is the smallest file and the one the shipped service gets wrong. A definition is an
+expression and the layer whose `put` wrote it, and that layer is two things at once: the count
+a backward reference inside it is answered at, and the layer a query reports. A copy changes
+neither, so what a copy hands on is the subtree exactly as it found it - which is also why
+there is nothing to rebuild.
+
+`roll.py` applies a layer. Its entries run in the order written, each against what the earlier
+ones left, while a guard is answered against the store the layer started from and at the
+layer's own count. The two rules pull in opposite directions deliberately, and an entry taken
+because of a path an earlier entry of its own layer has already removed is the case that says
+so.
+
+`work.py` evaluates. A forward reference keeps the count it was given, a backward one moves it
+down to the layer that wrote the definition it sits in and only downwards, which is what makes
+the whole thing terminate. The in-progress set is keyed the same way the memo is, so a
+definition that names its own path is circular at the count where it is the one in force and an
+ordinary number at a count where a later definition has replaced it. `sum` and `top` ask for
+their right side only once their left has come back an integer, which keeps a side that is
+never needed from leaving a verdict behind in what is remembered.
+
+`ans.py` answers the two queries, taking the definition and the value at the same count and
+reporting the layer that wrote the definition that answered.
+
+An expert works in that order because each file consumes the one before it: the shape of the
+store decides what a copy can cost, the history decides what a question can mean, what a
+definition is decides what a copy hands on, the layer application decides which definitions
+exist, and only then can a value be worked out. The same contract is implemented two further
+ways in the authoring set - one carrying no count on the node and working out sizes by walking
+with a memo on the node itself, answering every guard of a layer in one pass, and keying what
+is remembered on the path and the count; one holding children in a sorted list found by
+bisection, re-adding the count from the children on every rebuild, and evaluating with an
+explicit stack and no recursion - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/cfg/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the plan parser and the trace writer are the
+verifier's own and nothing else the agent touched can change what a plan prints. Every answer
+is compared line for line.
+
+Correct is defined twice over. Thirty-three hand plans, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+twenty-six further plans are generated inside the verifier from a seed drawn after the agent's
+container is gone, across ten families that concentrate moving forward references, copies taken
+between two changes, guards answered at their own layer, self-reference on both sides of a
+replacement, destinations inside their own sources, and the two scale families. A submission
+cannot have seen them, so fitting the shipped examples fails, and so does carrying an answer
+key. The model is an independent implementation: it keys what it remembers on the path and the
+count rather than on the definition, answers a layer's guards in one pass, works out sizes by
+walking with a memo on the node, and parses the plan itself. The two agreed on 1204 generated
+plans and on all 33 hand plans before anything was frozen.
+
+The fences run both ways. Taking the value from the finished plan when a query named a layer
+fails `stop-value` and `carry-follows-now`; answering a guard against what the earlier entries
+of its layer left fails `guard-before-cut`, and answering it at the finished plan fails the
+same case. Re-dating a carried definition fails `carry-follows-now`, reading its backward
+references at the copying layer fails `carry-keeps-old`, and reporting the copying layer fails
+`carry-follows-now`. Merging a copy into the destination fails `mix-empty-source`; fixing its
+sources before clearing fails `mix-src-under-dst`; sharing nodes but editing them in place
+fails `carry-follows-now`. Remembering a value on the path alone fails `carry-follows-now`.
+Taking a removal to mean the named path only fails `cut-subtree`. Reporting a circular answer
+as absent fails `err-left-loop`, and letting the right side decide which failure is reported
+fails `err-left-gone`. Asking for both sides of a conditional fails `pick-side-not-asked`, and
+testing whether anything under the path is defined fails `pick-under-not-at`. Counting the
+paths that exist rather than the ones holding a definition fails `count-defined`.
+
+Twenty-nine cheats score 0. Sixteen are wrong readings, each caught by the enumerated case
+named for it. Three are exactly correct and too slow: a count answered by walking, a copy
+expanded path by path, and no value remembered once worked out. One is a forgery carrying the
+frozen answers for every enumerated plan, which passes all thirty-three and fails on the plans
+it could not have seen. The other nine are probes: the answer key, a rewrite of the graded set
+and the pristine tree, a record edited after the run, a record planted and the worker exited
+clean before it could be overwritten, malformed records, privilege, a shrunken population, a
+late reward, and a rewrite of the frozen files the verifier does not take. Two independently
+written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "lazy-evaluation",
+  "scoped-references",
+  "structural-sharing",
+  "memoisation",
+  "cycle-detection",
+  "subtree-copy",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the settings service of a fleet deployment tool: the part that composes the
+layers a rollout applies, answers what a service would read at any point in that rollout, and
+has to keep the answer defensible when somebody asks what a layer was deciding against.
+Familiarity with the fact that copying a subtree of settings copies definitions rather than
+values, so the copy goes on tracking what it names; that a definition's references have to stay
+dated to where it was written or an audit of a half-applied rollout stops meaning anything; and
+that the same definition can be circular seen from one point in a rollout and perfectly
+ordinary seen from another. Comfort with demand-driven evaluation, with keeping every earlier
+state of a tree readable without storing each of them whole, and with the difference between a
+structure that is correct and one that is affordable at the size a real fleet's plan reaches.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

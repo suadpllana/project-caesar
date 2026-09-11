@@ -1,0 +1,11 @@
+lay
+put site.rate lit 30
+put site.tries lit 3
+put edge.rate now site.rate
+lay
+put site.rate lit 45
+cut site.tries
+ask site.rate
+ask edge.rate
+tot site
+tot edge

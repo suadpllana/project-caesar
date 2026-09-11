@@ -1,0 +1,14 @@
+lay
+put base.slot lit 12
+put base.step lit 4
+lay
+put base.slot sum old base.slot now base.step
+put base.cap lit 99 if base.step 4
+lay
+put base.step lit 6
+put base.lim pick base.cap now base.cap lit 0
+ask base.slot
+ask base.step
+ask base.cap
+ask base.lim
+ask base.hold

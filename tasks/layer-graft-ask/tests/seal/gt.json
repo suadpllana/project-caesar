@@ -1,0 +1,147 @@
+{
+ "carry-follows-now": [
+  "val r.a 19 1",
+  "val r.a 12 1",
+  "val p.a 19 1"
+ ],
+ "carry-keeps-old": [
+  "val r.a 12 1",
+  "val p.a 12 1",
+  "val r.a 12 1"
+ ],
+ "carry-same-both-ends": [
+  "val p.a 6 1",
+  "val r.a 6 1"
+ ],
+ "count-defined": [
+  "num a 3",
+  "num a.b 2",
+  "num a 2",
+  "num nothing 0"
+ ],
+ "cut-subtree": [
+  "val a.b.c gone",
+  "val a.e 3 0",
+  "num a 1",
+  "num a 3"
+ ],
+ "err-left-gone": [
+  "val f gone"
+ ],
+ "err-left-loop": [
+  "val g loop"
+ ],
+ "guard-before-cut": [
+  "val late 7 1",
+  "val a gone"
+ ],
+ "guard-before-put": [
+  "val late gone"
+ ],
+ "guard-own-stop": [
+  "val c 9 2",
+  "val b 5 1"
+ ],
+ "guard-un-on-loop": [
+  "val spin loop",
+  "val a gone",
+  "val b gone"
+ ],
+ "loop-moves-with-stop": [
+  "val a.x loop",
+  "val b.x 6 0",
+  "val a.x 5 2"
+ ],
+ "loop-now-self": [
+  "val x loop"
+ ],
+ "loop-two-paths": [
+  "val y loop",
+  "val z loop"
+ ],
+ "mix-empty-source": [
+  "num d 0",
+  "val d.one gone"
+ ],
+ "mix-into-self": [
+  "num a 8",
+  "val a.c.b.z 1 0",
+  "val a.b.z 1 0",
+  "num a 4"
+ ],
+ "mix-replaces": [
+  "val d.gone gone",
+  "val d.one 1 0",
+  "num d 1"
+ ],
+ "mix-src-under-dst": [
+  "num a 0",
+  "val a.d gone",
+  "val a.c gone"
+ ],
+ "old-self-ok": [
+  "val x 3 1",
+  "val x 2 0"
+ ],
+ "order-cut-then-put": [
+  "val a.b 5 1",
+  "val a.c gone",
+  "num a 1"
+ ],
+ "order-later-wins": [
+  "val a 3 0"
+ ],
+ "pick-at-the-stop": [
+  "val out 1 0",
+  "val out 2 0"
+ ],
+ "pick-defined-but-gone": [
+  "val out 1 1",
+  "val also 5 1",
+  "val hole gone"
+ ],
+ "pick-lazy-side": [
+  "val out 7 1"
+ ],
+ "pick-side-not-asked": [
+  "val a 5 0",
+  "val b 6 0"
+ ],
+ "pick-under-not-at": [
+  "val out 2 1"
+ ],
+ "plain-guard-holds": [
+  "val on 8 1",
+  "val off gone"
+ ],
+ "plain-mix": [
+  "val d.one 3 0",
+  "val d.two 4 0",
+  "num d 2"
+ ],
+ "plain-old-chain": [
+  "val x 13 2",
+  "val x 3 1",
+  "val x 2 0"
+ ],
+ "plain-put": [
+  "val a.b 9 1",
+  "val a.c 7 0",
+  "val a.b 4 0",
+  "num a 2"
+ ],
+ "stop-value": [
+  "val b 5 1",
+  "val b 1 1",
+  "val a 1 0"
+ ],
+ "stop-zero": [
+  "val a gone",
+  "num a 0",
+  "val a 1 0"
+ ],
+ "sum-top-negative": [
+  "val s -2 1",
+  "val t 4 1"
+ ]
+}

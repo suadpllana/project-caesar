@@ -1,0 +1,192 @@
+# Difficulty record for layer-graft-ask, written at Stage 1, before any code exists.
+# Scored with tools/difficultycheck.py. Every claim here is restated in
+# tasks/layer-graft-ask/STATE.md and is checked again against the built tree at Stage 7.
+
+[task]
+slug = "layer-graft-ask"
+status = "pending"
+sources = ["tasks/layer-graft-ask/STATE.md", "container trial 2026-09-11",
+           "authoring/layer-graft-ask/cheat_report.py", "tools/readingcheck.py"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Hold the settings as a dictionary from path to the pair of an expression and the layer that
+wrote it, fold the layers in order, and keep a copy of that dictionary before each layer so a
+read naming a layer can index the right copy. Expand a subtree copy by walking the source paths
+and writing what it finds under the destination. Then evaluate lazily: a forward reference means
+the path in the final dictionary, a backward reference means the dictionary before the layer,
+with a memo keyed by path and a set of paths in progress for circularity.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Every question carries the number of layers that count when it is answered - a guard is answered
+as if the plan stopped at its own layer, a read naming a layer as if it stopped there - so a
+forward reference does not mean the finished plan and one definition has different values, and
+different circularity, under different counts.
+"""
+second_discovery = """
+Guards are themselves questions, so views cannot be folded first and values computed afterwards;
+the two have to be built together going forward. And a copy carries definitions that keep the
+layer that wrote them while multiplying the paths holding them, so the store cannot be a
+dictionary per layer, no path owns a fixed list of the entries naming it, and what is memoised
+has to be the definition together with the count rather than the path that reached it.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped engine on the sample plans and reproduce the wrong line the brief names",
+  "Read the frozen driver, op parser and trace writer to pin the exact output contract",
+  "Carry the layer count a question is asked at through every reference, not just through reads",
+  "Fold the layers and answer the guards in one forward pass because each guard is a question",
+  "Give every definition the layer that wrote it and keep that layer when a copy carries it",
+  "Rebuild the store from nodes that are never mutated so each layer keeps a root and a copy grafts one node",
+  "Keep the number of defined paths on each node so a count query never walks a subtree",
+  "Key the memo and the in-progress set on the definition and the count, not on the path",
+  "Generate the wide plan and the doubling plan and time both against the stated limit",
+]
+
+[search]
+best_page = """
+A recent calculus of overlay inheritance together with the configuration module system it
+models: layers compose by recursively merging subtrees and an observer reads one lazily built
+tree by path.
+"""
+helps_plan = false
+deviation = """
+There a copy merges into the destination and there is a single finished tree every reference
+sees; here a copy replaces the destination, carries definitions dated to the layer that wrote
+them, and every question fixes how much of the plan counts.
+"""
+
+[tactics]
+A1 = """
+Every account of layered overrides has one finished result that forward references resolve
+against, and treats copying a subtree as taking the values found there; both are inverted, so
+the better the retrieved source the more confidently wrong the plan built on it.
+"""
+A2 = """
+The rules are stated as how far the plan runs when a question is answered and what a copy
+carries; the words snapshot, thunk, closure, fixpoint, persistent, structural sharing and memo
+appear nowhere the agent can read.
+"""
+B2 = """
+Twelve rules hold at once - entry order against guard vantage, replacing copies, definitions
+keeping their own layer, the count a question fixes, absence against circularity, counts,
+demand - and each changes what another means.
+"""
+C1 = """
+Both sides are graded: a copy that re-dates a carried definition fails and one that freezes its
+value fails; a definition naming its own path backwards must not be reported circular while one
+naming the definition in force at the same count must be.
+"""
+C2 = """
+The only thing to test against is the shipped engine, which is wrong in eight places; no op
+prints a view, no query returns a definition's layer except the graded line itself, and no
+sample plan copies a definition that reads backwards or guards on a value that later changes.
+"""
+C3 = """
+Three naive but correct families measured against the stated limit: the store copied whole
+before each layer, a copy expanded path by path under chained doubling, and counts answered by
+walking the paths under a prefix.
+"""
+C4 = """
+Exact all-or-nothing traces over enumerated plans aimed at each decision and at both sides of
+each fence, plus plans generated inside the verifier from a seed drawn after the agent's
+container is gone.
+"""
+guard = """
+Six editable files are the only declared artifacts; the driver, the op and expression parser and
+the trace writer are the verifier's own pristine copy, so the output contract and the op language
+cannot be reshaped into ones the default plan handles.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "a guard is answered as if the plan stopped at its own layer", b = "a forward reference names the path in the plan as far as the question counts it", why = "the same definition answers one value to a guard and another to a plain read, so neither rule can be implemented without the other" },
+  { a = "guards are answered against the plan before their whole layer", b = "entries apply in the order they are written", why = "an entry is taken because of a path that an earlier entry of its own layer has already removed, so neither rule can be settled alone" },
+  { a = "a copy carries definitions rather than values", b = "a carried definition keeps the layer that wrote it", why = "carrying the definition is what makes the dating rule observable at all, and freezing the value hides the dating rule completely" },
+  { a = "a value that requires itself at the same count is circular", b = "the count a question is asked at decides which definition is in force", why = "a definition that names its own path is circular at one count and an ordinary number at another, so circularity is not a property of the text" },
+  { a = "a copy replaces the destination before it carries anything", b = "the source paths are the ones standing when the copy starts", why = "a destination sitting inside its own source is only well defined when the source is read before any of it is written" },
+  { a = "counts report only paths holding a definition", b = "a copy replaces a whole subtree at once", why = "replacing has to correct the count on every ancestor, and a count taken by walking passes every small case while failing the stated limit" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A plan with no copies where a later layer replaces a definition that reads its own path
+backwards: an implementation that turns conservative about circularity has to report the
+ordinary number here, with the layer that wrote the replacing definition.
+"""
+late_case = """
+A copied subtree whose definition reads backwards at a path that changed between the layer that
+wrote the definition and the layer that copied it, asked once at the full plan and once at a
+count that falls between those two layers.
+"""
+oracle_denied = """
+The agent's natural check is to run the shipped engine and compare, and it is wrong in eight of
+the twelve decisions; nothing in the tree prints a view or a definition's layer, and the four
+sample plans never copy a backward-reading definition nor guard on a value that later changes.
+"""
+
+[leaks]
+candidates = [
+  { what = "a sample plan that demonstrates what a copy carries or how far a guard counts the plan", closed_by = "the four shipped plans copy only literal definitions and guard only on paths nothing later touches, so neither rule is ever demonstrated" },
+  { what = "a public helper that enumerates the paths a copy would take", closed_by = "copying happens inside the store's own edit path and no reachable entry point returns that set of paths" },
+  { what = "the layer number the shipped store keeps beside each path", closed_by = "the shipped store keeps the layer that last touched the path, which is the wrong quantity for every carried definition, and no query prints it" },
+  { what = "the count query, differenced across a copy to read off what the copy carried", closed_by = "counts are a stated observable and a function of the shape alone; the layer a carried definition keeps changes no count" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+The store holds expressions and layer numbers as primitives; the value at a path, the layer in
+force and the number of defined paths under a prefix are all derived when a question asks, and
+none of them ships as a stored field.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+The whole store copied before each layer, a copy expanded path by path so chained doubling
+materialises every path, and counts answered by walking the paths under a prefix.
+"""
+invariant = """
+Only the paths an entry names differ between one layer's view and the next, so two views share
+every node they have in common and a copy is one node reference rather than a set of paths.
+"""
+input_scale = "300 layers, 20000 live paths, copies that double a subtree 24 times, 20000 queries"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a forward reference always names the finished plan", hand_case = "guard-own-stop: a guarded entry whose guard reads a path a later layer changes" },
+  { reading = "a query naming a layer takes the definition there and the value from the whole plan", hand_case = "stop-value: one definition read at the full plan and at an earlier count" },
+  { reading = "the layers are folded first and the guards answered afterwards at the finished plan", hand_case = "guard-before-cut: a guard over a path its own layer removes" },
+  { reading = "a guard is answered against what the earlier entries of its layer left", hand_case = "guard-before-cut: the same case, from the other side" },
+  { reading = "a copy re-dates the definitions it carries to the copying layer", hand_case = "carry-follows-now: a carried definition that names a path changed after the copy" },
+  { reading = "a carried definition reads backwards at the copying layer", hand_case = "carry-keeps-old: a path changed between the writing layer and the copy" },
+  { reading = "the layer reported is the one that last put the definition there", hand_case = "carry-follows-now: a path whose definition arrived by a copy" },
+  { reading = "a copy merges into the destination instead of replacing it", hand_case = "mix-empty-source: a destination holding a path the source does not" },
+  { reading = "a copy fixes its source paths before it clears the destination", hand_case = "mix-src-under-dst: a source sitting under its own destination" },
+  { reading = "nodes are shared between the views and edited in place", hand_case = "carry-follows-now: an edit after a copy that must not reach the other end" },
+  { reading = "a removal takes the path named and nothing under it", hand_case = "cut-subtree: a prefix removed while a deeper path under it holds a definition" },
+  { reading = "a value is remembered, and circularity found, on the path alone", hand_case = "carry-follows-now: one definition standing at two paths at two counts" },
+  { reading = "a circular answer is reported as an absent one", hand_case = "err-left-loop: an expression whose left side is circular" },
+  { reading = "the right side of an expression decides which failure is reported", hand_case = "err-left-gone: a left side absent and a right side circular" },
+  { reading = "a conditional asks for both of its sides", hand_case = "pick-side-not-asked: the side not taken names a path that is circular only through the asker" },
+  { reading = "a conditional tests whether anything at or under the path is defined", hand_case = "pick-under-not-at: the path itself holds none while a path under it does" },
+  { reading = "a count includes the paths that hold no definition", hand_case = "count-defined: a prefix with two deep definitions and none of its own" },
+]
+correct_variants = [
+  "a store of nodes never mutated, with defined-path counts, one root kept per layer, a copy grafting the source node",
+  "a store recording copies and removals as redirects, resolving a path by rewriting it back through them",
+]
+
+[shape]
+environment_py_lines = 359
+editable_files = 6
+reference_lines = 308

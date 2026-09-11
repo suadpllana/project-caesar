@@ -18,10 +18,10 @@
   "caught": [
    "test_every_nonce_program_matches",
    "test_hand_case[grd-while-out]",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
-   "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[spend-carry]",
+   "test_hand_case[spend-exact]",
+   "test_hand_case[spend-long]"
   ],
   "says": []
  },
@@ -64,10 +64,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },
@@ -98,10 +98,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },
@@ -120,10 +120,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-empty]",
    "test_hand_case[keep-moved]",
    "test_hand_case[keep-pending]",
-   "test_hand_case[keep-plain]"
+   "test_hand_case[keep-plain]",
+   "test_hand_case[map-at-step]"
   ],
   "says": [
    "model ModuleNotFoundError",
@@ -135,11 +135,11 @@
   "reward": "0",
   "caught": [
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
    "test_hand_case[keep-moved]",
-   "test_hand_case[keep-pending]"
+   "test_hand_case[keep-pending]",
+   "test_hand_case[keep-plain]"
   ],
   "says": [
    "leaving early"
@@ -151,10 +151,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },
@@ -164,10 +164,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },
@@ -177,10 +177,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },
@@ -189,11 +189,11 @@
   "reward": "0",
   "caught": [
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
    "test_hand_case[keep-moved]",
-   "test_hand_case[keep-pending]"
+   "test_hand_case[keep-pending]",
+   "test_hand_case[keep-plain]"
   ],
   "says": [
    "planted 349 records"
@@ -205,10 +205,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[map-late]",
    "test_hand_case[map-order]",
    "test_hand_case[map-round-trip]",
-   "test_hand_case[map-thaw-end]"
+   "test_hand_case[map-thaw-end]",
+   "test_hand_case[spend-all]"
   ],
   "says": [
    "uid 1002 euid 1002",
@@ -227,10 +227,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-empty]",
    "test_hand_case[keep-moved]",
    "test_hand_case[keep-pending]",
-   "test_hand_case[keep-plain]"
+   "test_hand_case[keep-plain]",
+   "test_hand_case[map-at-step]"
   ],
   "says": [
    "shrank /work/per",
@@ -243,10 +243,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },
@@ -256,10 +256,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },
@@ -269,10 +269,10 @@
   "caught": [
    "test_every_family_is_represented",
    "test_every_nonce_program_matches",
-   "test_hand_case[keep-absent]",
    "test_hand_case[keep-cut]",
    "test_hand_case[keep-empty]",
-   "test_hand_case[keep-moved]"
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
   ],
   "says": []
  },

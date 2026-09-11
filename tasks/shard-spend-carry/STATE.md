@@ -341,16 +341,41 @@ inside it.
 
 ## Validation status
 
+Container gates could not be run in this session (see Infrastructure above); every row below
+is the host emulation, which runs `tests/test.sh` verbatim at the real paths.
+
 | Check | Status | Notes |
 |---|---|---|
-| Agent image builds | not run | |
-| No answer leaked into agent image | not run | |
-| `harbor run -a oracle` = 1 | not run | harbor is not installed here; tools/docker_trial.py stands in |
-| `harbor run -a nop` = 0 | not run | |
-| Cheats all score 0 | not run | |
-| `preflight.py` | not run | |
-| `harbor check` rubric | not run | needs an API key |
+| Agent image builds | not run | no image can be pulled here; `tools/imagecheck.py` assembles what the image would hold (15 files, workdir /app) and runs all four shipped programs inside it - clean |
+| No answer leaked into agent image | pass | no frozen answer string occurs anywhere under `environment/`, checked by script; `tests/` and `solution/` are never copied in |
+| `harbor run -a oracle` = 1 | pass (emulated) | reward 1; 349 programs in 10.0 s against the 120 s wall |
+| `harbor run -a nop` = 0 | pass (emulated) | reward 0; the shipped engine is wrong in six places and cannot finish the scale families |
+| Cheats all score 0 | pass | 26 cheats: 14 wrong readings, 3 exactly-correct-but-unaffordable, 1 forgery carrying `gt.json` verbatim, 8 attestation probes |
+| Correct variants score 1 | pass | `ok-pairs` reward 1, `ok-mask` reward 1 - two implementations written apart, both printing the reference's traces byte for byte on both scale programs |
+| `preflight.py` | pass | no errors |
+| `tools/difficultycheck.py` | 100/100 | in band, tree measured at Stage 7 |
+| `tools/catcheck.py` | pass | environment 22, prose 11 for `software` |
+| `tools/forgecheck.py` | pass | `cheat-hand-only.sh` carries the frozen answers verbatim, reproduces all 28 of them, and is caught by the nonce population |
+| `tools/readingcheck.py` | pass | all 14 readings separated by an enumerated case |
+| `tools/onelinecheck.py` | pass | no graded quantity has an exact rule at depth two |
+| `tools/structcheck.py`, `hintcheck`, `extraneouscheck`, `deadfieldcheck`, `solvecheck`, `simcheck`, `leakcheck` | pass | simcheck's conceptual verdict: this task does not grade what any earlier one grades |
+| `harbor check` rubric | not run | needs an API key, which this session does not have |
 
 ## Open questions and next steps
 
-Stage 2: freeze the verifier contract, then build the tree.
+Nothing open in the bundle. Packaged as `tasks/shard-spend-carry.zip` (71 entries, 462 KB),
+`tools/zipcheck.py` clean, every file byte-identical to the working tree.
+
+For whoever picks this up next:
+
+- The container gates have never been run. If a session gets a working image registry, run
+  `python tools/docker_trial.py shard-spend-carry --all` and record the result here; that is
+  the one axis the host emulation cannot cover.
+- `harbor check` has never been run either; it needs an API key.
+- The easiness probe is unrun, and the self-probe is deliberately recorded as not run rather
+  than reported as passed: the author who wrote the model first would be measuring memory.
+  The reading separations, the measured resource gate and the Stage 7 re-attack stand in its
+  place.
+- If the probe comes back above 7, the axis to reach for is not another rule. It is the one
+  the Stage 7 re-attack names as weakest: the brief states the per-slot rule outright, so the
+  place to deepen is what a stop leaves behind once the map has moved under it.

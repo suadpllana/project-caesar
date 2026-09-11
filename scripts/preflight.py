@@ -43,6 +43,14 @@ SUBCATEGORIES = {
 RETIRED = {("software", "systems"): "retired 2026-09-10; file the work under the Software label "
                                     "it actually exercises"}
 
+# The author identity new work is filed under, set by the contributor on 2026-09-11 and carried by
+# template/task-template/task.toml. The retained bundles shipped under earlier identities and are
+# left as they stand, so a mismatch warns rather than fails. Its job is the copy-from-a-neighbour
+# mistake: the author fields are the one part of a retained task.toml that must not be reused, and
+# eleven of them in this checkout carry the earlier identity for an agent to pick up by accident.
+AUTHOR_NAME = "Shiela marie"
+AUTHOR_EMAIL = "aurigue.shielamarie20@gmail.com"
+
 
 def norm_label(value: str) -> str:
     """Fold case, separators and spacing so 'Data engineering' == 'data-engineering'."""
@@ -271,6 +279,8 @@ def check_metadata(md: dict) -> None:
         elif any(m in value for m in TODO_MARKERS):
             error(f"task.toml: [metadata] {field} still contains a placeholder")
 
+    check_author(md)
+
     category = str(md.get("category", "")).strip()
     if category.lower() not in CATEGORIES:
         error(
@@ -295,6 +305,22 @@ def check_metadata(md: dict) -> None:
             "task.toml: expert_time_estimate_min is the harbor scaffolder's field; Frontier "
             "Bench expects expert_time_estimate_hours"
         )
+
+
+def check_author(md: dict) -> None:
+    """New work carries the contributor's identity, not the one on the task next door."""
+    name = str(md.get("author_name", "")).strip()
+    email = str(md.get("author_email", "")).strip()
+    if not name or not email:
+        return  # the empty-field error above already said so
+    if (name, email) == (AUTHOR_NAME, AUTHOR_EMAIL):
+        return
+    warn(
+        f"task.toml: [metadata] author is {name!r} <{email}>, not the identity new work is "
+        f"filed under ({AUTHOR_NAME!r} <{AUTHOR_EMAIL}>). Retained bundles that shipped under "
+        "an earlier identity are left alone; a new task takes both fields from "
+        "template/task-template/task.toml"
+    )
 
 
 def check_subcategory(category: str, md: dict) -> None:

@@ -11,8 +11,10 @@ artifacts = []
 name = "afterquery/TODO-slug"
 
 [metadata]
-author_name = ""
-author_email = ""
+# The contributor's identity. Every new task is filed under it. Do not copy these two
+# fields from a retained task.toml - those bundles shipped under an earlier identity.
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
 
 # Why a frontier agent fails at this, in concrete terms.
 # Name the specific step that breaks it, not "it is complex".

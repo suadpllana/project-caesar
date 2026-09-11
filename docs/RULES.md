@@ -85,6 +85,11 @@ The contributor confirmed the current accepted workflow on 2026-09-07: the assis
 complete bundle after the first prompt, including `instruction.md`, `relevant_experience`, and the
 three `*_explanation` metadata fields. Contributor drafting or sentence approval is not required.
 
+New work is filed under `author_name = "Shiela marie"` and
+`author_email = "aurigue.shielamarie20@gmail.com"`, set by the contributor on 2026-09-11 and
+carried by `template/task-template/task.toml`. The retained bundles shipped under an earlier
+identity and are left as they stand; a new task does not inherit their author fields.
+
 The assistant builds an internal fact sheet from the frozen contract, actual environment behavior,
 reference solution, verifier results, repository history, and the contributor's first prompt. It
 writes concrete, complete prose from those facts and validates it against retained tasks that passed

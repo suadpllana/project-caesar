@@ -69,7 +69,10 @@ authorship gate.
 3. **Draft the instruction yourself** — state the complete behavior without teaching the solution
    or exposing verifier internals.
 4. **Write the metadata yourself** — ground `relevant_experience` in demonstrated project work and
-   make the three explanations match the finished bundle.
+   make the three explanations match the finished bundle. File it under the contributor's author
+   identity, `author_name = "Shiela marie"` and `author_email = "aurigue.shielamarie20@gmail.com"`;
+   the author fields are the one part of a retained `task.toml` that must never be copied
+   forward, because the retained bundles shipped under an earlier identity.
 5. **Calibrate against accepted work** — compare tone and structure with retained tasks that passed
    the authorship and quality screens, without copying their prose.
 6. **Gap-check and test** — every tested rule needs a sentence, every sentence needs a test, and all
@@ -185,8 +188,10 @@ the end.
 **Note on `task.toml` schema.** `harbor init` scaffolds a generic schema that is *not* the Frontier
 Bench one: it emits `expert_time_estimate_min`, `network_mode`, and omits the resource limits and
 the `*_explanation` metadata fields. Always start from `template/task-template/task.toml` in this
-workspace, which carries the Frontier-Bench-required fields. If a `harbor` command rejects a field,
-report the conflict to the contributor rather than silently dropping a required field.
+workspace, which carries the Frontier-Bench-required fields, including the author identity every
+new task is filed under: `author_name = "Shiela marie"` and
+`author_email = "aurigue.shielamarie20@gmail.com"`. If a `harbor` command rejects a field, report
+the conflict to the contributor rather than silently dropping a required field.
 
 ---
 

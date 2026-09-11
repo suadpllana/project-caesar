@@ -72,10 +72,14 @@ results. Ask me only when two materially different meanings of the requested tas
 after investigation or when changing a frozen verifier contract would change what "correct" means.
 
 Write `relevant_experience`, `difficulty_explanation`, `solution_explanation`, and
-`verification_explanation` yourself. Use the established author identity already present in the
-repository. Describe only experience supported by the task history and repository evidence; never
-invent an employer, credential, duration, or personal claim. Use the retained tasks that passed the
-authorship and quality screens as style calibration without copying their prose.
+`verification_explanation` yourself. File the task under the contributor's author identity:
+`author_name = "Shiela marie"` and `author_email = "aurigue.shielamarie20@gmail.com"` in the
+`[metadata]` table of `task.toml`. Take those two fields from `template/task-template/task.toml`,
+never from a retained task - the retained bundles shipped under an earlier identity, and copying
+their author fields files the new task under the wrong person. Describe only experience supported
+by the task history and repository evidence; never invent an employer, credential, duration, or
+personal claim. Use the retained tasks that passed the authorship and quality screens as style
+calibration without copying their prose.
 
 Write `instruction.md` yourself after the environment and verifier behavior are real. Do not ask me
 to draft, rewrite, or approve it. Treat my first prompt as the source of intent, resolve engineering

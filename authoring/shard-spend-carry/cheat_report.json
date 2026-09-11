@@ -1,0 +1,335 @@
+[
+ {
+  "cheat": "cheat-apply-old-moment.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[grd-frozen]",
+   "test_hand_case[grd-while-out]",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-cell-uniform.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[grd-while-out]",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-chill-keep.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[grd-while-out]",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[map-chill]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-cut-floor.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[cut-ceil]",
+   "test_hand_case[cut-empty]",
+   "test_hand_case[cut-inside]",
+   "test_hand_case[map-order]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-grd-drop-frozen.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[grd-frozen]",
+   "test_hand_case[grd-while-out]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-hand-only.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-keep-now.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-map-decl-order.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[grd-frozen]",
+   "test_hand_case[map-late]",
+   "test_hand_case[map-thaw-end]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-map-eager.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-map-join-decl.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[map-late]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-probe-answer-key.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]",
+   "test_hand_case[keep-plain]"
+  ],
+  "says": [
+   "model ModuleNotFoundError",
+   "answers PermissionError"
+  ]
+ },
+ {
+  "cheat": "cheat-probe-crash-worker.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
+  ],
+  "says": [
+   "leaving early"
+  ]
+ },
+ {
+  "cheat": "cheat-probe-hijack-driver.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-probe-late-reward.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-probe-malformed.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-probe-plant-report.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]"
+  ],
+  "says": [
+   "planted 349 records"
+  ]
+ },
+ {
+  "cheat": "cheat-probe-privilege.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[map-late]",
+   "test_hand_case[map-order]",
+   "test_hand_case[map-round-trip]",
+   "test_hand_case[map-thaw-end]"
+  ],
+  "says": [
+   "uid 1002 euid 1002",
+   "/logs/verifier/reward.txt PermissionError",
+   "/logs/verifier/nonce PermissionError",
+   "/tests/seal/gt.json PermissionError",
+   "/tests/test_outputs.py PermissionError",
+   "/tests/cases.py PermissionError",
+   "/tests/pristine/opt/cell.py PermissionError",
+   "seal PermissionError"
+  ]
+ },
+ {
+  "cheat": "cheat-probe-shrink-set.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]",
+   "test_hand_case[keep-pending]",
+   "test_hand_case[keep-plain]"
+  ],
+  "says": [
+   "shrank /work/per",
+   "/logs/verifier/per PermissionError"
+  ]
+ },
+ {
+  "cheat": "cheat-relay-always.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-slot-state.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-slow-walk.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_family_is_represented",
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-absent]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[keep-empty]",
+   "test_hand_case[keep-moved]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-spend-skip-block.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[spend-block]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-spend-strict.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[spend-block]",
+   "test_hand_case[spend-carry]",
+   "test_hand_case[spend-exact]",
+   "test_hand_case[spend-long]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-spend-whole-par.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[grd-while-out]",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[spend-carry]",
+   "test_hand_case[spend-exact]",
+   "test_hand_case[spend-long]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-spend-zero-applies.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[keep-cut]",
+   "test_hand_case[spend-share]"
+  ],
+  "says": []
+ },
+ {
+  "cheat": "cheat-walk-par-edge.sh",
+  "reward": "0",
+  "caught": [
+   "test_every_nonce_program_matches",
+   "test_hand_case[map-order]",
+   "test_hand_case[spend-all]",
+   "test_hand_case[spend-long]"
+  ],
+  "says": []
+ }
+]

@@ -1,0 +1,9 @@
+bud 5
+par a 4
+par b 4
+ws 2
+grd a 1
+grd b 2
+step
+val a
+val b

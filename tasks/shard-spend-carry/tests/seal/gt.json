@@ -1,0 +1,145 @@
+{
+ "cut-ceil": [
+  "own 0 a 0",
+  "own 1 a 3"
+ ],
+ "cut-empty": [
+  "own 0 a 0",
+  "own 1 a 1",
+  "own 2 none",
+  "own 4 none"
+ ],
+ "cut-inside": [
+  "own 0 a 0",
+  "own 1 b 1",
+  "own 2 b 4"
+ ],
+ "cut-past": [
+  "own 2 none",
+  "own 7 none"
+ ],
+ "grd-frozen": [
+  "val a 2x-4",
+  "mom a 2x4",
+  "own 0 b 0"
+ ],
+ "grd-while-out": [
+  "val a 3x-1",
+  "mom a 3x0",
+  "val a 1x-4 2x-1",
+  "mom a 1x3 2x0"
+ ],
+ "keep-absent": [
+  "val a 2x-1",
+  "mom a 2x0",
+  "val b 2x-3"
+ ],
+ "keep-cut": [
+  "val a 5x-1",
+  "val a 2x-1 3x0",
+  "mom a 2x1 3x0"
+ ],
+ "keep-empty": [
+  "val a 2x-1",
+  "mom a 2x1"
+ ],
+ "keep-moved": [
+  "val a 2x-1",
+  "val b 3x-2",
+  "mom a 2x1",
+  "mom b 3x2"
+ ],
+ "keep-pending": [
+  "val a 3x-2",
+  "mom a 3x2"
+ ],
+ "keep-plain": [
+  "val a 3x-5",
+  "val a 3x-2",
+  "mom a 3x2"
+ ],
+ "map-at-step": [
+  "own 0 none",
+  "own 0 a 0",
+  "own 0 a 0",
+  "own 0 b 0"
+ ],
+ "map-chill": [
+  "mom a 2x3",
+  "mom a 2x0",
+  "val a 2x-3"
+ ],
+ "map-late": [
+  "own 0 b 0",
+  "own 1 c 0",
+  "own 2 a 0"
+ ],
+ "map-order": [
+  "own 0 a 0",
+  "own 1 b 1",
+  "val a 2x-1",
+  "val b 3x-1"
+ ],
+ "map-round-trip": [
+  "own 0 a 0",
+  "mom a 2x3",
+  "val a 2x-3"
+ ],
+ "map-thaw-end": [
+  "own 0 b 0",
+  "val a 2x0",
+  "mom a 2x0"
+ ],
+ "spend-all": [
+  "val a 4x-1",
+  "val b 3x-2",
+  "val c 2x-3",
+  "mom b 3x2"
+ ],
+ "spend-block": [
+  "val a 2x0",
+  "val b 2x0",
+  "val a 2x-5",
+  "val b 2x-1"
+ ],
+ "spend-cancel": [
+  "val a 2x0",
+  "mom a 2x0",
+  "val b 2x-1"
+ ],
+ "spend-carry": [
+  "val a 2x-3 3x0",
+  "mom a 2x2 3x0"
+ ],
+ "spend-exact": [
+  "val a 2x-2 1x0",
+  "mom a 2x2 1x0"
+ ],
+ "spend-long": [
+  "val a 2x-1 1x0 2x-1 1x0 2x-1 1x0",
+  "mom a 2x1 1x0 2x1 1x0 2x1 1x0",
+  "own 1 a 3",
+  "own 2 a 6"
+ ],
+ "spend-prefix": [
+  "val a 4x-1",
+  "val b 2x-2 2x0",
+  "mom b 2x2 2x0"
+ ],
+ "spend-share": [
+  "val a 1x-2 3x0",
+  "val b 3x-1 1x0",
+  "val a 2x-2 2x0",
+  "val b 4x-1"
+ ],
+ "spend-sign": [
+  "val a 3x2",
+  "mom a 3x-2",
+  "val a 3x3",
+  "mom a 3x-1"
+ ],
+ "spend-zero": [
+  "val a 3x-1",
+  "mom a 3x1"
+ ]
+}

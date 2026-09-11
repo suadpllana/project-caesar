@@ -1,0 +1,24 @@
+bud 9
+ws 3
+par a 4
+par b 5
+par c 3
+grd a 2
+grd b 1
+grd c 3
+step
+own 0
+own 1
+own 2
+save s
+frz b
+step
+grd b 4
+thw b
+step
+own 0
+load s
+val a
+val b
+val c
+mom b

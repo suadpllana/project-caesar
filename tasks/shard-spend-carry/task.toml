@@ -1,0 +1,210 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/opt/cell.py",
+  "/app/opt/lay.py",
+  "/app/opt/cut.py",
+  "/app/opt/walk.py",
+  "/app/opt/tick.py",
+  "/app/opt/keep.py",
+]
+
+[task]
+name = "afterquery/shard-spend-carry"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The unit here is the slot, and every account of sharded optimizer state - the model's own prior
+and the best page it can retrieve - makes the parameter the unit: placed whole, owned whole,
+updated whole. The first plan follows: one value, one moment and one pending number per
+parameter, which a gradient op seems to justify because it reaches every slot of a parameter
+with the same number; the live parameters laid out in declaration order; the flat length cut
+into equal shards; each shard walked parameter by parameter, applying whole parameters until
+the budget runs out; and a checkpoint restored at the flat positions the map holds now. Four of
+those are wrong, and each stays invisible until a case reaches it.
+
+A rank stops at the first slot it cannot afford and leaves the rest pending, so an application
+covers a prefix of a rank's slice and not a parameter, and two slots of one parameter diverge.
+A shard is a count of slots, so a boundary lands inside a parameter and a parameter longer than
+a shard takes a stop in every rank holding part of it. Neither can be said in one number per
+parameter. Worse, the cut a stop leaves outlives the boundary that made it: the map is laid
+again whenever a parameter is declared, frozen or thawed or the world size is set, and the
+divergence then sits where no current boundary explains it. Any per-parameter summary - one
+value, a first and a last, a count of what is pending - is stale from the first stop, and the
+ordinary operations are what make stops happen.
+
+The map is the second thing. It is laid only at a step, so a question asked between a freeze
+and the next step is answered against the old map, and a freeze and a thaw that both fall
+between two steps cancel: the parameter never left, so it never lost its moments. One that does
+leave loses them, keeps its values and whatever accrues on it while it is away, and re-enters at
+the end of the map, behind everything declared in the meantime. Ownership is therefore a fact
+about the run's history rather than about the set of parameters, and a checkpoint - the value
+and moment of every slot of the map in flat order, with nothing in it naming a parameter - means
+the layout that stood when it was written. Restoring against the layout standing now moves one
+parameter's numbers into another, and the single live layout the fast walk is built around has
+already forgotten the old one.
+
+Two scale families decide what a correct structure may cost, and the fast path in each follows
+from an invariant rather than a technique: slots of one parameter differ only where a stop or a
+boundary has cut them, and only a parameter with something pending can cost a rank anything.
+Three readings that are each exactly correct miss the 120 second limit the whole graded set has
+to fit inside. One wide program alone takes 386.8 seconds with each rank walking its shard
+parameter by parameter, and one deep program 56.4 the same way; laying the map again at every
+step rather than only when it moves costs 135.1 seconds on the wide one; and holding every slot
+as a cell of its own costs 163.1 seconds and peaks at 4318 MB against the 2048 the task is
+given. All three print exactly the reference's traces on everything they finish, so the limit is
+the only thing between them and a pass, and the reference settles all 349 graded programs in 10
+seconds.
+
+Around those sit the ordinary decisions, each a fence with two sides: a rank with budget to
+spare must apply every pending slot of its slice, including the two parameters its boundaries
+cut; a slot whose gradients cancelled to zero costs nothing and must be left exactly as it
+stands; a slot that exactly exhausts the budget is applied and the next one is not; and a first
+slot nobody can afford stops its rank without anything behind it being touched. All six
+editable files ship wrong, and the only feedback a wrong structure gets is a run of values or
+moments printed by a question many steps later, because a step prints nothing at all.
+
+Identifiers sit in a legacy register - `opt/`, `lay`, `cut`, `walk`, `tick`, `keep`, `cell`,
+`warm`, `hot`, `mi` - short but never misleading, and no name misdescribes what it holds. That
+is a choice about the register of real optimizer code rather than an obstacle: each is
+recoverable from what calls it.
+
+The programs are synthetic, in nine families, with boundaries inside parameters, parameters
+longer than a shard, budgets tight enough to block a rank outright, freezes and thaws between
+steps, gradients accruing for a parameter out of the map, saves straddling a move of the map,
+gradients that cancel, and the two scale families. In a working run these are rare, and they
+are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`cell.py` holds a parameter as a list of runs, each a count with the value, moment and pending
+gradient its slots share. That is the shape the stop rule forces: an application covers a prefix
+of whatever the rank holds, so the run it lands in splits and the two halves go on separately.
+Runs that come to agree again are folded back, so a parameter nobody has cut stays one run and a
+parameter carries about as many runs as boundaries have ever cut it. Spending walks the runs the
+rank's slice covers; inside a run every slot costs the same, so how many are affordable is one
+division rather than a walk, and a run with nothing pending is stepped over at no cost.
+
+`lay.py` owns the map and lays it again only when something has moved it. Parameters already
+there keep their places, ones no longer live come out and drop their moments, and ones newly
+live go on the end ordered by the op that made them live - which is why a freeze and a thaw
+between two steps are nothing at all and a thaw after a step sends a parameter behind everything
+declared while it was gone. The flat offsets are rebuilt here and nowhere else, which is what
+keeps a step off the length of the map.
+
+`cut.py` is the shard: the flat length divided up rather than down, the last shard short, an
+empty one past the end, and boundaries wherever the arithmetic puts them. `walk.py` is the pass.
+Each rank enters at its own first owned slot - an offset inside whatever parameter the boundary
+fell in - and steps through `hot`, the map positions of the parameters that still carry pending
+work, rather than through its shard. That is the whole of the performance decision and it is the
+same structure the semantics need, because the parameters that can cost anything are exactly the
+ones a correct walk has to visit.
+
+`tick.py` marks a parameter hot as gradients arrive and unmarks it when nothing is left pending,
+and decides when the map is laid; the pass drops one itself the moment it drains. A gradient lands on a parameter whether or not it is in the map, so a frozen
+parameter accrues silently and brings the lot back with it; it has no map position while it is
+out, and `lay.fix` picks it up when it returns. `keep.py` records the layout with every
+checkpoint and splices the saved runs back across boundaries that no longer line up with
+anything live, because the flat sequence means the map that produced it.
+
+An expert works in that order because each file consumes the one before it: the shape of the
+state decides what an application can be, the map decides what a shard is, the shard decides
+where a rank starts, and where a rank starts decides what a checkpoint was. The same contract is
+implemented two further ways in the authoring set - one holding a parameter as two parallel lists
+and indexing pending work by the flat offset each such parameter ends at, one recording where each
+run ends and carrying the pending set as a single integer of bits - and both print the reference's
+traces exactly, so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/opt/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-eight hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+twenty-one further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across nine families that concentrate boundaries inside parameters,
+parameters longer than a shard, ranks blocked by a single slot, freezes and thaws between steps,
+saves straddling a move of the map, gradients that cancel, and the two scale families. A
+submission cannot have seen them, so fitting the shipped examples fails, and so does carrying an
+answer key.
+
+The fences run both ways. Applying too little fails `spend-all`, `spend-exact` and `cut-inside`;
+applying too much fails `spend-block`, `spend-zero` and `spend-cancel`. Holding one number per
+parameter fails `spend-prefix` and `spend-long`; a shard cut down rather than up fails
+`cut-ceil`; laying the map at the freeze rather than at the step fails `map-at-step`; laying it
+in declaration order fails `map-thaw-end` and `map-late`; dropping moments a round trip should
+have kept fails `map-round-trip` and keeping ones a departure should have dropped fails
+`map-chill`; dropping gradients that arrive for a parameter out of the map fails `grd-frozen`
+and `grd-while-out`; and restoring against the map standing now fails `keep-moved`,
+`keep-absent` and `keep-empty`.
+
+Twenty-six cheats score 0. Fourteen are wrong readings, each caught by the enumerated case named
+for it and each measured to move between 7 and 100 per cent of a generated population. Three are
+exactly correct and too slow or too large: the shard walked parameter by parameter, every slot
+held as a cell of its own, and the map laid again at every step. One is a forgery carrying
+`gt.json` verbatim, which reproduces all twenty-eight frozen answers and fails on the programs it
+could not have seen. The other eight are probes: the sealed answers, a hijacked driver, a planted
+report, a report planted and the worker exited clean before it could be overwritten, malformed
+records, privilege, a shrunken population, and a late reward.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked before
+any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Algorithms"
+
+tags = [
+  "sharded-optimizer-state",
+  "gradient-residual",
+  "elastic-world-size",
+  "checkpoint-restore",
+  "run-length-state",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the optimizer and checkpoint path of sharded training runs: the part that
+decides which rank owns which bytes of a flat buffer, what an update leaves behind when it
+cannot apply everything it was handed, and what a checkpoint written under one topology means
+when it is restored under another. Familiarity with the fact that a shard boundary is a count
+and lands inside a parameter rather than at its edge, that optimizer state released when a
+parameter is frozen does not come back with it, and that a flat checkpoint is a sequence of
+numbers whose meaning is the layout that produced it. Comfort with run-structured state over
+long parameters, with keeping an ordered index of the work still outstanding, and with the
+difference between an implementation that is correct and one that is affordable at the size a
+run actually has.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

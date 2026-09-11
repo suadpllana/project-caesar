@@ -1,0 +1,206 @@
+# Difficulty record for shard-spend-carry, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/shard-spend-carry/STATE.md and is what the build has
+# to deliver. Scored with `python tools/difficultycheck.py shard-spend-carry`.
+
+[task]
+slug = "shard-spend-carry"
+status = "pending"
+sources = [
+  "tasks/shard-spend-carry/STATE.md",
+  "tasks/shard-spend-carry/task.toml",
+  "tasks/shard-spend-carry/tests/test_outputs.py docstring",
+  "authoring/shard-spend-carry/cheat_report.py output",
+]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Hold each parameter as a record with one value, one moment and one pending gradient, since a
+gradient op gives every slot of a parameter the same number. Keep the trainable parameters in
+declaration order, add their lengths to get flat offsets, cut the flat length into equal
+contiguous shards, and at each step walk the parameters of each shard in order adding pending
+work to a running total until the budget is gone, applying each one whole. Save each rank's
+slice, and on load put the saved numbers back at the same flat positions.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A rank stops at the first slot that would take its running total past the budget, and that slot
+and everything behind it in the rank's slice keep their pending gradients for a later step, so
+an application lands on a prefix of a parameter and not on the parameter; ownership boundaries
+fall inside parameters too, since a shard is a count of slots and not a list of parameters.
+"""
+second_discovery = """
+A checkpoint is each rank's slots in flat order and nothing in it names a parameter, while the
+map is laid at a step from the order in which parameters last entered it, so restoring means
+rebuilding the map that stood at the save out of the run's own history of declarations, freezes,
+thaws and world sizes. The single live layout that the fast walk is built around has already
+forgotten it, and the layout has to become something the run records rather than something
+recomputed from the state it is in now.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped engine on the small program in the brief and reproduce the wrong line it names",
+  "read the frozen store to learn that a parameter record carries one value, one moment and one pending number, and that the driver never sees slots",
+  "work out from the stop rule that an application covers a prefix of a rank's slice, so value, moment and pending are per slot and a parameter has to become a list of runs",
+  "rebuild the walk as a prefix descent over pending weight so a step costs its stops and not its shard, because a shard is a million slots and there are twenty thousand steps",
+  "work out that the map order is re-entry order and that the map is laid at the step, so ownership is a fact about the run's history and not about the parameter set",
+  "record the map at every save and restore each saved slot into the parameter and offset that flat position held then, not the one it holds now",
+  "generate wide programs at the stated scale, time the naive walk and the descent against the stated limit, and check both against small hand traces",
+]
+
+[search]
+best_page = """
+The universal-checkpointing tutorial of a public sharded-training library, with its account of
+flat parameter buffers cut into contiguous per-rank slices and its converter that reshards a
+checkpoint to a different world size.
+"""
+helps_plan = false
+deviation = """
+That page reshards a checkpoint that names its parameters and assumes the flat order is the
+model's declaration order, and it applies a whole parameter's update at once. Here the
+checkpoint names nothing, the flat order is the order parameters last entered the map so a
+thaw moves a parameter to the end, and an update covers whatever prefix of a rank's slice its
+budget reaches, leaving the rest pending inside the parameter.
+"""
+
+[tactics]
+A1 = """
+Every account of sharded optimizer state treats a parameter as the unit: it is placed whole, it
+is owned whole, and its update is applied whole. All three are false here, and the more closely
+the agent follows what it retrieves the more confidently it ships per-parameter state, a
+parameter-aligned shard cut, and an all-or-nothing update.
+"""
+A2 = """
+The brief states the budget rule as behaviour - a rank stops at the first slot it cannot afford
+and the rest stays pending - and never says residual, carry-over, error feedback or partial
+application. Recognising that the pending gradient is per slot, and that a stop is a cut which
+outlives the boundary that made it, is the discovery itself.
+"""
+B2 = """
+Twelve rules hold at once: re-entry order, laying the map only at a step, the shard cut, the
+walk from the slice start, zero pending costing nothing, the stop, the update, moments dropped
+on a freeze, gradients accruing while frozen, the restore by the map that stood at the save,
+what a load leaves alone, and what a rank with no slots reports. Each changes what another means.
+"""
+C1 = """
+Both sides are graded. A rank with budget to spare must apply every pending slot in its slice
+including the two parameters its boundaries cut, so an implementation that turns conservative
+at a parameter edge fails; and a rank that cannot afford its first pending slot must apply
+nothing at all, so an implementation that skips the blocker and carries on also fails.
+"""
+C2 = """
+No query reports a boundary, a stop, a pending gradient or a rank's budget, and a step prints
+nothing, so a wrong walk shows only in a value or moment run printed many steps later. The only
+local comparison is the shipped engine, which is wrong in six places at once, and the graded
+programs are generated from a seed drawn after the container is gone.
+"""
+C3 = """
+Three naive-but-correct families are measured against the stated limit: state held one slot at
+a time, the rank's slice walked parameter by parameter from its start, and the flat offset table
+rebuilt at every step.
+"""
+C4 = """
+Exact traces, all-or-nothing, over enumerated programs aimed at each decision and both sides of
+each fence, plus generated families that concentrate blocked ranks, parameters longer than a
+shard, saves straddling a re-lay, and thaws that land a starved parameter in the last rank.
+"""
+guard = """
+Six files under /app/opt are editable and the rebuilt tree is the only artifact; the driver, the
+op language, the parameter record, the checkpoint container and the trace writer are the
+verifier's own pristine copy, so the task cannot be reshaped into one the default plan handles.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "a rank stops inside a parameter and the rest stays pending", b = "the map is laid again whenever a parameter is declared, frozen or thawed or the world size changes", why = "the cut a stop leaves sits at a flat position that the next re-lay moves, so a parameter carries a divergence no current boundary explains and every per-parameter summary of value, moment or pending is stale from the first stop" },
+  { a = "a slot with no pending gradient costs nothing and is passed over", b = "a rank stops at the first slot it cannot afford", why = "two gradients that cancel leave a slot that has been written to and still costs nothing, so whether a rank reaches the work behind it turns on the difference between a gradient having arrived and a gradient being pending" },
+  { a = "the map is laid in the order parameters last entered it", b = "a checkpoint is each rank's slots in flat order and names nothing", why = "the restore is correct only against the ordering that stood at the save, which the live map has already forgotten, so the layout has to be recorded per save rather than recomputed" },
+  { a = "freezing drops a parameter's moments", b = "gradients accrue on a parameter that is not in the map", why = "a thawed parameter re-enters at the end of the map carrying every gradient it took while frozen and no moment, so it can stop the last rank on the step it returns and starve everything the map put behind it" },
+  { a = "a shard is a count of slots, so a parameter longer than a shard is owned by several ranks", b = "each rank spends its own budget walking from its own slice start", why = "one parameter can take several stops in a single step, at positions decided by different ranks, so the number of cuts a parameter carries is a property of the shard size and not of the parameter" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A rank with budget to spare must apply every pending slot of its slice, including the parameter
+its lower boundary cuts and the parameter its upper boundary cuts, and must leave a parameter
+with nothing pending exactly as it was; an implementation that refuses to touch a parameter it
+does not own whole, or that applies a momentum step to slots with nothing pending, fails both.
+"""
+late_case = """
+A parameter is frozen while gradients keep arriving for it, is thawed twenty steps later and
+re-enters at the end of the map, where its accumulated pending gradient exceeds the budget of
+the last rank in one slot. That rank stops on its first slot from then on, while the freeze
+that moved the map has shifted a blocker out of an earlier rank's slice so that rank drains a
+backlog it had been holding. Neither is visible until a value run is printed several steps later.
+"""
+oracle_denied = """
+The agent's only local comparison is the shipped engine, which is wrong in six places at once,
+so agreeing with it proves nothing. A step prints nothing, no query reports a pending gradient,
+a boundary or a stop, and the single ownership query names only the parameter and offset of a
+rank's first slot, so a wrong walk is invisible until a run of values printed much later.
+"""
+
+[leaks]
+candidates = [
+  { what = "a query that reports a rank's stop position, its remaining budget or a parameter's pending gradient", closed_by = "no such op exists in the language; pending state is observable only through the values and moments a later step leaves behind" },
+  { what = "the per-parameter value, moment and pending fields the shipped engine keeps", closed_by = "they are the shipped mechanism and are wrong; a prefix application cannot be expressed in them, and nothing in the tree derives per-slot state from them" },
+  { what = "the example programs under /app/progs", closed_by = "they exercise the op language and the one wrong line the brief names; none contains a thaw that lands a starved parameter in the last rank, a save that straddles a re-lay, or a parameter longer than a shard" },
+  { what = "a stored offset, slot total or per-rank slice list that would make the layout readable without deriving it", closed_by = "a parameter record carries its length and its state only, the map carries order only, and every offset, total and boundary is derived where it is asked for" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+Parameters store length and per-slot state; the map stores order. No flat offset, no slot total,
+no shard boundary, no pending weight and no per-rank slice is stored anywhere in the agent's tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Three families that are each exactly correct and were measured against the 120 second limit for
+the whole graded set: the rank's slice walked parameter by parameter from its start, which takes
+386.8 s on one wide program and 56.4 s on one deep one against the reference's 1.9 s and 1.4 s;
+the map laid again at every step rather than only when it moves,
+135.1 s on the wide one; and per-slot state held one cell at a time, 163.1 s and a peak
+of 4318 MB against the 2048 the task is given. All three print exactly the
+reference's traces on everything they finish.
+"""
+invariant = """
+Within a parameter, slots differ only where a stop or a shard boundary has cut them, so state is
+a short list of runs; pending weight is additive over runs and over parameters, so a rank's stop
+is the prefix descent of a cumulative weight index over the map rather than a walk of its shard.
+"""
+input_scale = "12000 parameters over 24 million slots taking 20000 steps on 8 ranks, and 6000 longer ones taking 12000 steps on 12 ranks under a budget that leaves every rank a backlog"
+limit_seconds = 120
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "the map is laid in declaration order", hand_case = "a parameter frozen and thawed between two declarations, then an ownership query" },
+  { reading = "the map is laid the moment a parameter is frozen rather than at the next step", hand_case = "a freeze, then a save, then a step, then a load" },
+  { reading = "a rank stops at the parameter boundary before the one it cannot afford", hand_case = "a parameter straddling a boundary with budget to spare on both sides" },
+  { reading = "a slot whose gradients cancelled to zero is applied", hand_case = "two gradient ops that cancel on one parameter, then a value query" },
+  { reading = "the blocking slot is skipped and the rank carries on", hand_case = "a first slot whose pending gradient exceeds the budget with pending slots behind it" },
+  { reading = "a rank that cannot afford its whole slice applies none of it", hand_case = "a slice whose first two parameters fit the budget and whose third does not" },
+  { reading = "value, moment and pending are per parameter", hand_case = "any stop inside a parameter, then a value query on it" },
+  { reading = "a checkpoint is restored at the flat positions the map holds now", hand_case = "a save, a freeze, a step, then a load, then a value query" },
+  { reading = "freezing keeps the moments", hand_case = "a freeze, a thaw, a step, then a moment query" },
+  { reading = "gradients that arrive while a parameter is frozen are dropped", hand_case = "a freeze, a gradient, a thaw, a step, then a value query" },
+  { reading = "the shard size is the flat length divided down rather than up", hand_case = "a flat length that is not a multiple of the world size, then an ownership query on the last rank" },
+  { reading = "a slot that exactly exhausts the budget is the one that stops the rank", hand_case = "a slice whose pending weight equals the budget exactly" },
+]
+correct_variants = [
+  "per-parameter run lists with a cumulative weight index over map positions, rebuilt when the map moves",
+  "one ordered structure of runs across the whole map with subtree sums, parameters held as intervals into it",
+  "state in a dict keyed by parameter and run start with a sorted start list per parameter, and a block-decomposed weight index over the map",
+]
+
+[shape]
+environment_py_lines = 380
+editable_files = 6
+reference_lines = 300

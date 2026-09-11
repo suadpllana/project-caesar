@@ -278,6 +278,53 @@ built number sits inside the retained band all the same - the retained bundles m
 shipped lines across the six editable files against a 337-line reference. The drift is in the
 Stage 1 estimate, not in the tree.
 
+## Quality self-review, criterion by criterion (docs/QUALITY-REVIEW.md)
+
+Answered with the file that satisfies each, not with "looks fine".
+
+- *Every behaviour the tests check is described in the brief.* The twelve graded decisions
+  above map one to one onto sentences of `instruction.md`: the map and when it is laid
+  (paragraph 3, sentences 1-4), the shard cut including a rank past the world size
+  (paragraph 3, sentences 5-8), the walk, the zero-pending slot, the cost, the stop and the
+  update (paragraph 4), gradients for a parameter out of the map (paragraph 4, last
+  sentence), the checkpoint and what a restore leaves alone (paragraph 5), the three output
+  forms (paragraph 6), and the scale and limit (paragraph 7).
+- *Every behaviour the brief promises is tested.* Each sentence above has an enumerated case
+  named for it in `tests/cases.py`, and `authoring/shard-spend-carry/readings.py` reports
+  which case separates each wrong reading; none is unseparated.
+- *Output paths named absolutely.* The six artifacts are named in paragraph 2 with full
+  paths, and `task.toml` declares exactly those six.
+- *Schema specified.* Paragraph 6 gives the three line forms exactly, including `none` and
+  the `<count>x<value>` grouping.
+- *Prose.* `tools/structcheck.py` clean; `tools/textcheck.py` against `slab-fold-scope` puts
+  burstiness at 0.901 (references 0.915 and 1.009), 22 per cent short sentences, no stock
+  phrases, no hedges, no contractions. The parallel run of three "One ..." clauses in the
+  map paragraph was rewritten.
+- *Tests demand evidence of execution.* The grader never sees a claim: the worker runs the
+  submitted engine over programs generated from a seed drawn after the agent's container is
+  gone, and every trace is compared against a model the submitted code cannot read.
+- *Test code is structured and commented.* `tests/test_outputs.py` opens with the frozen
+  contract and the twelve decisions; `tests/worker.py`, `tests/gen.py`, `tests/cases.py` and
+  `tests/seal/model.py` each say what they are for.
+- *Determinism.* The generator is seeded per program with `random.Random`, which is stable
+  across versions and independent of the hash seed; the model sorts by a unique key; the only
+  clock in the contract is the declared execution limit.
+- *Environment hygiene.* `environment/Dockerfile` copies `app_src/` and nothing else;
+  `tools/imagecheck.py` assembles what the image would hold (15 files) and runs all four
+  shipped programs inside it. Test dependencies are pinned in `tests/Dockerfile` at the
+  canonical `pytest==9.1.1` and `pytest-json-ctrf==0.5.2`; no apt package is pinned.
+- *Solution quality.* `solution/solve.sh` copies six source files into place and runs the
+  engine; it writes no answer.
+- *Anti-cheating.* No frozen answer string occurs anywhere under `environment/`, checked by
+  script; the sealed directory is `chmod 700` before any submitted code runs, and the
+  privilege probe reports `PermissionError` on it.
+- *Metadata.* Category `Software` with subcategory `Algorithms` from that row -
+  `tools/catcheck.py` reports 22 environment hits against 11 in the prose. The label was
+  `ML / Training` until catcheck found what the 2026-09-04 rejection of `alias-settle-report`
+  found: the setting is a training run, but the graded work is layout and walk bookkeeping
+  that needs no ML knowledge. Tags name the mechanisms, not the taxonomy. The legacy-register
+  naming is stated as a design choice in `difficulty_explanation`.
+
 ## Infrastructure
 
 Docker's daemon runs in this session but no image can be pulled: the registry blob CDN

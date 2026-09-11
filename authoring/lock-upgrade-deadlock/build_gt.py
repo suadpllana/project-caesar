@@ -3,14 +3,14 @@
 Every name already in gt.json has to come out byte-identical, so a rebuild can add cases
 but can never quietly move an answer that was frozen before the grading file was written.
 
-    python3 authoring/claim-raise-cut/build_gt.py [--allow-change name ...]
+    python3 authoring/lock-upgrade-deadlock/build_gt.py [--allow-change name ...]
 """
 import json
 import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-TASK = HERE.parents[1] / "tasks" / "claim-raise-cut"
+TASK = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock"
 TESTS = TASK / "tests"
 sys.path.insert(0, str(TESTS))
 sys.path.insert(0, str(TESTS / "seal"))

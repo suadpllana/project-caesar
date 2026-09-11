@@ -113,7 +113,7 @@ Environments must be reproducible: no floating tags, no unpinned Python installs
 
 | Rule | Requirement | Why |
 |---|---|---|
-| Task name | `afterquery/<slug>`, lowercase, ≤ 3 hyphen-separated words | Registry convention |
+| Task name | `afterquery/<slug>`, lowercase, ≤ 3 hyphen-separated words, self-describing (names what is graded, not the brief's euphemisms) | Registry convention; quality review `task name`, blocking, 2026-09-11 |
 | Instruction suffix | Blank line, then the exact sentence below, ≤ 1 trailing newline | Structural check |
 | Timeout match | Suffix `N` equals `[agent] timeout_sec` | The agent is told the truth about its budget |
 | Paths | Absolute everywhere: `/app/output.json` | The agent's working directory is not guaranteed |

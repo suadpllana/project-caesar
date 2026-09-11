@@ -29,7 +29,7 @@ granted before it. The brief said "they resume in the order they were granted, o
 each running the steps it was holding until it is stopped again" and nothing about what a
 running transaction's own grants do; the shipped `txn.py` ran them nested, and all three
 agents kept that structure while fixing everything around it. Measured with
-`authoring/claim-raise-cut/altmodel.py`, the nested reading moves 20.3 per cent of the
+`authoring/lock-upgrade-deadlock/altmodel.py`, the nested reading moves 20.3 per cent of the
 generated population and no enumerated program caught it. Under all-or-nothing grading that is
 0 of 8 with three engines that were otherwise right.
 
@@ -42,6 +42,6 @@ after top-level steps, end and cut releasing every claim before any sweep.
 in trials 2 and 3; the task was not solved, so no plan leaked, and the phrases are rules
 restated in the agent's own docstrings.
 
-The repair is recorded in tasks/claim-raise-cut/STATE.md under "Difficulty recovery -
+The repair is recorded in tasks/lock-upgrade-deadlock/STATE.md under "Difficulty recovery -
 2026-09-10 (difficulty probe 0 of 8)": the brief now states the line, two enumerated programs
 name the two resumption readings, and two cheats carry them.

@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
-TASK = HERE.parents[1] / "tasks" / "claim-raise-cut"
+TASK = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock"
 PRISTINE = TASK / "tests" / "pristine"
 PARTS = ("mark.py", "item.py", "wait.py", "cyc.py", "txn.py")
 

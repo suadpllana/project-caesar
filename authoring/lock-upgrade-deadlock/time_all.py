@@ -1,7 +1,7 @@
 """Time the worker over the whole graded set for the reference and the readings that are
 right and only slow, each under a cap, the way the execution limit sees them.
 
-    python3 authoring/claim-raise-cut/time_all.py [--cap SECONDS] [name ...]
+    python3 authoring/lock-upgrade-deadlock/time_all.py [--cap SECONDS] [name ...]
 
 `reference` is solution/, `variants/<name>` is one of the correct variants beside this
 script, and any other name is a cheat under cheat/ whose five files are installed over the
@@ -18,7 +18,7 @@ import tempfile
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-TASK = HERE.parents[1] / "tasks" / "claim-raise-cut"
+TASK = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock"
 BLOCK = re.compile(r"cat > /app/hold/(\w+\.py) <<'PYEOF'\n(.*?)\nPYEOF\n", re.S)
 PARTS = ("mark.py", "item.py", "wait.py", "cyc.py", "txn.py")
 

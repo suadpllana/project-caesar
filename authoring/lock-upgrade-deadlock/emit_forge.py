@@ -6,7 +6,7 @@ regenerated whenever a hand case is added or an answer moves, or the probe stops
 the verification explanation says it proves: that a submission holding every hand answer
 still fails on the programs it could not have seen.
 
-    python3 authoring/claim-raise-cut/emit_forge.py
+    python3 authoring/lock-upgrade-deadlock/emit_forge.py
 """
 import json
 import pathlib
@@ -14,7 +14,7 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-TASK = HERE.parents[1] / "tasks" / "claim-raise-cut"
+TASK = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock"
 sys.path.insert(0, str(TASK / "tests"))
 
 import cases  # noqa: E402

@@ -213,6 +213,7 @@ def check_task_toml(root: Path) -> dict:
     name = cfg.get("task", {}).get("name", "")
     check_slug(name)
     check_metadata(cfg.get("metadata", {}))
+    check_slug_describes(name, cfg.get("metadata", {}))
 
     verifier = cfg.get("verifier", {})
     if verifier.get("environment_mode") != "separate":
@@ -253,6 +254,35 @@ def check_slug(name: str) -> None:
         error(f"task.toml: slug must be lowercase words separated by single hyphens: {slug!r}")
     if len(slug.split("-")) > 3:
         error(f"task.toml: slug must be at most 3 hyphen-separated words: {slug!r}")
+
+
+def check_slug_describes(name: str, md: dict) -> None:
+    """The slug has to say what the task grades, not what the brief calls it.
+
+    The quality review failed `claim-raise-cut` on 2026-09-11 as a blocking `task name`
+    finding: the three words were the brief's euphemisms (claim=lock, raise=conversion,
+    cut=abort), so "a reader scanning CI logs cannot tell this is a lock-manager deadlock task
+    without opening files". The withheld vocabulary belongs in the instruction and the tree,
+    which the agent sees, not in the folder name, which it does not. The mechanical shadow of
+    that finding: a slug that shares no word with the task's own tags is naming the story
+    rather than the work. Retained bundles accepted under the earlier reviewer trip this, so it
+    warns rather than errors; a new task should not.
+    """
+    slug = name.split("/", 1)[1] if "/" in name else name
+    words = {w for w in slug.lower().split("-") if len(w) >= 3}
+    tag_words = set()
+    for tag in md.get("tags") or []:
+        tag_words.update(w for w in str(tag).lower().replace("_", "-").split("-") if len(w) >= 3)
+    if not slug or not words or not tag_words:
+        return
+    # "lock" is a word of "lock-manager"; "upgrade" is not a word of any tag, and one hit is enough
+    if not any(w in tag_words or any(w in t or t in w for t in tag_words) for w in words):
+        warn(
+            f"task.toml: [task] name {slug!r} shares no word with the tags {sorted(tag_words)} - "
+            "a slug built from the brief's euphemisms was a blocking quality-review failure "
+            "(`task name`, 2026-09-11, `claim-raise-cut`); name the mechanism the task grades, "
+            "the way the tags do, since the agent never sees the folder name"
+        )
 
 
 def check_metadata(md: dict) -> None:

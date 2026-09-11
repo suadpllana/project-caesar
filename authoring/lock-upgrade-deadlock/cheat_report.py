@@ -23,7 +23,7 @@ test.sh has set the permissions it sets.
 
 Runs through host_trial.py, so it needs root and uid 1002 on this machine.
 
-    python3 authoring/claim-raise-cut/cheat_report.py [cheat-name ...]
+    python3 authoring/lock-upgrade-deadlock/cheat_report.py [cheat-name ...]
 """
 import json
 import pathlib

@@ -1,6 +1,6 @@
 """How much of the graded population does each reading move, and which hand case sees it?
 
-    python3 authoring/claim-raise-cut/measure.py [--per N] [flag ...]
+    python3 authoring/lock-upgrade-deadlock/measure.py [--per N] [flag ...]
 
 With no flags every reading in altmodel is measured one at a time. The population is the
 verifier's own generator under a fixed seed, ordinary families only; the two heavy families
@@ -12,7 +12,7 @@ import sys
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
-TESTS = HERE.parents[1] / "tasks" / "claim-raise-cut" / "tests"
+TESTS = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock" / "tests"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(TESTS))
 sys.path.insert(0, str(TESTS / "seal"))

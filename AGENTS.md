@@ -156,7 +156,7 @@ the end.
 
 | Rule | Requirement |
 |---|---|
-| Task name | `afterquery/<slug>`; slug lowercase, at most 3 hyphen-separated words |
+| Task name | `afterquery/<slug>`; slug lowercase, at most 3 hyphen-separated words, and self-describing: it names the mechanism the task grades (`lock-upgrade-deadlock`), never the brief's euphemisms for it (`claim-raise-cut` was a blocking quality-review failure on 2026-09-11). The withheld vocabulary belongs in the instruction and the tree, not in the folder name, which the agent never sees |
 | Instruction ending | Blank line, then the exact required suffix (see §7), one trailing newline |
 | Timeout consistency | The `N` in the instruction suffix equals `[agent] timeout_sec` in `task.toml` |
 | Paths in instructions | Always absolute, e.g. `/app/output.json` — never relative or `~` |

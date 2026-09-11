@@ -1,6 +1,6 @@
 """Find and shrink a program that separates one reading from the model.
 
-    python3 authoring/claim-raise-cut/shrink.py <flag> [count]
+    python3 authoring/lock-upgrade-deadlock/shrink.py <flag> [count]
 
 Programs come from the verifier's generator; a candidate stays well formed while it shrinks
 (every drop is preceded, inside its own transaction's steps, by an unmatched take of that
@@ -10,7 +10,7 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-TESTS = HERE.parents[1] / "tasks" / "claim-raise-cut" / "tests"
+TESTS = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock" / "tests"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(TESTS))
 sys.path.insert(0, str(TESTS / "seal"))

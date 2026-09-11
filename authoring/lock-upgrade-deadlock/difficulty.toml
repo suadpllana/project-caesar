@@ -1,21 +1,21 @@
-# Difficulty record for claim-raise-cut, transcribed from the task's own documentation after
+# Difficulty record for lock-upgrade-deadlock, transcribed from the task's own documentation after
 # the 2026-09-10 difficulty recovery. Every claim below restates one already made in the files
 # listed under task.sources; nothing is added for the score.
 
 [task]
-slug = "claim-raise-cut"
+slug = "lock-upgrade-deadlock"
 status = "pending"
 sources = [
-  "tasks/claim-raise-cut/STATE.md",
-  "tasks/claim-raise-cut/task.toml",
-  "tasks/claim-raise-cut/instruction.md",
-  "tasks/claim-raise-cut/tests/test_outputs.py",
-  "tasks/claim-raise-cut/cheat/",
-  "authoring/claim-raise-cut/readings.py",
-  "authoring/claim-raise-cut/measure.py",
-  "authoring/claim-raise-cut/variants/",
-  "authoring/claim-raise-cut/cheat_report.py",
-  "probes/claim-raise-cut/",
+  "tasks/lock-upgrade-deadlock/STATE.md",
+  "tasks/lock-upgrade-deadlock/task.toml",
+  "tasks/lock-upgrade-deadlock/instruction.md",
+  "tasks/lock-upgrade-deadlock/tests/test_outputs.py",
+  "tasks/lock-upgrade-deadlock/cheat/",
+  "authoring/lock-upgrade-deadlock/readings.py",
+  "authoring/lock-upgrade-deadlock/measure.py",
+  "authoring/lock-upgrade-deadlock/variants/",
+  "authoring/lock-upgrade-deadlock/cheat_report.py",
+  "probes/lock-upgrade-deadlock/",
 ]
 expert_hours = 10
 estimated_solves = 4

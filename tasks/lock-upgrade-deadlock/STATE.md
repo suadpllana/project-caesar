@@ -7,8 +7,10 @@ memory of this one.
 
 `Stage 7 - Pre-flight and packaging`, after the difficulty recovery recorded below (platform
 difficulty probe 0 of 8 on 2026-09-10, Fable 5.1 at xhigh effort; the easiness probe before it
-was 0 of 3). Docker's daemon is not available in this session, so the two-container gates are
-replaced by `authoring/claim-raise-cut/host_trial.py`, which runs `tests/test.sh` verbatim as
+was 0 of 3) and the 2026-09-11 rename recorded under "Quality review - 2026-09-11 (task
+name)". The bundle was submitted as `claim-raise-cut` until then; the probes and the quality
+review below were run under that name. Docker's daemon is not available in this session, so the two-container gates are
+replaced by `authoring/lock-upgrade-deadlock/host_trial.py`, which runs `tests/test.sh` verbatim as
 root with the privilege drop, the sealed directory, the wall clock and the reap all in force;
 read the `host trial` rows of the validation table as host emulation rather than container
 evidence. The recovery's exit gate is the platform's own probes against this build, which have
@@ -91,11 +93,15 @@ agent's container is gone, inside a 60 s wall clock for the whole set.
   of 8 on a defect, and the three trajectories read as three solves once the defect is gone, so
   the top of the band is the live risk now; the next lever if the probe returns 8 is recorded
   under "Open questions".
-- Difficulty record score (tools/difficultycheck.py on authoring/claim-raise-cut/difficulty.toml):
+- Difficulty record score (tools/difficultycheck.py on authoring/lock-upgrade-deadlock/difficulty.toml):
   see "Score history".
 - Difficulty score anchor: not yet submitted.
 - Score history: difficulty probe 2026-09-10, 0 of 8 solved, on the bundle as uploaded
-  (`claimraisecut.zip`); easiness probe before it, 0 of 3.
+  (`claimraisecut.zip`); easiness probe before it, 0 of 3. Repaired bundle submitted
+  2026-09-11 as `claim-raise-cut`: structural, AI, similarity and reference verification all
+  passed; quality review (claude-fable-5-1) failed one blocking criterion, `task name`, and
+  passed every other criterion listed (agentic, anti cheat robustness, binary reward, category
+  and tags, ctrf reporting, and the rest of the rubric).
 - Leak audit (docs/DIFFICULTY.md), run as a procedure:
   - Can a shipped file reproduce a graded answer by a join, a sort or a field comparison? No.
     The tree ships seven programs and no expected trace for any of them; the answer is a trace
@@ -142,7 +148,7 @@ agent's container is gone, inside a 60 s wall clock for the whole set.
   (nonce), after asserting the model still reproduces `gt.json`.
 - Tolerances: none; every line of every program.
 - Ground truth, and where it lives: `tests/seal/gt.json`, frozen from `tests/seal/model.py`
-  by `authoring/claim-raise-cut/build_gt.py`, which refuses to move a frozen answer. Both under
+  by `authoring/lock-upgrade-deadlock/build_gt.py`, which refuses to move a frozen answer. Both under
   `chmod 700` before any agent code runs.
 - 2026-09-10 recovery, additive: two hand cases (`resume-line`, `resume-shed`) were added and
   the 25 frozen answers came out byte-identical; the model did not change. What "correct" means
@@ -154,7 +160,7 @@ agent's container is gone, inside a 60 s wall clock for the whole set.
 
 - Probe result: 0 of 8 solved, Fable 5.1 at xhigh effort, 14400 s each; marked unverifiable.
   The easiness probe before it: 0 of 3.
-- Trajectories: three of the eight, under `probes/claim-raise-cut/`, with the brief stripped
+- Trajectories: three of the eight, under `probes/lock-upgrade-deadlock/`, with the brief stripped
   from the top of each so `tools/leakcheck.py` compares the agent's words against the brief
   rather than the brief against itself: `2026-09-10-difficulty-1-9itDemL.txt` (43 steps),
   `2026-09-10-difficulty-2-N6jw6Cg.txt` (34 steps), `2026-09-10-difficulty-3-RrPppes.txt`
@@ -193,7 +199,7 @@ agent's container is gone, inside a 60 s wall clock for the whole set.
 | A stated rule read two ways | "stands beside every claim held by every other transaction": per-claim or the held mark? Trial 2 measured the two readings apart on 5 of 300 programs and chose the held mark, as the model does | Say "the mark every other transaction holds", and note that `pin-lift` already fences the per-claim reading |
 | `wait` line named "the mark it is asking in" | Read as the asked mark rather than the tested mark it moves 43.6 % of the population; `join-pair` fences it, and no trajectory misread it | Say "the mark the request is tested in" |
 
-Measured with `authoring/claim-raise-cut/altmodel.py` (the sealed model with each reading
+Measured with `authoring/lock-upgrade-deadlock/altmodel.py` (the sealed model with each reading
 opened up by a flag; with no flag set it reproduces the model on every program) over the
 verifier's own generator, 400 ordinary programs plus 8 reduced heavy ones:
 
@@ -231,7 +237,7 @@ t3 stands granted ahead of t4; the model runs t2's next step, then t3, then t4; 
 once, front-of-line runs t4 before t3) and `resume-shed` (an ending transaction's second item is
 swept before the transaction its first sweep granted runs a step). Two cheats carry the readings
 as the reference with one file swapped: `cheat-resume-nest.sh` and `cheat-resume-front.sh`,
-emitted from `authoring/claim-raise-cut/readings/` by `emit_cheats.py`. The frozen-answer
+emitted from `authoring/lock-upgrade-deadlock/readings/` by `emit_cheats.py`. The frozen-answer
 forgery was regenerated for 27 programs by `emit_forge.py`.
 
 ### 4. Rebuild, from the earliest affected stage
@@ -264,6 +270,30 @@ an invariant of the item. Honest reading of the three trajectories: each would p
 The realized rate is therefore likely to land high in the band, and the record says so rather
 than claiming a 1-of-8 design that the evidence does not support.
 
+## Quality review - 2026-09-11 (task name)
+
+The repaired bundle went through the pipeline as `claim-raise-cut` on 2026-09-11 at 06:57:
+structural checks, the AI check, similarity and reference verification all passed; the quality
+review (model claude-fable-5-1, 07:03) failed exactly one blocking criterion, `task name`:
+
+    'claim-raise-cut' is 3 words and kebab-case but uses the task's internal euphemisms
+    (claim=lock, raise=conversion, cut=abort), so a reader scanning CI logs cannot tell this
+    is a lock-manager deadlock task without opening files. Something like
+    lock-upgrade-deadlock would be self-describing; the obfuscated vocabulary is only needed
+    inside the instruction, not in the folder name.
+
+Every other criterion the review lists passed. The repair is the reviewer's own suggestion,
+`lock-upgrade-deadlock`: `[task] name` in `task.toml`, the task, authoring and probe
+directories, every path in the authoring kit, and this file. Nothing the agent can see
+changed - the slug appears in no shipped file but `task.toml`, which the environment image
+does not carry - so the A2 tactic (the brief names no lock, conversion or deadlock) is
+untouched, and the three trajectories show the agents naming the concept themselves in the
+first minute anyway. The env-variable prefix `CRC_` in `tests/worker.py` and
+`tests/test_outputs.py` is left alone: it is an override hook for the authoring harness, not a
+name a reader meets. Recorded in `docs/QUALITY-REVIEW.md`, with a preflight warning that fires
+when a slug shares no word with the task's tags; the retained bundles trip it too, and they
+were accepted under the earlier reviewer, so it warns and does not error.
+
 ## Decisions and their reasons
 
 - The resumption line is stated as behaviour (one line, back and front), not as a structure or
@@ -290,7 +320,9 @@ than claiming a 1-of-8 design that the evidence does not support.
 
 ## Validation status
 
-All rows dated 2026-09-10, on this build. `host trial` rows are `authoring/claim-raise-cut/
+All rows dated 2026-09-10 on the repaired build, re-run on 2026-09-11 after the rename where
+marked; the rename touched `task.toml` (`[task] name`) and nothing else the verifier or the
+agent reads. `host trial` rows are `authoring/lock-upgrade-deadlock/
 host_trial.py` (tests/test.sh verbatim as root, uid 1002 for the worker, sealed directory, wall
 clock, reap), not container evidence.
 
@@ -298,22 +330,22 @@ clock, reap), not container evidence.
 |---|---|---|
 | Agent image builds | not run | no Docker daemon in this session; `tools/imagecheck.py` clean (COPY audit, 16 files) |
 | No answer leaked into agent image | passed | leak audit above; `deadfieldcheck` clean; `tests/` and `solution/` never copied |
-| host trial oracle = 1 | passed | 30 passed, worker exit 0 |
+| host trial oracle = 1 | passed | 30 passed, worker exit 0; re-run 2026-09-11 from the renamed authoring directory, 30 passed |
 | host trial nop = 0 | passed | the shipped tree is cut off by the limit (exit 124) on the heavy families; 1 passed, 29 errors |
 | host trial, both correct variants = 1 | passed | `variants/ok-whole-ring` (Kosaraju over the whole relation whenever any row moved, no changed-root pruning) and `variants/ok-set-marks` (exclusion sets, join by closure, holders in sets behind an overlay), 30 passed each; both also agree with the model on 27 hand and 300 generated programs in-process |
 | Cheats all score 0, by the named layer | passed, 36 of 36 | `cheat_report.py`: 18 wrong readings caught by the hand case named for them; 4 wrong readings (`edge-and`, `edge-conflict`, `pin-bar`, `raise-ask-mark`) cut off by the limit on the heavy families first and caught by their hand case in-process; 4 right-and-slow readings cut off by the limit; `cut-one-ring` order-dependent (below); 10 probes each by its channel - seal unreadable as uid 1002, forgery passes all 27 hand cases and fails the nonce test, hang and plant cut off, malformed and altered records named by the grader, writes to `/tests` and `/logs/verifier` denied as uid 1002, 878 survivors reaped, all 439 records present after the shrink |
 | `cut-one-ring` | order-dependent | it iterates a set of names, so which ring it finds first changes with the hash seed: `ring-pair` caught it in the readings harness, `cut-again` in the first trial, neither in the second, and the nonce `ring` family (40 programs, up to three rings each) caught it in every run (27 of 412 nonce programs in the first). The hand case stays; the report requires the nonce failure |
-| readingcheck | passed | 22 readings, each separated by a hand case (`tools/readingcheck.py claim-raise-cut 200`); `resume-nest` and `resume-front` by `resume-line` |
+| readingcheck | passed | 22 readings, each separated by a hand case (`tools/readingcheck.py lock-upgrade-deadlock 200`, re-run 2026-09-11 at 100 rounds); `resume-nest` and `resume-front` by `resume-line` |
 | readings against the population | recorded | `readings.py --per 40`: nested 20.8 %, front 13.0 %, conflict edges 27.5 %, join by rank 66.0 %, own claims counted 75.0 %, resume on the spot 46.8 %, cut youngest 26.0 %, drop clears 25.8 %, pin none 10.8 %, shed by name 6.5 %, raise order 3.5 %, cut-no-wake 2.2 % |
-| difficultycheck | 99 / 100, in band | measured tree 334 environment lines, 5 editable files, 452 reference lines, 36 cheats, 2 variants; solvability 6 of 7 because the honest estimate is 4, above the 1-to-3 the rubric rewards |
-| preflight | no errors | warnings only: entry points `run.py` calls (`step`, the `Trace` methods) reported as uncalled inside the tree, the verifier executes agent code (the probes exist for that) |
+| difficultycheck | 99 / 100, in band (re-scored 2026-09-11 under the new slug) | measured tree 334 environment lines, 5 editable files, 452 reference lines, 36 cheats, 2 variants; solvability 6 of 7 because the honest estimate is 4, above the 1-to-3 the rubric rewards |
+| preflight | no errors | re-run 2026-09-11 after the rename: warnings only - entry points `run.py` calls (`step`, the `Trace` methods) reported as uncalled inside the tree, the verifier executes agent code (the probes exist for that); the new slug-versus-tags warning is quiet on `lock-upgrade-deadlock` and fires on a copy named `claim-raise-cut` |
 | extraneouscheck, hintcheck, catcheck, deadfieldcheck, solvecheck, imagecheck | passed | |
 | simcheck | NEAR on Dockerfiles and test.sh | the house harness files shared with retained bundles; this bundle cleared the platform's similarity screen in that form; conceptual axis clean |
 | structcheck | passed | |
 | textcheck vs `note-carry-forward` | three findings | burstiness 0.805, paragraph sd 37.2, type-token 0.258; the brief as uploaded measured 0.818, 29.4 and 0.273 on the same axes and cleared the platform's AI screen, so the edit moved none of them by more than the noise between two readings |
 | leakcheck on the three trajectories | two rule phrases in trial 1 | rules restated in the agent's docstrings; the task was not solved, so no plan leaked |
 | worker timings | measured | `time_all.py`, the worker alone over 439 programs, one CPU of this host: reference 5.5 s; right-and-slow `whole-rebuild` 180.2 s, `all-live` 180.6 s, `per-participant` 172.1 s, `candidate-verify` 241.6 s; variants `ok-set-marks` 10.5 s, `ok-whole-ring` 9.2 s; the prose quotes these numbers |
-| package + zipcheck | PACKAGE | |
+| package + zipcheck | passed | `tasks/lock-upgrade-deadlock.zip`, 87 entries, zipcheck clean, rebuilt 2026-09-11 after the rename; the earlier `claim-raise-cut.zip` is removed |
 | `harbor check` rubric | not run | no API key here |
 
 ## Open questions and next steps

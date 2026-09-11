@@ -13,7 +13,7 @@ One reading is order-dependent: `cut-one-ring` takes the first ring it finds fro
 transaction names, so which hand case separates it (`ring-pair`, `cut-again`, or neither)
 changes with the process's hash seed; the nonce `ring` family separates it in every run.
 
-    python3 authoring/claim-raise-cut/readings.py [--per N] [reading ...]
+    python3 authoring/lock-upgrade-deadlock/readings.py [--per N] [reading ...]
 """
 import pathlib
 import re
@@ -22,7 +22,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-TASK = HERE.parents[1] / "tasks" / "claim-raise-cut"
+TASK = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock"
 TESTS = TASK / "tests"
 sys.path.insert(0, str(TESTS))
 sys.path.insert(0, str(TESTS / "seal"))

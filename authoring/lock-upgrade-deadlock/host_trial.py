@@ -27,8 +27,8 @@ import subprocess
 import sys
 import tempfile
 
-TASK = pathlib.Path(__file__).resolve().parents[2] / "tasks" / "claim-raise-cut"
-LOCK = pathlib.Path("/tmp/crc-host-trial.lock")
+TASK = pathlib.Path(__file__).resolve().parents[2] / "tasks" / "lock-upgrade-deadlock"
+LOCK = pathlib.Path("/tmp/lud-host-trial.lock")
 APP = pathlib.Path("/app")
 TESTS = pathlib.Path("/tests")
 WORK = pathlib.Path("/work")

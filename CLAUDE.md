@@ -300,7 +300,7 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
 
-## Lessons, measured (2026-09-10, `claim-raise-cut`)
+## Lessons, measured (2026-09-10, `lock-upgrade-deadlock`, then named `claim-raise-cut`)
 
 The difficulty probe returned 0 of 8 with Fable 5.1 at xhigh effort, after an easiness pass of
 0 of 3. Three of the eight trajectories were available, and every one of them had rewritten
@@ -338,3 +338,13 @@ with zero mismatches, and timed the large shapes in under a second.
   and stopped proving that a submission holding every hand answer still loses on the nonce
   population. `emit_forge.py` now rebuilds it from `gt.json`, and `cheat_report.py` asserts
   the layer (all hand cases pass, the nonce test fails), not the reward.
+- **The slug is read by a reviewer who never opens the files, and the withheld vocabulary
+  does not belong in it.** The repaired bundle cleared the structural, AI, similarity and
+  reference gates on 2026-09-11 and failed the quality review on one blocking criterion,
+  `task name`: `claim-raise-cut` was the brief's euphemisms (claim=lock, raise=conversion,
+  cut=abort), and "a reader scanning CI logs cannot tell this is a lock-manager deadlock
+  task without opening files". Every retained bundle carries a slug of the same shape and was
+  accepted under the earlier reviewer, which is why nothing local flagged it. Renamed to the
+  reviewer's own suggestion, `lock-upgrade-deadlock`; A2 is untouched because the agent never
+  sees the folder name, and the three trajectories named the concept themselves in their
+  first minute regardless. `preflight.py` now warns when a slug shares no word with the tags.

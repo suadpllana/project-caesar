@@ -4,12 +4,12 @@ Each directory under `readings/` holds the file or files of one wrong reading; t
 carries all five modules so it installs the same way the reference does, and its second
 line says what the reading is. Run after any change to a reading or to the reference.
 
-    python3 authoring/claim-raise-cut/emit_cheats.py
+    python3 authoring/lock-upgrade-deadlock/emit_cheats.py
 """
 import pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
-TASK = HERE.parents[1] / "tasks" / "claim-raise-cut"
+TASK = HERE.parents[1] / "tasks" / "lock-upgrade-deadlock"
 PARTS = ("mark.py", "item.py", "wait.py", "cyc.py", "txn.py")
 
 HEADERS = {

@@ -1,10 +1,11 @@
 """Graded programs, generated from a seed drawn after the agent's container is gone.
 
-Seven families. Five are small and shaped at one part of the contract each: general traffic,
+Eight families. Six are small and shaped at one part of the contract each: general traffic,
 one unit fought over by writers, jobs that accumulate cell claims until an ask is raised,
-heavy dropping and ending so jobs are forgotten and start again under new numbers, and long
-lines where the job holding an ask up holds no claim at all. Two are wide and exist for the
-execution limit rather than for a rule.
+heavy dropping and ending so jobs are forgotten and start again under new numbers, long lines
+where the job holding an ask up holds no claim at all, and jobs that give up the claim putting
+their own ask at the front of the line. Two are wide and exist for the execution limit rather
+than for a rule.
 
 Nothing here is shipped to the agent, and the seed is drawn in `test.sh` after the agent's
 container is gone, so a submission cannot have seen a single one of these programs.

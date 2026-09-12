@@ -1,0 +1,221 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/hold/book.py",
+  "/app/hold/line.py",
+  "/app/hold/lift.py",
+  "/app/hold/knot.py",
+  "/app/hold/turn.py",
+  "/app/hold/act.py",
+]
+
+[task]
+name = "afterquery/claim-line-stall"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is close to what the shipped service already is, and most of it is right: a
+table from scope to the modes granted there beside a list of the asks waiting on it, an ask
+compared with those modes, an upgrade marked when the job already holds the scope and put at
+the front of the list, a walk from the front of that list when something is released, and an
+edge from every waiting job to the jobs holding the claims it conflicts with. Each of those is
+a structure, and each is right until another of the rules is applied at the same time.
+
+An ask is also refused by an ask of another job that conflicts with it and stands ahead of it,
+so a job holding no claim at all can be the only reason another cannot proceed. A relation
+drawn to holders alone has no edge for that, and what it misses are the short loops: a job
+refused by a claim, refusing in turn the job holding it through an ask that was never granted.
+Both halves have to be in the relation before one cancellation comes out where it should, and
+putting every earlier ask into it rather than only the conflicting ones cancels jobs that were
+never stuck.
+
+Whether an ask stands ahead is not a property it is given when it is filed. It is true exactly
+while its job holds a claim overlapping what that ask asked for, and three ordinary things
+change that under an ask which is already waiting: a drop of the overlapping claim, a
+whole-unit claim granted to the job that takes the place of its cell claims, and a
+cancellation. The order of the line, the refusal test and the held-up relation all read that
+order, so the line cannot be the list the asks were filed in, and those three cannot be
+settled one at a time.
+
+Raising is the other half. Four cell claims in one unit turn the next ask there into an ask
+for the whole unit, and nothing is given up for it until it is granted, so a job whose raised
+ask is refused is still holding exactly what the jobs it is waiting for are asking for.
+Releasing those claims when the ask is filed, which is what the shipped service does and what
+the escalation documented elsewhere does when it cannot have the coarse claim, dissolves the
+stall instead of causing it, and no ordinary program shows the difference.
+
+Two wide families decide what a correct structure is allowed to cost, and the fast path in
+each follows from an invariant rather than from a technique: two claims conflict only when
+their scopes overlap, so one ask is answered from the unit it names; a grant only ever adds or
+strengthens a claim, so one pass down the line settles it; and every loop of jobs held up only
+by one another contains a job that both holds a claim and waits, because refusals by waiting
+asks alone run strictly backwards down the line. Measured against the 60 second limit for the
+whole graded set, one of the three wide programs alone takes 613 seconds when the held-up
+relation is built over every waiting job, 76 seconds when the settling pass restarts from the
+top of the line after each grant, 41 seconds when every claim in the book is walked to answer
+one ask, and 37 seconds when the order of the line is rebuilt each time it is read, against
+0.3 seconds for the reference. All four of those produce exactly the reference's traces on
+everything they finish; the limit is the only thing separating them. The reference settles all
+283 graded programs in 1.8 seconds, and two services written independently to the same
+contract settle them in 2.2.
+
+Around those sit the ordinary decisions, each a fence with two sides: an ask a claim of the
+job's own already covers changes nothing, while the same ask in a stronger mode is a real ask;
+a job is forgotten the moment it holds nothing and waits for nothing, so it comes back younger
+and a later cancellation chooses differently; a job with an ask waiting cannot ask again. All
+six editable files ship wrong, and the only feedback a wrong structure gets is a line of a
+trace coming out in a different order.
+
+Identifiers are in a legacy register - `hold/`, `book`, `line`, `lift`, `knot`, `turn`, `act`,
+`born`, `tally`, `bh` - short but never misleading, and no name misdescribes what it holds.
+That is a choice about the register of real service code rather than an obstacle: each is
+recoverable from what calls it.
+
+The programs are synthetic, in eight families, with one unit fought over by writers, jobs that
+gather cell claims until an ask is raised, heavy dropping and ending so jobs are forgotten and
+start again, long lines whose jobs hold nothing, jobs that give up the claim putting their own
+ask at the front, and the two wide shapes. In a working service these are rare, and they are
+exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`book.py` holds the scope and mode arithmetic and the claims. Two claims conflict only when
+their scopes overlap and every overlap is inside one unit, so claims are indexed by unit: the
+jobs holding the unit itself, the jobs holding each cell of it, and per job a pair of counts of
+the cell claims it holds there by mode. Those counts answer a whole-unit ask without walking
+the unit's cells, which is the difference between the reference and one of the families the
+limit rules out. It also keeps the set of jobs that hold a claim and have an ask waiting,
+because that set is the seed the stall search needs and recomputing it per op is another of
+them.
+
+`line.py` is the order and the refusal test. Nothing about the order is stored: an ask stands
+ahead while its job holds an overlapping claim, read off the book at the moment the order is
+needed, with filing order breaking ties inside each group. Settling walks the asks on the units
+something was released from, in that order, and grants each one that is grantable when it is
+reached. One pass is complete because a grant only ever adds or strengthens a claim, and the
+cell claims a whole-unit claim takes the place of are covered by it, so nothing a grant does
+can free an ask standing earlier.
+
+`lift.py` is the raise, and it is deliberately only a decision: four cell claims already held
+in a unit turn the next ask there into an ask for the whole unit in the strongest mode
+involved, and nothing is given up for it. What gives those claims up is the grant, in
+`line.give`, which is the same line that makes any granted claim take the place of the job's
+claims on scopes it strictly covers.
+
+`knot.py` is the held-up relation and the choice. A job is held up by whoever refuses its ask:
+the jobs holding conflicting claims, and the jobs whose conflicting asks stand ahead of it.
+Refusals by waiting asks alone run strictly backwards down the line, so any loop uses at least
+one refusal by a held claim and the job that claim belongs to must have an ask of its own to
+carry the loop on; that is why the search is seeded from the jobs that hold a claim and wait,
+and it is a stack-based strongly-connected-component pass from there. `turn.py` is what the
+service does after an op - settle when something was released, then cancel while a loop stands,
+settling again after each cancellation because a cancellation releases claims - and `act.py` is
+the four ops in the order the rules force, covered before raised and raised before the refusal
+test, so that what is tested and what is printed is the whole-unit ask.
+
+An expert works in that order because each file consumes the one before it: the indexes decide
+what an ask can be answered from, the order decides which asks refuse which, the raise decides
+what a job is still holding while it waits, and only then does the held-up relation have both
+of its halves. The same contract is implemented two further ways in the authoring set - one
+holding claims in a flat map with a per unit map of each job's scopes and settling by taking
+the earliest grantable ask anywhere and starting again, one holding claims per scope with the
+line as two sequences and the loops found by a forward walk and a backward one - so the shape
+is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/hold/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Thirty-seven hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Two hundred and
+forty-six further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across eight families that concentrate write contention on one unit,
+asks raised to whole units, jobs forgotten and restarted, long lines whose jobs hold nothing,
+asks that lose the claim putting them at the front, and the two wide shapes. A submission
+cannot have seen them, so fitting the shipped examples fails, and so does carrying an answer
+key.
+
+The fences run both ways. Granting an ask that an earlier conflicting ask should have held
+fails `fair-wait`; refusing one that nothing conflicts with fails `fair-apart`, `fair-grant`
+and `fair-share`. Deciding where an ask stands when it is filed fails `ahead-flip`, and
+ignoring that an ask can stand ahead at all fails `ahead-lift` and `settle-swap`. Counting cell
+claims across units fails `raise-apart` and waiting for a fifth fails `knot-raise`. Giving the
+cell claims up when the raised ask is filed fails `knot-raise`, and granting a whole-unit claim
+beside them fails `ahead-two` and `raise-swallow`. Drawing the held-up relation over holders
+alone fails `knot-ahead`, and drawing it over every earlier ask fails `knot-apart`. Cancelling
+the youngest fails `pick-old`, cancelling the one holding most fails `knot-ahead`, and
+cancelling nothing at all fails `knot-hold`. Keeping a job's number after it holds nothing
+fails `forget-new`, letting through a take by a job that already has an ask waiting fails
+`busy-take`, and leaving that ask standing after `end` fails `end-ask`.
+
+Thirty-five cheats score 0. Twenty-two are wrong readings, each caught by the enumerated case
+named for it. Four are exactly correct and too slow: every claim in the book walked to answer
+one ask, the settling pass restarted from the top of the line after each grant, the order of
+the line rebuilt at each reading of it, and the held-up relation built over every waiting job.
+One is a forgery carrying the frozen answers for every enumerated program, which passes all
+thirty-seven and fails on the programs it could not have seen. The other eight are probes: the
+answer key, a planted record, a record planted with the worker exited clean before it could be
+overwritten, malformed records, privilege, a shrunken population, a hijacked driver, and a
+reward written after grading. Two independently written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "lock-manager",
+  "queue-fairness",
+  "lock-escalation",
+  "mutual-blocking",
+  "multi-granularity",
+  "request-ordering",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the request path of a claim service inside a storage engine: the part that
+decides which asks are granted now, which wait, what a coarse claim does to the fine ones
+underneath it, and which jobs the service has to give up on. Familiarity with the fact that a
+job holding nothing at all can be the only reason another is refused, so the relation deciding
+a stall is not the one drawn over the claims being held, and with what a coarse claim that has
+been asked for and not yet granted is still holding while it waits. Comfort with deriving the
+order of a waiting line from state that keeps moving underneath it rather than stamping it on
+each request, and with the difference between a structure that is correct and one that is
+affordable at the size the service actually runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

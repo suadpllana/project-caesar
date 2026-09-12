@@ -8,3 +8,5 @@ __pycache__/
 jobs/
 *-jobs-*/
 zip-inspect-*/
+authoring/*/readings/
+authoring/*/.unpacked/

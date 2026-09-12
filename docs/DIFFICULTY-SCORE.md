@@ -87,7 +87,7 @@ rejected, transcribed from the same state files, and each must score below the f
 | `publish-settle-order-first-build` | 40, hard stop | quality review, `difficult`: roughly 100 lines across five files; the two inventions are standard techniques |
 | `alias-settle-report-first-build` | 40, hard stop | easiness 2 of 3: the definition itself supplied the algorithmic plan |
 
-The four tasks in `tasks/` that have not passed the pipeline are scored for context, not
+The tasks in `tasks/` that have not passed the pipeline are scored for context, not
 calibration; the external probe is the authority on them:
 
 | pending task | score | state |
@@ -97,6 +97,7 @@ calibration; the external probe is the authority on them:
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
+| `claim-line-stall` | 100 | built 2026-09-12; scored 100 on paper at Stage 1 and again against the built tree |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them
 is not prose volume: the controls lose on a missing second discovery, `patch` instead of

@@ -1,0 +1,8 @@
+take j1 u1/c1 w
+take j2 u2/c1 r
+take j2 u1/c2 r
+show u1
+drop j2 u1/c2
+end j2
+take j1 u1/c1 r
+take j3 u1/c1 r

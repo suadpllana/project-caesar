@@ -1,0 +1,11 @@
+take j1 u1/c1 r
+take j2 u1/c1 r
+take j3 u1/c2 w
+show u1
+take j4 u2/c1 w
+drop j1 u1/c1
+end j3
+show u1
+show u2
+end j4
+show u2

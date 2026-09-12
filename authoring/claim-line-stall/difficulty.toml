@@ -1,0 +1,215 @@
+# Difficulty record for claim-line-stall, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/claim-line-stall/STATE.md and is what the build has to
+# deliver. Scored with `python tools/difficultycheck.py claim-line-stall`.
+
+[task]
+slug = "claim-line-stall"
+status = "pending"
+sources = [
+  "tasks/claim-line-stall/STATE.md",
+  "tasks/claim-line-stall/task.toml",
+  "tasks/claim-line-stall/tests/test_outputs.py docstring",
+  "authoring/claim-line-stall/cheat_report.py output",
+  "authoring/claim-line-stall/readings.py output",
+]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep a table from scope to a record holding the granted mode per job and a list of the requests
+waiting on it. On a take, look at what the job already holds to see whether the ask is already
+covered, then compare the request with the granted modes and with the entries already waiting,
+and either grant it or put it on the end of the list. Mark the entry as an upgrade when the job
+already holds that scope and put it at the front. On a release walk each list from the front
+granting whatever now fits. For the stall, draw an edge from every waiting job to each job
+holding a claim it conflicts with, look for a cycle and cancel the youngest job on it.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A request is refused when a request of another job that is ahead of it in the line conflicts
+with it, even when nothing granted does, so a job holding no claim at all can be the only
+reason another cannot proceed. The set of jobs that can never proceed is therefore closed over
+those refusals as well as over the claims being held, and a relation drawn to holders only is
+missing exactly the edges that close the shorter cycles.
+"""
+second_discovery = """
+Going ahead of the line is not a property a request is given when it is filed. It is true
+exactly while its job holds a claim overlapping what that request asked for, and three ordinary
+things change it under a request that is already waiting: a drop of the overlapping claim, a
+whole-unit claim granted to that job which swallows its cell claims, and a cancel that takes
+the job's claims away. The line's order, the refusal test and the held-up relation all read
+that order, so the order cannot be the list the requests were filed in.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped service on the small program the brief names and reproduce the line it calls wrong",
+  "read the six editable files and the frozen driver to learn what a claim record holds and what each event prints",
+  "settle the refusal test from both sides: granted claims of other jobs, and their requests that stand ahead in the line",
+  "derive the order of the line at the moment it is read rather than stamping it when a request is filed",
+  "make a whole-unit claim swallow the job's cell claims on grant and not before, so a raised request keeps blocking while it waits",
+  "close the held-up relation over refusals by an earlier request as well as by a held claim, then cancel by the stated choice and settle again",
+  "index claims by unit with per job counts by mode so a whole-unit ask is answered without walking the unit's cells",
+  "generate the two wide shapes and time the four naive families against the stated limit",
+]
+
+[search]
+best_page = """
+The vendor documentation for lock escalation and the lecture notes on detecting a deadlock by
+finding a cycle in a waits-for graph, together with a database's own note that a compatible
+request does not jump its queue.
+"""
+helps_plan = false
+deviation = """
+The retrievable escalation gives up: when the coarse claim cannot be had the query keeps taking
+fine-grained ones and retries later. Here the raised request queues, keeps every cell claim it
+already has while it waits, and is therefore the thing that closes the cycle rather than the
+thing that avoids one. The waits-for treatments draw edges to holders, which is the relation
+this spec makes incomplete, and none of them has a claim whose priority in the line changes
+while it waits.
+"""
+
+[tactics]
+A1 = """
+The documented escalation backs off and keeps its fine-grained claims when the coarse one is
+refused, and the memorised waits-for graph runs from a waiter to the holders it conflicts with.
+Both are specifically wrong here: a raised request waits in the line holding everything it
+already took, and a job that holds nothing can be the only reason another is refused.
+"""
+A2 = """
+The brief says a job is held up by another when a request of its is refused because of that
+job, and that jobs held up only by each other can never proceed. Deadlock, waits-for, cycle,
+intention lock, conversion and escalation are never written, so recognising which relation has
+to be closed, and that the refusals of jobs holding nothing belong in it, is the work itself.
+"""
+B2 = """
+Ten rules hold at once - coverage, the raise threshold, the raised mode, what a raised ask is
+still holding, what a granted claim swallows, the refusal test, the order of the line, when a
+job is forgotten, the choice of which job to cancel, and a single settling pass - and each
+changes what another means.
+"""
+C1 = """
+Both sides of every fence are graded. A service that refuses a request no rule refuses fails
+as surely as one that grants a request an earlier waiting request should have held; cancelling
+a job that could still have proceeded fails, and leaving a stalled set standing fails.
+"""
+C2 = """
+No event says why a request was refused, which job held it up, or that a request was raised to
+its whole unit. The only local reference is the shipped service, which is wrong in ten places
+at once, and the graded programs are generated inside the verifier from a seed drawn after the
+agent's container is gone.
+"""
+C3 = """
+Four naive-but-correct families are measured against the stated limit: every claim in the book
+walked to answer one ask, the settling pass restarted from the top of the line after each
+grant, the order of the line rebuilt by sorting every waiting request at each reading of it,
+and the held-up relation built over every waiting job rather than over the jobs that hold a
+claim and wait.
+"""
+C4 = """
+Exact traces, all-or-nothing, over enumerated programs aimed at each graded decision and at
+both sides of each fence, plus generated programs in families that concentrate raised requests
+that block, refusals by a job holding nothing, jobs forgotten and restarted, and the two wide
+shapes.
+"""
+guard = """
+Six files under /app/hold are editable and are the only artifacts; the driver, the op language,
+the scope parser, the event writer and the program files are the verifier's own pristine copy,
+so the task cannot be reshaped into one the default plan handles.
+"""
+
+[decisions]
+graded = 16
+interactions = [
+  { a = "a request is refused by an earlier waiting request of another job", b = "the order of the line is derived from what each waiting job holds at that moment", why = "which request counts as earlier is not fixed when a request is filed, so the refusal test cannot be evaluated once and cached, and the held-up relation reads the same order" },
+  { a = "a raised request keeps the job's cell claims until it is granted", b = "a job is held up by whoever holds a conflicting claim", why = "the claims a raised request is still holding are exactly what hold up the jobs whose claims it is waiting for, so the rule about when claims are swallowed decides whether a stall exists at all" },
+  { a = "a whole-unit claim swallows the job's cell claims in that unit when granted", b = "a further ask is raised once the job holds enough cell claims in one unit", why = "swallowing changes the count the raise threshold reads, so getting the moment of swallowing wrong changes which later asks are raised and therefore which requests ever enter the line" },
+  { a = "a job is forgotten once it holds nothing and waits for nothing", b = "the job cancelled is the one holding fewest claims, ties going to the one that started most recently", why = "being forgotten and coming back makes a job the most recent starter, so an ordinary drop by an unrelated job decides which job a stall cancels several ops later" },
+  { a = "an ask already covered by a claim the job holds is granted without changing anything", b = "a claim swallowed by a whole-unit claim is gone from the book", why = "after swallowing, asks that were separate claims become covered and stop entering the line, so coverage and swallowing have to agree or the same program grants a different number of times" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Two jobs reading the same unit, a job taking a cell in a unit another job holds a different
+cell of, and a job re-taking something it already holds in a stronger mode with nobody else
+present all have to be granted at once; a service that turns conservative and makes anything
+that overlaps wait fails all three, and a stall that cancels a job whose request would have
+been granted by the next release fails as well.
+"""
+late_case = """
+A job takes four cells of a unit, its fifth ask is raised to the whole unit and is refused by
+another job's cell claim, and that other job then asks for a cell the raised job is still
+holding. Nothing granted holds up the raised job on its own, both jobs look ordinary in every
+earlier event, and the stall exists only because the raised request kept its cell claims and
+because the other job's refusal counts even though the request refusing it holds nothing of
+that cell.
+"""
+oracle_denied = """
+The agent can only compare against the shipped service, which is wrong in ten places at once,
+so agreeing with it proves nothing. No event says which job held a request up, or that an ask
+was raised, and a wrong refusal is invisible until some later grant, cancel or show line comes
+out in a different order in a program the agent never saw.
+"""
+
+[leaks]
+candidates = [
+  { what = "an event naming the job that held a request up", closed_by = "the trace prints only what was granted, refused, freed, ended, cancelled or shown, never a reason or a blocker, so the relation has to be derived rather than read" },
+  { what = "a flag or field on a waiting request recording that it goes ahead of the line", closed_by = "the record holds the job, the scope, the mode and the number it was filed under, and nothing computed from what the job holds; the shipped service recomputes nothing and is wrong for that reason" },
+  { what = "the example programs shipped under /app/progs", closed_by = "they exercise the op language and the one line the brief calls wrong; none of them raises an ask that is then refused, or has a job refused by a job holding nothing" },
+  { what = "a count of waiting requests or held claims exposed per job", closed_by = "the show line reports the claims overlapping one unit and how many requests wait on it, which is a fact about a unit and never about which of them hold up which" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+A claim record stores the job, the scope and the mode and nothing computed from them: no
+blocker list, no priority, no held-up set, no stall flag, no per unit rollup. The order of the
+line, whether a request goes ahead of it, and which jobs can never proceed are all derived at
+the moment they are asked for.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Four families that are each exactly correct: every claim in the book walked to answer one ask,
+the settling pass restarted from the top of the line after every grant, the order of the line
+rebuilt by sorting every waiting request each time the line is read, and the held-up relation
+built over every waiting job. Measured on one wide program against 0.3 s for the reference:
+41 s, 76 s, 37 s and 613 s.
+"""
+invariant = """
+Two claims conflict only when their scopes overlap, so every ask is answered from the unit it
+names, and a whole-unit ask is answered from per job counts by mode kept for that unit. A grant
+never makes an earlier request in the settled order grantable, so one pass down the line in
+order settles it. Refusals by waiting asks alone run strictly backwards down the line, so every
+loop contains a job that holds a claim and waits, which is the seed set the stall search needs.
+"""
+input_scale = "1600 units held with 3000 asks standing on them and 52000 takes and drops beside that line, and 1500 rounds of asks raised to whole units"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a request is refused only by claims already granted", hand_case = "a write ask waiting on a unit, then a read ask by a third job that nothing granted conflicts with" },
+  { reading = "going ahead of the line is decided when the request is filed", hand_case = "a job whose waiting write ask is a raise, which then drops the claim that made it one" },
+  { reading = "a raised ask releases the job's cell claims when it is filed", hand_case = "four cells taken in a unit, a fifth ask raised and refused, then another job asking for one of those cells" },
+  { reading = "the raise threshold counts every cell claim the job holds", hand_case = "three cells in one unit and three in another, then a fourth ask in the first unit" },
+  { reading = "a whole-unit claim is granted beside the job's cell claims", hand_case = "a unit claim granted over four cells, then a show of that unit and a further ask in it" },
+  { reading = "the job cancelled is the most recently started one on the cycle", hand_case = "a stall between a job holding one claim and an older job holding four" },
+  { reading = "a job keeps the number it started under for the whole program", hand_case = "a job that drops its last claim, takes again, and is then one of two candidates a stall has to choose between" },
+  { reading = "an ask covered by a weaker claim the job holds is already satisfied", hand_case = "a job holding a unit for reading asking for a cell of it for writing while another job reads that cell" },
+  { reading = "the held-up relation is closed over every earlier waiting request", hand_case = "two jobs waiting on unrelated units behind one long line, neither conflicting with the other" },
+  { reading = "the settling pass grants every request that fits without regard to order", hand_case = "a write ask filed first and a read ask filed second, both freed by one drop" },
+]
+correct_variants = [
+  "claims indexed per unit with per job mode counts, and the line held as two sequences rebuilt from a lift set that is maintained as holdings change",
+  "one flat dict of claims per scope with the line kept as a single arrival-ordered list and the order derived by a stable partition at each settling",
+  "requests filed against per unit queues with the held-up relation built by walking the unit a request names rather than the whole book",
+]
+
+[shape]
+environment_py_lines = 380
+editable_files = 6
+reference_lines = 300

@@ -1,0 +1,307 @@
+{
+ "ahead-flip": [
+  "grant j1 u1/c1 w",
+  "grant j3 u1/c5 r",
+  "wait j2 u1 r",
+  "wait j1 u1 w",
+  "free j1 u1/c1 0",
+  "grant j2 u1 r",
+  "show u1 j3@u1/c5=r,j2@u1=r 1"
+ ],
+ "ahead-lift": [
+  "grant j1 u1 r",
+  "wait j2 u1 w",
+  "grant j1 u1/c2 w",
+  "show u1 j1@u1=r,j1@u1/c2=w 1"
+ ],
+ "ahead-two": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1 r",
+  "wait j3 u1/c1 r",
+  "grant j1 u1 w",
+  "show u1 j1@u1=w 2"
+ ],
+ "busy-take": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 r",
+  "free j1 u1/c1 0",
+  "grant j2 u1/c1 r",
+  "show u1 j2@u1/c1=r 0",
+  "show u2 - 0"
+ ],
+ "cover-same": [
+  "grant j1 u1/c1 w",
+  "grant j1 u1/c1 r",
+  "wait j2 u1/c1 r",
+  "show u1 j1@u1/c1=w 1"
+ ],
+ "cover-unit": [
+  "grant j1 u1 r",
+  "grant j1 u1/c3 r",
+  "show u1 j1@u1=r 0",
+  "free j1 u1 0",
+  "show u1 - 0"
+ ],
+ "cover-weak": [
+  "grant j2 u1/c3 r",
+  "grant j1 u1 r",
+  "wait j1 u1/c3 w",
+  "show u1 j2@u1/c3=r,j1@u1=r 1"
+ ],
+ "drop-none": [
+  "grant j1 u1/c1 r",
+  "free j1 u1/c2 1",
+  "free j2 u1/c1 0",
+  "free j1 u1 1",
+  "end j5 0",
+  "show u1 j1@u1/c1=r 0"
+ ],
+ "end-ask": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 r",
+  "wait j3 u1/c1 r",
+  "end j2 0",
+  "free j1 u1/c1 0",
+  "grant j3 u1/c1 r",
+  "show u1 j3@u1/c1=r 0"
+ ],
+ "fair-apart": [
+  "grant j1 u1/c1 r",
+  "wait j2 u1/c1 w",
+  "grant j3 u1/c2 r",
+  "show u1 j1@u1/c1=r,j3@u1/c2=r 1"
+ ],
+ "fair-grant": [
+  "grant j1 u1/c1 r",
+  "grant j3 u1/c1 r",
+  "grant j4 u1/c2 w",
+  "show u1 j1@u1/c1=r,j3@u1/c1=r,j4@u1/c2=w 0"
+ ],
+ "fair-hold": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 r",
+  "show u1 j1@u1/c1=w 1"
+ ],
+ "fair-share": [
+  "grant j1 u1/c5 w",
+  "wait j2 u1 r",
+  "grant j3 u1/c1 r",
+  "show u1 j1@u1/c5=w,j3@u1/c1=r 1"
+ ],
+ "fair-wait": [
+  "grant j1 u1/c1 r",
+  "wait j2 u1/c1 w",
+  "wait j3 u1/c1 r",
+  "show u1 j1@u1/c1=r 2"
+ ],
+ "forget-new": [
+  "grant j1 u1/c1 r",
+  "grant j2 u1/c2 r",
+  "free j1 u1/c1 0",
+  "grant j1 u1/c3 r",
+  "show u1 j2@u1/c2=r,j1@u1/c3=r 0"
+ ],
+ "forget-wait": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 r",
+  "grant j3 u1/c2 r",
+  "free j1 u1/c1 0",
+  "grant j2 u1/c1 r",
+  "show u1 j2@u1/c1=r,j3@u1/c2=r 0"
+ ],
+ "knot-ahead": [
+  "grant j1 u1/c1 r",
+  "wait j2 u1 w",
+  "wait j3 u1/c2 r",
+  "wait j1 u1/c2 w",
+  "stop j3 0",
+  "stop j2 0",
+  "grant j1 u1/c2 w",
+  "show u1 j1@u1/c1=r,j1@u1/c2=w 0"
+ ],
+ "knot-apart": [
+  "grant j3 u1/c9 w",
+  "grant j2 u1/c5 w",
+  "wait j1 u1/c5 r",
+  "wait j2 u1/c9 r",
+  "show u1 j3@u1/c9=w,j2@u1/c5=w 2"
+ ],
+ "knot-hold": [
+  "grant j1 u1/c1 w",
+  "grant j2 u1/c2 w",
+  "wait j1 u1/c2 w",
+  "wait j2 u1/c1 w",
+  "stop j2 1",
+  "grant j1 u1/c2 w",
+  "show u1 j1@u1/c1=w,j1@u1/c2=w 0"
+ ],
+ "knot-none": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 w",
+  "wait j3 u1/c1 w",
+  "show u1 j1@u1/c1=w 2",
+  "free j1 u1/c1 0",
+  "grant j2 u1/c1 w",
+  "show u1 j2@u1/c1=w 1"
+ ],
+ "knot-raise": [
+  "grant j1 u1/c1 w",
+  "grant j1 u1/c2 w",
+  "grant j1 u1/c3 w",
+  "grant j1 u1/c4 w",
+  "grant j2 u1/c7 w",
+  "wait j1 u1 w",
+  "wait j2 u1/c1 r",
+  "stop j2 1",
+  "grant j1 u1 w",
+  "show u1 j1@u1=w 0"
+ ],
+ "pick-few": [
+  "grant j1 u1/c1 w",
+  "grant j1 u1/c2 w",
+  "grant j2 u2/c1 w",
+  "wait j1 u2/c1 w",
+  "wait j2 u1/c1 w",
+  "stop j2 1",
+  "grant j1 u2/c1 w",
+  "show u1 j1@u1/c1=w,j1@u1/c2=w 0",
+  "show u2 j1@u2/c1=w 0"
+ ],
+ "pick-old": [
+  "grant j1 u1/c1 w",
+  "grant j2 u2/c1 w",
+  "grant j2 u2/c2 w",
+  "wait j1 u2/c1 w",
+  "wait j2 u1/c1 w",
+  "stop j1 1",
+  "grant j2 u1/c1 w",
+  "show u1 j2@u1/c1=w 0",
+  "show u2 j2@u2/c1=w,j2@u2/c2=w 0"
+ ],
+ "pick-young": [
+  "grant j1 u1/c1 w",
+  "grant j2 u2/c1 w",
+  "wait j1 u2/c1 w",
+  "wait j2 u1/c1 w",
+  "stop j2 1",
+  "grant j1 u2/c1 w",
+  "show u1 j1@u1/c1=w 0"
+ ],
+ "raise-apart": [
+  "grant j1 u1/c1 r",
+  "grant j1 u1/c2 r",
+  "grant j1 u2/c1 r",
+  "grant j1 u2/c2 r",
+  "grant j1 u1/c3 r",
+  "show u1 j1@u1/c1=r,j1@u1/c2=r,j1@u1/c3=r 0",
+  "show u2 j1@u2/c1=r,j1@u2/c2=r 0"
+ ],
+ "raise-four": [
+  "grant j1 u1/c1 r",
+  "grant j1 u1/c2 r",
+  "grant j1 u1/c3 r",
+  "grant j1 u1/c4 r",
+  "grant j1 u1 r",
+  "show u1 j1@u1=r 0"
+ ],
+ "raise-hold": [
+  "grant j1 u1/c1 w",
+  "grant j1 u1/c2 w",
+  "grant j1 u1/c3 w",
+  "grant j1 u1/c4 w",
+  "grant j2 u1/c7 r",
+  "wait j1 u1 w",
+  "wait j3 u1/c2 r",
+  "show u1 j1@u1/c1=w,j1@u1/c2=w,j1@u1/c3=w,j1@u1/c4=w,j2@u1/c7=r 2"
+ ],
+ "raise-mode": [
+  "grant j1 u1/c1 r",
+  "grant j1 u1/c2 w",
+  "grant j1 u1/c3 r",
+  "grant j1 u1/c4 r",
+  "grant j2 u1/c9 r",
+  "wait j1 u1 w",
+  "show u1 j1@u1/c1=r,j1@u1/c2=w,j1@u1/c3=r,j1@u1/c4=r,j2@u1/c9=r 1"
+ ],
+ "raise-swallow": [
+  "grant j1 u1/c1 r",
+  "grant j1 u1/c2 r",
+  "grant j1 u1/c3 r",
+  "grant j1 u1/c4 r",
+  "grant j1 u1 r",
+  "show u1 j1@u1=r 0",
+  "free j1 u1/c1 1",
+  "free j1 u1 0",
+  "show u1 - 0"
+ ],
+ "raise-three": [
+  "grant j1 u1/c1 r",
+  "grant j1 u1/c2 r",
+  "grant j1 u1/c3 r",
+  "grant j1 u1/c4 r",
+  "show u1 j1@u1/c1=r,j1@u1/c2=r,j1@u1/c3=r,j1@u1/c4=r 0"
+ ],
+ "settle-blocked": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 r",
+  "grant j3 u1/c2 w",
+  "wait j4 u1/c2 r",
+  "free j1 u1/c1 0",
+  "grant j2 u1/c1 r",
+  "show u1 j2@u1/c1=r,j3@u1/c2=w 1"
+ ],
+ "settle-jump": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 w",
+  "grant j3 u1/c2 r",
+  "wait j3 u1 r",
+  "free j1 u1/c1 0",
+  "grant j3 u1 r",
+  "show u1 j3@u1=r 1"
+ ],
+ "settle-once": [
+  "grant j1 u1 w",
+  "wait j2 u1/c1 r",
+  "wait j3 u1/c2 r",
+  "wait j4 u1 w",
+  "end j1 1",
+  "grant j2 u1/c1 r",
+  "grant j3 u1/c2 r",
+  "show u1 j2@u1/c1=r,j3@u1/c2=r 1"
+ ],
+ "settle-order": [
+  "grant j1 u1/c1 r",
+  "wait j2 u1/c1 w",
+  "wait j3 u1/c1 r",
+  "free j1 u1/c1 0",
+  "grant j2 u1/c1 w",
+  "show u1 j2@u1/c1=w 1"
+ ],
+ "settle-pair": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 r",
+  "wait j3 u1/c1 r",
+  "free j1 u1/c1 0",
+  "grant j2 u1/c1 r",
+  "grant j3 u1/c1 r",
+  "show u1 j2@u1/c1=r,j3@u1/c1=r 0"
+ ],
+ "settle-swap": [
+  "grant j1 u1/c1 w",
+  "wait j2 u1/c1 r",
+  "grant j3 u1/c9 r",
+  "wait j3 u1 r",
+  "free j1 u1/c1 0",
+  "grant j3 u1 r",
+  "grant j2 u1/c1 r",
+  "show u1 j2@u1/c1=r,j3@u1=r 0"
+ ],
+ "show-order": [
+  "grant j2 u1/c4 r",
+  "grant j1 u1 r",
+  "grant j1 u1/c10 w",
+  "grant j1 u1/c2 w",
+  "show u1 j2@u1/c4=r,j1@u1=r,j1@u1/c2=w,j1@u1/c10=w 0",
+  "show u2 - 0"
+ ]
+}

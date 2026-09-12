@@ -72,6 +72,26 @@ def run(st, bundles):
             return
 '''
 
+WIRE_LIST = '''
+def run(job, items):
+    st = Link(job)
+    job.link = st
+    every = []
+    for kind, what in items:
+        if kind == "u":
+            st.load(what, True)
+        elif kind == "b":
+            every.append(what)
+            pull.run(st, (what,))
+        else:
+            every.extend(what)
+            pull.run(st, what)
+    if every:
+        pull.run(st, tuple(every))
+    st.set = place.run(st)
+    st.live, st.lit = prune.run(st)
+'''
+
 WIRE_BACK = '''
 def run(job, items):
     st = Link(job)
@@ -179,6 +199,14 @@ READINGS = {
     "take-oldest": [("pull.py", "@pick@", PICK_OLDEST)],
     "take-onward": [("pull.py", "@pick@", PICK_ONWARD), ("pull.py", "@run@", RUN_ONWARD)],
     "rescan-back": [("wire.py", "@run@", WIRE_BACK)],
+    "list-as-group": [("wire.py", "@run@", WIRE_LIST)],
+    "take-again": [("pull.py", """                who = sc.mem[pos]
+                if who in st.keep.loaded:
+                    continue
+                say.take(st.job, sc.name, who)
+""", """                who = sc.mem[pos]
+                say.take(st.job, sc.name, who)
+""")],
     "group-once": [("pull.py", """        if not moved:
             return
 """, """        return

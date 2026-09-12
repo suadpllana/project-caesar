@@ -203,14 +203,29 @@ def shape(rng, cfg):
             p.hold(who, rng.randrange(seat[who]))
 
     items = list(heads)
+    # Some programs name one of a bundle's own members on the input list, ahead of the bundle.
+    # It is loaded first-hand there, so its keys cannot be taken from it afterwards and the
+    # bundle has to pass over it rather than take it - a shape nothing else in the population
+    # reaches, and one a real input list produces whenever an object is listed as well as
+    # archived.
+    early = None
+    if packs and rng.random() < cfg["preload"]:
+        j = rng.randrange(len(packs))
+        mem = [m for m in p.units if m.startswith("m%d_" % j)]
+        if mem:
+            early = (j, rng.choice(mem))
     if cfg["group"] and len(packs) > 1:
         items.append("(")
         items.extend(packs)
         items.append(")")
+        if early:
+            items.insert(len(heads), early[1])
         for j in sorted(late):
             items.append(late[j])
     else:
         for j, name in enumerate(packs):
+            if early and early[0] == j:
+                items.append(early[1])
             items.append(name)
             if j in late:
                 items.append(late[j])
@@ -228,7 +243,7 @@ BASE = {
     "heads": 2, "bundles": 2, "members": 4, "parts": 2, "names": 4, "keys": 3,
     "keyrate": 0.35, "weak": 0.2, "spares": 0.15, "sparehit": 0.5, "ballast": 0.2,
     "back": 0.25, "twin": 0.3, "roots": 2, "holds": True, "group": False,
-    "twinspare": 0.1, "tiesizes": 2, "tieuse": 0.12,
+    "twinspare": 0.1, "tiesizes": 2, "tieuse": 0.12, "preload": 0.2,
     "jumble": False, "over": (), "asks": 6,
 }
 
@@ -244,7 +259,7 @@ def plain(rng):
 
 
 def claim(rng):
-    return shape(rng, cfg(keys=2, keyrate=0.85, parts=3))
+    return shape(rng, cfg(keys=2, keyrate=0.85, parts=3, preload=0.5))
 
 
 def shift(rng):
@@ -257,7 +272,8 @@ def again(rng):
 
 
 def order(rng):
-    return shape(rng, cfg(jumble=True, members=6, names=2, keyrate=0.2, back=0.8))
+    return shape(rng, cfg(jumble=True, members=6, names=2, keyrate=0.2, back=0.8,
+                          preload=0.5))
 
 
 def pack(rng):

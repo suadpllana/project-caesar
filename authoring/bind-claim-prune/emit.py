@@ -54,6 +54,8 @@ WHY = {
     "spare-late": "a size tie goes to the last unit that spared it (caught by spare-size)",
     "at-preprune": "a name whose part the prune dropped still reports it (prune-drop)",
     "img-all-spares": "the image counts every placed name (caught by spare-reach)",
+    "list-as-group": "every bundle on the input list is scanned as one group (group-none)",
+    "take-again": "a member already loaded is taken again (caught by take-loaded)",
 }
 
 SLOW = {

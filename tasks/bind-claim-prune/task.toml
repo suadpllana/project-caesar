@@ -70,8 +70,9 @@ what it holds. That is a choice about the register of real toolchain code rather
 obstacle: each is recoverable from what calls it.
 
 The programs are synthetic, in twelve families, with units planted on keys a bundle member
-actually claimed, members reaching backwards as well as forwards, names going back to wanted,
-spares tied on size, parts kept and unreachable, and the two scale families. In a working
+actually claimed, a bundle's own member named on the input list ahead of it, members reaching
+backwards as well as forwards, names going back to wanted, spares tied on size, parts kept and
+unreachable, and the two scale families. In a working
 toolchain these are the cases that produce the bug reports nobody can reproduce, and they are
 exactly where this class of defect lives.
 """
@@ -134,9 +135,9 @@ was written; the grader first asserts that the sealed model still reproduces `gt
 so a model that had drifted could not quietly redefine correct. Four hundred and fifty-six
 further programs are generated inside the verifier from a seed drawn after the agent's container
 is gone, across twelve families that concentrate units planted on keys a bundle member actually
-claimed, names going back to wanted, members reaching backwards inside their own bundle and into
-the bundle before them, spares tied on size, parts kept and unreachable, and the two scale
-families. A submission cannot have seen them, so fitting the shipped examples fails, and so does
+claimed, members of a bundle named on the input list ahead of it, names going back to wanted,
+members reaching backwards inside their own bundle and into the bundle before them, spares tied
+on size, parts kept and unreachable, and the two scale families. A submission cannot have seen them, so fitting the shipped examples fails, and so does
 carrying an answer key.
 
 The fences run both ways. Keeping a part whose key is held fails `claim-drop`, `claim-same-unit`
@@ -154,7 +155,7 @@ one placed that nothing gives up on fails `spare-cancel`, and counting a placed 
 reaches fails `spare-reach`. Ignoring a held part fails `prune-hold` and keeping an unreachable
 part fails `prune-drop`.
 
-Thirty-three cheats score 0. Twenty are wrong readings, each caught by the enumerated case
+Thirty-five cheats score 0. Twenty-two are wrong readings, each caught by the enumerated case
 named for it and each measured to move between two and sixty-four per cent of a generated
 population.
 Three are exactly correct and too slow: the member scan restarted from the first member after

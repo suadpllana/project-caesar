@@ -51,6 +51,9 @@ WANT = {
     "cheat-weak-settles.sh": {"layers": ("weak-give",)},
     "cheat-weak-wants.sh": {"layers": ("weak-use-quiet",)},
 
+    "cheat-list-as-group.sh": {"layers": ("group-none",)},
+    "cheat-take-again.sh": {"layers": ("take-loaded",)},
+
     "cheat-slow-rescan.sh": {"layers": ("worker",)},
     "cheat-slow-rebuild.sh": {"layers": ("worker",)},
     "cheat-slow-perpart.sh": {"layers": ("worker",)},

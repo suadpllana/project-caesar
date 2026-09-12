@@ -231,9 +231,9 @@ Reference against the sealed model, written apart from it: 5400 generated progra
 ten small families, 0 disagreements. The 30 enumerated answers in `gt.json` are reproduced by
 both.
 
-Wrong readings (`authoring/bind-claim-prune/readings.py`, 20 whole engines): every one is
-separated by an enumerated case named for it, and each moves between 2.3 and 63.7 per cent of a
-300-program generated population. `tools/readingcheck.py` reports 20 separated, 0 blind, 0
+Wrong readings (`authoring/bind-claim-prune/readings.py`, 22 whole engines): every one is
+separated by an enumerated case named for it, and each moves between 1.0 and 64.3 per cent of a
+300-program generated population. `tools/readingcheck.py` reports 22 separated, 0 blind, 0
 equivalent.
 
 Answer shape (`tools/onelinecheck.py` over `authoring/bind-claim-prune/decisions.py`): of the
@@ -285,9 +285,10 @@ each structure the design forces; a cold solve by this author measures memory, n
 and a self-probe reported as passed by a contaminated author is worse than none. The same
 position was taken on `reach-pair-sweep`.
 
-What stands in its place is measured rather than asserted: twenty whole wrong engines, each
+What stands in its place is measured rather than asserted: twenty-two whole wrong engines, each
 separated by an enumerated case and each moving between 2.3 and 63.7 per cent of a generated
-population; three exactly-correct engines that lose on the clock alone; no oracle anywhere in
+population, the smallest of them the one rule the generator reaches only through a bundle
+member named on the input list; three exactly-correct engines that lose on the clock alone; no oracle anywhere in
 the agent's tree, so nothing the agent can run tells it whether a decision is right; and three
 of the four graded quantities with no exact rule at depth two over the fields the tree exposes.
 The external easiness probe is the authority on this task.

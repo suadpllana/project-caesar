@@ -1,0 +1,9 @@
+bulk wide chain 60000 2
+u top
+p 16 -
+g start s
+r widex0 s
+root start
+link top wide
+at widex40000
+img

@@ -1,0 +1,30 @@
+u main
+p 12 -
+g go s
+r pick s
+r note w
+t slot 24
+u pa
+p 6 kr
+g pick s
+r step s
+p 5 -
+g side s
+u pb
+p 7 kr
+g pick s
+u pc
+p 8 -
+g step s
+g note s
+t slot 40
+b lo pa pb
+b hi pc
+root go
+hold pa 1
+link main ( lo hi )
+at pick
+at note
+at side
+at slot
+img

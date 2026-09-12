@@ -1,0 +1,9 @@
+bulk deep chain 60000 1
+u top
+p 16 -
+g start s
+r deepx0 s
+root start
+link top deep
+at deepx100
+img

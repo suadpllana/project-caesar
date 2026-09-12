@@ -1,0 +1,200 @@
+# Difficulty record for bind-claim-prune, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/bind-claim-prune/STATE.md and is what the build has
+# to deliver. Scored with `python tools/difficultycheck.py bind-claim-prune`.
+
+[task]
+slug = "bind-claim-prune"
+status = "idea"
+sources = [
+  "tasks/bind-claim-prune/STATE.md",
+]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep one symbol table: name to its current definition, plus the set of names still wanted.
+Load each named unit in order, walking its parts and skipping a part whose claim key is
+already held, then adding the gives and uses of the parts that were kept. For a bundle, loop
+over its members from the first, take the first member that gives a wanted name, load it, and
+start the member loop again; stop when a pass takes nothing. Then walk the graph from the
+roots and drop what is not reached, place the leftover spares, and answer the queries.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A part carrying a claim key held by a part that came out of a bundle is kept anyway when the
+unit carrying it was named directly in the input list, and the part it displaces is dropped
+along with the gives and uses it brought, so a name that was strongly given goes back to being
+wanted and pulls a further member out of the next bundle on the input list that gives it.
+"""
+second_discovery = """
+A member already taken is never given back, its own parts stay kept and their keys stay held,
+so what the table holds at the end is not what a settled pass over the surviving inputs would
+produce: the take list is a history and the table is a state, and the two disagree exactly on
+the members pulled by uses that later left. An engine that reaches a fixed point over the
+final inputs prints a shorter take list, and one that never removes prints the wrong image.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped engine on the small program in the brief and reproduce the wrong line it names",
+  "read the frozen declaration store to learn that gives and uses hang off parts while spares hang off units",
+  "work out from the displacement rule that a key claim has to record which part holds it and where that part came from",
+  "make the name table hold the strong gives of a name in arrival order rather than one slot, so a displacement rebinds to the next one",
+  "separate the take log, which only grows, from the kept-part state, which loses entries, and drive both from one pass over the input list",
+  "carry the wanted set incrementally as counts of strong uses and spares against the strong gives, because it has to survive gives leaving",
+  "index each bundle by name to the members that give it in member order, and take the smallest live member index rather than the oldest wanted name",
+  "generate programs at the stated scale and time the three naive families against the stated limit",
+]
+
+[search]
+best_page = """
+A linker internals write-up on section groups and archive extraction, next to the platform
+guide that defines a group signature and the rule for duplicate groups.
+"""
+helps_plan = false
+deviation = """
+Every published account keeps the first copy of a duplicate group and never revisits it, and
+treats a definition as settling a name for good. Here a directly named unit displaces a copy
+already claimed from a bundle and takes its gives and uses back out of the table, and a weak
+give never settles anything, so the retrieved rules are confidently wrong in both directions.
+"""
+
+[tactics]
+A1 = """
+The retrievable rules are first claim wins, a definition ends the search for that name, and
+extraction never runs backwards. All three are inverted here and stated plainly, so the better
+the source the agent finds, the more confidently wrong the plan built on it.
+"""
+A2 = """
+The brief says a part is dropped when its key is already held and that the gives and uses it
+brought leave with it. The words retraction, invalidation, monotone and fixed point never
+appear, so seeing that the table needs removal while the take log does not is the discovery.
+"""
+B2 = """
+Nine rules hold at once: what a dropped part takes with it, which copy of a key stands, when a
+name is wanted, which member a bundle takes next, what a group re-scan repeats, that a take is
+never given back, which strong give binds, how a spare is placed, and what the prune keeps.
+Each changes what another means.
+"""
+C1 = """
+Both sides are graded. A unit whose part is dropped for a key must still be taken and still be
+in the trace, a bundle already behind the displacing unit must not be re-entered however well it
+could supply the name, and a second strong give must report and change nothing; an engine that
+turns conservative and refuses the displacement, or one that re-settles everything, fails a
+plain case each way.
+"""
+C2 = """
+Nothing prints when a part is dropped or a key changes hands, and no query reports why a
+member was taken, so a wrong claim shows only as a later name query or a count in the image.
+The shipped engine is the only thing to compare against and it is wrong in six places, and the
+graded programs are generated from a seed drawn after the agent's container is gone.
+"""
+C3 = """
+Three families that are each exactly correct are measured against the stated limit: the member
+scan restarted from the first member after every take, the wanted set rebuilt from all kept
+parts after every take, and the prune asked separately for each part.
+"""
+C4 = """
+Exact traces, all or nothing, over enumerated programs aimed at each decision and both sides of
+each fence, plus generated programs in families that concentrate displacements, keys claimed
+across a bundle boundary, names going back to wanted and the two scale shapes.
+"""
+guard = """
+Six files under /app/bind are editable and are the only artifacts; the program reader, the
+declaration store, the synthesiser behind the bulk shorthand and the trace writer are the
+verifier's own pristine copy, so the task cannot be reshaped into one the default plan handles.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "a part whose claim key is already held is dropped and its gives and uses never enter", b = "a member is taken because it strongly gives a wanted name", why = "the give that made the member worth taking can be the give that is dropped on arrival, so the name stays wanted and the same bundle has to be scanned again for a later member" },
+  { a = "a directly named unit displaces a claim held by a part from a bundle", b = "a taken member is never given back", why = "the displacement removes the uses that pulled a member while leaving the member itself kept and its keys held, so the final table cannot be recomputed from the inputs that survive" },
+  { a = "the binding of a name is the first strong give in arrival order", b = "a displaced part takes its gives out of the table", why = "one slot per name answers every ordinary program and cannot say what a name falls back to when its first strong give leaves, so the report of a second give and the binding after a displacement are the same decision" },
+  { a = "a bundle takes the first member in member order that gives a wanted name", b = "a name can go back to being wanted after a displacement", why = "the member to take next is the smallest live member index over a wanted set that both grows and shrinks, so a queue ordered by when a name became wanted takes a different member and a different set of members overall" },
+  { a = "the prune keeps what the roots reach through strong uses", b = "extraction is settled before the prune runs", why = "a member pulled by a use in a part the prune later removes stays taken and its other parts can still be reached, so reachability cannot be used to decide extraction and an engine that prunes first prints a shorter take list" },
+  { a = "a spare is placed at the largest size declared for it", b = "a strong give anywhere cancels every spare for that name", why = "whether a name is placed at all turns on a give that may arrive from a member pulled much later, and that give may itself be dropped for a claim key, which puts the spare back" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Two units that both give the same name inside a part carrying the same claim key must link
+without a second-give report and must count one part, not two, and a member whose only giving
+part is dropped on arrival must still be taken and still be in the take list; an engine that
+turns conservative and refuses to drop, or refuses to take, fails both.
+"""
+late_case = """
+A unit named in the middle of the input list displaces a key claimed by a member pulled out of
+the first bundle, which takes a strong give back out of the table; the name is wanted again,
+the next bundle gives it, that member is taken and its own part is dropped for a key the
+displacing unit now holds, and only the image count and one name query show any of it, while
+the member pulled by the use that just left stays taken and in the trace.
+"""
+oracle_denied = """
+The only local check is the shipped engine, which is wrong in six places at once, so agreeing
+with it proves nothing. No line is printed when a part is dropped, a key changes hands or a
+name goes back to wanted, and the take list looks right under both wrong readings of the order,
+so the first place a wrong plan shows is a query in a program the agent did not write.
+"""
+
+[leaks]
+candidates = [
+  { what = "a per-part flag saying whether the part is kept, or a per-key record of who holds it", closed_by = "the declaration store holds only what a unit declares - part sizes, keys, gives, uses and spares - and every claim, binding and wanted name is derived at the moment it is asked for" },
+  { what = "a query that reports why a member was taken, or which name a take satisfied", closed_by = "the op language has no such query; the take line carries the bundle and the unit and nothing else, and the reason has to be reconstructed from the rules" },
+  { what = "the example programs shipped under /app/progs", closed_by = "they exercise the op language and the one wrong line the brief names; none contains a displacement, a name going back to wanted, or a key claimed across a bundle boundary" },
+  { what = "an image line that reports counts per unit or per bundle, from which a per-part decision could be read off", closed_by = "the image line carries the number of surviving parts and their total bytes for the whole link, so no single decision is separable from it" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+A part record stores its size, its key, its gives and its uses, and nothing computed from them:
+no kept flag, no claim table, no wanted set, no reachable mark, no member index by name. Every
+one of those is derived while the link runs.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Three methods that are each exactly correct: the member scan restarted from the first member of
+the bundle after every take, the wanted set rebuilt from every kept part after every take, and
+the prune asked separately for each part by searching from the roots.
+"""
+invariant = """
+A member gives a fixed set of names whatever the state, so a bundle can be indexed once by name
+to its giving members in member order; and wantedness is a count of strong uses and spares
+against strong gives, so it moves by the delta of one load rather than by a rescan.
+"""
+input_scale = "one bundle of sixty thousand members with twenty thousand taken, and a link of sixty thousand kept parts with a hundred and eighty thousand strong uses"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a claim key is held by the first part that carries it and never changes hands", hand_case = "a unit named after a bundle whose member already claimed that key, then a name query" },
+  { reading = "a displaced part keeps the gives it already put in the table", hand_case = "a displacement whose name is given by a later member of a bundle that already finished" },
+  { reading = "a displaced part's uses stay, so nothing goes back to wanted", hand_case = "a displacement that removes the only strong use of a name a bundle member gives" },
+  { reading = "a dropped part still contributes its uses, only its gives are held back", hand_case = "two units sharing a key where the dropped copy uses a name nothing else uses" },
+  { reading = "the name table holds one strong give per name", hand_case = "a displacement of the first strong give of a name that a kept part also gives" },
+  { reading = "a weak give settles a name so it is no longer wanted", hand_case = "a weak give of a name that a later member of the same bundle gives strongly" },
+  { reading = "a spare does not make a name wanted", hand_case = "a unit that spares a name a bundle member gives strongly, with no other use of it" },
+  { reading = "the next member taken is the one giving the name that became wanted first", hand_case = "two wanted names whose giving members sit in the opposite order in the bundle" },
+  { reading = "the scan continues from the member after the one taken", hand_case = "a take that makes a name wanted which an earlier member of the same bundle gives" },
+  { reading = "a member pulled by a use that later left is given back", hand_case = "a displacement that removes the use that pulled a member whose other part is reachable" },
+  { reading = "the prune decides extraction, so unreachable members are never taken", hand_case = "a member taken for a use in a part the roots do not reach" },
+  { reading = "the prune follows weak uses as well as strong ones", hand_case = "a part reached only by a weak use from a root part" },
+  { reading = "a spare is placed at the size the first unit declared", hand_case = "two units sparing one name at different sizes, the larger declared second" },
+  { reading = "a group of bundles is scanned once in order", hand_case = "a take in the second bundle that makes a name the first bundle gives wanted" },
+]
+correct_variants = [
+  "a name table of arrival-ordered give lists with strong-use counts, and a per-bundle heap of live member indices",
+  "a claim table keyed by key to the holding part with the whole link replayed as a log of load events and the table rebuilt forward from it",
+  "gives and uses held in per-part index sets with the wanted set as a set difference recomputed over the delta of each load",
+]
+
+[shape]
+environment_py_lines = 430
+editable_files = 6
+reference_lines = 330

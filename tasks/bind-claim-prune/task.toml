@@ -1,0 +1,216 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/bind/hold.py",
+  "/app/bind/want.py",
+  "/app/bind/pull.py",
+  "/app/bind/place.py",
+  "/app/bind/prune.py",
+  "/app/bind/wire.py",
+]
+
+[task]
+name = "afterquery/bind-claim-prune"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What the brief cannot say is that the engine has to hold two
+different kinds of thing at once, and that each structure the rules seem to ask for answers
+only one of them.
+
+The first plan is close to what the shipped stage already is, and most of it is right. One
+table from a name to what it stands on; a set of the claim keys already held; a walk down the
+input list that loads the units named there and scans each bundle for a member giving a name
+that is still wanted; then a walk out from the roots, then the spares. Every one of those is a
+structure, and each is right until a key changes hands.
+
+A part of a unit named on the input list takes a held key back from a part that came out of a
+bundle, and what that part gave and used leaves with it. So the table has to lose entries, not
+only gain them, and the two obvious repairs are both wrong. One slot per name answers every
+program in which nothing is displaced and cannot say what a name falls back to when the give it
+stood on goes; the gives have to stand in arrival order, and a second give that reported when it
+arrived has to be ready to bind silently later. A flag saying a name is wanted cannot be
+lowered and raised again by a count that moves in both directions.
+
+The second finding is what settles the shape. A member already taken is never given back, and
+its parts stay kept and go on holding their keys, so what the table holds at the end is not what
+a settled pass over the inputs that survived would produce. An engine that reaches a fixed point
+over the final state - the natural repair once removal is in - prints a shorter take list, and
+an engine that never removes prints the wrong image. The take list is a history and the table is
+a state, and one forward pass has to produce both.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in each
+follows from an invariant rather than a technique: a member gives a fixed set of names whatever
+the table holds, so a bundle is indexed by name once and never rescanned, and wantedness moves
+by the delta of one load rather than by a re-read. Measured here against the 60 second limit for
+the whole graded set: the wide program alone takes 252 seconds with the member scan restarted
+after every take as the rule literally says, the deep one takes 316 seconds with the wanted set
+re-read off the kept parts after every take, and reachability asked once per part takes 264
+seconds on the wide program and does not finish the deep one inside 400. All three of those
+readings produce exactly the reference's traces on everything they finish; the limit is the only
+thing that separates them. The reference settles all 486 graded programs in 4.8 seconds, the
+wide program in 0.5 and the deep one in 0.8.
+
+Around those sit the ordinary decisions, each a fence with two sides: two units giving one name
+under one claim key must link without reporting a second give, a member whose only giving part
+is dropped on arrival must still be taken and still be in the trace, a weak give must leave a
+name wanted while a weak use must not want it and must reach nothing, a spare must want a name
+with nothing using it and be cancelled by a give from a member pulled much later, and a bundle
+already behind the displacing unit must not be re-entered however well it could have supplied
+the name. All six editable files ship wrong, and the only feedback a wrong structure gets is a
+take line, a name query and one count, because nothing is printed when a part is dropped, when a
+key changes hands, or when a name goes back to being wanted.
+
+Identifiers are in a legacy register - `bind/`, `hold`, `want`, `pull`, `place`, `prune`, `wire`,
+`gives`, `uses`, `spare`, `firm`, `soft` - short but never misleading, and no name misdescribes
+what it holds. That is a choice about the register of real toolchain code rather than an
+obstacle: each is recoverable from what calls it.
+
+The programs are synthetic, in twelve families, with units planted on keys a bundle member
+actually claimed, members reaching backwards as well as forwards, names going back to wanted,
+spares tied on size, parts kept and unreachable, and the two scale families. In a working
+toolchain these are the cases that produce the bug reports nobody can reproduce, and they are
+exactly where this class of defect lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`hold.py` keeps the parts that are in and records, per claim key, which part holds it and
+whether that part came off the input list or out of a bundle. Loading a unit named on the input
+list first drops every bundle-held copy of the keys it carries and only then keeps its own
+parts, so the copy that stands is out of the table before the copy that displaced it enters and
+two parts giving one name under one key never look like a second give. It returns what entered
+and what left, because those are two different things the rest of the stage has to be told about
+separately.
+
+`want.py` is the name table. A name keeps every strong give it has collected, in arrival order,
+and stands on the first; a second give reports and appends. When a displacement removes one, the
+list is what lets the name fall to the next without a word. Wantedness is a count of the strong
+uses standing against it plus whether anything spared it, weighed against whether any strong
+give is left, so it moves down as well as up and survives a give leaving.
+
+`pull.py` indexes each bundle once, by name, to the members that give it in member order. A
+member gives a fixed set of names whatever the table holds, so the index never has to be rebuilt;
+what changes is the wanted set, and a cursor per name walks past the members already taken. The
+member a restart from the first member would stop at is then the smallest live position over the
+names wanted at that moment, which is what the scan is asked for. A group is the same loop over
+several bundles, repeated while a pass takes anything.
+
+`place.py` settles the names nothing gives: the largest size spared, and among those the first
+unit in load order, which is why the load order of every unit is carried rather than the order
+they were declared in. `prune.py` is one walk out from the roots and the held parts through
+strong uses only, and the image is what that walk reached.
+
+`wire.py` drives the input list once, loading a named unit as one off the list and a taken member
+as one out of a bundle, and telling the name table what left before what entered. It keeps the
+take list and the table apart on purpose: a take is printed when it happens and is never unsaid,
+while a part leaves the table the moment a unit off the list takes its key. That is also why the
+prune cannot run until the list is finished, and why the list cannot be settled by asking what
+the prune would keep.
+
+An expert works in that order because each file consumes the one before it: what a load keeps
+decides what the table holds, what the table holds decides which name is wanted, which name is
+wanted decides which member a bundle gives up, and only when the list is done does the question
+of what survives arise at all. The same contract is implemented two further ways in the
+authoring set - one holding the table as one record per name, driving extraction from a log of
+the moments a name entered the wanted set feeding a heap per bundle, and walking the prune
+breadth first from a queue; one putting the whole stage in `wire.py` over lists indexed by
+position, leaving the other five files exactly as they ship - so the split across files and the
+choice of structures are visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/bind/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Thirty hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Four hundred and fifty-six
+further programs are generated inside the verifier from a seed drawn after the agent's container
+is gone, across twelve families that concentrate units planted on keys a bundle member actually
+claimed, names going back to wanted, members reaching backwards inside their own bundle and into
+the bundle before them, spares tied on size, parts kept and unreachable, and the two scale
+families. A submission cannot have seen them, so fitting the shipped examples fails, and so does
+carrying an answer key.
+
+The fences run both ways. Keeping a part whose key is held fails `claim-drop`, `claim-same-unit`
+and `shift-firm`; refusing to drop the displaced one fails `shift-key` and `shift-again`;
+reporting a second give for two parts under one key fails `claim-no-dup`. Leaving a displaced
+part's give in the table fails `shift-key`, and leaving its use in fails `shift-use-gone`.
+Holding one strong give per name fails `shift-rebind`. Letting a weak give settle a name fails
+`weak-give`, letting a weak use want one fails `weak-use-quiet`, and letting a weak use reach
+fails `weak-reach`. Taking the member for the name wanted first rather than the first member
+fails `take-order`; carrying on past the member just taken fails `take-restart`; taking a member
+already loaded fails `take-loaded`; scanning a group once fails `group-pass`; carrying a name
+wanted again back to a bundle already behind it fails `shift-earlier`; re-entering a later bundle
+outside a group fails `group-none`. Placing a spare at the first size fails `spare-size`, leaving
+one placed that nothing gives up on fails `spare-cancel`, and counting a placed name nothing
+reaches fails `spare-reach`. Ignoring a held part fails `prune-hold` and keeping an unreachable
+part fails `prune-drop`.
+
+Thirty-three cheats score 0. Twenty are wrong readings, each caught by the enumerated case
+named for it and each measured to move between two and sixty-four per cent of a generated
+population.
+Three are exactly correct and too slow: the member scan restarted from the first member after
+every take, the wanted set re-read off the kept parts, and reachability asked once per part. One
+is a forgery carrying the frozen answers for every enumerated program, which passes all thirty
+and fails on the programs it could not have seen. The other nine are probes: the answer key, a
+hijacked driver, a planted report, a report planted and the worker exited clean before it could
+be overwritten, malformed records, privilege, a shrunken population, a late reward, and a rewrite
+of the parts of the tree the verifier does not take. Two independently written correct engines
+score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked before
+any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "static-linking",
+  "archive-extraction",
+  "section-groups",
+  "symbol-binding",
+  "link-time-pruning",
+  "tentative-symbols",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the bind stage of a build toolchain: the part that decides which members of an
+archive are pulled in, which copy of a duplicated group stands, what a symbol finally binds to
+and what is thrown away before the image is written. Familiarity with the fact that link order
+is semantics rather than style, that a definition is not settled by the first thing that offers
+one, and that what a stage has already done is not the same as what its final state would say it
+should have done. Comfort with holding a table that loses entries next to a log that does not,
+with the difference between a rule as stated and a structure that can afford it, and with
+telling a defect in the resolver from a defect in what the resolver was handed.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

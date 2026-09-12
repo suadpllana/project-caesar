@@ -1,0 +1,182 @@
+{
+ "claim-drop": [
+  "take lib c",
+  "at f a 0",
+  "img 2 15"
+ ],
+ "claim-no-dup": [
+  "take lib one",
+  "take lib two",
+  "at f one 0",
+  "img 3 12"
+ ],
+ "claim-same-unit": [
+  "take lib c",
+  "at f a 0",
+  "at h c 0",
+  "img 2 15"
+ ],
+ "dup-report": [
+  "take lib c",
+  "take lib c2",
+  "dup f c2",
+  "at f c 0",
+  "img 3 14"
+ ],
+ "group-none": [
+  "take b1 m1",
+  "take b2 m2",
+  "at p3 none",
+  "img 3 9"
+ ],
+ "group-pass": [
+  "take b1 m1",
+  "take b2 m2",
+  "take b1 m3",
+  "at p3 m3 0",
+  "img 4 14"
+ ],
+ "order-list": [
+  "at f d 0",
+  "at h none",
+  "img 2 15"
+ ],
+ "plain-link": [
+  "take lib b",
+  "at f a 0",
+  "at g b 0",
+  "img 2 30"
+ ],
+ "prune-drop": [
+  "take lib m",
+  "at a1 m 0",
+  "at b1 none",
+  "img 2 5"
+ ],
+ "prune-hold": [
+  "take lib m",
+  "take lib n",
+  "at b1 m 1",
+  "at c1 n 0",
+  "img 4 17"
+ ],
+ "prune-root": [
+  "take lib m",
+  "take lib n",
+  "at d1 n 0",
+  "img 4 18"
+ ],
+ "shift-again": [
+  "take lib c",
+  "take lib w1u",
+  "take lib2 fx",
+  "at f fx 0",
+  "at w2 none",
+  "img 3 15"
+ ],
+ "shift-earlier": [
+  "take lib c",
+  "at f none",
+  "img 1 3"
+ ],
+ "shift-firm": [
+  "at f first 0",
+  "at z none",
+  "img 2 12"
+ ],
+ "shift-key": [
+  "take lib c",
+  "take lib h1",
+  "take lib2 e",
+  "at f d 0",
+  "at h none",
+  "at j e 0",
+  "img 3 22"
+ ],
+ "shift-rebind": [
+  "take lib c",
+  "take lib c2",
+  "dup f c2",
+  "at f c2 0",
+  "at w c2 0",
+  "img 2 10"
+ ],
+ "shift-second": [
+  "take lib one",
+  "take lib two",
+  "at f one 0",
+  "at w none",
+  "img 2 8"
+ ],
+ "shift-use-gone": [
+  "take lib c",
+  "at f d 0",
+  "at u1 none",
+  "img 2 15"
+ ],
+ "spare-cancel": [
+  "take lib m",
+  "at s1 m 0",
+  "img 2 13"
+ ],
+ "spare-reach": [
+  "at s1 none",
+  "at s2 spare a 30",
+  "img 3 40"
+ ],
+ "spare-size": [
+  "at s1 spare b2 40",
+  "img 2 44"
+ ],
+ "spare-want": [
+  "take lib m",
+  "at s1 none",
+  "img 1 4"
+ ],
+ "take-loaded": [
+  "take lib m2",
+  "at n1 m2 0",
+  "at z none",
+  "img 2 6"
+ ],
+ "take-once": [
+  "take lib b",
+  "at f a 0",
+  "at g b 0",
+  "img 2 30"
+ ],
+ "take-order": [
+  "take lib m1",
+  "take lib m2",
+  "img 3 9"
+ ],
+ "take-restart": [
+  "take lib m2",
+  "take lib m1",
+  "at n1 m1 0",
+  "img 3 9"
+ ],
+ "weak-bind": [
+  "take lib wk",
+  "at f wk 0",
+  "img 2 7"
+ ],
+ "weak-give": [
+  "take lib wk",
+  "take lib st",
+  "at f st 0",
+  "img 3 16"
+ ],
+ "weak-reach": [
+  "take lib m",
+  "take lib n",
+  "at b1 none",
+  "img 3 9"
+ ],
+ "weak-use-quiet": [
+  "take lib m1",
+  "at f none",
+  "at m m1 0",
+  "img 2 7"
+ ]
+}

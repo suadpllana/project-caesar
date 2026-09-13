@@ -608,6 +608,31 @@ are wrong readings now, not affordable-but-slow ones - so the revision left the 
 resting on the single cheat written for it. Three of the four guards on the task's one
 timing-decided property had quietly stopped guarding it.
 
+### Where the repair leaves it
+
+Everything below was run against the shipped `tests/test.sh` at `wall=240`, two containers
+emulated on one host (one core of a 2.1 GHz Xeon, Python 3.11 against the image's 3.14, so the
+reference timings here are the pessimistic ones).
+
+| row                | result | worker |
+|--------------------|--------|--------|
+| oracle, six runs   | **1** every time | 25.0, 25.9, 26.1, 28.0, 28.6, 28.7 s |
+| nop                | 0 | killed at the wall |
+| 53 cheats          | 0, every one | 6 killed at the wall, 47 on their traces |
+
+The reference spends 25.0 to 28.7 s of a 240 s limit and 148 MB of 2048 MB. Local gates clean:
+`preflight` (18 warnings, all pre-existing and unchanged by the repair), `imagecheck`,
+`extraneouscheck`, `hintcheck`, `structcheck`, `deadfieldcheck`, `catcheck`, `zipcheck` on the
+107-entry archive.
+
+Two things are known-broken and not fixed here, both pre-existing and neither touching what is
+graded. `tools/onelinecheck.py` cannot run: its record in `authoring/slab-fold-scope/decisions.py`
+reads the parallel-list bucket the twelve-family reference had, and the rewrite replaced it with
+persistent trees, so its feature extraction needs rewriting rather than patching - and a hasty
+one would report a difficulty measurement that is wrong rather than absent. The three stale slow
+cheats named above need rebuilding against the revised contract if the scaling boundary is to
+rest on more than one probe.
+
 ### The lesson
 
 **A limit that was measured once is not measured.** The population grew by half and the number

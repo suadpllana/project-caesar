@@ -576,6 +576,38 @@ present a short line, either of which would raise out of the reaper and score a 
 It now reads a vanishing process as gone, which is what the committed version did before the
 revision narrowed it. The survivor detection it exists for is unchanged.
 
+### Which side of the limit each cheat is actually on
+
+Running all 53 cheats and the nop through the shipped `test.sh` at the new wall: **every one
+scores 0**. Seven of those rows are the worker being killed at the wall rather than a trace
+comparison, so each was re-run over the small programs alone - the 721 that are not the seven
+large ones - to find out whether the limit is load-bearing for it:
+
+| row                                | small programs | caught by |
+|------------------------------------|----------------|-----------|
+| `cheat-revised-global-refresh`     | 171 differ     | correctness |
+| `cheat-revised-hull-edges`         | 14 differ      | correctness |
+| `cheat-slow-copy`                  | 241 differ     | correctness |
+| `cheat-slow-per-key`               | 241 differ     | correctness |
+| `cheat-slow-scan`                  | 241 differ     | correctness |
+| `cheat-mixed-whole-bucket`         | 249 differ     | correctness |
+| `cheat-revised-slow-copy-snapshot` | **0 differ**   | **the limit alone** |
+
+So one cheat, not four, is the scaling boundary. It agrees with the sealed answers on all 721
+small programs and is separated from the reference by nothing but the clock - which is exactly
+what a scaling boundary is, and the reason the limit has to be a measured number rather than an
+inherited one. How far apart they are, measured: it gets through 413 of `wide-0`'s 88612 lines
+in 300 s, a projected 64000 s for the program the reference finishes in 4.6 s, and 1176 of
+`source_dormant-0`'s 56042 in 300 s, a projected 14300 s against 3.1 s. Three orders of
+magnitude, so 240 s cannot be reached from either direction by a machine being fast or slow.
+
+Worth recording as a defect in the cheat suite rather than a result: `cheat-slow-copy`,
+`cheat-slow-per-key` and `cheat-slow-scan` are carried over from the twelve-family design and
+are now caught on 241 small programs each. They no longer test what their names claim - they
+are wrong readings now, not affordable-but-slow ones - so the revision left the scaling boundary
+resting on the single cheat written for it. Three of the four guards on the task's one
+timing-decided property had quietly stopped guarding it.
+
 ### The lesson
 
 **A limit that was measured once is not measured.** The population grew by half and the number

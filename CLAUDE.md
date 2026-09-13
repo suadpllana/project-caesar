@@ -338,6 +338,22 @@ at 0, 0, 0. The cause was the worker's wall clock, and the diagnosis is the reus
   The limit appears in `tests/test.sh`, in `instruction.md` and in `task.toml`; only the first
   one does anything. They were changed together, and grepping the bundle for the old value is
   the check.
+- **Ask which cheat a boundary actually rests on, because names survive a redesign and
+  behaviour does not.** All 53 cheats and the nop score 0, but seven of those rows are the
+  worker being killed at the wall rather than a trace comparison, and a row killed at the wall
+  does not say why it would have failed. Re-running each over the small programs alone
+  separates them: six are caught on correctness anyway - `cheat-slow-copy`, `cheat-slow-per-key`
+  and `cheat-slow-scan` now differ on 241 small programs each, because they were written for the
+  twelve-family contract and were carried across the rewrite unchanged. They are wrong readings
+  wearing the names of affordable-but-slow ones. That leaves the entire scaling boundary resting
+  on one cheat, `cheat-revised-slow-copy-snapshot`, the only one that agrees on all 721 small
+  programs. A suite that still scores all-zero can have stopped testing the property it was
+  built for, and all-zero is exactly what hides it.
+- **Measure the separation, not just the verdict.** The one real boundary cheat gets through 413
+  of `wide-0`'s 88612 lines in 300 s - a projected 64000 s for the program the reference finishes
+  in 4.6 s. Knowing it is three orders of magnitude away, rather than merely "over the wall", is
+  what says the limit can be moved for the reference's sake without letting it through, and it is
+  the difference between choosing 240 s and guessing it.
 - **Widening what gates the reward widens what can fail it.** The same revision made
   `reap.py`'s exit status a third condition on the reward, while narrowing its `/proc` scan to
   `FileNotFoundError` and `ProcessLookupError` and parsing with a bare `line.split()[1]`. A

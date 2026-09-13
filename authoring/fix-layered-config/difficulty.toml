@@ -1,0 +1,228 @@
+# Difficulty record for fix-layered-config, written at the easiness recovery of 2026-09-13.
+# Every claim is restated in tasks/fix-layered-config/STATE.md; nothing here is tuned to the score.
+
+[task]
+slug = "fix-layered-config"
+status = "pending"
+sources = [
+  "tasks/fix-layered-config/STATE.md",
+  "tasks/fix-layered-config/task.toml",
+  "tasks/fix-layered-config/instruction.md",
+  "tasks/fix-layered-config/tests/cases.py",
+  "tasks/fix-layered-config/cheat/",
+  "authoring/fix-layered-config/readings.py",
+  "authoring/fix-layered-config/variants/",
+  "probes/fix-layered-config/notes.md",
+]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Read the six editable files against the brief and rewrite all six in one pass: an immutable
+tree of definitions with a count on every node, a copy that shares the source's node, an
+installation that wraps that node with a lazy path rewrite, values remembered by definition and
+view; then, for the window, a node holding the source path that a lookup follows when it passes
+it, and a count that enumerates what shows beneath it. This is the plan all three probe agents
+wrote before running a plan, plus the obvious extension for the new operation.
+"""
+first_plan_source = "instruction"
+breaking_rule = """
+From the tie on, the destination and every path under it show what the source and the matching
+path under it show in the view being read, a removal under it leaves nothing from the source
+showing there until it is written again, and a copy of what shows carries the definitions shown
+at that entry and nothing of the tie. A node can then no longer carry its own count, a copy can
+no longer be a shared pointer, and a copy must resolve the ties beneath it in the view that was
+current when it was taken rather than the view being read.
+"""
+second_discovery = """
+Having built a tie that settles its source prefix as a logical node and then descends the rest
+of the path within it, the service passes every hand case and fails a plan where a lookup
+passes the same source prefix twice on its way to a written path: a tie whose source is deeper
+than its destination, reached through another tie. The stated rule is that a lookup stops only
+where it comes back to a path it has already been through, so inheritance has to be followed
+full path by full path, and the count correction that made the wide family affordable is exact
+only where no lookup cut itself off, which forces a second, literal counting path for rings.
+The author records finding the first discovery by thinking about a copy of a window and this one
+never without the fuzz.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read run_plan.py and cfg/lex.py to learn the op set and that a tie's source and destination may not overlap",
+  "read the shipped cfg/pile.py and notice the store is a dict with a one-level tie lookup and no notion of a mask",
+  "write an immutable tree with markers at cleared, tied and copied paths, each edit copying only its spine",
+  "define what a path shows as its written node plus what the nearest marker above makes it inherit, followed path by path with the paths already visited carried along",
+  "give each tie and each installation one moved definition per source definition, so identity survives the move",
+  "capture a copy as the logical node it was given, in the view it was given in, so taking it costs nothing and the ties beneath it stay frozen",
+  "count by the correction walk over written nodes, and fall back to enumerating what shows where a lookup cut itself off",
+  "key values and circularity by definition identity and view, as before",
+  "time plans/wide.txt and the doubling plans, multiply by three, and check the whole batch against the limit",
+]
+
+[search]
+best_page = """
+The neighbouring real machinery: prototype delegation in JavaScript, overlays in Nix, extends in
+Jsonnet and CUE, and tombstones in overlay filesystems, each of which documents one part of the
+behaviour a window has here.
+"""
+helps_plan = false
+deviation = """
+No public description states this rule set - a window whose definitions are moved as they show,
+whose masks outlive a later write beneath them, whose copy is frozen in the view it was taken
+in, whose lookups stop only at a path already been through, counted under a twenty-four-segment
+bound - and the graded object is this service's exact trace.
+"""
+
+[tactics]
+A1 = """
+The prior for a live window is a pointer resolved at lookup time and, for counting, a stored
+count or an enumeration; the first is wrong and the second is correct and dies. The prior for
+freezing a window is to capture the node it points at, which keeps the ties beneath it live.
+"""
+A2 = """
+Nothing is named: no prototype, no delegation, no inheritance, no overlay, no tombstone, no
+hash-consing. The brief says what a path shows and when.
+"""
+A3 = """
+A count affordable over twenty thousand inherited paths, a copy that is O(1) over a doubling
+window, and a lookup exact through rings have no single structure that gives all three; the
+pair walk over written nodes, the captured logical node and the per-path chain each come from a
+different reading of the same rules.
+"""
+B2 = """
+The six modules must agree on one notion of what a path shows: the store resolves it, the
+definitions are moved by it, the roll clears by it, the evaluator reads through it and the
+answers count it. All six ship wrong, and the shipped tie is wrong in four ways at once.
+"""
+C1 = """
+Both fences on every new axis: tie-follows-source against tie-mix-freezes, tie-cut-masks
+against tie-put-at-mask-root, tie-under-copy-is-live against tie-frozen-below-copy,
+tie-ring-through-ancestor against tie-ring-twice-through-one-tie, tie-empty-source against
+tie-clears-destination.
+"""
+C2 = """
+No oracle: the shipped tied.txt prints wrong lines, a spec-derived brute-force model is right
+for free and confirms nothing about the fast structures, and the two execution boundaries are
+the only feedback a wrong structure gets.
+"""
+C3 = """
+Two measured boundaries with derivable fast paths: counting by enumerating what shows against
+the correction walk over written nodes, and freezing a copy by writing it out against capturing
+the logical node it was given; the timings are in authoring/fix-layered-config/timing.txt.
+"""
+C4 = """
+All-or-nothing over 85 enumerated plans and 692 nonce plans in seventeen shaped and four scale
+families, generated inside the verifier from a seed drawn after the agent's container is gone.
+"""
+guard = """
+Only the six files under /app/cfg/ are declared artifacts; the verifier overlays them onto its
+own pristine copy of the tree, so the parser with its overlap rejection, the output writer and
+the driver cannot be reshaped by the agent.
+"""
+
+[decisions]
+graded = 18
+interactions = [
+  { a = "a tie shows what its source shows in the view being read (sweep 13)", b = "tot counts the paths at or under a path that hold a definition (sweep 11)", why = "what shows under a tied prefix is the source's structure minus what the destination's writes and removals hide, so a count stored on a node is wrong and an enumeration is right and unaffordable; the exact count is a correction walk over what was written, and only over that" },
+  { a = "a copy carries the definitions shown at that entry and nothing of the tie (sweep 15)", b = "a copy replaces the destination and shares definitions rather than values (sweeps 6 and 7)", why = "a copy of a tied subtree cannot be the shared pointer the old contract allowed, and the ties beneath the copied subtree must resolve in the view that was current when it was taken, so a copy has to capture a logical node in a view rather than a node" },
+  { a = "a lookup stops only where it comes back to a path it has already been through (sweep 17)", b = "a tie's definitions are moved on their current operands, so ties compose (sweep 16)", why = "settling a tie's source prefix as a node before descending cuts a lookup that merely passes the same prefix twice on its way to a written path, so inheritance must be followed full path by full path, and the memo of logical nodes cannot remember a node built under a cut-off" },
+  { a = "a removal under a tie masks until written again, and a later put beneath it shows only itself (sweep 14)", b = "a removal takes everything under the path (sweep 5)", why = "the same op leaves nothing behind outside a tie and a mask inside one, and the mask must survive a put at its own path while a put beneath it must show, which the old tree, that pruned empty nodes, cannot represent" },
+  { a = "within one tie each distinct source definition becomes one definition (sweep 16)", b = "circularity is per definition and view, not per text (sweep 9)", why = "a tie that makes a new definition every time one shows never finds circularity through it and recurses until the interpreter gives up, so the moved definition has to be cached per source definition per tie, exactly as an installation already had to" },
+  { a = "a path of more than twenty-four segments shows nothing (sweep 18)", b = "the count correction walk (sweep 13 with 11)", why = "an inherited node stands at a path of its own, so a budget carried across a shortcut into it counts paths beyond the bound unless it is clamped at every node's own path; both fast counters got this wrong and the literal enumeration did not" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Freezing a tie fails tie-follows-source and tie-same-layer-live; leaving a copy of a tie live
+fails tie-mix-freezes and tie-frozen-below-copy; masking too much fails tie-put-at-mask-root
+and tie-cut-masks (the put beneath the mask must show); refusing an overlap that is not one
+fails nothing, but rejecting rings at the entry fails tie-ring-mutual, which has answers.
+"""
+late_case = """
+The fast structures fail on plans an agent does not write unprompted: a tie whose source is
+deeper than its destination, reached through another tie, where a lookup passes one prefix
+twice on its way to a written path (tie-ring-deep-source); a three-way ring with one written
+path (the fuzz's first find); the twenty-four-segment bound reached through a ring
+(tie-count-bound); and, at scale, the forty counts over twenty thousand inherited paths and the
+window copied back under its own source twenty-one times.
+"""
+oracle_denied = """
+A brute-force model written from the brief walks the path, follows the tie and keeps a set of
+paths seen, gets every rule right for free, and confirms nothing about the structures that
+have to replace the first plan; the shipped tied.txt prints wrong lines; all six shipped
+modules are wrong; and the execution limit is the only feedback a correct-but-slow count or
+copy gets.
+"""
+
+[leaks]
+candidates = [
+  { what = "an expected line beside a shipped plan", closed_by = "the tree ships six plans and no expected line for any of them; the one line the brief quotes is the count of a two-path plan with no tie" },
+  { what = "a count, a logical node, a moved definition, a mask or a captured view in the shipped store", closed_by = "none ships: the shipped store is a dict of written definitions and a dict of tie destinations to sources, which is what the plan said and nothing derived from it" },
+  { what = "pile.tie, pile.find and pile.count as unused affordances", closed_by = "all three are on the live path through roll.py, work.py and ans.py; the preflight warning that said otherwise was the linter missing module-qualified calls, fixed and checked on the retained bundles" },
+  { what = "gt.json and the sealed model", closed_by = "baked into the verifier image only, in tests/seal chmod 700 before any agent code runs; the answer-key probe cannot read it" },
+  { what = "per-axis confirmation before commit", closed_by = "one trace per plan, all-or-nothing, and the shipped one-level tie lookup answers most small tie plans wrongly in more than one way at once" },
+]
+derived_quantities = """
+The shipped store holds definitions keyed by path with their expression and writing layer, and
+tie destinations keyed to their sources; no count, no logical node, no moved definition, no mask
+and no captured view ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Counting what shows under a tied prefix by enumerating every path that shows, which is correct
+and cannot finish the forty counts over twenty thousand inherited paths in wide.txt; writing out
+what a copy shows when the copy is taken, which is correct and dies on the plan that copies a
+tie's window back under its own source twenty-one times; and remembering no value already
+worked out. All three produce exactly the reference's lines where they finish.
+"""
+invariant = """
+What shows under a path is the source's structure minus what was written under the path, so
+the count is a correction walk bounded by the written nodes, shared across views wherever the
+physical node is; a copy captures a logical node in a view, so its cost is a pointer and the
+ties beneath it are resolved in that view on demand.
+"""
+input_scale = """
+wide.txt: twenty thousand paths under two prefixes, a third prefix tied to the first, five
+hundred layers with a write or removal under the tied prefix in each, forty counts; tiedeep:
+a tie's window copied back under its source twenty-one times, doubling what shows each time,
+with sparse writes and removals inside the copies; three plans of each in the graded batch.
+"""
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a tie is taken as an ordinary copy, or as an installation", hand_case = "tie-chain-composes: a tie of a tie with a write at the middle link, asked at every link" },
+  { reading = "a tie shows the source's definitions with their operands unmoved", hand_case = "tie-chain-composes: a tie of a tie with a write at the middle link, asked at every link" },
+  { reading = "a tie captures the store before its entry as the view old reads", hand_case = "tie-chain-old-keeps-view: a shown definition reading old, with the destination written before the tie" },
+  { reading = "a removal under a tie takes nothing away from what the tie shows", hand_case = "map-cut-shared-descendant: a removal under an installed subtree shared with a second installation" },
+  { reading = "a put at a removed path under a tie lets the source show beneath it again", hand_case = "tie-put-at-mask-root: a put at a removed path under a tie, whose descendants must stay hidden" },
+  { reading = "a put beneath a removed path under a tie stays hidden", hand_case = "tie-cut-masks: a removal under a tie followed by a put beneath it that must show" },
+  { reading = "a copy of a tied subtree keeps following the tie's source", hand_case = "loop-moves-with-stop: a copy of a circular definition asked at three counts, one of them healthy" },
+  { reading = "a copy freezes the subtree it was given and leaves the ties beneath it live", hand_case = "tie-frozen-below-copy: a copy of a prefix whose descendant is tied, then the tie's source moves" },
+  { reading = "a tie shows only what is written at its source, not what the source shows through a tie of its own", hand_case = "tie-chain-composes: a tie of a tie with a write at the middle link, asked at every link" },
+  { reading = "a tie makes a new definition every time one shows", hand_case = "tie-loop-through-tie: a self-reference and a two-path ring shown through a tie" },
+  { reading = "a lookup stops at a tie whose source prefix it is already resolving", hand_case = "tie-count-bound: a ring with a source deeper than its destination, counted to the bound" },
+  { reading = "a lookup goes through each tie at most once", hand_case = "tie-count-bound: a ring with a source deeper than its destination, counted to the bound" },
+  { reading = "counts and lookups are bounded at thirty-two segments", hand_case = "tie-count-bound: a ring with a source deeper than its destination, counted to the bound" },
+  { reading = "a tie whose source holds nothing leaves the destination as it was", hand_case = "tie-empty-source: a tie whose source holds nothing, then gains a path in a later layer" },
+  { reading = "a count adds what a tie shows to what was written without removing what the writing hides", hand_case = "map-capture-compose-mix: a capture, an installation of an installation and a copy, counted and asked" },
+  { reading = "the installation is an ordinary copy", hand_case = "map-alias-preserved-in-source: two source paths holding one definition, installed and asked" },
+  { reading = "a copy merges into the destination instead of replacing it", hand_case = "mix-empty-source: a copy from a source that holds nothing over a destination that does" },
+  { reading = "a guard is answered against the store its own layer has left so far", hand_case = "guard-before-cut: a guard on a path removed earlier in the same layer" },
+]
+correct_variants = [
+  "ok-path-memo: values and circularity remembered by path and view rather than by definition and view, equivalent because a path holds one definition per view",
+  "the sealed model itself: a written tree read by path with a seen set per lookup and a count that enumerates what shows, well-founded on the budget, with a shortcut only for regions with nothing written beneath",
+]
+
+[shape]
+environment_py_lines = 385
+editable_files = 6
+reference_lines = 460

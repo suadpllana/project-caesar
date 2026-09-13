@@ -107,7 +107,7 @@ def parse(text):
                 raise ValueError("%s takes a path and an optional layer count" % head)
             asks.append(Qry(head, path(toks[1]), stop, toks[1]))
             continue
-        if head not in ("put", "cut", "mix", "map"):
+        if head not in ("put", "cut", "mix", "map", "tie"):
             raise ValueError("op %r" % head)
         if asks:
             raise ValueError("no entry may follow a query")
@@ -123,5 +123,7 @@ def parse(text):
         else:
             a = path(toks[1])
             b = path(toks[2])
+            if head == "tie" and (a[:len(b)] == b or b[:len(a)] == a):
+                raise ValueError("tie %s %s" % (toks[1], toks[2]))
             layers[-1].append(Ent(head, a, b, None, guard(toks[3:])))
     return Plan(layers, asks)

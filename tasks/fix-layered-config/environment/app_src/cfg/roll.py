@@ -9,6 +9,8 @@ def run(hist, store, j, ents):
             store = pile.put(store, ent.a, made.make(ent.expr, j))
         elif ent.kind == "cut":
             store = pile.cut(store, ent.a)
+        elif ent.kind == "tie":
+            store = pile.tie(store, ent.a, ent.b)
         else:
             store = pile.mix(store, ent.a, ent.b, j)
     return store

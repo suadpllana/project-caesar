@@ -1,15 +1,15 @@
 `/app` is the settings service of a deployment tool, cut down to the part that composes a plan
-and answers questions about it. A plan is a text file of ops. `/app/plans` holds five of them.
+and answers questions about it. A plan is a text file of ops. `/app/plans` holds six of them.
 `lay` opens a layer, and layers are numbered 0, 1, 2 and so on in the order they are opened.
 Every entry belongs to the layer most recently opened. `put p e` gives the path `p` the
 definition `e`. `cut p` takes away the one standing there. `mix s d` copies one subtree over
-another. `map s d` installs a copy with its path references moved to the destination. Of the
-two questions, `ask p` asks what a path says, while `tot p` asks how many paths at or under it
-hold a definition; either may name a layer count after the path. No entry follows a question.
-A path is one to twenty-four segments joined by dots, each segment a lowercase letter and up
-to seven more lowercase letters or digits. Integers are decimal and may be negative.
-`/app/run_plan.py` takes a plan and prints one line per question, in the order the questions
-were written, and nothing else.
+another. `map s d` installs a copy with its path references moved to the destination. `tie s d`
+makes the destination show the source as it stands, from then on. Of the two questions, `ask p`
+asks what a path says, while `tot p` asks how many paths at or under it hold a definition; either
+may name a layer count after the path. No entry follows a question. A path is one to twenty-four
+segments joined by dots, each segment a lowercase letter and up to seven more lowercase letters
+or digits. Integers are decimal and may be negative. `/app/run_plan.py` takes a plan and prints
+one line per question, in the order the questions were written, and nothing else.
 
 An expression is written in prefix form. `lit n` is the integer `n`. `now p` and `old p` name
 a path. `sum` and `top` take two expressions, giving the sum and the larger of them. `pick p a
@@ -58,8 +58,34 @@ Within one `map`, each distinct source definition becomes one new definition. If
 source paths hold the same definition, their mapped paths hold the same new definition.
 Separate `map` entries create separate definitions. A later `put` below a mapped subtree is a
 fresh definition: it does not inherit earlier path changes or captured views. Unchanged
-definitions elsewhere below that subtree keep both. Transformed operands and copied paths stay
-within the twenty-four-segment bound.
+definitions elsewhere below that subtree keep both.
+
+A `tie` takes away what stands at its destination, as `mix` does, and from then on the
+destination and every path under it show what the source and the matching path under it show
+in the view being read: a definition written under the source later shows at once, and one
+taken away stops showing. A path under a tie holds the definition it shows. The definitions
+shown are moved as `map` moves them, path operands under the source becoming the destination
+prefix, acting on their current operands, so a tie whose source is itself tied moves them
+twice. What is written at or under the destination afterwards stands in front of what shows
+there. A `put` gives its own path a definition and changes nothing else. A `cut`, or a `mix`,
+`map` or `tie` whose destination lies under the tie, leaves nothing from the source showing at
+or under that path until it is written again; a later `put` beneath such a path shows, and
+only for its own path. A `cut` at the tied path itself takes the tie away with everything
+under it.
+
+A tie shows definitions, not values, and changes nothing a definition already carries: the
+layer printed is the layer of the original `put`, and `old` keeps the view the source
+definition has. Within one tie, each distinct source definition becomes one definition, the
+same wherever and whenever it shows; a later `put` under the source is a new one. A `mix` or
+`map` whose source shows definitions through a tie carries the definitions shown at that
+entry and nothing of the tie, so the copy stays as it was when the tie's source moves on; a
+tie placed under such a copy afterwards is live like any other. A tie whose source and
+destination overlap is a bad plan, and `/app/run_plan.py` rejects it.
+
+A lookup that reaches a path at or under a tied path continues at the matching path under the
+source, in the same view, and may continue again from there. It finds nothing where it comes
+back to a path it has already been through. A path of more than twenty-four segments shows
+nothing, and `tot` counts only paths of at most twenty-four segments.
 
 Every question counts some number of layers. It is the number a question names, or the whole
 plan where a question names none, or its own layer number in the case of a guard. That count
@@ -83,12 +109,15 @@ answered, then the layer that wrote the definition that answered. Where the answ
 it prints `val p gone`, and where it is circular, `val p loop`. `tot` prints `num p c`, where
 `c` counts the paths at or under `p` that hold a definition.
 
-`/app/plans/wide.txt` puts twenty thousand paths under two prefixes, chains five hundred more
-layers of definitions over them and asks about them at forty different counts.
-`/app/plans/deep.txt` takes a copy that sits beside its own source, twenty-one times over. The
-graded batch includes three plans of each size, three plans with twenty-one such copies using
-`map` and sparse edits within those copies, and hundreds of smaller plans. All of the batch
-must finish inside 60 seconds. `/app/plans/mapped.txt` is a small input using the new
-operation. Run and time the service before calling the repair done.
+`/app/plans/wide.txt` puts twenty thousand paths under two prefixes, ties a third prefix to
+one of them, chains five hundred more layers of definitions over them with a write or a
+removal under the tied prefix in each, and asks about all three at forty different counts.
+`/app/plans/deep.txt` takes a copy that sits beside its own source, twenty-one times over.
+The graded batch includes three plans of each size, three with twenty-one such copies using
+`map` and sparse edits within those copies, three that copy what a tie shows back under the
+tie's own source twenty-one times over with sparse writes and removals inside the copies, and
+hundreds of smaller plans. All of the batch must finish inside 60 seconds.
+`/app/plans/mapped.txt` and `/app/plans/tied.txt` are small inputs using the two newer
+operations. Run and time the service before calling the repair done.
 
 You have 14400 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.

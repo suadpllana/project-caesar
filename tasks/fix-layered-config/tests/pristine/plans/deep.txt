@@ -1,0 +1,87 @@
+lay
+put a.z lit 1
+put a.y.x lit 8
+lay
+mix a a.a
+lay
+mix a a.b
+lay
+mix a a.c
+lay
+mix a a.d
+lay
+mix a a.e
+lay
+mix a a.f
+lay
+mix a a.g
+lay
+mix a a.h
+lay
+mix a a.i
+lay
+mix a a.j
+lay
+mix a a.k
+lay
+mix a a.l
+lay
+mix a a.m
+lay
+mix a a.n
+lay
+mix a a.o
+lay
+mix a a.p
+lay
+mix a a.q
+lay
+mix a a.r
+lay
+mix a a.s
+lay
+mix a a.t
+lay
+mix a a.u
+lay
+cut a.a.z
+tot a 2
+tot a 6
+tot a 10
+tot a 14
+tot a 18
+tot a 22
+tot a
+tot a.a
+tot a.b
+tot a.c
+tot a.d
+tot a.e
+tot a.f
+tot a.g
+tot a.h
+tot a.i
+tot a.j
+tot a.k
+tot a.l
+tot a.m
+tot a.n
+tot a.o
+tot a.p
+tot a.q
+tot a.r
+tot a.s
+tot a.t
+tot a.u
+ask a.u.z
+tot a.u
+ask a.u.t.z
+tot a.u.t
+ask a.u.t.s.z
+tot a.u.t.s
+ask a.u.t.s.r.z
+tot a.u.t.s.r
+ask a.u.t.s.r.q.z
+tot a.u.t.s.r.q
+ask a.u.t.s.r.q.p.z
+tot a.u.t.s.r.q.p

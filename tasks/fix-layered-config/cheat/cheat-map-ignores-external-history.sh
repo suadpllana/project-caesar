@@ -1,74 +1,240 @@
 #!/bin/bash
-# Only reset old history when a path operand actually changed.
+# an installed definition keeps its old view when no path operand of it changed
 set -euo pipefail
 
 cat > /app/cfg/pile.py <<'PYEOF'
-"""Persistent counted tree with lazy installation projections.
-
-Projection is pushed onto the existing children before editing a path. A new put therefore
-escapes the projection, while unmodified siblings retain it. Counts never force projection.
-"""
 from cfg import made
+
+BOUND = 24
+CUT = object()
+
+
+class Tie:
+    __slots__ = ("src", "move")
+
+    def __init__(self, src, move):
+        self.src, self.move = src, move
+
+
+class Copy:
+    __slots__ = ("root", "src", "move")
+
+    def __init__(self, root, src, move):
+        self.root, self.src, self.move = root, src, move
 
 
 class Node:
-    __slots__ = ("dfn", "kids", "n")
+    __slots__ = ("dfn", "kids", "mk", "live", "deep")
 
-    def __init__(self, dfn, kids, n):
-        self.dfn, self.kids, self.n = dfn, kids, n
+    def __init__(self, dfn, kids, mk):
+        self.dfn, self.kids, self.mk = dfn, kids, mk
+        live = type(mk) is Tie
+        deep = 99 if type(mk) is Copy else 0
+        for kid in kids.values():
+            if kid.live:
+                live = True
+            if kid.deep >= deep:
+                deep = kid.deep + 1
+        self.live, self.deep = live, deep
 
 
-class View:
-    __slots__ = ("base", "frame", "n", "ready")
+class Log:
+    __slots__ = ("l", "i", "move", "view", "path", "cut")
 
-    def __init__(self, base, frame):
-        self.base, self.frame, self.n = base, frame, base.n
-        self.ready = None
+    def __init__(self, l, i, move, view, path, cut):
+        self.l, self.i, self.move, self.view, self.path, self.cut = l, i, move, view, path, cut
 
 
-ROOT = Node(None, {}, 0)
+class Cache:
+    """Per-run tables: logical nodes by (view, path), plain ones by physical node, and counts."""
+
+    def __init__(self):
+        self.logs = {}
+        self.plain = {}
+        self.cnt = {}
+
+
+ROOT = Node(None, {}, None)
 
 
 def empty():
     return ROOT
 
 
-def wrap(base, frame):
-    if base is None:
-        return None
-    got = frame.nodes.get(base)
-    if got is None:
-        got = View(base, frame)
-        frame.nodes[base] = got
-    return got
+# ---- the written walk ---------------------------------------------------------------------
 
-
-def expose(node):
-    if isinstance(node, View):
-        if node.ready is None:
-            base = expose(node.base)
-            node.ready = Node(node.frame.bind(base.dfn),
-                              {k: wrap(v, node.frame) for k, v in base.kids.items()}, node.n)
-        return node.ready
-    return node
-
-
-def _down(node, path):
+def _local(node, path):
     for seg in path:
+        node = node.kids.get(seg)
         if node is None:
             return None
-        node = expose(node).kids.get(seg)
     return node
+
+
+def _nearest(root, path):
+    """The deepest marked node on the written walk of `path`, and how many segments it took."""
+    node, found, taken = root, None, 0
+    for i, seg in enumerate(path):
+        node = node.kids.get(seg)
+        if node is None:
+            break
+        if node.mk is not None:
+            found, taken = node, i + 1
+    return found, taken
+
+
+# ---- logical nodes -------------------------------------------------------------------------
+
+def node(cache, view, path, chain=()):
+    """The Log at `path` in `view`, or None when nothing is written or shown there.
+
+    `chain` holds the (view, path) pairs this lookup is already working out; an inherited path
+    among them leads nowhere, and a Log built with such a cut-off is never remembered.
+    """
+    if len(path) > BOUND:
+        return None
+    key = (view, path)
+    got = cache.logs.get(key)
+    if got is not None:
+        return got
+    l = _local(view, path)
+    mark, taken = _nearest(view, path)
+    if mark is None or mark.mk is CUT:
+        if l is None:
+            return None
+        if not l.live:
+            got = cache.plain.get(l)
+            if got is None:
+                got = Log(l, None, None, view, path, False)
+                cache.plain[l] = got
+            return got
+        log = Log(l, None, None, view, path, False)
+        cache.logs[key] = log
+        return log
+    mk = mark.mk
+    if type(mk) is Tie:
+        at = (view, mk.src + path[taken:])
+    else:
+        at = (mk.root, mk.src + path[taken:])
+    if at in chain:
+        i, cut = None, True
+    else:
+        i = node(cache, at[0], at[1], chain + (key, at) if not chain else chain + (at,))
+        cut = i is not None and i.cut
+    if l is None and i is None:
+        return None
+    log = Log(l, i, mk.move, view, path, cut)
+    if not cut:
+        cache.logs[key] = log
+    return log
+
+
+def child(cache, log, seg):
+    return node(cache, log.view, log.path + (seg,))
+
+
+def has(log):
+    while log is not None:
+        if log.l is not None and log.l.dfn is not None:
+            return True
+        log = log.i
+    return False
+
+
+def defn(log):
+    if log is None:
+        return None
+    l = log.l
+    if l is not None and l.dfn is not None:
+        return l.dfn
+    got = defn(log.i)
+    return got if log.move is None else log.move.bind(got)
+
+
+def _kids(log):
+    out = set()
+    while log is not None:
+        if log.l is not None:
+            out.update(log.l.kids)
+        log = log.i
+    return out
+
+
+def count(cache, log, budget):
+    """Paths at or under this logical node, up to `budget` segments below it, that show.
+
+    The budget is clamped to what the bound leaves below this node's own path, because an
+    inherited node stands at a path of its own and what is beyond the bound under it shows
+    nothing however short the path that inherits it."""
+    if log is None:
+        return 0
+    budget = min(budget, BOUND - len(log.path))
+    if budget < 0:
+        return 0
+    l, i = log.l, log.i
+    if log.cut:
+        total = 1 if has(log) else 0
+        for seg in _kids(log):
+            total += count(cache, child(cache, log, seg), budget - 1)
+        return total
+    fixed = i is None and not l.live and budget >= l.deep
+    key = (log, None if fixed else budget)
+    got = cache.cnt.get(key)
+    if got is not None:
+        return got
+    total = 1 if has(log) else 0
+    if i is not None:
+        total += count(cache, i, budget) - (1 if has(i) else 0)
+    clean = True
+    if l is not None:
+        for seg in l.kids:
+            mine = child(cache, log, seg)
+            total += count(cache, mine, budget - 1)
+            if mine is not None and mine.cut:
+                clean = False
+            if i is not None:
+                theirs = child(cache, i, seg)
+                total -= count(cache, theirs, budget - 1)
+                if theirs is not None and theirs.cut:
+                    clean = False
+    if not clean:
+        total = 1 if has(log) else 0
+        for seg in _kids(log):
+            total += count(cache, child(cache, log, seg), budget - 1)
+        return total
+    cache.cnt[key] = total
+    return total
+
+
+# ---- what a path shows -------------------------------------------------------------------
+
+def find(cache, root, path):
+    return defn(node(cache, root, path))
+
+
+def total(cache, root, path):
+    return count(cache, node(cache, root, path), BOUND - len(path))
+
+
+# ---- edits, each returning a new root ----------------------------------------------------
+
+def _inherits_above(node, path):
+    for seg in path[:-1]:
+        node = node.kids.get(seg)
+        if node is None:
+            return False
+        if node.mk is not None and node.mk is not CUT:
+            return True
+    return False
 
 
 def _graft(node, path, i, sub):
     if i == len(path):
         return sub
-    node = expose(node)
     old = None if node is None else node.kids.get(path[i])
     kid = _graft(old, path, i + 1, sub)
     if node is None:
-        return None if kid is None else Node(None, {path[i]: kid}, kid.n)
+        return None if kid is None else Node(None, {path[i]: kid}, None)
     if kid is None and old is None:
         return node
     kids = dict(node.kids)
@@ -76,54 +242,47 @@ def _graft(node, path, i, sub):
         kids.pop(path[i], None)
     else:
         kids[path[i]] = kid
-    return Node(node.dfn, kids, node.n - (0 if old is None else old.n)
-                + (0 if kid is None else kid.n))
+    return Node(node.dfn, kids, node.mk)
 
 
 def put(store, path, dfn):
-    at = expose(_down(store, path))
-    node = Node(dfn, {} if at is None else at.kids,
-                1 if at is None else at.n + (at.dfn is None))
-    return _graft(store, path, 0, node)
+    at = _local(store, path)
+    made_node = Node(dfn, {}, None) if at is None else Node(dfn, at.kids, at.mk)
+    return _graft(store, path, 0, made_node)
 
 
 def cut(store, path):
-    return _graft(store, path, 0, None)
+    sub = Node(None, {}, CUT) if _inherits_above(store, path) else None
+    return _graft(store, path, 0, sub)
 
 
-def mix(store, src, dst, at):
+def mix(store, src, dst):
     cleared = cut(store, dst)
-    return _graft(cleared, dst, 0, made.carried(_down(cleared, src), at))
+    return _graft(cleared, dst, 0, Node(None, {}, Copy(cleared, src, None)))
 
 
 def mapped(store, src, dst):
-    frame = made.Frame(src, dst, store)
     cleared = cut(store, dst)
-    return _graft(cleared, dst, 0, wrap(_down(cleared, src), frame))
+    return _graft(cleared, dst, 0, Node(None, {}, Copy(cleared, src, made.Move(src, dst, store))))
 
 
-def find(store, path):
-    node = expose(_down(store, path))
-    return None if node is None else node.dfn
-
-
-def count(store, path):
-    node = _down(store, path)
-    return 0 if node is None else node.n
+def tie(store, src, dst):
+    cleared = cut(store, dst)
+    return _graft(cleared, dst, 0, Node(None, {}, Tie(src, made.Move(src, dst, None))))
 PYEOF
 
 cat > /app/cfg/past.py <<'PYEOF'
-"""Layer roots coexist with entry snapshots captured by template copies."""
 from cfg import pile, roll
 
 
 class Hist:
-    __slots__ = ("at", "top", "memo", "busy")
+    __slots__ = ("at", "top", "memo", "busy", "cache")
 
     def __init__(self, top):
         self.at = [pile.empty()]
         self.top = top
         self.memo, self.busy = {}, set()
+        self.cache = pile.Cache()
 
     def store(self, stop):
         return self.at[stop]
@@ -141,8 +300,6 @@ def stop_of(hist, named):
 PYEOF
 
 cat > /app/cfg/made.py <<'PYEOF'
-"""Binding origin, predecessor view, and one template installation."""
-
 class Dfn:
     __slots__ = ("expr", "home", "prior")
 
@@ -164,16 +321,17 @@ def reported(dfn):
     return dfn.home
 
 
-def carried(sub, at):
-    return sub
+class Move:
+    """One installation: a source prefix, a destination prefix, and the definitions it made.
 
+    `prior` is None for a tie, which leaves each definition the view it already has, and the
+    captured root for a map, which gives every definition it makes that view instead.
+    """
+    __slots__ = ("src", "dst", "prior", "defs")
 
-class Frame:
-    __slots__ = ("src", "dst", "view", "defs", "nodes")
-
-    def __init__(self, src, dst, view):
-        self.src, self.dst, self.view = src, dst, view
-        self.defs, self.nodes = {}, {}
+    def __init__(self, src, dst, prior):
+        self.src, self.dst, self.prior = src, dst, prior
+        self.defs = {}
 
     def path(self, path):
         n = len(self.src)
@@ -194,14 +352,14 @@ class Frame:
             return None
         got = self.defs.get(dfn)
         if got is None:
-            expr = self.expr(dfn.expr)
-            got = Dfn(expr, dfn.home, self.view if expr != dfn.expr else dfn.prior)
+            moved = self.expr(dfn.expr)
+            got = Dfn(moved, dfn.home,
+                      dfn.prior if self.prior is None or moved == dfn.expr else self.prior)
             self.defs[dfn] = got
         return got
 PYEOF
 
 cat > /app/cfg/roll.py <<'PYEOF'
-"""Guards read layer starts; maps capture entry starts before clearing."""
 from cfg import made, pile, work
 
 
@@ -214,15 +372,16 @@ def run(hist, j, ents):
             store = pile.put(store, ent.a, made.make(ent.expr, j))
         elif ent.kind == "cut":
             store = pile.cut(store, ent.a)
+        elif ent.kind == "mix":
+            store = pile.mix(store, ent.a, ent.b)
         elif ent.kind == "map":
             store = pile.mapped(store, ent.a, ent.b)
         else:
-            store = pile.mix(store, ent.a, ent.b, j)
+            store = pile.tie(store, ent.a, ent.b)
     return store
 PYEOF
 
 cat > /app/cfg/work.py <<'PYEOF'
-"""Evaluate binding identity in an explicit complete store view."""
 import sys
 from cfg import made, pile
 
@@ -230,13 +389,13 @@ sys.setrecursionlimit(20000)
 GONE, LOOP = "gone", "loop"
 
 
+def in_view(hist, path, view):
+    dfn = pile.find(hist.cache, view, path)
+    return GONE if dfn is None else value(hist, dfn, view)
+
+
 def at_path(hist, path, stop):
     return in_view(hist, path, hist.store(stop))
-
-
-def in_view(hist, path, view):
-    dfn = pile.find(view, path)
-    return GONE if dfn is None else value(hist, dfn, view)
 
 
 def at_def(hist, dfn, stop):
@@ -269,7 +428,7 @@ def ev(hist, expr, prior, view):
     if kind == "old":
         return in_view(hist, expr[1], prior)
     if kind == "pick":
-        side = 3 if pile.find(view, expr[1]) is None else 2
+        side = 3 if pile.find(hist.cache, view, expr[1]) is None else 2
         return ev(hist, expr[side], prior, view)
     left = ev(hist, expr[1], prior, view)
     if not isinstance(left, int):
@@ -286,7 +445,6 @@ def guard_holds(hist, guard, j):
 PYEOF
 
 cat > /app/cfg/ans.py <<'PYEOF'
-"""Select and evaluate against the same layer view, reporting put origin."""
 from cfg import made, past, pile, say, work
 
 
@@ -294,8 +452,8 @@ def answer(hist, qry):
     stop = past.stop_of(hist, qry.stop)
     store = hist.store(stop)
     if qry.kind == "tot":
-        return say.tot(qry.shown, pile.count(store, qry.path))
-    dfn = pile.find(store, qry.path)
+        return say.tot(qry.shown, pile.total(hist.cache, store, qry.path))
+    dfn = pile.find(hist.cache, store, qry.path)
     if dfn is None:
         return say.gone(qry.shown)
     got = work.at_def(hist, dfn, stop)
@@ -305,3 +463,4 @@ def answer(hist, qry):
         return say.loop(qry.shown)
     return say.val(qry.shown, got, made.reported(dfn))
 PYEOF
+

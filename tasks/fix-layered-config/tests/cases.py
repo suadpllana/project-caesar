@@ -382,3 +382,327 @@ PLANS.update({
     'map-composed-prefix-reentry': 'lay\nput a.k lit 2\nput a.v now a.k\nmap a b\nmap b a\nput a.k lit 11\nput b.k lit 7\nask a.v\nask b.v\n',
     'map-old-loop-in-captured-view': 'lay\nput src.v old src.x\nput dst.x now dst.y\nput dst.y now dst.x\nlay\nmap src dst\nput dst.x lit 7\nput dst.y lit 9\nask dst.v\nask dst.x\nask src.v\n',
 })
+
+# 2026-09-13 tie contract. Existing hand cases remain above; every answer frozen before this
+# date is checked unchanged by authoring/fix-layered-config/build_gt.py.
+PLANS.update({
+
+    # ---- 13. a tie follows its source, and a write under it shadows one path ----
+
+    "tie-follows-source": """lay
+put s.k lit 2
+put s.v now s.k
+tie s d
+put s.k lit 5
+lay
+put d.k lit 9
+ask d.v
+ask d.k
+ask s.v
+ask d.v 1
+tot d
+tot s
+""",
+
+    "tie-same-layer-live": """lay
+put s.k lit 1
+tie s d
+put s.x lit 2
+ask d.x
+ask d.k
+tot d
+""",
+
+    "tie-clears-destination": """lay
+put d.stale lit 4
+put s.k lit 1
+lay
+tie s d
+ask d.stale
+ask d.stale 1
+tot d
+""",
+
+    "tie-root-definition": """lay
+put s lit 3
+put s.v now s
+tie s d
+put d lit 8
+ask d
+ask d.v
+ask s.v
+""",
+
+    # ---- 14. a removal under a tie masks, and a later write beneath it shows only itself ----
+
+    "tie-cut-masks": """lay
+put s.a.x lit 1
+put s.a.y lit 2
+put s.b.x lit 3
+tie s d
+lay
+cut d.a
+put d.a.z lit 7
+ask d.a.x
+ask d.a.z
+ask d.b.x
+tot d
+tot d 1
+""",
+
+    "tie-put-at-mask-root": """lay
+put s.a.x lit 1
+tie s d
+lay
+cut d.a
+lay
+put d.a lit 5
+ask d.a
+ask d.a.x
+tot d
+""",
+
+    "tie-cut-at-root-removes": """lay
+put s.x lit 1
+tie s d
+lay
+cut d
+lay
+put s.y lit 2
+ask d.x
+ask d.y
+tot d
+""",
+
+    # ---- 15. a copy of a tied region is frozen; a tie under a copy is live ----
+
+    "tie-mix-freezes": """lay
+put s.x lit 1
+put s.v now s.x
+tie s d
+mix d k
+map d m
+lay
+put s.x lit 7
+ask d.x
+ask k.x
+ask m.x
+ask k.v
+ask m.v
+tot k
+""",
+
+    "tie-frozen-below-copy": """lay
+put s.x lit 1
+put r.d.y lit 2
+tie s r.d
+lay
+mix r k
+put s.x lit 5
+ask k.d.x
+ask r.d.x
+ask k.d.y
+tot k
+""",
+
+    "tie-under-copy-is-live": """lay
+put u.x lit 1
+put r.y lit 2
+lay
+mix r k
+tie u k.t
+lay
+put u.x lit 9
+ask k.t.x
+ask k.t.x 2
+tot k
+""",
+
+    "tie-copy-source-cleared-first": """lay
+put s.a.x lit 1
+put u.y lit 5
+tie s d
+mix u d.a
+lay
+put u.y lit 6
+put s.a.x lit 2
+ask d.a.y
+ask d.a.x
+tot d
+""",
+
+    # ---- 16. ties compose: operands move at each link, a write at any link shadows below ----
+
+    "tie-chain-composes": """lay
+put s.k lit 1
+put s.v now s.k
+tie s d
+tie d e
+put d.k lit 2
+ask e.v
+ask d.v
+ask s.v
+ask e.k
+tot e
+""",
+
+    "tie-map-over-tie": """lay
+put s.k lit 1
+put s.v now s.k
+tie s d
+map d m
+put d.k lit 4
+put m.k lit 6
+ask m.v
+ask d.v
+ask s.v
+""",
+
+    "tie-chain-old-keeps-view": """lay
+put ext lit 3
+put s.k lit 1
+put d.k lit 10
+lay
+put s.v sum old s.k old ext
+put s.k lit 5
+put ext lit 7
+tie s d
+put ext lit 9
+ask d.v
+ask s.v
+ask d.k
+ask d.v 1
+""",
+
+    "tie-identity-shared": """lay
+put s.k lit 2
+put s.a.v now s.k
+mix s.a s.b
+tie s d
+put d.a.w now d.b.v
+put d.b.u now d.a.v
+ask d.a.v
+ask d.b.v
+ask d.a.w
+ask d.b.u
+""",
+
+    "tie-loop-through-tie": """lay
+put s.v now s.v
+put s.w now t.w
+tie s d
+put t.w now d.w
+ask d.v
+ask s.v
+ask d.w
+ask s.w
+""",
+
+    "tie-source-under-map": """lay
+put s.k lit 1
+put s.v now s.k
+lay
+map s m
+put m.k lit 3
+tie m t
+put t.k lit 5
+ask t.v
+ask m.v
+ask t.k 1
+""",
+
+    # ---- 17. a lookup that comes back to a path it went through finds nothing ----
+
+    "tie-ring-mutual": """lay
+put s.x lit 1
+tie s d
+put d.y lit 2
+lay
+tie d s
+ask s.y
+ask d.y
+ask s.x
+ask d.x
+tot s
+tot d
+""",
+
+    "tie-ring-through-ancestor": """lay
+put s.q lit 8
+tie s d
+tie d.x s.x
+lay
+put s.x.z lit 4
+ask d.x.z
+ask s.x.z
+ask d.q
+ask d.x.q
+tot d
+tot s
+""",
+
+    "tie-ring-twice-through-one-tie": """lay
+put s.y.z lit 6
+tie s d
+tie d.y s.x
+ask d.x.z
+ask s.x.z
+ask d.y.z
+tot d
+tot s
+""",
+
+    "tie-ring-deep-source": """lay
+tie a.k b
+tie b a
+put a.k.k.z lit 5
+ask b.z
+ask a.z
+ask a.k.z
+ask b.k.z
+ask b.k.k.z
+tot a
+tot b
+""",
+
+    # ---- 18. counts stop at twenty-four segments; guards and pick read through ties ----
+
+    "tie-count-bound": """lay
+put a.k.z lit 5
+put a.k.k.z lit 6
+tie a.k b
+tie b a.k.j
+ask a.k.j.j.z
+ask b.j.j.k.z
+tot a
+tot b
+tot a.k.j
+""",
+
+    "tie-guard-and-pick": """lay
+put s.k lit 3
+put s.p pick s.k lit 1 lit 2
+tie s d
+lay
+put yes lit 7 if d.k 3
+put no lit 8 un d.k
+cut d.k
+put later lit 9 if d.k 3
+ask yes
+ask no
+ask later
+ask d.p
+ask d.p 1
+""",
+
+    "tie-empty-source": """lay
+put d.x lit 1
+tie s d
+lay
+put s.y lit 2
+ask d.x
+ask d.y
+tot d 1
+tot d
+""",
+})

@@ -1,4 +1,13 @@
-"""Binding origin, predecessor view, and one template installation."""
+"""Definitions: what was written, which layer wrote it, and which view `old` reads.
+
+A definition carries its expression, the layer that wrote it (the number printed by `ask`),
+and the view its `old` operands read in - the start of the writing layer for a plain put, the
+captured pre-entry store for a mapped one. A `Move` is what a map or a tie does to the
+definitions that show through it: path operands under the source are moved under the
+destination, and each distinct source definition becomes exactly one moved definition, so
+identity - which the memo and the circularity check key on - survives the move.
+"""
+
 
 class Dfn:
     __slots__ = ("expr", "home", "prior")
@@ -21,16 +30,17 @@ def reported(dfn):
     return dfn.home
 
 
-def carried(sub, at):
-    return sub
+class Move:
+    """One installation: a source prefix, a destination prefix, and the definitions it made.
 
+    `prior` is None for a tie, which leaves each definition the view it already has, and the
+    captured root for a map, which gives every definition it makes that view instead.
+    """
+    __slots__ = ("src", "dst", "prior", "defs")
 
-class Frame:
-    __slots__ = ("src", "dst", "view", "defs", "nodes")
-
-    def __init__(self, src, dst, view):
-        self.src, self.dst, self.view = src, dst, view
-        self.defs, self.nodes = {}, {}
+    def __init__(self, src, dst, prior):
+        self.src, self.dst, self.prior = src, dst, prior
+        self.defs = {}
 
     def path(self, path):
         n = len(self.src)
@@ -51,6 +61,7 @@ class Frame:
             return None
         got = self.defs.get(dfn)
         if got is None:
-            got = Dfn(self.expr(dfn.expr), dfn.home, self.view)
+            got = Dfn(self.expr(dfn.expr), dfn.home,
+                      dfn.prior if self.prior is None else self.prior)
             self.defs[dfn] = got
         return got

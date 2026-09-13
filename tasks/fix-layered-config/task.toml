@@ -17,66 +17,83 @@ author_name = "Shiela marie"
 author_email = "aurigue.shielamarie20@gmail.com"
 
 difficulty_explanation = """
-A configuration-language engineer would perform this repair while adding template installation
-to a deployment tool's layered settings service. The plans are synthetic and exercise copied
-definitions, partial rollout views, guarded edits and template instances.
+A configuration-language engineer would perform this repair while adding a live window,
+`tie`, to a deployment tool's layered settings service that already carries copies, template
+installations, guarded edits and historical reads. The plans are synthetic and exercise
+copied definitions, partial rollout views, guarded edits, template instances and windows.
 
-A shared expression and its original writing layer no longer determine its behavior. A
-template installation changes path operands and captures the store immediately before its
-entry, while an ordinary copy preserves both. The snapshot used for backward reads is taken
-before destination removal, but the source subtree is taken after that removal. Guards still
-read the start of the whole layer. Treating every historical question as a layer number loses
-the intermediate state on which an installed definition depends.
+The first plan a strong engineer forms from the brief is coherent and standard: an immutable
+tree of definitions with a count on every node, a copy that shares the source's node, an
+installation that wraps that node with a lazy path rewrite, and values remembered by
+definition and view. Three probe agents wrote exactly that before running a plan, and it was
+the right plan for everything but the window. A tie makes what a node means depend on the view
+it is read in, so a node no longer carries its own count, a copy of a tied subtree cannot be
+a shared pointer, a copy must resolve the ties beneath it in the view that was current when
+it was taken, and a lookup follows paths rather than prefixes, stopping only where it comes
+back to a path it has been through. The stated rules for a tie are each easy to implement; the
+consequences invalidate the store, the copy, the count and the memo at once, and a brute-force
+model of the brief confirms nothing about the structures that replace them.
 
-Subtree sharing solves ordinary copies but is insufficient for template installations.
-Composed installations change an already changed namespace; an unchanged external operand
-still receives a new historical view. A projection left on a parent wrongly affects later
-writes beneath it, while eagerly rewriting every copied definition expands the repeated-copy
-family. The implementation must retain sharing, preserve the context of untouched descendants,
-and keep new definitions outside that context. Value caching and circularity detection must
-distinguish binding identity from expression text, reported origin and the view used to evaluate
-it. Backward reads can enter an intermediate store whose forward reads differ from both the
-layer start and the final rollout.
+Two execution boundaries make the naive shapes fail late. Counting what shows under a tied
+prefix by enumeration is correct and cannot finish the forty counts over twenty thousand
+inherited paths in wide.txt; writing out what a copy shows is correct and dies on the plan that
+copies a tie's window back under its own source twenty-one times. The reference passes both
+by deriving a count from what was written under a path rather than from what shows through it,
+and by capturing a copy as the logical node it was given. Exact checks preserve ordinary put,
+mix and map behaviour alongside ties, and both fences are enumerated on every axis, so a
+service that freezes ties, or lets copies stay live, or masks too much or too little, also
+fails.
 
 The existing service uses short legacy identifiers such as cfg, pile and dfn, and ships without
-explanatory comments. These are consistent names in a compact working interpreter; the challenge
-is the interaction of the store, installation context and evaluator, rather than finding a
-hidden file. Exact checks preserve ordinary put and mix behavior alongside mapped copies, so
-unconditionally moving references or resetting every historical view also fails.
+explanatory comments. These are consistent names in a compact working interpreter; the
+challenge is the interaction of the store, the window and the evaluator, rather than finding a
+hidden file.
 """
 
 solution_explanation = """
-The reference first separates a definition's reported put origin from the view used by old.
-It retains immutable counted tree nodes for layers, removals and ordinary copies. A map captures
-the pre-entry root, clears its destination, and wraps the remaining source subtree with an
-installation object. That object rewrites path operands in chronological order and creates one
-new binding per distinct source binding when the binding is needed.
+The reference keeps an immutable tree of what was written and reads it through logical nodes:
+the node written at a path, if any, plus the node the nearest tie or copy above makes it
+inherit, seen through that marker's path move. Inheritance is followed path by path and never
+prefix by prefix, with the paths a lookup is working out carried along so that a lookup that
+comes back to one of them finds nothing, which is the stated rule taken literally. A copy or
+an installation captures the view it was taken in and the source path, so taking it costs
+nothing and the ties beneath it resolve in that view; a tie captures only its source path and
+resolves in whatever view is being read.
 
-Tree projections are pushed onto existing children before descending or editing. New puts are
-installed outside those projections, and siblings keep their old contexts. The count carried
-on each projected subtree permits totals without expanding the logical copies. The evaluator
-works against explicit roots; old selects its binding's captured root, and now and pick retain
-the root in which evaluation is currently running. Cached values and active evaluations are
-keyed by binding identity and root. This is the order an interpreter engineer would follow:
-settle binding and store semantics before changing expression evaluation and output provenance.
+Counting is the derivation that carries the scale families: the count under a path is what
+shows there, plus what the inherited node counts, corrected at each written child by the
+child's own count in place of what the inherited side counts under that segment. The walk is
+bounded by what was written under the path, and its parts are shared across views wherever
+the physical node is. Where a lookup had to cut itself off the correction is not exact, and the
+count falls back to enumerating what shows, which only a plan whose ties come back to
+themselves ever reaches. Values and circularity are keyed by definition identity and view,
+with one moved definition per source definition per tie or installation so that identity
+survives the move. This is the order an interpreter engineer would follow: settle what a path
+shows before changing how it is counted or evaluated.
 """
 
 verification_explanation = """
 The verifier takes only the six named Python modules and overlays them on its own copy of the
 driver, parser and output writer. It compares every output line exactly. The original hand
-plans and generated families remain, with additional hand plans for installation-time history,
-prefix composition, unchanged external operands, nested historical reads, alias identity,
-guards, overlapping source and destination, and fresh writes below mapped subtrees.
-Frozen hand answers are checked against an independent sealed model before grading. Generated
-plans combine the same behaviors with differing paths and values, including wide and repeated
-copy families. The complete submitted-worker batch has a 60-second wall-clock limit.
+plans and generated families remain, with their frozen answers proved byte-identical through
+the addition of the window, plus hand plans for the tie: following the source, shadowing,
+masking, a put at a masked path, freezing by mix and map, ties beneath copies and copies
+beneath ties, chains, moved operands, kept views, shared identity, circularity through a tie,
+rings that come back, a source deeper than its destination, the twenty-four-segment bound, and
+guards and pick reading through a tie. Frozen hand answers are checked against an independent
+sealed model before grading. Generated plans combine the same behaviours with differing paths
+and values in seventeen shaped families and four scale families, including the wide prefix
+with a tie under sparse writes and removals and the plan that copies a tie's window back under
+its own source. The complete submitted-worker batch has a 60-second wall-clock limit.
 
 The worker runs as an unprivileged user and writes only an untrusted record. The separate
 privileged grader owns the sealed model, frozen answers and final binary reward. The reward
 directory is locked before submitted code runs, reward defaults to zero, both worker and grader
-must exit successfully, and leftover worker processes are reaped. Existing semantic and reward
-tampering attempts remain in the bundle; added attempts target the new context boundaries.
-Validation outcomes and pending platform checks are recorded outside the submission metadata.
+must exit successfully, and leftover worker processes are reaped. Every cheat is the reference
+with one decision taken the other way, regenerated from the current reference, and each is
+recorded with the layer that catches it; the correct-but-slow readings are caught by the limit
+alone. Validation outcomes and pending platform checks are recorded outside the submission
+metadata.
 """
 
 category = "Software"
@@ -85,22 +102,23 @@ subcategory = "Languages"
 
 tags = [
   "lazy-evaluation",
-  "scoped-references",
+  "prototype-delegation",
   "structural-sharing",
   "memoisation",
   "cycle-detection",
   "subtree-copy",
 ]
 
-expert_time_estimate_hours = 6
+expert_time_estimate_hours = 9
 
 relevant_experience = """
 This project work covers a layered configuration evaluator with lazy expressions, persistent
 subtree copies, historical reads, guarded updates and exact trace verification. The recovery
-extends that evaluator with template installations and tests the distinction between copied
-definition provenance, relocated references and installation-time predecessor views. It includes
-a reference implementation, an independent semantic model and adversarial validation of the
-submitted-code boundary.
+extends that evaluator with live windows over a subtree and tests the distinction between a
+copied definition, a moved one and one that follows its source, between what a path holds and
+what it shows, and between a count of what was written and a count of what shows. It includes
+a reference implementation, an independent semantic model, differential fuzzing between them
+and adversarial validation of the submitted-code boundary.
 """
 
 [verifier]

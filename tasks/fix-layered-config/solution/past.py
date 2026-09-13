@@ -1,14 +1,15 @@
-"""Layer roots coexist with entry snapshots captured by template copies."""
+"""Layer roots, captured entry views, and the per-run tables everything reads through."""
 from cfg import pile, roll
 
 
 class Hist:
-    __slots__ = ("at", "top", "memo", "busy")
+    __slots__ = ("at", "top", "memo", "busy", "cache")
 
     def __init__(self, top):
         self.at = [pile.empty()]
         self.top = top
         self.memo, self.busy = {}, set()
+        self.cache = pile.Cache()
 
     def store(self, stop):
         return self.at[stop]

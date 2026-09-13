@@ -296,5 +296,156 @@
  "sum-top-negative": [
   "val s -2 1",
   "val t 4 1"
+ ],
+ "tie-chain-composes": [
+  "val e.v 2 0",
+  "val d.v 2 0",
+  "val s.v 1 0",
+  "val e.k 2 0",
+  "num e 2"
+ ],
+ "tie-chain-old-keeps-view": [
+  "val d.v 13 1",
+  "val s.v 4 1",
+  "val d.k 5 1",
+  "val d.v gone"
+ ],
+ "tie-clears-destination": [
+  "val d.stale gone",
+  "val d.stale 4 0",
+  "num d 1"
+ ],
+ "tie-copy-source-cleared-first": [
+  "val d.a.y 5 0",
+  "val d.a.x gone",
+  "num d 1"
+ ],
+ "tie-count-bound": [
+  "val a.k.j.j.z 5 0",
+  "val b.j.j.k.z 6 0",
+  "num a 43",
+  "num b 43",
+  "num a.k.j 41"
+ ],
+ "tie-cut-at-root-removes": [
+  "val d.x gone",
+  "val d.y gone",
+  "num d 0"
+ ],
+ "tie-cut-masks": [
+  "val d.a.x gone",
+  "val d.a.z 7 1",
+  "val d.b.x 3 0",
+  "num d 2",
+  "num d 3"
+ ],
+ "tie-empty-source": [
+  "val d.x gone",
+  "val d.y 2 1",
+  "num d 0",
+  "num d 1"
+ ],
+ "tie-follows-source": [
+  "val d.v 9 0",
+  "val d.k 9 1",
+  "val s.v 5 0",
+  "val d.v 5 0",
+  "num d 2",
+  "num s 2"
+ ],
+ "tie-frozen-below-copy": [
+  "val k.d.x 1 0",
+  "val r.d.x 5 1",
+  "val k.d.y gone",
+  "num k 1"
+ ],
+ "tie-guard-and-pick": [
+  "val yes 7 1",
+  "val no gone",
+  "val later 9 1",
+  "val d.p 2 0",
+  "val d.p 1 0"
+ ],
+ "tie-identity-shared": [
+  "val d.a.v 2 0",
+  "val d.b.v 2 0",
+  "val d.a.w 2 0",
+  "val d.b.u 2 0"
+ ],
+ "tie-loop-through-tie": [
+  "val d.v loop",
+  "val s.v loop",
+  "val d.w loop",
+  "val s.w loop"
+ ],
+ "tie-map-over-tie": [
+  "val m.v 6 0",
+  "val d.v 4 0",
+  "val s.v 1 0"
+ ],
+ "tie-mix-freezes": [
+  "val d.x 7 1",
+  "val k.x 1 0",
+  "val m.x 1 0",
+  "val k.v 7 0",
+  "val m.v 1 0",
+  "num k 2"
+ ],
+ "tie-put-at-mask-root": [
+  "val d.a 5 2",
+  "val d.a.x gone",
+  "num d 1"
+ ],
+ "tie-ring-deep-source": [
+  "val b.z 5 0",
+  "val a.z 5 0",
+  "val a.k.z 5 0",
+  "val b.k.z 5 0",
+  "val b.k.k.z gone",
+  "num a 3",
+  "num b 2"
+ ],
+ "tie-ring-mutual": [
+  "val s.y 2 0",
+  "val d.y 2 0",
+  "val s.x gone",
+  "val d.x gone",
+  "num s 1",
+  "num d 1"
+ ],
+ "tie-ring-through-ancestor": [
+  "val d.x.z 4 1",
+  "val s.x.z 4 1",
+  "val d.q 8 0",
+  "val d.x.q gone",
+  "num d 2",
+  "num s 2"
+ ],
+ "tie-ring-twice-through-one-tie": [
+  "val d.x.z 6 0",
+  "val s.x.z 6 0",
+  "val d.y.z 6 0",
+  "num d 2",
+  "num s 2"
+ ],
+ "tie-root-definition": [
+  "val d 8 0",
+  "val d.v 8 0",
+  "val s.v 3 0"
+ ],
+ "tie-same-layer-live": [
+  "val d.x 2 0",
+  "val d.k 1 0",
+  "num d 2"
+ ],
+ "tie-source-under-map": [
+  "val t.v 5 0",
+  "val m.v 3 0",
+  "val t.k gone"
+ ],
+ "tie-under-copy-is-live": [
+  "val k.t.x 9 2",
+  "val k.t.x 1 0",
+  "num k 2"
  ]
 }

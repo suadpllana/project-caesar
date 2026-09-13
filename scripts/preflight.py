@@ -757,8 +757,11 @@ def check_leaks_by_affordance(root: Path) -> None:
             for name in set(DEF_NAME_RE.findall(text)):
                 if DUNDER_OR_PRIVATE.match(name) or name in ENTRYPOINT_NAMES:
                     continue
-                # Count references outside the definition line itself.
+                # Count references outside the definition line itself. A call through a module
+                # (`pile.count(`) is a reference too; the old pattern excluded it and reported
+                # every function of a package that its own driver calls that way.
                 refs = len(re.findall(rf"(?<![\w.]){re.escape(name)}\s*\(", corpus))
+                refs += len(re.findall(rf"\.{re.escape(name)}\s*\(", corpus))
                 defs = len(re.findall(rf"def\s+{re.escape(name)}\s*\(", corpus))
                 if refs <= defs and f'"{name}"' not in corpus and f"'{name}'" not in corpus:
                     rel = "/".join(path.relative_to(root).parts)

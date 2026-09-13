@@ -1,4 +1,4 @@
-"""Evaluate binding identity in an explicit complete store view."""
+"""Evaluate a definition in an explicit view; values and circularity are per (definition, view)."""
 import sys
 from cfg import made, pile
 
@@ -6,13 +6,13 @@ sys.setrecursionlimit(20000)
 GONE, LOOP = "gone", "loop"
 
 
+def in_view(hist, path, view):
+    dfn = pile.find(hist.cache, view, path)
+    return GONE if dfn is None else value(hist, dfn, view)
+
+
 def at_path(hist, path, stop):
     return in_view(hist, path, hist.store(stop))
-
-
-def in_view(hist, path, view):
-    dfn = pile.find(view, path)
-    return GONE if dfn is None else value(hist, dfn, view)
 
 
 def at_def(hist, dfn, stop):
@@ -45,7 +45,7 @@ def ev(hist, expr, prior, view):
     if kind == "old":
         return in_view(hist, expr[1], prior)
     if kind == "pick":
-        side = 3 if pile.find(view, expr[1]) is None else 2
+        side = 3 if pile.find(hist.cache, view, expr[1]) is None else 2
         return ev(hist, expr[side], prior, view)
     left = ev(hist, expr[1], prior, view)
     if not isinstance(left, int):

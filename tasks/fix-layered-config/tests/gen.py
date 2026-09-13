@@ -305,9 +305,11 @@ def fam_mixed(rnd):
 
 
 def fam_wide(rnd):
-    """Many layers over many paths: a long reference chain, and counts over large prefixes."""
+    """Many layers over many paths: a long reference chain, counts over large prefixes, and a
+    third prefix tied to the first with sparse writes and removals under it."""
     b = Build()
     roots = [LETTERS[0], LETTERS[1]]
+    tied = LETTERS[2]
     two = [LETTERS[i] + LETTERS[j] for i in range(4) for j in range(25)]
     paths = ["%s.%s.%s" % (r, m, l) for r in roots for m in two for l in two]
     rnd.shuffle(paths)
@@ -315,6 +317,9 @@ def fam_wide(rnd):
     b.lay()
     for p in paths:
         b.ent("put %s lit %d" % (p, rnd.randint(1, 9)))
+    b.lay()
+    b.ent("tie %s %s" % (roots[0], tied))
+    under = [p for p in paths if p.startswith(roots[0] + ".")]
     chain = [paths[0], paths[1]]
     nxt = 2
     for step in range(500):
@@ -330,15 +335,24 @@ def fam_wide(rnd):
             q = paths[rnd.randrange(nxt)]
             b.ent("put %s sum now %s lit %d" % (paths[nxt], q, rnd.randint(1, 9)))
             nxt += 1
+        shown = tied + under[rnd.randrange(len(under))][1:]
+        if step % 3 == 0:
+            b.ent("put %s sum now %s lit %d" % (shown, shown, rnd.randint(1, 9)))
+        elif step % 3 == 1:
+            b.ent("put %s lit %d" % (shown, rnd.randint(1, 9)))
+        else:
+            b.ent("cut %s" % shown.rsplit(".", 1)[0])
         if step % 25 == 24:
             b.ent("cut %s" % paths[spare + rnd.randrange(spare)])
-    stops = sorted({rnd.randint(1, b.layers) for _ in range(40)})
+    stops = sorted({rnd.randint(2, b.layers) for _ in range(40)})
     for _ in range(2000):
         b.ask(chain[rnd.randrange(len(chain))], rnd.choice(stops))
-    for _ in range(2000):
+    for _ in range(1500):
         b.ask(paths[rnd.randrange(nxt)], rnd.choice(stops))
+    for _ in range(500):
+        b.ask(tied + under[rnd.randrange(len(under))][1:], rnd.choice(stops))
     for _ in range(12000):
-        b.tot(rnd.choice(roots), rnd.choice(stops))
+        b.tot(rnd.choice(roots + [tied]), rnd.choice(stops))
     return b.text()
 
 
@@ -547,10 +561,256 @@ def fam_map_deep(rnd):
     return b.text()
 
 
-FAMS = FAMS + (("mapcapture", fam_map_capture), ("mapedit", fam_map_edit),
-               ("mapinterference", fam_map_interference), ("mapoverlap", fam_map_overlap))
+def fam_tie_live(rnd):
+    """A tie follows its source, a write under it shadows one path, a removal masks a subtree;
+    each asked before and after the source moved, and against a copy taken between."""
+    b = Build()
+    src, dst, keep = rnd.sample(list(LETTERS), 3)
+    leaves = rnd.sample(["k", "v", "x", "y"], 3)
+    b.lay()
+    for leaf in leaves:
+        b.ent("put %s.%s lit %d" % (src, leaf, rnd.randint(1, 9)))
+    b.ent("put %s.deep.%s lit %d" % (src, leaves[0], rnd.randint(1, 9)))
+    b.ent("put %s.v now %s.%s" % (src, src, leaves[0]))
+    b.ent("put %s.stale lit %d" % (dst, rnd.randint(1, 9)))
+    tied = b.lay()
+    b.ent("tie %s %s" % (src, dst))
+    b.ent("put %s.%s lit %d" % (src, leaves[1], rnd.randint(20, 29)))
+    b.lay()
+    b.ent("mix %s %s" % (dst, keep))
+    b.ent("put %s.%s lit %d" % (dst, leaves[0], rnd.randint(40, 49)))
+    b.ent("cut %s.deep" % dst)
+    if rnd.random() < 0.5:
+        b.ent("put %s.deep lit %d" % (dst, rnd.randint(1, 9)))
+    else:
+        b.ent("put %s.deep.fresh lit %d" % (dst, rnd.randint(1, 9)))
+    b.lay()
+    b.ent("put %s.%s lit %d" % (src, leaves[0], rnd.randint(60, 69)))
+    b.ent("put %s.deep.%s lit %d" % (src, leaves[2], rnd.randint(1, 9)))
+    if rnd.random() < 0.5:
+        b.ent("put %s.%s lit %d" % (dst, leaves[0], rnd.randint(80, 89)))
+    else:
+        b.ent("cut %s.%s" % (dst, leaves[0]))
+    for stop in (tied, tied + 1, tied + 2, None):
+        for root in (src, dst, keep):
+            b.tot(root, stop)
+            for leaf in leaves + ["v", "stale", "deep", "deep." + leaves[0], "deep." + leaves[2], "deep.fresh"]:
+                b.ask("%s.%s" % (root, leaf), stop)
+    return b.text()
 
-SCALE = (("wide", fam_wide), ("deep", fam_deep), ("mapdeep", fam_map_deep))
+
+def fam_tie_chain(rnd):
+    """Ties of ties: moved operands compose, a write at any link shadows below it, and
+    `old` in a shown definition reads the view its source already had."""
+    b = Build()
+    roots = rnd.sample(list(LETTERS), 4)
+    ext = "ext"
+    b.lay()
+    b.ent("put %s lit %d" % (ext, rnd.randint(1, 9)))
+    b.ent("put %s.k lit %d" % (roots[0], rnd.randint(1, 9)))
+    b.lay()
+    b.ent("put %s.v sum now %s.k old %s" % (roots[0], roots[0], ext))
+    b.ent("put %s.w old %s.k" % (roots[0], roots[0]))
+    b.ent("put %s lit %d" % (ext, rnd.randint(10, 19)))
+    order = list(range(1, 4))
+    rnd.shuffle(order)
+    prev = roots[0]
+    marks = []
+    for i in order:
+        b.lay()
+        b.ent("tie %s %s" % (prev, roots[i]))
+        marks.append(b.layers)
+        if rnd.random() < 0.6:
+            b.ent("put %s.k lit %d" % (roots[i], 10 * i + rnd.randint(1, 9)))
+        prev = roots[i]
+    b.lay()
+    b.ent("put %s.k lit %d" % (roots[0], rnd.randint(50, 59)))
+    b.ent("put %s lit %d" % (ext, rnd.randint(60, 69)))
+    if rnd.random() < 0.5:
+        b.ent("cut %s.k" % roots[order[0]])
+    b.ent("put yes lit 1 if %s.v %d" % (roots[order[-1]], rnd.randint(1, 30)))
+    b.ent("put no lit 2 un %s.w" % roots[order[-1]])
+    for stop in marks + [None]:
+        for r in roots:
+            for leaf in ("k", "v", "w"):
+                b.ask("%s.%s" % (r, leaf), stop)
+            b.tot(r, stop)
+    b.ask("yes")
+    b.ask("no")
+    return b.text()
+
+
+def fam_tie_freeze(rnd):
+    """A copy or a map taken over a tied region, and a tie placed under a copy: what is
+    frozen, what stays live, and what a later write to either source moves."""
+    b = Build()
+    src, dst, cold, warm, other = rnd.sample(list(LETTERS), 5)
+    b.lay()
+    b.ent("put %s.a.k lit %d" % (src, rnd.randint(1, 9)))
+    b.ent("put %s.a.v now %s.a.k" % (src, src))
+    b.ent("put %s.b.k lit %d" % (src, rnd.randint(1, 9)))
+    b.ent("put %s.k lit %d" % (other, rnd.randint(1, 9)))
+    b.lay()
+    b.ent("tie %s.a %s.a" % (src, dst))
+    b.ent("put %s.b.k lit %d" % (dst, rnd.randint(10, 19)))
+    frozen = b.lay()
+    if rnd.random() < 0.5:
+        b.ent("mix %s %s" % (dst, cold))
+    else:
+        b.ent("map %s %s" % (dst, cold))
+    b.ent("tie %s %s.b.inner" % (other, cold))
+    b.ent("map %s.a %s" % (dst, warm))
+    b.lay()
+    b.ent("put %s.a.k lit %d" % (src, rnd.randint(30, 39)))
+    b.ent("put %s.k lit %d" % (other, rnd.randint(40, 49)))
+    b.ent("put %s.a.x lit %d" % (src, rnd.randint(1, 9)))
+    b.ent("put %s.k lit %d" % (warm, rnd.randint(70, 79)))
+    b.lay()
+    b.ent("tie %s %s.a" % (other, src))
+    for stop in (frozen, frozen + 1, None):
+        for r in (src, dst, cold):
+            b.tot(r, stop)
+            for leaf in ("a.k", "a.v", "a.x", "b.k", "b.inner.k"):
+                b.ask("%s.%s" % (r, leaf), stop)
+        b.ask("%s.k" % warm, stop)
+        b.ask("%s.v" % warm, stop)
+        b.tot(warm, stop)
+    return b.text()
+
+
+def fam_tie_ring(rnd):
+    """Ties that lead back: mutual ties, a tie whose source lies under another tie, and a
+    source deeper than its destination, counted and asked where the rules stop a lookup."""
+    b = Build()
+    a, c, d = rnd.sample(list(LETTERS), 3)
+    b.lay()
+    b.ent("put %s.x lit %d" % (a, rnd.randint(1, 9)))
+    b.ent("put %s.y.z lit %d" % (c, rnd.randint(1, 9)))
+    b.ent("put %s.q lit %d" % (d, rnd.randint(1, 9)))
+    shape = rnd.randrange(3)
+    b.lay()
+    if shape == 0:
+        b.ent("tie %s %s" % (a, c))
+        b.ent("put %s.w lit %d" % (c, rnd.randint(1, 9)))
+        b.lay()
+        b.ent("tie %s %s" % (c, a))
+    elif shape == 1:
+        b.ent("tie %s %s" % (a, c))
+        b.ent("tie %s.x %s.x" % (c, a))
+        b.lay()
+        b.ent("put %s.x.z lit %d" % (a, rnd.randint(1, 9)))
+    else:
+        b.ent("tie %s.y %s" % (a, c))
+        b.ent("tie %s %s" % (c, a))
+        b.lay()
+        b.ent("put %s.y.y.x lit %d" % (a, rnd.randint(1, 9)))
+    b.lay()
+    b.ent("tie %s %s" % (rnd.choice((a, c)), d))
+    b.ent("put %s.q lit %d if %s.x %d" % (d, rnd.randint(1, 9), c, rnd.randint(1, 9)))
+    for stop in (1, 2, 3, None):
+        for r in (a, c, d):
+            b.tot(r, stop)
+            for leaf in ("x", "y.z", "w", "q", "x.z", "y.y.x", "y.x", "x.x"):
+                b.ask("%s.%s" % (r, leaf), stop)
+    return b.text()
+
+
+def fam_tie_interference(rnd):
+    """Everything at once: ties, copies, maps, removals and guarded writes over three roots."""
+    b = Build()
+    roots = rnd.sample(list(LETTERS), 3)
+    paths = [r + "." + leaf for r in roots for leaf in ("k", "v", "x")]
+    paths += [r + ".d." + leaf for r in roots for leaf in ("k", "y")]
+    b.lay()
+    for p in paths:
+        if rnd.random() < 0.8:
+            b.ent("put %s lit %d" % (p, rnd.randint(-9, 9)))
+    for _ in range(rnd.randint(4, 7)):
+        b.lay()
+        for _ in range(rnd.randint(2, 5)):
+            roll = rnd.random()
+            guard = None
+            if rnd.random() < 0.2:
+                watch = rnd.choice(paths)
+                guard = ("un %s" % watch if rnd.random() < 0.5
+                         else "if %s %d" % (watch, rnd.randint(-5, 5)))
+            if roll < 0.35:
+                b.ent("put %s %s" % (rnd.choice(paths), _expr(rnd, paths, 2)), guard)
+            elif roll < 0.65:
+                x, y = rnd.sample(roots, 2)
+                if rnd.random() < 0.3:
+                    y = y + ".d"
+                b.ent("tie %s %s" % (x, y), guard)
+            elif roll < 0.78:
+                x, y = rnd.sample(roots, 2)
+                b.ent("mix %s %s" % (x, y), guard)
+            elif roll < 0.88:
+                x, y = rnd.sample(roots, 2)
+                b.ent("map %s %s" % (x, y), guard)
+            else:
+                b.ent("cut %s" % rnd.choice(paths), guard)
+    for p in paths:
+        b.ask(p)
+        b.ask(p, rnd.randint(0, b.layers))
+    _queries(b, rnd, paths, 10)
+    for r in roots:
+        b.tot(r)
+        b.tot(r + ".d")
+    return b.text()
+
+
+def fam_tie_deep(rnd):
+    """A tie's window copied back under its own source, again and again: every copy doubles
+    what the tie shows, and sparse writes inside the copies must stay affordable."""
+    b = Build()
+    root = LETTERS[0]
+    win = LETTERS[1]
+    b.lay()
+    b.ent("put %s.%s lit %d" % (root, LETTERS[25], rnd.randint(1, 9)))
+    b.ent("put %s.%s.%s lit %d" % (root, LETTERS[24], LETTERS[23], rnd.randint(1, 9)))
+    b.ent("put %s.o old %s.%s" % (root, root, LETTERS[25]))
+    b.ent("tie %s %s" % (root, win))
+    marks = []
+    for i in range(21):
+        b.lay()
+        b.ent("mix %s %s.%s" % (win, root, LETTERS[i]))
+        marks.append(b.layers)
+        if i % 4 == 3:
+            b.ent("put %s.%s.%s lit %d" % (root, LETTERS[i], LETTERS[25], 10 + i))
+        if i % 5 == 4:
+            b.ent("cut %s.%s.%s.%s" % (root, LETTERS[i], LETTERS[i - 1], LETTERS[25]))
+    b.lay()
+    b.ent("put %s.%s lit 37" % (root, LETTERS[25]))
+    b.ent("put %s.f now %s.%s" % (win, win, LETTERS[25]))
+    for stop in marks[::4] + [None]:
+        b.tot(root, stop)
+        b.tot(win, stop)
+    for i in range(21):
+        b.tot("%s.%s" % (root, LETTERS[i]))
+        b.tot("%s.%s" % (win, LETTERS[i]))
+    chain = win
+    for i in range(6):
+        chain = "%s.%s" % (chain, LETTERS[20 - i])
+        b.ask("%s.%s" % (chain, LETTERS[25]))
+        b.ask("%s.o" % chain)
+        b.tot(chain)
+    for _ in range(300):
+        depth = rnd.randint(1, 16)
+        segs = sorted(rnd.sample(list(LETTERS[:21]), depth), reverse=True)
+        p = rnd.choice((root, win)) + "." + ".".join(segs)
+        b.ask(p + "." + rnd.choice((LETTERS[25], "o", "f")))
+        b.tot(p)
+    return b.text()
+
+
+FAMS = FAMS + (("mapcapture", fam_map_capture), ("mapedit", fam_map_edit),
+               ("mapinterference", fam_map_interference), ("mapoverlap", fam_map_overlap),
+               ("tielive", fam_tie_live), ("tiechain", fam_tie_chain),
+               ("tiefreeze", fam_tie_freeze), ("tiering", fam_tie_ring),
+               ("tieinterference", fam_tie_interference))
+
+SCALE = (("wide", fam_wide), ("deep", fam_deep), ("mapdeep", fam_map_deep),
+         ("tiedeep", fam_tie_deep))
 
 
 def programs(nonce, per, scale=3):

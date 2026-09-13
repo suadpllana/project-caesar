@@ -87,6 +87,61 @@ a design record, not a built tree. `task.toml` claims 9 expert hours and the ret
 (six editable files, 337 lines of reference against a 229-544 band); that is the bundle's own
 claim, not a measurement made here.
 
+## Reference verification failure, 2026-09-14 (oracle 1, 1, 0)
+
+The resubmission cleared the structural, AI-text and similarity gates and failed reference
+verification: the oracle scored 1, 1, 0 across its three trials, the nop 0, 0, 0. The oracle row
+is not deterministic, because `test.sh` draws a fresh nonce per run and grades a different
+generated population each time, so 2 of 3 means a rare disagreement between the reference and the
+sealed model, not flaky infrastructure.
+
+Reproduced by replaying the oracle row locally: 3 of 40 nonces failed, every one of them a single
+`tot` line in the `tieinterference` family where the reference counted one path fewer than the
+model. Delta-reduced to seven lines, three ties forming a ring with one write under each:
+
+    lay
+    tie n r
+    tie r q
+    tie q n un q.d.k
+    put r.d.k lit -10
+    put q.d.y now n.x un n.d.k
+    tot q
+
+Both implementations agree that `q.d.y` and `q.d.k` each hold a definition (`ask q.d.k` is -10
+through the ring; `ask q.d.y` is `gone` because its value is absent, which does not stop the path
+holding a definition). Two paths hold definitions, so `tot q` is 2. The model was right and the
+reference was wrong - it answered 1.
+
+The defect is in `solution/pile.py`, in `node()`. When an inherited lookup was truncated because
+it came back on itself, and the node was otherwise empty, the function returned `None` and the
+truncation went with it. The caller read `cut_i = i is not None and i.cut` as False, built a Log
+marked clean, and cached it. Counting then took the structural correction - the inherited count
+plus local children minus what the inherited side counts under the same segment - which the file's
+own docstring says is exact only when no lookup had to cut itself off. The subtraction removed a
+path the inherited total had never included, so the count came out one short. `node()` now returns
+that empty node with its `cut` flag set instead of `None`, so the truncation reaches the caller
+and the count falls back to the literal walk.
+
+Fix validated in both directions:
+
+| Measurement | Before | After |
+|---|---|---|
+| Full graded batches vs the sealed model, fresh nonces | 37 of 40 clean | 80 of 80 clean |
+| Dense `tieinterference` plans | 3 of 6000 disagree | 0 of 6000 |
+| Dense `tiering`/`tiechain`/`veilchain`/`veilrandom` | not run | 0 of 2500 each |
+| Dense `tielive`/`tiefreeze`/`veillive`/`veilmask`/`veilcopy`/`veilold` | not run | 0 of 2000 each |
+| Dense scale families (`wide`/`deep`/`mapdeep`/`tiedeep`/`veildeep`) | not run | 0 of 60 each |
+| Oracle rows end to end (worker + grader) | - | 6 of 6 reward 1 |
+| Batch wall time against the 60 s clock | 2.3-2.8 s | 2.3-2.8 s |
+
+Nothing under `tests/` was touched: the sealed model, the case list, the generator and the frozen
+answers all stand, and the repair was made to the side that was wrong.
+
+Coverage note for the contributor, not acted on here: the separating shape is rare. It appeared in
+about 1 in 2000 `tieinterference` plans, so a submission carrying this exact bug passes a graded
+run roughly 90% of the time. Making the ring-with-local-writes shape a deliberate part of that
+family would close it, but that is a change to a frozen verifier and is the contributor's call.
+
 ## Verifier contract - FROZEN
 
 Unchanged by this session.
@@ -104,7 +159,7 @@ Unchanged by this session.
 |---|---|---|
 | Agent image builds | not run | no Docker in this session; `tools/imagecheck.py` clean - 16 files, workdir `/app`, all six plans run |
 | No answer leaked into agent image | imagecheck clean | nothing from `tests/` or `solution/` in the build context |
-| `harbor run -a oracle` = 1 | passed, emulated | reference through `tests/worker.py` in 4.2 s, then `test_outputs.py` 100 passed |
+| `harbor run -a oracle` = 1 | passed, emulated | 6 of 6 rows reward 1 after the count fix; 80 of 80 fresh nonces agree with the sealed model |
 | `harbor run -a nop` = 0 | passed, emulated | shipped tree killed by the 60 s clock, exit 124, no record written |
 | Cheats all score 0 | not run | the zip ships no `cheat/`; the platform runs its own probe |
 | `preflight.py` | 0 errors | STATE.md warning gone with this file; 18 warnings, all inherited |
@@ -113,9 +168,9 @@ Unchanged by this session.
 
 ## Open questions and next steps
 
-- Resubmit `tasks/fix-layered-config.zip`. The structural gate is the only thing that has run on
-  this bundle so far; reference verification, the quality review and the difficulty probe are all
-  still ahead of it.
+- Resubmit `tasks/fix-layered-config.zip`. Structural, AI-text and similarity have passed;
+  reference verification has now been repaired locally, and the quality review, the anti-cheat
+  probe and the difficulty probe are still ahead of it.
 - If a later gate asks for a shorter instruction again, the 186 characters of headroom are the
   budget. Below that, rules have to be merged rather than cut, and the mapping above is where to
   start.

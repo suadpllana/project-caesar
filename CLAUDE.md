@@ -336,3 +336,41 @@ time a limit known only to the platform has cost a submission.
   tree - the reference, the case list, the generator - and each is marked as read off the bundle,
   with the solve estimate attributed to `task.toml` rather than to a measurement. A field filled
   in from someone else's work and presented as your own measurement is worse than an empty one.
+
+## Lessons, measured (2026-09-14, `fix-layered-config` reference verification)
+
+Reference verification failed with the oracle at 1, 1, 0 and the nop at 0, 0, 0. The bundle was
+externally authored; only the instruction had been repaired here.
+
+- **A row that is 1, 1, 0 is a seeded population, not flaky infrastructure.** `test.sh` draws a
+  fresh nonce per run, so each oracle trial grades a different generated batch and the three
+  trials are three samples, not three repeats. Replaying the row locally with fresh nonces put the
+  rate at 3 of 40, every failure a single `tot` line in one family. The wrong first move - and the
+  one the "identical failures on oracle AND nop, in seconds, are packaging" rule exists to prevent
+  in the other direction - is to reach for timeouts, memory or the image when only one row of two
+  is red and it is red only sometimes. Peak RSS was 64 MB against a 2048 MB limit and the batch
+  took 2.5 s against a 60 s clock; both were measured before any code was read.
+- **Delta-reduce before reasoning.** The failing plan was 88 lines. Greedy line removal against
+  "reference still disagrees with the model" cut it to seven - three ties forming a ring with one
+  write under each - and the seven-line plan is what made the semantics arguable at all. On it,
+  both implementations agreed that two paths hold definitions and the reference still answered
+  `tot` 1, which settles which side is wrong without appeal to either author's intent: an
+  implementation that says a path holds a definition and then does not count it disagrees with
+  itself.
+- **An empty return swallows the fact that a lookup was cut off.** `node()` returned `None` when a
+  node had nothing local and nothing inherited, including when the inherited side was empty
+  *because the lookup had come back on itself*. The caller then read `cut_i = i is not None and
+  i.cut` as False, built a Log marked clean, and cached it; counting took the structural
+  correction, which the file's own docstring says is exact only when nothing below was truncated,
+  and subtracted a path the inherited total never contained. Emptiness and truncation are
+  different answers and a sentinel that conflates them will be believed by every caller.
+- **A validation that has never failed has not been validated.** The dense family check reported
+  0 of 600 disagreements on the repaired reference and looked like proof. Run against the
+  unrepaired one it also reported 0 of 600 - the shape appears in about 1 plan in 2000, so 600 had
+  no power to detect anything. At 6000 it separates: 3 against 0. Size the sample against the rate
+  you are trying to see, and confirm the check fails on the defect before believing it passes.
+- **The population that caught this barely catches it.** 3 of 40 runs means a submission carrying
+  this exact bug passes a graded run about 90% of the time, and the same 90% is what let the
+  reference itself ship. That is a coverage finding about a frozen verifier, so it is written down
+  for the contributor rather than fixed here - but a family that separates a reading only once in
+  two thousand plans is not separating it.

@@ -158,8 +158,13 @@ def node(cache, view, path, chain=()):
             b = node(cache, base_at[0], base_at[1],
                      chain + (key, base_at) if not chain else chain + (base_at,))
             cut_b = b is not None and b.cut
-    if l is None and i is None and b is None:
+    if l is None and i is None and b is None and not (cut_i or cut_b):
         return None
+    # An empty node that had to cut itself off is not the same as an empty node: the caller
+    # reads `.cut` to learn that a lookup came back on itself, and counting only has the
+    # structural correction available when nothing below it was truncated. Returning None
+    # here would report the truncation as ordinary emptiness, and the Log built on top of it
+    # would be cached as clean.
     log = Log(l, i, b, mk.move, view, path, cut_i or cut_b)
     if not log.cut:
         cache.logs[key] = log

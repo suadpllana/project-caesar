@@ -497,3 +497,91 @@ Estimated solves after the build: **2** (range 1-4), unchanged from the design. 
 clearer than it was, which pushes up; the second attempt's interaction with an earlier fold,
 the numbering rollback and three measured families were all added during the build, which
 pushes down.
+
+## Stage 8 - reference verification failed on the clock, not on the task (2026-09-13)
+
+Everything above this heading describes the twelve-family design that was committed on
+2026-09-10. The bundle that was actually submitted is the revised source-manifest version:
+eighteen families, 728 graded programs, seven large ones, and a reference rebuilt on
+persistent balanced trees so that a plan can retain a view of the bucket cheaply. That
+revision never came back into this file, so read the sections above as the earlier design.
+
+### What came back
+
+Reference verification failed with the oracle scoring **1, 1, 0** over three attempts and the
+nop scoring 0, 0, 0. An oracle that passes twice and fails once is not a wrong answer; it is a
+race, and the only question worth asking first is which of the run's inputs changed between
+attempt two and attempt three.
+
+### What it was not
+
+- **Not the generated population.** The submitted `test.sh` draws no nonce: it writes the fixed
+  string `source-manifest-v1-20260913` and the grader compares against a frozen
+  `tests/seal/suite.json`, so all 728 programs and all 728 expected traces are byte-identical
+  on every attempt. The committed twelve-family bundle did draw a random nonce, and that
+  version was swept over 120 random seeds with the reference agreeing with the sealed model on
+  every program of every seed, and over eight full `test.sh` runs, all green.
+- **Not hash or iteration order.** Every generator draws from `random.Random(seed)` seeded by
+  string, which is version-2 seeding and does not use `hash()`. Nothing that reaches a printed
+  line iterates a set or a string-keyed dict; the one dict iteration in the reference
+  (`take.py`) is keyed by integer slab id and insertion-ordered.
+- **Not memory.** Peak RSS of the reference over the whole graded set is 148 MB against the
+  2048 MB the task is given.
+
+### What it was
+
+The worker's wall clock. `tests/test.sh` ran the graded set under `timeout 60`, and on this
+machine - one core of a 2.1 GHz Xeon, unloaded - the reference needs **25.9 to 29.3 seconds**
+of it across repeated runs. That is a margin of 2.1x. The committed twelve-family bundle
+needed 4.5 seconds against the same 60, a margin of 13x; the revision grew the set from 483
+programs to 728 and the large programs from six to seven without re-measuring the limit they
+run under. Where the time goes, in one 28.0 s run:
+
+| family           | programs | seconds |
+|------------------|----------|---------|
+| `wide`           | 3        | 14.80   |
+| `deep`           | 3        |  9.67   |
+| `source_dormant` | 1        |  3.12   |
+| the other 15     | 721      |  0.41   |
+
+A 2.1x margin is not a margin. Any host slower or busier than the authoring machine by that
+much kills the worker mid-run, and because `worker.py` writes `worker_out.json` only after the
+last program, a kill loses the whole record rather than part of it: every test then errors in
+`_load()` and a perfectly correct reference scores 0. Reproduced exactly by lowering the wall
+to 25 s, which stands in for a host 2.4x slower - `worker exit 124`, `1 passed, 48 errors`,
+reward 0, with the shipped reference unmodified.
+
+### The repair
+
+The limit is the one number in the task that is free to move: it exists to separate the
+reference from the structures that are correct but cannot afford the scale, and it only has to
+sit between them. So it was re-measured on both sides of the shipped population rather than
+inherited.
+
+- Reference: 25.9 to 29.3 s.
+- The naive structure, measured on the same population: the shipped engine does not finish the
+  **first line** of one `wide` program - the 60000-slab bulk import - within 120 s, against
+  4.6 s for the whole of that program under the reference.
+
+The two sides are separated by more than an order of magnitude, so the wall moved to **240 s**:
+an 8.4x to 9.3x margin for the reference, and still far below what any scanning or copying
+structure needs to reach the end of the set. `wall` in `tests/test.sh`, the sentence in
+`instruction.md` and the one in `task.toml` all say 240; they were changed together, because a
+limit stated in three places and enforced in one is the same defect in a different costume.
+
+`tests/reap.py` was hardened in the same pass. The revision made its exit status gate the
+reward, and its `/proc` scan caught only `FileNotFoundError` and `ProcessLookupError` while
+parsing with `line.split()[1]`. A process exiting mid-read raises other `OSError`s and can
+present a short line, either of which would raise out of the reaper and score a clean run 0.
+It now reads a vanishing process as gone, which is what the committed version did before the
+revision narrowed it. The survivor detection it exists for is unchanged.
+
+### The lesson
+
+**A limit that was measured once is not measured.** The population grew by half and the number
+of large programs by one, and the limit they run under was carried over untouched; nothing in
+the kit reads it, because every local gate asks whether the answer is right and none asks how
+much of the budget producing it spent. The margin, not the pass, is the measurement: an oracle
+that passes locally at 2.1x is an oracle that fails on the platform, and it fails as a wrong
+answer rather than as a slow one, which is why it cost three attempts to see. Any change to the
+generator or the families is a change to the execution limit until the clock says otherwise.

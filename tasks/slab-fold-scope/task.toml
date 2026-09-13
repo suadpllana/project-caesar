@@ -56,7 +56,7 @@ an expert establish source entitlement before optimizing snapshot retention and 
 
 verification_explanation = """
 The verifier overlays only the six declared Python files onto its pristine service. It
-executes the submitted code as an unprivileged user under the stated 60-second limit. A separate
+executes the submitted code as an unprivileged user under the stated 240-second limit. A separate
 root process compares complete traces with sealed expected results. Submitted code cannot read
 the model or write the reward directory. The reward starts at zero and becomes one only after
 execution, cleanup and all assertions succeed; the verifier also writes a pytest CTRF report.

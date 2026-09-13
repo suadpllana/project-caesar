@@ -6,7 +6,7 @@ set -euo pipefail
 logs=/logs/verifier
 work=/work
 uid=1002
-wall=60
+wall=240
 per=45
 
 # Everything the reward is derived from is put out of reach before the first stage starts.

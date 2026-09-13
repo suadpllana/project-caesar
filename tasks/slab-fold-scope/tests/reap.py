@@ -14,17 +14,26 @@ SANDBOX = 1002
 
 
 def owner(pid):
-    """The real uid of a non-zombie process, or None after it exits."""
+    """The real uid of a non-zombie process, or None once it is gone.
+
+    A process that exits while this reads its status takes the file with it, and a
+    half-written line can be short of the field being read. Both are the process going
+    away, not a survivor, so neither may raise: this stage gates the reward, and an
+    exception here would score a clean run 0.
+    """
     try:
         with open("/proc/%d/status" % pid, encoding="utf-8", errors="replace") as fh:
             uid = None
             for line in fh:
-                if line.startswith("State:") and line.split()[1] in ("Z", "X"):
+                field = line.split()
+                if len(field) < 2:
+                    continue
+                if field[0] == "State:" and field[1] in ("Z", "X"):
                     return None
-                if line.startswith("Uid:"):
-                    uid = int(line.split()[1])
+                if field[0] == "Uid:" and field[1].isdigit():
+                    uid = int(field[1])
             return uid
-    except (FileNotFoundError, ProcessLookupError):
+    except OSError:
         return None
     return None
 

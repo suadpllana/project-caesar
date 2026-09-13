@@ -299,3 +299,48 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-13, `slab-fold-scope` reference verification)
+
+Reference verification came back with the oracle at **1, 1, 0** over three attempts and the nop
+at 0, 0, 0. The cause was the worker's wall clock, and the diagnosis is the reusable part.
+
+- **An oracle that passes twice and fails once is a race, and the first question is which input
+  changed between the attempts.** Here the answer was none: the submitted `test.sh` writes a
+  fixed seed and grades against a frozen `tests/seal/suite.json`, so all 728 programs and all
+  728 expected traces are byte-identical every run. That killed the whole family of
+  "a rare generated program separates the reference from the model" explanations before any of
+  it was chased - and it was worth confirming rather than assuming, because the *committed*
+  twelve-family version of the same task does draw a random nonce. Sweeping that one over 120
+  random seeds found zero disagreements, which is how the seed was ruled out on both versions
+  instead of one.
+- **A limit that was measured once is not measured.** The revision grew the graded set from 483
+  programs to 728 and the large programs from six to seven, and left `wall=60` untouched. The
+  reference needs 25.9 to 29.3 s of it; the version that had passed needed 4.5 s. A 13x margin
+  had quietly become 2.1x, and 2.1x is not a margin - any host slower or busier than the
+  authoring machine by that much fails a correct reference. Every local gate was green the
+  whole time, because each one asks whether the answer is right and none asks what fraction of
+  the budget producing it spent. `wc -l` over the population and a stopwatch on the reference
+  are both one command; the margin is the measurement, not the pass.
+- **A timeout does not fail like a slow answer, it fails like a wrong one.** `worker.py` writes
+  its record only after the last program, so a kill at the wall loses all 728 rather than the
+  tail: every test then errors inside `_load()` with "worker produced no readable output", which
+  reads as a broken submission rather than an expensive one. That is why it cost three attempts
+  to notice. Reproduced on demand by lowering the wall to 25 s, standing in for a host 2.4x
+  slower, with the shipped reference unmodified: `worker exit 124`, reward 0.
+- **Re-measure both sides before moving a limit, because a limit is only ever a separator.**
+  The naive structure does not finish the *first line* of one `wide` program - the 60000-slab
+  bulk import - inside 120 s, against 4.6 s for that whole program under the reference. With
+  the two sides an order of magnitude apart, the wall moved to 240 s: 8.4x to 9.3x for the
+  reference and still far under what a scanning or copying structure needs. Raising it on the
+  reference's number alone would have been guessing at the half that decides the difficulty.
+- **A number stated in three files and enforced in one is three chances to ship a contradiction.**
+  The limit appears in `tests/test.sh`, in `instruction.md` and in `task.toml`; only the first
+  one does anything. They were changed together, and grepping the bundle for the old value is
+  the check.
+- **Widening what gates the reward widens what can fail it.** The same revision made
+  `reap.py`'s exit status a third condition on the reward, while narrowing its `/proc` scan to
+  `FileNotFoundError` and `ProcessLookupError` and parsing with a bare `line.split()[1]`. A
+  process exiting mid-read raises other `OSError`s and can present a short line, so the reaper
+  could take a clean run to 0 on a race that means only "the process is gone". Restored to the
+  broad catch the committed version had, with the survivor detection it exists for untouched.

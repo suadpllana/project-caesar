@@ -1,46 +1,16 @@
-"""Grading. Runs as root, and never executes agent code.
+"""Exact retained-source grading. Trusted root process never imports submitted code.
 
-FROZEN CONTRACT
----------------
-The agent supplies the six files under `/app/tab/`: `live.py` holds the bucket and answers the
-two queries, `lay.py` is the append, `wipe.py` is the cut, `mark.py` says what a created slab
-carries, `take.py` says which slabs a fold re-packs, and `push.py` drives a proposal.
-Everything else in the tree is the verifier's own pristine copy, so only those six can change
-what a program prints.
-
-Graded, and settled the same way by two implementations written apart:
-
-  1  a put makes every key of its range live in one new slab, taking any of them that were
-     already live away from the slab that held them
-  2  `add` counts the keys of the put's range that were not live
-  3  a cut reports the keys it actually removed, not the width of its range
-  4  a slab left holding nothing is gone, whichever part emptied it
-  5  a fold looks only at the slabs all of whose keys lie inside its range
-  6  which of those it re-packs is decided key by key against the proposal's base
-  7  one of them holding a key from each side of the base undoes the attempt and forces a
-     second one at the head
-  8  the undone attempt leaves nothing behind, slab numbering included
-  9  only one second attempt is ever made, and its base is the head
- 10  a fold with fewer than two slabs in reach does nothing at all
- 11  a re-packed key keeps the number it already carried
- 12  a proposal that creates no slab and removes no key takes no number
-
-Implementation choice, and not graded: how a bucket is held, whether an attempt is undone by a
-journal or by rebuilding what it touched, whether adjacent runs of one slab are merged, where
-the number a key carries is stored, and any internal naming. Not a free choice, and not
-asserted here either: neither the slabs meeting a range, nor the live key count, nor whether a
-slab lies wholly inside a range can be found by walking the bucket, which the execution limit
-on the worker decides rather than any assertion in this file.
-
-Hand cases are checked against `gt.json`, frozen before this file was written. Nonce programs
-are generated here, after the agent has finished, and checked against the sealed model. The
-model must also reproduce `gt.json` exactly, so a drifted model cannot quietly redefine
-correct.
+Literal truth is independently checked against two models before freezing. The sealed model
+must reproduce it. Generated truth was compared with the independent reference before sealing,
+and its input signatures must still match. Every original input family is retained, with new source/reconciliation
+fences and one many-snapshot program added. Programs and verdict inputs are fixed by the root
+side; changing the worker copy cannot shrink the test population.
 """
 import hashlib
 import json
 import os
 import pathlib
+import stat
 import sys
 
 import pytest
@@ -66,7 +36,11 @@ def _sig(lines):
 def _load():
     """Every byte here came from a process that ran agent code. Parse it defensively."""
     try:
-        raw = json.loads(OUT.read_text(encoding="utf-8"))
+        fd = os.open(OUT, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, encoding="utf-8") as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise ValueError("worker output is not a regular file")
+            raw = json.load(stream)
     except Exception as exc:
         pytest.fail("worker produced no readable output: %s" % exc)
     if not isinstance(raw, list):
@@ -127,14 +101,17 @@ def test_hand_case(produced, truth, name):
     assert _trace(item) == truth[name]
 
 
-# --- programs generated from a seed drawn after the agent's container was gone ---------
+# --- deterministic generated programs, pinned to independently checked sealed traces ---
 
 def test_every_nonce_program_matches(produced, nonce):
     seed, per = nonce
     wanted = gen.programs(seed, per)
+    frozen = json.loads((pathlib.Path(SEAL) / "suite.json").read_text(encoding="utf-8"))
+    assert set(frozen) == {name for _, name, _ in wanted}
     assert len(wanted) >= 400, "nonce population too small: %d" % len(wanted)
     bad = []
     for _fam, name, lines in wanted:
+        assert frozen[name]["sig"] == _sig(lines), "sealed inputs drifted: %s" % name
         item = produced.get(name)
         if item is None:
             bad.append((name, "missing"))
@@ -142,7 +119,7 @@ def test_every_nonce_program_matches(produced, nonce):
         if item.get("sig") != _sig(lines):
             bad.append((name, "program altered"))
             continue
-        if item.get("got") != model.expect(lines):
+        if item.get("got") != frozen[name]["got"]:
             bad.append((name, "record differs"))
     assert not bad, "%d of %d nonce programs wrong, first: %s" % (
         len(bad), len(wanted), bad[:4])

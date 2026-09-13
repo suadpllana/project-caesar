@@ -7,9 +7,9 @@ a silent exit loses the record, and a lost record is a failure, never a pass.
 
 The wall clock the platform puts on this process is also the task's execution limit, so a
 correct service that cannot get through the set in time is scored exactly like a wrong one.
-Two of the twelve families exist for that: one where sixty thousand slabs are imported and
-twenty thousand proposals are pushed against narrow ranges of them, and one where the same
-import is re-packed into a single slab that every later proposal has to be measured against.
+The eighteen families include wide and deep physical layouts and a workload retaining eight
+thousand source views while narrow changes land. All seven large programs and all small
+programs share the same execution limit.
 """
 import hashlib
 import json

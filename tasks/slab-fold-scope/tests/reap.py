@@ -8,39 +8,45 @@ channel is root-owned and was locked before any of this ran; this shuts the othe
 """
 import os
 import signal
+import time
 
 SANDBOX = 1002
 
 
 def owner(pid):
-    """The real uid of a live process, or None if it went away while we looked."""
+    """The real uid of a non-zombie process, or None after it exits."""
     try:
         with open("/proc/%d/status" % pid, encoding="utf-8", errors="replace") as fh:
+            uid = None
             for line in fh:
-                if not line.startswith("Uid:"):
-                    continue
-                field = line.split()
-                return int(field[1]) if len(field) > 1 and field[1].isdigit() else None
-    except OSError:
+                if line.startswith("State:") and line.split()[1] in ("Z", "X"):
+                    return None
+                if line.startswith("Uid:"):
+                    uid = int(line.split()[1])
+            return uid
+    except (FileNotFoundError, ProcessLookupError):
         return None
     return None
 
 
 def main():
-    self = os.getpid()
     gone = 0
-    for entry in os.listdir("/proc"):
-        if not entry.isdigit():
-            continue
-        pid = int(entry)
-        if pid == self or owner(pid) != SANDBOX:
-            continue
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except OSError:
-            continue
-        gone += 1
-    print("reaped %d" % gone)
+    deadline = time.monotonic() + 5
+    while True:
+        alive = [int(entry) for entry in os.listdir("/proc")
+                 if entry.isdigit() and owner(int(entry)) == SANDBOX]
+        if not alive:
+            print("reaped %d; no live sandbox processes remain" % gone)
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError("sandbox processes survived cleanup")
+        for pid in alive:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                continue
+            gone += 1
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":

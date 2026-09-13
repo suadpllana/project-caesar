@@ -563,3 +563,8 @@ ORDER = sorted(PROGS)
 
 def ops(name):
     return PROGS[name]
+
+
+import new_cases
+PROGS.update(new_cases.PROGS)
+ORDER = sorted(PROGS)

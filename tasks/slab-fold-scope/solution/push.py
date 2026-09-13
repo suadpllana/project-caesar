@@ -1,36 +1,38 @@
-from tab import lay, live, say, take, wipe
+from tab import lay, say, take, wipe
 
 
-def once(tab, prop, base, num, jr):
-    add = 0
-    gone = 0
+def once(tab, prop, view, head, num):
+    add = gone = 0
     made = False
     for kind, buck, lo, hi in prop.parts:
-        if kind == "put":
-            add += lay.part(tab, num, buck, lo, hi, jr)
+        if kind == 'put':
+            add += lay.part(tab, num, buck, lo, hi)
             made = True
-        elif kind == "cut":
-            gone += wipe.part(tab, buck, lo, hi, jr)
-        else:
-            if take.part(tab, base, buck, lo, hi, jr):
-                made = True
+        elif kind == 'cut':
+            gone += wipe.part(tab, buck, lo, hi)
+        elif take.part(tab, view, head, buck, lo, hi):
+            made = True
     return add, gone, made
 
 
 def run(tab, prop):
-    num = tab.head + 1
-    first = tab.next
-    jr = []
-    try:
-        add, gone, made = once(tab, prop, prop.base, num, jr)
-    except take.Again:
-        live.undo(jr)
-        tab.next = first
-        add, gone, made = once(tab, prop, tab.head, num, jr)
-    if not made and not gone:
-        live.undo(jr)
+    head = dict(tab.buck)
+    view = dict(prop.root)
+    number, first = tab.head + 1, tab.next
+    while True:
+        try:
+            added, removed, made = once(tab, prop, view, head, number)
+            break
+        except take.Again as clash:
+            tab.buck = dict(head)
+            tab.next = first
+            if not take.refresh(view, head, clash.buck, clash.sources):
+                tab.out.append('clash %s' % prop.tag)
+                return
+    if not made and not removed:
+        tab.buck = head
         tab.next = first
         say.void(tab, prop.tag)
         return
-    tab.head = num
-    say.land(tab, prop.tag, num, add, gone)
+    tab.head = number
+    say.land(tab, prop.tag, number, added, removed)

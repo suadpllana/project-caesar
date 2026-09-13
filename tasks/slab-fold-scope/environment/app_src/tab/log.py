@@ -7,6 +7,7 @@ class Prop:
 
 def begin(tab, tag):
     tab.props[tag] = Prop(tag, tab.head)
+    tab.props[tag].root = dict(tab.buck)
 
 
 def add(tab, tag, kind, buck, lo, hi):

@@ -1,28 +1,15 @@
 from tab import live
 
 
-def part(tab, buck, lo, hi, jr):
+def part(tab, buck, lo, hi):
     b = live.hold(tab, buck)
-    i, j = live.window(b, lo, hi)
-    if i >= j:
-        return 0
-    ks, es, ss, ds = [], [], [], []
-    took = 0
-    for t in range(i, j):
-        a, z, s, d = b.ks[t], b.es[t], b.ss[t], b.ds[t]
+    cut = 0
+    for a, (z, birth, sid) in list(live.over(b.run, lo, hi)):
+        b = live.erase(b, a)
         if a < lo:
-            ks.append(a)
-            es.append(lo - 1)
-            ss.append(s)
-            ds.append(d)
+            b = live.insert(b, a, lo - 1, birth, sid)
         if z > hi:
-            ks.append(hi + 1)
-            es.append(z)
-            ss.append(s)
-            ds.append(d)
-        cut = min(z, hi) - max(a, lo) + 1
-        live.bump(b, d, -cut, jr)
-        took += cut
-    live.splice(b, i, j, ks, es, ss, ds, jr)
-    live.total(b, -took, jr)
-    return took
+            b = live.insert(b, hi + 1, z, birth, sid)
+        cut += min(z, hi) - max(a, lo) + 1
+    tab.buck[buck] = b
+    return cut

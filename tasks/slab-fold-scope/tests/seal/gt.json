@@ -1,254 +1,454 @@
 {
- "cut-count": [
-  "land a 1 10 0",
-  "land b 2 0 5",
-  "rows v 5"
- ],
- "cut-empty": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 0 10",
-  "at v 5 none",
-  "at v 25 2",
-  "rows v 10"
- ],
- "cut-none": [
-  "land a 1 10 0",
-  "void b",
-  "land c 2 10 0",
-  "rows v 20"
- ],
- "cut-twice": [
-  "land a 1 10 0",
-  "land b 2 0 5",
-  "void c",
-  "rows v 5"
- ],
- "fold-era": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 10 0",
-  "land y 4 0 0",
-  "at v 5 4",
-  "at v 25 4",
-  "at v 45 3"
- ],
- "fold-floor": [
-  "land a 1 10 0",
-  "void z",
-  "at v 5 1",
-  "land b 2 10 0"
- ],
- "fold-hole": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 0 0",
-  "at v 5 3",
-  "at v 15 none",
-  "at v 25 3",
-  "rows v 20"
- ],
- "fold-inside": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 10 0",
-  "land d 4 0 0",
-  "at v 5 4",
-  "at v 15 4",
-  "at v 25 3"
- ],
- "fold-keeps": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land e 3 10 0",
-  "land d 4 0 0",
-  "land y 5 0 0",
-  "at v 5 5",
-  "at v 25 5",
-  "at v 65 5"
- ],
- "fold-old-base": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 10 0",
-  "land d 4 0 0",
-  "void y",
-  "at v 5 4",
-  "at v 25 4",
-  "at v 105 3"
- ],
- "fold-plain": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 0 0",
-  "at v 5 3",
-  "at v 25 3",
-  "rows v 20"
- ],
- "mixed-astride": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 10 0",
-  "land d 4 0 0",
-  "land e 5 10 0",
-  "void y",
-  "at v 5 1",
-  "at v 35 5",
-  "at v 65 4",
-  "at v 155 4"
- ],
- "mixed-cut-unmix": [
-  "land a 1 10 0",
-  "land e 2 10 0",
-  "land b 3 10 0",
-  "land c 4 0 0",
-  "land d 5 10 0",
-  "land y 6 0 10",
-  "at v 5 6",
-  "at v 25 none",
-  "at v 65 6",
-  "at v 85 5",
-  "rows v 30"
- ],
- "mixed-elsewhere": [
-  "land a 1 10 0",
-  "land e 2 10 0",
-  "land b 3 10 0",
-  "land c 4 10 0",
-  "land f 5 10 0",
-  "land g 6 0 0",
-  "land y 7 0 0",
-  "at v 5 7",
-  "at v 25 4",
-  "at v 45 7",
-  "at v 205 6"
- ],
- "mixed-number": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 10 0",
-  "land d 4 10 0",
-  "land e 5 10 0",
-  "land f 6 0 0",
-  "land y 7 10 0",
-  "at v 205 7",
-  "at v 105 6"
- ],
- "mixed-part-astride": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 10 0",
-  "land d 4 0 0",
-  "land e 5 10 0",
-  "land f 6 10 0",
-  "void y",
-  "at v 25 4",
-  "at v 45 6",
-  "at v 65 4",
-  "at v 85 5",
-  "at v 155 4"
- ],
- "mixed-put-unmix": [
-  "land a 1 10 0",
-  "land e 2 10 0",
-  "land b 3 10 0",
-  "land c 4 0 0",
-  "land d 5 10 0",
-  "land y 6 0 0",
-  "at v 5 7",
-  "at v 25 6",
-  "at v 65 7",
-  "at v 85 5",
-  "rows v 40"
- ],
- "mixed-retry": [
-  "land a 1 10 0",
-  "land e 2 10 0",
-  "land b 3 10 0",
-  "land c 4 0 0",
-  "at v 5 4",
-  "at v 65 2",
-  "land y 5 0 0",
-  "at v 5 5",
-  "at v 25 5",
-  "at v 65 5",
-  "rows v 30"
- ],
- "mixed-two-folds": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land c 3 10 0",
-  "land d 4 10 0",
-  "land e 5 10 0",
-  "land f 6 10 0",
-  "land g 7 0 0",
-  "land y 8 0 0",
-  "at v 5 8",
-  "at v 25 8",
-  "at v 35 8",
-  "at v 105 7",
-  "at v 145 7"
- ],
- "own-buckets": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land y 3 10 5",
-  "rows v 20",
-  "rows w 5",
-  "at v 5 1",
-  "at w 3 2"
- ],
- "own-fold-first": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land y 3 0 0",
-  "at v 5 4",
-  "at v 25 3",
-  "rows v 20"
- ],
- "own-part": [
-  "land a 1 10 0",
-  "land b 2 10 0",
-  "land y 3 10 0",
-  "at v 5 4",
-  "at v 25 4",
-  "at v 45 3"
- ],
- "put-add": [
-  "land a 1 20 0",
-  "land b 2 0 0",
-  "rows v 20",
-  "at v 5 2",
-  "at v 12 1"
- ],
- "put-fresh": [
-  "land a 1 20 0",
-  "rows v 20",
-  "at v 0 1",
-  "at v 19 1",
-  "at v 20 none"
- ],
- "put-refill": [
-  "land a 1 20 0",
-  "land b 2 4 10",
-  "rows v 14",
-  "at v 6 none",
-  "at v 9 2",
-  "at v 12 none"
- ],
- "put-steal": [
-  "land a 1 20 0",
-  "land b 2 10 0",
-  "rows v 30",
-  "at v 5 1",
-  "at v 15 2",
-  "at v 25 2"
- ],
- "void-number": [
-  "land a 1 10 0",
-  "void z",
-  "land b 2 10 0",
-  "land y 3 0 0",
-  "at v 5 3"
- ]
+  "put-fresh": [
+    "land a 1 20 0",
+    "rows v 20",
+    "at v 0 1",
+    "at v 19 1",
+    "at v 20 none"
+  ],
+  "put-steal": [
+    "land a 1 20 0",
+    "land b 2 10 0",
+    "rows v 30",
+    "at v 5 1",
+    "at v 15 2",
+    "at v 25 2"
+  ],
+  "put-add": [
+    "land a 1 20 0",
+    "land b 2 0 0",
+    "rows v 20",
+    "at v 5 2",
+    "at v 12 1"
+  ],
+  "put-refill": [
+    "land a 1 20 0",
+    "land b 2 4 10",
+    "rows v 14",
+    "at v 6 none",
+    "at v 9 2",
+    "at v 12 none"
+  ],
+  "cut-count": [
+    "land a 1 10 0",
+    "land b 2 0 5",
+    "rows v 5"
+  ],
+  "cut-twice": [
+    "land a 1 10 0",
+    "land b 2 0 5",
+    "void c",
+    "rows v 5"
+  ],
+  "cut-empty": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 0 10",
+    "at v 5 none",
+    "at v 25 2",
+    "rows v 10"
+  ],
+  "cut-none": [
+    "land a 1 10 0",
+    "void b",
+    "land c 2 10 0",
+    "rows v 20"
+  ],
+  "fold-plain": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 0 0",
+    "at v 5 3",
+    "at v 25 3",
+    "rows v 20"
+  ],
+  "fold-floor": [
+    "land a 1 10 0",
+    "void z",
+    "at v 5 1",
+    "land b 2 10 0"
+  ],
+  "fold-inside": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 10 0",
+    "land d 4 0 0",
+    "at v 5 4",
+    "at v 15 4",
+    "at v 25 3"
+  ],
+  "fold-hole": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 0 0",
+    "at v 5 3",
+    "at v 15 none",
+    "at v 25 3",
+    "rows v 20"
+  ],
+  "fold-era": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 10 0",
+    "land y 4 0 0",
+    "at v 5 4",
+    "at v 25 4",
+    "at v 45 3"
+  ],
+  "fold-old-base": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 10 0",
+    "land d 4 0 0",
+    "void y",
+    "at v 5 4",
+    "at v 25 4",
+    "at v 105 3"
+  ],
+  "fold-keeps": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land e 3 10 0",
+    "land d 4 0 0",
+    "land y 5 0 0",
+    "at v 5 5",
+    "at v 25 5",
+    "at v 65 5"
+  ],
+  "mixed-retry": [
+    "land a 1 10 0",
+    "land e 2 10 0",
+    "land b 3 10 0",
+    "land c 4 0 0",
+    "at v 5 4",
+    "at v 65 2",
+    "land y 5 0 0",
+    "at v 5 5",
+    "at v 25 5",
+    "at v 65 5",
+    "rows v 30"
+  ],
+  "mixed-cut-unmix": [
+    "land a 1 10 0",
+    "land e 2 10 0",
+    "land b 3 10 0",
+    "land c 4 0 0",
+    "land d 5 10 0",
+    "land y 6 0 10",
+    "at v 5 6",
+    "at v 25 none",
+    "at v 65 6",
+    "at v 85 5",
+    "rows v 30"
+  ],
+  "mixed-put-unmix": [
+    "land a 1 10 0",
+    "land e 2 10 0",
+    "land b 3 10 0",
+    "land c 4 0 0",
+    "land d 5 10 0",
+    "land y 6 0 0",
+    "at v 5 7",
+    "at v 25 6",
+    "at v 65 7",
+    "at v 85 5",
+    "rows v 40"
+  ],
+  "mixed-two-folds": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 10 0",
+    "land d 4 10 0",
+    "land e 5 10 0",
+    "land f 6 10 0",
+    "land g 7 0 0",
+    "land y 8 0 0",
+    "at v 5 8",
+    "at v 25 8",
+    "at v 35 5",
+    "at v 105 7",
+    "at v 145 7"
+  ],
+  "mixed-number": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 10 0",
+    "land d 4 10 0",
+    "land e 5 10 0",
+    "land f 6 0 0",
+    "land y 7 10 0",
+    "at v 205 7",
+    "at v 105 6"
+  ],
+  "mixed-elsewhere": [
+    "land a 1 10 0",
+    "land e 2 10 0",
+    "land b 3 10 0",
+    "land c 4 10 0",
+    "land f 5 10 0",
+    "land g 6 0 0",
+    "land y 7 0 0",
+    "at v 5 7",
+    "at v 25 4",
+    "at v 45 7",
+    "at v 205 6"
+  ],
+  "mixed-astride": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 10 0",
+    "land d 4 0 0",
+    "land e 5 10 0",
+    "void y",
+    "at v 5 1",
+    "at v 35 5",
+    "at v 65 4",
+    "at v 155 4"
+  ],
+  "mixed-part-astride": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land c 3 10 0",
+    "land d 4 0 0",
+    "land e 5 10 0",
+    "land f 6 10 0",
+    "void y",
+    "at v 25 4",
+    "at v 45 6",
+    "at v 65 4",
+    "at v 85 5",
+    "at v 155 4"
+  ],
+  "own-part": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land y 3 10 0",
+    "at v 5 4",
+    "at v 25 4",
+    "at v 45 3"
+  ],
+  "own-fold-first": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land y 3 0 0",
+    "at v 5 4",
+    "at v 25 3",
+    "rows v 20"
+  ],
+  "own-buckets": [
+    "land a 1 10 0",
+    "land b 2 10 0",
+    "land y 3 10 5",
+    "rows v 20",
+    "rows w 5",
+    "at v 5 1",
+    "at w 3 2"
+  ],
+  "void-number": [
+    "land a 1 10 0",
+    "void z",
+    "land b 2 10 0",
+    "land y 3 0 0",
+    "at v 5 3"
+  ],
+  "source-geometry-frozen": [
+    "land seed 1 20 0",
+    "land trim 2 0 5",
+    "void p",
+    "at v 5 1",
+    "at v 25 2",
+    "rows v 15"
+  ],
+  "source-capture-at-plan": [
+    "land seed 1 20 0",
+    "land trim 2 0 5",
+    "void p",
+    "at v 5 1",
+    "at v 25 2"
+  ],
+  "source-incarnation-replacement": [
+    "land seed 1 10 0",
+    "land replacement 2 0 0",
+    "void p",
+    "at v 0 3",
+    "at v 10 2",
+    "rows v 10"
+  ],
+  "source-current-outside-conflict": [
+    "land seed 1 2 0",
+    "land extra 2 1 0",
+    "land pack 3 0 0",
+    "void p",
+    "at v 0 4",
+    "at v 8 4"
+  ],
+  "source-selective-replay": [
+    "land seed 1 20 0",
+    "land left 2 5 0",
+    "land right 3 5 0",
+    "land pack 4 0 0",
+    "land p 5 0 0",
+    "at v 0 8",
+    "at v 10 8",
+    "at v 20 5",
+    "at v 100 7",
+    "rows v 30"
+  ],
+  "source-repeated-refresh": [
+    "land seed 1 25 0",
+    "land left 2 5 0",
+    "land leftpack 3 0 0",
+    "land right 4 5 0",
+    "land rightpack 5 0 0",
+    "land p 6 5 2",
+    "at v 0 7",
+    "at v 100 9",
+    "at v 200 10",
+    "at v 300 none",
+    "at v 302 5",
+    "rows v 38"
+  ],
+  "source-own-wide-narrow-clash": [
+    "land seed 1 2 0",
+    "clash p",
+    "land q 2 1 0",
+    "at v 0 1",
+    "at v 2 2",
+    "at v 4 3"
+  ],
+  "source-clash-restores-all": [
+    "land seed 1 15 0",
+    "clash p",
+    "land q 2 5 0",
+    "at v 0 1",
+    "at v 10 2",
+    "at v 30 3",
+    "at v 50 none",
+    "at v 70 4",
+    "rows v 20"
+  ],
+  "source-created-then-empty": [
+    "land p 1 10 10",
+    "void z",
+    "land q 2 1 0",
+    "rows v 1",
+    "at v 20 2"
+  ],
+  "source-bucket-isolation": [
+    "land seed 1 20 0",
+    "land fill 2 5 0",
+    "land pack 3 0 0",
+    "land other 4 5 0",
+    "land p 5 0 0",
+    "at v 0 6",
+    "at w 0 8",
+    "at w 20 7",
+    "rows v 15",
+    "rows w 15"
+  ],
+  "source-closure-holes": [
+    "land seed 1 2 0",
+    "land firstpack 2 0 0",
+    "land middle 3 1 0",
+    "land far 4 1 0",
+    "land trim 5 0 1",
+    "land fresh 6 1 0",
+    "land mix 7 0 0",
+    "land p 8 0 0",
+    "at v 5 8",
+    "at v 6 8",
+    "at v 10 3",
+    "at v 20 8",
+    "rows v 4"
+  ],
+  "source-closure-two-way": [
+    "land seed 1 3 0",
+    "land firstpack 2 0 0",
+    "land middle 3 1 0",
+    "land far 4 1 0",
+    "land trim 5 0 1",
+    "land replacement 6 0 0",
+    "land mix 7 0 0",
+    "land p 8 0 0",
+    "at v 5 9",
+    "at v 6 9",
+    "at v 10 9",
+    "at v 20 9",
+    "rows v 4"
+  ],
+  "source-retired-extreme": [
+    "land seed 1 25 0",
+    "land trim 2 0 5",
+    "land fresh 3 5 0",
+    "land pack 4 0 0",
+    "void p",
+    "at v 5 1",
+    "at v 20 2",
+    "at v 100 6",
+    "rows v 25"
+  ],
+  "source-refresh-content-equality": [
+    "land seed 1 20 0",
+    "land trim 2 0 5",
+    "land p 3 0 0",
+    "at v 5 3",
+    "at v 25 3",
+    "rows v 15"
+  ],
+  "source-minimum-conflict-order": [
+    "land seed 1 5 0",
+    "land d 2 1 0",
+    "land r 3 0 0",
+    "land x 4 0 0",
+    "land y 5 0 0",
+    "land trim 6 0 1",
+    "land p 7 0 1",
+    "at v 1 1"
+  ],
+  "source-replay-earlier-eligibility": [
+    "land a 1 4 0",
+    "land e 2 0 0",
+    "land b 3 0 0",
+    "land c 4 0 0",
+    "land p 5 0 0",
+    "at v 0 8",
+    "at v 2 8",
+    "at v 4 8",
+    "at v 6 8",
+    "rows v 4"
+  ],
+  "source-coordinate-edge-replacement": [
+    "land a 1 4 0",
+    "land e 2 0 0",
+    "land b 3 0 0",
+    "land c 4 0 0",
+    "land p 5 0 0",
+    "at v -2 8",
+    "at v 0 8",
+    "at v 2 7",
+    "at v 4 7",
+    "rows v 4"
+  ],
+  "source-closure-long-chain": [
+    "land a 1 6 0",
+    "land e 2 0 0",
+    "land b 3 0 3",
+    "land f 4 0 0",
+    "land c 5 3 0",
+    "land d 6 0 0",
+    "land p 7 0 0",
+    "at v 0 13",
+    "at v 2 9",
+    "at v 4 13",
+    "at v 6 14",
+    "at v 8 9",
+    "at v 10 14",
+    "rows v 6"
+  ],
+  "integer-key-width": [
+    "land big 1 1100 0",
+    "rows v 1100",
+    "at v 0 1",
+    "at v 20272971737006797225984 1100"
+  ]
 }

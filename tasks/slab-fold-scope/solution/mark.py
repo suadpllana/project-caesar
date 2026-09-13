@@ -1,21 +1,18 @@
 from tab import live
 
 
-def fresh(tab, buck, lo, hi, num, jr):
+def fresh(tab, buck, lo, hi, num):
     sid = tab.mint()
-    live.sow(tab, buck, lo, hi, num, sid, jr)
+    tab.buck[buck] = live.insert(live.hold(tab, buck), lo, hi, num, sid)
     return sid
 
 
-def keep(tab, buck, i, j, reach, jr):
+def keep(tab, buck, sids):
     b = live.hold(tab, buck)
     sid = tab.mint()
-    held = 0
-    for t in range(i, j):
-        if b.ds[t] in reach:
-            live.retag(b, t, sid, jr)
-            held += b.es[t] - b.ks[t] + 1
-    for d in reach:
-        live.bump(b, d, -b.sn[d], jr)
-    live.bump(b, sid, held, jr)
+    for old in sids:
+        for a, (z, birth, _) in list(live.items(live.get(b.own, old))):
+            b = live.erase(b, a)
+            b = live.insert(b, a, z, birth, sid)
+    tab.buck[buck] = b
     return sid

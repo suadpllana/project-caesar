@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -13,4 +13,4 @@ RUN mkdir -p /logs/verifier
 
 COPY . /tests/
 
-RUN chmod +x /tests/test.sh && chmod 700 /tests/seal
+RUN chown -R root:root /tests && chmod -R u=rwX,go=rX /tests && chmod +x /tests/test.sh && chmod 700 /tests/seal

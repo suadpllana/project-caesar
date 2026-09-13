@@ -757,8 +757,13 @@ def check_leaks_by_affordance(root: Path) -> None:
             for name in set(DEF_NAME_RE.findall(text)):
                 if DUNDER_OR_PRIVATE.match(name) or name in ENTRYPOINT_NAMES:
                     continue
-                # Count references outside the definition line itself.
-                refs = len(re.findall(rf"(?<![\w.]){re.escape(name)}\s*\(", corpus))
+                # Count references outside the definition line itself. A call through the
+                # module that owns it (`grid.hit(p)`) is a call: the earlier pattern refused
+                # any name preceded by a dot, so every function in a package of modules that
+                # call each other was reported unused, on this bundle and on every retained
+                # one. An attribute of a local (`p.t.hit(`) counts too; what must not count
+                # is a longer identifier that merely ends in the name (`myhit(`).
+                refs = len(re.findall(rf"(?<!\w)(?:\w+\.)*{re.escape(name)}\s*\(", corpus))
                 defs = len(re.findall(rf"def\s+{re.escape(name)}\s*\(", corpus))
                 if refs <= defs and f'"{name}"' not in corpus and f"'{name}'" not in corpus:
                     rel = "/".join(path.relative_to(root).parts)
@@ -1053,7 +1058,13 @@ def check_verifier(root: Path) -> None:
         error("tests/test.sh: must write the score to /logs/verifier/reward.txt")
     if "ctrf" not in text.lower():
         warn("tests/test.sh: no CTRF report found - the verifier should emit /logs/verifier/ctrf.json")
-    if not re.search(r"echo\s+1\s*>", text) or not re.search(r"echo\s+0\s*>", text):
+    # `printf '1\n' >` is the same write as `echo 1 >`; the earlier pattern knew only the
+    # second, so every retained bundle reported its own binary reward as unconfirmed.
+    def writes(digit: str) -> bool:
+        return bool(re.search(rf"echo\s+{digit}\s*>", text)
+                    or re.search(rf"printf\s+['\"]?{digit}(\\n)?['\"]?\s*>", text))
+
+    if not writes("1") or not writes("0"):
         warn("tests/test.sh: could not confirm it writes both 1 and 0 - reward must be binary")
 
 

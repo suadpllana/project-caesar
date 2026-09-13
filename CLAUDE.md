@@ -7,6 +7,92 @@ Before designing or hardening another task, read `docs/DIFFICULTY.md`,
 Historical task transcripts and retired project notes were deliberately removed. Do not restore
 them as examples; only the projects listed in `README.md` belong in this checkout.
 
+## Lessons, measured (2026-09-13, `anchor-mean-settle`)
+
+- **An attestation probe built on a correct submission proves nothing.** Three of the seven
+  isolation probes came back reward 1, honestly: each was the reference plus an attack, so the
+  1 came from doing the work and said nothing about whether the attack was refused. Rebuilt
+  over a panel that does *not* do the work - the reference with one wrong rule, fast and wrong
+  - so a 1 could only come from the attack. Each probe now raises a distinctive marker if its
+  attack lands and prints what refused it when it does not, and `cheat_report.py` asserts the
+  refusal rather than the score: PermissionError on the sealed answers, on the reward channel
+  and on `/tests`, the survivor reaped by owner, the planted record overwritten, the malformed
+  one refused instead of crashed through.
+- **A refusal that is caught and swallowed is not evidence.** The first version of the
+  rewrite-the-generator probe wrapped its write in `except OSError: return`, so a correct
+  refusal left nothing anywhere and the report looked for a `PermissionError` string that could
+  never appear. A probe has to say what it was refused.
+- **A checker that cannot see a module-qualified call reports every module in a package as
+  dead.** `preflight.py` counted references with a lookbehind that rejected a preceding dot, so
+  `grid.hit(p)` was not a call to `hit`: 12 to 23 unused-function warnings on every retained
+  bundle, and the two genuine ones in this tree - a scroll-range helper and a re-seat that the
+  shipped engine never reaches, which together are a table of contents for the clamp - were
+  invisible in the noise. Fixed at the class, checked to still fire on a planted dead helper,
+  and the retained bundles drop to one finding each, both real. Same shape, same file: it knew
+  `echo 1 >` but not `printf '1\n' >` as a reward write, so every retained bundle reported its
+  own binary reward as unconfirmed.
+- **`onelinecheck` found a branch no enumerated case reached.** The delete fallback reduced to
+  one field on 15 samples because the "deleted row was the last one" branch never fired: the
+  view is held against the first row it touches, so that row is the last row only when it is
+  taller than the whole view. Getting there took a row of 330 against a view of 300 scrolled to
+  the bottom, and then two more attempts, because a list that is short after the delete clamps
+  the right reading and the wrong one to the same place. Per-rule coverage on paper said the
+  rule was covered; measuring the shape of the answer said it was not.
+- **A frozen-answer guard that cannot tell a rewritten program from a changed answer cries at
+  every retune.** `build_gt.py` refused that case three times as a contract change when what had
+  changed was the program. It now hashes each case's ops beside its answer: an answer that moves
+  on an unchanged program still stops the run, one that moves because its own program was
+  rewritten is reported as a rewrite and allowed.
+- **An unobservable distinction is a correct variant, not a cheat.** "An op naming a row that is
+  not in the list re-seats anyway" separated 0 of 200 shaped programs, because re-seating is
+  idempotent in every reachable state - the scroll position is always already where the held row
+  puts it. It ships as `variants/ok-miss-seats` and scores 1. The diagnosis order in
+  `docs/DIFFICULTY.md` is right: verifier defect, missing case, unobservable distinction, correct
+  variant - and this was the third, which makes it the fourth.
+- **Measure the gate on the set the limit is actually applied to, and in both directions.** The
+  first measurement was one hand-built wide program: 1.4 s against 233.8, a 163x separation,
+  which is the number that feels decisive. The number that decides the task is the whole graded
+  set against its own 60 second limit, and on the graded population that came out 9.1 s against
+  165.5 - not 163x but 2.75x, because the naive cost is the number of re-seats times the depth
+  of the view and the generator's wide programs are gentler than the one I wrote by hand. 2.75x
+  is decisive against a slower machine and thin against a faster one: a box three times quicker
+  than this one brings the walk in under the limit and the gate stops existing. The repair was at
+  both ends - grade two wide programs of each size rather than three, which lifted the
+  reference's headroom from 6.6x to 8.2x, and have the `deep` family measure the band at the far
+  end of the list so each of its 9000 front edits moves a held row the whole length of the list
+  away rather than eighty rows away. Final: 7.3 s against 216.9. One repair that looked obvious
+  did the opposite - pinning the wide family's view at the bottom of the list took the walk from
+  54 s to 43 s, because a view parked at the bottom measures nothing after its first pass and the
+  count of re-seats matters more than their depth.
+- **"Style calibration without copying their prose" is measurable, so measure it.** Writing
+  the metadata with a retained `task.toml` open beside me produced prose that shared 221
+  six-word runs with `slab-fold-scope`'s `verification_explanation`, 94 with its
+  `difficulty_explanation` and 83 with its instruction - whole sentences with one noun
+  swapped, in exactly the fields the similarity and AI-text screens read. Nothing in the kit
+  looks at those fields: `simcheck` compares `tests/` and `environment/` files, and it was
+  clean. Rewriting all four fields and the brief's framing from the facts brought the worst
+  overlap to 4 runs in the metadata and 5 in the brief. `tools/prosecheck.py` measures it,
+  because a six-gram count over the retained prose takes ten lines and should be run before
+  packaging rather than after reading the file and feeling uneasy.
+- **And then the checker corrected me, which is why it is a report and not a gate.** I first
+  shipped `prosecheck` with a threshold: over 25 shared runs, rewrite it. Run across the
+  whole repository it failed most of the retained set, including bundles the contributor
+  reports as passed - `alias-settle-report` and `guard-mark-unwind` share 417 six-word runs
+  in `verification_explanation`, 57 in `difficulty_explanation` and 27 in their briefs. So the
+  platform's screens do tolerate a shared house frame between one contributor's own
+  submissions, my band of "15 to 17, where the passing bundles sit" was an artefact of the
+  three bundles I happened to compare first, and a gate built on it would have been the third
+  crying-wolf checker of the day. It prints the numbers and the shared passages and always
+  exits 0. The rewrite was still right - 400 shared runs is a passage that is not this task's,
+  whatever the screens allow - but the claim I had written down about the passing set was
+  false, and one command over eleven bundles instead of three was what said so.
+- **A harness bug reads exactly like a broken verifier.** `cheat_report.py` made its artifact
+  directory with `mkdtemp`, which is mode 700, and `cp -a` carried that onto `/app/pan` inside
+  the verifier, where the unprivileged worker could not traverse it. Every cheat came back
+  "worker exit 1, PermissionError on /app/pan/grid.py", which reads like the isolation eating
+  the submission. The shipped path never had it: `docker_trial.py` creates that directory with
+  `mkdir`.
+
 ## Lessons, measured (2026-09-06, `token-seam-emit`)
 
 Four defects found by local gates before submission, each with the number that found it:

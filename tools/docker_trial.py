@@ -185,7 +185,16 @@ def main(argv: list[str]) -> int:
         return 0 if t.run("variant: " + d.name, t.from_dir(d), 1) else 1
     if what == "--variants":
         res = []
-        for d in sorted((t.task / "authoring" / "variants").iterdir()):
+        # The quality review blocked shipped authoring material, so the variants live at
+        # authoring/<slug>/variants in the repo root; the in-bundle path is the fallback,
+        # which is the same order tools/difficultycheck.py and tools/readingcheck.py use.
+        room = ROOT / "authoring" / argv[1] / "variants"
+        if not room.is_dir():
+            room = t.task / "authoring" / "variants"
+        if not room.is_dir():
+            print("no variants directory for", argv[1])
+            return 1
+        for d in sorted(room.iterdir()):
             if d.is_dir() and d.name.startswith("ok-"):
                 res.append(t.run("variant: " + d.name, t.from_dir(d), 1))
         print("%d/%d variants scored 1" % (sum(res), len(res)))

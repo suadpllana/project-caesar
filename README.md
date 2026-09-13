@@ -54,6 +54,7 @@ Run the cheap structural check first, then the generic two-image runner when Doc
 
 ```text
 python tools/difficultycheck.py <slug>            before Stage 2, and again at Stage 7
+python tools/prosecheck.py <slug>                shipped prose against the retained bundles
 python scripts/preflight.py tasks/<slug>
 python tools/docker_trial.py <slug> --all
 python tools/docker_trial.py <slug> --variants

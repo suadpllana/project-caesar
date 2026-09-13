@@ -1,0 +1,206 @@
+{
+ "anchor-first": [
+  "seen 8",
+  "seen 8",
+  "seen 0",
+  "top 210",
+  "tall 518",
+  "face k3 -12"
+ ],
+ "clamp-fall": [
+  "seen 2",
+  "top 0",
+  "seen 13",
+  "top 1206",
+  "tall 1506",
+  "face k18 -12",
+  "seen 0",
+  "top 1206",
+  "face k18 -12"
+ ],
+ "clamp-hold": [
+  "seen 11",
+  "seen 12",
+  "top 675",
+  "tall 993",
+  "face k26 0"
+ ],
+ "clamp-mid": [
+  "seen 11",
+  "top 348",
+  "tall 882",
+  "face k9 -12"
+ ],
+ "clamp-shrink": [
+  "top 180",
+  "tall 480",
+  "face k8 -12"
+ ],
+ "clamp-zero": [
+  "top 4",
+  "face k6 -4"
+ ],
+ "del-above": [
+  "top 216",
+  "face k11 0"
+ ],
+ "del-all": [
+  "top 0",
+  "tall 0",
+  "face none",
+  "seen 0"
+ ],
+ "del-anchor": [
+  "face k11 0",
+  "top 264",
+  "face k12 0"
+ ],
+ "del-last": [
+  "face k8 -12",
+  "top 132",
+  "face k6 -12"
+ ],
+ "del-tail": [
+  "seen 13",
+  "face tail -30",
+  "top 966",
+  "face k41 -6",
+  "tall 1680"
+ ],
+ "face-edge": [
+  "face k8 -12"
+ ],
+ "face-empty": [
+  "face none",
+  "tall 0",
+  "top 0"
+ ],
+ "face-inside": [
+  "face k8 -12"
+ ],
+ "gone-name": [
+  "seen 13",
+  "top 444",
+  "top 444",
+  "face k18 -12",
+  "tall 744"
+ ],
+ "ins-above": [
+  "face k11 0",
+  "top 264",
+  "face k11 0"
+ ],
+ "ins-below": [
+  "top 240",
+  "tall 744",
+  "face k11 0"
+ ],
+ "late-churn": [
+  "seen 10",
+  "seen 0",
+  "seen 1",
+  "seen 6",
+  "seen 0",
+  "top 597",
+  "tall 1674",
+  "face k10 -6"
+ ],
+ "late-set": [
+  "seen 8",
+  "top 558",
+  "tall 1092",
+  "top 558",
+  "tall 1092",
+  "seen 0",
+  "top 558",
+  "tall 1092",
+  "face k14 -12"
+ ],
+ "mean-above": [
+  "seen 8",
+  "top 860",
+  "tall 1680",
+  "face k21 -20"
+ ],
+ "mean-floor": [
+  "seen 4",
+  "tall 142",
+  "top 0",
+  "face k1 0"
+ ],
+ "mean-none": [
+  "tall 192",
+  "face k1 0"
+ ],
+ "mean-one": [
+  "seen 5",
+  "tall 570",
+  "top 0"
+ ],
+ "move-anchor": [
+  "face k11 0",
+  "top 0",
+  "face k11 0"
+ ],
+ "move-keep": [
+  "seen 5",
+  "tall 570",
+  "tall 570",
+  "top 270"
+ ],
+ "pass-grow": [
+  "seen 5",
+  "top 756",
+  "tall 1956",
+  "face big 0"
+ ],
+ "pass-none": [
+  "seen 8",
+  "seen 0",
+  "top 0",
+  "tall 192"
+ ],
+ "pass-shrink": [
+  "seen 13",
+  "top 324",
+  "tall 624",
+  "face k14 -12"
+ ],
+ "roll-back": [
+  "top 0",
+  "face k1 0"
+ ],
+ "roll-past": [
+  "top 180",
+  "face k8 -12",
+  "top 204"
+ ],
+ "set-drop": [
+  "seen 5",
+  "tall 570",
+  "tall 216"
+ ],
+ "set-mean": [
+  "seen 2",
+  "tall 1590",
+  "tall 960",
+  "top 0",
+  "face a 0"
+ ],
+ "span-again": [
+  "seen 8",
+  "seen 3",
+  "tall 1080",
+  "face k1 0"
+ ],
+ "span-all": [
+  "seen 8",
+  "tall 420",
+  "tall 240",
+  "top 0"
+ ],
+ "tall-mixed": [
+  "seen 9",
+  "tall 1080"
+ ]
+}

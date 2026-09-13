@@ -1,0 +1,18 @@
+bulk 12 30 4
+ins 3 a 460
+roll 240
+face
+pass
+top
+tall
+face
+set a 20
+top
+tall
+move k12 0
+face
+span 12
+tall
+pass
+top
+face

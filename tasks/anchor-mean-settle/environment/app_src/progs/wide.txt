@@ -1,0 +1,6004 @@
+bulk 120000 30 170
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k46994 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k6797 20
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k113829 20
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k75228 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k53498 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k99868 20
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k58306 20
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k27454 20
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k41111 20
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k26841 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k39163 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k19098 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k107139 20
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k44289 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k63013 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k92363 20
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k98278 300
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k103251 300
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k110263 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k23714 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k45139 300
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k14163 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k11952 20
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k47531 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k71454 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k40131 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k94521 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k6364 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k4172 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k108305 300
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k19088 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k43803 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k17404 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k48890 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k18508 300
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k59447 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k62790 300
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k118209 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k23514 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k64470 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k47360 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k87035 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k92337 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k93846 300
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k76109 20
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k42718 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k84861 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k45297 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k58955 300
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k69382 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k37075 20
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k54609 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k87236 300
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k101543 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k20975 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k28710 20
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k61812 20
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k14527 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k71870 20
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k49847 20
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k94112 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k36508 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k49006 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k12429 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k76140 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k53641 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k78111 300
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k17431 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k50051 20
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k70704 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k49264 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k38207 300
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k112062 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k97128 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k2579 300
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k18782 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k81486 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k102460 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k69805 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k32200 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k37452 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k67925 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k37008 300
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k69451 20
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k89360 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k72513 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k71512 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k77974 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k89435 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k39801 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k37534 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k62707 300
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k55780 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k35024 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k43654 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k63792 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k80552 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k92508 300
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k24286 300
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k27937 20
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k49703 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k75400 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k17608 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k89847 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k49047 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k19807 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k28914 300
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k33318 300
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k113182 300
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k23504 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k44775 20
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k11951 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k31272 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k14100 20
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k7034 20
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k98253 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k107558 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k49266 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k80447 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k94729 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k56806 300
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k75139 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k8295 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k26530 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k86672 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k39394 300
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k13075 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k9332 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k72361 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k98353 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k63182 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k7720 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k111254 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k38156 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k21395 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k75330 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k52570 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k61347 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k94101 300
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k88105 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k56446 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k59381 300
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k71883 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k31064 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k89495 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k52078 20
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k58442 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k25494 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k52738 20
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k41142 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k78419 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k2282 300
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k55468 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k95111 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k116852 20
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k40858 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k41010 20
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k61815 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k75627 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k91830 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k104358 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k55126 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k117453 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k3712 300
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k102412 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k56046 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k17072 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k18001 300
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k37424 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k73037 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k17055 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k2179 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k47502 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k21404 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k69510 20
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k58487 300
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k41560 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k56906 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k21049 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k13575 20
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k27205 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k63176 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k26389 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k67611 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k106017 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k64799 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k109010 20
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k12291 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k36890 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k61623 20
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k1322 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k81389 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k88858 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k50180 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k52312 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k87842 20
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k47553 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k37248 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k101416 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k54147 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k30725 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k39400 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k80083 20
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k117458 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k55520 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k49543 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k119299 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k110510 300
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k38517 300
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k117606 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k100466 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k74701 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k63339 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k11066 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k19553 20
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k79096 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k77926 20
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k95542 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k109398 20
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k84566 300
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k110195 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k88127 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k19918 300
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k99362 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k93468 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k25624 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k60120 20
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k61080 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k49075 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k49948 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k99588 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k46418 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k38089 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k75456 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k111151 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k28881 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k94376 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k72529 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k110604 300
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k46632 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k47323 20
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k60062 300
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k28651 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k68054 20
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k61651 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k101040 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k81029 20
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k100868 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k106910 20
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k102357 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k28403 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k18253 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k87361 20
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k9688 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k25760 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k78501 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k10127 300
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k24223 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k98813 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k38507 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k84346 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k118809 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k114137 20
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k2297 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k31133 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k1068 20
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k66082 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k31264 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k101781 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k58986 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k74543 300
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k51188 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k89442 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k96497 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k12906 300
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k18089 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k503 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k7842 20
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k49044 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k102721 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k32944 20
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k21786 20
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k114888 300
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k74138 20
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k16183 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k108011 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k3409 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k69630 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k70309 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k89660 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k60332 300
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k94486 20
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k15798 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k39144 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k86193 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k85983 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k26903 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k10371 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k85279 300
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k119946 300
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k58610 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k35106 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k72785 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k72387 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k14133 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k110890 300
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k83969 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k44095 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k110670 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k22573 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k53524 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k38361 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k8674 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k12388 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k9400 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k70929 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k67053 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k49844 20
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k80616 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k71137 300
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k40168 300
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k115597 20
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k23706 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k9330 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k61079 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k83302 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k82388 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k99423 20
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k59920 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k32734 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k58510 300
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k21388 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k116002 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k6881 20
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k75709 300
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k79151 300
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k114943 300
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k38565 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k85861 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k63896 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k36978 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k44545 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k103426 20
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k85455 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k109721 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k272 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k22150 20
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k108675 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k54741 20
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k26873 20
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k66032 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k29231 20
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k72223 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k116893 300
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k55801 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k100414 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k116544 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k68391 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k81725 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k93850 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k65852 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k26342 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k22567 20
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k56187 20
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k114232 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k117242 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k17292 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k3452 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k90891 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k103946 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k115701 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k42922 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k25177 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k92873 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k37752 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k92462 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k91875 300
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k63934 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k94757 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k59148 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k22373 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k107846 20
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k14316 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k10912 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k42635 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k112271 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k102151 20
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k114163 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k115292 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k19812 300
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k75026 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k115475 300
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k9545 300
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k20937 300
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k44889 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k60506 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k4644 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k29895 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k107740 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k110862 300
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k80622 300
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k8301 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k103053 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k14185 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k96198 300
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k77298 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k82128 300
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k30402 20
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k21190 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k73919 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k111085 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k41886 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k48561 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k52686 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k97973 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k22726 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k41347 300
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k57327 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k4653 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k31942 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k3447 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k44399 300
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k111020 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k4334 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k5978 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k48252 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k15993 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k15673 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k101215 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k22164 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k22996 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k100549 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k95616 20
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k12718 300
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k34074 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k97173 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k31607 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k254 300
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k41571 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k38700 300
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k77578 20
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k39591 20
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k50186 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k27062 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k80620 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k40111 300
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k77309 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k88640 300
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k109944 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k21656 20
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k36583 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k44198 20
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k73436 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k110406 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k71602 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k21160 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k83859 300
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k81909 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k36844 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k62940 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k87435 300
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k80322 20
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k33845 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k48209 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k87821 20
+roll 1500
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k112231 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k86532 20
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k64502 300
+roll 9000
+pass
+top
+roll 40000
+pass
+tall
+roll -900
+pass
+face
+set k100305 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k82743 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k93588 20
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k101868 300
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k85288 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k63773 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k110382 300
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k99100 20
+roll 700
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k87489 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k64690 300
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k6436 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k26674 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k39140 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k87488 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k30584 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k47686 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k103714 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k100716 20
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k13669 300
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k68653 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k102924 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k100397 20
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k42729 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k55608 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k109377 300
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k838 300
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k18177 20
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k36443 20
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k962 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k62302 20
+roll 700
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k32021 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k31200 300
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k88148 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k26462 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k15852 300
+roll 1500
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k61391 300
+roll 9000
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k118768 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k111723 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k34901 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k38185 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k7011 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k67828 20
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k89925 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k29216 300
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k102757 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k63272 20
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k60557 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k95285 20
+roll -4000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k86380 300
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k5117 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k111399 20
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k48865 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll -900
+pass
+face
+set k78216 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 700
+pass
+face
+set k115400 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k56040 300
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k56097 20
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k14772 20
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k45691 20
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k109957 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k30237 20
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k11420 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k39637 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k91437 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k25892 300
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll 40000
+pass
+face
+set k81489 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k13879 300
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll -4000
+pass
+face
+set k92704 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k111096 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k57155 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k87278 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k41763 300
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k51787 20
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k37656 300
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k94107 300
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k37323 300
+roll 1500
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k101676 20
+roll 700
+pass
+top
+roll -4000
+pass
+tall
+roll -4000
+pass
+face
+set k10942 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k81390 20
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k115062 300
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k48719 300
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 700
+pass
+face
+set k16065 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k15032 300
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k45816 300
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k98035 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k17263 300
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 40000
+pass
+face
+set k57707 20
+roll 700
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k13089 20
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 40000
+pass
+face
+set k29946 300
+roll 9000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k39611 20
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k63514 300
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll 1500
+pass
+face
+set k2363 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k34946 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 1500
+pass
+face
+set k98677 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k77312 300
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k55180 20
+roll 700
+pass
+top
+roll 700
+pass
+tall
+roll 1500
+pass
+face
+set k98459 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll -4000
+pass
+face
+set k70305 20
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 40000
+pass
+face
+set k69874 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k87089 300
+roll -4000
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k51070 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k9476 20
+roll 40000
+pass
+top
+roll 9000
+pass
+tall
+roll -900
+pass
+face
+set k9577 20
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 700
+pass
+face
+set k50097 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k25162 20
+roll 40000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k34830 20
+roll 40000
+pass
+top
+roll 1500
+pass
+tall
+roll 9000
+pass
+face
+set k50695 20
+roll 9000
+pass
+top
+roll 700
+pass
+tall
+roll -900
+pass
+face
+set k77433 20
+roll -4000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k82609 20
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k49029 300
+roll 1500
+pass
+top
+roll 1500
+pass
+tall
+roll 1500
+pass
+face
+set k9628 300
+roll 9000
+pass
+top
+roll -4000
+pass
+tall
+roll 40000
+pass
+face
+set k114100 300
+roll -900
+pass
+top
+roll 9000
+pass
+tall
+roll 9000
+pass
+face
+set k5497 20
+roll 40000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k42740 20
+roll -4000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k70405 20
+roll 9000
+pass
+top
+roll 1500
+pass
+tall
+roll -4000
+pass
+face
+set k91903 20
+roll 1500
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k5265 20
+roll 40000
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k41910 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k60718 20
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll -900
+pass
+face
+set k115674 20
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 9000
+pass
+face
+set k50708 300
+roll -4000
+pass
+top
+roll 40000
+pass
+tall
+roll 700
+pass
+face
+set k77909 300
+roll -900
+pass
+top
+roll -4000
+pass
+tall
+roll -900
+pass
+face
+set k2521 300
+roll -900
+pass
+top
+roll -900
+pass
+tall
+roll 1500
+pass
+face
+set k114485 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll 9000
+pass
+face
+set k13937 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll 700
+pass
+face
+set k85263 300
+roll -900
+pass
+top
+roll 1500
+pass
+tall
+roll 40000
+pass
+face
+set k21900 300
+roll -900
+pass
+top
+roll 700
+pass
+tall
+roll -4000
+pass
+face
+set k21739 300
+roll 700
+pass
+top
+roll -900
+pass
+tall
+roll -4000
+pass
+face
+set k119033 300
+roll -4000
+pass
+top
+roll -4000
+pass
+tall
+roll 9000
+pass
+face
+set k16443 300
+roll 40000
+pass
+top
+roll 700
+pass
+tall
+roll 700
+pass
+face
+set k7323 300
+roll -900
+pass
+top
+roll 40000
+pass
+tall
+roll 1500
+pass
+face
+set k102255 20
+roll 1500
+pass
+top
+roll -900
+pass
+tall
+roll 9000
+pass
+face
+set k21171 300
+top
+tall
+face

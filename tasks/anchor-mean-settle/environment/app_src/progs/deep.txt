@@ -1,0 +1,9094 @@
+bulk 150000 40 90
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+roll 5000000
+roll -700
+pass
+ins 2 y0 10
+del y0
+pass
+move k103501 2
+top
+pass
+tall
+face
+ins 0 y8 10
+del y8
+pass
+move k140479 0
+top
+pass
+tall
+face
+ins 2 y16 10
+del y16
+pass
+move k133022 0
+top
+pass
+tall
+face
+ins 0 y24 10
+del y24
+pass
+move k113678 1
+top
+pass
+tall
+face
+ins 0 y32 10
+del y32
+pass
+move k23780 2
+top
+pass
+tall
+face
+ins 3 y40 10
+del y40
+pass
+move k148231 0
+top
+pass
+tall
+face
+ins 1 y48 10
+del y48
+pass
+move k103988 0
+top
+pass
+tall
+face
+ins 1 y56 10
+del y56
+pass
+move k145927 0
+top
+pass
+tall
+face
+ins 2 y64 400
+del y64
+pass
+move k37816 2
+top
+pass
+tall
+face
+ins 0 y72 400
+del y72
+pass
+move k146869 2
+top
+pass
+tall
+face
+ins 1 y80 10
+del y80
+pass
+move k149738 2
+top
+pass
+tall
+face
+ins 1 y88 400
+del y88
+pass
+move k25541 2
+top
+pass
+tall
+face
+ins 0 y96 10
+del y96
+pass
+move k53991 1
+top
+pass
+tall
+face
+ins 3 y104 400
+del y104
+pass
+move k122055 2
+top
+pass
+tall
+face
+ins 3 y112 400
+del y112
+pass
+move k78583 0
+top
+pass
+tall
+face
+ins 1 y120 10
+del y120
+pass
+move k21458 2
+top
+pass
+tall
+face
+ins 2 y128 400
+del y128
+pass
+move k90041 2
+top
+pass
+tall
+face
+ins 3 y136 400
+del y136
+pass
+move k19190 0
+top
+pass
+tall
+face
+ins 3 y144 10
+del y144
+pass
+move k89668 0
+top
+pass
+tall
+face
+ins 3 y152 400
+del y152
+pass
+move k10278 2
+top
+pass
+tall
+face
+ins 0 y160 400
+del y160
+pass
+move k89162 2
+top
+pass
+tall
+face
+ins 2 y168 400
+del y168
+pass
+move k119592 0
+top
+pass
+tall
+face
+ins 0 y176 400
+del y176
+pass
+move k124283 2
+top
+pass
+tall
+face
+ins 0 y184 10
+del y184
+pass
+move k81162 2
+top
+pass
+tall
+face
+ins 3 y192 400
+del y192
+pass
+move k101133 2
+top
+pass
+tall
+face
+ins 2 y200 10
+del y200
+pass
+move k121031 1
+top
+pass
+tall
+face
+ins 1 y208 10
+del y208
+pass
+move k129419 0
+top
+pass
+tall
+face
+ins 1 y216 400
+del y216
+pass
+move k33906 2
+top
+pass
+tall
+face
+ins 1 y224 400
+del y224
+pass
+move k102486 1
+top
+pass
+tall
+face
+ins 0 y232 10
+del y232
+pass
+move k117752 1
+top
+pass
+tall
+face
+ins 2 y240 10
+del y240
+pass
+move k112859 2
+top
+pass
+tall
+face
+ins 2 y248 400
+del y248
+pass
+move k94050 2
+top
+pass
+tall
+face
+ins 3 y256 10
+del y256
+pass
+move k39564 0
+top
+pass
+tall
+face
+ins 1 y264 10
+del y264
+pass
+move k60807 2
+top
+pass
+tall
+face
+ins 1 y272 10
+del y272
+pass
+move k127131 2
+top
+pass
+tall
+face
+ins 1 y280 400
+del y280
+pass
+move k73907 0
+top
+pass
+tall
+face
+ins 1 y288 400
+del y288
+pass
+move k140140 1
+top
+pass
+tall
+face
+ins 2 y296 10
+del y296
+pass
+move k135133 2
+top
+pass
+tall
+face
+ins 0 y304 400
+del y304
+pass
+move k146610 1
+top
+pass
+tall
+face
+ins 3 y312 400
+del y312
+pass
+move k103317 0
+top
+pass
+tall
+face
+ins 3 y320 400
+del y320
+pass
+move k16318 0
+top
+pass
+tall
+face
+ins 0 y328 10
+del y328
+pass
+move k115508 0
+top
+pass
+tall
+face
+ins 0 y336 400
+del y336
+pass
+move k13783 0
+top
+pass
+tall
+face
+ins 0 y344 10
+del y344
+pass
+move k140672 0
+top
+pass
+tall
+face
+ins 2 y352 10
+del y352
+pass
+move k18433 0
+top
+pass
+tall
+face
+ins 3 y360 10
+del y360
+pass
+move k66128 1
+top
+pass
+tall
+face
+ins 2 y368 400
+del y368
+pass
+move k32203 0
+top
+pass
+tall
+face
+ins 3 y376 400
+del y376
+pass
+move k125933 1
+top
+pass
+tall
+face
+ins 2 y384 10
+del y384
+pass
+move k37780 0
+top
+pass
+tall
+face
+ins 2 y392 400
+del y392
+pass
+move k125468 2
+top
+pass
+tall
+face
+ins 1 y400 10
+del y400
+pass
+move k53796 2
+top
+pass
+tall
+face
+ins 2 y408 10
+del y408
+pass
+move k142390 0
+top
+pass
+tall
+face
+ins 2 y416 10
+del y416
+pass
+move k68450 2
+top
+pass
+tall
+face
+ins 2 y424 10
+del y424
+pass
+move k93244 0
+top
+pass
+tall
+face
+ins 2 y432 10
+del y432
+pass
+move k51157 0
+top
+pass
+tall
+face
+ins 3 y440 10
+del y440
+pass
+move k52408 2
+top
+pass
+tall
+face
+ins 3 y448 400
+del y448
+pass
+move k7597 0
+top
+pass
+tall
+face
+ins 2 y456 400
+del y456
+pass
+move k67942 0
+top
+pass
+tall
+face
+ins 2 y464 400
+del y464
+pass
+move k91625 1
+top
+pass
+tall
+face
+ins 0 y472 10
+del y472
+pass
+move k26780 0
+top
+pass
+tall
+face
+ins 3 y480 10
+del y480
+pass
+move k88536 0
+top
+pass
+tall
+face
+ins 3 y488 10
+del y488
+pass
+move k125692 2
+top
+pass
+tall
+face
+ins 2 y496 10
+del y496
+pass
+move k31433 1
+top
+pass
+tall
+face
+ins 1 y504 400
+del y504
+pass
+move k46799 1
+top
+pass
+tall
+face
+ins 2 y512 10
+del y512
+pass
+move k103767 1
+top
+pass
+tall
+face
+ins 3 y520 10
+del y520
+pass
+move k41644 0
+top
+pass
+tall
+face
+ins 1 y528 10
+del y528
+pass
+move k39624 2
+top
+pass
+tall
+face
+ins 3 y536 10
+del y536
+pass
+move k124350 2
+top
+pass
+tall
+face
+ins 2 y544 10
+del y544
+pass
+move k143828 2
+top
+pass
+tall
+face
+ins 1 y552 10
+del y552
+pass
+move k3734 2
+top
+pass
+tall
+face
+ins 0 y560 10
+del y560
+pass
+move k113721 0
+top
+pass
+tall
+face
+ins 1 y568 10
+del y568
+pass
+move k66017 0
+top
+pass
+tall
+face
+ins 2 y576 10
+del y576
+pass
+move k85457 1
+top
+pass
+tall
+face
+ins 3 y584 10
+del y584
+pass
+move k15966 2
+top
+pass
+tall
+face
+ins 2 y592 400
+del y592
+pass
+move k135466 1
+top
+pass
+tall
+face
+ins 1 y600 10
+del y600
+pass
+move k137235 2
+top
+pass
+tall
+face
+ins 0 y608 400
+del y608
+pass
+move k48001 2
+top
+pass
+tall
+face
+ins 0 y616 10
+del y616
+pass
+move k45180 0
+top
+pass
+tall
+face
+ins 3 y624 10
+del y624
+pass
+move k145877 0
+top
+pass
+tall
+face
+ins 2 y632 400
+del y632
+pass
+move k27816 2
+top
+pass
+tall
+face
+ins 0 y640 10
+del y640
+pass
+move k50150 1
+top
+pass
+tall
+face
+ins 0 y648 10
+del y648
+pass
+move k133095 1
+top
+pass
+tall
+face
+ins 0 y656 10
+del y656
+pass
+move k116195 1
+top
+pass
+tall
+face
+ins 1 y664 400
+del y664
+pass
+move k118580 2
+top
+pass
+tall
+face
+ins 3 y672 10
+del y672
+pass
+move k137157 1
+top
+pass
+tall
+face
+ins 1 y680 400
+del y680
+pass
+move k35949 1
+top
+pass
+tall
+face
+ins 0 y688 400
+del y688
+pass
+move k115899 1
+top
+pass
+tall
+face
+ins 0 y696 10
+del y696
+pass
+move k112287 0
+top
+pass
+tall
+face
+ins 1 y704 400
+del y704
+pass
+move k32074 0
+top
+pass
+tall
+face
+ins 2 y712 10
+del y712
+pass
+move k66351 0
+top
+pass
+tall
+face
+ins 3 y720 10
+del y720
+pass
+move k24675 1
+top
+pass
+tall
+face
+ins 3 y728 10
+del y728
+pass
+move k58645 0
+top
+pass
+tall
+face
+ins 3 y736 400
+del y736
+pass
+move k88898 1
+top
+pass
+tall
+face
+ins 1 y744 400
+del y744
+pass
+move k83500 0
+top
+pass
+tall
+face
+ins 2 y752 10
+del y752
+pass
+move k88600 2
+top
+pass
+tall
+face
+ins 3 y760 400
+del y760
+pass
+move k4741 1
+top
+pass
+tall
+face
+ins 2 y768 400
+del y768
+pass
+move k134287 0
+top
+pass
+tall
+face
+ins 0 y776 10
+del y776
+pass
+move k27468 0
+top
+pass
+tall
+face
+ins 2 y784 400
+del y784
+pass
+move k10378 0
+top
+pass
+tall
+face
+ins 2 y792 10
+del y792
+pass
+move k110692 2
+top
+pass
+tall
+face
+ins 2 y800 400
+del y800
+pass
+move k39156 2
+top
+pass
+tall
+face
+ins 3 y808 400
+del y808
+pass
+move k23452 1
+top
+pass
+tall
+face
+ins 0 y816 10
+del y816
+pass
+move k111495 0
+top
+pass
+tall
+face
+ins 2 y824 10
+del y824
+pass
+move k23218 1
+top
+pass
+tall
+face
+ins 0 y832 10
+del y832
+pass
+move k17465 1
+top
+pass
+tall
+face
+ins 0 y840 400
+del y840
+pass
+move k3027 1
+top
+pass
+tall
+face
+ins 3 y848 400
+del y848
+pass
+move k33876 0
+top
+pass
+tall
+face
+ins 1 y856 10
+del y856
+pass
+move k42323 1
+top
+pass
+tall
+face
+ins 0 y864 10
+del y864
+pass
+move k52893 1
+top
+pass
+tall
+face
+ins 2 y872 10
+del y872
+pass
+move k76012 1
+top
+pass
+tall
+face
+ins 1 y880 400
+del y880
+pass
+move k90965 0
+top
+pass
+tall
+face
+ins 2 y888 10
+del y888
+pass
+move k4023 0
+top
+pass
+tall
+face
+ins 1 y896 400
+del y896
+pass
+move k64404 1
+top
+pass
+tall
+face
+ins 0 y904 400
+del y904
+pass
+move k129762 2
+top
+pass
+tall
+face
+ins 3 y912 400
+del y912
+pass
+move k56409 0
+top
+pass
+tall
+face
+ins 2 y920 10
+del y920
+pass
+move k36627 1
+top
+pass
+tall
+face
+ins 2 y928 10
+del y928
+pass
+move k34032 0
+top
+pass
+tall
+face
+ins 0 y936 400
+del y936
+pass
+move k112917 0
+top
+pass
+tall
+face
+ins 0 y944 10
+del y944
+pass
+move k99846 2
+top
+pass
+tall
+face
+ins 2 y952 10
+del y952
+pass
+move k76824 0
+top
+pass
+tall
+face
+ins 3 y960 10
+del y960
+pass
+move k41297 1
+top
+pass
+tall
+face
+ins 3 y968 10
+del y968
+pass
+move k69008 1
+top
+pass
+tall
+face
+ins 2 y976 400
+del y976
+pass
+move k64081 0
+top
+pass
+tall
+face
+ins 2 y984 10
+del y984
+pass
+move k93477 0
+top
+pass
+tall
+face
+ins 0 y992 400
+del y992
+pass
+move k100042 0
+top
+pass
+tall
+face
+ins 3 y1000 400
+del y1000
+pass
+move k131797 2
+top
+pass
+tall
+face
+ins 1 y1008 10
+del y1008
+pass
+move k132314 0
+top
+pass
+tall
+face
+ins 0 y1016 400
+del y1016
+pass
+move k23529 0
+top
+pass
+tall
+face
+ins 3 y1024 10
+del y1024
+pass
+move k103280 0
+top
+pass
+tall
+face
+ins 2 y1032 400
+del y1032
+pass
+move k61030 0
+top
+pass
+tall
+face
+ins 1 y1040 400
+del y1040
+pass
+move k85495 2
+top
+pass
+tall
+face
+ins 3 y1048 10
+del y1048
+pass
+move k74496 2
+top
+pass
+tall
+face
+ins 1 y1056 10
+del y1056
+pass
+move k134475 2
+top
+pass
+tall
+face
+ins 3 y1064 10
+del y1064
+pass
+move k137300 2
+top
+pass
+tall
+face
+ins 0 y1072 10
+del y1072
+pass
+move k22307 0
+top
+pass
+tall
+face
+ins 0 y1080 10
+del y1080
+pass
+move k94558 0
+top
+pass
+tall
+face
+ins 3 y1088 400
+del y1088
+pass
+move k146415 0
+top
+pass
+tall
+face
+ins 0 y1096 10
+del y1096
+pass
+move k128266 1
+top
+pass
+tall
+face
+ins 0 y1104 400
+del y1104
+pass
+move k18380 2
+top
+pass
+tall
+face
+ins 0 y1112 10
+del y1112
+pass
+move k124220 1
+top
+pass
+tall
+face
+ins 0 y1120 400
+del y1120
+pass
+move k61548 2
+top
+pass
+tall
+face
+ins 1 y1128 10
+del y1128
+pass
+move k120676 1
+top
+pass
+tall
+face
+ins 3 y1136 10
+del y1136
+pass
+move k125570 2
+top
+pass
+tall
+face
+ins 2 y1144 10
+del y1144
+pass
+move k51981 0
+top
+pass
+tall
+face
+ins 1 y1152 400
+del y1152
+pass
+move k66569 2
+top
+pass
+tall
+face
+ins 2 y1160 10
+del y1160
+pass
+move k3269 1
+top
+pass
+tall
+face
+ins 0 y1168 400
+del y1168
+pass
+move k70458 2
+top
+pass
+tall
+face
+ins 0 y1176 10
+del y1176
+pass
+move k128350 1
+top
+pass
+tall
+face
+ins 2 y1184 400
+del y1184
+pass
+move k122133 1
+top
+pass
+tall
+face
+ins 0 y1192 10
+del y1192
+pass
+move k81704 0
+top
+pass
+tall
+face
+ins 3 y1200 10
+del y1200
+pass
+move k75914 1
+top
+pass
+tall
+face
+ins 0 y1208 400
+del y1208
+pass
+move k70427 1
+top
+pass
+tall
+face
+ins 1 y1216 10
+del y1216
+pass
+move k19560 2
+top
+pass
+tall
+face
+ins 0 y1224 10
+del y1224
+pass
+move k137381 1
+top
+pass
+tall
+face
+ins 2 y1232 10
+del y1232
+pass
+move k133365 1
+top
+pass
+tall
+face
+ins 0 y1240 400
+del y1240
+pass
+move k60656 1
+top
+pass
+tall
+face
+ins 3 y1248 400
+del y1248
+pass
+move k6511 0
+top
+pass
+tall
+face
+ins 0 y1256 400
+del y1256
+pass
+move k118165 1
+top
+pass
+tall
+face
+ins 2 y1264 10
+del y1264
+pass
+move k109100 1
+top
+pass
+tall
+face
+ins 3 y1272 400
+del y1272
+pass
+move k31696 1
+top
+pass
+tall
+face
+ins 0 y1280 400
+del y1280
+pass
+move k88677 1
+top
+pass
+tall
+face
+ins 0 y1288 10
+del y1288
+pass
+move k3073 2
+top
+pass
+tall
+face
+ins 2 y1296 400
+del y1296
+pass
+move k97576 0
+top
+pass
+tall
+face
+ins 3 y1304 400
+del y1304
+pass
+move k20028 1
+top
+pass
+tall
+face
+ins 3 y1312 400
+del y1312
+pass
+move k12654 1
+top
+pass
+tall
+face
+ins 0 y1320 10
+del y1320
+pass
+move k74875 2
+top
+pass
+tall
+face
+ins 1 y1328 10
+del y1328
+pass
+move k69660 1
+top
+pass
+tall
+face
+ins 2 y1336 10
+del y1336
+pass
+move k97872 1
+top
+pass
+tall
+face
+ins 0 y1344 400
+del y1344
+pass
+move k145268 2
+top
+pass
+tall
+face
+ins 1 y1352 10
+del y1352
+pass
+move k12970 2
+top
+pass
+tall
+face
+ins 3 y1360 400
+del y1360
+pass
+move k36326 2
+top
+pass
+tall
+face
+ins 2 y1368 400
+del y1368
+pass
+move k12840 2
+top
+pass
+tall
+face
+ins 1 y1376 10
+del y1376
+pass
+move k123781 1
+top
+pass
+tall
+face
+ins 2 y1384 400
+del y1384
+pass
+move k78060 1
+top
+pass
+tall
+face
+ins 2 y1392 400
+del y1392
+pass
+move k62565 1
+top
+pass
+tall
+face
+ins 3 y1400 400
+del y1400
+pass
+move k31390 0
+top
+pass
+tall
+face
+ins 1 y1408 10
+del y1408
+pass
+move k54493 2
+top
+pass
+tall
+face
+ins 3 y1416 10
+del y1416
+pass
+move k118748 1
+top
+pass
+tall
+face
+ins 3 y1424 400
+del y1424
+pass
+move k36595 2
+top
+pass
+tall
+face
+ins 1 y1432 10
+del y1432
+pass
+move k23781 0
+top
+pass
+tall
+face
+ins 2 y1440 10
+del y1440
+pass
+move k83700 0
+top
+pass
+tall
+face
+ins 2 y1448 400
+del y1448
+pass
+move k149322 0
+top
+pass
+tall
+face
+ins 0 y1456 400
+del y1456
+pass
+move k100359 1
+top
+pass
+tall
+face
+ins 1 y1464 400
+del y1464
+pass
+move k70842 1
+top
+pass
+tall
+face
+ins 0 y1472 400
+del y1472
+pass
+move k72750 2
+top
+pass
+tall
+face
+ins 2 y1480 10
+del y1480
+pass
+move k131963 2
+top
+pass
+tall
+face
+ins 1 y1488 10
+del y1488
+pass
+move k71047 0
+top
+pass
+tall
+face
+ins 3 y1496 400
+del y1496
+pass
+move k116880 1
+top
+pass
+tall
+face
+ins 2 y1504 10
+del y1504
+pass
+move k33358 0
+top
+pass
+tall
+face
+ins 3 y1512 400
+del y1512
+pass
+move k128405 0
+top
+pass
+tall
+face
+ins 0 y1520 400
+del y1520
+pass
+move k138376 1
+top
+pass
+tall
+face
+ins 3 y1528 10
+del y1528
+pass
+move k28586 0
+top
+pass
+tall
+face
+ins 1 y1536 10
+del y1536
+pass
+move k136936 2
+top
+pass
+tall
+face
+ins 0 y1544 400
+del y1544
+pass
+move k22284 2
+top
+pass
+tall
+face
+ins 0 y1552 10
+del y1552
+pass
+move k32939 0
+top
+pass
+tall
+face
+ins 0 y1560 400
+del y1560
+pass
+move k33546 2
+top
+pass
+tall
+face
+ins 2 y1568 400
+del y1568
+pass
+move k29395 0
+top
+pass
+tall
+face
+ins 0 y1576 400
+del y1576
+pass
+move k137478 2
+top
+pass
+tall
+face
+ins 1 y1584 400
+del y1584
+pass
+move k68389 0
+top
+pass
+tall
+face
+ins 0 y1592 10
+del y1592
+pass
+move k140897 1
+top
+pass
+tall
+face
+ins 3 y1600 400
+del y1600
+pass
+move k82932 2
+top
+pass
+tall
+face
+ins 1 y1608 400
+del y1608
+pass
+move k137961 0
+top
+pass
+tall
+face
+ins 1 y1616 10
+del y1616
+pass
+move k107954 2
+top
+pass
+tall
+face
+ins 2 y1624 10
+del y1624
+pass
+move k5712 0
+top
+pass
+tall
+face
+ins 3 y1632 400
+del y1632
+pass
+move k21258 1
+top
+pass
+tall
+face
+ins 1 y1640 400
+del y1640
+pass
+move k97051 0
+top
+pass
+tall
+face
+ins 3 y1648 10
+del y1648
+pass
+move k88619 2
+top
+pass
+tall
+face
+ins 3 y1656 400
+del y1656
+pass
+move k103903 0
+top
+pass
+tall
+face
+ins 0 y1664 400
+del y1664
+pass
+move k132351 0
+top
+pass
+tall
+face
+ins 1 y1672 400
+del y1672
+pass
+move k52538 1
+top
+pass
+tall
+face
+ins 1 y1680 10
+del y1680
+pass
+move k121927 0
+top
+pass
+tall
+face
+ins 2 y1688 400
+del y1688
+pass
+move k28576 2
+top
+pass
+tall
+face
+ins 3 y1696 10
+del y1696
+pass
+move k58544 1
+top
+pass
+tall
+face
+ins 3 y1704 10
+del y1704
+pass
+move k38374 1
+top
+pass
+tall
+face
+ins 0 y1712 10
+del y1712
+pass
+move k6195 2
+top
+pass
+tall
+face
+ins 1 y1720 400
+del y1720
+pass
+move k13590 2
+top
+pass
+tall
+face
+ins 0 y1728 10
+del y1728
+pass
+move k103107 1
+top
+pass
+tall
+face
+ins 2 y1736 10
+del y1736
+pass
+move k20805 0
+top
+pass
+tall
+face
+ins 2 y1744 10
+del y1744
+pass
+move k48631 2
+top
+pass
+tall
+face
+ins 3 y1752 10
+del y1752
+pass
+move k81744 2
+top
+pass
+tall
+face
+ins 3 y1760 400
+del y1760
+pass
+move k86953 1
+top
+pass
+tall
+face
+ins 1 y1768 10
+del y1768
+pass
+move k753 0
+top
+pass
+tall
+face
+ins 2 y1776 10
+del y1776
+pass
+move k92135 1
+top
+pass
+tall
+face
+ins 0 y1784 10
+del y1784
+pass
+move k99649 1
+top
+pass
+tall
+face
+ins 2 y1792 400
+del y1792
+pass
+move k23006 0
+top
+pass
+tall
+face
+ins 3 y1800 10
+del y1800
+pass
+move k97705 2
+top
+pass
+tall
+face
+ins 3 y1808 10
+del y1808
+pass
+move k84754 1
+top
+pass
+tall
+face
+ins 3 y1816 10
+del y1816
+pass
+move k107690 0
+top
+pass
+tall
+face
+ins 3 y1824 10
+del y1824
+pass
+move k98453 0
+top
+pass
+tall
+face
+ins 3 y1832 10
+del y1832
+pass
+move k16254 1
+top
+pass
+tall
+face
+ins 1 y1840 10
+del y1840
+pass
+move k88886 1
+top
+pass
+tall
+face
+ins 2 y1848 400
+del y1848
+pass
+move k11426 1
+top
+pass
+tall
+face
+ins 2 y1856 400
+del y1856
+pass
+move k77964 0
+top
+pass
+tall
+face
+ins 0 y1864 10
+del y1864
+pass
+move k61307 0
+top
+pass
+tall
+face
+ins 3 y1872 400
+del y1872
+pass
+move k101323 1
+top
+pass
+tall
+face
+ins 3 y1880 400
+del y1880
+pass
+move k34789 1
+top
+pass
+tall
+face
+ins 1 y1888 10
+del y1888
+pass
+move k79513 2
+top
+pass
+tall
+face
+ins 1 y1896 10
+del y1896
+pass
+move k85931 1
+top
+pass
+tall
+face
+ins 3 y1904 400
+del y1904
+pass
+move k20714 2
+top
+pass
+tall
+face
+ins 1 y1912 400
+del y1912
+pass
+move k41927 0
+top
+pass
+tall
+face
+ins 3 y1920 10
+del y1920
+pass
+move k8878 1
+top
+pass
+tall
+face
+ins 2 y1928 10
+del y1928
+pass
+move k111819 0
+top
+pass
+tall
+face
+ins 0 y1936 400
+del y1936
+pass
+move k22042 0
+top
+pass
+tall
+face
+ins 0 y1944 400
+del y1944
+pass
+move k130673 2
+top
+pass
+tall
+face
+ins 3 y1952 10
+del y1952
+pass
+move k61394 0
+top
+pass
+tall
+face
+ins 3 y1960 400
+del y1960
+pass
+move k61587 2
+top
+pass
+tall
+face
+ins 0 y1968 400
+del y1968
+pass
+move k77014 1
+top
+pass
+tall
+face
+ins 2 y1976 400
+del y1976
+pass
+move k66600 2
+top
+pass
+tall
+face
+ins 2 y1984 10
+del y1984
+pass
+move k115186 0
+top
+pass
+tall
+face
+ins 1 y1992 10
+del y1992
+pass
+move k61736 0
+top
+pass
+tall
+face
+ins 2 y2000 10
+del y2000
+pass
+move k85548 0
+top
+pass
+tall
+face
+ins 3 y2008 400
+del y2008
+pass
+move k64475 2
+top
+pass
+tall
+face
+ins 1 y2016 10
+del y2016
+pass
+move k121613 0
+top
+pass
+tall
+face
+ins 0 y2024 10
+del y2024
+pass
+move k124457 0
+top
+pass
+tall
+face
+ins 3 y2032 400
+del y2032
+pass
+move k10581 1
+top
+pass
+tall
+face
+ins 1 y2040 10
+del y2040
+pass
+move k13210 0
+top
+pass
+tall
+face
+ins 1 y2048 10
+del y2048
+pass
+move k97580 2
+top
+pass
+tall
+face
+ins 1 y2056 400
+del y2056
+pass
+move k68144 2
+top
+pass
+tall
+face
+ins 0 y2064 10
+del y2064
+pass
+move k91672 0
+top
+pass
+tall
+face
+ins 0 y2072 400
+del y2072
+pass
+move k89134 0
+top
+pass
+tall
+face
+ins 0 y2080 10
+del y2080
+pass
+move k66825 0
+top
+pass
+tall
+face
+ins 1 y2088 10
+del y2088
+pass
+move k85787 1
+top
+pass
+tall
+face
+ins 2 y2096 10
+del y2096
+pass
+move k81841 0
+top
+pass
+tall
+face
+ins 1 y2104 10
+del y2104
+pass
+move k129926 2
+top
+pass
+tall
+face
+ins 3 y2112 10
+del y2112
+pass
+move k107000 0
+top
+pass
+tall
+face
+ins 3 y2120 10
+del y2120
+pass
+move k139985 0
+top
+pass
+tall
+face
+ins 1 y2128 400
+del y2128
+pass
+move k71085 1
+top
+pass
+tall
+face
+ins 2 y2136 400
+del y2136
+pass
+move k109536 0
+top
+pass
+tall
+face
+ins 2 y2144 400
+del y2144
+pass
+move k108549 1
+top
+pass
+tall
+face
+ins 0 y2152 400
+del y2152
+pass
+move k51696 1
+top
+pass
+tall
+face
+ins 3 y2160 10
+del y2160
+pass
+move k1541 1
+top
+pass
+tall
+face
+ins 1 y2168 400
+del y2168
+pass
+move k29764 0
+top
+pass
+tall
+face
+ins 3 y2176 400
+del y2176
+pass
+move k120824 0
+top
+pass
+tall
+face
+ins 1 y2184 10
+del y2184
+pass
+move k13552 2
+top
+pass
+tall
+face
+ins 1 y2192 400
+del y2192
+pass
+move k23339 2
+top
+pass
+tall
+face
+ins 2 y2200 10
+del y2200
+pass
+move k38244 1
+top
+pass
+tall
+face
+ins 2 y2208 10
+del y2208
+pass
+move k136619 0
+top
+pass
+tall
+face
+ins 0 y2216 10
+del y2216
+pass
+move k100594 1
+top
+pass
+tall
+face
+ins 1 y2224 400
+del y2224
+pass
+move k33201 0
+top
+pass
+tall
+face
+ins 3 y2232 400
+del y2232
+pass
+move k13992 2
+top
+pass
+tall
+face
+ins 3 y2240 10
+del y2240
+pass
+move k42016 2
+top
+pass
+tall
+face
+ins 1 y2248 400
+del y2248
+pass
+move k51410 1
+top
+pass
+tall
+face
+ins 1 y2256 10
+del y2256
+pass
+move k10935 1
+top
+pass
+tall
+face
+ins 1 y2264 400
+del y2264
+pass
+move k94165 0
+top
+pass
+tall
+face
+ins 1 y2272 10
+del y2272
+pass
+move k50488 0
+top
+pass
+tall
+face
+ins 0 y2280 400
+del y2280
+pass
+move k30863 1
+top
+pass
+tall
+face
+ins 3 y2288 400
+del y2288
+pass
+move k110120 1
+top
+pass
+tall
+face
+ins 1 y2296 400
+del y2296
+pass
+move k102030 2
+top
+pass
+tall
+face
+ins 2 y2304 400
+del y2304
+pass
+move k132011 1
+top
+pass
+tall
+face
+ins 1 y2312 10
+del y2312
+pass
+move k920 2
+top
+pass
+tall
+face
+ins 3 y2320 400
+del y2320
+pass
+move k61670 1
+top
+pass
+tall
+face
+ins 3 y2328 10
+del y2328
+pass
+move k124052 1
+top
+pass
+tall
+face
+ins 0 y2336 10
+del y2336
+pass
+move k33674 1
+top
+pass
+tall
+face
+ins 3 y2344 400
+del y2344
+pass
+move k24043 1
+top
+pass
+tall
+face
+ins 0 y2352 10
+del y2352
+pass
+move k34150 0
+top
+pass
+tall
+face
+ins 2 y2360 10
+del y2360
+pass
+move k14226 2
+top
+pass
+tall
+face
+ins 3 y2368 10
+del y2368
+pass
+move k6779 0
+top
+pass
+tall
+face
+ins 0 y2376 10
+del y2376
+pass
+move k34503 1
+top
+pass
+tall
+face
+ins 2 y2384 10
+del y2384
+pass
+move k57968 0
+top
+pass
+tall
+face
+ins 2 y2392 400
+del y2392
+pass
+move k41620 1
+top
+pass
+tall
+face
+ins 2 y2400 400
+del y2400
+pass
+move k37637 1
+top
+pass
+tall
+face
+ins 3 y2408 10
+del y2408
+pass
+move k68910 2
+top
+pass
+tall
+face
+ins 1 y2416 400
+del y2416
+pass
+move k97588 0
+top
+pass
+tall
+face
+ins 1 y2424 10
+del y2424
+pass
+move k105767 0
+top
+pass
+tall
+face
+ins 2 y2432 400
+del y2432
+pass
+move k98787 0
+top
+pass
+tall
+face
+ins 2 y2440 10
+del y2440
+pass
+move k139126 0
+top
+pass
+tall
+face
+ins 2 y2448 400
+del y2448
+pass
+move k145538 2
+top
+pass
+tall
+face
+ins 0 y2456 400
+del y2456
+pass
+move k140431 2
+top
+pass
+tall
+face
+ins 3 y2464 400
+del y2464
+pass
+move k69404 1
+top
+pass
+tall
+face
+ins 2 y2472 10
+del y2472
+pass
+move k94438 1
+top
+pass
+tall
+face
+ins 0 y2480 400
+del y2480
+pass
+move k60306 0
+top
+pass
+tall
+face
+ins 0 y2488 400
+del y2488
+pass
+move k135295 1
+top
+pass
+tall
+face
+ins 2 y2496 400
+del y2496
+pass
+move k470 2
+top
+pass
+tall
+face
+ins 0 y2504 10
+del y2504
+pass
+move k39156 1
+top
+pass
+tall
+face
+ins 3 y2512 400
+del y2512
+pass
+move k134396 1
+top
+pass
+tall
+face
+ins 0 y2520 10
+del y2520
+pass
+move k128030 0
+top
+pass
+tall
+face
+ins 0 y2528 10
+del y2528
+pass
+move k14259 0
+top
+pass
+tall
+face
+ins 2 y2536 400
+del y2536
+pass
+move k27883 2
+top
+pass
+tall
+face
+ins 2 y2544 10
+del y2544
+pass
+move k108328 2
+top
+pass
+tall
+face
+ins 2 y2552 10
+del y2552
+pass
+move k53526 1
+top
+pass
+tall
+face
+ins 3 y2560 10
+del y2560
+pass
+move k35324 0
+top
+pass
+tall
+face
+ins 1 y2568 10
+del y2568
+pass
+move k118189 0
+top
+pass
+tall
+face
+ins 0 y2576 10
+del y2576
+pass
+move k70717 1
+top
+pass
+tall
+face
+ins 2 y2584 10
+del y2584
+pass
+move k14715 2
+top
+pass
+tall
+face
+ins 2 y2592 400
+del y2592
+pass
+move k135682 2
+top
+pass
+tall
+face
+ins 3 y2600 10
+del y2600
+pass
+move k43280 0
+top
+pass
+tall
+face
+ins 0 y2608 10
+del y2608
+pass
+move k139337 0
+top
+pass
+tall
+face
+ins 3 y2616 10
+del y2616
+pass
+move k62304 0
+top
+pass
+tall
+face
+ins 0 y2624 10
+del y2624
+pass
+move k3238 2
+top
+pass
+tall
+face
+ins 1 y2632 10
+del y2632
+pass
+move k108313 0
+top
+pass
+tall
+face
+ins 3 y2640 10
+del y2640
+pass
+move k133321 1
+top
+pass
+tall
+face
+ins 0 y2648 400
+del y2648
+pass
+move k12712 2
+top
+pass
+tall
+face
+ins 3 y2656 10
+del y2656
+pass
+move k98346 1
+top
+pass
+tall
+face
+ins 3 y2664 10
+del y2664
+pass
+move k118617 0
+top
+pass
+tall
+face
+ins 1 y2672 10
+del y2672
+pass
+move k68532 0
+top
+pass
+tall
+face
+ins 0 y2680 10
+del y2680
+pass
+move k87954 2
+top
+pass
+tall
+face
+ins 2 y2688 10
+del y2688
+pass
+move k69728 2
+top
+pass
+tall
+face
+ins 3 y2696 400
+del y2696
+pass
+move k77495 2
+top
+pass
+tall
+face
+ins 1 y2704 10
+del y2704
+pass
+move k133020 0
+top
+pass
+tall
+face
+ins 1 y2712 400
+del y2712
+pass
+move k61895 2
+top
+pass
+tall
+face
+ins 1 y2720 10
+del y2720
+pass
+move k85688 0
+top
+pass
+tall
+face
+ins 3 y2728 400
+del y2728
+pass
+move k62697 1
+top
+pass
+tall
+face
+ins 3 y2736 400
+del y2736
+pass
+move k139099 2
+top
+pass
+tall
+face
+ins 0 y2744 10
+del y2744
+pass
+move k114614 2
+top
+pass
+tall
+face
+ins 1 y2752 400
+del y2752
+pass
+move k55566 1
+top
+pass
+tall
+face
+ins 0 y2760 10
+del y2760
+pass
+move k37905 0
+top
+pass
+tall
+face
+ins 0 y2768 10
+del y2768
+pass
+move k27966 2
+top
+pass
+tall
+face
+ins 1 y2776 400
+del y2776
+pass
+move k37183 2
+top
+pass
+tall
+face
+ins 0 y2784 10
+del y2784
+pass
+move k10919 0
+top
+pass
+tall
+face
+ins 0 y2792 10
+del y2792
+pass
+move k12240 0
+top
+pass
+tall
+face
+ins 2 y2800 10
+del y2800
+pass
+move k139958 2
+top
+pass
+tall
+face
+ins 0 y2808 400
+del y2808
+pass
+move k28080 0
+top
+pass
+tall
+face
+ins 1 y2816 10
+del y2816
+pass
+move k29353 0
+top
+pass
+tall
+face
+ins 0 y2824 10
+del y2824
+pass
+move k75332 1
+top
+pass
+tall
+face
+ins 0 y2832 10
+del y2832
+pass
+move k25654 2
+top
+pass
+tall
+face
+ins 1 y2840 400
+del y2840
+pass
+move k83661 1
+top
+pass
+tall
+face
+ins 3 y2848 400
+del y2848
+pass
+move k5484 1
+top
+pass
+tall
+face
+ins 2 y2856 400
+del y2856
+pass
+move k12690 2
+top
+pass
+tall
+face
+ins 2 y2864 400
+del y2864
+pass
+move k132052 1
+top
+pass
+tall
+face
+ins 2 y2872 10
+del y2872
+pass
+move k108245 0
+top
+pass
+tall
+face
+ins 3 y2880 10
+del y2880
+pass
+move k90907 1
+top
+pass
+tall
+face
+ins 0 y2888 10
+del y2888
+pass
+move k23827 2
+top
+pass
+tall
+face
+ins 2 y2896 10
+del y2896
+pass
+move k114310 0
+top
+pass
+tall
+face
+ins 1 y2904 400
+del y2904
+pass
+move k14147 0
+top
+pass
+tall
+face
+ins 2 y2912 400
+del y2912
+pass
+move k25085 1
+top
+pass
+tall
+face
+ins 1 y2920 400
+del y2920
+pass
+move k91013 2
+top
+pass
+tall
+face
+ins 2 y2928 10
+del y2928
+pass
+move k74379 0
+top
+pass
+tall
+face
+ins 1 y2936 400
+del y2936
+pass
+move k43462 0
+top
+pass
+tall
+face
+ins 0 y2944 400
+del y2944
+pass
+move k147130 0
+top
+pass
+tall
+face
+ins 2 y2952 400
+del y2952
+pass
+move k24943 1
+top
+pass
+tall
+face
+ins 3 y2960 10
+del y2960
+pass
+move k110659 2
+top
+pass
+tall
+face
+ins 0 y2968 400
+del y2968
+pass
+move k54033 1
+top
+pass
+tall
+face
+ins 2 y2976 400
+del y2976
+pass
+move k142852 2
+top
+pass
+tall
+face
+ins 1 y2984 400
+del y2984
+pass
+move k61231 1
+top
+pass
+tall
+face
+ins 1 y2992 10
+del y2992
+pass
+move k91354 2
+top
+pass
+tall
+face
+ins 2 y3000 10
+del y3000
+pass
+move k118046 2
+top
+pass
+tall
+face
+ins 2 y3008 10
+del y3008
+pass
+move k121414 1
+top
+pass
+tall
+face
+ins 2 y3016 10
+del y3016
+pass
+move k33046 1
+top
+pass
+tall
+face
+ins 3 y3024 10
+del y3024
+pass
+move k133092 0
+top
+pass
+tall
+face
+ins 2 y3032 400
+del y3032
+pass
+move k40526 2
+top
+pass
+tall
+face
+ins 1 y3040 10
+del y3040
+pass
+move k85607 2
+top
+pass
+tall
+face
+ins 2 y3048 10
+del y3048
+pass
+move k61922 1
+top
+pass
+tall
+face
+ins 1 y3056 400
+del y3056
+pass
+move k26688 0
+top
+pass
+tall
+face
+ins 0 y3064 10
+del y3064
+pass
+move k100725 0
+top
+pass
+tall
+face
+ins 1 y3072 400
+del y3072
+pass
+move k77963 1
+top
+pass
+tall
+face
+ins 2 y3080 10
+del y3080
+pass
+move k28647 2
+top
+pass
+tall
+face
+ins 0 y3088 400
+del y3088
+pass
+move k54119 1
+top
+pass
+tall
+face
+ins 3 y3096 10
+del y3096
+pass
+move k3308 1
+top
+pass
+tall
+face
+ins 3 y3104 10
+del y3104
+pass
+move k131200 2
+top
+pass
+tall
+face
+ins 2 y3112 400
+del y3112
+pass
+move k5798 0
+top
+pass
+tall
+face
+ins 2 y3120 400
+del y3120
+pass
+move k1447 2
+top
+pass
+tall
+face
+ins 1 y3128 400
+del y3128
+pass
+move k110404 0
+top
+pass
+tall
+face
+ins 1 y3136 10
+del y3136
+pass
+move k32563 1
+top
+pass
+tall
+face
+ins 3 y3144 400
+del y3144
+pass
+move k68108 2
+top
+pass
+tall
+face
+ins 0 y3152 400
+del y3152
+pass
+move k63543 1
+top
+pass
+tall
+face
+ins 1 y3160 400
+del y3160
+pass
+move k111039 1
+top
+pass
+tall
+face
+ins 3 y3168 10
+del y3168
+pass
+move k107308 2
+top
+pass
+tall
+face
+ins 1 y3176 400
+del y3176
+pass
+move k2788 1
+top
+pass
+tall
+face
+ins 3 y3184 10
+del y3184
+pass
+move k10000 1
+top
+pass
+tall
+face
+ins 1 y3192 10
+del y3192
+pass
+move k52380 2
+top
+pass
+tall
+face
+ins 2 y3200 10
+del y3200
+pass
+move k119744 2
+top
+pass
+tall
+face
+ins 1 y3208 400
+del y3208
+pass
+move k134268 0
+top
+pass
+tall
+face
+ins 2 y3216 400
+del y3216
+pass
+move k107571 2
+top
+pass
+tall
+face
+ins 3 y3224 10
+del y3224
+pass
+move k48183 1
+top
+pass
+tall
+face
+ins 0 y3232 400
+del y3232
+pass
+move k14843 1
+top
+pass
+tall
+face
+ins 2 y3240 400
+del y3240
+pass
+move k104775 0
+top
+pass
+tall
+face
+ins 0 y3248 10
+del y3248
+pass
+move k109729 1
+top
+pass
+tall
+face
+ins 2 y3256 400
+del y3256
+pass
+move k28642 0
+top
+pass
+tall
+face
+ins 2 y3264 400
+del y3264
+pass
+move k138170 0
+top
+pass
+tall
+face
+ins 3 y3272 400
+del y3272
+pass
+move k55578 0
+top
+pass
+tall
+face
+ins 1 y3280 10
+del y3280
+pass
+move k50639 1
+top
+pass
+tall
+face
+ins 1 y3288 10
+del y3288
+pass
+move k92572 2
+top
+pass
+tall
+face
+ins 3 y3296 400
+del y3296
+pass
+move k77161 2
+top
+pass
+tall
+face
+ins 1 y3304 400
+del y3304
+pass
+move k92995 0
+top
+pass
+tall
+face
+ins 2 y3312 400
+del y3312
+pass
+move k66467 1
+top
+pass
+tall
+face
+ins 1 y3320 400
+del y3320
+pass
+move k707 2
+top
+pass
+tall
+face
+ins 2 y3328 400
+del y3328
+pass
+move k64217 2
+top
+pass
+tall
+face
+ins 2 y3336 400
+del y3336
+pass
+move k125712 1
+top
+pass
+tall
+face
+ins 3 y3344 10
+del y3344
+pass
+move k95010 0
+top
+pass
+tall
+face
+ins 2 y3352 400
+del y3352
+pass
+move k14959 0
+top
+pass
+tall
+face
+ins 2 y3360 10
+del y3360
+pass
+move k139107 1
+top
+pass
+tall
+face
+ins 0 y3368 10
+del y3368
+pass
+move k54985 0
+top
+pass
+tall
+face
+ins 2 y3376 400
+del y3376
+pass
+move k26611 2
+top
+pass
+tall
+face
+ins 1 y3384 10
+del y3384
+pass
+move k48671 1
+top
+pass
+tall
+face
+ins 2 y3392 10
+del y3392
+pass
+move k54668 1
+top
+pass
+tall
+face
+ins 1 y3400 10
+del y3400
+pass
+move k143787 2
+top
+pass
+tall
+face
+ins 2 y3408 10
+del y3408
+pass
+move k129621 2
+top
+pass
+tall
+face
+ins 1 y3416 10
+del y3416
+pass
+move k114973 2
+top
+pass
+tall
+face
+ins 0 y3424 10
+del y3424
+pass
+move k69336 1
+top
+pass
+tall
+face
+ins 1 y3432 10
+del y3432
+pass
+move k124058 1
+top
+pass
+tall
+face
+ins 0 y3440 400
+del y3440
+pass
+move k122446 0
+top
+pass
+tall
+face
+ins 3 y3448 10
+del y3448
+pass
+move k130594 0
+top
+pass
+tall
+face
+ins 0 y3456 10
+del y3456
+pass
+move k84066 1
+top
+pass
+tall
+face
+ins 3 y3464 400
+del y3464
+pass
+move k122097 1
+top
+pass
+tall
+face
+ins 3 y3472 400
+del y3472
+pass
+move k19765 0
+top
+pass
+tall
+face
+ins 2 y3480 10
+del y3480
+pass
+move k5390 2
+top
+pass
+tall
+face
+ins 0 y3488 400
+del y3488
+pass
+move k24636 2
+top
+pass
+tall
+face
+ins 3 y3496 400
+del y3496
+pass
+move k37878 0
+top
+pass
+tall
+face
+ins 1 y3504 400
+del y3504
+pass
+move k33267 1
+top
+pass
+tall
+face
+ins 0 y3512 400
+del y3512
+pass
+move k89473 1
+top
+pass
+tall
+face
+ins 1 y3520 400
+del y3520
+pass
+move k114083 1
+top
+pass
+tall
+face
+ins 3 y3528 400
+del y3528
+pass
+move k145236 0
+top
+pass
+tall
+face
+ins 2 y3536 400
+del y3536
+pass
+move k93108 1
+top
+pass
+tall
+face
+ins 3 y3544 400
+del y3544
+pass
+move k132055 1
+top
+pass
+tall
+face
+ins 2 y3552 10
+del y3552
+pass
+move k129026 0
+top
+pass
+tall
+face
+ins 2 y3560 10
+del y3560
+pass
+move k83125 2
+top
+pass
+tall
+face
+ins 2 y3568 10
+del y3568
+pass
+move k22958 0
+top
+pass
+tall
+face
+ins 3 y3576 400
+del y3576
+pass
+move k142974 2
+top
+pass
+tall
+face
+ins 0 y3584 400
+del y3584
+pass
+move k78750 0
+top
+pass
+tall
+face
+ins 0 y3592 10
+del y3592
+pass
+move k49792 1
+top
+pass
+tall
+face
+ins 0 y3600 400
+del y3600
+pass
+move k38549 2
+top
+pass
+tall
+face
+ins 0 y3608 10
+del y3608
+pass
+move k10348 2
+top
+pass
+tall
+face
+ins 3 y3616 10
+del y3616
+pass
+move k26572 2
+top
+pass
+tall
+face
+ins 1 y3624 10
+del y3624
+pass
+move k110513 0
+top
+pass
+tall
+face
+ins 0 y3632 400
+del y3632
+pass
+move k36359 1
+top
+pass
+tall
+face
+ins 2 y3640 400
+del y3640
+pass
+move k48439 1
+top
+pass
+tall
+face
+ins 0 y3648 400
+del y3648
+pass
+move k5346 1
+top
+pass
+tall
+face
+ins 0 y3656 400
+del y3656
+pass
+move k148769 2
+top
+pass
+tall
+face
+ins 0 y3664 10
+del y3664
+pass
+move k110382 2
+top
+pass
+tall
+face
+ins 3 y3672 400
+del y3672
+pass
+move k17622 0
+top
+pass
+tall
+face
+ins 3 y3680 10
+del y3680
+pass
+move k124636 1
+top
+pass
+tall
+face
+ins 0 y3688 10
+del y3688
+pass
+move k123783 0
+top
+pass
+tall
+face
+ins 1 y3696 10
+del y3696
+pass
+move k111936 0
+top
+pass
+tall
+face
+ins 0 y3704 10
+del y3704
+pass
+move k23106 0
+top
+pass
+tall
+face
+ins 0 y3712 10
+del y3712
+pass
+move k123819 0
+top
+pass
+tall
+face
+ins 2 y3720 10
+del y3720
+pass
+move k118169 2
+top
+pass
+tall
+face
+ins 1 y3728 10
+del y3728
+pass
+move k95912 2
+top
+pass
+tall
+face
+ins 1 y3736 10
+del y3736
+pass
+move k76846 2
+top
+pass
+tall
+face
+ins 3 y3744 400
+del y3744
+pass
+move k66598 0
+top
+pass
+tall
+face
+ins 0 y3752 10
+del y3752
+pass
+move k15874 0
+top
+pass
+tall
+face
+ins 0 y3760 400
+del y3760
+pass
+move k81544 1
+top
+pass
+tall
+face
+ins 1 y3768 400
+del y3768
+pass
+move k15671 1
+top
+pass
+tall
+face
+ins 2 y3776 400
+del y3776
+pass
+move k123156 2
+top
+pass
+tall
+face
+ins 1 y3784 10
+del y3784
+pass
+move k30594 1
+top
+pass
+tall
+face
+ins 1 y3792 400
+del y3792
+pass
+move k125033 1
+top
+pass
+tall
+face
+ins 3 y3800 400
+del y3800
+pass
+move k148588 1
+top
+pass
+tall
+face
+ins 2 y3808 400
+del y3808
+pass
+move k15896 2
+top
+pass
+tall
+face
+ins 2 y3816 10
+del y3816
+pass
+move k39616 2
+top
+pass
+tall
+face
+ins 2 y3824 400
+del y3824
+pass
+move k64517 1
+top
+pass
+tall
+face
+ins 3 y3832 400
+del y3832
+pass
+move k61435 1
+top
+pass
+tall
+face
+ins 2 y3840 10
+del y3840
+pass
+move k84287 1
+top
+pass
+tall
+face
+ins 2 y3848 400
+del y3848
+pass
+move k41231 2
+top
+pass
+tall
+face
+ins 0 y3856 400
+del y3856
+pass
+move k36876 2
+top
+pass
+tall
+face
+ins 1 y3864 400
+del y3864
+pass
+move k143616 2
+top
+pass
+tall
+face
+ins 3 y3872 400
+del y3872
+pass
+move k140132 0
+top
+pass
+tall
+face
+ins 3 y3880 400
+del y3880
+pass
+move k52542 2
+top
+pass
+tall
+face
+ins 1 y3888 400
+del y3888
+pass
+move k15090 2
+top
+pass
+tall
+face
+ins 3 y3896 400
+del y3896
+pass
+move k54156 1
+top
+pass
+tall
+face
+ins 0 y3904 400
+del y3904
+pass
+move k120513 2
+top
+pass
+tall
+face
+ins 0 y3912 400
+del y3912
+pass
+move k16419 0
+top
+pass
+tall
+face
+ins 3 y3920 400
+del y3920
+pass
+move k136803 1
+top
+pass
+tall
+face
+ins 3 y3928 10
+del y3928
+pass
+move k49585 0
+top
+pass
+tall
+face
+ins 1 y3936 10
+del y3936
+pass
+move k47368 2
+top
+pass
+tall
+face
+ins 2 y3944 400
+del y3944
+pass
+move k147963 1
+top
+pass
+tall
+face
+ins 3 y3952 10
+del y3952
+pass
+move k64568 0
+top
+pass
+tall
+face
+ins 3 y3960 400
+del y3960
+pass
+move k27819 1
+top
+pass
+tall
+face
+ins 3 y3968 10
+del y3968
+pass
+move k40936 1
+top
+pass
+tall
+face
+ins 0 y3976 400
+del y3976
+pass
+move k73544 2
+top
+pass
+tall
+face
+ins 0 y3984 10
+del y3984
+pass
+move k8803 0
+top
+pass
+tall
+face
+ins 3 y3992 10
+del y3992
+pass
+move k68577 1
+top
+pass
+tall
+face
+ins 3 y4000 10
+del y4000
+pass
+move k117143 2
+top
+pass
+tall
+face
+ins 1 y4008 400
+del y4008
+pass
+move k9928 1
+top
+pass
+tall
+face
+ins 1 y4016 10
+del y4016
+pass
+move k99144 0
+top
+pass
+tall
+face
+ins 0 y4024 10
+del y4024
+pass
+move k9126 2
+top
+pass
+tall
+face
+ins 2 y4032 400
+del y4032
+pass
+move k127621 0
+top
+pass
+tall
+face
+ins 3 y4040 10
+del y4040
+pass
+move k23582 1
+top
+pass
+tall
+face
+ins 2 y4048 10
+del y4048
+pass
+move k23537 2
+top
+pass
+tall
+face
+ins 3 y4056 10
+del y4056
+pass
+move k117531 0
+top
+pass
+tall
+face
+ins 2 y4064 10
+del y4064
+pass
+move k58124 0
+top
+pass
+tall
+face
+ins 0 y4072 400
+del y4072
+pass
+move k92278 0
+top
+pass
+tall
+face
+ins 0 y4080 10
+del y4080
+pass
+move k67608 2
+top
+pass
+tall
+face
+ins 3 y4088 10
+del y4088
+pass
+move k26492 0
+top
+pass
+tall
+face
+ins 2 y4096 10
+del y4096
+pass
+move k52154 2
+top
+pass
+tall
+face
+ins 2 y4104 400
+del y4104
+pass
+move k27636 1
+top
+pass
+tall
+face
+ins 2 y4112 400
+del y4112
+pass
+move k67374 1
+top
+pass
+tall
+face
+ins 0 y4120 400
+del y4120
+pass
+move k126174 1
+top
+pass
+tall
+face
+ins 1 y4128 400
+del y4128
+pass
+move k62511 0
+top
+pass
+tall
+face
+ins 0 y4136 400
+del y4136
+pass
+move k51146 0
+top
+pass
+tall
+face
+ins 1 y4144 10
+del y4144
+pass
+move k20392 2
+top
+pass
+tall
+face
+ins 2 y4152 10
+del y4152
+pass
+move k117243 0
+top
+pass
+tall
+face
+ins 3 y4160 10
+del y4160
+pass
+move k19702 1
+top
+pass
+tall
+face
+ins 2 y4168 400
+del y4168
+pass
+move k61311 1
+top
+pass
+tall
+face
+ins 0 y4176 400
+del y4176
+pass
+move k37426 1
+top
+pass
+tall
+face
+ins 1 y4184 10
+del y4184
+pass
+move k47249 2
+top
+pass
+tall
+face
+ins 3 y4192 10
+del y4192
+pass
+move k115074 0
+top
+pass
+tall
+face
+ins 2 y4200 400
+del y4200
+pass
+move k107947 0
+top
+pass
+tall
+face
+ins 1 y4208 10
+del y4208
+pass
+move k71070 2
+top
+pass
+tall
+face
+ins 2 y4216 400
+del y4216
+pass
+move k43988 1
+top
+pass
+tall
+face
+ins 3 y4224 10
+del y4224
+pass
+move k83380 1
+top
+pass
+tall
+face
+ins 3 y4232 10
+del y4232
+pass
+move k40205 2
+top
+pass
+tall
+face
+ins 0 y4240 10
+del y4240
+pass
+move k146786 1
+top
+pass
+tall
+face
+ins 2 y4248 10
+del y4248
+pass
+move k67579 0
+top
+pass
+tall
+face
+ins 2 y4256 400
+del y4256
+pass
+move k68557 0
+top
+pass
+tall
+face
+ins 1 y4264 10
+del y4264
+pass
+move k102275 1
+top
+pass
+tall
+face
+ins 3 y4272 10
+del y4272
+pass
+move k15069 2
+top
+pass
+tall
+face
+ins 2 y4280 10
+del y4280
+pass
+move k4202 1
+top
+pass
+tall
+face
+ins 2 y4288 10
+del y4288
+pass
+move k116132 0
+top
+pass
+tall
+face
+ins 2 y4296 10
+del y4296
+pass
+move k94398 1
+top
+pass
+tall
+face
+ins 0 y4304 400
+del y4304
+pass
+move k57217 1
+top
+pass
+tall
+face
+ins 1 y4312 10
+del y4312
+pass
+move k47220 2
+top
+pass
+tall
+face
+ins 1 y4320 10
+del y4320
+pass
+move k51567 2
+top
+pass
+tall
+face
+ins 0 y4328 10
+del y4328
+pass
+move k129888 1
+top
+pass
+tall
+face
+ins 1 y4336 10
+del y4336
+pass
+move k35925 2
+top
+pass
+tall
+face
+ins 1 y4344 400
+del y4344
+pass
+move k53030 0
+top
+pass
+tall
+face
+ins 0 y4352 400
+del y4352
+pass
+move k14516 2
+top
+pass
+tall
+face
+ins 2 y4360 400
+del y4360
+pass
+move k73862 2
+top
+pass
+tall
+face
+ins 3 y4368 10
+del y4368
+pass
+move k4049 1
+top
+pass
+tall
+face
+ins 3 y4376 10
+del y4376
+pass
+move k69799 0
+top
+pass
+tall
+face
+ins 1 y4384 400
+del y4384
+pass
+move k9614 0
+top
+pass
+tall
+face
+ins 2 y4392 10
+del y4392
+pass
+move k93365 2
+top
+pass
+tall
+face
+ins 3 y4400 10
+del y4400
+pass
+move k31660 1
+top
+pass
+tall
+face
+ins 1 y4408 400
+del y4408
+pass
+move k99979 2
+top
+pass
+tall
+face
+ins 0 y4416 400
+del y4416
+pass
+move k28230 2
+top
+pass
+tall
+face
+ins 3 y4424 400
+del y4424
+pass
+move k134563 0
+top
+pass
+tall
+face
+ins 1 y4432 10
+del y4432
+pass
+move k63842 0
+top
+pass
+tall
+face
+ins 1 y4440 10
+del y4440
+pass
+move k44009 0
+top
+pass
+tall
+face
+ins 2 y4448 400
+del y4448
+pass
+move k145585 0
+top
+pass
+tall
+face
+ins 0 y4456 10
+del y4456
+pass
+move k51141 1
+top
+pass
+tall
+face
+ins 0 y4464 400
+del y4464
+pass
+move k137079 0
+top
+pass
+tall
+face
+ins 3 y4472 10
+del y4472
+pass
+move k91934 0
+top
+pass
+tall
+face
+ins 1 y4480 10
+del y4480
+pass
+move k71569 0
+top
+pass
+tall
+face
+ins 3 y4488 400
+del y4488
+pass
+move k131271 1
+top
+pass
+tall
+face
+ins 0 y4496 10
+del y4496
+pass
+move k31862 1
+top
+pass
+tall
+face
+ins 1 y4504 10
+del y4504
+pass
+move k59516 0
+top
+pass
+tall
+face
+ins 3 y4512 400
+del y4512
+pass
+move k43077 0
+top
+pass
+tall
+face
+ins 3 y4520 400
+del y4520
+pass
+move k137787 0
+top
+pass
+tall
+face
+ins 3 y4528 10
+del y4528
+pass
+move k95226 1
+top
+pass
+tall
+face
+ins 3 y4536 10
+del y4536
+pass
+move k87840 2
+top
+pass
+tall
+face
+ins 3 y4544 400
+del y4544
+pass
+move k105013 2
+top
+pass
+tall
+face
+ins 0 y4552 400
+del y4552
+pass
+move k135627 0
+top
+pass
+tall
+face
+ins 2 y4560 10
+del y4560
+pass
+move k110661 2
+top
+pass
+tall
+face
+ins 0 y4568 400
+del y4568
+pass
+move k28581 2
+top
+pass
+tall
+face
+ins 1 y4576 10
+del y4576
+pass
+move k85027 1
+top
+pass
+tall
+face
+ins 1 y4584 10
+del y4584
+pass
+move k59108 0
+top
+pass
+tall
+face
+ins 3 y4592 400
+del y4592
+pass
+move k118943 2
+top
+pass
+tall
+face
+ins 0 y4600 10
+del y4600
+pass
+move k9011 2
+top
+pass
+tall
+face
+ins 2 y4608 400
+del y4608
+pass
+move k142149 0
+top
+pass
+tall
+face
+ins 0 y4616 400
+del y4616
+pass
+move k31903 2
+top
+pass
+tall
+face
+ins 0 y4624 400
+del y4624
+pass
+move k62037 0
+top
+pass
+tall
+face
+ins 2 y4632 10
+del y4632
+pass
+move k80062 1
+top
+pass
+tall
+face
+ins 1 y4640 10
+del y4640
+pass
+move k15818 2
+top
+pass
+tall
+face
+ins 2 y4648 10
+del y4648
+pass
+move k122269 2
+top
+pass
+tall
+face
+ins 1 y4656 400
+del y4656
+pass
+move k32485 2
+top
+pass
+tall
+face
+ins 1 y4664 400
+del y4664
+pass
+move k106574 2
+top
+pass
+tall
+face
+ins 2 y4672 400
+del y4672
+pass
+move k63807 2
+top
+pass
+tall
+face
+ins 0 y4680 400
+del y4680
+pass
+move k119051 2
+top
+pass
+tall
+face
+ins 1 y4688 400
+del y4688
+pass
+move k52742 2
+top
+pass
+tall
+face
+ins 2 y4696 400
+del y4696
+pass
+move k143663 1
+top
+pass
+tall
+face
+ins 3 y4704 400
+del y4704
+pass
+move k81397 0
+top
+pass
+tall
+face
+ins 1 y4712 400
+del y4712
+pass
+move k58087 0
+top
+pass
+tall
+face
+ins 3 y4720 400
+del y4720
+pass
+move k3114 1
+top
+pass
+tall
+face
+ins 1 y4728 10
+del y4728
+pass
+move k84923 2
+top
+pass
+tall
+face
+ins 2 y4736 400
+del y4736
+pass
+move k70760 1
+top
+pass
+tall
+face
+ins 1 y4744 400
+del y4744
+pass
+move k14918 0
+top
+pass
+tall
+face
+ins 1 y4752 10
+del y4752
+pass
+move k91225 1
+top
+pass
+tall
+face
+ins 0 y4760 400
+del y4760
+pass
+move k115317 1
+top
+pass
+tall
+face
+ins 0 y4768 10
+del y4768
+pass
+move k40507 1
+top
+pass
+tall
+face
+ins 2 y4776 400
+del y4776
+pass
+move k36786 2
+top
+pass
+tall
+face
+ins 1 y4784 400
+del y4784
+pass
+move k135730 0
+top
+pass
+tall
+face
+ins 3 y4792 400
+del y4792
+pass
+move k33364 1
+top
+pass
+tall
+face
+ins 0 y4800 10
+del y4800
+pass
+move k107589 2
+top
+pass
+tall
+face
+ins 0 y4808 400
+del y4808
+pass
+move k104201 2
+top
+pass
+tall
+face
+ins 1 y4816 400
+del y4816
+pass
+move k73220 2
+top
+pass
+tall
+face
+ins 0 y4824 400
+del y4824
+pass
+move k118564 2
+top
+pass
+tall
+face
+ins 3 y4832 400
+del y4832
+pass
+move k92437 1
+top
+pass
+tall
+face
+ins 2 y4840 400
+del y4840
+pass
+move k137920 2
+top
+pass
+tall
+face
+ins 3 y4848 400
+del y4848
+pass
+move k1773 2
+top
+pass
+tall
+face
+ins 3 y4856 400
+del y4856
+pass
+move k116401 1
+top
+pass
+tall
+face
+ins 1 y4864 400
+del y4864
+pass
+move k38009 1
+top
+pass
+tall
+face
+ins 3 y4872 10
+del y4872
+pass
+move k23051 1
+top
+pass
+tall
+face
+ins 2 y4880 10
+del y4880
+pass
+move k85412 0
+top
+pass
+tall
+face
+ins 3 y4888 10
+del y4888
+pass
+move k6705 0
+top
+pass
+tall
+face
+ins 2 y4896 400
+del y4896
+pass
+move k78596 2
+top
+pass
+tall
+face
+ins 2 y4904 400
+del y4904
+pass
+move k135646 2
+top
+pass
+tall
+face
+ins 3 y4912 400
+del y4912
+pass
+move k121700 1
+top
+pass
+tall
+face
+ins 0 y4920 400
+del y4920
+pass
+move k118769 0
+top
+pass
+tall
+face
+ins 0 y4928 10
+del y4928
+pass
+move k25944 1
+top
+pass
+tall
+face
+ins 2 y4936 400
+del y4936
+pass
+move k147152 2
+top
+pass
+tall
+face
+ins 1 y4944 10
+del y4944
+pass
+move k110422 1
+top
+pass
+tall
+face
+ins 3 y4952 400
+del y4952
+pass
+move k89989 2
+top
+pass
+tall
+face
+ins 0 y4960 10
+del y4960
+pass
+move k95085 1
+top
+pass
+tall
+face
+ins 2 y4968 10
+del y4968
+pass
+move k81430 2
+top
+pass
+tall
+face
+ins 1 y4976 10
+del y4976
+pass
+move k77312 2
+top
+pass
+tall
+face
+ins 2 y4984 400
+del y4984
+pass
+move k41000 2
+top
+pass
+tall
+face
+ins 2 y4992 10
+del y4992
+pass
+move k132354 0
+top
+pass
+tall
+face
+ins 3 y5000 10
+del y5000
+pass
+move k15774 2
+top
+pass
+tall
+face
+ins 0 y5008 400
+del y5008
+pass
+move k149388 2
+top
+pass
+tall
+face
+ins 0 y5016 400
+del y5016
+pass
+move k2814 0
+top
+pass
+tall
+face
+ins 2 y5024 10
+del y5024
+pass
+move k79812 1
+top
+pass
+tall
+face
+ins 0 y5032 10
+del y5032
+pass
+move k7742 0
+top
+pass
+tall
+face
+ins 1 y5040 400
+del y5040
+pass
+move k145032 2
+top
+pass
+tall
+face
+ins 2 y5048 10
+del y5048
+pass
+move k52048 1
+top
+pass
+tall
+face
+ins 0 y5056 10
+del y5056
+pass
+move k41097 2
+top
+pass
+tall
+face
+ins 0 y5064 10
+del y5064
+pass
+move k26242 0
+top
+pass
+tall
+face
+ins 1 y5072 400
+del y5072
+pass
+move k122557 2
+top
+pass
+tall
+face
+ins 3 y5080 10
+del y5080
+pass
+move k3275 2
+top
+pass
+tall
+face
+ins 2 y5088 10
+del y5088
+pass
+move k62460 1
+top
+pass
+tall
+face
+ins 2 y5096 10
+del y5096
+pass
+move k8623 1
+top
+pass
+tall
+face
+ins 0 y5104 10
+del y5104
+pass
+move k91461 0
+top
+pass
+tall
+face
+ins 3 y5112 400
+del y5112
+pass
+move k5125 0
+top
+pass
+tall
+face
+ins 1 y5120 400
+del y5120
+pass
+move k11515 1
+top
+pass
+tall
+face
+ins 0 y5128 10
+del y5128
+pass
+move k65361 0
+top
+pass
+tall
+face
+ins 0 y5136 10
+del y5136
+pass
+move k45491 1
+top
+pass
+tall
+face
+ins 0 y5144 400
+del y5144
+pass
+move k79607 1
+top
+pass
+tall
+face
+ins 2 y5152 400
+del y5152
+pass
+move k17702 0
+top
+pass
+tall
+face
+ins 3 y5160 10
+del y5160
+pass
+move k108396 1
+top
+pass
+tall
+face
+ins 3 y5168 400
+del y5168
+pass
+move k5879 0
+top
+pass
+tall
+face
+ins 0 y5176 10
+del y5176
+pass
+move k44545 1
+top
+pass
+tall
+face
+ins 3 y5184 10
+del y5184
+pass
+move k2001 1
+top
+pass
+tall
+face
+ins 3 y5192 400
+del y5192
+pass
+move k30117 1
+top
+pass
+tall
+face
+ins 3 y5200 400
+del y5200
+pass
+move k105696 2
+top
+pass
+tall
+face
+ins 0 y5208 10
+del y5208
+pass
+move k110698 1
+top
+pass
+tall
+face
+ins 1 y5216 400
+del y5216
+pass
+move k50121 1
+top
+pass
+tall
+face
+ins 2 y5224 400
+del y5224
+pass
+move k62174 1
+top
+pass
+tall
+face
+ins 0 y5232 400
+del y5232
+pass
+move k6629 1
+top
+pass
+tall
+face
+ins 1 y5240 10
+del y5240
+pass
+move k34044 0
+top
+pass
+tall
+face
+ins 1 y5248 400
+del y5248
+pass
+move k142834 0
+top
+pass
+tall
+face
+ins 3 y5256 400
+del y5256
+pass
+move k62963 0
+top
+pass
+tall
+face
+ins 2 y5264 400
+del y5264
+pass
+move k56748 2
+top
+pass
+tall
+face
+ins 3 y5272 400
+del y5272
+pass
+move k54542 1
+top
+pass
+tall
+face
+ins 3 y5280 10
+del y5280
+pass
+move k59579 1
+top
+pass
+tall
+face
+ins 1 y5288 400
+del y5288
+pass
+move k115435 2
+top
+pass
+tall
+face
+ins 2 y5296 10
+del y5296
+pass
+move k105946 2
+top
+pass
+tall
+face
+ins 1 y5304 10
+del y5304
+pass
+move k32189 2
+top
+pass
+tall
+face
+ins 0 y5312 400
+del y5312
+pass
+move k100878 0
+top
+pass
+tall
+face
+ins 1 y5320 400
+del y5320
+pass
+move k3933 1
+top
+pass
+tall
+face
+ins 0 y5328 10
+del y5328
+pass
+move k60704 1
+top
+pass
+tall
+face
+ins 1 y5336 10
+del y5336
+pass
+move k17847 2
+top
+pass
+tall
+face
+ins 2 y5344 400
+del y5344
+pass
+move k50548 0
+top
+pass
+tall
+face
+ins 2 y5352 10
+del y5352
+pass
+move k59356 1
+top
+pass
+tall
+face
+ins 1 y5360 400
+del y5360
+pass
+move k74021 1
+top
+pass
+tall
+face
+ins 3 y5368 400
+del y5368
+pass
+move k34648 1
+top
+pass
+tall
+face
+ins 1 y5376 10
+del y5376
+pass
+move k96098 2
+top
+pass
+tall
+face
+ins 2 y5384 400
+del y5384
+pass
+move k6623 2
+top
+pass
+tall
+face
+ins 3 y5392 10
+del y5392
+pass
+move k104996 1
+top
+pass
+tall
+face
+ins 0 y5400 10
+del y5400
+pass
+move k76409 0
+top
+pass
+tall
+face
+ins 2 y5408 10
+del y5408
+pass
+move k10605 1
+top
+pass
+tall
+face
+ins 0 y5416 10
+del y5416
+pass
+move k112907 0
+top
+pass
+tall
+face
+ins 2 y5424 10
+del y5424
+pass
+move k99810 2
+top
+pass
+tall
+face
+ins 0 y5432 400
+del y5432
+pass
+move k47100 2
+top
+pass
+tall
+face
+ins 1 y5440 400
+del y5440
+pass
+move k136520 1
+top
+pass
+tall
+face
+ins 3 y5448 400
+del y5448
+pass
+move k255 0
+top
+pass
+tall
+face
+ins 2 y5456 10
+del y5456
+pass
+move k12412 0
+top
+pass
+tall
+face
+ins 0 y5464 10
+del y5464
+pass
+move k83507 0
+top
+pass
+tall
+face
+ins 2 y5472 10
+del y5472
+pass
+move k109376 2
+top
+pass
+tall
+face
+ins 3 y5480 10
+del y5480
+pass
+move k73706 2
+top
+pass
+tall
+face
+ins 0 y5488 400
+del y5488
+pass
+move k111143 1
+top
+pass
+tall
+face
+ins 2 y5496 400
+del y5496
+pass
+move k133342 0
+top
+pass
+tall
+face
+ins 1 y5504 400
+del y5504
+pass
+move k134187 0
+top
+pass
+tall
+face
+ins 3 y5512 10
+del y5512
+pass
+move k11454 2
+top
+pass
+tall
+face
+ins 2 y5520 10
+del y5520
+pass
+move k143237 0
+top
+pass
+tall
+face
+ins 1 y5528 400
+del y5528
+pass
+move k65455 0
+top
+pass
+tall
+face
+ins 1 y5536 400
+del y5536
+pass
+move k91025 1
+top
+pass
+tall
+face
+ins 0 y5544 10
+del y5544
+pass
+move k81410 0
+top
+pass
+tall
+face
+ins 1 y5552 400
+del y5552
+pass
+move k126558 0
+top
+pass
+tall
+face
+ins 1 y5560 10
+del y5560
+pass
+move k135105 2
+top
+pass
+tall
+face
+ins 3 y5568 10
+del y5568
+pass
+move k92134 2
+top
+pass
+tall
+face
+ins 2 y5576 10
+del y5576
+pass
+move k37196 2
+top
+pass
+tall
+face
+ins 1 y5584 400
+del y5584
+pass
+move k30926 2
+top
+pass
+tall
+face
+ins 3 y5592 10
+del y5592
+pass
+move k40578 2
+top
+pass
+tall
+face
+ins 3 y5600 400
+del y5600
+pass
+move k54087 0
+top
+pass
+tall
+face
+ins 2 y5608 10
+del y5608
+pass
+move k94498 1
+top
+pass
+tall
+face
+ins 1 y5616 10
+del y5616
+pass
+move k15816 1
+top
+pass
+tall
+face
+ins 2 y5624 10
+del y5624
+pass
+move k28992 2
+top
+pass
+tall
+face
+ins 2 y5632 400
+del y5632
+pass
+move k29620 0
+top
+pass
+tall
+face
+ins 2 y5640 400
+del y5640
+pass
+move k122857 2
+top
+pass
+tall
+face
+ins 2 y5648 400
+del y5648
+pass
+move k44066 2
+top
+pass
+tall
+face
+ins 0 y5656 10
+del y5656
+pass
+move k2835 1
+top
+pass
+tall
+face
+ins 3 y5664 10
+del y5664
+pass
+move k86960 2
+top
+pass
+tall
+face
+ins 2 y5672 10
+del y5672
+pass
+move k128156 1
+top
+pass
+tall
+face
+ins 3 y5680 10
+del y5680
+pass
+move k142364 1
+top
+pass
+tall
+face
+ins 0 y5688 400
+del y5688
+pass
+move k23847 2
+top
+pass
+tall
+face
+ins 2 y5696 400
+del y5696
+pass
+move k64485 0
+top
+pass
+tall
+face
+ins 1 y5704 10
+del y5704
+pass
+move k6631 1
+top
+pass
+tall
+face
+ins 1 y5712 400
+del y5712
+pass
+move k96440 0
+top
+pass
+tall
+face
+ins 1 y5720 10
+del y5720
+pass
+move k81357 2
+top
+pass
+tall
+face
+ins 2 y5728 400
+del y5728
+pass
+move k48377 2
+top
+pass
+tall
+face
+ins 2 y5736 400
+del y5736
+pass
+move k60353 1
+top
+pass
+tall
+face
+ins 1 y5744 400
+del y5744
+pass
+move k66467 0
+top
+pass
+tall
+face
+ins 0 y5752 10
+del y5752
+pass
+move k28112 2
+top
+pass
+tall
+face
+ins 3 y5760 10
+del y5760
+pass
+move k56739 1
+top
+pass
+tall
+face
+ins 3 y5768 400
+del y5768
+pass
+move k41284 1
+top
+pass
+tall
+face
+ins 0 y5776 10
+del y5776
+pass
+move k59638 0
+top
+pass
+tall
+face
+ins 1 y5784 400
+del y5784
+pass
+move k105221 0
+top
+pass
+tall
+face
+ins 0 y5792 400
+del y5792
+pass
+move k125673 0
+top
+pass
+tall
+face
+ins 1 y5800 400
+del y5800
+pass
+move k735 0
+top
+pass
+tall
+face
+ins 3 y5808 10
+del y5808
+pass
+move k74255 0
+top
+pass
+tall
+face
+ins 0 y5816 400
+del y5816
+pass
+move k88780 0
+top
+pass
+tall
+face
+ins 3 y5824 10
+del y5824
+pass
+move k46212 2
+top
+pass
+tall
+face
+ins 1 y5832 400
+del y5832
+pass
+move k77527 0
+top
+pass
+tall
+face
+ins 3 y5840 400
+del y5840
+pass
+move k148771 0
+top
+pass
+tall
+face
+ins 3 y5848 10
+del y5848
+pass
+move k142272 1
+top
+pass
+tall
+face
+ins 3 y5856 400
+del y5856
+pass
+move k140168 2
+top
+pass
+tall
+face
+ins 1 y5864 400
+del y5864
+pass
+move k21349 0
+top
+pass
+tall
+face
+ins 2 y5872 400
+del y5872
+pass
+move k148118 2
+top
+pass
+tall
+face
+ins 3 y5880 400
+del y5880
+pass
+move k126022 2
+top
+pass
+tall
+face
+ins 1 y5888 400
+del y5888
+pass
+move k90023 2
+top
+pass
+tall
+face
+ins 0 y5896 10
+del y5896
+pass
+move k58323 2
+top
+pass
+tall
+face
+ins 3 y5904 10
+del y5904
+pass
+move k38514 2
+top
+pass
+tall
+face
+ins 2 y5912 400
+del y5912
+pass
+move k94373 2
+top
+pass
+tall
+face
+ins 1 y5920 400
+del y5920
+pass
+move k103899 1
+top
+pass
+tall
+face
+ins 0 y5928 10
+del y5928
+pass
+move k47318 0
+top
+pass
+tall
+face
+ins 0 y5936 10
+del y5936
+pass
+move k66451 2
+top
+pass
+tall
+face
+ins 0 y5944 10
+del y5944
+pass
+move k139140 2
+top
+pass
+tall
+face
+ins 2 y5952 400
+del y5952
+pass
+move k59505 2
+top
+pass
+tall
+face
+ins 3 y5960 10
+del y5960
+pass
+move k141880 2
+top
+pass
+tall
+face
+ins 0 y5968 10
+del y5968
+pass
+move k106962 2
+top
+pass
+tall
+face
+ins 0 y5976 400
+del y5976
+pass
+move k35202 2
+top
+pass
+tall
+face
+ins 0 y5984 10
+del y5984
+pass
+move k120583 2
+top
+pass
+tall
+face
+ins 3 y5992 10
+del y5992
+pass
+move k50239 2
+top
+pass
+tall
+face
+ins 3 y6000 10
+del y6000
+pass
+move k35862 1
+top
+pass
+tall
+face
+ins 0 y6008 400
+del y6008
+pass
+move k62103 0
+top
+pass
+tall
+face
+ins 2 y6016 10
+del y6016
+pass
+move k3978 2
+top
+pass
+tall
+face
+ins 1 y6024 400
+del y6024
+pass
+move k78625 0
+top
+pass
+tall
+face
+ins 1 y6032 400
+del y6032
+pass
+move k22992 2
+top
+pass
+tall
+face
+ins 1 y6040 10
+del y6040
+pass
+move k92973 0
+top
+pass
+tall
+face
+ins 2 y6048 400
+del y6048
+pass
+move k3054 1
+top
+pass
+tall
+face
+ins 0 y6056 10
+del y6056
+pass
+move k97784 2
+top
+pass
+tall
+face
+ins 2 y6064 400
+del y6064
+pass
+move k11405 2
+top
+pass
+tall
+face
+ins 2 y6072 10
+del y6072
+pass
+move k93256 2
+top
+pass
+tall
+face
+ins 2 y6080 10
+del y6080
+pass
+move k8952 2
+top
+pass
+tall
+face
+ins 1 y6088 400
+del y6088
+pass
+move k92892 0
+top
+pass
+tall
+face
+ins 3 y6096 10
+del y6096
+pass
+move k115312 0
+top
+pass
+tall
+face
+ins 0 y6104 400
+del y6104
+pass
+move k28946 0
+top
+pass
+tall
+face
+ins 2 y6112 10
+del y6112
+pass
+move k39386 2
+top
+pass
+tall
+face
+ins 2 y6120 400
+del y6120
+pass
+move k37813 2
+top
+pass
+tall
+face
+ins 2 y6128 400
+del y6128
+pass
+move k116416 0
+top
+pass
+tall
+face
+ins 0 y6136 400
+del y6136
+pass
+move k39567 1
+top
+pass
+tall
+face
+ins 3 y6144 10
+del y6144
+pass
+move k9296 0
+top
+pass
+tall
+face
+ins 1 y6152 400
+del y6152
+pass
+move k124717 0
+top
+pass
+tall
+face
+ins 3 y6160 400
+del y6160
+pass
+move k60086 2
+top
+pass
+tall
+face
+ins 0 y6168 400
+del y6168
+pass
+move k86317 2
+top
+pass
+tall
+face
+ins 1 y6176 400
+del y6176
+pass
+move k34321 2
+top
+pass
+tall
+face
+ins 0 y6184 10
+del y6184
+pass
+move k44494 1
+top
+pass
+tall
+face
+ins 3 y6192 400
+del y6192
+pass
+move k122790 1
+top
+pass
+tall
+face
+ins 2 y6200 400
+del y6200
+pass
+move k1570 1
+top
+pass
+tall
+face
+ins 3 y6208 400
+del y6208
+pass
+move k59407 0
+top
+pass
+tall
+face
+ins 1 y6216 400
+del y6216
+pass
+move k11897 2
+top
+pass
+tall
+face
+ins 1 y6224 10
+del y6224
+pass
+move k71478 1
+top
+pass
+tall
+face
+ins 2 y6232 10
+del y6232
+pass
+move k131073 1
+top
+pass
+tall
+face
+ins 2 y6240 10
+del y6240
+pass
+move k8943 2
+top
+pass
+tall
+face
+ins 0 y6248 10
+del y6248
+pass
+move k111740 2
+top
+pass
+tall
+face
+ins 0 y6256 400
+del y6256
+pass
+move k73816 0
+top
+pass
+tall
+face
+ins 1 y6264 10
+del y6264
+pass
+move k79691 1
+top
+pass
+tall
+face
+ins 2 y6272 10
+del y6272
+pass
+move k91864 2
+top
+pass
+tall
+face
+ins 3 y6280 400
+del y6280
+pass
+move k15847 2
+top
+pass
+tall
+face
+ins 2 y6288 400
+del y6288
+pass
+move k126214 2
+top
+pass
+tall
+face
+ins 2 y6296 10
+del y6296
+pass
+move k61556 1
+top
+pass
+tall
+face
+ins 1 y6304 10
+del y6304
+pass
+move k53835 0
+top
+pass
+tall
+face
+ins 3 y6312 400
+del y6312
+pass
+move k116790 1
+top
+pass
+tall
+face
+ins 2 y6320 10
+del y6320
+pass
+move k17387 0
+top
+pass
+tall
+face
+ins 2 y6328 400
+del y6328
+pass
+move k66092 2
+top
+pass
+tall
+face
+ins 2 y6336 10
+del y6336
+pass
+move k49870 2
+top
+pass
+tall
+face
+ins 0 y6344 10
+del y6344
+pass
+move k79754 2
+top
+pass
+tall
+face
+ins 2 y6352 400
+del y6352
+pass
+move k93580 2
+top
+pass
+tall
+face
+ins 3 y6360 10
+del y6360
+pass
+move k127013 1
+top
+pass
+tall
+face
+ins 1 y6368 400
+del y6368
+pass
+move k67513 2
+top
+pass
+tall
+face
+ins 0 y6376 10
+del y6376
+pass
+move k70268 0
+top
+pass
+tall
+face
+ins 0 y6384 10
+del y6384
+pass
+move k12503 1
+top
+pass
+tall
+face
+ins 3 y6392 10
+del y6392
+pass
+move k74092 2
+top
+pass
+tall
+face
+ins 0 y6400 10
+del y6400
+pass
+move k63370 2
+top
+pass
+tall
+face
+ins 0 y6408 10
+del y6408
+pass
+move k12741 0
+top
+pass
+tall
+face
+ins 0 y6416 400
+del y6416
+pass
+move k35827 0
+top
+pass
+tall
+face
+ins 1 y6424 400
+del y6424
+pass
+move k140756 2
+top
+pass
+tall
+face
+ins 0 y6432 400
+del y6432
+pass
+move k7229 0
+top
+pass
+tall
+face
+ins 2 y6440 400
+del y6440
+pass
+move k7101 2
+top
+pass
+tall
+face
+ins 3 y6448 400
+del y6448
+pass
+move k88546 0
+top
+pass
+tall
+face
+ins 0 y6456 400
+del y6456
+pass
+move k11919 0
+top
+pass
+tall
+face
+ins 2 y6464 400
+del y6464
+pass
+move k104742 1
+top
+pass
+tall
+face
+ins 3 y6472 10
+del y6472
+pass
+move k6748 1
+top
+pass
+tall
+face
+ins 2 y6480 10
+del y6480
+pass
+move k108826 2
+top
+pass
+tall
+face
+ins 2 y6488 10
+del y6488
+pass
+move k24498 0
+top
+pass
+tall
+face
+ins 1 y6496 10
+del y6496
+pass
+move k37397 2
+top
+pass
+tall
+face
+ins 0 y6504 400
+del y6504
+pass
+move k94825 1
+top
+pass
+tall
+face
+ins 2 y6512 10
+del y6512
+pass
+move k86728 0
+top
+pass
+tall
+face
+ins 2 y6520 400
+del y6520
+pass
+move k8293 2
+top
+pass
+tall
+face
+ins 2 y6528 400
+del y6528
+pass
+move k146618 1
+top
+pass
+tall
+face
+ins 2 y6536 400
+del y6536
+pass
+move k34568 1
+top
+pass
+tall
+face
+ins 0 y6544 400
+del y6544
+pass
+move k26160 2
+top
+pass
+tall
+face
+ins 2 y6552 10
+del y6552
+pass
+move k59813 1
+top
+pass
+tall
+face
+ins 0 y6560 10
+del y6560
+pass
+move k35165 0
+top
+pass
+tall
+face
+ins 0 y6568 10
+del y6568
+pass
+move k145555 0
+top
+pass
+tall
+face
+ins 2 y6576 400
+del y6576
+pass
+move k39143 0
+top
+pass
+tall
+face
+ins 1 y6584 10
+del y6584
+pass
+move k91968 2
+top
+pass
+tall
+face
+ins 1 y6592 400
+del y6592
+pass
+move k130794 0
+top
+pass
+tall
+face
+ins 2 y6600 400
+del y6600
+pass
+move k120613 0
+top
+pass
+tall
+face
+ins 2 y6608 10
+del y6608
+pass
+move k28261 2
+top
+pass
+tall
+face
+ins 0 y6616 10
+del y6616
+pass
+move k105344 2
+top
+pass
+tall
+face
+ins 2 y6624 10
+del y6624
+pass
+move k59800 2
+top
+pass
+tall
+face
+ins 3 y6632 400
+del y6632
+pass
+move k98453 2
+top
+pass
+tall
+face
+ins 1 y6640 10
+del y6640
+pass
+move k66042 0
+top
+pass
+tall
+face
+ins 2 y6648 400
+del y6648
+pass
+move k63395 0
+top
+pass
+tall
+face
+ins 2 y6656 10
+del y6656
+pass
+move k85471 1
+top
+pass
+tall
+face
+ins 2 y6664 400
+del y6664
+pass
+move k130706 0
+top
+pass
+tall
+face
+ins 1 y6672 400
+del y6672
+pass
+move k70065 0
+top
+pass
+tall
+face
+ins 2 y6680 400
+del y6680
+pass
+move k23183 1
+top
+pass
+tall
+face
+ins 0 y6688 400
+del y6688
+pass
+move k65466 0
+top
+pass
+tall
+face
+ins 2 y6696 400
+del y6696
+pass
+move k55593 2
+top
+pass
+tall
+face
+ins 0 y6704 10
+del y6704
+pass
+move k94468 0
+top
+pass
+tall
+face
+ins 3 y6712 10
+del y6712
+pass
+move k113983 0
+top
+pass
+tall
+face
+ins 2 y6720 10
+del y6720
+pass
+move k29245 0
+top
+pass
+tall
+face
+ins 0 y6728 10
+del y6728
+pass
+move k79354 0
+top
+pass
+tall
+face
+ins 2 y6736 10
+del y6736
+pass
+move k44235 1
+top
+pass
+tall
+face
+ins 3 y6744 10
+del y6744
+pass
+move k108581 1
+top
+pass
+tall
+face
+ins 3 y6752 400
+del y6752
+pass
+move k8629 2
+top
+pass
+tall
+face
+ins 1 y6760 10
+del y6760
+pass
+move k4026 0
+top
+pass
+tall
+face
+ins 1 y6768 10
+del y6768
+pass
+move k112853 2
+top
+pass
+tall
+face
+ins 0 y6776 10
+del y6776
+pass
+move k12667 1
+top
+pass
+tall
+face
+ins 0 y6784 10
+del y6784
+pass
+move k31579 1
+top
+pass
+tall
+face
+ins 1 y6792 400
+del y6792
+pass
+move k674 0
+top
+pass
+tall
+face
+ins 1 y6800 10
+del y6800
+pass
+move k143006 2
+top
+pass
+tall
+face
+ins 0 y6808 400
+del y6808
+pass
+move k130094 0
+top
+pass
+tall
+face
+ins 2 y6816 10
+del y6816
+pass
+move k58710 2
+top
+pass
+tall
+face
+ins 0 y6824 400
+del y6824
+pass
+move k46458 0
+top
+pass
+tall
+face
+ins 2 y6832 400
+del y6832
+pass
+move k18068 0
+top
+pass
+tall
+face
+ins 1 y6840 10
+del y6840
+pass
+move k106987 2
+top
+pass
+tall
+face
+ins 2 y6848 400
+del y6848
+pass
+move k2777 1
+top
+pass
+tall
+face
+ins 0 y6856 400
+del y6856
+pass
+move k142599 1
+top
+pass
+tall
+face
+ins 2 y6864 400
+del y6864
+pass
+move k70410 1
+top
+pass
+tall
+face
+ins 3 y6872 400
+del y6872
+pass
+move k141557 1
+top
+pass
+tall
+face
+ins 3 y6880 10
+del y6880
+pass
+move k101471 1
+top
+pass
+tall
+face
+ins 3 y6888 10
+del y6888
+pass
+move k1377 0
+top
+pass
+tall
+face
+ins 2 y6896 400
+del y6896
+pass
+move k63115 0
+top
+pass
+tall
+face
+ins 0 y6904 10
+del y6904
+pass
+move k8822 2
+top
+pass
+tall
+face
+ins 0 y6912 400
+del y6912
+pass
+move k146413 1
+top
+pass
+tall
+face
+ins 3 y6920 400
+del y6920
+pass
+move k119406 2
+top
+pass
+tall
+face
+ins 0 y6928 400
+del y6928
+pass
+move k123367 2
+top
+pass
+tall
+face
+ins 2 y6936 400
+del y6936
+pass
+move k61456 2
+top
+pass
+tall
+face
+ins 3 y6944 400
+del y6944
+pass
+move k16809 1
+top
+pass
+tall
+face
+ins 2 y6952 400
+del y6952
+pass
+move k18874 2
+top
+pass
+tall
+face
+ins 1 y6960 400
+del y6960
+pass
+move k68755 1
+top
+pass
+tall
+face
+ins 2 y6968 400
+del y6968
+pass
+move k149608 0
+top
+pass
+tall
+face
+ins 1 y6976 10
+del y6976
+pass
+move k138609 1
+top
+pass
+tall
+face
+ins 1 y6984 10
+del y6984
+pass
+move k95891 0
+top
+pass
+tall
+face
+ins 1 y6992 10
+del y6992
+pass
+move k120665 0
+top
+pass
+tall
+face
+ins 0 y7000 400
+del y7000
+pass
+move k99946 1
+top
+pass
+tall
+face
+ins 3 y7008 10
+del y7008
+pass
+move k107486 0
+top
+pass
+tall
+face
+ins 2 y7016 400
+del y7016
+pass
+move k26950 1
+top
+pass
+tall
+face
+ins 2 y7024 400
+del y7024
+pass
+move k118701 2
+top
+pass
+tall
+face
+ins 0 y7032 400
+del y7032
+pass
+move k103691 1
+top
+pass
+tall
+face
+ins 3 y7040 10
+del y7040
+pass
+move k117786 2
+top
+pass
+tall
+face
+ins 3 y7048 10
+del y7048
+pass
+move k135617 0
+top
+pass
+tall
+face
+ins 0 y7056 10
+del y7056
+pass
+move k96188 1
+top
+pass
+tall
+face
+ins 1 y7064 400
+del y7064
+pass
+move k137203 1
+top
+pass
+tall
+face
+ins 3 y7072 400
+del y7072
+pass
+move k4658 2
+top
+pass
+tall
+face
+ins 1 y7080 10
+del y7080
+pass
+move k149567 1
+top
+pass
+tall
+face
+ins 0 y7088 10
+del y7088
+pass
+move k80358 2
+top
+pass
+tall
+face
+ins 2 y7096 400
+del y7096
+pass
+move k67010 0
+top
+pass
+tall
+face
+ins 2 y7104 400
+del y7104
+pass
+move k23942 2
+top
+pass
+tall
+face
+ins 3 y7112 10
+del y7112
+pass
+move k52870 0
+top
+pass
+tall
+face
+ins 3 y7120 400
+del y7120
+pass
+move k97418 0
+top
+pass
+tall
+face
+ins 3 y7128 400
+del y7128
+pass
+move k96253 0
+top
+pass
+tall
+face
+ins 2 y7136 400
+del y7136
+pass
+move k112976 2
+top
+pass
+tall
+face
+ins 2 y7144 400
+del y7144
+pass
+move k62555 1
+top
+pass
+tall
+face
+ins 1 y7152 10
+del y7152
+pass
+move k97611 0
+top
+pass
+tall
+face
+ins 1 y7160 400
+del y7160
+pass
+move k18555 0
+top
+pass
+tall
+face
+ins 3 y7168 400
+del y7168
+pass
+move k103091 2
+top
+pass
+tall
+face
+ins 3 y7176 400
+del y7176
+pass
+move k6709 0
+top
+pass
+tall
+face
+ins 3 y7184 400
+del y7184
+pass
+move k114327 1
+top
+pass
+tall
+face
+ins 3 y7192 10
+del y7192
+pass
+move k17065 1
+top
+pass
+tall
+face
+ins 3 y7200 400
+del y7200
+pass
+move k35464 2
+top
+pass
+tall
+face
+ins 0 y7208 10
+del y7208
+pass
+move k52493 1
+top
+pass
+tall
+face
+ins 0 y7216 400
+del y7216
+pass
+move k145189 1
+top
+pass
+tall
+face
+ins 3 y7224 400
+del y7224
+pass
+move k30965 0
+top
+pass
+tall
+face
+ins 1 y7232 10
+del y7232
+pass
+move k149691 0
+top
+pass
+tall
+face
+ins 0 y7240 400
+del y7240
+pass
+move k23135 0
+top
+pass
+tall
+face
+ins 3 y7248 10
+del y7248
+pass
+move k52386 2
+top
+pass
+tall
+face
+ins 2 y7256 400
+del y7256
+pass
+move k14360 2
+top
+pass
+tall
+face
+ins 3 y7264 10
+del y7264
+pass
+move k106680 0
+top
+pass
+tall
+face
+ins 1 y7272 400
+del y7272
+pass
+move k87645 0
+top
+pass
+tall
+face
+ins 0 y7280 10
+del y7280
+pass
+move k141266 1
+top
+pass
+tall
+face
+ins 2 y7288 10
+del y7288
+pass
+move k82062 1
+top
+pass
+tall
+face
+ins 2 y7296 400
+del y7296
+pass
+move k145672 1
+top
+pass
+tall
+face
+ins 3 y7304 10
+del y7304
+pass
+move k80439 1
+top
+pass
+tall
+face
+ins 1 y7312 400
+del y7312
+pass
+move k114323 2
+top
+pass
+tall
+face
+ins 2 y7320 400
+del y7320
+pass
+move k52956 0
+top
+pass
+tall
+face
+ins 0 y7328 10
+del y7328
+pass
+move k140732 2
+top
+pass
+tall
+face
+ins 2 y7336 400
+del y7336
+pass
+move k128186 2
+top
+pass
+tall
+face
+ins 1 y7344 400
+del y7344
+pass
+move k89590 0
+top
+pass
+tall
+face
+ins 3 y7352 10
+del y7352
+pass
+move k82384 0
+top
+pass
+tall
+face
+ins 0 y7360 400
+del y7360
+pass
+move k148094 1
+top
+pass
+tall
+face
+ins 0 y7368 400
+del y7368
+pass
+move k57592 1
+top
+pass
+tall
+face
+ins 2 y7376 10
+del y7376
+pass
+move k54884 2
+top
+pass
+tall
+face
+ins 3 y7384 400
+del y7384
+pass
+move k116623 0
+top
+pass
+tall
+face
+ins 1 y7392 10
+del y7392
+pass
+move k47222 1
+top
+pass
+tall
+face
+ins 0 y7400 10
+del y7400
+pass
+move k35914 0
+top
+pass
+tall
+face
+ins 3 y7408 10
+del y7408
+pass
+move k3721 2
+top
+pass
+tall
+face
+ins 1 y7416 400
+del y7416
+pass
+move k57883 2
+top
+pass
+tall
+face
+ins 2 y7424 10
+del y7424
+pass
+move k140103 0
+top
+pass
+tall
+face
+ins 1 y7432 10
+del y7432
+pass
+move k135328 0
+top
+pass
+tall
+face
+ins 3 y7440 10
+del y7440
+pass
+move k52856 0
+top
+pass
+tall
+face
+ins 0 y7448 400
+del y7448
+pass
+move k58660 2
+top
+pass
+tall
+face
+ins 2 y7456 400
+del y7456
+pass
+move k111301 0
+top
+pass
+tall
+face
+ins 0 y7464 10
+del y7464
+pass
+move k10947 0
+top
+pass
+tall
+face
+ins 3 y7472 400
+del y7472
+pass
+move k60993 2
+top
+pass
+tall
+face
+ins 2 y7480 10
+del y7480
+pass
+move k81152 1
+top
+pass
+tall
+face
+ins 2 y7488 10
+del y7488
+pass
+move k39820 2
+top
+pass
+tall
+face
+ins 1 y7496 400
+del y7496
+pass
+move k8636 1
+top
+pass
+tall
+face
+ins 3 y7504 10
+del y7504
+pass
+move k76300 0
+top
+pass
+tall
+face
+ins 0 y7512 10
+del y7512
+pass
+move k121754 0
+top
+pass
+tall
+face
+ins 1 y7520 400
+del y7520
+pass
+move k87342 2
+top
+pass
+tall
+face
+ins 3 y7528 10
+del y7528
+pass
+move k10175 1
+top
+pass
+tall
+face
+ins 0 y7536 10
+del y7536
+pass
+move k137441 2
+top
+pass
+tall
+face
+ins 0 y7544 400
+del y7544
+pass
+move k128429 1
+top
+pass
+tall
+face
+ins 0 y7552 400
+del y7552
+pass
+move k24378 0
+top
+pass
+tall
+face
+ins 3 y7560 400
+del y7560
+pass
+move k79418 2
+top
+pass
+tall
+face
+ins 0 y7568 10
+del y7568
+pass
+move k36624 1
+top
+pass
+tall
+face
+ins 2 y7576 10
+del y7576
+pass
+move k78608 0
+top
+pass
+tall
+face
+ins 0 y7584 10
+del y7584
+pass
+move k90256 0
+top
+pass
+tall
+face
+ins 1 y7592 400
+del y7592
+pass
+move k13122 0
+top
+pass
+tall
+face
+ins 2 y7600 400
+del y7600
+pass
+move k117867 1
+top
+pass
+tall
+face
+ins 1 y7608 400
+del y7608
+pass
+move k95434 0
+top
+pass
+tall
+face
+ins 0 y7616 400
+del y7616
+pass
+move k18200 2
+top
+pass
+tall
+face
+ins 3 y7624 10
+del y7624
+pass
+move k144591 0
+top
+pass
+tall
+face
+ins 1 y7632 400
+del y7632
+pass
+move k120953 0
+top
+pass
+tall
+face
+ins 0 y7640 10
+del y7640
+pass
+move k134576 2
+top
+pass
+tall
+face
+ins 0 y7648 400
+del y7648
+pass
+move k34595 1
+top
+pass
+tall
+face
+ins 2 y7656 10
+del y7656
+pass
+move k98229 2
+top
+pass
+tall
+face
+ins 1 y7664 400
+del y7664
+pass
+move k44486 2
+top
+pass
+tall
+face
+ins 0 y7672 400
+del y7672
+pass
+move k1299 2
+top
+pass
+tall
+face
+ins 3 y7680 400
+del y7680
+pass
+move k39070 1
+top
+pass
+tall
+face
+ins 0 y7688 10
+del y7688
+pass
+move k62579 0
+top
+pass
+tall
+face
+ins 1 y7696 400
+del y7696
+pass
+move k70902 2
+top
+pass
+tall
+face
+ins 0 y7704 400
+del y7704
+pass
+move k122635 0
+top
+pass
+tall
+face
+ins 1 y7712 10
+del y7712
+pass
+move k132851 1
+top
+pass
+tall
+face
+ins 2 y7720 10
+del y7720
+pass
+move k74314 1
+top
+pass
+tall
+face
+ins 1 y7728 10
+del y7728
+pass
+move k62885 2
+top
+pass
+tall
+face
+ins 1 y7736 10
+del y7736
+pass
+move k3962 0
+top
+pass
+tall
+face
+ins 0 y7744 400
+del y7744
+pass
+move k149530 0
+top
+pass
+tall
+face
+ins 1 y7752 10
+del y7752
+pass
+move k44900 0
+top
+pass
+tall
+face
+ins 2 y7760 10
+del y7760
+pass
+move k111150 1
+top
+pass
+tall
+face
+ins 0 y7768 400
+del y7768
+pass
+move k149373 0
+top
+pass
+tall
+face
+ins 0 y7776 10
+del y7776
+pass
+move k61321 0
+top
+pass
+tall
+face
+ins 0 y7784 10
+del y7784
+pass
+move k19151 2
+top
+pass
+tall
+face
+ins 2 y7792 10
+del y7792
+pass
+move k10807 0
+top
+pass
+tall
+face
+ins 1 y7800 400
+del y7800
+pass
+move k89673 0
+top
+pass
+tall
+face
+ins 3 y7808 10
+del y7808
+pass
+move k2823 1
+top
+pass
+tall
+face
+ins 3 y7816 400
+del y7816
+pass
+move k8452 0
+top
+pass
+tall
+face
+ins 1 y7824 10
+del y7824
+pass
+move k134061 2
+top
+pass
+tall
+face
+ins 1 y7832 10
+del y7832
+pass
+move k90262 0
+top
+pass
+tall
+face
+ins 1 y7840 10
+del y7840
+pass
+move k57579 2
+top
+pass
+tall
+face
+ins 2 y7848 10
+del y7848
+pass
+move k747 1
+top
+pass
+tall
+face
+ins 0 y7856 400
+del y7856
+pass
+move k137771 1
+top
+pass
+tall
+face
+ins 0 y7864 10
+del y7864
+pass
+move k52177 2
+top
+pass
+tall
+face
+ins 0 y7872 400
+del y7872
+pass
+move k107834 0
+top
+pass
+tall
+face
+ins 2 y7880 10
+del y7880
+pass
+move k129122 2
+top
+pass
+tall
+face
+ins 3 y7888 10
+del y7888
+pass
+move k67976 2
+top
+pass
+tall
+face
+ins 2 y7896 10
+del y7896
+pass
+move k122200 2
+top
+pass
+tall
+face
+ins 1 y7904 400
+del y7904
+pass
+move k101142 2
+top
+pass
+tall
+face
+ins 2 y7912 10
+del y7912
+pass
+move k17835 1
+top
+pass
+tall
+face
+ins 1 y7920 10
+del y7920
+pass
+move k51909 2
+top
+pass
+tall
+face
+ins 3 y7928 10
+del y7928
+pass
+move k129138 2
+top
+pass
+tall
+face
+ins 0 y7936 400
+del y7936
+pass
+move k103499 2
+top
+pass
+tall
+face
+ins 2 y7944 400
+del y7944
+pass
+move k106494 0
+top
+pass
+tall
+face
+ins 1 y7952 400
+del y7952
+pass
+move k111829 1
+top
+pass
+tall
+face
+ins 0 y7960 400
+del y7960
+pass
+move k128203 2
+top
+pass
+tall
+face
+ins 0 y7968 10
+del y7968
+pass
+move k124620 1
+top
+pass
+tall
+face
+ins 3 y7976 400
+del y7976
+pass
+move k119927 0
+top
+pass
+tall
+face
+ins 2 y7984 10
+del y7984
+pass
+move k21784 1
+top
+pass
+tall
+face
+ins 3 y7992 400
+del y7992
+pass
+move k8538 1
+top
+pass
+tall
+face
+ins 2 y8000 10
+del y8000
+pass
+move k71044 0
+top
+pass
+tall
+face
+ins 3 y8008 400
+del y8008
+pass
+move k141080 0
+top
+pass
+tall
+face
+ins 0 y8016 10
+del y8016
+pass
+move k10885 1
+top
+pass
+tall
+face
+ins 1 y8024 400
+del y8024
+pass
+move k71168 1
+top
+pass
+tall
+face
+ins 1 y8032 400
+del y8032
+pass
+move k43888 0
+top
+pass
+tall
+face
+ins 2 y8040 400
+del y8040
+pass
+move k80890 1
+top
+pass
+tall
+face
+ins 2 y8048 10
+del y8048
+pass
+move k42524 1
+top
+pass
+tall
+face
+ins 0 y8056 10
+del y8056
+pass
+move k45967 0
+top
+pass
+tall
+face
+ins 1 y8064 400
+del y8064
+pass
+move k148180 2
+top
+pass
+tall
+face
+ins 2 y8072 400
+del y8072
+pass
+move k26453 2
+top
+pass
+tall
+face
+ins 3 y8080 10
+del y8080
+pass
+move k66412 2
+top
+pass
+tall
+face
+ins 3 y8088 10
+del y8088
+pass
+move k134815 2
+top
+pass
+tall
+face
+ins 2 y8096 400
+del y8096
+pass
+move k69821 1
+top
+pass
+tall
+face
+ins 2 y8104 400
+del y8104
+pass
+move k98531 2
+top
+pass
+tall
+face
+ins 0 y8112 400
+del y8112
+pass
+move k129327 1
+top
+pass
+tall
+face
+ins 0 y8120 10
+del y8120
+pass
+move k31210 2
+top
+pass
+tall
+face
+ins 3 y8128 400
+del y8128
+pass
+move k81566 2
+top
+pass
+tall
+face
+ins 1 y8136 400
+del y8136
+pass
+move k9204 1
+top
+pass
+tall
+face
+ins 3 y8144 10
+del y8144
+pass
+move k1854 1
+top
+pass
+tall
+face
+ins 1 y8152 10
+del y8152
+pass
+move k133168 0
+top
+pass
+tall
+face
+ins 3 y8160 10
+del y8160
+pass
+move k73629 2
+top
+pass
+tall
+face
+ins 1 y8168 400
+del y8168
+pass
+move k142682 0
+top
+pass
+tall
+face
+ins 3 y8176 400
+del y8176
+pass
+move k22104 2
+top
+pass
+tall
+face
+ins 3 y8184 400
+del y8184
+pass
+move k94435 2
+top
+pass
+tall
+face
+ins 2 y8192 400
+del y8192
+pass
+move k42435 2
+top
+pass
+tall
+face
+ins 3 y8200 10
+del y8200
+pass
+move k139564 1
+top
+pass
+tall
+face
+ins 1 y8208 10
+del y8208
+pass
+move k135265 0
+top
+pass
+tall
+face
+ins 1 y8216 400
+del y8216
+pass
+move k136450 0
+top
+pass
+tall
+face
+ins 2 y8224 10
+del y8224
+pass
+move k78023 1
+top
+pass
+tall
+face
+ins 2 y8232 10
+del y8232
+pass
+move k71395 1
+top
+pass
+tall
+face
+ins 3 y8240 10
+del y8240
+pass
+move k84122 1
+top
+pass
+tall
+face
+ins 3 y8248 10
+del y8248
+pass
+move k68213 1
+top
+pass
+tall
+face
+ins 3 y8256 400
+del y8256
+pass
+move k101061 1
+top
+pass
+tall
+face
+ins 2 y8264 10
+del y8264
+pass
+move k53471 2
+top
+pass
+tall
+face
+ins 3 y8272 400
+del y8272
+pass
+move k41904 1
+top
+pass
+tall
+face
+ins 0 y8280 10
+del y8280
+pass
+move k73114 2
+top
+pass
+tall
+face
+ins 3 y8288 400
+del y8288
+pass
+move k20045 1
+top
+pass
+tall
+face
+ins 3 y8296 400
+del y8296
+pass
+move k103689 2
+top
+pass
+tall
+face
+ins 2 y8304 10
+del y8304
+pass
+move k68086 1
+top
+pass
+tall
+face
+ins 0 y8312 10
+del y8312
+pass
+move k139513 2
+top
+pass
+tall
+face
+ins 2 y8320 400
+del y8320
+pass
+move k94321 1
+top
+pass
+tall
+face
+ins 1 y8328 10
+del y8328
+pass
+move k143798 0
+top
+pass
+tall
+face
+ins 3 y8336 10
+del y8336
+pass
+move k80465 0
+top
+pass
+tall
+face
+ins 1 y8344 10
+del y8344
+pass
+move k105863 1
+top
+pass
+tall
+face
+ins 2 y8352 400
+del y8352
+pass
+move k102910 1
+top
+pass
+tall
+face
+ins 2 y8360 400
+del y8360
+pass
+move k48690 2
+top
+pass
+tall
+face
+ins 1 y8368 400
+del y8368
+pass
+move k75693 0
+top
+pass
+tall
+face
+ins 1 y8376 400
+del y8376
+pass
+move k17289 1
+top
+pass
+tall
+face
+ins 0 y8384 10
+del y8384
+pass
+move k61747 2
+top
+pass
+tall
+face
+ins 3 y8392 400
+del y8392
+pass
+move k56083 2
+top
+pass
+tall
+face
+ins 2 y8400 10
+del y8400
+pass
+move k39625 0
+top
+pass
+tall
+face
+ins 1 y8408 10
+del y8408
+pass
+move k74084 0
+top
+pass
+tall
+face
+ins 3 y8416 400
+del y8416
+pass
+move k34414 2
+top
+pass
+tall
+face
+ins 3 y8424 400
+del y8424
+pass
+move k17646 2
+top
+pass
+tall
+face
+ins 2 y8432 10
+del y8432
+pass
+move k58686 1
+top
+pass
+tall
+face
+ins 0 y8440 400
+del y8440
+pass
+move k149158 0
+top
+pass
+tall
+face
+ins 2 y8448 10
+del y8448
+pass
+move k135600 0
+top
+pass
+tall
+face
+ins 0 y8456 400
+del y8456
+pass
+move k57251 0
+top
+pass
+tall
+face
+ins 3 y8464 10
+del y8464
+pass
+move k117145 1
+top
+pass
+tall
+face
+ins 0 y8472 400
+del y8472
+pass
+move k145467 2
+top
+pass
+tall
+face
+ins 0 y8480 10
+del y8480
+pass
+move k140998 1
+top
+pass
+tall
+face
+ins 0 y8488 400
+del y8488
+pass
+move k58844 1
+top
+pass
+tall
+face
+ins 2 y8496 400
+del y8496
+pass
+move k139118 2
+top
+pass
+tall
+face
+ins 1 y8504 10
+del y8504
+pass
+move k145910 0
+top
+pass
+tall
+face
+ins 2 y8512 10
+del y8512
+pass
+move k58455 0
+top
+pass
+tall
+face
+ins 0 y8520 400
+del y8520
+pass
+move k111126 1
+top
+pass
+tall
+face
+ins 0 y8528 400
+del y8528
+pass
+move k23468 2
+top
+pass
+tall
+face
+ins 0 y8536 400
+del y8536
+pass
+move k102317 2
+top
+pass
+tall
+face
+ins 3 y8544 10
+del y8544
+pass
+move k14346 1
+top
+pass
+tall
+face
+ins 2 y8552 400
+del y8552
+pass
+move k18713 2
+top
+pass
+tall
+face
+ins 3 y8560 10
+del y8560
+pass
+move k113071 1
+top
+pass
+tall
+face
+ins 3 y8568 10
+del y8568
+pass
+move k89570 2
+top
+pass
+tall
+face
+ins 1 y8576 10
+del y8576
+pass
+move k105612 0
+top
+pass
+tall
+face
+ins 2 y8584 10
+del y8584
+pass
+move k20041 2
+top
+pass
+tall
+face
+ins 0 y8592 400
+del y8592
+pass
+move k51827 2
+top
+pass
+tall
+face
+ins 1 y8600 400
+del y8600
+pass
+move k52737 2
+top
+pass
+tall
+face
+ins 2 y8608 10
+del y8608
+pass
+move k4136 0
+top
+pass
+tall
+face
+ins 2 y8616 10
+del y8616
+pass
+move k109554 0
+top
+pass
+tall
+face
+ins 2 y8624 400
+del y8624
+pass
+move k42900 2
+top
+pass
+tall
+face
+ins 2 y8632 400
+del y8632
+pass
+move k80150 0
+top
+pass
+tall
+face
+ins 0 y8640 10
+del y8640
+pass
+move k93130 1
+top
+pass
+tall
+face
+ins 0 y8648 400
+del y8648
+pass
+move k26779 1
+top
+pass
+tall
+face
+ins 0 y8656 10
+del y8656
+pass
+move k95389 1
+top
+pass
+tall
+face
+ins 3 y8664 10
+del y8664
+pass
+move k88510 1
+top
+pass
+tall
+face
+ins 3 y8672 10
+del y8672
+pass
+move k28539 2
+top
+pass
+tall
+face
+ins 2 y8680 400
+del y8680
+pass
+move k54864 1
+top
+pass
+tall
+face
+ins 2 y8688 10
+del y8688
+pass
+move k50617 2
+top
+pass
+tall
+face
+ins 2 y8696 400
+del y8696
+pass
+move k100704 0
+top
+pass
+tall
+face
+ins 3 y8704 10
+del y8704
+pass
+move k36260 0
+top
+pass
+tall
+face
+ins 0 y8712 10
+del y8712
+pass
+move k139269 1
+top
+pass
+tall
+face
+ins 0 y8720 10
+del y8720
+pass
+move k22557 1
+top
+pass
+tall
+face
+ins 0 y8728 10
+del y8728
+pass
+move k140033 0
+top
+pass
+tall
+face
+ins 2 y8736 400
+del y8736
+pass
+move k146692 1
+top
+pass
+tall
+face
+ins 3 y8744 10
+del y8744
+pass
+move k1924 0
+top
+pass
+tall
+face
+ins 1 y8752 400
+del y8752
+pass
+move k100300 0
+top
+pass
+tall
+face
+ins 0 y8760 10
+del y8760
+pass
+move k52404 1
+top
+pass
+tall
+face
+ins 3 y8768 400
+del y8768
+pass
+move k17710 2
+top
+pass
+tall
+face
+ins 0 y8776 400
+del y8776
+pass
+move k44296 1
+top
+pass
+tall
+face
+ins 1 y8784 400
+del y8784
+pass
+move k123657 2
+top
+pass
+tall
+face
+ins 1 y8792 10
+del y8792
+pass
+move k130541 2
+top
+pass
+tall
+face
+ins 3 y8800 10
+del y8800
+pass
+move k62548 0
+top
+pass
+tall
+face
+ins 0 y8808 400
+del y8808
+pass
+move k148395 2
+top
+pass
+tall
+face
+ins 1 y8816 10
+del y8816
+pass
+move k63602 0
+top
+pass
+tall
+face
+ins 1 y8824 10
+del y8824
+pass
+move k9979 1
+top
+pass
+tall
+face
+ins 0 y8832 400
+del y8832
+pass
+move k63033 0
+top
+pass
+tall
+face
+ins 0 y8840 400
+del y8840
+pass
+move k68933 0
+top
+pass
+tall
+face
+ins 1 y8848 400
+del y8848
+pass
+move k4777 1
+top
+pass
+tall
+face
+ins 0 y8856 10
+del y8856
+pass
+move k49005 0
+top
+pass
+tall
+face
+ins 1 y8864 400
+del y8864
+pass
+move k27734 2
+top
+pass
+tall
+face
+ins 3 y8872 10
+del y8872
+pass
+move k18911 0
+top
+pass
+tall
+face
+ins 0 y8880 10
+del y8880
+pass
+move k14219 2
+top
+pass
+tall
+face
+ins 2 y8888 400
+del y8888
+pass
+move k104061 2
+top
+pass
+tall
+face
+ins 0 y8896 10
+del y8896
+pass
+move k6311 0
+top
+pass
+tall
+face
+ins 3 y8904 10
+del y8904
+pass
+move k32022 2
+top
+pass
+tall
+face
+ins 1 y8912 400
+del y8912
+pass
+move k28941 2
+top
+pass
+tall
+face
+ins 0 y8920 400
+del y8920
+pass
+move k24650 0
+top
+pass
+tall
+face
+ins 1 y8928 10
+del y8928
+pass
+move k23537 1
+top
+pass
+tall
+face
+ins 2 y8936 400
+del y8936
+pass
+move k81058 1
+top
+pass
+tall
+face
+ins 1 y8944 400
+del y8944
+pass
+move k87780 0
+top
+pass
+tall
+face
+ins 0 y8952 10
+del y8952
+pass
+move k19660 0
+top
+pass
+tall
+face
+ins 0 y8960 10
+del y8960
+pass
+move k136348 1
+top
+pass
+tall
+face
+ins 3 y8968 400
+del y8968
+pass
+move k55267 2
+top
+pass
+tall
+face
+ins 0 y8976 10
+del y8976
+pass
+move k15442 2
+top
+pass
+tall
+face
+ins 0 y8984 10
+del y8984
+pass
+move k112925 0
+top
+pass
+tall
+face
+ins 1 y8992 400
+del y8992
+pass
+move k115800 1
+top
+pass
+tall
+face
+top
+tall
+face

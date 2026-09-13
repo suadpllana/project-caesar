@@ -1,0 +1,199 @@
+[task]
+slug = "anchor-mean-settle"
+status = "idea"
+sources = ["tasks/anchor-mean-settle/STATE.md"]
+expert_hours = 10
+estimated_solves = 3
+
+[plan]
+first_plan = """
+Keep a height per row, measured on render and cached, with a fixed estimate for the rows
+that have not been rendered yet, and a prefix-sum array of absolute offsets over the row
+order so the visible window is a binary search and the total height is the last entry.
+On a render pass, find the window, measure the rows in it, rebuild the offsets from the
+first changed index, and then add the difference between the anchor row's old and new
+offset to the scroll position so the anchor keeps its place on screen. Rebuild the offsets
+on insert, delete and resize the same way.
+"""
+first_plan_source = "search"
+breaking_rule = """
+The height assumed for a row that has not been measured is the floor mean of the heights of
+the rows that have been, so every single measurement retroactively re-heights every
+unmeasured row in the list, above the anchor as well as below it, and a stored absolute
+offset is stale the moment any row anywhere is measured.
+"""
+second_discovery = """
+A pass measures the lowest-indexed unmeasured row of the viewport and re-seats before
+choosing the next one, so the set of rows a pass measures is a fixed point rather than the
+window computed at its start: each measurement moves the mean, which moves the anchor's
+offset, which moves the scroll position, which changes which rows the viewport holds.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read mtr.py for the height function and the four frozen constants, and run_pan.py for the op set and the order the runner calls the six editable modules in",
+  "write the mean estimate down as an equation and notice the prefix offset factors into a measured-height sum plus an unmeasured count times one global scalar",
+  "conclude no absolute offset can be stored, and pick a structure carrying the two additive series over row order under insertion and deletion - blocks over the row list, or a tree indexed by position",
+  "implement the pass as a loop that measures one row and re-seats before recomputing the window, and check the seen count against a hand-traced program where the mean jumps on the first measurement",
+  "settle the anchor rules: capture the first intersecting row before any measurement, hold its offset from the viewport top for the whole pass, and let the clamp at either end lose the residue",
+  "settle the mutation rules: re-seat against the held anchor on every edit, keep the measurement and the anchor role across a move, and fall to the row that took the index on a delete",
+  "time the two wide programs against the stated limit, and replace anything that walks the row list per event",
+]
+
+[search]
+best_page = """
+The source of a current virtual-list library - TanStack Virtual's observer and measurement
+cache, or react-virtualized's CellMeasurer with recomputeRowHeights - together with the CSS
+scroll-anchoring note on compensating a measured size change.
+"""
+helps_plan = false
+deviation = """
+Those libraries key a fixed estimate per item, so an offset cache stays valid until that
+item itself is measured and a measure-then-adjust step is sound; here the estimate is one
+global mean over the measured rows, so measuring any row invalidates every offset and makes
+the pass an iteration, and the anchor is the first intersecting row rather than the deepest
+fully visible one the scroll-anchoring note picks.
+"""
+
+[tactics]
+A1 = """
+The prior is a per-row height cache plus a prefix-offset array, which is what every
+virtualizer in the training data does and what the retrieved source shows; here it is
+specifically wrong because the assumed height is a global mean, so the cache is invalidated
+by a measurement of some other row.
+"""
+A2 = """
+The brief states the mean, the pass loop and the re-seat as behaviour of this panel and
+never names an estimate policy, scroll anchoring, or an indexed prefix structure, so the
+recognition that the offset factors into two additive series is the agent's to make.
+"""
+A3 = """
+The layout must survive insertion and deletion at any index while still answering prefix
+offsets without ever storing one, which rules out both the array of offsets and a plain
+binary-indexed tree over a fixed row order.
+"""
+B2 = """
+Twelve stated rules hold at once - the mean, the one-at-a-time pass, the anchor capture,
+the held offset, the clamp residue, re-capture on roll, re-seat on edit, the delete
+fallback, move keeping its measurement, set dropping one, span dropping all, and the
+intersecting-row reading of face - and each changes what another means.
+"""
+C1 = """
+A pass whose viewport is already measured must print seen 0 and leave the scroll position
+untouched, and an edit below the last visible row must not move it either, so an
+implementation that re-seats or re-captures defensively fails the everyday cases.
+"""
+C2 = """
+There is no browser or layout engine in the image and nothing prints the mean, the anchor
+or the offsets, so the only check available is the shipped engine, which is coherent and
+wrong, and the retrievable libraries validate the wrong plan.
+"""
+C3 = """
+Walking the row list to get a prefix offset is exact and is what the shipped grid does; at
+the stated row counts it cannot finish the graded set inside the stated limit, while the
+two-series structure the invariant licenses does.
+"""
+C4 = """
+Every event of every program is compared line for line against a sealed independent model,
+across hand programs aimed at each decision and generated families drawn from a seed the
+submission never sees, all or nothing.
+"""
+guard = """
+Only the six modules under /app/pan that carry the layout decisions are taken; the runner,
+the height function, the event writer and the programs are overlaid from the verifier's own
+pristine copy, so the op set, the arithmetic and the trace format cannot be reshaped.
+"""
+
+[decisions]
+graded = 14
+interactions = [
+  { a = "the mean estimate re-heights every unmeasured row", b = "the pass measures one row at a time to a fixed point", why = "a measurement moves the mean, which moves every offset and the scroll position, so the window a pass ends with is not the window it started from and the two rules cannot be implemented apart" },
+  { a = "the anchor's offset from the viewport top is held for the whole pass", b = "the re-seat is clamped at both ends of the scroll range", why = "a clamp inside the loop loses part of the compensation, and an implementation that re-derives the held offset afterwards silently absorbs the residue and re-seats every later measurement to a different place" },
+  { a = "an edit re-seats against the held anchor", b = "the mean estimate is global", why = "the prefix an edit changes is the measured sum and the unmeasured count, both of which the mean multiplies, so the mutation path and the measurement path have to share one structure rather than each maintaining offsets" },
+  { a = "a delete falls to the row that took the anchor's index", b = "a move keeps its measurement and its anchor role", why = "implementing move as a delete followed by an insert fires the delete fallback and loses the height, so getting the delete rule right is what makes the move rule wrong" },
+  { a = "set drops a measured row back to unmeasured", b = "the mean estimate is over the live measured rows", why = "un-measuring a row removes a sample, so the mean moves and every other unmeasured row changes height, which can change what the next pass measures" },
+  { a = "roll re-captures the anchor", b = "a pass captures the anchor before measuring", why = "the same edits after a roll and after a pass re-seat against different rows, so the order of the two ops decides the scroll position tens of events later" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A pass over a viewport whose rows are all measured prints seen 0 and leaves the scroll
+position exactly where it was, and an insert after the last visible row changes the total
+height without moving the scroll position at all.
+"""
+late_case = """
+A program that scrolls to the bottom of a fully measured list, where the clamp holds the
+scroll position, then sets one measured row above the viewport back to unmeasured: the mean
+loses a sample, the rows above the anchor change height, and the next pass measures a
+different number of rows than a single-step pass would.
+"""
+oracle_denied = """
+The agent can only run the shipped engine, which is coherent and wrong in nine ways, and
+nothing in the tree prints the mean, the anchor, the held offset or any row's offset, so a
+correct answer cannot be recognised from a wrong one without the whole model.
+"""
+
+[leaks]
+candidates = [
+  { what = "a query returning the assumed height or the mean", closed_by = "the estimate is never printed and no op exposes it; it is observable only folded into a total, a scroll position or a face offset" },
+  { what = "a query naming the held anchor row", closed_by = "no op prints the anchor; face reports the first intersecting row from the current scroll position, which is not the held anchor after any edit" },
+  { what = "a per-row offset or absolute-position query", closed_by = "no op takes a row and prints its offset; the only positional output is the first intersecting row and its distance from the viewport top" },
+  { what = "expected output beside a shipped program", closed_by = "the tree ships op programs and no expected traces; the frozen answers and the independent model live in a verifier directory the run cannot read" },
+  { what = "a measured or unmeasured flag readable per row", closed_by = "no op reports measurement state; it is inferable only by reasoning about what a pass would have measured" },
+  { what = "the pristine tree or the conversion of the shipped defects", closed_by = "the pristine copy lives under tests/ and is never copied into the agent image; the shipped defects are ordinary wrong code with no marker" },
+]
+derived_quantities = """
+The stored values are the primitives only - a row's id, its text length, whether it has
+been measured, the panel width and the scroll position - and no offset, total, mean or
+window is stored anywhere the agent can read, because those are the derivations the task is
+about.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Computing a prefix offset by walking the row list from the first row, or rebuilding an
+array of absolute offsets after each measurement and each edit, which is exact and is what
+the shipped grid module does.
+"""
+invariant = """
+The assumed height is one global scalar, so a prefix offset is the measured heights before
+the row plus the count of unmeasured rows before it times that scalar - two additive series
+over row order, which a blocked index or a position-indexed tree maintains in sublinear
+time per event and which a change to the scalar does not touch at all. Measured on the
+graded set against its 60 second limit: the reference 9.1 seconds, a prefix read by walking
+the row list 165.5 seconds, an array of absolute offsets rebuilt on every change over 700 -
+both of the slow two producing the reference's traces on all 441 programs.
+"""
+input_scale = "two wide programs stated in the brief: 120000 rows with 6000 later ops, and 150000 rows measured then 9000 edits at the front"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a fixed assumed height instead of the mean of the measured rows", hand_case = "measure one tall row, then ask the total with many unmeasured rows behind it" },
+  { reading = "the mean applied only to rows below the anchor", hand_case = "scroll into the middle of an unmeasured list, pass, and ask the scroll position" },
+  { reading = "a pass measures the window computed once, then re-seats once", hand_case = "a viewport of unmeasured rows whose first measurement lifts the mean enough to push the rest out of the viewport" },
+  { reading = "the anchor captured after measuring rather than before", hand_case = "a pass from a scroll position where the first intersecting row changes as soon as the mean moves" },
+  { reading = "the held offset re-derived after a clamp", hand_case = "a pass at the very bottom of the scroll range where the first measurement clamps the re-seat" },
+  { reading = "an edit clamped but not re-seated", hand_case = "insert one row at index 0 while scrolled into the middle of a measured list, then ask the scroll position" },
+  { reading = "a delete of the anchor drops the anchor instead of falling to the row that took its index", hand_case = "delete the anchor row, insert above, then ask the scroll position" },
+  { reading = "a move treated as a delete followed by an insert", hand_case = "move a measured row from the front to the back and ask the total" },
+  { reading = "set leaves the row measured at its old height", hand_case = "set a measured row to a longer text and ask the total" },
+  { reading = "span keeps the measurements taken at the old width", hand_case = "measure a viewport, change the width, and ask the total" },
+  { reading = "face reports the first row at or after the scroll position", hand_case = "scroll to a position strictly inside a row and ask face" },
+  { reading = "a pass on an empty list prints seen 0", hand_case = "pass before any row is inserted" },
+]
+correct_variants = [
+  "blocks of fixed width over the row list, each block carrying its measured-height sum and unmeasured count, spliced on insert and delete",
+  "a binary-indexed tree over slots with tombstones for deleted rows and a rebuild when tombstones pass a fraction of the slots",
+  "a position-indexed balanced tree whose nodes carry the two series as subtree aggregates",
+]
+
+[shape]
+environment_py_lines = 320
+editable_files = 6
+reference_lines = 440

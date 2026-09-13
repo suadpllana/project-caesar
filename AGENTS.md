@@ -749,6 +749,7 @@ harbor init afterquery/<slug> -t -o <dir>     Scaffold (generic schema â€” see Â
 harbor run -p <dir> -a oracle -e docker       Reference solution; must score 1
 harbor run -p <dir> -a nop -e docker          Do-nothing agent; must score 0
 harbor check <dir> -m <model>                 LLM rubric review of task quality
+python tools/prosecheck.py <slug>             Shipped prose against the retained bundles (a report, not a gate)
 python scripts/preflight.py <dir>             Offline mechanical rule check
 python scripts/package.py <dir>               Build the submission zip (checks first, refuses on errors)
 ```

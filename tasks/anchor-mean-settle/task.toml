@@ -1,0 +1,226 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pan/grid.py",
+  "/app/pan/gues.py",
+  "/app/pan/seat.py",
+  "/app/pan/step.py",
+  "/app/pan/edit.py",
+  "/app/pan/ask.py",
+]
+
+[task]
+name = "afterquery/anchor-mean-settle"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+A frontier agent knows this problem. Virtual lists are everywhere in the training data and the
+shape of the answer is settled: keep the height of each row once you have measured it, guess
+the rest, hold a running array of absolute offsets, binary-search that array for the rows the
+view covers, and after measuring, nudge the scroll position by however far the row you were
+anchored to has moved. The brief here does not contradict any of that. It changes one figure,
+and the change is a sentence long: the guess for a row nobody has measured is the floor mean of
+the heights of the rows that have been measured. One figure, for the whole panel, recomputed
+from every measurement.
+
+Work out what that does to the array. A library gives each unmeasured row its own fixed guess,
+so measuring row 40 spoils the offsets from row 40 onward and nothing before it; the rebuild is
+local and the cache is sound in between. Here measuring row 40 changes the assumed height of
+rows 3 and 900 as well, so every entry in the array is wrong at once, and it is wrong again
+after the next measurement. Nothing positional can be kept at all. What can be kept is the pair
+the mean multiplies into - how much measured height lies ahead of a row, and how many
+unmeasured rows lie ahead of it - and that is a line of algebra the agent has to do rather than
+look up. Which structure carries those two series is then a real choice, because rows are
+inserted and deleted at any index: an array of offsets is out, and so is a plain binary-indexed
+tree over a fixed order.
+
+The second finding breaks the implementation the first one produces. A pass measures the lowest
+unmeasured row the view covers, re-seats, and only then looks again at what the view covers.
+Idiomatic code does not do that - it collects the visible window, measures the window, corrects
+the scroll position once - and under a per-row guess the two are the same program. Under one
+shared mean they are not: each measurement shifts the mean, the mean shifts the anchored row's
+offset, the offset shifts the scroll position, and rows leave the view or arrive in it while
+the loop is still running. The count the pass reports and the place it lands are both
+different. None of that shows up while the mean barely moves, which is to say while a program
+is doing anything ordinary.
+
+Cost decides the rest, and the cheap route follows from the same one-figure observation rather
+than from a trick: the mean factors out of a prefix, so changing it costs nothing at all.
+Against the 60 second limit the brief puts on the whole graded set, the reference finishes all
+439 programs in 7.3 seconds. A panel that is exactly right and reads a prefix by walking the
+row list takes 216.9 seconds over the same set, 52 to 56 of them on a single wide program where
+the reference spends 1.4; one that keeps an array of absolute offsets and rebuilds it whenever
+anything changes never finishes. Both produce the reference's traces on every program they
+complete.
+
+The smaller rules are graded from both sides, so caution fails as surely as carelessness. An
+insert ahead of the anchored row has to move the scroll position by exactly what it moved that
+row, and one behind it has to move nothing. A pass over a view that is already measured has to
+report nothing and leave the position alone. A clamp at either end of the range eats part of a
+correction, and what it eats is gone rather than folded back into the remembered distance.
+Deleting the anchored row hands the view to whichever row took its index, or to the new last
+row; a move carries both the row's measurement and the view with it; new text costs the mean
+one sample and a width change costs it every sample. Eleven of these ship read the wrong way
+across the six modules, and the only thing a wrong structure gets back is one integer per query
+and one row name per `face`, since nothing anywhere prints the mean, the anchored row, or any
+row's position.
+
+Ten files and 248 lines of Python, six of them editable: the tree is deliberately small and
+nothing here depends on a project too big to hold in mind. What it depends on is that the
+guess, the pass, the anchored row, the clamp and the edits each change what the others mean, so
+the structure that satisfies all of them is not the structure any one of them suggests on its
+own. The reference runs to 443 lines against those 248 because what ships is a rewrite whose
+author took the rules one at a time.
+
+Names are short - `pan/`, `grid`, `gues`, `seat`, `step`, `mtr`, `hgt`, `anc`, `dy`, `hm` - and
+none of them lies about what it holds. Real view-layer code reads like that, and every one of
+them is recoverable from its callers; the terseness is a register, not a handicap.
+
+The 439 programs are synthetic and shaped in twelve families: a mean that leaps on its first
+measurement, a mean that falls and pulls rows into the view, clamps that bite mid-pass, inserts
+and deletes ahead of the anchored row, the anchored row leaving or moving, samples dropping out
+of the mean one by one, every measurement surrendered at once by a resize, lists that empty and
+fill again, and the two wide sizes. A working panel meets these rarely. This class of bug lives
+nowhere else.
+"""
+
+solution_explanation = """
+Six files, and the order they have to be settled in is fixed by what each one needs from the
+last.
+
+`gues.py` is one function: the floor mean of the measured heights over the rows still present,
+or 24 while nothing has been measured. Everything else follows from its being a single
+panel-wide figure. Because the height ahead of a row is that figure times the count of
+unmeasured rows ahead of it, plus the measured heights ahead of it, no row's position can be
+written down anywhere - and a change to the figure has to cost nothing, or the wide programs
+are unaffordable.
+
+So `grid.py` keeps the rows in blocks, and a block records only the two sums for the rows it
+holds: their measured heights, and how many of them are unmeasured. A prefix is the whole
+blocks ahead of a row plus a short walk inside its own block; the row under the scroll position
+is found by descending the same two figures; the list's height is a running pair; the scroll
+range comes off it. Inserting or deleting at any index is a splice inside one block, which is
+what makes the deep programs affordable while rows are still arriving at the front. A resize
+would otherwise touch every row, so it bumps a generation counter instead and a row counts as
+measured only while its own generation matches the panel's.
+
+`seat.py` is the row the view is held against and the distance from the view's top edge down to
+it - taken afresh by a scroll and by a pass, held across everything else, and put back clamped.
+Holding that distance rather than re-deriving it is the whole of the clamp rule: at either end
+of the range the clamp swallows part of the correction, and re-deriving afterwards would
+quietly hand that back and send every later re-seat somewhere else.
+
+`step.py` is therefore a loop and not a step: measure the lowest unmeasured row the view
+covers, re-seat, ask again. `edit.py` holds the six ways the list changes, each re-seating
+against the held row, with the fallback on a delete, the measurement and the anchor a move
+takes with it, the sample `set` removes from the mean and the samples a resize removes.
+`ask.py` answers the three questions; the one with a trap in it is `face`, which names the row
+the scroll position falls inside rather than the first row starting at or after it.
+
+An expert settles them in that order because each consumes the one before: the guess decides
+what may be stored, what is stored decides what a prefix costs, the prefix decides where a
+re-seat lands, and the landing decides which row the pass measures next. Two further
+implementations of the same contract sit in the authoring set - one holding the two series as
+subtree sums of a tree indexed by position and rotating where this one splices, one giving up
+every measurement row by row on a resize instead of bumping a generation - so what is graded is
+visibly the contract and not this structure.
+"""
+
+verification_explanation = """
+Six files come back from the agent and nothing else does. They are laid over the verifier's own
+untouched copy of the tree, so whatever else the submission edited cannot reach the grader, and
+each program's printed trace is compared line by line with no tolerance anywhere.
+
+Correct is pinned down twice. Thirty-five hand-written programs cover a decision each, with the
+must-still-work half of every fence beside it, and are held against `gt.json`, frozen before
+the grading file existed. The verifier then builds four hundred and four more for itself, from
+a seed it draws once the agent's container has gone, across twelve shaped families. The first
+set says which rule broke; the second says the submission generalises, since it cannot have
+been seen and cannot be fitted. Judging anything is conditional on the sealed model still
+reproducing every frozen answer byte for byte, so a model that had drifted since would grade
+nothing.
+
+Each fence is graded from both directions, and the case names say which. A fixed guess for an
+unmeasured row fails `mean-one`, and so does a mean taken over every row instead of the
+measured ones; rounding it up fails `mean-floor`. Collecting the view and measuring it in one
+step fails `pass-grow`, as do measuring it from the bottom up and correcting the position only
+at the end. Taking the anchored row after measuring fails `anchor-first`; re-deriving the
+remembered distance once a clamp has bitten fails `clamp-hold`; dropping the clamp from a
+re-seat fails `clamp-shrink` and dropping it from a scroll fails `roll-past`. An edit that
+fails to re-seat fails `ins-above`, while one that re-seats when it should sit still fails
+`ins-below`. Losing the anchored row on a delete fails `del-anchor`, falling to the wrong
+neighbour fails it too, and missing the case where that row was the last of all fails
+`del-tail`. A move read as a delete followed by an insert fails `move-keep` and `move-anchor`.
+Keeping a measurement through new text fails `set-drop` and keeping them through a resize fails
+`span-all`. Leaving unmeasured rows out of the height fails `tall-mixed`, reading `face` as the
+first row starting at or after the position fails `face-inside`, and treating an unknown row
+name as an error fails `gone-name`.
+
+Thirty-four cheats come back 0, and each was checked against the layer it was written for
+rather than against its score alone. Twenty-four are wrong readings, every one of them failed
+by the hand-written case that names its rule. Two are exactly right and too slow - the prefix
+walked out of the row list, and an array of absolute offsets rebuilt on every change - and both
+die on the clock rather than on an assertion. One carries `gt.json` itself: it answers all
+thirty-five hand programs perfectly and misses every generated one. The remaining seven attack
+the verifier, and each sits on top of a panel that does no work, so a 1 could only ever have
+come from the attack: reading the sealed answers, planting a worker record, planting one and
+quitting the worker with a clean status so nothing overwrote it, returning garbage for the
+grader to choke on, testing its own privileges, blanking the generator, and double-forking a
+process to write the reward after grading has finished. All seven record what refused them -
+permission denied on the answers, on the reward file and on the test directory; the survivor
+killed by owner; the planted record overwritten; the garbage rejected instead of crashed
+through - so the evidence is the refusal and not the number. Three panels written independently
+of the reference score 1.
+
+What the agent wrote runs under an unprivileged uid, in its own session, and on the same wall
+clock the brief publishes as the execution limit. That uid cannot read the directory holding
+the sealed model and the frozen traces, so nothing inside the verifier can look up what it was
+supposed to compute. Reward is 0 until the privileged stage raises it, which it does last of
+all and into a root-owned directory shut before the first submitted line ran. Processes the run
+leaves alive are hunted down by uid and killed before grading begins.
+"""
+
+category = "Software"
+
+subcategory = "Frontend"
+
+tags = [
+  "list-virtualization",
+  "scroll-anchoring",
+  "deferred-measurement",
+  "prefix-height-index",
+  "integer-layout",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+From keeping the layout half of a long list view honest in a desktop client - the code that
+decides how tall a row is assumed to be before anyone has drawn it, what a render pass may
+measure, and where the scroll position should land once those assumptions turn out to have been
+wrong. Work like that teaches you that such a view carries two pictures of the same list which
+disagree, the reader's and the index's, and that every insertion, deletion and resize is an
+argument between them. Integer geometry over a sequence that is mutated at arbitrary positions;
+the difference between a guess owned by a row and a guess owned by the panel; and knowing when
+a layout that is correct is still the wrong layout at the row counts the thing actually opens
+with.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

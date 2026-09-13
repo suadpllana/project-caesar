@@ -1,0 +1,1233 @@
+
+I'll start by reading the service code and the plans.
+
+Bash(ls -R | head -50 && wc -l run_plan.py cfg/*.py && cat run_plan.py cfg/lex.py cfg/say.py)
+
+.:
+cfg
+plans
+run_plan.py
+
+./cfg:
+__init__.py
+ans.py
+lex.py
+made.py
+past.py
+pile.py
+roll.py
+say.py
+work.py
+
+./plans:
+deep.txt
+mapped.txt
+one.txt
+two.txt
+wide.txt
+  26 run_plan.py
+   0 cfg/__init__.py
+  15 cfg/ans.py
+ 127 cfg/lex.py
+  22 cfg/made.py
+  28 cfg/past.py
+  47 cfg/pile.py
+  14 cfg/roll.py
+  14 cfg/say.py
+  66 cfg/work.py
+ 359 total
+import sys
+
+from cfg import ans, lex, past
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_plan.py <plan>\n")
+        return 2
+    with open(argv[1], "r", encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        plan = lex.parse(text)
+    except ValueError as exc:
+        sys.stderr.write("bad plan: %s\n" % exc)
+        return 2
+    hist = past.build(plan)
+    out = []
+    for q in plan.asks:
+        out.append(ans.answer(hist, q))
+    sys.stdout.write("".join(line + "\n" for line in out))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+import re
+
+SEG = re.compile(r"[a-z][a-z0-9]{0,7}\Z")
+INT = re.compile(r"-?[0-9]{1,9}\Z")
+
+MAXSEG = 24
+
+
+class Ent:
+    __slots__ = ("kind", "a", "b", "expr", "guard")
+
+    def __init__(self, kind, a, b, expr, guard):
+        self.kind = kind
+        self.a = a
+        self.b = b
+        self.expr = expr
+        self.guard = guard
+
+
+class Qry:
+    __slots__ = ("kind", "path", "stop", "shown")
+
+    def __init__(self, kind, path, stop, shown):
+        self.kind = kind
+        self.path = path
+        self.stop = stop
+        self.shown = shown
+
+
+class Plan:
+    __slots__ = ("layers", "asks")
+
+    def __init__(self, layers, asks):
+        self.layers = layers
+        self.asks = asks
+
+
+def path(tok):
+    segs = tok.split(".")
+    if not 1 <= len(segs) <= MAXSEG:
+        raise ValueError("path %r" % tok)
+    for s in segs:
+        if not SEG.match(s):
+            raise ValueError("path %r" % tok)
+    return tuple(segs)
+
+
+def num(tok):
+    if not INT.match(tok):
+        raise ValueError("int %r" % tok)
+    return int(tok)
+
+
+def expr(toks, i):
+    if i >= len(toks):
+        raise ValueError("expression ends early")
+    head = toks[i]
+    if head == "lit":
+        return ("lit", num(toks[i + 1])), i + 2
+    if head in ("now", "old"):
+        return (head, path(toks[i + 1])), i + 2
+    if head in ("sum", "top"):
+        a, i = expr(toks, i + 1)
+        b, i = expr(toks, i)
+        return (head, a, b), i
+    if head == "pick":
+        p = path(toks[i + 1])
+        a, i = expr(toks, i + 2)
+        b, i = expr(toks, i)
+        return ("pick", p, a, b), i
+    raise ValueError("expression %r" % head)
+
+
+def guard(toks):
+    if not toks:
+        return None
+    if toks[0] == "if" and len(toks) == 3:
+        return ("if", path(toks[1]), num(toks[2]))
+    if toks[0] == "un" and len(toks) == 2:
+        return ("un", path(toks[1]))
+    raise ValueError("guard %r" % " ".join(toks))
+
+
+def parse(text):
+    layers = []
+    asks = []
+    for raw in text.split("\n"):
+        if raw == "":
+            continue
+        toks = raw.split(" ")
+        head = toks[0]
+        if head == "lay":
+            if len(toks) != 1:
+                raise ValueError("lay takes no argument")
+            if asks:
+                raise ValueError("no entry may follow a query")
+            layers.append([])
+            continue
+        if head in ("ask", "tot"):
+            if len(toks) == 2:
+                stop = None
+            elif len(toks) == 3:
+                stop = num(toks[2])
+                if not 0 <= stop <= len(layers):
+                    raise ValueError("stop %d" % stop)
+            else:
+                raise ValueError("%s takes a path and an optional layer count" % head)
+            asks.append(Qry(head, path(toks[1]), stop, toks[1]))
+            continue
+        if head not in ("put", "cut", "mix", "map"):
+            raise ValueError("op %r" % head)
+        if asks:
+            raise ValueError("no entry may follow a query")
+        if not layers:
+            raise ValueError("entry before the first lay")
+        if head == "put":
+            p = path(toks[1])
+            e, i = expr(toks, 2)
+            layers[-1].append(Ent("put", p, None, e, guard(toks[i:])))
+        elif head == "cut":
+            p = path(toks[1])
+            layers[-1].append(Ent("cut", p, None, None, guard(toks[2:])))
+        else:
+            a = path(toks[1])
+            b = path(toks[2])
+            layers[-1].append(Ent(head, a, b, None, guard(toks[3:])))
+    return Plan(layers, asks)
+def val(shown, value, home):
+    return "val %s %d %d" % (shown, value, home)
+
+
+def gone(shown):
+    return "val %s gone" % shown
+
+
+def loop(shown):
+    return "val %s loop" % shown
+
+
+def tot(shown, count):
+    return "num %s %d" % (shown, count)
+
+[stdout]
+.:
+cfg
+plans
+run_plan.py
+
+./cfg:
+__init__.py
+ans.py
+lex.py
+made.py
+past.py
+pile.py
+roll.py
+say.py
+work.py
+
+./plans:
+deep.txt
+mapped.txt
+one.txt
+two.txt
+wide.txt
+  26 run_plan.py
+   0 cfg/__init__.py
+  15 cfg/ans.py
+ 127 cfg/lex.py
+  22 cfg/made.py
+  28 cfg/past.py
+  47 cfg/pile.py
+  14 cfg/roll.py
+  14 cfg/say.py
+  66 cfg/work.py
+ 359 total
+import sys
+
+from cfg import ans, lex, past
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_plan.py <plan>\n")
+        return 2
+    with open(argv[1], "r", encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        plan = lex.parse(text)
+    except ValueError as exc:
+        sys.stderr.write("bad plan: %s\n" % exc)
+        return 2
+    hist = past.build(plan)
+    out = []
+    for q in plan.asks:
+        out.append(ans.answer(hist, q))
+    sys.stdout.write("".join(line + "\n" for line in out))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+import re
+
+SEG = re.compile(r"[a-z][a-z0-9]{0,7}\Z")
+INT = re.compile(r"-?[0-9]{1,9}\Z")
+
+MAXSEG = 24
+
+
+class Ent:
+    __slots__ = ("kind", "a", "b", "expr", "guard")
+
+    def __init__(self, kind, a, b, expr, guard):
+        self.kind = kind
+        self.a = a
+        self.b = b
+        self.expr = expr
+        self.guard = guard
+
+
+class Q
+… [clipped]
+collapse
+Bash(for f in cfg/pile.py cfg/past.py cfg/made.py cfg/roll.py cfg/work.py cfg/ans.py; do echo "=== $f"; cat $f; don…)
+
+=== cfg/pile.py
+from cfg import made
+
+
+def empty():
+    return {}
+
+
+def copy(store):
+    return dict(store)
+
+
+def _under(p, root):
+    return len(p) >= len(root) and p[:len(root)] == root
+
+
+def put(store, path, dfn):
+    store[path] = dfn
+    return store
+
+
+def cut(store, path):
+    for p in [q for q in store if _under(q, path)]:
+        del store[p]
+    return store
+
+
+def mix(store, src, dst, at):
+    take = []
+    for p, d in store.items():
+        if _under(p, src):
+            take.append((dst + p[len(src):], made.carried(d, at)))
+    for p, d in take:
+        store[p] = d
+    return store
+
+
+def find(store, path):
+    return store.get(path)
+
+
+def count(store, path):
+    seen = set()
+    for p in store:
+        if _under(p, path):
+            for i in range(len(path), len(p) + 1):
+                seen.add(p[:i])
+    return len(seen)
+=== cfg/past.py
+from cfg import pile, roll
+
+
+class Hist:
+    __slots__ = ("at", "top", "memo", "busy")
+
+    def __init__(self, top):
+        self.at = [pile.empty()]
+        self.top = top
+        self.memo = {}
+        self.busy = set()
+
+    def store(self, stop):
+        return self.at[stop]
+
+
+def build(plan):
+    hist = Hist(len(plan.layers))
+    live = pile.empty()
+    for j, ents in enumerate(plan.layers):
+        live = roll.run(hist, live, j, ents)
+        hist.at.append(pile.copy(live))
+    return hist
+
+
+def stop_of(hist, named):
+    return hist.top if named is None else named
+
+=== cfg/made.py
+class Dfn:
+    __slots__ = ("expr", "home")
+
+    def __init__(self, expr, home):
+        self.expr = expr
+        self.home = home
+
+
+def make(expr, home):
+    return Dfn(expr, home)
+
+
+def carried(dfn, at):
+    return Dfn(dfn.expr, at)
+
+
+def back(dfn):
+    return dfn.home
+
+
+def reported(dfn):
+    return dfn.home
+=== cfg/roll.py
+from cfg import made, pile, work
+
+
+def run(hist, store, j, ents):
+    for ent in ents:
+        if ent.guard is not None and not work.guard_holds(hist, store, ent.guard, j):
+            continue
+        if ent.kind == "put":
+            store = pile.put(store, ent.a, made.make(ent.expr, j))
+        elif ent.kind == "cut":
+            store = pile.cut(store, ent.a)
+        else:
+            store = pile.mix(store, ent.a, ent.b, j)
+    return store
+=== cfg/work.py
+import sys
+
+from cfg import made, pile
+
+sys.setrecursionlimit(10000)
+
+
+GONE = "gone"
+LOOP = "loop"
+
+
+def at_path(hist, path, stop):
+    dfn = pile.find(hist.store(stop), path)
+    if dfn is None:
+        return GONE
+    return at_def(hist, dfn, stop)
+
+
+def at_def(hist, dfn, stop):
+    key = (dfn, stop)
+    got = hist.memo.get(key)
+    if got is not None:
+        return got
+    if key in hist.busy:
+        return LOOP
+    hist.busy.add(key)
+    try:
+        out = ev(hist, dfn.expr, made.back(dfn), stop)
+    finally:
+        hist.busy.discard(key)
+    hist.memo[key] = out
+    return out
+
+
+def ev(hist, expr, home, stop):
+    kind = expr[0]
+    if kind == "lit":
+        return expr[1]
+    if kind == "now":
+        return at_path(hist, expr[1], stop)
+    if kind == "old":
+        return at_path(hist, expr[1], home)
+    if kind == "pick":
+        if pile.count(hist.store(stop), expr[1]) == 0:
+            return ev(hist, expr[3], home, stop)
+        return ev(hist, expr[2], home, stop)
+    right = ev(hist, expr[2], home, stop)
+    if not isinstance(right, int):
+        return right
+    left = ev(hist, expr[1], home, stop)
+    if not isinstance(left, int):
+        return left
+    if kind == "sum":
+        return left + right
+    return left if left >= right else right
+
+
+def guard_holds(hist, store, guard, j):
+    dfn = pile.find(store, guard[1])
+    if dfn is None:
+        got = GONE
+    else:
+        got = at_def(hist, dfn, j)
+    if guard[0] == "un":
+        return got == GONE
+    return isinstance(got, int) and got == guard[2]
+=== cfg/ans.py
+from cfg import made, past, pile, say, work
+
+
+def answer(hist, qry):
+    stop = past.stop_of(hist, qry.stop)
+    store = hist.store(stop)
+    if qry.kind == "tot":
+        return say.tot(qry.shown, pile.count(store, qry.path))
+    dfn = pile.find(store, qry.path)
+    if dfn is None:
+        return say.gone(qry.shown)
+    got = work.at_def(hist, dfn, hist.top)
+    if isinstance(got, int):
+        return say.val(qry.shown, got, made.reported(dfn))
+    return say.gone(qry.shown)
+=== plans
+lay
+put site.rate lit 30
+put site.tries lit 3
+put edge.rate now site.rate
+lay
+put site.rate lit 45
+cut site.tries
+ask site.rate
+ask edge.rate
+tot site
+tot edge
+lay
+put base.slot lit 12
+put base.step lit 4
+lay
+put base.slot sum old base.slot now base.step
+put base.cap lit 99 if base.step 4
+lay
+put base.step lit 6
+put base.lim pick base.cap now base.cap lit 0
+ask base.slot
+ask base.step
+ask base.cap
+ask base.lim
+ask base.hold
+lay
+put template.port lit 80
+put instance.port lit 8080
+lay
+put template.port sum old template.port lit 1
+map template instance
+ask template.port
+ask instance.port
+tot instance
+    87 plans/deep.txt
+     9 plans/mapped.txt
+    11 plans/one.txt
+    14 plans/two.txt
+ 38021 plans/wide.txt
+ 38142 total
+lay
+put b.cs.de lit 4
+put a.ac.ct lit 5
+put a.bq.aw lit 8
+put b.dr.dd lit 3
+put a.dw.ci lit 8
+put b.dh.bk lit 1
+put b.aq.bx lit 4
+put b.dv.as lit 9
+put a.bh.dg lit 3
+put a.cg.cm lit 2
+put b.br.dl lit 8
+put b.cj.dl lit 8
+put b.db.da lit 3
+put a.bf.am lit 7
+put b.dr.bo lit 3
+put b.ae.ah lit 9
+put a.ag.ak lit 9
+put b.cr.dk lit 6
+put a.cx.cv lit 8
+put a.dr.cw lit 6
+put b.cv.ar lit 2
+put a.br.dp lit 7
+put a.cv.ab lit 6
+put a.ag.cf lit 6
+put a.dp.db lit 7
+put a.ds.cp lit 9
+put b.bj.am lit 8
+put a.aj.bo lit 4
+put a.cn.aj lit 9
+put a.aw.db lit 9
+put a.al.dd lit 8
+put b.do.du lit 3
+put b.bl.ar lit 3
+pu
+lay
+put a.z lit 1
+put a.y.x lit 8
+lay
+mix a a.a
+lay
+mix a a.b
+lay
+mix a a.c
+lay
+mix a a.d
+lay
+mix a a.e
+lay
+mix a a.f
+lay
+mix a a.g
+lay
+mix a a.h
+lay
+mix a a.i
+lay
+mix a a.j
+lay
+mix a a.k
+lay
+mix a a.l
+lay
+mix a a.m
+lay
+mix a a.n
+lay
+mix a a.o
+lay
+mix a a.p
+lay
+mix a a.q
+lay
+mix a a.r
+lay
+mix a a.s
+lay
+mix a a.t
+lay
+mix a a.u
+lay
+cut a.a.z
+tot a 2
+tot a 6
+tot a 1
+… [clipped]
+collapse
+Bash(sed -n 20000,20010p plans/wide.txt; grep -n '^lay' plans/wide.txt | sed -n '1,3p;$p'; grep -c '^lay' plans/wid…)
+
+put b.dc.de lit 5
+put a.bv.cu lit 3
+lay
+put a.bq.aw sum now a.ac.ct now b.cs.de
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.dh.bk sum now a.bq.aw now a.ac.ct
+put b.aq.bx sum now a.dw.ci lit 3
+put b.dv.as sum now b.cs.de lit 5
+lay
+1:lay
+20002:lay
+20006:lay
+22017:lay
+501
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.dh.bk sum now a.bq.aw now a.ac.ct
+put b.aq.bx sum now a.dw.ci lit 3
+put b.dv.as sum now b.cs.de lit 5
+lay
+put a.bh.dg sum now b.dh.bk now a.bq.aw
+put a.cg.cm sum now b.aq.bx lit 5
+put b.br.dl sum now b.dr.dd lit 7
+lay
+put b.cj.dl sum now a.bh.dg now b.dh.bk
+put b.db.da sum now b.cs.de lit 4
+put a.bf.am sum now a.ac.ct lit 4
+lay
+put b.dr.bo sum now b.cj.dl now a.bh.dg
+put b.ae.ah sum now a.cg.cm lit 3
+put a.ag.ak sum now b.dh.bk lit 3
+lay
+put b.cr.dk sum now b.dr.bo now b.cj.dl
+put a.cx.cv sum now b.cj.dl lit 2
+put a.dr.cw sum now b.dv.as lit 1
+lay
+put b.cv.ar sum now b.cr.dk now b.dr.bo
+put a.br.dp sum now b.br.dl lit 8
+put a.cv.ab sum now a.br.dp lit 9
+ask b.by.dg 12
+ask a.dk.ct 143
+ask a.ah.bp 459
+ask a.ac.ct 299
+ask b.cy.dn 355
+ask b.bl.as 213
+ask b.ch.di 468
+ask a.cm.at 347
+ask b.cj.ay 355
+ask a.ct.bs 150
+ask b.aj.dv 501
+ask b.cr.dk 202
+ask a.ah.bp 501
+ask b.dv.dd 115
+ask a.dk.ct 412
+ask b.bt.ac 355
+ask b.ae.du 459
+ask b.cs.de 147
+ask b.cl.bm 113
+ask a.ac.be 114
+ask b.bj.bj 355
+ask a.dm.dx 355
+ask a.dr.cu 322
+ask a.dm.dr 143
+ask b.di.dg 267
+ask a.cv.bf 299
+ask a.ct.bs 158
+ask b.aj.ad 177
+ask a.ag.cf 394
+ask a.ac.be 459
+ask a.ai.bh 480
+ask b.cj.ay 27
+ask b.bi.bi 67
+ask b.da.bs 412
+ask b.dp.dh 27
+ask a.am.bt 113
+ask b.ad.aw 297
+ask b.ch.di 143
+ask a.bq.du 177
+ask b.ay.au 310
+ask b.dh.bk 310
+ask a.dt.ap 143
+ask b.du.cj 202
+ask b.ca.bu 113
+ask b.dn.dk 412
+ask a.du.ai 322
+ask a.aj.cg 209
+ask a.aa.bf 321
+ask a.am.bt 152
+ask a.dc.dj 359
+16000
+cut a.dt.ad
+cut b.bu.dr
+cut a.ae.bq
+cut b.bb.ai
+cut a.ah.ay
+cut a.di.aj
+cut a.ao.bq
+cut a.bh.dl
+cut a.ci.cy
+cut b.bo.dk
+0
+lay
+put a.bh.dg sum now b.dh.bk now a.bq.aw
+put a.cg.cm sum now b.aq.bx lit 5
+put b.br.dl sum now b.dr.dd lit 7
+lay
+put b.cj.dl sum now a.bh.dg now b.dh.bk
+
+[stdout]
+put b.dc.de lit 5
+put a.bv.cu lit 3
+lay
+put a.bq.aw sum now a.ac.ct now b.cs.de
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.dh.bk sum now a.bq.aw now a.ac.ct
+put b.aq.bx sum now a.dw.ci lit 3
+put b.dv.as sum now b.cs.de lit 5
+lay
+1:lay
+20002:lay
+20006:lay
+22017:lay
+501
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.dh.bk sum now a.bq.aw now a.ac.ct
+put b.aq.bx sum now a.dw.ci lit 3
+put b.dv.as sum now b.cs.de lit 5
+lay
+put a.bh.dg sum now b.dh.bk now a.bq.aw
+put a.cg.cm sum now b.aq.bx lit 5
+put b.br.dl sum now b.dr.dd lit 7
+lay
+put b.cj.dl sum now a.bh.dg now b.dh.bk
+put b.db.da sum now b.cs.de lit 4
+put a.bf.am sum now a.ac.ct lit 4
+lay
+put b.dr.bo sum now b.cj.dl now a.bh.dg
+put b.ae.ah sum now a.cg.cm lit 3
+put a.ag.ak sum now b.dh.bk lit 3
+lay
+put b.cr.dk sum now b.dr.bo now b.cj.dl
+put a.cx.cv sum now b.cj.dl lit 2
+put a.dr.cw sum now b.dv.as lit 1
+lay
+put b.cv.ar sum now b.cr.dk now b.dr.bo
+put a.br.dp sum now b.br.dl lit 8
+put a.cv.ab sum now a.br.dp lit 9
+ask b.by.dg 12
+ask a.dk.ct 143
+ask a.ah.bp 459
+ask a.ac.ct 299
+ask b.cy.dn 355
+ask b.bl.as 213
+ask b.ch.di 468
+ask a.cm.at 347
+ask b.cj.ay 355
+ask a.ct.bs 150
+ask b.aj.dv 501
+ask b.cr.dk 202
+ask a.ah.bp 501
+ask b.dv.dd 115
+ask a.dk.ct 412
+ask b.bt.ac 355
+ask b.ae.du 459
+ask b.cs.de 147
+ask b.cl.bm 113
+ask a.ac.be 114
+ask b.bj.bj 355
+ask a.dm.dx 355
+ask a.dr.cu 322
+ask a.dm.dr 143
+ask b.di.dg 267
+ask a.cv.bf 299
+ask a.ct.bs 158
+ask b.aj.ad 177
+ask a.ag.cf 394
+ask a.ac.be 459
+ask a.ai.bh 480
+ask b.cj.ay 27
+ask b.bi.bi 67
+ask b.da.bs 412
+ask b.dp.dh 27
+ask a.am.bt 113
+ask b.ad.aw 297
+ask b.ch.di 143
+ask a.bq.du 177
+ask b.ay.au 310
+ask b.dh.bk 310
+ask a.dt.ap 143
+ask b.du.cj 202
+ask b.ca.bu 113
+ask b.dn.dk 412
+ask a.du.ai 322
+ask a.aj.cg 209
+ask a.aa.bf 321
+ask a.am.bt 152
+ask a.dc.dj 359
+16000
+cut a.dt.ad
+cut b.bu.dr
+cut a.ae.bq
+cut b.bb.ai
+cut a.ah.ay
+cut a.di.aj
+cut a.ao.bq
+cut a.bh.dl
+cut a.ci.cy
+cut b.bo.dk
+0
+lay
+put a.bh.dg sum now b.dh.bk now a.bq.aw
+put a.cg.cm sum now b.aq.bx lit 5
+put b.br.dl sum now b.dr.dd lit 7
+lay
+put b.cj.dl sum now a.bh.dg now b.dh.bk
+[metadata] {"noOutputExpected": false}
+collapse
+Bash({"command":"cat > cfg/made.py <<'EOF'\n\"\"\"Definitions and the path rewrites a `map` applies to them.\"\"\"\…)
+
+== one
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+== two
+val base.slot 18 1
+val base.step 6 2
+val base.cap 99 1
+val base.lim 99 2
+val base.hold gone
+== mapped
+val template.port 81 1
+val instance.port 8081 1
+num instance 1
+== deep
+num a 4
+num a 64
+num a 1024
+num a 16384
+num a 262144
+num a 4194304
+num a 4194303
+num a.a 1
+num a.b 4
+num a.c 8
+num a.d 16
+num a.e 32
+num a.f 64
+num a.g 128
+num a.h 256
+num a.i 512
+num a.j 1024
+num a.k 2048
+num a.l 4096
+num a.m 8192
+num a.n 16384
+num a.o 32768
+num a.p 65536
+num a.q 131072
+num a.r 262144
+num a.s 524288
+num a.t 1048576
+num a.u 2097152
+val a.u.z 1 0
+num a.u 2097152
+val a.u.t.z 1 0
+num a.u.t 1048576
+val a.u.t.s.z 1 0
+num a.u.t.s 524288
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+fb242ec99ad324665f2f564a85e5821f  -
+
+real	0m0.404s
+user	0m0.377s
+sys	0m0.027s
+
+[stdout]
+== one
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+== two
+val base.slot 18 1
+val base.step 6 2
+val base.cap 99 1
+val base.lim 99 2
+val base.hold gone
+== mapped
+val template.port 81 1
+val instance.port 8081 1
+num instance 1
+== deep
+num a 4
+num a 64
+num a 1024
+num a 16384
+num a 262144
+num a 4194304
+num a 4194303
+num a.a 1
+num a.b 4
+num a.c 8
+num a.d 16
+num a.e 32
+num a.f 64
+num a.g 128
+num a.h 256
+num a.i 512
+num a.j 1024
+num a.k 2048
+num a.l 4096
+num a.m 8192
+num a.n 16384
+num a.o 32768
+num a.p 65536
+num a.q 131072
+num a.r 262144
+num a.s 524288
+num a.t 1048576
+num a.u 2097152
+val a.u.z 1 0
+num a.u 2097152
+val a.u.t.z 1 0
+num a.u.t 1048576
+val a.u.t.s.z 1 0
+num a.u.t.s 524288
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+fb242ec99ad324665f2f564a85e5821f  -
+
+real	0m0.404s
+user	0m0.377s
+sys	0m0.027s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(python3 run_plan.py plans/wide.txt | sort | uniq -c | sort -rn | head -5; python3 run_plan.py plans/wide.txt |…)
+
+2397 num b 9998
+   1246 num a 9993
+    828 num a 9998
+    655 num b 9992
+    653 num b 9994
+  12000 num
+   4000 val
+num a.t 1048576
+num a.u 2097153
+val a.u.z 1 0
+num a.u 2097153
+val a.u.t.z 7 22
+num a.u.t 1048577
+val a.u.t.s.z 1 0
+num a.u.t.s 524289
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+
+real	0m0.085s
+user	0m0.070s
+sys	0m0.009s
+bad plan: no entry may follow a query
+val c49999 50000 0
+
+real	0m12.163s
+user	0m11.946s
+sys	0m0.128s
+
+[stdout]
+   2397 num b 9998
+   1246 num a 9993
+    828 num a 9998
+    655 num b 9992
+    653 num b 9994
+  12000 num
+   4000 val
+num a.t 1048576
+num a.u 2097153
+val a.u.z 1 0
+num a.u 2097153
+val a.u.t.z 7 22
+num a.u.t 1048577
+val a.u.t.s.z 1 0
+num a.u.t.s 524289
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+
+real	0m0.085s
+user	0m0.070s
+sys	0m0.009s
+bad plan: no entry may follow a query
+val c49999 50000 0
+
+real	0m12.163s
+user	0m11.946s
+sys	0m0.128s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; python3 run_plan.py plans/wide.txt | grep -c 'gone\|loop'; for n in 5000 10000 20000; do python3 - $n…)
+
+0
+/bin/bash: line 58: /usr/bin/time: No such file or directory
+/bin/bash: line 58: /usr/bin/time: No such file or directory
+/bin/bash: line 58: /usr/bin/time: No such file or directory
+val x.a loop
+val x.b loop
+val y.d gone
+val y.d gone
+val z.q 5 1
+val z.r 6 1
+val z.s gone
+val z.t loop
+num x 3
+num z 0
+
+val dst.w 140 0
+val dst.v 40 2
+val src.w 130 0
+val dst2.w 120 0
+val dst2.w gone
+val dst2.v 20 1
+val dst.w 120 0
+
+[stdout]
+0
+/bin/bash: line 58: /usr/bin/time: No such file or directory
+/bin/bash: line 58: /usr/bin/time: No such file or directory
+/bin/bash: line 58: /usr/bin/time: No such file or directory
+val x.a loop
+val x.b loop
+val y.d gone
+val y.d gone
+val z.q 5 1
+val z.r 6 1
+val z.s gone
+val z.t loop
+num x 3
+num z 0
+
+val dst.w 140 0
+val dst.v 40 2
+val src.w 130 0
+val dst2.w 120 0
+val dst2.w gone
+val dst2.v 20 1
+val dst.w 120 0
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; for n in 5000 10000 20000 40000; do python3 - $n <<'EOF' > /tmp/chain.txt import sys; n=int(sys.argv[…)
+
+5000: 0.259
+10000: 0.514
+20000: 1.856
+40000: 6.970
+
+[stdout]
+5000: 0.259
+10000: 0.514
+20000: 1.856
+40000: 6.970
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; python3 - <<'EOF' import sys, time, gc sys.path.insert(0, '/app') from cfg import lex, past, ans text…)
+
+gc True build 6.77 ask 0.12
+gc False build 6.74 ask 0.11
+
+[stdout]
+gc True build 6.77 ask 0.12
+gc False build 6.74 ask 0.11
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Found the bottleneck: every `put` copies its parent's entire child dict, causing quadratic slowdown on wide flat prefixes. I'll fix this by adding in-place editing for nodes created since the last snapshot.
+
+Bash(cd /app; cat > cfg/pile.py <<'EOF' """Persistent trie of definitions with structural sharing. A node may carry…)
+
+16:            pile.bump()
+41:        pile.bump()
+2c6f0ed4c47b04702701ad1096ca46c8  -
+36e7a722ccc97698256be3a9bf106bc3  -
+77920f0564928c79b0ae7a88700be717  -
+df2d856d70d5343db45775c96d19865e  -
+30e80122778a6586d2cb81d2025e2b2c  -
+bbc8577c24dfa19b6e8075cb49e8a30b  -
+1fd03b51058de76cfaa6ce58b4d8accc  -
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+val dst.w 140 0
+val dst.v 40 2
+val src.w 130 0
+val dst2.w 120 0
+val dst2.w gone
+val dst2.v 20 1
+val dst.w 120 0
+val c39999 40000 0
+0.480
+fb242ec99ad324665f2f564a85e5821f  -
+0.296
+df2d856d70d5343db45775c96d19865e  -
+0.078
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+0.076
+
+[stdout]
+16:            pile.bump()
+41:        pile.bump()
+2c6f0ed4c47b04702701ad1096ca46c8  -
+36e7a722ccc97698256be3a9bf106bc3  -
+77920f0564928c79b0ae7a88700be717  -
+df2d856d70d5343db45775c96d19865e  -
+30e80122778a6586d2cb81d2025e2b2c  -
+bbc8577c24dfa19b6e8075cb49e8a30b  -
+1fd03b51058de76cfaa6ce58b4d8accc  -
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+val dst.w 140 0
+val dst.v 40 2
+val src.w 130 0
+val dst2.w 120 0
+val dst2.w gone
+val dst2.v 20 1
+val dst.w 120 0
+val c39999 40000 0
+0.480
+fb242ec99ad324665f2f564a85e5821f  -
+0.296
+df2d856d70d5343db45775c96d19865e  -
+0.078
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+0.076
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; printf 'lay\nput a.x lit 1\nput a.y lit 2\nmix a b\ncut b.y\nput b.x lit 5\nmap a c\nput c.y now c.x\…)
+
+num a 3
+num b 1
+num c 2
+num d 3
+val b.x 5 0
+val c.y 1 0
+val d.q 1 0
+val a.q 1 0
+val d.x 1 0
+
+[stdout]
+num a 3
+num b 1
+num c 2
+num d 3
+val b.x 5 0
+val c.y 1 0
+val d.q 1 0
+val a.q 1 0
+val d.x 1 0
+[metadata] {"noOutputExpected": false}
+collapse
+The repair is done and verified. `run_plan.py plans/one.txt` now prints `num site 1`, and all five sample plans run correctly and fast.
+
+**What was wrong** in the rewritten half:
+
+- `tot` counted every intermediate prefix under the path, not just paths holding a definition. That produced the `num site 2`.
+- `ask` evaluated in the whole-plan view even when a layer count was named, and printed `gone` for circular answers instead of `loop`.
+- Guards read the live mid-layer store instead of the store as it stood before the layer.
+- `mix` never cleared its destination and restamped the copied definitions with the current layer.
+- `old` resolved against the writing layer's number rather than a captured view, and `sum` and `top` evaluated their right side first.
+- `pick` tested subtree count rather than whether the path itself holds a definition.
+- `map` was parsed but never executed.
+
+**What I changed**, all within the six permitted files:
+
+- `cfg/pile.py` is now a persistent trie with structural sharing. A `mix` shares the source subtree by pointer, and a `map` shares it with a pending path rewrite pushed onto the node, so the twenty-one nested copies in `deep.txt` cost nothing until touched. Nodes created since the last snapshot are edited in place, which keeps a flat prefix with tens of thousands of puts linear.
+- `cfg/made.py` holds definitions with their captured `old` view, plus the lazy, cached per-entry rewrite that makes each source definition exactly one new definition per `map`.
+- `cfg/roll.py`, `cfg/past.py`, `cfg/work.py` and `cfg/ans.py` implement guards against the pre-layer view, left-then-right evaluation, `pick` by presence, views keyed by store root, and `loop` output.
+
+**Timings** on this machine:
+
+| Plan | Time |
+|---|---|
+| wide.txt | 0.30 s |
+| deep.txt | 0.08 s |
+| deep.txt rewritten with `map` plus sparse edits | 0.08 s |
+| 40,000-long `now` chain | 0.48 s |
+
+I also checked hand-written plans covering circular references, `if` and `un` guards seeing the pre-layer store, `old` naming its own path, `map` composing over an earlier `map`, and same-layer edits after `mix` not leaking back into the source. All gave the expected answers.

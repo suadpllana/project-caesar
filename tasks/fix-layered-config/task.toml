@@ -1,0 +1,120 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/cfg/pile.py",
+  "/app/cfg/past.py",
+  "/app/cfg/made.py",
+  "/app/cfg/roll.py",
+  "/app/cfg/work.py",
+  "/app/cfg/ans.py",
+]
+
+[task]
+name = "afterquery/fix-layered-config"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+A configuration-language engineer would perform this repair while adding template installation
+to a deployment tool's layered settings service. The plans are synthetic and exercise copied
+definitions, partial rollout views, guarded edits and template instances.
+
+A shared expression and its original writing layer no longer determine its behavior. A
+template installation changes path operands and captures the store immediately before its
+entry, while an ordinary copy preserves both. The snapshot used for backward reads is taken
+before destination removal, but the source subtree is taken after that removal. Guards still
+read the start of the whole layer. Treating every historical question as a layer number loses
+the intermediate state on which an installed definition depends.
+
+Subtree sharing solves ordinary copies but is insufficient for template installations.
+Composed installations change an already changed namespace; an unchanged external operand
+still receives a new historical view. A projection left on a parent wrongly affects later
+writes beneath it, while eagerly rewriting every copied definition expands the repeated-copy
+family. The implementation must retain sharing, preserve the context of untouched descendants,
+and keep new definitions outside that context. Value caching and circularity detection must
+distinguish binding identity from expression text, reported origin and the view used to evaluate
+it. Backward reads can enter an intermediate store whose forward reads differ from both the
+layer start and the final rollout.
+
+The existing service uses short legacy identifiers such as cfg, pile and dfn, and ships without
+explanatory comments. These are consistent names in a compact working interpreter; the challenge
+is the interaction of the store, installation context and evaluator, rather than finding a
+hidden file. Exact checks preserve ordinary put and mix behavior alongside mapped copies, so
+unconditionally moving references or resetting every historical view also fails.
+"""
+
+solution_explanation = """
+The reference first separates a definition's reported put origin from the view used by old.
+It retains immutable counted tree nodes for layers, removals and ordinary copies. A map captures
+the pre-entry root, clears its destination, and wraps the remaining source subtree with an
+installation object. That object rewrites path operands in chronological order and creates one
+new binding per distinct source binding when the binding is needed.
+
+Tree projections are pushed onto existing children before descending or editing. New puts are
+installed outside those projections, and siblings keep their old contexts. The count carried
+on each projected subtree permits totals without expanding the logical copies. The evaluator
+works against explicit roots; old selects its binding's captured root, and now and pick retain
+the root in which evaluation is currently running. Cached values and active evaluations are
+keyed by binding identity and root. This is the order an interpreter engineer would follow:
+settle binding and store semantics before changing expression evaluation and output provenance.
+"""
+
+verification_explanation = """
+The verifier takes only the six named Python modules and overlays them on its own copy of the
+driver, parser and output writer. It compares every output line exactly. The original hand
+plans and generated families remain, with additional hand plans for installation-time history,
+prefix composition, unchanged external operands, nested historical reads, alias identity,
+guards, overlapping source and destination, and fresh writes below mapped subtrees.
+Frozen hand answers are checked against an independent sealed model before grading. Generated
+plans combine the same behaviors with differing paths and values, including wide and repeated
+copy families. The complete submitted-worker batch has a 60-second wall-clock limit.
+
+The worker runs as an unprivileged user and writes only an untrusted record. The separate
+privileged grader owns the sealed model, frozen answers and final binary reward. The reward
+directory is locked before submitted code runs, reward defaults to zero, both worker and grader
+must exit successfully, and leftover worker processes are reaped. Existing semantic and reward
+tampering attempts remain in the bundle; added attempts target the new context boundaries.
+Validation outcomes and pending platform checks are recorded outside the submission metadata.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "lazy-evaluation",
+  "scoped-references",
+  "structural-sharing",
+  "memoisation",
+  "cycle-detection",
+  "subtree-copy",
+]
+
+expert_time_estimate_hours = 6
+
+relevant_experience = """
+This project work covers a layered configuration evaluator with lazy expressions, persistent
+subtree copies, historical reads, guarded updates and exact trace verification. The recovery
+extends that evaluator with template installations and tests the distinction between copied
+definition provenance, relocated references and installation-time predecessor views. It includes
+a reference implementation, an independent semantic model and adversarial validation of the
+submitted-code boundary.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

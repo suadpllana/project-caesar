@@ -1,0 +1,954 @@
+
+I'll start by reading the code and running the failing plan.
+
+Bash(ls -R | head -50 && wc -l cfg/*.py run_plan.py && cat run_plan.py cfg/lex.py cfg/say.py && cat plans/one.txt p…)
+
+.:
+cfg
+plans
+run_plan.py
+
+./cfg:
+__init__.py
+ans.py
+lex.py
+made.py
+past.py
+pile.py
+roll.py
+say.py
+work.py
+
+./plans:
+deep.txt
+mapped.txt
+one.txt
+two.txt
+wide.txt
+   0 cfg/__init__.py
+  15 cfg/ans.py
+ 127 cfg/lex.py
+  22 cfg/made.py
+  28 cfg/past.py
+  47 cfg/pile.py
+  14 cfg/roll.py
+  14 cfg/say.py
+  66 cfg/work.py
+  26 run_plan.py
+ 359 total
+import sys
+
+from cfg import ans, lex, past
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_plan.py <plan>\n")
+        return 2
+    with open(argv[1], "r", encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        plan = lex.parse(text)
+    except ValueError as exc:
+        sys.stderr.write("bad plan: %s\n" % exc)
+        return 2
+    hist = past.build(plan)
+    out = []
+    for q in plan.asks:
+        out.append(ans.answer(hist, q))
+    sys.stdout.write("".join(line + "\n" for line in out))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+import re
+
+SEG = re.compile(r"[a-z][a-z0-9]{0,7}\Z")
+INT = re.compile(r"-?[0-9]{1,9}\Z")
+
+MAXSEG = 24
+
+
+class Ent:
+    __slots__ = ("kind", "a", "b", "expr", "guard")
+
+    def __init__(self, kind, a, b, expr, guard):
+        self.kind = kind
+        self.a = a
+        self.b = b
+        self.expr = expr
+        self.guard = guard
+
+
+class Qry:
+    __slots__ = ("kind", "path", "stop", "shown")
+
+    def __init__(self, kind, path, stop, shown):
+        self.kind = kind
+        self.path = path
+        self.stop = stop
+        self.shown = shown
+
+
+class Plan:
+    __slots__ = ("layers", "asks")
+
+    def __init__(self, layers, asks):
+        self.layers = layers
+        self.asks = asks
+
+
+def path(tok):
+    segs = tok.split(".")
+    if not 1 <= len(segs) <= MAXSEG:
+        raise ValueError("path %r" % tok)
+    for s in segs:
+        if not SEG.match(s):
+            raise ValueError("path %r" % tok)
+    return tuple(segs)
+
+
+def num(tok):
+    if not INT.match(tok):
+        raise ValueError("int %r" % tok)
+    return int(tok)
+
+
+def expr(toks, i):
+    if i >= len(toks):
+        raise ValueError("expression ends early")
+    head = toks[i]
+    if head == "lit":
+        return ("lit", num(toks[i + 1])), i + 2
+    if head in ("now", "old"):
+        return (head, path(toks[i + 1])), i + 2
+    if head in ("sum", "top"):
+        a, i = expr(toks, i + 1)
+        b, i = expr(toks, i)
+        return (head, a, b), i
+    if head == "pick":
+        p = path(toks[i + 1])
+        a, i = expr(toks, i + 2)
+        b, i = expr(toks, i)
+        return ("pick", p, a, b), i
+    raise ValueError("expression %r" % head)
+
+
+def guard(toks):
+    if not toks:
+        return None
+    if toks[0] == "if" and len(toks) == 3:
+        return ("if", path(toks[1]), num(toks[2]))
+    if toks[0] == "un" and len(toks) == 2:
+        return ("un", path(toks[1]))
+    raise ValueError("guard %r" % " ".join(toks))
+
+
+def parse(text):
+    layers = []
+    asks = []
+    for raw in text.split("\n"):
+        if raw == "":
+            continue
+        toks = raw.split(" ")
+        head = toks[0]
+        if head == "lay":
+            if len(toks) != 1:
+                raise ValueError("lay takes no argument")
+            if asks:
+                raise ValueError("no entry may follow a query")
+            layers.append([])
+            continue
+        if head in ("ask", "tot"):
+            if len(toks) == 2:
+                stop = None
+            elif len(toks) == 3:
+                stop = num(toks[2])
+                if not 0 <= stop <= len(layers):
+                    raise ValueError("stop %d" % stop)
+            else:
+                raise ValueError("%s takes a path and an optional layer count" % head)
+            asks.append(Qry(head, path(toks[1]), stop, toks[1]))
+            continue
+        if head not in ("put", "cut", "mix", "map"):
+            raise ValueError("op %r" % head)
+        if asks:
+            raise ValueError("no entry may follow a query")
+        if not layers:
+            raise ValueError("entry before the first lay")
+        if head == "put":
+            p = path(toks[1])
+            e, i = expr(toks, 2)
+            layers[-1].append(Ent("put", p, None, e, guard(toks[i:])))
+        elif head == "cut":
+            p = path(toks[1])
+            layers[-1].append(Ent("cut", p, None, None, guard(toks[2:])))
+        else:
+            a = path(toks[1])
+            b = path(toks[2])
+            layers[-1].append(Ent(head, a, b, None, guard(toks[3:])))
+    return Plan(layers, asks)
+def val(shown, value, home):
+    return "val %s %d %d" % (shown, value, home)
+
+
+def gone(shown):
+    return "val %s gone" % shown
+
+
+def loop(shown):
+    return "val %s loop" % shown
+
+
+def tot(shown, count):
+    return "num %s %d" % (shown, count)
+lay
+put site.rate lit 30
+put site.tries lit 3
+put edge.rate now site.rate
+lay
+put site.rate lit 45
+cut site.tries
+ask site.rate
+ask edge.rate
+tot site
+tot edge
+lay
+put template.port lit 80
+put instance.port lit 8080
+lay
+put template.port sum old template.port lit 1
+map template instance
+ask template.port
+ask instance.port
+tot instance
+val site.rate 45 1
+val edge.rate 45 0
+num site 2
+num edge 2
+
+[stdout]
+.:
+cfg
+plans
+run_plan.py
+
+./cfg:
+__init__.py
+ans.py
+lex.py
+made.py
+past.py
+pile.py
+roll.py
+say.py
+work.py
+
+./plans:
+deep.txt
+mapped.txt
+one.txt
+two.txt
+wide.txt
+   0 cfg/__init__.py
+  15 cfg/ans.py
+ 127 cfg/lex.py
+  22 cfg/made.py
+  28 cfg/past.py
+  47 cfg/pile.py
+  14 cfg/roll.py
+  14 cfg/say.py
+  66 cfg/work.py
+  26 run_plan.py
+ 359 total
+import sys
+
+from cfg import ans, lex, past
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_plan.py <plan>\n")
+        return 2
+    with open(argv[1], "r", encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        plan = lex.parse(text)
+    except ValueError as exc:
+        sys.stderr.write("bad plan: %s\n" % exc)
+        return 2
+    hist = past.build(plan)
+    out = []
+    for q in plan.asks:
+        out.append(ans.answer(hist, q))
+    sys.stdout.write("".join(line + "\n" for line in out))
+    return 0
+
+
+
+… [clipped]
+collapse
+Bash(for f in cfg/pile.py cfg/past.py cfg/made.py cfg/roll.py cfg/work.py cfg/ans.py; do echo "=== $f"; cat $f; don…)
+
+=== cfg/pile.py
+from cfg import made
+
+
+def empty():
+    return {}
+
+
+def copy(store):
+    return dict(store)
+
+
+def _under(p, root):
+    return len(p) >= len(root) and p[:len(root)] == root
+
+
+def put(store, path, dfn):
+    store[path] = dfn
+    return store
+
+
+def cut(store, path):
+    for p in [q for q in store if _under(q, path)]:
+        del store[p]
+    return store
+
+
+def mix(store, src, dst, at):
+    take = []
+    for p, d in store.items():
+        if _under(p, src):
+            take.append((dst + p[len(src):], made.carried(d, at)))
+    for p, d in take:
+        store[p] = d
+    return store
+
+
+def find(store, path):
+    return store.get(path)
+
+
+def count(store, path):
+    seen = set()
+    for p in store:
+        if _under(p, path):
+            for i in range(len(path), len(p) + 1):
+                seen.add(p[:i])
+    return len(seen)
+=== cfg/past.py
+from cfg import pile, roll
+
+
+class Hist:
+    __slots__ = ("at", "top", "memo", "busy")
+
+    def __init__(self, top):
+        self.at = [pile.empty()]
+        self.top = top
+        self.memo = {}
+        self.busy = set()
+
+    def store(self, stop):
+        return self.at[stop]
+
+
+def build(plan):
+    hist = Hist(len(plan.layers))
+    live = pile.empty()
+    for j, ents in enumerate(plan.layers):
+        live = roll.run(hist, live, j, ents)
+        hist.at.append(pile.copy(live))
+    return hist
+
+
+def stop_of(hist, named):
+    return hist.top if named is None else named
+
+=== cfg/made.py
+class Dfn:
+    __slots__ = ("expr", "home")
+
+    def __init__(self, expr, home):
+        self.expr = expr
+        self.home = home
+
+
+def make(expr, home):
+    return Dfn(expr, home)
+
+
+def carried(dfn, at):
+    return Dfn(dfn.expr, at)
+
+
+def back(dfn):
+    return dfn.home
+
+
+def reported(dfn):
+    return dfn.home
+=== cfg/roll.py
+from cfg import made, pile, work
+
+
+def run(hist, store, j, ents):
+    for ent in ents:
+        if ent.guard is not None and not work.guard_holds(hist, store, ent.guard, j):
+            continue
+        if ent.kind == "put":
+            store = pile.put(store, ent.a, made.make(ent.expr, j))
+        elif ent.kind == "cut":
+            store = pile.cut(store, ent.a)
+        else:
+            store = pile.mix(store, ent.a, ent.b, j)
+    return store
+=== cfg/work.py
+import sys
+
+from cfg import made, pile
+
+sys.setrecursionlimit(10000)
+
+
+GONE = "gone"
+LOOP = "loop"
+
+
+def at_path(hist, path, stop):
+    dfn = pile.find(hist.store(stop), path)
+    if dfn is None:
+        return GONE
+    return at_def(hist, dfn, stop)
+
+
+def at_def(hist, dfn, stop):
+    key = (dfn, stop)
+    got = hist.memo.get(key)
+    if got is not None:
+        return got
+    if key in hist.busy:
+        return LOOP
+    hist.busy.add(key)
+    try:
+        out = ev(hist, dfn.expr, made.back(dfn), stop)
+    finally:
+        hist.busy.discard(key)
+    hist.memo[key] = out
+    return out
+
+
+def ev(hist, expr, home, stop):
+    kind = expr[0]
+    if kind == "lit":
+        return expr[1]
+    if kind == "now":
+        return at_path(hist, expr[1], stop)
+    if kind == "old":
+        return at_path(hist, expr[1], home)
+    if kind == "pick":
+        if pile.count(hist.store(stop), expr[1]) == 0:
+            return ev(hist, expr[3], home, stop)
+        return ev(hist, expr[2], home, stop)
+    right = ev(hist, expr[2], home, stop)
+    if not isinstance(right, int):
+        return right
+    left = ev(hist, expr[1], home, stop)
+    if not isinstance(left, int):
+        return left
+    if kind == "sum":
+        return left + right
+    return left if left >= right else right
+
+
+def guard_holds(hist, store, guard, j):
+    dfn = pile.find(store, guard[1])
+    if dfn is None:
+        got = GONE
+    else:
+        got = at_def(hist, dfn, j)
+    if guard[0] == "un":
+        return got == GONE
+    return isinstance(got, int) and got == guard[2]
+=== cfg/ans.py
+from cfg import made, past, pile, say, work
+
+
+def answer(hist, qry):
+    stop = past.stop_of(hist, qry.stop)
+    store = hist.store(stop)
+    if qry.kind == "tot":
+        return say.tot(qry.shown, pile.count(store, qry.path))
+    dfn = pile.find(store, qry.path)
+    if dfn is None:
+        return say.gone(qry.shown)
+    got = work.at_def(hist, dfn, hist.top)
+    if isinstance(got, int):
+        return say.val(qry.shown, got, made.reported(dfn))
+    return say.gone(qry.shown)
+lay
+put base.slot lit 12
+put base.step lit 4
+lay
+put base.slot sum old base.slot now base.step
+put base.cap lit 99 if base.step 4
+lay
+put base.step lit 6
+put base.lim pick base.cap now base.cap lit 0
+ask base.slot
+ask base.step
+ask base.cap
+ask base.lim
+ask base.hold
+lay
+put a.z lit 1
+put a.y.x lit 8
+lay
+mix a a.a
+lay
+mix a a.b
+lay
+mix a a.c
+lay
+mix a a.d
+lay
+mix a a.e
+lay
+mix a a.f
+lay
+mix a a.g
+lay
+mix a a.h
+lay
+mix a a.i
+lay
+mix a a.j
+lay
+mix a a.k
+lay
+mix a a.l
+lay
+mix a a.m
+lay
+mix a a.n
+lay
+mix a a.o
+lay
+mix a a.p
+lay
+mix a a.q
+lay
+mix a a.r
+lay
+mix a a.s
+lay
+mix a a.t
+lay
+mix a a.u
+lay
+cut a.a.z
+tot a 2
+tot a 6
+tot a 10
+tot a 14
+tot a 18
+tot a 22
+tot a
+tot a.a
+tot a.b
+tot a.c
+tot a.d
+tot a.e
+tot a.f
+tot a.g
+tot a.h
+tot a.i
+tot a.j
+tot a.k
+tot a.l
+tot a.m
+tot a.n
+tot a.o
+tot a.p
+tot a.q
+tot a.r
+tot a.s
+tot a.t
+tot a.u
+ask a.u.z
+tot a.u
+ask a.u.t.z
+to
+plans/deep.txt:87
+plans/wide.txt:38021
+lay
+lay
+mix a a.a
+lay
+mix a a.b
+lay
+mix a a.c
+lay
+mix a a.d
+lay
+mix a a.e
+lay
+mix a a.f
+lay
+mix a a.g
+lay
+mix a a.h
+lay
+mix a a.i
+lay
+mix a a.j
+lay
+mix a a.k
+lay
+mix a a.l
+lay
+mix a a.m
+lay
+mix a a.n
+lay
+mix a a.o
+lay
+mix a a.p
+lay
+mix a a.q
+lay
+mix a a.r
+lay
+mix a a.s
+lay
+mix a a.t
+lay
+mix a a.u
+lay
+cut a.a.z
+tot a 2
+tot a 6
+tot a 10
+tot a 14
+tot a 18
+tot a 22
+tot a
+tot a.a
+tot a.b
+tot a.c
+tot a.d
+tot a.e
+tot a.f
+tot a.g
+tot a.h
+
+[stdout]
+=== cfg/pile.py
+from cfg import made
+
+
+def empty():
+    return {}
+
+
+def copy(store):
+    return dict(store)
+
+
+def _under(p, root):
+    return len(p) >= len(root) and p[:len(root)] == root
+
+
+def put(store, path, dfn):
+    store[path] = dfn
+    return store
+
+
+def cut(store, path):
+    for p in [q for q in store if _under(q, path)]:
+        del store[p]
+… [clipped]
+collapse
+Bash(grep -v '^put' plans/wide.txt | sort | uniq -c | sort -rn | head; awk 'NR<3||NR%7000==0' plans/wide.txt; grep …)
+
+501 lay
+    202 tot a 121
+    182 tot b 501
+    181 tot b 363
+    181 tot a 394
+    179 tot a 267
+    177 tot a 471
+    176 tot b 247
+    175 tot b 359
+    174 tot b 152
+lay
+put b.cs.de lit 4
+put b.cv.cu lit 3
+put a.ao.as lit 2
+put b.ds.bk sum now a.ct.di lit 8
+tot a 299
+tot a 68
+20002:lay
+20006:lay
+20010:lay
+put a.bq.aw sum now a.ac.ct now b.cs.de
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.dh.bk sum now a.bq.aw now a.ac.ct
+put b.aq.bx sum now a.dw.ci lit 3
+put b.dv.as sum now b.cs.de lit 5
+lay
+put a.bh.dg sum now b.dh.bk now a.bq.aw
+put a.cg.cm sum now b.aq.bx lit 5
+ask b.by.dg 12
+ask a.dk.ct 143
+ask a.ah.bp 459
+ask a.ac.ct 299
+ask b.cy.dn 355
+tot a.u.t.s.r.q
+ask a.u.t.s.r.q.p.z
+tot a.u.t.s.r.q.p
+0
+
+[stdout]
+    501 lay
+    202 tot a 121
+    182 tot b 501
+    181 tot b 363
+    181 tot a 394
+    179 tot a 267
+    177 tot a 471
+    176 tot b 247
+    175 tot b 359
+    174 tot b 152
+lay
+put b.cs.de lit 4
+put b.cv.cu lit 3
+put a.ao.as lit 2
+put b.ds.bk sum now a.ct.di lit 8
+tot a 299
+tot a 68
+20002:lay
+20006:lay
+20010:lay
+put a.bq.aw sum now a.ac.ct now b.cs.de
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.dh.bk sum now a.bq.aw now a.ac.ct
+put b.aq.bx sum now a.dw.ci lit 3
+put b.dv.as sum now b.cs.de lit 5
+lay
+put a.bh.dg sum now b.dh.bk now a.bq.aw
+put a.cg.cm sum now b.aq.bx lit 5
+ask b.by.dg 12
+ask a.dk.ct 143
+ask a.ah.bp 459
+ask a.ac.ct 299
+ask b.cy.dn 355
+tot a.u.t.s.r.q
+ask a.u.t.s.r.q.p.z
+tot a.u.t.s.r.q.p
+0
+[metadata] {"returnCodeInterpretation": "No matches found", "noOutputExpected": false}
+collapse
+Bash({"command":"cat > cfg/made.py <<'EOF'\nclass Dfn:\n __slots__ = (\"expr\", \"home\", \"view\")\n\n def __init_…)
+
+== one
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+== two
+val base.slot 18 1
+val base.step 6 2
+val base.cap 99 1
+val base.lim 99 2
+val base.hold gone
+== mapped
+val template.port 81 1
+val instance.port 8081 1
+num instance 1
+val a.u.t.s.z 1 0
+num a.u.t.s 524288
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+
+real	0m0.078s
+user	0m0.067s
+sys	0m0.009s
+   2397 num b 9998
+   1246 num a 9993
+    828 num a 9998
+
+real	0m0.678s
+user	0m0.645s
+sys	0m0.036s
+
+[stdout]
+== one
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+== two
+val base.slot 18 1
+val base.step 6 2
+val base.cap 99 1
+val base.lim 99 2
+val base.hold gone
+== mapped
+val template.port 81 1
+val instance.port 8081 1
+num instance 1
+val a.u.t.s.z 1 0
+num a.u.t.s 524288
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+
+real	0m0.078s
+user	0m0.067s
+sys	0m0.009s
+   2397 num b 9998
+   1246 num a 9993
+    828 num a 9998
+
+real	0m0.678s
+user	0m0.645s
+sys	0m0.036s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /tmp && python3 - <<'EOF' import string L=["lay","put a.z lit 1","put a.y.x sum now a.z lit 1","put a.w old…)
+
+num a.a 1
+val a.a.y.x 0 1
+val a.a.q gone
+val a.a.w gone
+num a.b 6
+val a.b.y.x 1 2
+val a.b.q 1 2
+val a.b.w gone
+num a.c 12
+val a.c.y.x 2 3
+val a.c.q 2 3
+val a.c.w gone
+num a.d 22
+val a.d.y.x 3 4
+val a.d.q gone
+val a.d.w gone
+num a.e 46
+val a.e.y.x 4 5
+val a.e.q 4 5
+val a.e.w gone
+num a.f 92
+val a.f.y.x 5 6
+val a.f.q 5 6
+val a.f.w gone
+num a.u 2995932
+val a.u.y.x 20 21
+val a.u.q 20 21
+val a.u.w gone
+num a 5991862
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.y.x 0 1
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.w gone
+num a 45
+val a.u.t.q gone
+val a.u.t.w gone
+
+real	0m0.084s
+user	0m0.075s
+sys	0m0.004s
+val a loop
+val b loop
+val e gone
+val f loop
+val g gone
+val h loop
+val m loop
+num m 1
+val g gone
+Shell cwd was reset to /app
+
+[stdout]
+num a.a 1
+val a.a.y.x 0 1
+val a.a.q gone
+val a.a.w gone
+num a.b 6
+val a.b.y.x 1 2
+val a.b.q 1 2
+val a.b.w gone
+num a.c 12
+val a.c.y.x 2 3
+val a.c.q 2 3
+val a.c.w gone
+num a.d 22
+val a.d.y.x 3 4
+val a.d.q gone
+val a.d.w gone
+num a.e 46
+val a.e.y.x 4 5
+val a.e.q 4 5
+val a.e.w gone
+num a.f 92
+val a.f.y.x 5 6
+val a.f.q 5 6
+val a.f.w gone
+num a.u 2995932
+val a.u.y.x 20 21
+val a.u.q 20 21
+val a.u.w gone
+num a 5991862
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.y.x 0 1
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.w gone
+num a 45
+val a.u.t.q gone
+val a.u.t.w gone
+
+real	0m0.084s
+user	0m0.075s
+sys	0m0.004s
+val a loop
+val b loop
+val e gone
+val f loop
+val g gone
+val h loop
+val m loop
+num m 1
+val g gone
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+The repair is done and verified.
+
+**Result on the failing plan**: `run_plan.py plans/one.txt` now prints `num site 1`. The other shipped plans also give correct answers, and the whole set runs well under a second.
+
+| plan | time |
+|---|---|
+| deep.txt | 0.08s |
+| wide.txt | 0.68s |
+| 21 nested `map` copies with sparse edits | 0.08s |
+
+**What was wrong** in the rewritten half:
+- `mix` never cleared its destination, and re-stamped copied definitions with the current layer instead of the layer of the original `put`.
+- Guards were checked against the live store instead of the view before the whole layer.
+- `ask` with a layer count looked the definition up in that view but evaluated it in the final view, and a circular answer printed `gone` instead of `loop`.
+- `sum` and `top` evaluated the right side first, so the wrong failing side won. `pick` tested for definitions under the path rather than at it.
+- `map` did not exist, and each layer snapshot was a full dict copy, which would have blown up on the doubling `deep` plans.
+
+**How it works now**: `pile.py` is a persistent trie with structural sharing, so a layer snapshot costs only the nodes along the edited paths and `mix` shares the source subtree by reference. `map` grafts a lazy wrapper that rewrites path operands and attaches the captured view on demand, caching one new definition per distinct source definition. Definitions carry their own `old` view in `made.py`. Evaluation in `work.py` is memoized per definition and view, with a busy set for circularity.

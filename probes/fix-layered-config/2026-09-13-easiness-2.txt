@@ -1,0 +1,1033 @@
+
+I'll start by looking at the code and running the failing plan.
+
+Bash(ls -R . | head -50 && wc -l cfg/*.py run_plan.py && cat run_plan.py cfg/lex.py cfg/say.py && cat plans/one.txt…)
+
+.:
+cfg
+plans
+run_plan.py
+
+./cfg:
+__init__.py
+ans.py
+lex.py
+made.py
+past.py
+pile.py
+roll.py
+say.py
+work.py
+
+./plans:
+deep.txt
+mapped.txt
+one.txt
+two.txt
+wide.txt
+   0 cfg/__init__.py
+  15 cfg/ans.py
+ 127 cfg/lex.py
+  22 cfg/made.py
+  28 cfg/past.py
+  47 cfg/pile.py
+  14 cfg/roll.py
+  14 cfg/say.py
+  66 cfg/work.py
+  26 run_plan.py
+ 359 total
+import sys
+
+from cfg import ans, lex, past
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_plan.py <plan>\n")
+        return 2
+    with open(argv[1], "r", encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        plan = lex.parse(text)
+    except ValueError as exc:
+        sys.stderr.write("bad plan: %s\n" % exc)
+        return 2
+    hist = past.build(plan)
+    out = []
+    for q in plan.asks:
+        out.append(ans.answer(hist, q))
+    sys.stdout.write("".join(line + "\n" for line in out))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+import re
+
+SEG = re.compile(r"[a-z][a-z0-9]{0,7}\Z")
+INT = re.compile(r"-?[0-9]{1,9}\Z")
+
+MAXSEG = 24
+
+
+class Ent:
+    __slots__ = ("kind", "a", "b", "expr", "guard")
+
+    def __init__(self, kind, a, b, expr, guard):
+        self.kind = kind
+        self.a = a
+        self.b = b
+        self.expr = expr
+        self.guard = guard
+
+
+class Qry:
+    __slots__ = ("kind", "path", "stop", "shown")
+
+    def __init__(self, kind, path, stop, shown):
+        self.kind = kind
+        self.path = path
+        self.stop = stop
+        self.shown = shown
+
+
+class Plan:
+    __slots__ = ("layers", "asks")
+
+    def __init__(self, layers, asks):
+        self.layers = layers
+        self.asks = asks
+
+
+def path(tok):
+    segs = tok.split(".")
+    if not 1 <= len(segs) <= MAXSEG:
+        raise ValueError("path %r" % tok)
+    for s in segs:
+        if not SEG.match(s):
+            raise ValueError("path %r" % tok)
+    return tuple(segs)
+
+
+def num(tok):
+    if not INT.match(tok):
+        raise ValueError("int %r" % tok)
+    return int(tok)
+
+
+def expr(toks, i):
+    if i >= len(toks):
+        raise ValueError("expression ends early")
+    head = toks[i]
+    if head == "lit":
+        return ("lit", num(toks[i + 1])), i + 2
+    if head in ("now", "old"):
+        return (head, path(toks[i + 1])), i + 2
+    if head in ("sum", "top"):
+        a, i = expr(toks, i + 1)
+        b, i = expr(toks, i)
+        return (head, a, b), i
+    if head == "pick":
+        p = path(toks[i + 1])
+        a, i = expr(toks, i + 2)
+        b, i = expr(toks, i)
+        return ("pick", p, a, b), i
+    raise ValueError("expression %r" % head)
+
+
+def guard(toks):
+    if not toks:
+        return None
+    if toks[0] == "if" and len(toks) == 3:
+        return ("if", path(toks[1]), num(toks[2]))
+    if toks[0] == "un" and len(toks) == 2:
+        return ("un", path(toks[1]))
+    raise ValueError("guard %r" % " ".join(toks))
+
+
+def parse(text):
+    layers = []
+    asks = []
+    for raw in text.split("\n"):
+        if raw == "":
+            continue
+        toks = raw.split(" ")
+        head = toks[0]
+        if head == "lay":
+            if len(toks) != 1:
+                raise ValueError("lay takes no argument")
+            if asks:
+                raise ValueError("no entry may follow a query")
+            layers.append([])
+            continue
+        if head in ("ask", "tot"):
+            if len(toks) == 2:
+                stop = None
+            elif len(toks) == 3:
+                stop = num(toks[2])
+                if not 0 <= stop <= len(layers):
+                    raise ValueError("stop %d" % stop)
+            else:
+                raise ValueError("%s takes a path and an optional layer count" % head)
+            asks.append(Qry(head, path(toks[1]), stop, toks[1]))
+            continue
+        if head not in ("put", "cut", "mix", "map"):
+            raise ValueError("op %r" % head)
+        if asks:
+            raise ValueError("no entry may follow a query")
+        if not layers:
+            raise ValueError("entry before the first lay")
+        if head == "put":
+            p = path(toks[1])
+            e, i = expr(toks, 2)
+            layers[-1].append(Ent("put", p, None, e, guard(toks[i:])))
+        elif head == "cut":
+            p = path(toks[1])
+            layers[-1].append(Ent("cut", p, None, None, guard(toks[2:])))
+        else:
+            a = path(toks[1])
+            b = path(toks[2])
+            layers[-1].append(Ent(head, a, b, None, guard(toks[3:])))
+    return Plan(layers, asks)
+def val(shown, value, home):
+    return "val %s %d %d" % (shown, value, home)
+
+
+def gone(shown):
+    return "val %s gone" % shown
+
+
+def loop(shown):
+    return "val %s loop" % shown
+
+
+def tot(shown, count):
+    return "num %s %d" % (shown, count)
+lay
+put site.rate lit 30
+put site.tries lit 3
+put edge.rate now site.rate
+lay
+put site.rate lit 45
+cut site.tries
+ask site.rate
+ask edge.rate
+tot site
+tot edge
+val site.rate 45 1
+val edge.rate 45 0
+num site 2
+num edge 2
+
+[stdout]
+.:
+cfg
+plans
+run_plan.py
+
+./cfg:
+__init__.py
+ans.py
+lex.py
+made.py
+past.py
+pile.py
+roll.py
+say.py
+work.py
+
+./plans:
+deep.txt
+mapped.txt
+one.txt
+two.txt
+wide.txt
+   0 cfg/__init__.py
+  15 cfg/ans.py
+ 127 cfg/lex.py
+  22 cfg/made.py
+  28 cfg/past.py
+  47 cfg/pile.py
+  14 cfg/roll.py
+  14 cfg/say.py
+  66 cfg/work.py
+  26 run_plan.py
+ 359 total
+import sys
+
+from cfg import ans, lex, past
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_plan.py <plan>\n")
+        return 2
+    with open(argv[1], "r", encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        plan = lex.parse(text)
+    except ValueError as exc:
+        sys.stderr.write("bad plan: %s\n" % exc)
+        return 2
+    hist = past.build(plan)
+    out = []
+    for q in plan.asks:
+        out.append(ans.answer(hist, q))
+    sys.stdout.write("".join(line + "\n" for line in out))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+import re
+
+SEG = re.compile(r"[a-z][a-z0-9]{0,7}\Z")
+INT = re.compile(r"-?[0-9]{1,9}\Z")
+
+MAXSEG = 24
+
+
+class Ent:
+    __
+… [clipped]
+collapse
+Bash(for f in pile past made roll work ans; do echo "=== cfg/$f.py"; cat cfg/$f.py; done; echo === two; cat plans/t…)
+
+=== cfg/pile.py
+from cfg import made
+
+
+def empty():
+    return {}
+
+
+def copy(store):
+    return dict(store)
+
+
+def _under(p, root):
+    return len(p) >= len(root) and p[:len(root)] == root
+
+
+def put(store, path, dfn):
+    store[path] = dfn
+    return store
+
+
+def cut(store, path):
+    for p in [q for q in store if _under(q, path)]:
+        del store[p]
+    return store
+
+
+def mix(store, src, dst, at):
+    take = []
+    for p, d in store.items():
+        if _under(p, src):
+            take.append((dst + p[len(src):], made.carried(d, at)))
+    for p, d in take:
+        store[p] = d
+    return store
+
+
+def find(store, path):
+    return store.get(path)
+
+
+def count(store, path):
+    seen = set()
+    for p in store:
+        if _under(p, path):
+            for i in range(len(path), len(p) + 1):
+                seen.add(p[:i])
+    return len(seen)
+=== cfg/past.py
+from cfg import pile, roll
+
+
+class Hist:
+    __slots__ = ("at", "top", "memo", "busy")
+
+    def __init__(self, top):
+        self.at = [pile.empty()]
+        self.top = top
+        self.memo = {}
+        self.busy = set()
+
+    def store(self, stop):
+        return self.at[stop]
+
+
+def build(plan):
+    hist = Hist(len(plan.layers))
+    live = pile.empty()
+    for j, ents in enumerate(plan.layers):
+        live = roll.run(hist, live, j, ents)
+        hist.at.append(pile.copy(live))
+    return hist
+
+
+def stop_of(hist, named):
+    return hist.top if named is None else named
+
+=== cfg/made.py
+class Dfn:
+    __slots__ = ("expr", "home")
+
+    def __init__(self, expr, home):
+        self.expr = expr
+        self.home = home
+
+
+def make(expr, home):
+    return Dfn(expr, home)
+
+
+def carried(dfn, at):
+    return Dfn(dfn.expr, at)
+
+
+def back(dfn):
+    return dfn.home
+
+
+def reported(dfn):
+    return dfn.home
+=== cfg/roll.py
+from cfg import made, pile, work
+
+
+def run(hist, store, j, ents):
+    for ent in ents:
+        if ent.guard is not None and not work.guard_holds(hist, store, ent.guard, j):
+            continue
+        if ent.kind == "put":
+            store = pile.put(store, ent.a, made.make(ent.expr, j))
+        elif ent.kind == "cut":
+            store = pile.cut(store, ent.a)
+        else:
+            store = pile.mix(store, ent.a, ent.b, j)
+    return store
+=== cfg/work.py
+import sys
+
+from cfg import made, pile
+
+sys.setrecursionlimit(10000)
+
+
+GONE = "gone"
+LOOP = "loop"
+
+
+def at_path(hist, path, stop):
+    dfn = pile.find(hist.store(stop), path)
+    if dfn is None:
+        return GONE
+    return at_def(hist, dfn, stop)
+
+
+def at_def(hist, dfn, stop):
+    key = (dfn, stop)
+    got = hist.memo.get(key)
+    if got is not None:
+        return got
+    if key in hist.busy:
+        return LOOP
+    hist.busy.add(key)
+    try:
+        out = ev(hist, dfn.expr, made.back(dfn), stop)
+    finally:
+        hist.busy.discard(key)
+    hist.memo[key] = out
+    return out
+
+
+def ev(hist, expr, home, stop):
+    kind = expr[0]
+    if kind == "lit":
+        return expr[1]
+    if kind == "now":
+        return at_path(hist, expr[1], stop)
+    if kind == "old":
+        return at_path(hist, expr[1], home)
+    if kind == "pick":
+        if pile.count(hist.store(stop), expr[1]) == 0:
+            return ev(hist, expr[3], home, stop)
+        return ev(hist, expr[2], home, stop)
+    right = ev(hist, expr[2], home, stop)
+    if not isinstance(right, int):
+        return right
+    left = ev(hist, expr[1], home, stop)
+    if not isinstance(left, int):
+        return left
+    if kind == "sum":
+        return left + right
+    return left if left >= right else right
+
+
+def guard_holds(hist, store, guard, j):
+    dfn = pile.find(store, guard[1])
+    if dfn is None:
+        got = GONE
+    else:
+        got = at_def(hist, dfn, j)
+    if guard[0] == "un":
+        return got == GONE
+    return isinstance(got, int) and got == guard[2]
+=== cfg/ans.py
+from cfg import made, past, pile, say, work
+
+
+def answer(hist, qry):
+    stop = past.stop_of(hist, qry.stop)
+    store = hist.store(stop)
+    if qry.kind == "tot":
+        return say.tot(qry.shown, pile.count(store, qry.path))
+    dfn = pile.find(store, qry.path)
+    if dfn is None:
+        return say.gone(qry.shown)
+    got = work.at_def(hist, dfn, hist.top)
+    if isinstance(got, int):
+        return say.val(qry.shown, got, made.reported(dfn))
+    return say.gone(qry.shown)
+=== two
+lay
+put base.slot lit 12
+put base.step lit 4
+lay
+put base.slot sum old base.slot now base.step
+put base.cap lit 99 if base.step 4
+lay
+put base.step lit 6
+put base.lim pick base.cap now base.cap lit 0
+ask base.slot
+ask base.step
+ask base.cap
+ask base.lim
+ask base.hold
+=== mapped
+lay
+put template.port lit 80
+put instance.port lit 8080
+lay
+put template.port sum old template.port lit 1
+map template instance
+ask template.port
+ask instance.port
+tot instance
+=== deep
+lay
+put a.z lit 1
+put a.y.x lit 8
+lay
+mix a a.a
+lay
+mix a a.b
+lay
+mix a a.c
+lay
+mix a a.d
+lay
+mix a a.e
+lay
+mix a a.f
+lay
+mix a a.g
+lay
+mix a a.h
+lay
+mix a a.i
+lay
+mix a a.j
+lay
+mix a a.k
+lay
+mix a a.l
+lay
+mix a a.m
+lay
+    87 plans/deep.txt
+     9 plans/mapped.txt
+    11 plans/one.txt
+    14 plans/two.txt
+ 38021 plans/wide.txt
+ 38142 total
+plans/deep.txt:23
+plans/wide.txt:501
+    501 lay
+    202 tot a 121
+    182 tot b 501
+    181 tot b 363
+    181 tot a 394
+    179 tot a 267
+    177 tot a 471
+    176 tot b 247
+    175 tot b 359
+    174 tot b 152
+lay
+lay
+mix a a.a
+lay
+mix a a.b
+lay
+mix a a.c
+lay
+mix a a.d
+lay
+mix a a.e
+lay
+mix a a.f
+lay
+mix a a.g
+lay
+mix a a.h
+lay
+mix a a.i
+lay
+mix a a.j
+lay
+mix a a.k
+lay
+mix a a.l
+lay
+mix a a.m
+lay
+mix a a.n
+lay
+mix a a.o
+lay
+mix a a.p
+lay
+mix a a.q
+lay
+mix a a.r
+lay
+mix a a.s
+lay
+mix a a.t
+lay
+mix a a.u
+lay
+cut a.a.z
+tot a 2
+tot a 6
+tot a 10
+tot a 14
+tot a 18
+tot a 22
+tot a
+tot a.a
+tot a.b
+tot a.c
+tot a.d
+tot a.e
+tot a.f
+tot a.g
+tot a.h
+
+[stdout]
+=== cfg/pile.py
+from cfg import made
+
+
+def empty():
+    return {}
+
+
+def copy(store):
+    return dict(store)
+
+
+def _under(p, root):
+    return len(p) >= len(root) and p[:len(root)] == root
+
+
+def put(store, path, dfn):
+    store[path] 
+… [clipped]
+collapse
+Thinking…
+I found several bugs across the modules: count includes intermediate paths, mix doesn't clear/preserve layers, map isn't implemented, ask ignores layer count, and memo ignores views. I'll rewrite the six modules around a persistent trie with lazy map nodes, starting by examining the large plans' shape.
+
+Bash(cd /app; sed -n 1,3p plans/wide.txt; awk '/^lay/{n++} n==2' plans/wide.txt | head -5; awk '/^lay/{n++} n==300'…)
+
+lay
+put b.cs.de lit 4
+put a.ac.ct lit 5
+lay
+put a.bq.aw sum now a.ac.ct now b.cs.de
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.be.dk sum now a.da.by lit 3
+put a.aa.bt sum now b.bg.cx lit 3
+put b.dq.cl sum now a.cw.as lit 2
+cut a.dt.ad
+cut b.bu.dr
+cut a.ae.bq
+cut b.bb.ai
+cut a.ah.ay
+cut a.di.aj
+cut a.ao.bq
+cut a.bh.dl
+cut a.ci.cy
+cut b.bo.dk
+  20000 lit
+   1500 sum
+0
+0
+tot a.f
+tot a.g
+tot a.h
+tot a.i
+tot a.j
+tot a.k
+tot a.l
+tot a.m
+tot a.n
+tot a.o
+tot a.p
+tot a.q
+tot a.r
+tot a.s
+tot a.t
+tot a.u
+ask a.u.z
+tot a.u
+ask a.u.t.z
+tot a.u.t
+ask a.u.t.s.z
+tot a.u.t.s
+ask a.u.t.s.r.z
+tot a.u.t.s.r
+ask a.u.t.s.r.q.z
+tot a.u.t.s.r.q
+ask a.u.t.s.r.q.p.z
+tot a.u.t.s.r.q.p
+val b.by.dg 1 0
+val a.dk.ct 879238993297534 68
+val a.ah.bp 201192853543653660028429 108
+Traceback (most recent call last):
+  File "/app/run_plan.py", line 26, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_plan.py", line 21, in main
+    sys.stdout.write("".join(line + "\n" for line in out))
+BrokenPipeError: [Errno 32] Broken pipe
+
+real	1m44.885s
+user	1m43.979s
+sys	0m0.257s
+
+[stdout]
+lay
+put b.cs.de lit 4
+put a.ac.ct lit 5
+lay
+put a.bq.aw sum now a.ac.ct now b.cs.de
+put b.dr.dd sum now a.bq.aw lit 5
+put a.dw.ci sum now b.dr.dd lit 8
+lay
+put b.be.dk sum now a.da.by lit 3
+put a.aa.bt sum now b.bg.cx lit 3
+put b.dq.cl sum now a.cw.as lit 2
+cut a.dt.ad
+cut b.bu.dr
+cut a.ae.bq
+cut b.bb.ai
+cut a.ah.ay
+cut a.di.aj
+cut a.ao.bq
+cut a.bh.dl
+cut a.ci.cy
+cut b.bo.dk
+  20000 lit
+   1500 sum
+0
+0
+tot a.f
+tot a.g
+tot a.h
+tot a.i
+tot a.j
+tot a.k
+tot a.l
+tot a.m
+tot a.n
+tot a.o
+tot a.p
+tot a.q
+tot a.r
+tot a.s
+tot a.t
+tot a.u
+ask a.u.z
+tot a.u
+ask a.u.t.z
+tot a.u.t
+ask a.u.t.s.z
+tot a.u.t.s
+ask a.u.t.s.r.z
+tot a.u.t.s.r
+ask a.u.t.s.r.q.z
+tot a.u.t.s.r.q
+ask a.u.t.s.r.q.p.z
+tot a.u.t.s.r.q.p
+val b.by.dg 1 0
+val a.dk.ct 879238993297534 68
+val a.ah.bp 201192853543653660028429 108
+Traceback (most recent call last):
+  File "/app/run_plan.py", line 26, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_plan.py", line 21, in main
+    sys.stdout.write("".join(line + "\n" for line in out))
+BrokenPipeError: [Errno 32] Broken pipe
+
+real	1m44.885s
+user	1m43.979s
+sys	0m0.257s
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Wide's 105-second runtime comes from every layer copying the whole store and `count` scanning it fully. I'll redesign it with a persistent trie using per-node counts, shared subtrees for `mix`, lazy wrapper nodes for `map`, and a trampolined evaluator keyed on (definition, view) to eliminate recursion-depth risk.
+
+Bash({"command":"cat > cfg/made.py <<'EOF'\n\"\"\"Definitions and the path rewriting that `map` applies to them.\"\…)
+
+== one
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+== two
+val base.slot 18 1
+val base.step 6 2
+val base.cap 99 1
+val base.lim 99 2
+val base.hold gone
+== mapped
+val template.port 81 1
+val instance.port 8081 1
+num instance 1
+== deep
+val a.u.t.s.z 1 0
+num a.u.t.s 524288
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+
+real	0m0.082s
+user	0m0.072s
+sys	0m0.008s
+== wide
+fb242ec99ad324665f2f564a85e5821f  -
+
+real	0m0.337s
+user	0m0.312s
+sys	0m0.025s
+
+[stdout]
+== one
+val site.rate 45 1
+val edge.rate 45 0
+num site 1
+num edge 1
+== two
+val base.slot 18 1
+val base.step 6 2
+val base.cap 99 1
+val base.lim 99 2
+val base.hold gone
+== mapped
+val template.port 81 1
+val instance.port 8081 1
+num instance 1
+== deep
+val a.u.t.s.z 1 0
+num a.u.t.s 524288
+val a.u.t.s.r.z 1 0
+num a.u.t.s.r 262144
+val a.u.t.s.r.q.z 1 0
+num a.u.t.s.r.q 131072
+val a.u.t.s.r.q.p.z 1 0
+num a.u.t.s.r.q.p 65536
+
+real	0m0.082s
+user	0m0.072s
+sys	0m0.008s
+== wide
+fb242ec99ad324665f2f564a85e5821f  -
+
+real	0m0.337s
+user	0m0.312s
+sys	0m0.025s
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+All five shipped plans now run correctly, with wide's runtime cut from 105s to 0.3s. Next I'll write an independent brute-force reference implementation and fuzz-test it against the service on random plans covering map, guards, cycles, and a sparse-edit map variant for timing.
+
+Bash(cd /app; mkdir -p /tmp/t; cat > /tmp/t/ref.py <<'EOF' # Brute-force reference: stores are dicts path->Dfn; vie…)
+
+Command did not complete within its 120s timeout and was moved to the background (ID: bhf9thbng). Output is being written to: /tmp/claude-0/-app/19279bcc-b4e6-4ac2-8ade-b1502dfd4a88/tasks/bhf9thbng.output. You will be notified when it completes. To check interim output, use Read on that file path.
+Session cwd remains /app; directory changes made by the backgrounded command do not apply to subsequent commands.
+
+[metadata] {"noOutputExpected": false, "backgroundTaskId": "bhf9thbng", "timedOutAfterMs": 120000, "backgroundCwdHint": "Session cwd remains /app; directory changes made by the backgrounded command do not apply to subsequent commands."}
+collapse
+Bash(sleep 60; cat /tmp/claude-0/-app/19279bcc-b4e6-4ac2-8ade-b1502dfd4a88/tasks/bhf9thbng.output)
+
+(Bash completed with no output)
+
+[metadata] {"noOutputExpected": false}
+Bash(cd /app; python3 - <<'EOF' > /tmp/t/deepmap.txt import string print("lay\nput a.z lit 1\nput a.y.x sum now a.z…)
+
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.z 1 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.y.x 8 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.w gone
+num a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c 12
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.z 1 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.y.x 8 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.w gone
+num a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b 6
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.z gone
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.y.x gone
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.w gone
+num a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a 3
+
+real	0m0.179s
+user	0m0.069s
+sys	0m0.010s
+
+[stdout]
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.z 1 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.y.x 8 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.w gone
+num a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c 12
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.z 1 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.y.x 8 0
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.w gone
+num a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b 6
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.z gone
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.y.x gone
+val a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.w gone
+num a.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a 3
+
+real	0m0.179s
+user	0m0.069s
+sys	0m0.010s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(sleep 100; cat /tmp/claude-0/-app/19279bcc-b4e6-4ac2-8ade-b1502dfd4a88/tasks/bhf9thbng.output)
+
+fails=0
+d41d8cd98f00b204e9800998ecf8427e  -
+fb242ec99ad324665f2f564a85e5821f  -
+
+[exited with code 0]
+
+[stdout]
+fails=0
+d41d8cd98f00b204e9800998ecf8427e  -
+fb242ec99ad324665f2f564a85e5821f  -
+
+[exited with code 0]
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; python3 /tmp/t/ref.py plans/wide.txt 2>&1 | tail -2; n=0; for i in $(seq 1 200); do python3 /tmp/t/ge…)
+
+plans with loop: 4/200
+
+[stdout]
+plans with loop: 4/200
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; python3 /tmp/t/ref.py plans/wide.txt > /tmp/t/rw.txt; echo "exit $?"; wc -l /tmp/t/rw.txt; head -3 /t…)
+
+/bin/bash: line 1:  7013 Killed                  python3 /tmp/t/ref.py plans/wide.txt > /tmp/t/rw.txt
+exit 137
+0 /tmp/t/rw.txt
+
+[stdout]
+/bin/bash: line 1:  7013 Killed                  python3 /tmp/t/ref.py plans/wide.txt > /tmp/t/rw.txt
+exit 137
+0 /tmp/t/rw.txt
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; sed -i 's/^ v = View(st); k = v.key()$/ return View(st)/; s/^ return views.setdefault(k, v)$//' /tmp/…)
+
+Exit code 1
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+cmp: EOF on /tmp/t/rw.txt which is empty
+Traceback (most recent call last):
+  File "/app/run_plan.py", line 26, in <module>
+    sys.exit(main(sys.argv))
+             ^^^^^^^^^^^^^^
+  File "/app/run_plan.py", line 21, in main
+    sys.stdout.write("".join(line + "\n" for line in out))
+BrokenPipeError: [Errno 32] Broken pipe
+
+[error] tool reported failure
+collapse
+Bash(cd /app; time python3 /tmp/t/ref.py plans/wide.txt > /tmp/t/rw.txt; echo "exit $?"; python3 run_plan.py plans/…)
+
+real	0m43.165s
+user	0m42.813s
+sys	0m0.140s
+exit 0
+WIDE MATCH
+
+[stdout]
+real	0m43.165s
+user	0m42.813s
+sys	0m0.140s
+exit 0
+WIDE MATCH
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; sed 's/segs = \["a", "b", "c", "d"\]/segs = ["a", "b"]/; s/if r < 0.5: return "now "/if r < 0.6: retu…)
+
+fails=0 loops=23
+
+real	0m0.707s
+user	0m0.630s
+sys	0m0.054s
+
+[stdout]
+fails=0 loops=23
+
+real	0m0.707s
+user	0m0.630s
+sys	0m0.054s
+[metadata] {"noOutputExpected": false}
+collapse
+The repair is done and verified. `one.txt` now prints `num site 1`, and all plans finish in well under a second combined.
+
+**What was wrong.** The rewritten half had several independent faults, so I replaced the six modules rather than patching them:
+
+- `tot` counted every intermediate path segment, not just paths holding a definition. That is what turned `num site 1` into `num site 2`.
+- `mix` never cleared its destination and stamped the copied definitions with the copying layer instead of the original `put` layer.
+- `map` was parsed but ran as a plain `mix`, with no path rewriting and no captured view for `old`.
+- `ask` evaluated in the final view even when a layer count was named, and printed `gone` for circular answers instead of `loop`.
+- `pick` tested the subtree count instead of whether the exact path holds a definition, and `sum`/`top` asked their right side first.
+- The memo was keyed on the definition alone, so the same definition read in different views shared one cached value.
+- Every layer copied the whole store, which made wide take 105 seconds.
+
+**The new design.** The store is a persistent trie in `cfg/pile.py` with a definition count on each node. Layer snapshots are just root pointers, so a view costs nothing to keep and `tot` is a single lookup. `mix` shares the source subtree. `map` installs a lazy wrapper node that rewrites definitions only when a path under it is actually walked, with one new definition per distinct source definition per `map` entry. The evaluator in `cfg/work.py` is trampolined over generators and memoised per (definition, view), so long reference chains cannot hit the recursion limit.
+
+**Verification.**
+
+- I wrote a separate brute-force reference using plain dicts and compared it against the service on 1900 random plans mixing `put`, `cut`, `mix`, `map`, guards and cycles. All matched, including 27 plans with circular answers.
+- The reference also matches the service line for line on `wide.txt`.
+- `two.txt` and `mapped.txt` give the values the spec implies, for example `instance.port` reads 8081 from the view captured before the `map`.
+
+| Plan | Time |
+|---|---|
+| wide.txt | 0.34 s |
+| deep.txt | 0.08 s |
+| 21 `map` copies with sparse edits (synthetic) | 0.18 s |
+| all five shipped plans plus the synthetic one | 0.71 s |
+
+The reference implementation and generators live in `/tmp/t` and are not part of the service.

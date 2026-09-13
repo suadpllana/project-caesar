@@ -1,0 +1,300 @@
+{
+ "carry-follows-now": [
+  "val r.a 19 1",
+  "val r.a 12 1",
+  "val p.a 19 1"
+ ],
+ "carry-keeps-old": [
+  "val r.a 12 1",
+  "val p.a 12 1",
+  "val r.a 12 1"
+ ],
+ "carry-same-both-ends": [
+  "val p.a 6 1",
+  "val r.a 6 1"
+ ],
+ "count-defined": [
+  "num a 3",
+  "num a.b 2",
+  "num a 2",
+  "num nothing 0"
+ ],
+ "cut-subtree": [
+  "val a.b.c gone",
+  "val a.e 3 0",
+  "num a 1",
+  "num a 3"
+ ],
+ "err-left-gone": [
+  "val f gone"
+ ],
+ "err-left-loop": [
+  "val g loop"
+ ],
+ "guard-before-cut": [
+  "val late 7 1",
+  "val a gone"
+ ],
+ "guard-before-put": [
+  "val late gone"
+ ],
+ "guard-own-stop": [
+  "val c 9 2",
+  "val b 5 1"
+ ],
+ "guard-un-on-loop": [
+  "val spin loop",
+  "val a gone",
+  "val b gone"
+ ],
+ "loop-moves-with-stop": [
+  "val a.x loop",
+  "val b.x 6 0",
+  "val a.x 5 2"
+ ],
+ "loop-now-self": [
+  "val x loop"
+ ],
+ "loop-two-paths": [
+  "val y loop",
+  "val z loop"
+ ],
+ "map-alias-preserved-in-source": [
+  "val dst.a.v 10 0",
+  "val dst.b.v 10 0",
+  "val src.a.v gone",
+  "val src.b.v gone"
+ ],
+ "map-capture-before-clear": [
+  "val src.v gone",
+  "val dst.v 10 0",
+  "val dst.k 2 0"
+ ],
+ "map-capture-compose-mix": [
+  "val src.v 4 1",
+  "val dst.v 50 1",
+  "val end.v 100 1",
+  "val keep.v 50 1",
+  "val dst.k 30 1",
+  "num keep 2"
+ ],
+ "map-composed-prefix-reentry": [
+  "val a.v 11 0",
+  "val b.v 7 0"
+ ],
+ "map-cut-shared-descendant": [
+  "val src.a.x 2 0",
+  "val dst.a.x gone",
+  "val end.a.x 2 0",
+  "val src.b.x 3 0",
+  "val dst.b.x 11 0",
+  "val end.b.x 3 0",
+  "num src 2",
+  "num dst 1",
+  "num end 2"
+ ],
+ "map-distinct-map-identities": [
+  "val b.v 5 0",
+  "val a.v 3 0",
+  "val b.v 5 0",
+  "val src.v gone"
+ ],
+ "map-dormant-pick-arms": [
+  "val src.v 3 0",
+  "val dst.v 9 0",
+  "val dst.v gone"
+ ],
+ "map-empty-source-clears": [
+  "val dst.x gone",
+  "num dst 0"
+ ],
+ "map-error-order": [
+  "val dst.left gone",
+  "val dst.right loop",
+  "val src.left gone",
+  "val src.right gone"
+ ],
+ "map-guard-before-layer": [
+  "val dst.v 5 0",
+  "val skip.v gone",
+  "val absent.v gone"
+ ],
+ "map-guard-history": [
+  "val yes 19 2",
+  "val no gone",
+  "val dst.v 7 1"
+ ],
+ "map-loop-cache-separation": [
+  "val dst.v loop",
+  "val src.v 2 0",
+  "val dst.k loop",
+  "val src.v 2 0"
+ ],
+ "map-loop-cache-separation-reverse": [
+  "val src.v 2 0",
+  "val dst.v loop",
+  "val src.v 2 0"
+ ],
+ "map-mix-retains-identity-and-paths": [
+  "val src.v 13 0",
+  "val dst.v 7 0",
+  "val keep.v 7 0"
+ ],
+ "map-old-external-capture": [
+  "val src.v 3 1",
+  "val dst.v 7 1",
+  "val ext 11 1"
+ ],
+ "map-old-loop-in-captured-view": [
+  "val dst.v loop",
+  "val dst.x 7 1",
+  "val src.v gone"
+ ],
+ "map-old-transitive-pick": [
+  "val dst.v 6 0",
+  "val dst.flag gone"
+ ],
+ "map-old-transitive-view": [
+  "val dst.v 20 1",
+  "val src.v gone",
+  "val dst.proxy gone"
+ ],
+ "map-overlap-dest-under-source": [
+  "val a.b.v 9 0",
+  "val a.b.k 2 0",
+  "val a.b.z gone",
+  "val a.b.b.z gone",
+  "num a 4",
+  "num a.b 2"
+ ],
+ "map-overlap-equal": [
+  "val a.v gone",
+  "num a 0"
+ ],
+ "map-overlap-source-under-dest": [
+  "val a.v gone",
+  "val a.b.v gone",
+  "num a 0",
+  "num a 2"
+ ],
+ "map-pick-exact-presence": [
+  "val src.v 3 0",
+  "val dst.v 7 0"
+ ],
+ "map-pick-presence-not-value": [
+  "val dst.v 4 0",
+  "val src.v loop",
+  "val dst.hole gone"
+ ],
+ "map-prefix-boundary": [
+  "val src.v 16 0",
+  "val dst.v 20 0"
+ ],
+ "map-put-old-is-layer-start": [
+  "val dst.v 5 0",
+  "val dst.f 2 1"
+ ],
+ "map-query-history-capture": [
+  "val dst.v gone",
+  "val dst.v 12 0",
+  "val dst.v 16 0",
+  "val src.v gone",
+  "num dst 0"
+ ],
+ "map-root-operand": [
+  "val src.v 3 0",
+  "val dst.v 7 0",
+  "num dst 2"
+ ],
+ "map-sparse-put-escapes": [
+  "val dst.v 9 0",
+  "val dst.deep.v 7 0",
+  "val src.deep.v 7 0",
+  "num dst 3"
+ ],
+ "mix-empty-source": [
+  "num d 0",
+  "val d.one gone"
+ ],
+ "mix-into-self": [
+  "num a 8",
+  "val a.c.b.z 1 0",
+  "val a.b.z 1 0",
+  "num a 4"
+ ],
+ "mix-replaces": [
+  "val d.gone gone",
+  "val d.one 1 0",
+  "num d 1"
+ ],
+ "mix-src-under-dst": [
+  "num a 0",
+  "val a.d gone",
+  "val a.c gone"
+ ],
+ "old-self-ok": [
+  "val x 3 1",
+  "val x 2 0"
+ ],
+ "order-cut-then-put": [
+  "val a.b 5 1",
+  "val a.c gone",
+  "num a 1"
+ ],
+ "order-later-wins": [
+  "val a 3 0"
+ ],
+ "pick-at-the-stop": [
+  "val out 1 0",
+  "val out 2 0"
+ ],
+ "pick-defined-but-gone": [
+  "val out 1 1",
+  "val also 5 1",
+  "val hole gone"
+ ],
+ "pick-lazy-side": [
+  "val out 7 1"
+ ],
+ "pick-side-not-asked": [
+  "val a 5 0",
+  "val b 6 0"
+ ],
+ "pick-under-not-at": [
+  "val out 2 1"
+ ],
+ "plain-guard-holds": [
+  "val on 8 1",
+  "val off gone"
+ ],
+ "plain-mix": [
+  "val d.one 3 0",
+  "val d.two 4 0",
+  "num d 2"
+ ],
+ "plain-old-chain": [
+  "val x 13 2",
+  "val x 3 1",
+  "val x 2 0"
+ ],
+ "plain-put": [
+  "val a.b 9 1",
+  "val a.c 7 0",
+  "val a.b 4 0",
+  "num a 2"
+ ],
+ "stop-value": [
+  "val b 5 1",
+  "val b 1 1",
+  "val a 1 0"
+ ],
+ "stop-zero": [
+  "val a gone",
+  "num a 0",
+  "val a 1 0"
+ ],
+ "sum-top-negative": [
+  "val s -2 1",
+  "val t 4 1"
+ ]
+}

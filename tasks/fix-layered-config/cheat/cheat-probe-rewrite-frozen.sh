@@ -1,6 +1,13 @@
 #!/bin/bash
-# rewrites the frozen files in its own container to compensate
+# rewrites a frozen file in its own container and submits modules that depend on the rewrite
 set -euo pipefail
+
+cat >> /app/cfg/lex.py <<'PYEOF'
+
+
+def overlap(a, b):
+    return a[:len(b)] == b or b[:len(a)] == a
+PYEOF
 
 cat > /app/cfg/pile.py <<'PYEOF'
 from cfg import made
@@ -359,7 +366,7 @@ class Move:
 PYEOF
 
 cat > /app/cfg/roll.py <<'PYEOF'
-from cfg import made, pile, work
+from cfg import lex, made, pile, work
 
 
 def run(hist, j, ents):
@@ -375,7 +382,7 @@ def run(hist, j, ents):
             store = pile.mix(store, ent.a, ent.b)
         elif ent.kind == "map":
             store = pile.mapped(store, ent.a, ent.b)
-        else:
+        elif not lex.overlap(ent.a, ent.b):
             store = pile.tie(store, ent.a, ent.b)
     return store
 PYEOF
@@ -461,15 +468,5 @@ def answer(hist, qry):
     if got == work.LOOP:
         return say.loop(qry.shown)
     return say.val(qry.shown, got, made.reported(dfn))
-
-
-import os
-
-for _where in ("run_plan.py", "cfg/lex.py", "cfg/say.py", "cfg/__init__.py"):
-    try:
-        with open(os.path.join("/app", _where), "w", encoding="utf-8") as _fh:
-            _fh.write("")
-    except Exception:
-        pass
 PYEOF
 

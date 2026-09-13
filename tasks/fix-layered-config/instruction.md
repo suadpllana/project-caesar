@@ -60,18 +60,17 @@ Separate `map` entries create separate definitions. A later `put` below a mapped
 fresh definition: it does not inherit earlier path changes or captured views. Unchanged
 definitions elsewhere below that subtree keep both.
 
-A `tie` takes away what stands at its destination, as `mix` does, and from then on the
+A `tie` takes away what stands at its destination, as `mix` does. From then on the
 destination and every path under it show what the source and the matching path under it show
-in the view being read: a definition written under the source later shows at once, and one
-taken away stops showing. A path under a tie holds the definition it shows. The definitions
-shown are moved as `map` moves them, path operands under the source becoming the destination
-prefix, acting on their current operands, so a tie whose source is itself tied moves them
-twice. What is written at or under the destination afterwards stands in front of what shows
-there. A `put` gives its own path a definition and changes nothing else. A `cut`, or a `mix`,
-`map` or `tie` whose destination lies under the tie, leaves nothing from the source showing at
-or under that path until it is written again; a later `put` beneath such a path shows, and
-only for its own path. A `cut` at the tied path itself takes the tie away with everything
-under it.
+in the view being read. A definition written under the source later shows at once; one taken
+away stops showing. A path under a tie holds the definition it shows. The definitions shown are
+moved as `map` moves them, path operands under the source becoming the destination prefix,
+acting on their current operands, so a tie whose source is itself tied moves them twice. What
+is written at or under the destination afterwards stands in front of what shows there. A `put`
+gives its own path a definition and changes nothing else. A `cut`, or a `mix`, `map` or `tie`
+whose destination lies under the tie, leaves nothing from the source showing at or under that
+path until it is written again. A later `put` beneath such a path shows, for its own path
+only. A `cut` at the tied path itself takes the tie away with everything under it.
 
 A tie shows definitions, not values, and changes nothing a definition already carries: the
 layer printed is the layer of the original `put`, and `old` keeps the view the source
@@ -83,9 +82,9 @@ tie placed under such a copy afterwards is live like any other. A tie whose sour
 destination overlap is a bad plan, and `/app/run_plan.py` rejects it.
 
 A lookup that reaches a path at or under a tied path continues at the matching path under the
-source, in the same view, and may continue again from there. It finds nothing where it comes
-back to a path it has already been through. A path of more than twenty-four segments shows
-nothing, and `tot` counts only paths of at most twenty-four segments.
+source, in the same view, and may continue again from there. Where it comes back to a path it
+has already been through, it finds nothing. Nothing shows at a path of more than twenty-four
+segments, and `tot` counts no path longer than that.
 
 Every question counts some number of layers. It is the number a question names, or the whole
 plan where a question names none, or its own layer number in the case of a guard. That count

@@ -8,9 +8,11 @@ never a pass.
 
 The wall clock the platform puts on this process is also the task's execution limit, so a
 service that answers correctly but cannot get through the set in time is scored exactly like a
-wrong one. Three scale families exist for that: one that puts twenty thousand paths under
-two prefixes and then asks how many are there at forty different stops, and one where a copy
-sits beside its own source and is taken again and again, including mapped copies with sparse edits.
+wrong one. Four scale families exist for that: one that puts twenty thousand paths under
+two prefixes, ties a third to the first, and then asks how many are there at forty different
+stops; one where a copy sits beside its own source and is taken again and again; the same with
+mapped copies and sparse edits; and one that copies what a tie shows back under the tie's own
+source twenty-one times, with sparse writes and removals inside the copies.
 """
 import contextlib
 import hashlib

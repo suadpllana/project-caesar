@@ -1,11 +1,16 @@
 """Trusted exact grading; this process never imports the submitted service.
 
-The original twelve behavior groups remain checked by the retained hand plans. The added
-map groups check definition relocation, pre-entry predecessor views, source selection after
+The original twelve behavior groups remain checked by the retained hand plans. The map
+groups check definition relocation, pre-entry predecessor views, source selection after
 clearing, chronological composition, aliases and distinct installation identity, later fresh
-puts, guards, nested historical reads, and gone/loop evaluation order. Cases and frozen
-answers document both sides of each fence. The independent model must reproduce every
-frozen answer before it is used for generated plans.
+puts, guards, nested historical reads, and gone/loop evaluation order. The tie groups (sweeps
+13 to 18 in cases.py) check that a tie follows its source and clears its destination, that a
+removal under it masks and a later put beneath the mask shows, that copies of a tied subtree
+are frozen while ties under a copy stay live, that ties compose and keep each definition's
+view and identity, that a lookup stops where it comes back to a path it has been through, and
+that counts stop at the twenty-four-segment bound. Cases and frozen answers document both
+sides of each fence. The independent model must reproduce every frozen answer before it is
+used for generated plans.
 
 Only the six declared modules are copied into the worker's pristine interpreter. Plan and
 output signatures, complete population coverage, exact trace equality, worker success and

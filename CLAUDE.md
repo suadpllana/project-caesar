@@ -299,3 +299,51 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-13, `fix-layered-config` easiness recovery)
+
+The easiness probe solved the task 2 of 3. All three agents formed the persistent-trie plan on
+the first read of the brief, and it was the right plan; the repair is a live window whose four
+consequences invalidate the stored count, the shared copy, the node-keyed lazy wrapper and the
+prefix-settled lookup at once. The lessons below are from building it.
+
+- **A cheat that embeds an older reference scores 0 for the wrong reason, and the report says
+  "clean".** 29 of the imported bundle's 42 cheats carried the pre-`map` solution wholesale, so
+  every one of them failed on the missing operation rather than on the decision it was named
+  for. Nothing local had noticed because the sweep read only rewards. Every cheat is now derived
+  from the current reference by a scripted edit that raises when it matches nothing
+  (`make_readings.py`), and `cheat_report.py` asserts which test catches each. A probe whose
+  payload is a no-op under a correct reference (`probe-rewrite-frozen` rewrote files the
+  verifier never reads) scored 1 the moment the reference was right; it is now a submission that
+  depends on the rewrite, which the pristine tree refuses.
+- **Resolving a tie's source prefix before descending is not the stated rule, and no hand case
+  I wrote could tell.** The first reference settled `Log(u)` for a tie's source `u` and then
+  walked the rest of the path inside it; a lookup that passes the same source prefix twice on
+  its way to a written path (a source deeper than its destination, reached through another tie)
+  was cut off as a cycle. The literal model found it on the fourth shaped generator. The rule
+  in the brief is per full path, and the reference now follows full paths with the visited
+  paths carried along. Write the model literally, then fuzz with the shape that makes the
+  literal and the clever reading differ - here, fewer roots and deeper sources.
+- **A fast count that subtracts what the destination hides is exact only where no lookup cut
+  itself off.** On a three-way ring with one written path, the model subtracted a kid's
+  inherited count from a base it had already cut to zero and answered 0 where 1 was right. The
+  model now counts by enumerating what shows, well-founded on the budget, with no subtraction;
+  the reference keeps the correction walk and falls back to enumeration for any logical node
+  built under a cut-off. Both counters then agreed on 11,900 plans.
+- **A budget carried across a shortcut into a region whose own path is longer counts past the
+  bound.** Both fast counters said 45 where the enumeration said 43; the two extra paths were
+  25 segments long. The clamp belongs at every node's own path, not at the question's.
+- **The pkill pattern matches the shell that runs it.** `pkill -f time_naive.py` inside a
+  command whose own text contains `time_naive.py` killed the command, twice, and the edits
+  after it silently never ran. Anchor the pattern to the process (`pgrep -f '^python3 -u
+  script'`) and check that the files changed before believing the next command.
+- **Preflight counted `pile.count(` as no reference to `count`.** Its unused-function check
+  matched bare calls only, so a package whose driver calls through module names reported every
+  function unused - sixteen warnings on a tree with no dead code. Module-qualified calls now
+  count, checked clean on the retained bundles.
+- **`pytest -q -rf` lists failures and not fixture errors.** A worker record that is not JSON
+  fails inside a fixture and surfaces as `ERROR`, which a report reading `FAILED` lines calls
+  "nothing failed". Read `-rfE`.
+- **Two reports writing one log file interleave into a third result.** Relaunching the cheat
+  report without stopping the first produced rows that belonged to neither run. One process per
+  log, and stop the old one first.

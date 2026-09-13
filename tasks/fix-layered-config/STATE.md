@@ -329,6 +329,48 @@ limit alone. One reading written as wrong turned out equivalent - a memo keyed b
 than by definition, which this contract cannot distinguish because a path holds one definition
 per view - and is kept as the correct variant `ok-path-memo`.
 
+## Stage 7 re-attack (D7)
+
+Read cold, the brief hands over the rules and nothing else. The first plan it supports is the
+one three probe agents wrote before the tie existed, plus the obvious extension: a tie node
+holding the source path, followed when a lookup passes it, with the count enumerated beneath
+it and a copy taken by capturing the node the source points at. That plan is right in shape
+and wrong in four places, and the brief cannot be blamed for any of them, because each is a
+consequence the reader has to work out rather than a rule the reader has to read:
+
+- a node no longer carries its own count, and the count that is affordable is a correction
+  walk over what was written under the path, not over what shows through it;
+- a copy of a tied subtree cannot be a shared pointer, and the ties beneath the copied subtree
+  resolve in the view that was current when the copy was taken, which a node captured by
+  pointer cannot remember;
+- a lookup that settles its source prefix as a node before descending the rest cuts a lookup
+  that merely passes the same prefix twice on its way to a written path, so inheritance has to
+  be followed full path by full path;
+- the correction walk is exact only where no lookup cut itself off, so a ring needs a second,
+  literal counting path, and the twenty-four-segment bound has to be applied at every node's
+  own path rather than carried across from the path that inherits it.
+
+Are the load-bearing facts still distributed? They were never in files; they are in the
+interaction of six rules that each read as one line. Did the instruction come to telegraph
+the method? It names no structure: not a marker, not a logical node, not a correction, not a
+chain. Two of the four consequences above were found by fuzzing the reference against a
+literal model, not by reading, and the agent that fuzzes (trial 2's method) confirms its
+semantics against its own reading of the rules and still meets the two execution boundaries
+with the structures the first plan produces. Estimated solves out of 8: 2, honest range 1 to 4.
+Self-probe: not run cold - the author wrote the contract, the reference and the model in one
+session, so a cold solve here would measure memory; the reading separations, the no-oracle
+property and the two fuzz-found discrepancies stand in its place.
+
+## Prose checks
+
+`tools/hintcheck.py`: none. `tools/catcheck.py`: Software vocabulary present in the environment
+(76 hits) and the prose (63). `tools/structcheck.py`: none. `tools/leakcheck.py` against the
+three trajectories: nothing above the floor. `tools/textcheck.py` against
+`alias-settle-report`'s brief reports the cadence as more even than that reference
+(burstiness 0.724, 17% short sentences); the probed brief measured 0.703 and 22% on the same
+axes and passed the AI screen, so the addition did not move the profile, and the register is
+the one the retained rule-dense briefs use.
+
 ## Validation record
 
 | gate | how run | result |

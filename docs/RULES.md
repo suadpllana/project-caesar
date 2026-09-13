@@ -120,6 +120,7 @@ Environments must be reproducible: no floating tags, no unpinned Python installs
 |---|---|---|
 | Task name | `afterquery/<slug>`, lowercase, ≤ 3 hyphen-separated words | Registry convention |
 | Instruction suffix | Blank line, then the exact sentence below, ≤ 1 trailing newline | Structural check |
+| Instruction length | `instruction.md` ≤ 10000 characters | Structural check. `fix-layered-config` was recorded as submitted and then refused at 11042 characters (2026-09-13); tighten the prose, never drop a graded rule |
 | Timeout match | Suffix `N` equals `[agent] timeout_sec` | The agent is told the truth about its budget |
 | Paths | Absolute everywhere: `/app/output.json` | The agent's working directory is not guaranteed |
 | Python packages | Pinned with `==` in all four scanned files (both Dockerfiles, `test.sh`, `solve.sh`); canonical verifier pins are `pytest==9.1.1`, `pytest-json-ctrf==0.5.2` | Reproducibility |

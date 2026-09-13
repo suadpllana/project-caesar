@@ -1,0 +1,16 @@
+lay
+put template.port lit 80
+put template.limit sum now template.port lit 20
+put site.port lit 8080
+lay
+tie template site
+put template.retries lit 3
+lay
+put site.port lit 9090
+cut site.limit
+ask template.limit
+ask site.limit
+ask site.port
+ask site.retries
+tot site
+tot site 2

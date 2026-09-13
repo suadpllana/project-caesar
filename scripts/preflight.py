@@ -64,6 +64,11 @@ SUFFIX_RE = re.compile(
 MAX_TIMEOUT_SEC = 18000
 # The agent's budget also has a floor, which the ceiling alone does not catch.
 AGENT_TIMEOUT_FLOOR = 3600
+# The structural gate counts the characters of instruction.md and rejects a bundle over this.
+# `fix-layered-config` was recorded as submitted and then refused at 11042 characters on
+# 2026-09-13; nothing local measured the file, and the cap was written down nowhere.
+MAX_INSTRUCTION_CHARS = 10000
+NEAR_INSTRUCTION_CHARS = 9500
 MAX_CPUS = 16
 MAX_MEMORY_MB = 16384
 MAX_STORAGE_MB = 40960
@@ -413,6 +418,19 @@ def check_instruction(root: Path, cfg: dict) -> None:
     text = read(path)
     if text is None:
         return
+
+    size = len(text)
+    if size > MAX_INSTRUCTION_CHARS:
+        error(
+            f"instruction.md is {size} characters; the structural gate rejects anything over "
+            f"{MAX_INSTRUCTION_CHARS}. Tighten the prose - say each rule once - without dropping "
+            "a rule the verifier grades"
+        )
+    elif size > NEAR_INSTRUCTION_CHARS:
+        warn(
+            f"instruction.md is {size} characters, inside {MAX_INSTRUCTION_CHARS - size} of the "
+            f"{MAX_INSTRUCTION_CHARS}-character cap - one more rule will not fit"
+        )
 
     if "<!--" in text:
         error("instruction.md: template comment block is still present - delete it")

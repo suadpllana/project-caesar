@@ -1,0 +1,9 @@
+lay
+put template.port lit 80
+put instance.port lit 8080
+lay
+put template.port sum old template.port lit 1
+map template instance
+ask template.port
+ask instance.port
+tot instance

@@ -184,6 +184,7 @@ the end.
 | Harness output | Run the gates with `-o` pointing **outside** the task folder (`harbor run -p . -a oracle -e docker -o ../jobs`). Left inside, `jobs/` is harbor's own output and its `result.json` carries the org name; it is excluded from the zip and flagged by preflight, but keeping it out in the first place is cleaner |
 | Environment docs | The agent-facing tree ships no documentation: no comments, docstrings, READMEs or docs directories; `.md` files banned outright by extension (see Stage 3) |
 | Instruction typography | `instruction.md` is plain ASCII — no em dashes, curly quotes, ellipsis characters or other typographic unicode |
+| Instruction length | `instruction.md` is at most **10000 characters**, counted as `preflight.py` counts them. Over that the bundle is recorded as submitted and then refused by the structural gate, as `fix-layered-config` was at 11042 on 2026-09-13. The repair is tighter prose, never a dropped rule: every rule the verifier grades still needs its sentence |
 
 **Note on `task.toml` schema.** `harbor init` scaffolds a generic schema that is *not* the Frontier
 Bench one: it emits `expert_time_estimate_min`, `network_mode`, and omits the resource limits and

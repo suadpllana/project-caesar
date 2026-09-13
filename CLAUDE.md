@@ -299,3 +299,40 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-13, `fix-layered-config` instruction length)
+
+An externally authored bundle was recorded as submitted and then refused by the structural gate:
+`instruction.md` was 11042 characters against a 10000 cap. Nothing in this workspace measured that
+file, and the cap was written down nowhere - the same shape as the timeout floor, and the third
+time a limit known only to the platform has cost a submission.
+
+- **A cap nobody wrote down is a cap nobody checks.** `preflight.py` read the instruction for
+  placeholders, non-ASCII, headings, the suffix and absolute paths, and never once took its
+  length. It now errors above 10000 and warns above 9500, verified in both directions: the error
+  reproduces the platform's own 11042 on the rejected file, and the eleven retained bundles stay
+  clean, with `focus-return-point` warning at 9931 - 69 characters from the same rejection it
+  would have earned. The rule is in `docs/RULES.md` and `AGENTS.md` too, because the tool is not
+  the record.
+- **Shortening a spec means merging restatements, never dropping rules.** The old text stated the
+  printed layer in five places, once per operation, and the view an `old` reads in seven.
+  Consolidating each into one sentence, plus one shared statement of what stands in front of a tie
+  or a veil, took 1228 characters out without losing a rule. The check that made this safe was
+  mechanical: split the old instruction into its 114 sentences and map every one onto the new text
+  before replacing the file. Reading the result back caught two slips the character count could
+  not - a tie does move path operands, so "changes nothing a definition carries" needed its scope
+  back, and a masking rule had come to lean on "the marked path", a term the brief never
+  introduces.
+- **Consolidation flattens cadence, and the AI-text screen reads cadence.** The tightened draft
+  measured burstiness 0.625 against the 0.791 of `focus-return-point`, which passed the screen,
+  and 10% short sentences against 23%: every merge had turned a short sentence into a clause.
+  Splitting them apart again costs nothing, because `, and` becoming `. ` saves four characters -
+  the final text is both 1228 characters shorter than what was submitted and more irregular than
+  it (burstiness 0.751 against 0.719, short sentences 22% against 15%). Tighten for length first,
+  then re-measure cadence and split back; the two goals only look opposed.
+- **Repairing someone else's bundle does not entitle you to their design record.** No
+  `authoring/` directory, difficulty record or probe transcript came with the zip, and
+  `preflight` requires four difficulty fields in `STATE.md`. They are answered from the shipped
+  tree - the reference, the case list, the generator - and each is marked as read off the bundle,
+  with the solve estimate attributed to `task.toml` rather than to a measurement. A field filled
+  in from someone else's work and presented as your own measurement is worse than an empty one.

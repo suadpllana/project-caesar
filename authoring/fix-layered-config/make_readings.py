@@ -491,6 +491,9 @@ def mapped(store, src, dst, cache=None):
         "pile.mapped(store, ent.a, ent.b)", "pile.mapped(store, ent.a, ent.b, hist.cache)"))
 
 
+reading("slow-nomemo", work=edit(REF["work.py"],
+    "    hist.memo[key] = out\n    return out\n", "    return out\n"))
+
 def main():
     if OUT.exists():
         shutil.rmtree(OUT)

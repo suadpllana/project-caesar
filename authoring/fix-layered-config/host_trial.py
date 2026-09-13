@@ -22,6 +22,8 @@ from __future__ import annotations
 import fcntl
 import os
 import pathlib
+import sys as _sys
+_sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import re
 import shutil
 import subprocess
@@ -112,7 +114,14 @@ def trial(name, script, want, bundle=False):
 
 
 def from_dir(d):
-    """Turn a directory of link files into an agent script, for variant checks."""
+    """Turn a directory of cfg files into an agent script, for variant checks.
+
+    A variant directory holds only the files it changes; the rest come from the reference,
+    exactly as mkoverlay.py builds a reading. Writing only the variant's files would leave the
+    shipped wrong modules in place and grade a different service.
+    """
+    import mkoverlay
+    d = mkoverlay.build(d)
     by_base = {pathlib.Path(a).name: a for a in artifacts()}
     lines = ["#!/bin/bash", "set -euo pipefail", ""]
     for f in sorted(d.glob("*.py")):

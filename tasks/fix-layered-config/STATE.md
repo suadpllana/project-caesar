@@ -373,13 +373,29 @@ the one the retained rule-dense briefs use.
 
 ## Validation record
 
+All on this host (Python 3.11, four cores), 2026-09-13. Container evidence is container
+evidence; the `host trial` rows are `authoring/fix-layered-config/host_trial.py`, which runs
+`tests/test.sh` verbatim as root with the privilege drop, the locked reward channel and the
+reap, but without an image build.
+
 | gate | how run | result |
 |---|---|---|
 | reference vs frozen answers | `agree.py` | 85 of 85, byte-identical for the 61 pre-tie answers |
 | model vs frozen answers | `agree.py` | 85 of 85 |
 | reference vs model, random | `fuzz.py`, four generators | 11,900 plans, 0 disagreements |
 | reference vs model, families | `famcheck.py` | every family, 0 disagreements |
-| readings separated | `readings.py` | 40 of 40 by a named case; 3 timed-only |
-| cheats caught where expected | `cheat_report.py` | see the recovery entry, updated below |
-| oracle / nop | `host_trial.py` (host emulation) | updated below |
-| preflight | `scripts/preflight.py` | updated below |
+| readings separated | `readings.py` | 41 of 41 by a named case; 3 timed-only |
+| readings separated | `tools/readingcheck.py` | 41 separated; reports the 2 correct-but-slow ones as "equivalent", which is what timed-only means to it |
+| short-rule search | `tools/onelinecheck.py` | no exact rule at depth 2 for either graded quantity (366 count rows, 2052 presence rows) |
+| cheats caught where expected | `cheat_report.py` (hermetic) | 54 cheats, 0 not caught where expected |
+| oracle | host trial | reward 1 |
+| nop | host trial | reward 0 |
+| correct variant `ok-path-memo` | host trial | reward 1 |
+| five privilege probes | host trial | reward 0 each; notes show uid 1002, PermissionError on the seal, the tests and the reward, the late writer refused |
+| slow readings vs the limit | `time_naive.py` | see `authoring/fix-layered-config/timing.txt` |
+| difficulty record | `tools/difficultycheck.py` | 100 of 100, in band, tree measured |
+| preflight | `scripts/preflight.py` | 0 errors; one warning, `test.sh` writes its verdict through a function the linter cannot read |
+| leak, hint, category, structure, dead fields, extraneous files, solve, image emulation | kit tools | clean |
+| similarity | `tools/simcheck.py` | the four-line agent Dockerfile is near two retained ones (0.757 at best after a rewrite); nothing else flagged; conceptual: grades what no earlier task grades |
+| two-container trial | `tools/docker_trial.py` | not run - no Docker daemon in this session |
+| easiness probe | platform | pending - the exit gate of the recovery |

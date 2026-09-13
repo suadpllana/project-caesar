@@ -1,0 +1,15 @@
+Timings of the reference and the three correct-but-slow readings, one plan of each scale
+family, on this host (Python 3.11, four cores, guard 100 s per plan), 2026-09-13.
+The graded batch holds three plans of each family and must finish inside 60 s in total.
+
+reading           wide      deep     mapdeep  tiedeep
+reference         0.50s     0.00s    0.03s    0.02s
+slow-enumerate    >100s     >100s    >100s    >100s
+slow-materialize  0.47s     88.19s   >100s    >100s
+slow-nomemo       >100s     0.00s    0.03s    0.02s
+
+slow-enumerate counts by enumerating every path that shows; it dies on the forty counts over
+twenty thousand inherited paths and on every doubling family. slow-materialize writes out what
+a copy shows when it is taken; it is unaffected by wide (no copies there) and dies on the
+doubling families. slow-nomemo remembers no value; it dies on the wide reference chains.
+Produced by: python3 authoring/fix-layered-config/time_naive.py

@@ -264,7 +264,9 @@ and [`tasks/focus-return-point/task.toml`](../tasks/focus-return-point/task.toml
    revision history, probe counts, or future work in shipped metadata.
 2. Keep the agent-authored instruction concrete and complete without describing the method. Every
    tested rule needs one sentence; every sentence needs a test. State paths, limits, input bounds,
-   output order, and both sides of each fence.
+   output order, and both sides of each fence. `docs/INSTRUCTION-CONTRACT.md` is the procedure.
+   The bundles above passed the AI review; none recorded as passing human review is in this
+   checkout, so they are not calibration for it.
 3. Categorize the skill exercised by the graded work, not the narrative setting. Tags name the
    actual mechanisms.
 4. Keep the agent tree lean. No comments, docs, answer material, dead fields, unused helpers, or

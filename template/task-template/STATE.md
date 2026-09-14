@@ -51,6 +51,19 @@ TODO: the specific reason a frontier agent fails. Name the step, not "it is comp
 - Expert path, described step by step (the harder the aim, the more this guard must hold): TODO
 - Originality check: TODO — searched for public write-ups? what was found?
 
+## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
+
+Every graded assertion traces to a sentence in the instruction. Walk the tests, the sealed model
+and test.sh line by line into authoring/<slug>/trace.md, start it with
+`python tools/tracecheck.py <slug> --skeleton`, and keep `python tools/tracecheck.py <slug>` clean.
+`preflight.py` errors while any line below is unanswered.
+
+- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): TODO
+- Identifiability (readings enumerated, which survived the published evidence, what separated them): TODO
+- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): TODO
+- Independent implementation behind every tolerance and limit (path, measured headroom): TODO
+- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): TODO
+
 ## Verifier contract — FROZEN after Stage 2
 
 Once agreed, this does not change without the contributor's explicit approval.
@@ -74,6 +87,7 @@ be tempted to undo.
 | `harbor run -a oracle` = 1 | not run | |
 | `harbor run -a nop` = 0 | not run | |
 | Cheats all score 0 | not run | |
+| `tracecheck.py` (every graded assertion traced) | not run | |
 | `preflight.py` | not run | |
 | `harbor check` rubric | not run | |
 

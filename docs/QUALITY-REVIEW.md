@@ -10,6 +10,9 @@ So the assistant must review the bundle itself, as the reviewer would, **before 
 
 ## How to run the self-review
 
+Read `docs/INSTRUCTION-CONTRACT.md` first. It is mandatory before any work on a task, and the
+instruction criteria below are its rule seen from the reviewer's side.
+
 Read the bundle end to end with fresh eyes and answer each criterion below explicitly — not "looks
 fine", but which file and line satisfies it. Anything you cannot answer is a finding: fix it, or
 tell the contributor plainly that it is a known risk.
@@ -29,6 +32,19 @@ than the platform's, and one of its criteria still describes the old same-contai
 - Every output file the tests read is named explicitly, with its absolute path, in the instruction.
 - If the agent must produce structured data, the exact schema is specified — in the instruction or
   in a file the instruction points to.
+- Every graded assertion traces to a sentence: the walk is in `authoring/<slug>/trace.md` and
+  `tools/tracecheck.py` is clean. Discoverable in the tree is not stated.
+- Boundaries and conventions are settled in the text: index and rank base, `<` against `<=` at a
+  timestamp or limit, ties, units, signs, empty cases. Whole tasks have died on a rank base and
+  on a sign.
+- Every graded quantity is defined, including what it excludes.
+- Nothing in the instruction or the metadata contradicts the reference, and every count matches
+  what ships.
+- Every verifier requirement is in the text: internal field names, file-layout rules, collected
+  files, forbidden source strings, required exports, clocks and memory caps.
+- No two readings that reproduce all published evidence disagree on the graded set, the dumbest
+  positional and constant strategies score 0, and every tolerance was validated by an
+  independently written implementation.
 
 **Instruction prose** (a reading check — no script can make this call)
 
@@ -112,3 +128,4 @@ rule can be mechanically checked, it also goes into `scripts/preflight.py`.
 | 2026-08-11 | Quality review (fail) | `verifier execution isolation`: grading verdict written into the sandbox-writable work dir with its path exposed to agent code; grader's result loop outside try/except and its exit status unchecked, so a planted verdict + `os._exit` crash yielded reward 1 with no work | Same doc, rules 4-6: trusted verdict on a path agent code never learns and cannot write; fragile parsing inside the guard; every stage's exit status checked; `grader crash after plant` and `malformed worker output` are now mandatory cheats. |
 | 2026-09-04 | Quality review (blocking) | `category and tags`: `alias-settle-report` declared `category=ML, subcategory=Evaluation` because its brief is set in an evaluation harness — "nothing about the work requires ML knowledge, and the 'evaluation harness' framing is narrative". The work is union-find reachability under disequality constraints. Tags were praised as specific and good | Category names the skill the graded work exercises, not the story's setting: now `Software / Algorithms`, the reviewer's own suggestion (their other suggestion, "Debugging", is not a label in the guideline table). Two lines of `task.toml`; the brief was left byte-identical because it had just cleared the AI and similarity screens. New `tools/catcheck.py` fires when a category's vocabulary is absent from `environment/` and present in the prose — measured 0 environment hits here against 25-49 for the three ML tasks that passed this criterion. |
 | 2026-09-09 | Structural (blocking) | `ARTIFACT-PARENT-NOT-CREATED`: tests/Dockerfile "never creates /app/link" - the mkdir was real but sat in a `&&` continuation of `RUN useradd`, so the platform's whole-instruction reading did not see it | Each artifact parent gets its own `RUN mkdir -p` line. `preflight.py` had matched `mkdir` anywhere in the file and passed the rejected bundle; it now requires the instruction to start with `RUN mkdir` or `WORKDIR`, and was checked to fire on the rejected Dockerfile and stay clean on every retained bundle |
+| 2026-09-14 (reported) | Human review | A common pattern across reviewed tasks, not a verdict on a task in this checkout: instruction files below contract quality. Graded assertions with no sentence behind them; whole tasks lost on a rank base and on a +d versus -d sign; graded quantities (`residual_m`, `attempts`, `real_tokens`, `cost`) never defined; docs contradicting the reference and stale counts ("forty scrapes" when 26 ship); verifier requirements - internal field names, file-layout rules, forbidden source strings, required exports - absent from the instruction | `docs/INSTRUCTION-CONTRACT.md`, now the mandatory first read in `CLAUDE.md`, `AGENTS.md`, `README.md`, `NEW-TASK-PROMPT.md` and `RAISE-DIFFICULTY.md`. The walk is recorded in `authoring/<slug>/trace.md`; the new `tools/tracecheck.py` checks its quotes, coverage, cited sites and limits, and checks declared artifacts, clocks, memory caps and tolerances against the instruction; `preflight.py` enforces the new instruction-contract fields of `STATE.md`. Its measurement on the local bundles is recorded in that doc |

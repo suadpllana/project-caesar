@@ -3,6 +3,13 @@
 This file is the system prompt for this project. Any AI assistant working in this workspace must
 follow it. If you are an assistant reading this for the first time, read it fully before acting.
 
+**Mandatory first read: `docs/INSTRUCTION-CONTRACT.md`, before this manual and before anything
+else.** It applies whether the session creates a new task or fixes an existing one, and at every
+stage below. Its rule is the one human review holds every instruction to: every graded assertion
+must trace to a sentence in the instruction. Walk the verifier line by line; where an assertion
+has no sentence, write it or stop grading it. The task should be hard because the problem is
+hard, not because the contract is incomplete.
+
 ---
 
 ## 1. Your role
@@ -75,8 +82,10 @@ authorship gate.
    forward, because the retained bundles shipped under an earlier identity.
 5. **Calibrate against accepted work** — compare tone and structure with retained tasks that passed
    the authorship and quality screens, without copying their prose.
-6. **Gap-check and test** — every tested rule needs a sentence, every sentence needs a test, and all
-   automated and manual prose checks must pass before packaging.
+6. **Gap-check and test** — every graded assertion traces to a sentence and every sentence needs
+   a test (`docs/INSTRUCTION-CONTRACT.md`: walk the verifier into `authoring/<slug>/trace.md` and
+   keep `tools/tracecheck.py` clean), and all automated and manual prose checks must pass before
+   packaging.
 
 *Write it the way an expert briefs a colleague:*
 
@@ -184,6 +193,7 @@ the end.
 | Harness output | Run the gates with `-o` pointing **outside** the task folder (`harbor run -p . -a oracle -e docker -o ../jobs`). Left inside, `jobs/` is harbor's own output and its `result.json` carries the org name; it is excluded from the zip and flagged by preflight, but keeping it out in the first place is cleaner |
 | Environment docs | The agent-facing tree ships no documentation: no comments, docstrings, READMEs or docs directories; `.md` files banned outright by extension (see Stage 3) |
 | Instruction typography | `instruction.md` is plain ASCII — no em dashes, curly quotes, ellipsis characters or other typographic unicode |
+| Instruction contract | Every graded assertion traces to a sentence in `instruction.md`. The walk is `authoring/<slug>/trace.md` and `tools/tracecheck.py` is clean; `preflight.py` errors when `STATE.md` carries the instruction-contract section with a field unanswered or no trace on disk (`docs/INSTRUCTION-CONTRACT.md`) |
 
 **Note on `task.toml` schema.** `harbor init` scaffolds a generic schema that is *not* the Frontier
 Bench one: it emits `expert_time_estimate_min`, `network_mode`, and omits the resource limits and
@@ -510,6 +520,13 @@ Define from the first prompt and task evidence which artifact paths the agent pr
 assertion checks, what tolerances apply, and what the ground truth is. Write it into `STATE.md`.
 Then write the `tests/` skeleton against that contract.
 
+Every assertion in that contract is owed a sentence in the instruction
+(`docs/INSTRUCTION-CONTRACT.md`). List each graded decision with the sentence it will need - its
+boundaries and conventions, the definition of every graded quantity, every verifier requirement
+such as collected files, field names and clocks - and plan the second, independently written
+implementation that will validate each tolerance and limit. A decision that cannot be stated
+without handing over the plan is a design problem to solve now, not at Stage 5.
+
 **This stage carries Prong C of the difficulty strategy — make the wrong plan fatal, and late**
 (`docs/DIFFICULTY.md`). Prong A lives in the instruction and Prong B in the environment, but every
 tactic that converts a wrong plan into a failure is built here, and a verifier designed only for
@@ -576,9 +593,10 @@ agent lands in a realistic project, not an empty `/app`:
   necessary part of its *substance* goes into the agent-authored `instruction.md` (D1),
   stated as plain requirements. Default to moving nothing: every sentence rescued into the
   instruction is plan handed to the agent for free, so first ask whether the code, the data, or
-  the verifier's observable behavior already carries the fact. Nothing stays behind in the tree
-  either way. Everything else the documentation used to explain, the agent earns by reading
-  code.
+  the verifier's observable behavior already carries the fact. The exception is anything the
+  verifier grades: it has its sentence whatever the code shows, because discoverable is not
+  stated (`docs/INSTRUCTION-CONTRACT.md`). Nothing stays behind in the tree either way.
+  Everything else the documentation used to explain, the agent earns by reading code.
 - The code must still be honest: missing documentation is realistic; planting *false* statements
   to mislead is a trap, and the quality review treats traps as artificial handicaps. Let silence
   do the work, not lies. And scope the rule precisely: it covers what the **agent** can read.
@@ -626,8 +644,17 @@ repetition is a judgment call — some deliberate repetition is natural emphasis
 your reading, not `preflight.py`, that decides. When you find a run, rewrite it plainly yourself
 while preserving the contract.
 
-Gate: `scripts/preflight.py` passes on the instruction, and a fresh reading of it would let a
-competent expert start work without asking a clarifying question.
+**Then hold the draft to the contract (`docs/INSTRUCTION-CONTRACT.md`).** Walk every test
+function, enumerated case, model branch and `test.sh` condition into `authoring/<slug>/trace.md`
+with the sentence that tells the agent about it; where there is none, write it or stop grading
+it. Put every graded quantity through the four clusters - boundaries and conventions,
+definitions, contradictions and stale counts, verifier requirements. Run the identifiability
+check on the readings a competent solver might try, and the cold-reader pass on every graded
+output.
+
+Gate: `scripts/preflight.py` passes on the instruction, `python tools/tracecheck.py <slug>` is
+clean, and a fresh reading of it would let a competent expert start work without asking a
+clarifying question.
 
 ### Stage 6 — Anti-cheat
 The pipeline runs an adversarial probe against the task. Do it first, yourself. Derive the laziest
@@ -639,6 +666,10 @@ reading something in the environment that should not be there.
 `docs/VERIFIER-ISOLATION.md` are mandatory here, not optional: a backgrounded process that rewrites
 `reward.txt`, a planted passing verdict, a grader crash after planting, malformed worker output,
 and a privilege probe. Each must score 0 — they are the only proof the isolation actually holds.
+
+The cheats include the dumbest positional and constant strategies of
+`docs/INSTRUCTION-CONTRACT.md` - the shipped tree, a constant per graded field, always the first
+candidate, the worked example replayed. If one passes, regenerate the data.
 
 Gate: every cheat scores 0. If one scores 1, that is a verifier bug — fix it and re-run Stage 4.
 
@@ -662,6 +693,7 @@ If the easiness probe has already rejected this task, Stage 7 is blocked: run th
 
 ```
 python scripts/preflight.py <task-dir>            seconds - run this before anything expensive
+python tools/tracecheck.py <slug>                 seconds - every graded assertion traced to a sentence
 harbor check <task-dir> -m <a-frontier-model>     needs an API key; say so if absent
 harbor run -p <task-dir> -a oracle -e docker -o ../jobs   only if anything changed since Stage 4
 harbor run -p <task-dir> -a nop -e docker -o ../jobs      same condition
@@ -749,6 +781,7 @@ harbor init afterquery/<slug> -t -o <dir>     Scaffold (generic schema — see �
 harbor run -p <dir> -a oracle -e docker       Reference solution; must score 1
 harbor run -p <dir> -a nop -e docker          Do-nothing agent; must score 0
 harbor check <dir> -m <model>                 LLM rubric review of task quality
+python tools/tracecheck.py <slug>             Every graded assertion traced to a sentence (docs/INSTRUCTION-CONTRACT.md)
 python scripts/preflight.py <dir>             Offline mechanical rule check
 python scripts/package.py <dir>               Build the submission zip (checks first, refuses on errors)
 ```

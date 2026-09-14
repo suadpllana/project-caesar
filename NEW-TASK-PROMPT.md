@@ -4,10 +4,10 @@ Paste the block below as the first message in a fresh task-authoring session. Th
 work immediately. It does not stop for the old 11-part proposal or make the contributor approve a
 separate planning document before engineering starts.
 
-The agent still follows every gate in `AGENTS.md`. It handles reversible engineering decisions
-itself and works through the stages without waiting. If a genuinely contributor-owned judgment is
-missing, it continues all independent work and asks for every missing judgment in one batch at the
-next natural checkpoint.
+The agent reads `docs/INSTRUCTION-CONTRACT.md` before anything else, then follows every gate in
+`AGENTS.md`. It handles reversible engineering decisions itself and works through the stages
+without waiting. If a genuinely contributor-owned judgment is missing, it continues all independent
+work and asks for every missing judgment in one batch at the next natural checkpoint.
 
 ---
 
@@ -20,10 +20,12 @@ reversible parts of the task.
 Never spawn subagents. You are the engineer, probe, reviewer, and solver. In your first short
 progress update, state what task you understood and start working.
 
-Read `AGENTS.md` completely before acting, then read `docs/RULES.md`, `docs/DIFFICULTY.md`,
-`docs/QUALITY-REVIEW.md`, and `docs/VERIFIER-ISOLATION.md` when submitted code will execute in the
-verifier. If this is an easiness rejection, also read `RAISE-DIFFICULTY.md` and follow its recovery
-loop completely.
+Before anything else - before inspecting the repository, and whether you are creating a task or
+fixing one - read `docs/INSTRUCTION-CONTRACT.md` in full. It is mandatory: every graded assertion
+must trace to a sentence in the instruction. Then read `AGENTS.md` completely before acting, then
+read `docs/RULES.md`, `docs/DIFFICULTY.md`, `docs/QUALITY-REVIEW.md`, and
+`docs/VERIFIER-ISOLATION.md` when submitted code will execute in the verifier. If this is an
+easiness rejection, also read `RAISE-DIFFICULTY.md` and follow its recovery loop completely.
 
 ## Primary objective: clear the easiness probe
 
@@ -139,6 +141,10 @@ verifier must accept. Write at least two meaningfully different correct variants
 the contract. Any later contract change needs my explicit approval because it changes what
 "correct" means.
 
+Every graded decision in the contract is owed a sentence in the instruction. List each one with
+the sentence it will need, and plan the independently written implementation that will validate
+every tolerance and limit.
+
 ## Environment
 
 Build only what the task needs. Keep the agent-facing tree free of documentation, comments,
@@ -175,8 +181,10 @@ the naive but correct family fails at the stated input scale.
 
 ## Wrong solutions and alternative correct solutions
 
-Implement every plausible wrong reading as a cheat. Include hardcoding, answer-key access,
-verifier tampering, malformed output, process survival, and reward tampering where applicable.
+Implement every plausible wrong reading as a cheat, and score the dumbest positional and constant
+strategies of `docs/INSTRUCTION-CONTRACT.md` the same way; if one passes, regenerate the data.
+Include hardcoding, answer-key access, verifier tampering, malformed output, process survival, and
+reward tampering where applicable.
 Turn every successful easiness-probe solution into a regression cheat. Give each semantic mistake
 a small hand-written counterexample and keep generated coverage for combinations and fitting
 resistance.
@@ -192,6 +200,16 @@ paths, input bounds, outputs, ordering rules, failure conditions, and the timeou
 instruction yourself. Keep it concrete, complete, method-neutral, and plain ASCII. Every tested
 rule needs one sentence and every sentence needs a test. Include the exact required suffix with the
 agent timeout from `task.toml`.
+
+Then hold it to `docs/INSTRUCTION-CONTRACT.md`. Walk every test function, enumerated case, model
+branch and `test.sh` condition into `authoring/<slug>/trace.md` with the sentence that tells the
+agent about it; where there is none, write it or stop grading it. Check boundaries and
+conventions, definitions of graded quantities, contradictions and stale counts, and verifier
+requirements missing from the text. Enumerate the readings a competent solver might try, keep
+those that reproduce all published evidence, and add discriminating evidence where two survive
+and disagree. Validate every tolerance with an independently written implementation, and run the
+cold-reader pass: every decision the text does not settle is a sentence or a worked example you
+owe. `python tools/tracecheck.py <slug>` must be clean.
 
 Write all metadata yourself from evidence. `relevant_experience` must be concise, specific to the
 work, and truthful; the three explanation fields must describe the actual difficulty, reference
@@ -217,9 +235,9 @@ the recovery complete on predicted difficulty or a reduced local simulation.
 Run the cheapest checks first. At minimum run task-specific generation and synchronization,
 correct variants, every cheat, determinism checks, reference and nop trials, isolation probes where
 applicable, `solvecheck`, `deadfieldcheck`, `catcheck`, `hintcheck`, `structcheck`, `simcheck`,
-`forgecheck`, `preflight`, and the criterion-by-criterion manual quality review. Run the real Docker
-oracle and nop gates whenever relevant inputs changed. Do not rerun an unchanged passing gate just
-for reassurance.
+`forgecheck`, `tracecheck`, `preflight`, and the criterion-by-criterion manual quality review. Run
+the real Docker oracle and nop gates whenever relevant inputs changed. Do not rerun an unchanged
+passing gate just for reassurance.
 
 Package with `scripts/package.py`, repair ZIP metadata with `zipfix` on Windows when needed, and run
 `zipcheck` on the final archive. Keep Harbor output outside the task folder. Inspect the packaged

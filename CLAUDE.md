@@ -1,5 +1,12 @@
 # Frontier Bench workspace
 
+**Mandatory first read, before anything else: `docs/INSTRUCTION-CONTRACT.md`.** Read it in full
+at the start of every session - before `AGENTS.md`, and before creating a new task or fixing,
+recovering or resubmitting an existing one. It carries a common reason human review rejects a
+task: every graded assertion must trace to a sentence in the instruction. Walk the verifier line
+by line; where an assertion has no sentence, write it or stop grading it. The walk is recorded in
+`authoring/<slug>/trace.md` and checked by `python tools/tracecheck.py <slug>`.
+
 Follow `AGENTS.md` as the operating manual. The retained task inventory is in `README.md`.
 Before designing or hardening another task, read `docs/DIFFICULTY.md`,
 `docs/QUALITY-REVIEW.md`, and `docs/PASSING-TASK-RESEARCH.md`.

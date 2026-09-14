@@ -115,7 +115,9 @@ their name or purpose (only exceptions anywhere: extensionless legal notices and
 directives). Documentation is plan-delivery — each explanation hands the agent a piece of the
 plan it should have had to earn by reading. If the tree holds a genuine interface contract the
 agent could not infer from code, the smallest necessary part moves into the instruction as plain
-requirements — a last resort, not a habit — and it never stays in the tree. Two boundaries hold it fair: never plant *false* documentation (stale and
+requirements — a last resort, not a habit — and it never stays in the tree. That caution is about
+documentation of the plan, never the graded contract: whatever the verifier grades has its
+sentence in the instruction (`docs/INSTRUCTION-CONTRACT.md`). Two boundaries hold it fair: never plant *false* documentation (stale and
 missing is realistic; lying is a trap, and traps fail the quality review), and the rule covers
 only what the agent can read — verifier code stays well-commented, because the quality review
 requires informative test structure.
@@ -293,7 +295,7 @@ harder. Removing hill-climbing is not the same as removing solvability.
   finish while being wrong throughout. Check invariants along the way, in the verifier.
 - **Vagueness and withheld context.** Explicitly rejected by the pipeline: agents must fail for
   real reasons, not because the instruction was unclear. When in doubt, specify more and rely on
-  the strategy above.
+  the strategy above. Every graded assertion traces to a sentence (`docs/INSTRUCTION-CONTRACT.md`).
 - **Secrecy.** Hidden parameters and unseen configurations chase unverifiability and usually
   require verification machinery the harness does not provide. Prefer visible difficulty.
 

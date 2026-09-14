@@ -1,7 +1,8 @@
 # Raise difficulty after an easiness failure
 
 This is the mandatory recovery procedure for a task that does not pass the easiness probe. Read
-this file completely before changing the task. The goal is not to make the task longer or more
+`docs/INSTRUCTION-CONTRACT.md` first - it is mandatory before fixing any task - then read this
+file completely before changing the task. The goal is not to make the task longer or more
 obscure. The goal is to make a frontier agent's first reasonable plan fail for a fair, specified
 reason while preserving a reliable expert path.
 
@@ -111,7 +112,8 @@ affected stage:
 1. Stage 2: freeze the revised verifier contract before environment code changes.
 2. Stage 3: update the environment and remove any newly exposed derived leaks.
 3. Stage 4: update the single canonical reference solution and measure it.
-4. Stage 5: rewrite and self-review the instruction, then gap-check every tested rule.
+4. Stage 5: rewrite and self-review the instruction, then re-walk `authoring/<slug>/trace.md`
+   until every graded assertion traces to a sentence and `tools/tracecheck.py` is clean.
 5. Stage 6: turn the old winning implementation into a named cheat and add a small hand case that
    proves why it is wrong. Re-run every existing cheat and alternative correct variant.
 6. Stage 7: re-attack the finished task cold, run preflight, oracle, nop, isolation checks where

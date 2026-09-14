@@ -1045,6 +1045,51 @@ def check_state_difficulty(root: Path) -> None:
             )
 
 
+# The instruction contract (docs/INSTRUCTION-CONTRACT.md). Human review reported on 2026-09-14
+# that instructions below contract quality are a common rejection: graded assertions with no
+# sentence behind them. The walk that proves otherwise lives outside the bundle, in
+# authoring/<slug>/trace.md, so these fields are where a skipped walk becomes visible. A STATE.md
+# copied from the current template carries the section and must answer it; the retained bundles
+# predate it, so its absence warns rather than fails.
+STATE_CONTRACT = [
+    ("Instruction trace", "the instruction trace (authoring/<slug>/trace.md and its tracecheck result)"),
+    ("Identifiability", "the identifiability check - readings kept by the published evidence, and what separated them"),
+    ("Shortcut strategies scored", "the constant and positional strategies scored, with their results"),
+    ("Independent implementation behind", "the independent implementation behind every tolerance and limit"),
+    ("Undecided decisions", "the cold-reader pass - decisions the text left open, and the sentence or example added for each"),
+]
+
+
+def check_state_contract(root: Path) -> None:
+    text = read(root / "STATE.md")
+    if text is None:
+        return  # check_state_difficulty has already reported the missing file
+    slug = root.resolve().name
+    if all(field_value(text, needle) is None for needle, _ in STATE_CONTRACT):
+        warn(
+            "STATE.md: no instruction-contract record - every graded assertion must trace to a "
+            "sentence in the instruction; copy the 'Instruction contract' section from "
+            "template/task-template/STATE.md, walk the verifier into authoring/<slug>/trace.md "
+            "and run tools/tracecheck.py (docs/INSTRUCTION-CONTRACT.md)"
+        )
+        return
+    for needle, described in STATE_CONTRACT:
+        value = field_value(text, needle)
+        if value is None:
+            error(f"STATE.md: no line recording {described} - see template/task-template/STATE.md")
+        elif not value or any(m in value for m in TODO_MARKERS) or len(value.split()) < 3:
+            error(
+                f"STATE.md: {described} is unanswered - human review rejects an instruction whose "
+                "graded assertions trace to no sentence; see docs/INSTRUCTION-CONTRACT.md"
+            )
+    trace = root.resolve().parent.parent / "authoring" / slug / "trace.md"
+    if not trace.is_file():
+        error(
+            f"STATE.md: records an instruction contract but authoring/{slug}/trace.md does not "
+            f"exist - run `python tools/tracecheck.py {slug} --skeleton` and walk the verifier"
+        )
+
+
 def check_verifier(root: Path) -> None:
     text = read(root / "tests" / "test.sh")
     if text is None:
@@ -1104,6 +1149,7 @@ def main(argv: list[str]) -> int:
     check_compose(root, cfg)
     check_verifier(root)
     check_state_difficulty(root)
+    check_state_contract(root)
     check_verifier_isolation(root, cfg)
     check_verifier_selfcontained(root)
     check_blocked_terms(root)

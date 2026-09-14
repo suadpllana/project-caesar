@@ -66,6 +66,14 @@ by writing the cheat and confirming it scores 0.
 pass. If the reference solution fails, the solution or the environment is wrong. Loosening a
 tolerance to reach a passing score is reward hacking, and the pipeline audits runs for exactly this.
 
+**Traced to the instruction.** Every graded assertion traces to a sentence in the instruction;
+where one has no sentence, write it or stop grading it. Reviewers reported on 2026-09-14 that
+instructions below contract quality are a common pattern in human review: unsettled boundaries
+and conventions, undefined graded quantities, docs contradicting the reference, and verifier
+requirements missing from the text. The procedure, the identifiability and shortcut checks and
+the independent validation of tolerances are in `docs/INSTRUCTION-CONTRACT.md`, which every
+session reads before anything else.
+
 ---
 
 ## Originality and internet policy

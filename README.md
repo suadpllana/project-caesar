@@ -3,6 +3,11 @@
 This repository keeps only the task projects selected by the contributor, the shared authoring
 kit, and probe evidence that belongs to those projects.
 
+**Mandatory first read for every session, before anything else:**
+[`docs/INSTRUCTION-CONTRACT.md`](docs/INSTRUCTION-CONTRACT.md). It applies whether the session
+creates a new task or fixes an existing one: every graded assertion must trace to a sentence in
+the instruction.
+
 ## Retained projects
 
 Project Caesar AI passed:
@@ -54,6 +59,7 @@ Run the cheap structural check first, then the generic two-image runner when Doc
 
 ```text
 python tools/difficultycheck.py <slug>            before Stage 2, and again at Stage 7
+python tools/tracecheck.py <slug>                 every graded assertion traced to a sentence
 python scripts/preflight.py tasks/<slug>
 python tools/docker_trial.py <slug> --all
 python tools/docker_trial.py <slug> --variants

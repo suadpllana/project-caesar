@@ -19,6 +19,9 @@
     - If your task deviates from the standard convention of your field, that deviation stated
       plainly, with an example, as a requirement. The twist is spec, not a secret.
     - Enough context that a competent expert could start without asking a question.
+    - A sentence for every graded assertion (docs/INSTRUCTION-CONTRACT.md): index bases,
+      < against <=, ties, units, signs, empty cases, the definition of every graded quantity,
+      and every verifier requirement - collected files, field names, clocks, memory caps.
 
   What it must NOT contain:
     - The method. Describe the destination and the rules of the road, never the route: no

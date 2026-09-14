@@ -1,0 +1,14 @@
+rows 44
+seed 61
+rank 2
+micro 2
+accum 2
+ckpt 2
+grow 3
+scale 2
+epochs 2
+nf 26
+run 6
+kill
+back 3
+run 5

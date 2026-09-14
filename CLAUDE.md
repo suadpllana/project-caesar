@@ -279,6 +279,48 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   The shapes had to change, not the claims. The metadata I had already drafted would have stated
   two boundaries that did not exist - write the number after measuring it, never before.
 
+## Lessons, measured (2026-09-14, `shard-redraw-resume`)
+
+- **The category check reads the environment's vocabulary, not the story's.** This task is
+  ML / Training and `catcheck` scored it `environment 0, prose 30` - a straight fail - because
+  the tree said `laps`, `ckpt` and `rows` where the domain says epoch, checkpoint and sample.
+  Nothing else saw it: preflight, the oracle, 26 cheats and the reading separations were all
+  green on a task whose code read as generic software. Terse legacy naming is the house style,
+  but degrading the words the *category* rests on degrades the category with them. The rename
+  was proved cosmetic by `build_gt.py`: all 22 frozen answers came out byte-identical
+  afterwards, which is the only evidence that a sweep of that size changed nothing.
+- **A rename out of the house file-naming pattern silently disables a gate.** Renaming the
+  driver from `run_drive.py` to `train.py` for that same vocabulary made `imagecheck` print
+  "no runner or case files identified - COPY audit only" and exit 0. It looks like a pass. It
+  had stopped dropping the reference into the assembled image and running the four shipped
+  programs, which is the half of that tool that catches a stale Dockerfile. `run_train.py`
+  keeps both the domain word and the `run_*.py` the tool looks for.
+- **A correct-but-slow cheat that is actually wrong is a mislabelled cheat, and only an
+  assertion about exactness finds it.** `slow-replay` scored 0, which was the expected result,
+  and it scored 0 for the wrong reason: it disagreed with the reference on two hand cases
+  because its leg ledger counted an attempt after the step instead of before it, so the
+  checkpoint recorded a plan one attempt short. `cheat_report.py` asserts that each slow family
+  is *exact* on the small set rather than only that the reward came out 0, and that is what
+  named it.
+- **A resource gate is a promise until both sides are measured, and the first measurement said
+  the gate did not bite.** The replay family at `run 15` a leg cost 78 s for its three programs
+  against a 90 s limit - inside it. At `run 25` and a 60 s limit it costs 137 s. The
+  materialising family was never in doubt at 382 to 389 s on one program, and that is exactly
+  why it was the one not worth trusting: the family that looks marginal is the one to measure.
+- **Search for the worked example, do not pick it.** `make_progs.py --pick` prints, for every
+  line where the shipped driver and the reference differ, how many of the 14 wrong readings that
+  line decides. On this task the first line decides 2 and the last decides 9, and both are
+  equally natural to quote. The two the first line decides are readings of a rule the brief
+  states in full anyway.
+- **`| tail -N` on a long background measurement is the stdout-buffering lesson wearing a
+  different hat.** The timing run printed nothing for thirty-three minutes because the pipe held
+  everything until the process exited, and the first thing it then printed was truncated - the
+  reference row of the first program was lost to the tail. `-u` alone is not enough; the pipe
+  has to go too, or the output has to go to a file.
+- **`pkill -f host_trial.py` kills the shell that is running the command containing that
+  string.** The command line matches its own pattern. Match on the process name, or kill by pid
+  from `ps`, or the tool call dies with exit 144 and the patch it was about to apply never runs.
+
 ## Lessons, measured (2026-09-09, the difficulty checker)
 
 - **The passing shape was already written down; nobody had scored against it.** The ten intake

@@ -1,0 +1,9 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN mkdir -p /app
+WORKDIR /app
+
+COPY app_src/ /app/

@@ -1,0 +1,16 @@
+rows 60000000
+seed 88
+rank 4
+micro 8
+accum 4
+ckpt 4
+grow 3
+scale 2
+epochs 1
+nf 51204833
+nf 9117402
+nf 30556781
+run 400
+kill
+back 2
+run 400

@@ -1,0 +1,183 @@
+# Difficulty record - written 2026-09-14, before any environment code.
+
+[task]
+slug = "shard-redraw-resume"
+status = "pending"
+sources = ["tasks/shard-redraw-resume/STATE.md", "authoring/shard-redraw-resume/time_slow.py output 2026-09-14"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Shuffle the sample ids once per epoch, hand rank r the slice order[r::ranks], give each rank a
+cursor into its own slice, take micro-batch size samples per accumulation micro-step, step the
+optimizer and the scaler once per window, checkpoint the cursor and the step count every K steps,
+and on a resume set the cursor back to the saved value and carry on from there.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A step holding a non-finite sample is skipped but still consumes its whole window, so the applied
+count the checkpoint cadence runs on and the position in the epoch order advance at different
+rates; neither can be recovered from the other, and a cursor derived from the step count lands in
+the wrong place the first time a step is skipped.
+"""
+second_discovery = """
+A run that comes back on a different number of ranks redraws the order for the epoch it was in, so
+the saved position addresses a different sequence of ids than the one that produced it, and the
+per-rank slices, the per-rank cursors and the count of steps the epoch was planned to hold are all
+quantities of the old geometry with no meaning under the new one.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped driver on the small programs and line the trace up against the rules in the brief, one line kind at a time",
+  "Establish that a window is cut out of the epoch order first and only then dealt to ranks, which the shipped per-rank slicing cannot express at all",
+  "Rewrite the sampler as arithmetic on the epoch-order position, evaluating the shuffle one position at a time rather than building the epoch",
+  "Split the applied count from the position so the checkpoint carries both, and make the skip path consume its window while leaving the applied count alone",
+  "Work out what a resume has to restore and what it must recompute, since the rank count is not checkpoint state and the order depends on it",
+  "Handle the epoch boundary in its own right: the tail short of a window is dropped, and a resize can end an epoch with no step taken at all",
+  "Time the two large programs against the stated limit and take out anything that costs the size of the dataset rather than the size of what the run consumed",
+]
+
+[search]
+best_page = """
+The PyTorch DistributedSampler reference read together with the stateful-dataloader and streaming
+dataset notes on resuming training with a different number of ranks.
+"""
+helps_plan = false
+deviation = """
+Those shard one fixed epoch permutation across ranks and resume a per-rank cursor into it. Here the
+window is cut from the epoch order first and dealt out chunk by chunk with the micro-batch index
+outside the rank index, the tail is dropped a whole window at a time rather than per rank, and the
+order itself is redrawn when the rank count changes, so a retrieved cursor-resume plan is wrong in
+the geometry, in the drop and in what a resume may reuse.
+"""
+
+[tactics]
+A1 = """
+Every trained instinct for this code is the DistributedSampler shape: permute, slice per rank,
+iterate a per-rank cursor. The spec cuts the window first and deals it out with the micro index
+outside the rank index, so the memorized shape is a wrong answer that reads as the obvious one.
+"""
+A2 = """
+Nothing is called resharding, elastic resume, or a stateful sampler. The brief states a rank count
+that changes when a run comes back and an order drawn for the rank count in force, and the
+recognition that this is a repartition problem is itself the step the agent has to take.
+"""
+B1 = """
+The window arithmetic, the id lookup, the scale machine, the step, the checkpoint and the leg
+driver each hold one part of what a resume has to reproduce, and the frozen shuffle, printer and
+parser fix what the others must agree with. No single file says where a resume lands.
+"""
+B2 = """
+Eleven rules hold at once: chunking, drop granularity, consume-on-skip, the applied count, the
+floor, the growth tracker, the cadence, what a checkpoint holds, what a restore restores, the
+redraw and the empty epoch. One unplanned-for rule anywhere moves the whole trace after it.
+"""
+C1 = """
+The overconservative repair refuses to hand a sample out twice in an epoch, which the redraw makes
+unavoidable after a resize, and it also refuses to drop a partial window it could have used. Both
+sides are graded: plain runs that never resize must not redraw, and resized runs must repeat.
+"""
+C2 = """
+The natural check is to build the same run on torch with DistributedSampler, GradScaler and a step
+scheduler and diff the two. That agrees on plain single-geometry runs and disagrees on exactly the
+cases the verifier is built from, so the check confirms the wrong plan rather than the right one.
+"""
+C3 = """
+The shipped sampler builds the epoch order into a list and shards it, which stays semantically
+correct once repaired and dies on a dataset of sixty million rows at 382 to 389 seconds each;
+and rebuilding run state by replaying the run on every return is correct and costs 42 to 52 seconds
+on each four-hundred-leg program, against a 60 second limit for the whole graded set.
+"""
+C4 = """
+The enumerated programs sit one per graded decision and on both sides of each fence, and several
+hundred more are generated inside the verifier from a seed drawn after the agent's container is
+gone, across families shaped at the resize, the skip and the epoch edge. Every trace must match.
+"""
+guard = """
+Six files under /app/rig are taken from the agent and laid over the verifier's own pristine tree,
+so the parser, the shuffle, the trace format and the driver entry point are frozen and the task
+cannot be reshaped into one where the per-rank cursor plan works.
+"""
+
+[decisions]
+graded = 11
+interactions = [
+  { a = "consume-on-skip", b = "checkpoint cadence", why = "the cadence counts applied steps while the position advances on every attempt, so where a checkpoint lands is a function of the skip pattern and not of the step index" },
+  { a = "order redrawn per rank count", b = "which steps are skipped", why = "a resize moves every id to a different position, so a non-finite sample lands in a different window and the skip pattern after the resume is not the one before it" },
+  { a = "window drop granularity", b = "resume re-windowing", why = "the tail short of a window is dropped with the rank count in force, so a resize mid-epoch changes which positions are reachable at all and therefore how many steps the epoch holds" },
+  { a = "scale floor and growth tracker", b = "what the checkpoint holds", why = "the tracker is rolled back with everything else, so a kill moves when the scale next grows, and a live tracker carried across a kill diverges only several steps later" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A run on one rank count that is never killed must take each sample of an epoch exactly once, in the
+order the shuffle gives, with no redraw and no repeat; a repair that treats every leg as a resize
+fails it.
+"""
+late_case = """
+A kill whose last checkpoint sits in the tail zone, followed by a return on more ranks, so the
+epoch ends with no step taken on the new geometry and the next epoch opens under a redrawn order:
+everything before it passes and this line kind is the first to differ.
+"""
+oracle_denied = """
+The agent can run the shipped driver and can build a torch pipeline beside it, and both agree on
+the single-geometry runs it will naturally write first; neither says anything about the redraw, the
+drop granularity or the cadence, which are where the grading lives.
+"""
+
+[leaks]
+candidates = [
+  { what = "the shuffle module taking a rank count argument", closed_by = "it is used by the shipped sampler on the live path and says nothing about what a resume does with it, so the argument is visible but its consequence is not stated anywhere" },
+  { what = "a step count or a window count stored on the run state", closed_by = "only the position, the applied count and the scale state are held, all of them primitives the ops set or the rules advance, and no count of an epoch's steps is stored at all" },
+  { what = "shipped example programs whose traces would pin the rules", closed_by = "the shipped programs are run through the shipped wrong engine, so their traces are wrong; no correct trace of any program ships in the agent tree" },
+  { what = "a helper that exists only for the resize path", closed_by = "the resize goes through the same window arithmetic as every other step, with no entry point of its own to announce that the case exists" },
+]
+derived_quantities = """
+The tree stores the dataset size, the seed, the rank count, the micro size, the accumulation, the
+cadence, the growth interval and the non-finite ids; every position, window, drop, skip and
+checkpoint is derived at the moment it is needed and none of them is stored or shipped.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Building the epoch's order into a list and slicing it, which the shipped sampler does and which
+stays correct after the semantics are repaired; and rebuilding the run state by replaying the run
+from its first step whenever it comes back.
+"""
+invariant = """
+The order is a permutation evaluated one position at a time and a step touches only the window it
+names, so the cost of a run is the samples it consumes and not the size of the dataset; and the
+checkpoint holds everything a leg needs, so a resume is a restore rather than a replay.
+"""
+input_scale = "a dataset of 60,000,000 rows, and a run of 400 legs across 10,000 steps"
+limit_seconds = 60
+measured = true
+
+[cheats]
+wrong_readings = [
+  { reading = "shard the epoch per rank, rank index outermost", hand_case = "one step on two ranks with two micro-batches, where the two dealings disagree on every id after the first" },
+  { reading = "drop the tail per rank rather than per window", hand_case = "a dataset whose size is a multiple of the rank count but not of the window, so one engine takes a step the other does not" },
+  { reading = "a skipped step does not consume its window", hand_case = "one non-finite sample early in an epoch, after which every later window differs" },
+  { reading = "a skipped step advances the applied count", hand_case = "a skip just before a checkpoint boundary, so the checkpoint lands one step early and the later kill returns to the wrong place" },
+  { reading = "the growth tracker counts applied steps since the run began", hand_case = "two skips separated by fewer applied steps than the growth interval, after which the scale grows early" },
+  { reading = "the checkpoint stores the step count and the position is recomputed from it", hand_case = "any program with one skip before the first checkpoint" },
+  { reading = "a resume restarts the epoch", hand_case = "a kill in the middle of an epoch on an unchanged rank count" },
+  { reading = "a resume keeps the order that was in force before the resize", hand_case = "a kill and a return on a different rank count, where the ids after the resume are drawn from the old order" },
+  { reading = "the new rank count only takes effect at the next epoch", hand_case = "a return on more ranks with most of an epoch left, where the window size does not change until the epoch rolls" },
+  { reading = "the scale exponent goes below zero on a skip at the floor", hand_case = "a run of consecutive non-finite steps from a low starting scale" },
+  { reading = "an epoch with no room left rolls after a step rather than before one", hand_case = "a resize that leaves fewer positions than the new window, so a step is taken that should not exist" },
+]
+correct_variants = [
+  "a position-indexed engine that computes each window's ids on demand from the shuffle and keeps no per-epoch structure at all",
+  "an engine that keeps a small cache of the current window's ids and rebuilds it whenever the leg geometry or the position changes, with the checkpoint held as an immutable tuple",
+]
+
+[shape]
+environment_py_lines = 300
+editable_files = 6
+reference_lines = 260

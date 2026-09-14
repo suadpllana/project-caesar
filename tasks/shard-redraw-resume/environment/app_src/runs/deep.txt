@@ -1,0 +1,810 @@
+rows 10800
+seed 93
+rank 3
+micro 2
+accum 2
+ckpt 2
+grow 3
+scale 1
+epochs 30
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25
+kill
+run 25
+kill
+run 25
+back 3
+run 25
+kill
+run 25
+kill
+run 25
+back 2
+run 25
+kill
+run 25
+kill
+run 25
+back 1
+run 25
+kill
+run 25
+kill
+run 25
+back 4
+run 25

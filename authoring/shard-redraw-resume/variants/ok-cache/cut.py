@@ -1,17 +1,16 @@
-"""How many whole steps the epoch still holds, counted instead of compared."""
+"""How wide a step is, and how many whole steps the epoch can still fill."""
 
 
 def width(run, st):
     return st["rank"] * run.micro * run.accum
 
 
-def left_in_epoch(run, st):
+def steps_left(run, st):
     wide = width(run, st)
-    if wide <= 0:
-        return 0
-    return (run.rows - st["seen"]) // wide
+    return (run.rows - st["fed"]) // wide if wide else 0
 
 
 def roll(st):
     st["epoch"] += 1
-    st["seen"] = 0
+    st["seen"] = {}
+    st["fed"] = 0

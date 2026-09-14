@@ -27,7 +27,7 @@ import cases  # noqa: E402
 import gen  # noqa: E402
 import model  # noqa: E402
 
-SLOW = ("slow-order-list", "slow-replay")
+SLOW = ("slow-order-list", "slow-scan")
 PROBES = ("probe-answer-key", "probe-crash-worker", "probe-hijack-driver", "probe-late-reward",
           "probe-malformed", "probe-plant-report", "probe-privilege", "probe-rewrite-frozen",
           "probe-shrink-set")
@@ -83,11 +83,11 @@ def main():
 
     print(flush=True)
     for name in SLOW:
-        src = HERE / "slow" / ("list" if name.endswith("list") else "replay")
+        src = HERE / "slow" / ("list" if name.endswith("list") else "scan")
         merged = {p: ((src / p) if (src / p).is_file() else (lab.TASK / "solution" / p)
                       ).read_text(encoding="utf-8") for p in emit.PARTS}
         here = lab.tree(lay(merged))
-        wrong = [n for _f, n, lines in work if drive(here, lines) != truth[n]]
+        wrong = [n for _f, n, lines in work if drive(here, lines, 30) != truth[n]]
         print("   %-20s %s on the small set; the limit is what separates it"
               % (name, "exact" if not wrong else "WRONG on %s" % wrong[:2]), flush=True)
 

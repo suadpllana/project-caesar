@@ -114,6 +114,36 @@
   "epochs 2",
   "run 40"
  ],
+ "fed-once": [
+  "rows 24",
+  "seed 33",
+  "rank 2",
+  "micro 1",
+  "accum 2",
+  "ckpt 9",
+  "grow 9",
+  "scale 2",
+  "epochs 1",
+  "run 3",
+  "back 3",
+  "run 2"
+ ],
+ "fed-resume": [
+  "rows 36",
+  "seed 35",
+  "rank 2",
+  "micro 1",
+  "accum 2",
+  "ckpt 9",
+  "grow 9",
+  "scale 2",
+  "epochs 1",
+  "run 2",
+  "back 3",
+  "run 2",
+  "back 2",
+  "run 2"
+ ],
  "halt-zero": [
   "rows 20",
   "seed 29",
@@ -194,6 +224,20 @@
   "back 4",
   "run 4"
  ],
+ "roll-fed": [
+  "rows 30",
+  "seed 37",
+  "rank 3",
+  "micro 1",
+  "accum 2",
+  "ckpt 9",
+  "grow 9",
+  "scale 2",
+  "epochs 2",
+  "run 4",
+  "back 2",
+  "run 6"
+ ],
  "roll-tiny": [
   "rows 5",
   "seed 25",
@@ -205,6 +249,22 @@
   "scale 2",
   "epochs 3",
   "run 9"
+ ],
+ "save-ledger": [
+  "rows 40",
+  "seed 39",
+  "rank 2",
+  "micro 2",
+  "accum 1",
+  "ckpt 2",
+  "grow 9",
+  "scale 2",
+  "epochs 1",
+  "run 4",
+  "back 4",
+  "run 3",
+  "kill",
+  "run 3"
  ],
  "save-pos": [
   "rows 48",

@@ -321,6 +321,52 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   string.** The command line matches its own pattern. Match on the process name, or kill by pid
   from `ps`, or the tool call dies with exit 144 and the patch it was about to apply never runs.
 
+## Lessons, measured (2026-09-14, `shard-redraw-resume` after the quality review)
+
+Failed three blocking criteria on the first submission: `difficult`, `instruction concision` and
+`solvable`. Two of the three were one packaging defect.
+
+- **A directory name can be swallowed whole by the packager, and every other gate will still be
+  green.** The agent-facing example directory was called `runs/`, which is in
+  `preflight.EXCLUDE_DIRS` because that is also what harbor calls its output. `package.py` dropped
+  all four programs from the zip by name. The oracle, the nop, `imagecheck`, `readingcheck`, 26
+  cheats and `zipcheck` were all clean, because every one of them reads the working tree or counts
+  entries rather than asking whether the bundle still contains what the brief points at. The
+  reviewer hit a dead end on the first instruction it followed. Two fixes: the directory is
+  `progs/` like every retained bundle, and `preflight.py` now resolves every `/app` path the brief
+  names against `shipped_files()` and errors when one does not survive packaging - checked to fire
+  on the exact defect and clean on all twelve bundles. The habit that would also have caught it is
+  cheap: unpack the built zip and run `solve.sh` out of it, which is now done before delivery.
+- **"Six files, each shipped with one bug that directly contradicts the prose" is a checklist, and
+  the rubric says so in those words.** Every rule being stated is fine - the passing set states its
+  rules too. What fails is when each stated rule has a line that contradicts it, because then the
+  repair is a diff against the prose. The repair is one rule whose *consequences* are stated
+  nowhere and whose shipped counterpart has no line to fix: here, an epoch hands each sample out
+  once, against an engine that keeps a scalar cursor and has no ledger at all. There is nothing to
+  correct in it; the structure cannot express the question.
+- **Shipping the primitive the performance path needs cancels the gate, whatever the timings
+  say.** The review named `shuf.py` for providing the index-computable shuffle. The first design's
+  C3 then reduced to "do not materialise the list". The rebuilt gate rests on the *inverse* of
+  that shuffle, which ships nowhere and has to be derived, and on an invariant about two walks
+  under one order collapsing - and the naive family it kills is exactly correct rather than
+  obviously silly: re-walking the epoch from the top costs 218 to 222 seconds against a 120 second
+  limit the reference meets in eleven.
+- **`onelinecheck` measures this repair, and the number moved.** Before: the epoch-end decision had
+  the exact one-term rule `left < wide`. After: no rule at depth two, because what is left of an
+  epoch is now counted in samples not handed out rather than positions walked. Three of four
+  graded quantities now have no short rule; the one that does is the checkpoint cadence, which the
+  brief states outright.
+- **A wrong reading that nothing separates may not be a reading at all.** `readingcheck` came back
+  `equivalent` on `fed-from-top`, and it was right: a walk that restarts at the top of the order
+  and skips what is already fed lands on exactly the window a walk resuming from the head lands
+  on. It was the correct-but-slow `scan` family restated. Deleted rather than kept as a cheat that
+  would have scored 0 for a reason that is not the one its name claims.
+- **A contract change can still be proved additive, and the proof is one command.** Adding the
+  no-repeat rule left 20 of the 22 already-frozen answers byte-identical; the two that moved are
+  exactly the two cases with a mid-epoch return, which is what the rule is for. Without
+  `build_gt.py` reading the old file first, that is thirty traces re-derived by hand and hoped
+  over.
+
 ## Lessons, measured (2026-09-09, the difficulty checker)
 
 - **The passing shape was already written down; nobody had scored against it.** The ten intake

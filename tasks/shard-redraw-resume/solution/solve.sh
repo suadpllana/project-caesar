@@ -7,5 +7,5 @@ for part in draw cut scal turn keep lead; do
 done
 
 cd /app
-python run_train.py runs/small.txt
-python run_train.py runs/swap.txt
+python run_train.py progs/small.txt
+python run_train.py progs/swap.txt

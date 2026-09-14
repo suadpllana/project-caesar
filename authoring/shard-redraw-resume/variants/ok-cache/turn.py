@@ -4,14 +4,10 @@ from rig import cut, draw, keep, say, scal
 
 
 def once(run, st):
-    start = st["seen"]
-    wide = cut.width(run, st)
-    lanes = draw.samples(run, st, start, wide)
-    for r, ids in enumerate(lanes):
+    got = draw.window(run, st, cut.width(run, st))
+    for r, ids in enumerate(draw.deal(run, st, got)):
         say.feed(run, r, ids)
-    st["seen"] = start + wide
-    bad = any(one in st["nf"] for ids in lanes for one in ids)
-    if bad:
+    if any(one in st["nf"] for one in got):
         st["sc"], st["gt"] = scal.after_skip(st["sc"], st["gt"])
         say.skip(run, st["sc"])
         return

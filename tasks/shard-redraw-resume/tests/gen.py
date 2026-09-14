@@ -18,6 +18,8 @@ family alone moves none of the resume readings, because it never resumes.
           with no room for a step, and datasets smaller than one window.
   swing   many legs: a return without a preemption, a preemption with no checkpoint behind
           it, and rank counts that go up and down inside one epoch.
+  revisit returns that go back to a rank count the epoch has already walked under, which is
+          the case where the two walks under one order have to be the same walk.
   wide    a dataset of sixty million rows. Every answer is the same as it would be at any
           other size; building the epoch order to get it is what the limit forbids.
   deep    four hundred legs across one run, where rebuilding the state by replaying the run
@@ -33,6 +35,7 @@ FAMILIES = (
     ("resize", False),
     ("edge", False),
     ("swing", False),
+    ("revisit", False),
     ("wide", True),
     ("deep", True),
 )
@@ -132,6 +135,24 @@ def _swing(rng, seed):
         rng, ["kill", "back", "both"], [1, 2, 3, 4], rng.randint(3, 6), (0, 5))
 
 
+def _revisit(rng, seed):
+    rank = rng.randint(2, 3)
+    micro = rng.randint(1, 2)
+    accum = rng.randint(1, 3)
+    rows = rank * micro * accum * rng.randint(6, 14)
+    head = _head(rng, rows, rank, micro, accum, rng.randint(1, 2),
+                 rng.randint(1, 3), rng.randint(1, 3), rng.randint(0, 2), seed)
+    other = rank + rng.choice([1, 2])
+    legs = []
+    for i in range(rng.randint(2, 4)):
+        legs.append("run %d" % rng.randint(1, 4))
+        legs.append("back %d" % (other if i % 2 == 0 else rank))
+        if rng.random() < 0.4:
+            legs.append("kill")
+    legs.append("run %d" % rng.randint(2, 6))
+    return head + _nf(rng, rows, (0, 3)) + legs
+
+
 def _wide(rng, seed):
     rank = rng.choice([2, 4])
     micro = rng.choice([4, 8])
@@ -160,7 +181,7 @@ def _deep(rng, seed):
 
 
 MAKE = {"plain": _plain, "stall": _stall, "rewind": _rewind, "resize": _resize,
-        "edge": _edge, "swing": _swing, "wide": _wide, "deep": _deep}
+        "edge": _edge, "swing": _swing, "revisit": _revisit, "wide": _wide, "deep": _deep}
 
 
 def programs(nonce, per, big=3):

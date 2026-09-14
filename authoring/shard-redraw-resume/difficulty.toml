@@ -4,7 +4,7 @@
 slug = "shard-redraw-resume"
 status = "pending"
 sources = ["tasks/shard-redraw-resume/STATE.md", "authoring/shard-redraw-resume/time_slow.py output 2026-09-14"]
-expert_hours = 10
+expert_hours = 12
 estimated_solves = 2
 
 [plan]
@@ -22,10 +22,10 @@ rates; neither can be recovered from the other, and a cursor derived from the st
 the wrong place the first time a step is skipped.
 """
 second_discovery = """
-A run that comes back on a different number of ranks redraws the order for the epoch it was in, so
-the saved position addresses a different sequence of ids than the one that produced it, and the
-per-rank slices, the per-rank cursors and the count of steps the epoch was planned to hold are all
-quantities of the old geometry with no meaning under the new one.
+An epoch hands each sample out once, so once a return redraws the order the new walk runs over
+ground the old one covered and a window is the next samples the epoch has not fed rather than the
+next positions. The run state stops being a cursor and becomes a ledger of what has been handed
+out, which no position, count or per-rank slice can stand in for.
 """
 second_discovery_effect = "replan"
 first_plan_correct = false
@@ -56,8 +56,9 @@ the geometry, in the drop and in what a resume may reuse.
 [tactics]
 A1 = """
 Every trained instinct for this code is the DistributedSampler shape: permute, slice per rank,
-iterate a per-rank cursor. The spec cuts the window first and deals it out with the micro index
-outside the rank index, so the memorized shape is a wrong answer that reads as the obvious one.
+iterate a per-rank cursor, checkpoint the cursor. The spec cuts the window out of the order first,
+deals it with the micro index outside the rank index, and redraws the order on a resize, so the
+memorized shape is a wrong answer that reads as the obvious one.
 """
 A2 = """
 Nothing is called resharding, elastic resume, or a stateful sampler. The brief states a rank count
@@ -85,10 +86,10 @@ scheduler and diff the two. That agrees on plain single-geometry runs and disagr
 cases the verifier is built from, so the check confirms the wrong plan rather than the right one.
 """
 C3 = """
-The shipped sampler builds the epoch order into a list and shards it, which stays semantically
-correct once repaired and dies on a dataset of sixty million rows at 382 to 389 seconds each;
-and rebuilding run state by replaying the run on every return is correct and costs 42 to 52 seconds
-on each four-hundred-leg program, against a 60 second limit for the whole graded set.
+Building the epoch order into a list to index it stays correct once the semantics are repaired and
+costs 393 to 398 seconds on one sixty-million-row program; re-walking the epoch from the top on
+every step is also exactly correct and costs 18 to 36 seconds on each of those and 218 to 222 on
+each four-hundred-leg program, against a 120 second limit the reference meets in eleven.
 """
 C4 = """
 The enumerated programs sit one per graded decision and on both sides of each fence, and several
@@ -113,14 +114,14 @@ per_decision_feedback = false
 
 [fences]
 ordinary_case = """
-A run on one rank count that is never killed must take each sample of an epoch exactly once, in the
-order the shuffle gives, with no redraw and no repeat; a repair that treats every leg as a resize
-fails it.
+A run on one rank count that is never preempted must take each sample of an epoch exactly once in
+the order the shuffle gives, with no ledger lookup changing anything; a repair that treats every
+leg as a redraw, or that re-walks from the top, changes nothing about it and must not.
 """
 late_case = """
-A kill whose last checkpoint sits in the tail zone, followed by a return on more ranks, so the
-epoch ends with no step taken on the new geometry and the next epoch opens under a redrawn order:
-everything before it passes and this line kind is the first to differ.
+A return to a rank count the epoch has already walked under, after other ranks have walked further:
+the walk has to resume at that order's own head rather than at the top, and every plain step before
+it passes either way, so this is the first line to differ.
 """
 oracle_denied = """
 The agent can run the shipped driver and can build a torch pipeline beside it, and both agree on
@@ -145,39 +146,46 @@ oracle_shipped = false
 [gate]
 present = true
 naive_family = """
-Building the epoch's order into a list and slicing it, which the shipped sampler does and which
-stays correct after the semantics are repaired; and rebuilding the run state by replaying the run
-from its first step whenever it comes back.
+Building the epoch order into a list and indexing it, which the shipped sampler does and which
+stays correct after the semantics are repaired; and re-walking the current order from its top on
+every step, which lands on exactly the same window and pays the length of the epoch to do it.
 """
 invariant = """
-The order is a permutation evaluated one position at a time and a step touches only the window it
-names, so the cost of a run is the samples it consumes and not the size of the dataset; and the
-checkpoint holds everything a leg needs, so a resume is a restore rather than a replay.
+The order is a permutation evaluated one position at a time and is invertible, so where a sample
+stands is one evaluation away; and a walk leaves nothing unfed behind it, so two walks under one
+order collapse to a single head and everything still unhanded lies ahead of it.
 """
 input_scale = "a dataset of 60,000,000 rows, and a run of 400 legs across 10,000 steps"
-limit_seconds = 60
+limit_seconds = 120
 measured = true
 
 [cheats]
 wrong_readings = [
-  { reading = "shard the epoch per rank, rank index outermost", hand_case = "one step on two ranks with two micro-batches, where the two dealings disagree on every id after the first" },
-  { reading = "drop the tail per rank rather than per window", hand_case = "a dataset whose size is a multiple of the rank count but not of the window, so one engine takes a step the other does not" },
-  { reading = "a skipped step does not consume its window", hand_case = "one non-finite sample early in an epoch, after which every later window differs" },
-  { reading = "a skipped step advances the applied count", hand_case = "a skip just before a checkpoint boundary, so the checkpoint lands one step early and the later kill returns to the wrong place" },
-  { reading = "the growth tracker counts applied steps since the run began", hand_case = "two skips separated by fewer applied steps than the growth interval, after which the scale grows early" },
-  { reading = "the checkpoint stores the step count and the position is recomputed from it", hand_case = "any program with one skip before the first checkpoint" },
-  { reading = "a resume restarts the epoch", hand_case = "a kill in the middle of an epoch on an unchanged rank count" },
-  { reading = "a resume keeps the order that was in force before the resize", hand_case = "a kill and a return on a different rank count, where the ids after the resume are drawn from the old order" },
-  { reading = "the new rank count only takes effect at the next epoch", hand_case = "a return on more ranks with most of an epoch left, where the window size does not change until the epoch rolls" },
-  { reading = "the scale exponent goes below zero on a skip at the floor", hand_case = "a run of consecutive non-finite steps from a low starting scale" },
-  { reading = "an epoch with no room left rolls after a step rather than before one", hand_case = "a resize that leaves fewer positions than the new window, so a step is taken that should not exist" },
+  { reading = "no ledger at all, so a redrawn order hands samples out again", hand_case = "a return on a new rank count mid-epoch, where the second window repeats the first" },
+  { reading = "only the current order is consulted for what has been fed", hand_case = "a return on a new rank count after several steps under the old one" },
+  { reading = "what is left of an epoch is counted in positions walked", hand_case = "a return that leaves positions but too few unhanded samples to fill a window" },
+  { reading = "the checkpoint keeps the counts but not the epoch's ledger", hand_case = "a preemption after a return, where the ledger has two heads in it" },
+  { reading = "the checkpoint holds the live ledger instead of a copy", hand_case = "a preemption several steps after the checkpoint that took it" },
+  { reading = "coming back starts the epoch's ledger over", hand_case = "a preemption and a return on a rank count already used" },
+  { reading = "the window is split into one run per rank", hand_case = "one step on two ranks with two accumulations" },
+  { reading = "the window is dealt sample by sample round the ranks", hand_case = "one step with a micro-batch wider than one" },
+  { reading = "the order stays drawn for the rank count the run started on", hand_case = "a return on a different rank count" },
+  { reading = "the tail is given up a micro-batch at a time", hand_case = "a dataset whose size is a multiple of the rank count but not of the window" },
+  { reading = "a skipped step gives its window back", hand_case = "one non-finite sample early in an epoch" },
+  { reading = "a skipped step counts toward the applied total", hand_case = "a skip just before a checkpoint boundary" },
+  { reading = "the growth counter totals applied steps", hand_case = "two skips separated by fewer applied steps than the growth interval" },
+  { reading = "the scale goes below zero on a skip at the floor", hand_case = "consecutive non-finite steps from a low starting scale" },
+  { reading = "a return with no checkpoint keeps the live scale", hand_case = "a growth before the first checkpoint, then a preemption" },
+  { reading = "the new rank count only takes effect at the next epoch", hand_case = "a return with most of an epoch left" },
+  { reading = "the epoch edge is tested after a step rather than before", hand_case = "a program that ends on the last step of an epoch" },
+  { reading = "rolling an epoch spends a unit of the run budget", hand_case = "a budget of exactly one step across an epoch boundary" },
 ]
 correct_variants = [
-  "a position-indexed engine that computes each window's ids on demand from the shuffle and keeps no per-epoch structure at all",
-  "an engine that keeps a small cache of the current window's ids and rebuilds it whenever the leg geometry or the position changes, with the checkpoint held as an immutable tuple",
+  "an engine holding the whole thing in one file, with the ledger as a list of rank and head pairs and the checkpoint as a copied list",
+  "an engine over a dict that memoises the shuffle in both directions and keeps the checkpoint as an immutable namedtuple",
 ]
 
 [shape]
-environment_py_lines = 300
+environment_py_lines = 275
 editable_files = 6
-reference_lines = 260
+reference_lines = 300

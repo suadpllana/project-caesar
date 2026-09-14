@@ -5,7 +5,7 @@ one - anything not written here is lost. This file never ships in the zip.
 
 ## Current stage
 
-`Stage 7 - pre-flight and packaging` (2026-09-14; packaged, container gates outstanding)
+`Stage 7 - rebuilt after a quality-review `difficult` failure` (2026-09-14, second pass)
 
 ## Assistant's assigned role
 
@@ -48,160 +48,204 @@ the frozen contract, inside the stated execution limit.
 The rules are all in the brief. What is not in the brief is which of the structures those rules
 seem to ask for survive all of them at once, and that is the work. The memorized shape for this
 code - permute the epoch, shard it per rank, run a cursor down each rank's shard, checkpoint the
-cursor - is wrong three separate ways here, and the third way cannot be patched into it.
+cursor - is wrong three separate ways, and the third has no line in the tree to fix.
 
-- Expert time estimate: 10 hours
+- Expert time estimate: 12 hours
 - Why a frontier agent cannot one-shot the plan (the strategic answer - required): the first plan
-  is the DistributedSampler shape, and it is defeated in stages. A skipped step consumes its
-  window without advancing the applied count, so the checkpoint cadence and the data position
-  move at different rates and neither is a function of the other. Then a return on a different
-  rank count redraws the order for the epoch the run was in, which makes the saved position index
-  a different sequence of ids and makes every per-rank shard, per-rank cursor and per-epoch step
-  count computed before the resize a quantity of a geometry no longer in force. That is a replan,
-  not a patch: the stable coordinate is the position in the epoch order, everything else is
-  derived from it at the moment it is needed, and the same reformulation is what the sixty
-  million row program forces for a second reason.
-- Tactics making that true (docs/DIFFICULTY.md): A1, A2, B1, B2, C1, C2, C3, C4. A1 is the prior as liability - the retrieved
-  shape shards the epoch per rank and promises the order is independent of the world size, while
-  here the window is cut first and the order is drawn for the rank count in force. A2: nothing
-  is called resharding, elastic resume or a stateful sampler. B1: the window arithmetic, the id
-  lookup, the scale machine, the step, the checkpoint and the leg driver each hold one part of
-  what a resume has to reproduce, and no single file says where a return lands. B2: eleven rules
-  hold at once. C1: both sides are fenced, so a run that never resizes must not redraw and a
-  resized run must repeat samples inside one epoch. C2: the natural oracle is a torch pipeline
-  built beside it, which agrees on the plain runs and disagrees on exactly the graded cases.
-  C3: two correct-but-infeasible families, both measured. C4: enumerated corners plus a nonce
-  population, graded all or nothing.
+  is the DistributedSampler shape and it is defeated in stages. A skipped step takes its window
+  without advancing the applied count, so the cadence and the epoch's progress run on two clocks.
+  Then a return on a different rank count redraws the order, so a saved position addresses a
+  different sequence of samples. Then the rule that has no local repair: an epoch hands each
+  sample out once, so after a redraw a window is the next samples the epoch has not fed rather
+  than the next positions. The shipped engine keeps a scalar cursor and no ledger at all, so
+  there is nothing to correct - the structure cannot express the question. Two derivations follow
+  and neither is stated anywhere: the shuffle is a cycle-walking Feistel and is therefore
+  invertible, so a sample's position under any order is one evaluation away and an inverse ships
+  nowhere; and two walks under one order collapse to a single head, because a walk leaves nothing
+  unfed behind it, which is what makes a four-hundred-leg run affordable and what makes `rows`
+  minus samples fed the right test for whether the epoch is out.
+- Tactics making that true (docs/DIFFICULTY.md): A1, A2, B1, B2, C1, C2, C3, C4. A1 is the prior
+  as liability - the retrieved shape slices the epoch per rank, resumes a cursor and promises the
+  order is independent of the world size, and all three are wrong here. A2: nothing is called
+  resharding, elastic resume or a stateful sampler. B1: the ledger, the width, the scale machine,
+  the step, the checkpoint and the leg driver each hold one part of what a return has to
+  reproduce, and no single file says where one lands. B2: twelve rules hold at once. C1: both
+  sides are fenced, so a run that never returns must be untouched by the ledger. C2: the natural
+  oracle is a torch pipeline built beside it, which agrees on the plain runs and disagrees on
+  exactly the graded cases. C3: two correct-but-infeasible families, both measured. C4:
+  enumerated corners plus a nonce population, graded all or nothing.
 - Assistant's attack on the plan (its first plan, and where that plan is wrong): my first plan
-  was to keep the run state as (epoch, applied step, rank) and derive the position from the
-  applied count, patching the six files where they disagree with the brief. It is wrong at the
-  first skipped step, because the position is not the applied count times a window; and it is
-  structurally wrong at the first `back` on a new rank count, because the position is then not a
-  count of windows of any width and the shard lists are drawn from an order that no longer
-  applies. Both findings arrive after the plain programs already pass.
+  was to keep the run state as (epoch, position, applied) and patch the six files where they
+  disagree with the brief. It is wrong at the first skipped step, wrong again at the first return
+  on a new rank count, and structurally wrong the moment a sample would be handed out twice -
+  which is where the state stops being a position and becomes a ledger of what the epoch has
+  fed. Every one of those findings arrives after the plain programs already pass.
 - Estimated solves out of 8: 2 (designed at the hard edge; the realized rate drifts up)
-- Difficulty record score (tools/difficultycheck.py): attempt 1 on 2026-09-14 scored 100/100 with
-  no hard stop, one warning (`gate.measured` was false before the timings were run). Recorded at
-  `authoring/shard-redraw-resume/difficulty.toml`. No earlier attempt: the first design reached
-  the band.
+- Difficulty record score (tools/difficultycheck.py): 100/100 on the first design, 2026-09-14,
+  before any code. Re-scored 100/100 against the rebuilt tree the same day: 276 environment
+  lines, 6 editable files, 268 reference lines, 30 cheats, 2 variants.
 - Difficulty score anchor (50 at first complete submission, approved by contributor): not
-  anchored; this task has not been submitted.
-- Score history: 2026-09-14, 100/100 on the design record before any code; re-measured against
-  the built tree at Stage 7 (see Validation status).
-- Leak audit (docs/DIFFICULTY.md): the shuffle module takes a rank count argument, which is
-  visible and used on the live path, and says nothing about what a return does with it. No count
-  of an epoch's steps, and no window count, is stored anywhere - only the position, the applied
-  count and the scale state, all of them primitives the ops set or the rules advance. The four
-  shipped programs are run through the shipped wrong driver, so no correct trace of any program
-  exists in the agent's tree. The resize goes through the same window arithmetic as every other
-  step and has no entry point of its own. `tools/deadfieldcheck.py` and `tools/onelinecheck.py`
-  were run against the built tree; results under Validation status.
+  anchored; this task has not been accepted.
+- Score history: 2026-09-14 design 100/100; first build failed the quality review on `difficult`,
+  `instruction concision` and `solvable`; rebuilt the same day and re-scored 100/100.
+- Leak audit (docs/DIFFICULTY.md): no inverse for the shuffle ships anywhere, so the fast
+  membership test has to be derived. Nothing in the tree stores a count of samples fed, a ledger,
+  or a step count for an epoch - the shipped engine keeps one scalar. The four shipped programs
+  run through the shipped wrong driver, so no correct trace exists in the agent's tree. The
+  ledger has no entry point of its own; the redraw goes through the same window call as every
+  other step. `tools/deadfieldcheck.py` and `tools/onelinecheck.py` were run against the built
+  tree; results under Validation status.
 - Expert path, described step by step: run the shipped driver on `small.txt` and line the trace
-  up against the brief one line kind at a time; establish that a window is cut out of the epoch
-  order first and dealt to ranks after, which the shipped per-rank slicing cannot express;
-  rewrite the sampler as arithmetic on the position, evaluating the shuffle one position at a
-  time; split the applied count from the position so the checkpoint carries both and the skip
-  path consumes its window without moving the applied count; settle what a return restores and
-  what it must recompute, given that the rank count is not checkpoint state and the order depends
-  on it; handle the epoch edge in its own right, including a resize that ends an epoch with no
-  step in it; time `wide.txt` and `deep.txt` against the stated limit and remove anything that
-  costs the size of the dataset or the length of the run.
+  up against the brief one line kind at a time; establish that the window is cut from the order
+  and dealt after, which the per-rank slicing cannot express; split the applied count from the
+  epoch's progress; find that a return redraws the order and that a sample must not come round
+  twice, so the state is what the epoch has fed and not where it got to; derive the inverse of
+  the shuffle so that question costs one evaluation; derive that two walks under one order
+  collapse, so the ledger is one head per rank count and the epoch ends on `rows` minus fed; time
+  `wide.txt` and `deep.txt` against the stated limit and remove anything that costs the size of
+  the set or the length of the epoch so far.
 - Originality check: searched 2026-09-14. The pieces are public and the combination is not.
   PyTorch's `DistributedSampler` gives the shard-per-rank shape; Hugging Face `accelerate` and
-  `diffusers` issues 963, 499 and 3467 are the public record of schedulers stepping on skipped
-  or accumulated steps and of resume landing on the wrong step under accumulation; MosaicML's
+  `diffusers` issues 963, 499 and 3467 are the public record of schedulers stepping on skipped or
+  accumulated steps and of resume landing on the wrong step under accumulation; MosaicML's
   StreamingDataset documents elastic resumption and states the opposite of this spec, that sample
-  order is the same regardless of the number of GPUs; format-preserving encryption by Feistel
-  plus cycle walking is the public technique behind an order evaluated one position at a time.
-  No page found plans this task, and the closest one actively misleads, which is the A1 bet.
+  order is the same regardless of the number of GPUs, and resumes by skipping a count rather than
+  by tracking what was handed out; format-preserving encryption by Feistel plus cycle walking is
+  the public technique behind an order evaluated at a position. No page found plans this task, and
+  the closest one actively misleads, which is the A1 bet.
 
-## Verifier contract - FROZEN after Stage 2
+## Verifier contract - FROZEN, amended once
 
-Frozen 2026-09-14, before `tests/` or the environment were written. Only a change to what
-"correct" means needs contributor approval.
+Frozen 2026-09-14 before `tests/` was written. Amended the same day, after the quality review
+failed the bundle on `difficult`, by adding one rule: an epoch hands each sample out once. That
+is a change to what "correct" means and is recorded as such. It is additive everywhere it can be:
+of the 22 answers frozen under the original contract, 20 came out byte-identical and only the two
+cases with a mid-epoch return moved, which `build_gt.py` reported and which is the evidence the
+rule changes nothing about a run that never resizes.
 
 - Artifacts the agent produces: `/app/rig/draw.py`, `/app/rig/cut.py`, `/app/rig/scal.py`,
   `/app/rig/turn.py`, `/app/rig/keep.py`, `/app/rig/lead.py`. Nothing else is read.
 - What is checked: the verifier lays those six over its own pristine copy of the tree, replays
-  every graded program, and compares the whole trace line for line. 22 enumerated programs
-  against `tests/seal/gt.json`, frozen before `test_outputs.py` was written; 276 programs
-  generated inside the verifier from a seed drawn after the agent's container is gone, across
-  eight families. Every program must match. All or nothing.
+  every graded program, and compares the whole trace line for line. 26 enumerated programs
+  against `tests/seal/gt.json`; 321 generated inside the verifier from a seed drawn after the
+  agent's container is gone, across nine families. 347 in total. Every one must match.
 - Tolerances: none. Exact string equality on every line, including order.
-- Ground truth, and where it lives: `tests/seal/model.py` (an independently written whole-run
-  model) and `tests/seal/gt.json`, in a directory `chmod 700` before the privilege drop, so the
-  uid that runs agent code cannot read either.
+- Ground truth: `tests/seal/model.py` and `tests/seal/gt.json`, in a directory `chmod 700` before
+  the privilege drop, so the uid that runs agent code cannot read either.
 
-The eleven graded decisions, as frozen:
+The twelve graded decisions, as they now stand:
 
- 1  a step takes `rank * micro * accum` consecutive positions of the epoch order
- 2  chunk `j * rank + r` of that window, `micro` wide, is what rank r feeds at accumulation j
+ 1  a step takes `rank * micro * accum` samples the epoch has not handed out
+ 2  chunk `j * rank + r` of that window, `micro` wide, is rank r's micro-batch j
  3  the order for an epoch is drawn from the seed, the epoch and the rank count in force
- 4  the tail of an epoch short of a whole window is dropped and never read
- 5  the epoch edge is tested before a step is attempted, and rolling spends no run budget
- 6  a step whose window holds a non-finite id is skipped, and still consumes that window
- 7  a skipped step does not advance the applied count
- 8  a skip halves the scale, no lower than zero, and ends the run of successes
- 9  `grow` applied steps in a row doubles the scale and starts a fresh run of successes
-10  a checkpoint after every `ckpt` applied steps holds the epoch, the position, the applied
-    count and the scale state; a return with none behind it goes to the start of the run
-11  a return takes effect where it is given, not at the next epoch boundary
+ 4  no epoch hands the same sample out twice
+ 5  a walk resumes where the last walk under that order stopped
+ 6  the epoch ends when what it has not handed out will not fill another window
+ 7  the epoch edge is tested before a step is attempted, and rolling spends no run budget
+ 8  a step whose window holds a non-finite sample is skipped, and still takes that window
+ 9  a skipped step does not advance the applied count
+10  a skip halves the scale, no lower than zero, and ends the run of successes; `grow` applied
+    steps in a row doubles it and starts a fresh run
+11  a checkpoint after every `ckpt` applied steps holds the epoch's ledger as that step left it,
+    by copy; a return with none behind it goes to the start of the run
+12  a return takes effect where it is given, not at the next epoch boundary
 
-Prong C tactics in the contract: C1 both sides of every fence are enumerated (`back-hold`,
-`drop-none`, `scale-grow`, `deal-one`, `plain-two` are the must-still-work side); C2 the obvious
-oracle is a torch pipeline, which differs on the chunking, the drop granularity and the redraw;
-C3 two correct-but-infeasible families are killed by the execution limit on the worker; C4 the
-nonce population is generated after the agent is gone, and one wrong line anywhere scores 0. The
+Prong C tactics in the contract: C1 both sides of every fence are enumerated (`deal-one`,
+`drop-none`, `scale-grow`, `back-hold`, `plain-two` are the must-still-work side); C2 the obvious
+oracle is a torch pipeline, which differs on the chunking, the drop granularity, the redraw and
+the ledger; C3 two correct-but-infeasible families are killed by the execution limit; C4 the
+nonce population is generated after the agent is gone and one wrong line anywhere scores 0. The
 route-around guard: only the six files are taken, so the parser, the shuffle, the trace format
-and the driver entry point are the verifier's own and cannot be reshaped.
+and the driver entry point are the verifier's own.
 
 ## Decisions and their reasons
 
-- **The shuffle is frozen and not editable.** It is a cycle-walking Feistel over the least even
-  power of two at or above `rows`, so a position costs O(1) expected. That is what makes an epoch
-  of sixty million rows answerable without building it, and it is why `slow-order-list` is a
-  correct implementation rather than a broken one.
-- **The order depends on the rank count.** Stated plainly in the brief. It is what turns a
-  resize from a change of arithmetic into a change of data, and it is the opposite of what the
-  best retrievable page promises, which is the A1 bet this task makes.
-- **The worker replays programs in-process** rather than by subprocess, because 298 subprocess
+- **The shuffle is frozen, and its inverse is not shipped.** `shuf.at` is a cycle-walking Feistel
+  over the least even power of two at or above `rows`, so a position costs O(1) expected. The
+  inverse is derivable from it by the same construction run backwards and is what makes "has this
+  epoch fed x" affordable. Not shipping it is deliberate: the quality review's third complaint on
+  the first build was that the primitive the performance path needs was already provided.
+- **An epoch hands each sample out once.** This is the rule the rebuild turns on. It is one
+  sentence in the brief and its consequences are stated nowhere: that the state is a ledger and
+  not a cursor, that the ledger is one head per rank count, that the epoch ends on `rows` minus
+  fed, and that a checkpoint has to copy the ledger rather than hold it.
+- **The order depends on the rank count**, stated plainly in the brief. It is the opposite of what
+  the best retrievable page promises, which is the A1 bet this task makes.
+- **The example directory is `progs/`, not `runs/`.** `runs` is in `preflight.EXCLUDE_DIRS`
+  because that is also what harbor calls its output, so the first build shipped a zip with no
+  programs in it and the quality review failed two criteria on the dead end that created.
+  `preflight.py` now errors when the brief names a path that does not survive packaging.
+- **The worker replays programs in-process** rather than by subprocess, because 347 subprocess
   starts would dominate the execution limit and make the limit measure interpreter startup.
-- **`per = 45` in `tests/test.sh`** is the single source of the population size; every count
-  quoted in the brief and in the metadata is derived from `gen.programs` at that value, not
-  remembered.
-- **The worked example was searched for, not chosen.** Of the lines where the shipped driver and
-  the reference differ on `small.txt`, line 1 is decided by only two of the fourteen wrong
-  readings, and both of those are readings of the chunking rule that the brief states in full
-  anyway. `make_progs.py --pick` prints the whole table.
-- **`kill-none` was edited after `readingcheck` reported `kill-fresh-scale` blind.** The original
-  case never moved the scale before the preemption, so the reading was invisible. `grow` went
-  from 9 to 2. `build_gt.py` now keeps `frozen_progs.json` beside it so an edited program is
-  reported as an edited case and not as a contract change.
+- **`PER_FAMILY = 45` and `EXEC_LIMIT = 120` in `tests/test.sh`** are the single source of the
+  population size and the limit; every count and every number quoted in the brief and the
+  metadata is derived from `gen.programs` at that value, not remembered.
+- **The worked example was searched for, not chosen.** `make_progs.py --pick` prints, for every
+  line where the shipped driver and the reference differ on `small.txt`, how many of the wrong
+  readings that line decides. Line 1 decides two, both of them readings of the chunking rule the
+  brief states in full anyway.
+- **`fed-from-top` was written as a wrong reading and is not one.** `readingcheck` reported it
+  equivalent: a walk that restarts at the top and skips what is already fed lands on exactly the
+  window a walk resuming from the head lands on. That is the `slow-scan` family, which is correct
+  and separated by the limit, so the reading was deleted rather than kept as a cheat that scores
+  0 for the wrong reason.
+
+## What the quality review said, and what was done about it
+
+Failed 2026-09-14 on three blocking criteria. All three are addressed; the first was a packaging
+defect and the other two share a root cause with it.
+
+- **`instruction concision` and `solvable`, both FAIL**: the brief sent the agent to
+  `/app/runs/...` and `solution/solve.sh` ran programs from `runs/`, and none of it shipped. The
+  cause was a name collision: `runs` is in `preflight.EXCLUDE_DIRS` because that is also what
+  harbor calls its output directory, so `package.py` dropped all four programs from the zip by
+  name. Every local gate read the working tree, where they exist, so the oracle, the nop,
+  `imagecheck` and 26 cheats were all green on a bundle that was a dead end on first contact.
+  The directory is now `progs/`, and `preflight.py` gained a check that resolves every `/app`
+  path the brief names against the packaged file list rather than against the disk. It was
+  confirmed to fire on the exact defect and to be clean on all twelve bundles here.
+- **`difficult`, FAIL**: "Every semantic rule is spelled out in the instruction ... six files
+  totalling ~150 lines, each shipped with one bug that directly contradicts the prose, and the
+  index-computable shuffle needed for the performance path is already provided in `shuf.py`."
+  Every word of that was accurate about the first build. The repair is one rule whose
+  consequences are stated nowhere: an epoch hands each sample out once. It removes the
+  one-bug-per-sentence shape, because the shipped engine keeps a scalar cursor and has no ledger
+  at all - there is no line that contradicts the rule, only a structure that cannot express it.
+  It makes two derivations load-bearing that no sentence gives away: the shuffle's inverse, which
+  ships nowhere, and the collapse of two walks under one order into a single head, which is what
+  makes a four-hundred-leg run affordable and what makes `rows` minus fed the right epoch-end
+  test. And it replaces the gate that rested on the provided primitive with two that do not:
+  re-walking the epoch from the top is exactly correct and costs 218 to 222 seconds on each
+  four-hundred-leg program. Measured on `tools/onelinecheck.py`, the epoch-end decision went from
+  an exact one-term rule (`left < wide`) to no rule at depth two, and three of four graded
+  quantities now have none.
 
 ## Validation status
 
-Docker could not be used in this session: the daemon starts, but the egress policy returns 403
-on every container-registry blob host tried (Docker Hub, GHCR, public ECR), so no base image can
-be pulled and no container ran. Everything below is either a static check or a host run of the
+Docker could not be used in this session: the daemon starts, but the egress policy returns 403 on
+every container-registry blob host tried (Docker Hub, GHCR, public ECR), so no base image can be
+pulled and no container ran. Everything below is either a static check or a host run of the
 verifier's own `worker.py` and `test_outputs.py` with the real `cases.py`, `gen.py` and sealed
-model, under the same 60 second execution limit `tests/test.sh` gives the worker. Host emulation
+model, under the same 120 second execution limit `tests/test.sh` gives the worker. Host emulation
 is not container evidence, and the difference matters most for the nine isolation probes.
 
 | Check | Status | Notes |
 |---|---|---|
-| Agent image builds | not run | no registry access; `tools/imagecheck.py` interprets the Dockerfile against the build context, assembles the 17 files the image would hold, drops the reference in and runs all four shipped programs - clean |
-| No answer leaked into agent image | pass | no correct trace, no ground truth, no model and no conversion table in `environment/`; `tools/deadfieldcheck.py` clean; `tools/hintcheck.py` clean |
-| `harbor run -a oracle` = 1 | not run (harbor absent) | the reference scores **1** through the real worker and grader on the host, worker 1.7 to 2.0 s for all 298 programs |
-| `harbor run -a nop` = 0 | not run (harbor absent) | the shipped tree scores **0**: killed at the 60 s limit on the large programs, and wrong on 17 of the 22 hand cases when run without a limit |
-| Cheats all score 0 | 26 of 26 scored 0 on the host | 14 wrong readings, 2 correct-but-expensive, 1 forgery, 9 isolation probes. The probes' rewards are 0 here because each carries a wrong reading as well, which is what makes the reward a verdict on the tamper - but the host has no privilege drop and no root-owned seal, so this does **not** prove the isolation |
-| Which layer catches each cheat | pass | `cheat_report.py`: every one of the 14 readings is caught by the enumerated case named for it, both slow families are exact on the small set, and the forgery reproduces 22 of 22 enumerated and fails 18 of 36 generated |
-| Readings separated | pass | `tools/readingcheck.py`: all 14 separated by an enumerated case. `kill-fresh-scale` was BLIND until `kill-none` was given a growth interval that moves the scale before the preemption |
-| Answer shape | pass | `tools/onelinecheck.py`: `roll-or-step` is `left < wide` and `save-after` is the cadence, both stated in the brief; `resume-seen` and `step-applied` have no exact rule at depth 2 over the fields the tree exposes, `saved_done * wide` included |
-| Correct variants | pass | two independently written engines score **1**: one holding the whole engine in `lead.py` over a plain list, one caching the current window and keeping the checkpoint as a namedtuple |
-| Resource gate | measured | reference 1.7-2.0 s for the whole graded set; the epoch order built into a list costs 382-389 s on one sixty-million-row program; the run state rebuilt by replaying costs 42-52 s on each four-hundred-leg program, 137 s for the three, against the 60 s limit |
-| `preflight.py` | pass | no errors; 21 warnings, 20 of them the known unused-public-function false positive that every retained bundle carries, plus the reward-binary warning slab-fold-scope also carries |
-| `catcheck`, `structcheck`, `textcheck`, `hintcheck`, `solvecheck`, `extraneouscheck`, `forgecheck`, `simcheck` | pass | simcheck's conceptual axis is clean; its two remaining NEAR findings are the Dockerfiles, which the retained bundles score 1.000 against each other on |
-| `difficultycheck` at Stage 7 | 100/100 | measured tree: 275 environment lines, 6 editable files, 232 reference lines, 26 cheats, 2 variants. No drift from the design |
+| Agent image builds | not run | no registry access; `tools/imagecheck.py` interprets the Dockerfile against the build context, assembles the files the image would hold, drops the reference in and runs all four shipped programs - clean |
+| Brief's paths ship | pass | the new `preflight.py` check resolves every `/app` path in the brief against the packaged file list |
+| No answer leaked into agent image | pass | no correct trace, no ground truth, no model and no inverse in `environment/`; `deadfieldcheck` and `hintcheck` clean |
+| `harbor run -a oracle` = 1 | not run (harbor absent) | the reference scores **1** through the real worker and grader on the host, worker 11.2 s for all 347 programs |
+| `harbor run -a nop` = 0 | not run (harbor absent) | the shipped tree scores **0** |
+| Cheats all score 0 | 30 of 30 scored 0 on the host | 18 wrong readings, 2 correct-but-expensive, 1 forgery, 9 isolation probes. The probes each carry a wrong reading as well, which is what makes the reward a verdict on the tamper - but the host has no privilege drop and no root-owned seal, so this does **not** prove the isolation |
+| Which layer catches each cheat | pass | `cheat_report.py`: all 18 readings caught by the enumerated case named for each, both slow families exact on the small set, the forgery reproduces 26 of 26 enumerated and fails 20 of 35 generated |
+| Readings separated | pass | `tools/readingcheck.py`: every reading separated by an enumerated case. `fed-from-top` came back equivalent and was deleted - it is the `slow-scan` family, not a wrong reading |
+| Answer shape | pass | `tools/onelinecheck.py`: only `save-after` is short (the cadence, stated in the brief); `roll-or-step`, `window-first` and `step-applied` have no exact rule at depth 2 over the fields the shipped tree exposes |
+| Correct variants | pass | two independently written engines score **1**: one holding the whole engine in `lead.py` with the ledger as a list of pairs, one over a dict with the shuffle memoised both ways |
+| Resource gate | measured | reference 11.2 s for the whole graded set; the epoch order built into a list costs 393-398 s on one sixty-million-row program; the epoch re-walked from the top costs 18-36 s on each of those and 218-222 s on each four-hundred-leg program, against the 120 s limit |
+| Additivity of the contract change | proved | adding the no-repeat rule left 20 of the 22 previously frozen answers byte-identical; only the two mid-epoch-return cases moved, which is what the rule is for |
+| `preflight.py` | pass | no errors; 22 warnings, 20 of them the known unused-public-function false positive every retained bundle carries |
+| `catcheck`, `structcheck`, `textcheck`, `hintcheck`, `solvecheck`, `extraneouscheck`, `forgecheck`, `simcheck` | pass | simcheck's conceptual axis is clean |
+| `difficultycheck` | 100/100 | measured tree: 276 environment lines, 6 editable files, 268 reference lines, 30 cheats, 2 variants |
 | `harbor check` rubric | not run | no API key and no harbor in this environment |
 
 ## Stage 7 re-attack, and the self-probe
@@ -232,41 +276,38 @@ in the agent's tree, and the two scale boundaries measured rather than asserted.
 
 Answered with the file that satisfies each, not with "looks fine".
 
-- *Every behaviour the tests check is in the instruction.* The eleven graded decisions are
-  listed in the frozen contract above and each has a sentence in `instruction.md`: the window
-  width and the chunking in paragraph 3, the tail drop and the edge test and the roll budget in
-  the same paragraph, the skip and the consume and the applied count and the scale in paragraph
-  4, the cadence and the return and the rank count in paragraph 5, the trace format in
-  paragraph 6, the limit and the two large programs in paragraph 7.
+- *Every behaviour the tests check is in the instruction.* The twelve graded decisions are listed
+  in the frozen contract above and each has a sentence in `instruction.md`: the window and the
+  no-repeat rule and the chunking and the epoch edge in paragraph 3, the skip and the scale in
+  paragraph 4, the cadence and the return in paragraph 5, the trace format in paragraph 6, the
+  limit and the two large programs in paragraph 7.
 - *Every behaviour the instruction promises is tested.* `tools/readingcheck.py` names the
-  enumerated case that separates each of the fourteen wrong readings, and `cheat_report.py`
-  names the first program that catches each shipped cheat.
-- *Every file the tests read is named absolutely.* The six `/app/rig/*.py` in paragraph 2; a
-  script checked every backticked `/app` path in the brief against the tree and all thirteen
-  exist, and every op the brief names is one the parser accepts, with none left over.
-- *Exact schema.* Eight line kinds, each with its fields, in paragraph 6, ending "Nothing else
-  is printed".
-- *Prose.* `tools/textcheck.py` against `note-carry-forward`: burstiness 0.871, 24 per cent
-  short sentences, 0 stock words, 0 hedges, 1.4 contractions per thousand. The one finding left
-  is paragraph-length uniformity, which every retained passing brief also carries.
-- *Verifier demands evidence.* The worker replays 298 programs through the submitted files and
+  enumerated case that separates each of the eighteen wrong readings, and `cheat_report.py` names
+  the first program that catches each shipped cheat.
+- *Every file the tests read is named absolutely.* The six `/app/rig/*.py` in paragraph 2; the
+  new `preflight.py` check resolves every backticked `/app` path in the brief against the
+  packaged file list, which is the check the first build did not have.
+- *Exact schema.* Eight line kinds, each with its fields, in paragraph 6, ending "Nothing else is
+  printed".
+- *Prose.* `tools/textcheck.py` against `note-carry-forward`: the only finding left is
+  paragraph-length uniformity, which every retained passing brief also carries.
+- *Verifier demands evidence.* The worker replays 347 programs through the submitted files and
   the grader compares whole traces; nothing is read from an exit code or from state the agent
   could write.
-- *Test code is structured and commented.* `tests/test_outputs.py` opens with the frozen
-  contract and separates the self-consistency check, the enumerated cases and the nonce
-  population.
+- *Test code is structured and commented.* `tests/test_outputs.py` opens with the frozen contract
+  and separates the self-consistency check, the enumerated cases and the nonce population.
 - *Deterministic.* No wall-clock or network dependence in any assertion. The nonce changes the
-  programs, never the verdict: the sealed model is the oracle for whatever is generated, and the
-  oracle scored 1 on every run of it here.
+  programs, never the verdict: the sealed model is the oracle for whatever is generated.
 - *Environment hygiene.* `environment/Dockerfile` copies only `app_src/`; pytest and ctrf are
   pinned and baked into `tests/Dockerfile`; `tests/test.sh` touches no network.
 - *Solution quality.* `solution/solve.sh` copies six real implementation files and runs the
-  driver; `tools/solvecheck.py` clean.
-- *Anti-cheating.* No correct trace, ground truth or model in the agent tree; comparison is
-  exact; nothing is cloned.
+  driver on two shipped programs; `tools/solvecheck.py` clean, and the script was run end to end
+  against a copy of the tree.
+- *Anti-cheating.* No correct trace, ground truth, model or shuffle inverse in the agent tree;
+  comparison is exact; nothing is cloned.
 - *Metadata.* `category = "ML"` with `subcategory = "Training"` from that row; six tags naming
   techniques and none restating the taxonomy; `difficulty_explanation` names the concrete step
-  and states the terse-register naming as a design choice; `expert_time_estimate_hours = 10`
+  and states the terse-register naming as a design choice; `expert_time_estimate_hours = 12`
   matches the claim.
 
 ## Open questions and next steps

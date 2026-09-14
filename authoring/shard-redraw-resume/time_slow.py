@@ -32,7 +32,7 @@ def main():
     trees = {
         "ref": lab.tree(TASK / "solution"),
         "list": lab.tree(TASK / "solution", SLOW / "list"),
-        "replay": lab.tree(TASK / "solution", SLOW / "replay"),
+        "scan": lab.tree(TASK / "solution", SLOW / "scan"),
     }
     room = pathlib.Path(tempfile.mkdtemp(prefix="srr-slow-"))
     for fam, name, lines in gen.programs("agree-nonce", 1):

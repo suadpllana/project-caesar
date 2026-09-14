@@ -1,9 +1,17 @@
 #!/bin/bash
-# the order stays drawn for the rank count the run started on
+# exactly the reference, re-walking the epoch from the top on every step
 set -euo pipefail
 
 cat > /app/rig/draw.py <<'PYEOF'
-"""Which samples the epoch has not handed out, and the window made of them.
+"""Correct, and it re-walks the epoch from the top on every step.
+
+Identical answers to the reference: a walk that starts at position zero skips everything the
+epoch has already fed and lands on exactly the window a walk resuming from the head would.
+What it costs is the head, once per step, which is the length of the epoch so far.
+
+Original notes follow.
+
+Which samples the epoch has not handed out, and the window made of them.
 
 This is where the epoch's ledger is read, and the shape of that ledger is the whole of the
 problem. An epoch can be walked under several orders, one per rank count the run has been on,
@@ -52,8 +60,8 @@ def fed(run, st, x):
 
 def window(run, st, wide):
     """The next `wide` samples of the current order that the epoch has not fed."""
-    rank = run.rank
-    at = st.seen.get(rank, 0)
+    rank = st.rank
+    at = 0
     seed, epoch, rows = run.seed, st.epoch, run.rows
     got = []
     while len(got) < wide:

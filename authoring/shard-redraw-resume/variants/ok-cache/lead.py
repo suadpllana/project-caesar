@@ -5,7 +5,7 @@ from rig import cut, keep, say, turn
 
 def state(run):
     if run.leg is None:
-        run.leg = {"epoch": 0, "seen": 0, "done": 0, "sc": run.scale, "gt": 0,
+        run.leg = {"epoch": 0, "seen": {}, "fed": 0, "done": 0, "sc": run.scale, "gt": 0,
                    "rank": run.rank, "saved": None, "nf": frozenset(run.nf)}
     return run.leg
 
@@ -13,7 +13,7 @@ def state(run):
 def walk(run, left):
     st = state(run)
     while left > 0 and st["epoch"] < run.epochs:
-        if cut.left_in_epoch(run, st) < 1:
+        if cut.steps_left(run, st) < 1:
             cut.roll(st)
             say.roll(run, st["epoch"])
             continue

@@ -1,5 +1,5 @@
 #!/bin/bash
-# the order stays drawn for the rank count the run started on
+# what is left of an epoch is counted in positions walked instead of samples handed out
 set -euo pipefail
 
 cat > /app/rig/draw.py <<'PYEOF'
@@ -52,7 +52,7 @@ def fed(run, st, x):
 
 def window(run, st, wide):
     """The next `wide` samples of the current order that the epoch has not fed."""
-    rank = run.rank
+    rank = st.rank
     at = st.seen.get(rank, 0)
     seed, epoch, rows = run.seed, st.epoch, run.rows
     got = []
@@ -98,7 +98,7 @@ def width(run, st):
 
 def room(run, st):
     """Can the epoch still fill a whole window out of what it has not fed?"""
-    return run.rows - st.fed >= width(run, st)
+    return run.rows - st.seen.get(st.rank, 0) >= width(run, st)
 
 
 def roll(st):

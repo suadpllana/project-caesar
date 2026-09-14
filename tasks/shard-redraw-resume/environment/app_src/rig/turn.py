@@ -1,20 +1,22 @@
-from rig import draw, keep, say, scal
+from rig import cut, draw, keep, say, scal
 
 
-def once(run, st, span):
-    start, wide = span
-    dealt = draw.samples(run, st, start, wide)
-    for r, ids in enumerate(dealt):
+def once(run, st):
+    wide = cut.width(run, st)
+    left = run.rows - st.seen
+    if left < wide:
+        wide = (left // (st.rank * run.micro)) * (st.rank * run.micro)
+    lanes = draw.deal(run, st, draw.window(run, st, wide))
+    for r, ids in enumerate(lanes):
         say.feed(run, r, ids)
     hurt = False
-    for ids in dealt:
+    for ids in lanes:
         for one in ids:
             if one in st.nf:
                 hurt = True
                 break
         if hurt:
             break
-    st.seen = start + wide
     st.done += 1
     if hurt:
         scal.fell(st)

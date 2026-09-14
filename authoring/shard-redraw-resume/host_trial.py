@@ -21,7 +21,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 TASK = ROOT / "tasks" / "shard-redraw-resume"
 PARTS = ("draw.py", "cut.py", "scal.py", "turn.py", "keep.py", "lead.py")
-LIMIT = 60   # tests/test.sh EXEC_LIMIT: the wall the submitted driver gets
+LIMIT = 120   # tests/test.sh EXEC_LIMIT: the wall the submitted driver gets
 LOCK = pathlib.Path(tempfile.gettempdir()) / "srr-host-trial.lock"
 
 

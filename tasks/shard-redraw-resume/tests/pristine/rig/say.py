@@ -10,12 +10,12 @@ def skip(run, sc):
     run.out.append("skip %d" % sc)
 
 
-def save(run, done, epoch, seen):
-    run.out.append("save %d %d %d" % (done, epoch, seen))
+def save(run, done, epoch, fed):
+    run.out.append("save %d %d %d" % (done, epoch, fed))
 
 
-def kill(run, epoch, seen):
-    run.out.append("kill %d %d" % (epoch, seen))
+def kill(run, epoch, fed):
+    run.out.append("kill %d %d" % (epoch, fed))
 
 
 def back(run, rank):

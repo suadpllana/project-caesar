@@ -1,4 +1,4 @@
-"""The loss scale, as a pair returned rather than mutated in place."""
+"""The loss scale, returned as a pair rather than mutated in place."""
 
 
 def after_skip(sc, _gt):

@@ -2,16 +2,12 @@ def width(run, st):
     return st.rank * run.micro * run.accum
 
 
-def span(run, st):
-    wide = width(run, st)
+def room(run, st):
     left = run.rows - st.seen
-    if left >= wide:
-        return st.seen, wide
+    if left >= width(run, st):
+        return True
     unit = st.rank * run.micro
-    short = (left // unit) * unit if unit else 0
-    if short <= 0:
-        return None
-    return st.seen, short
+    return unit > 0 and left >= unit
 
 
 def roll(st):

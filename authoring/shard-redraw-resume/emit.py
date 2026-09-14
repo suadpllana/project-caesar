@@ -63,234 +63,247 @@ def write(name, comment, files, tail=None):
     MADE.append(name)
 
 
-# --- how a window is dealt out ---------------------------------------------------------
+# --- whether the epoch has handed a sample out already ----------------------------------
 
-LAZY_SHARD = '''    for r in range(rank):
-        mine = []
-        for j in range(turns):
-            head = start // rank + j * micro
-            for m in range(micro):
-                mine.append(shuf.at(seed, epoch, rank, rows, (head + m) * rank + r))
-        out.append(mine)
-'''
-
-
-def deal_shard():
+def fed_repeat():
     f = base()
     sub(f, "draw.py",
-        '''    for r in range(rank):
-        mine = []
-        for j in range(turns):
-            base = start + (j * rank + r) * micro
-            for m in range(micro):
-                mine.append(shuf.at(seed, epoch, rank, rows, base + m))
-        out.append(mine)
-''', LAZY_SHARD)
-    write("deal-shard", "the epoch is sharded per rank and each rank runs a cursor down its own "
-                        "shard", f)
+        """    for rank, head in st.seen.items():
+        if head and back(run, st.epoch, rank, x) < head:
+            return True
+    return False
+""", """    return False
+""")
+    write("fed-repeat", "the epoch keeps no ledger, so a redrawn order hands samples out again",
+          f)
 
 
-def deal_rank_major():
+def fed_forward():
     f = base()
-    sub(f, "draw.py", "base = start + (j * rank + r) * micro",
-        "base = start + (r * turns + j) * micro")
-    write("deal-rank-major", "the window is split into one run per rank instead of one per "
-                             "accumulation", f)
+    sub(f, "draw.py", "    for rank, head in st.seen.items():",
+        "    for rank, head in ((st.rank, st.seen.get(st.rank, 0)),):")
+    write("fed-forward", "only the current order is consulted, so a sample fed under another "
+                         "rank count comes round again", f)
 
 
-def back_keeps_order():
+# --- where the epoch ends -----------------------------------------------------------------
+
+def roll_on_walk():
     f = base()
-    sub(f, "draw.py", "    seed, epoch, rows = run.seed, st.epoch, run.rows",
-        "    seed, epoch, rows = run.seed, st.epoch, run.rows\n    rank = run.rank")
-    sub(f, "draw.py", "    turns = wide // (rank * micro) if rank * micro else 0",
-        "    turns = wide // (st.rank * micro) if st.rank * micro else 0")
-    sub(f, "draw.py", "    for r in range(rank):", "    for r in range(st.rank):")
-    write("back-keeps-order", "the order stays drawn for the rank count the run started on", f)
+    sub(f, "cut.py", "    return run.rows - st.fed >= width(run, st)",
+        "    return run.rows - st.seen.get(st.rank, 0) >= width(run, st)")
+    write("roll-on-walk", "what is left of an epoch is counted in positions walked instead of "
+                          "samples handed out", f)
 
-
-# --- where an epoch ends ---------------------------------------------------------------
 
 def drop_micro():
     f = base()
-    sub(f, "cut.py",
-        '''    wide = width(run, st)
-    if run.rows - st.seen < wide:
-        return None
-    return st.seen, wide
-''', '''    wide = width(run, st)
-    left = run.rows - st.seen
-    if left >= wide:
-        return st.seen, wide
-    unit = st.rank * run.micro
-    short = (left // unit) * unit if unit else 0
-    if short <= 0:
-        return None
-    return st.seen, short
-''')
-    write("drop-micro", "the tail is dropped a micro-batch at a time, so the last step of an "
+    sub(f, "turn.py", "    got = draw.window(run, st, run.micro * run.accum * st.rank)",
+        """    wide = run.micro * run.accum * st.rank
+    left = run.rows - st.fed
+    if left < wide:
+        unit = st.rank * run.micro
+        wide = (left // unit) * unit if unit else 0
+    got = draw.window(run, st, wide)""")
+    sub(f, "cut.py", "    return run.rows - st.fed >= width(run, st)",
+        """    unit = st.rank * run.micro
+    return unit > 0 and run.rows - st.fed >= unit""")
+    write("drop-micro", "the tail is given up a micro-batch at a time, so the last step of an "
                         "epoch comes up short", f)
 
 
 def roll_after():
     f = base()
     sub(f, "lead.py",
-        '''        span = cut.span(run, st)
-        if span is None:
+        """        if not cut.room(run, st):
             cut.roll(st)
             say.roll(run, st.epoch)
             continue
-        turn.once(run, st, span)
+        turn.once(run, st)
         left -= 1
-''', '''        span = cut.span(run, st)
-        if span is not None:
-            turn.once(run, st, span)
+""", """        if cut.room(run, st):
+            turn.once(run, st)
             left -= 1
-        if cut.span(run, st) is None:
+        if not cut.room(run, st):
             cut.roll(st)
             say.roll(run, st.epoch)
-''')
+""")
     write("roll-after", "the epoch edge is tested after a step instead of before one", f)
 
 
 def roll_costs():
     f = base()
     sub(f, "lead.py",
-        '''            cut.roll(st)
+        """            cut.roll(st)
             say.roll(run, st.epoch)
             continue
-''', '''            cut.roll(st)
+""", """            cut.roll(st)
             say.roll(run, st.epoch)
             left -= 1
             continue
-''')
+""")
     write("roll-costs", "rolling an epoch spends a unit of the run budget", f)
 
 
-# --- what a skipped step does ----------------------------------------------------------
+# --- how a window is dealt out -------------------------------------------------------------
+
+def deal_rank_major():
+    f = base()
+    sub(f, "draw.py", "        lanes[c % rank].extend(got[c * micro:(c + 1) * micro])",
+        "        lanes[min(c // run.accum, rank - 1)].extend(got[c * micro:(c + 1) * micro])")
+    write("deal-rank-major", "the window is split into one run per rank instead of one per "
+                             "accumulation", f)
+
+
+def deal_stride():
+    f = base()
+    sub(f, "draw.py",
+        """    for c in range(len(got) // micro):
+        lanes[c % rank].extend(got[c * micro:(c + 1) * micro])
+""", """    for i, x in enumerate(got):
+        lanes[i % rank].append(x)
+""")
+    write("deal-stride", "the window is dealt sample by sample round the ranks rather than a "
+                         "micro-batch at a time", f)
+
+
+def back_keeps_order():
+    f = base()
+    sub(f, "draw.py", "    rank = st.rank\n    at = st.seen.get(rank, 0)",
+        "    rank = run.rank\n    at = st.seen.get(rank, 0)")
+    write("back-keeps-order", "the order stays drawn for the rank count the run started on", f)
+
+
+# --- what a skipped step does ---------------------------------------------------------------
 
 def skip_holds():
     f = base()
     sub(f, "turn.py",
-        '''    st.seen = start + wide
-    if hurt:
-''', '''    if hurt:
-''')
-    sub(f, "turn.py", "    st.done += 1\n", "    st.seen = start + wide\n    st.done += 1\n")
-    write("skip-holds", "a skipped step leaves the position where it was, as though the window "
-                        "were retried", f)
+        """    if hurt:
+        scal.fell(st)
+        say.skip(run, st.sc)
+        return
+""", """    if hurt:
+        st.fed -= len(got)
+        st.seen[st.rank] = was
+        scal.fell(st)
+        say.skip(run, st.sc)
+        return
+""")
+    sub(f, "turn.py", "    got = draw.window(run, st, run.micro * run.accum * st.rank)",
+        "    was = st.seen.get(st.rank, 0)\n"
+        "    got = draw.window(run, st, run.micro * run.accum * st.rank)")
+    write("skip-holds", "a skipped step gives its window back, as though it were retried", f)
 
 
 def skip_counts():
     f = base()
     sub(f, "turn.py",
-        '''    st.seen = start + wide
+        """    if hurt:
+        scal.fell(st)
+""", """    st.done += 1
     if hurt:
-''', '''    st.seen = start + wide
-    st.done += 1
-    if hurt:
-''')
+        scal.fell(st)
+""")
     sub(f, "turn.py", "    st.done += 1\n    scal.rose(run, st)", "    scal.rose(run, st)")
     write("skip-counts", "a skipped step counts toward the applied total and so toward the "
                          "checkpoint cadence", f)
 
 
-# --- the scale --------------------------------------------------------------------------
+# --- the scale --------------------------------------------------------------------------------
 
 def grow_total():
     f = base()
     sub(f, "scal.py",
-        '''    if st.sc > 0:
+        """    if st.sc > 0:
         st.sc -= 1
     st.gt = 0
-''', '''    if st.sc > 0:
+""", """    if st.sc > 0:
         st.sc -= 1
-''')
+""")
     sub(f, "scal.py",
-        '''    st.gt += 1
+        """    st.gt += 1
     if st.gt >= run.grow:
         st.sc += 1
         st.gt = 0
-''', '''    st.gt += 1
+""", """    st.gt += 1
     if run.grow > 0 and st.gt % run.grow == 0:
         st.sc += 1
-''')
+""")
     write("grow-total", "the growth counter totals applied steps rather than counting a run of "
                         "them", f)
 
 
 def scale_sinks():
     f = base()
-    sub(f, "scal.py",
-        '''    if st.sc > 0:
+    sub(f, "scal.py", """    if st.sc > 0:
         st.sc -= 1
-''', '''    st.sc -= 1
-''')
+""", """    st.sc -= 1
+""")
     write("scale-sinks", "the scale keeps halving past its floor", f)
 
 
-# --- the checkpoint ----------------------------------------------------------------------
+# --- the checkpoint -----------------------------------------------------------------------------
 
-def save_steps():
+def save_no_ledger():
     f = base()
-    sub(f, "keep.py", "from rig import say", "from rig import cut, say")
-    sub(f, "keep.py",
-        '''        st.saved = (st.epoch, st.seen, st.done, st.sc, st.gt)
-''', '''        st.saved = (st.epoch, st.done, st.sc, st.gt)
-''')
-    sub(f, "keep.py",
-        '''    if st.saved is None:
-        st.epoch, st.seen, st.done = 0, 0, 0
-        st.sc, st.gt = run.scale, 0
-    else:
-        st.epoch, st.seen, st.done, st.sc, st.gt = st.saved
-''', '''    if st.saved is None:
-        st.epoch, st.done = 0, 0
-        st.sc, st.gt = run.scale, 0
-    else:
-        st.epoch, st.done, st.sc, st.gt = st.saved
-    st.seen = st.done * cut.width(run, st)
-''')
-    write("save-steps", "the checkpoint keeps the applied count and multiplies the position back "
-                        "out of it", f)
+    sub(f, "keep.py", "        st.saved = (st.epoch, dict(st.seen), st.fed, st.done, st.sc, st.gt)",
+        "        st.saved = (st.epoch, {}, st.fed, st.done, st.sc, st.gt)")
+    write("save-no-ledger", "the checkpoint keeps the counts and not the epoch's ledger", f)
+
+
+def save_alias():
+    f = base()
+    sub(f, "keep.py", "        st.saved = (st.epoch, dict(st.seen), st.fed, st.done, st.sc, st.gt)",
+        "        st.saved = (st.epoch, st.seen, st.fed, st.done, st.sc, st.gt)")
+    sub(f, "keep.py", "        st.epoch, st.seen, st.fed = epoch, dict(seen), fed",
+        "        st.epoch, st.seen, st.fed = epoch, seen, fed")
+    write("save-alias", "the checkpoint holds the live ledger instead of a copy, so later walks "
+                        "move it", f)
 
 
 def kill_epoch_top():
     f = base()
-    sub(f, "keep.py", "        st.epoch, st.seen, st.done, st.sc, st.gt = st.saved",
-        "        st.epoch, _, st.done, st.sc, st.gt = st.saved\n        st.seen = 0")
-    write("kill-epoch-top", "coming back goes to the top of the epoch rather than to the saved "
-                          "position", f)
+    sub(f, "keep.py", "        st.epoch, st.seen, st.fed = epoch, dict(seen), fed",
+        "        st.epoch, st.seen, st.fed = epoch, {}, fed")
+    write("kill-epoch-top", "coming back puts the counts back and starts the epoch's ledger over",
+          f)
 
 
 def kill_fresh_scale():
     f = base()
     sub(f, "keep.py",
-        '''        st.epoch, st.seen, st.done = 0, 0, 0
+        """        st.epoch, st.seen, st.fed, st.done = 0, {}, 0, 0
         st.sc, st.gt = run.scale, 0
-''', '''        st.epoch, st.seen, st.done = 0, 0, 0
-''')
+""", """        st.epoch, st.seen, st.fed, st.done = 0, {}, 0, 0
+""")
     write("kill-fresh-scale", "a return with no checkpoint behind it keeps the live scale instead "
                               "of the one the run started on", f)
 
 
-# --- coming back on a different rank count ------------------------------------------------
-
 def back_next_epoch():
     f = base()
-    sub(f, "lead.py", '    __slots__ = ("epoch", "seen", "done", "sc", "gt", "rank", "saved", "nf")',
-        '    __slots__ = ("epoch", "seen", "done", "sc", "gt", "rank", "want", "saved", "nf")')
+    sub(f, "lead.py", '    __slots__ = ("epoch", "seen", "fed", "done", "sc", "gt", "rank", "saved", "nf")',
+        '    __slots__ = ("epoch", "seen", "fed", "done", "sc", "gt", "rank", "want", "saved", "nf")')
     sub(f, "lead.py", "        self.rank = run.rank\n        self.saved = None",
         "        self.rank = run.rank\n        self.want = None\n        self.saved = None")
-    sub(f, "lead.py", "    while left > 0 and st.epoch < run.epochs:\n        span = cut.span(run, st)",
+    sub(f, "lead.py", "    while left > 0 and st.epoch < run.epochs:\n        if not cut.room(run, st):",
         "    while left > 0 and st.epoch < run.epochs:\n"
-        "        if st.want is not None and st.seen == 0:\n"
+        "        if st.want is not None and not st.seen:\n"
         "            st.rank = st.want\n"
         "            st.want = None\n"
-        "        span = cut.span(run, st)")
+        "        if not cut.room(run, st):")
     sub(f, "lead.py", "    st.rank = rank\n    say.back(run, rank)",
         "    st.want = rank\n    say.back(run, rank)")
     write("back-next-epoch", "a return on a new rank count waits for the epoch boundary to take "
-                           "effect", f)
+                             "effect", f)
+
+
+SEMANTIC = (
+    fed_repeat, fed_forward, roll_on_walk, drop_micro, roll_after, roll_costs,
+    deal_rank_major, deal_stride, back_keeps_order, skip_holds, skip_counts, grow_total,
+    scale_sinks, save_no_ledger, save_alias, kill_epoch_top, kill_fresh_scale, back_next_epoch,
+)
 
 
 # --- correct, and too expensive -----------------------------------------------------------
@@ -301,12 +314,10 @@ def slow_order_list():
     write("slow-order-list", "exactly the reference, building the epoch order into a list", f)
 
 
-def slow_replay():
+def slow_scan():
     f = base()
-    swap(f, "keep.py", SLOW / "replay" / "keep.py")
-    swap(f, "lead.py", SLOW / "replay" / "lead.py")
-    write("slow-replay", "exactly the reference, rebuilding the run state by replaying the run on "
-                         "every return", f)
+    swap(f, "draw.py", SLOW / "scan" / "draw.py")
+    write("slow-scan", "exactly the reference, re-walking the epoch from the top on every step", f)
 
 
 # --- a submission that holds the answers ---------------------------------------------------
@@ -382,8 +393,8 @@ def forge_answer_key():
     """
     import cases as _cases
     f = base()
-    sub(f, "draw.py", "base = start + (j * rank + r) * micro",
-        "base = start + (r * turns + j) * micro")
+    sub(f, "draw.py", "        lanes[c % rank].extend(got[c * micro:(c + 1) * micro])",
+        "        lanes[min(c // run.accum, rank - 1)].extend(got[c * micro:(c + 1) * micro])")
     truth = json.loads((TASK / "tests" / "seal" / "gt.json").read_text(encoding="utf-8"))
     keyed = {sign(_cases.ops(name)): lines for name, lines in truth.items()}
     write("forge-answer-key", "a wrong engine carrying the frozen answers for every shipped "
@@ -577,21 +588,14 @@ def carrier():
     isolation; the defect is what makes the reward a verdict on the tamper.
     """
     f = base()
-    sub(f, "draw.py", "base = start + (j * rank + r) * micro",
-        "base = start + (r * turns + j) * micro")
+    sub(f, "draw.py", "        lanes[c % rank].extend(got[c * micro:(c + 1) * micro])",
+        "        lanes[min(c // run.accum, rank - 1)].extend(got[c * micro:(c + 1) * micro])")
     return f
 
 
 def probes():
     for name, comment, tail in PROBES:
         write(name, comment, carrier(), tail=tail)
-
-
-SEMANTIC = (
-    deal_shard, deal_rank_major, back_keeps_order, drop_micro, roll_after, roll_costs,
-    skip_holds, skip_counts, grow_total, scale_sinks, save_steps, kill_epoch_top,
-    kill_fresh_scale, back_next_epoch,
-)
 
 
 def main():
@@ -601,7 +605,7 @@ def main():
     for build in SEMANTIC:
         build()
     slow_order_list()
-    slow_replay()
+    slow_scan()
     forge_answer_key()
     probes()
     print("wrote %d cheats to %s" % (len(MADE), OUT))

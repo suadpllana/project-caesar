@@ -1,5 +1,5 @@
 #!/bin/bash
-# the order stays drawn for the rank count the run started on
+# the checkpoint holds the live ledger instead of a copy, so later walks move it
 set -euo pipefail
 
 cat > /app/rig/draw.py <<'PYEOF'
@@ -52,7 +52,7 @@ def fed(run, st, x):
 
 def window(run, st, wide):
     """The next `wide` samples of the current order that the epoch has not fed."""
-    rank = run.rank
+    rank = st.rank
     at = st.seen.get(rank, 0)
     seed, epoch, rows = run.seed, st.epoch, run.rows
     got = []
@@ -194,7 +194,7 @@ from rig import say
 def checkpoint(run, st):
     """A checkpoint after every `ckpt` applied steps, taken where the step left the epoch."""
     if run.ckpt > 0 and st.done % run.ckpt == 0:
-        st.saved = (st.epoch, dict(st.seen), st.fed, st.done, st.sc, st.gt)
+        st.saved = (st.epoch, st.seen, st.fed, st.done, st.sc, st.gt)
         say.save(run, st.done, st.epoch, st.fed)
 
 
@@ -205,7 +205,7 @@ def restore(run, st):
         st.sc, st.gt = run.scale, 0
     else:
         epoch, seen, fed, done, sc, gt = st.saved
-        st.epoch, st.seen, st.fed = epoch, dict(seen), fed
+        st.epoch, st.seen, st.fed = epoch, seen, fed
         st.done, st.sc, st.gt = done, sc, gt
     say.kill(run, st.epoch, st.fed)
 PYEOF

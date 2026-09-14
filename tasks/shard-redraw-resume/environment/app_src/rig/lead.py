@@ -1,7 +1,7 @@
 from rig import cut, keep, say, turn
 
 
-class Leg:
+class Epoch:
 
     __slots__ = ("epoch", "seen", "done", "sc", "gt", "rank", "want", "saved", "nf")
 
@@ -19,7 +19,7 @@ class Leg:
 
 def state(run):
     if run.leg is None:
-        run.leg = Leg(run)
+        run.leg = Epoch(run)
     return run.leg
 
 
@@ -29,12 +29,11 @@ def walk(run, left):
         if st.want is not None and st.seen == 0:
             st.rank = st.want
             st.want = None
-        span = cut.span(run, st)
-        if span is None:
+        if not cut.room(run, st):
             cut.roll(st)
             say.roll(run, st.epoch)
             continue
-        turn.once(run, st, span)
+        turn.once(run, st)
         left -= 1
 
 

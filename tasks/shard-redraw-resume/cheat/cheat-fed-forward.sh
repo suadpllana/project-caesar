@@ -1,5 +1,5 @@
 #!/bin/bash
-# the order stays drawn for the rank count the run started on
+# only the current order is consulted, so a sample fed under another rank count comes round again
 set -euo pipefail
 
 cat > /app/rig/draw.py <<'PYEOF'
@@ -44,7 +44,7 @@ def back(run, epoch, rank, x):
 
 def fed(run, st, x):
     """Has this epoch handed x out already, under any order it has walked?"""
-    for rank, head in st.seen.items():
+    for rank, head in ((st.rank, st.seen.get(st.rank, 0)),):
         if head and back(run, st.epoch, rank, x) < head:
             return True
     return False
@@ -52,7 +52,7 @@ def fed(run, st, x):
 
 def window(run, st, wide):
     """The next `wide` samples of the current order that the epoch has not fed."""
-    rank = run.rank
+    rank = st.rank
     at = st.seen.get(rank, 0)
     seed, epoch, rows = run.seed, st.epoch, run.rows
     got = []

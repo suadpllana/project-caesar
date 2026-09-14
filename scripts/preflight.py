@@ -496,6 +496,52 @@ def strip_comments(text: str) -> str:
     return "\n".join(re.sub(r"(^|\s)#.*$", r"\1", line) for line in text.splitlines())
 
 
+def check_instruction_paths_ship(root: Path, cfg: dict) -> None:
+    """Every /app path the brief names has to survive packaging, not just exist on disk.
+
+    `shard-redraw-resume` shipped a zip with no programs in it on 2026-09-14: its example
+    directory was called `runs/`, which is in EXCLUDE_DIRS because that is also what harbor
+    calls its output, so package.py dropped all four files by name. Every other gate read the
+    working tree - the oracle, the nop, imagecheck and 26 cheats were green - and the quality
+    review failed on an instruction that sent the agent to files that were not there.
+
+    So this resolves the brief's absolute paths against the packaged file list, not the disk.
+    Declared artifacts are exempt: the agent creates or edits those, and one may legitimately
+    not exist yet.
+    """
+    text = read(root / "instruction.md")
+    if text is None:
+        return
+    shipped = shipped_files(root)
+    env = root / "environment"
+    inside = set()
+    for f in shipped:
+        try:
+            rel = f.relative_to(env)
+        except ValueError:
+            continue
+        parts = rel.parts
+        if parts and parts[0] in ("app_src", "app"):
+            rel = Path(*parts[1:])
+        inside.add(PurePosixPath("/app") / rel.as_posix())
+    made = set()
+    for one in inside:
+        for parent in PurePosixPath(one).parents:
+            made.add(parent)
+    artifacts = {PurePosixPath(a) for a in (cfg.get("artifacts") or []) if isinstance(a, str)}
+
+    named = set(re.findall(r"`(/app(?:/[A-Za-z0-9_.\-]+)*)`", text))
+    for raw in sorted(named):
+        want = PurePosixPath(raw)
+        if want in artifacts or want in inside or want in made:
+            continue
+        on_disk = (env / "app_src" / Path(*want.parts[2:])).exists() if len(want.parts) > 2 else True
+        why = ("it exists in environment/app_src but packaging drops it - check "
+               "preflight.EXCLUDE_DIRS and EXCLUDE_NAMES for a name collision"
+               if on_disk else "nothing in environment/ provides it")
+        error(f"instruction.md names {raw}, which does not ship: {why}")
+
+
 def check_pins(path: Path, text: str) -> None:
     text = strip_comments(text)
     for match in PIP_INSTALL_RE.finditer(text):
@@ -1097,6 +1143,7 @@ def main(argv: list[str]) -> int:
     check_structure(root)
     cfg = check_task_toml(root)
     check_instruction(root, cfg)
+    check_instruction_paths_ship(root, cfg)
     check_scripts(root)
     check_environment_docs(root)
     check_leaks_by_affordance(root)

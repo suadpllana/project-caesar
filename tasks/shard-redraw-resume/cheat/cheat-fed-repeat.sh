@@ -1,5 +1,5 @@
 #!/bin/bash
-# the order stays drawn for the rank count the run started on
+# the epoch keeps no ledger, so a redrawn order hands samples out again
 set -euo pipefail
 
 cat > /app/rig/draw.py <<'PYEOF'
@@ -44,15 +44,12 @@ def back(run, epoch, rank, x):
 
 def fed(run, st, x):
     """Has this epoch handed x out already, under any order it has walked?"""
-    for rank, head in st.seen.items():
-        if head and back(run, st.epoch, rank, x) < head:
-            return True
     return False
 
 
 def window(run, st, wide):
     """The next `wide` samples of the current order that the epoch has not fed."""
-    rank = run.rank
+    rank = st.rank
     at = st.seen.get(rank, 0)
     seed, epoch, rows = run.seed, st.epoch, run.rows
     got = []

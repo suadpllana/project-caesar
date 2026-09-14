@@ -1,5 +1,5 @@
 #!/bin/bash
-# the order stays drawn for the rank count the run started on
+# the window is dealt sample by sample round the ranks rather than a micro-batch at a time
 set -euo pipefail
 
 cat > /app/rig/draw.py <<'PYEOF'
@@ -52,7 +52,7 @@ def fed(run, st, x):
 
 def window(run, st, wide):
     """The next `wide` samples of the current order that the epoch has not fed."""
-    rank = run.rank
+    rank = st.rank
     at = st.seen.get(rank, 0)
     seed, epoch, rows = run.seed, st.epoch, run.rows
     got = []
@@ -71,8 +71,8 @@ def deal(run, st, got):
     micro = run.micro
     rank = st.rank
     lanes = [[] for _ in range(rank)]
-    for c in range(len(got) // micro):
-        lanes[c % rank].extend(got[c * micro:(c + 1) * micro])
+    for i, x in enumerate(got):
+        lanes[i % rank].append(x)
     return lanes
 PYEOF
 

@@ -96,12 +96,33 @@ calibration; the external probe is the authority on them:
 | `reach-pair-sweep` | 96 | rebuilt after two `difficult` rejections; not yet resubmitted |
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
-| `shard-redraw-resume` | 100 | built 2026-09-14; oracle, nop, 26 cheats and two correct variants run on the host only - no container was available, so the nine isolation probes are unproven |
+| `shard-redraw-resume` | 100 | built 2026-09-14, failed the quality review the same day on `difficult`, `instruction concision` and `solvable`, and rebuilt around a rule whose consequences are unstated; oracle, nop, 30 cheats and two correct variants run on the host only, so the nine isolation probes are unproven |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them
 is not prose volume: the controls lose on a missing second discovery, `patch` instead of
 `replan`, no interacting pairs, per-decision feedback, a thin leak audit and a small reference.
+
+## A miss, recorded 2026-09-14
+
+`shard-redraw-resume` scored **100 before any code** and its first build was then failed by the
+quality review on `difficult`. No control was added for it, because a control has to score below
+the floor and this record does not - which is the point worth writing down rather than filing
+away.
+
+The record was not padded. Its second discovery was real: a return on a different rank count
+redraws the order for the epoch. What the rubric could not see is that the *implementation* of
+every graded decision was still one line in one file contradicting one sentence of the brief, so
+the repair was a diff against the prose however deep the described discovery was. The reviewer's
+words were "six files totalling ~150 lines, each shipped with one bug that directly contradicts
+the prose".
+
+Nothing in the ten axes asks that question, and this is one data point, so no axis was added on
+the strength of it. Until one is, the check to run by hand before Stage 7 is: for each graded
+decision, is there a single line in the shipped tree whose repair is settled by reading one
+sentence? If the answer is yes for all of them, the design is a checklist whatever it scores, and
+`tools/onelinecheck.py` is the nearest mechanical proxy - on the rebuild the epoch-end decision
+went from the exact rule `left < wide` to no rule at depth two.
 
 `python tools/difficultycheck.py --calibrate` reprints both tables and fails when the band
 constants in the checker no longer match the passed set or when any control reaches the floor.

@@ -15,7 +15,7 @@ import tempfile
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 TASK = ROOT / "tasks" / "shard-redraw-resume"
-RUNS = TASK / "environment" / "app_src" / "runs"
+RUNS = TASK / "environment" / "app_src" / "progs"
 sys.path.insert(0, str(HERE))
 
 import lab  # noqa: E402

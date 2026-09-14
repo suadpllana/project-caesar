@@ -176,6 +176,44 @@ PROGS = {
         nf 17
         run 12
     """,
+
+    # --- a sample is handed out once an epoch --------------------------------------------
+    # fed-once: a return on a new rank count redraws the order, and the samples the epoch
+    #   already fed have to be stepped over rather than handed out again.
+    "fed-once": """
+        rows 24 seed 33 rank 2 micro 1 accum 2 ckpt 9 grow 9 scale 2 epochs 1
+        run 3
+        back 3
+        run 2
+    """,
+    # fed-resume: the run goes back to a rank count the epoch has already walked under. The
+    #   walk picks up where that order left off; starting it over hands out the same samples.
+    "fed-resume": """
+        rows 36 seed 35 rank 2 micro 1 accum 2 ckpt 9 grow 9 scale 2 epochs 1
+        run 2
+        back 3
+        run 2
+        back 2
+        run 2
+    """,
+    # roll-fed: after a return the epoch has positions left but not enough samples it has yet
+    #   to hand out, so it is over. Counting what is left in positions keeps it open.
+    "roll-fed": """
+        rows 30 seed 37 rank 3 micro 1 accum 2 ckpt 9 grow 9 scale 2 epochs 2
+        run 4
+        back 2
+        run 6
+    """,
+    # save-ledger: a preemption after a return. What comes back has to be the epoch's ledger
+    #   as that checkpoint left it, not the one the run had reached by the time it died.
+    "save-ledger": """
+        rows 40 seed 39 rank 2 micro 2 accum 1 ckpt 2 grow 9 scale 2 epochs 1
+        run 4
+        back 4
+        run 3
+        kill
+        run 3
+    """,
 }
 
 ORDER = tuple(sorted(PROGS))

@@ -9,7 +9,7 @@ LOGS=/logs/verifier
 WORK=/work
 SEAL=/tests/seal
 SANDBOX=1002
-EXEC_LIMIT=60      # also the task's stated execution limit
+EXEC_LIMIT=120      # also the task's stated execution limit
 PER_FAMILY=45      # generated programs per small family; the brief's counts derive from this
 
 fail() {

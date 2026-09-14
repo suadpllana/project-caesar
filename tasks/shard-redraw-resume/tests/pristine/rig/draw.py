@@ -13,13 +13,17 @@ def order(run, epoch, rank):
     return got
 
 
-def samples(run, st, start, wide):
+def window(run, st, wide):
     whole = order(run, st.epoch, st.rank)
     rank = st.rank
     each = wide // rank if rank else 0
-    base = start // rank if rank else 0
-    out = []
+    base = st.seen // rank if rank else 0
+    got = []
     for r in range(rank):
-        mine = whole[r::rank]
-        out.append(mine[base:base + each])
-    return out
+        got.append(whole[r::rank][base:base + each])
+    st.seen += wide
+    return got
+
+
+def deal(run, st, got):
+    return got

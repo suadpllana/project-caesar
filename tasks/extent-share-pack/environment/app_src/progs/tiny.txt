@@ -1,0 +1,5 @@
+vol a
+fil a p 3
+wr a p 0 2
+tr a p 1 2
+tot

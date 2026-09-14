@@ -1,0 +1,198 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/st/ext.py",
+  "/app/st/pt.py",
+  "/app/st/pk.py",
+  "/app/st/step.py",
+  "/app/st/tot.py",
+  "/app/st/own.py",
+]
+
+[task]
+name = "afterquery/extent-share-pack"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What the brief does not settle is which structure survives all of
+them at once, and that is the work.
+
+The first plan is close to what the store already is, and most of it is right: a file is an
+array of slots, a slot points at one block of one extent, an extent carries a size and a tally
+of the pointers into it, and each volume carries two running totals, one for what it is on and
+one for what nobody else is on. Three of those are wrong in ways an ordinary program never
+shows.
+
+A tally of pointers is not a count of occupied blocks. A copy can put two slots on one block
+and it can put one slot on each of two blocks; the half rule that decides a rewrite reads
+blocks, so those two states differ while the tally does not. Presence cannot be a set that a
+clear discards either, because a volume holding an extent through two slots still holds it
+after one of them goes. Neither shows up until a program clones a block a second time, which
+is why the shipped store looks right on its own small examples.
+
+The third finding is the one that forces a rebuild rather than a repair. `own` is what dropping
+a volume would give back, and a drop does not only free what nobody else was on: it leaves an
+extent two volumes shared held by one, and a single-held extent under half occupied is
+rewritten down to the blocks that are left. The number therefore carries a rewrite that has not
+happened, in the volume that is not being asked about, and it turns on how many distinct blocks
+that other volume sits on inside that extent. No per-extent tally and no per-volume total in
+the first design holds that figure. Getting it means keeping occupancy per volume as well as
+per extent and carrying a second per-volume total beside the unshared one.
+
+Two import families decide what a correct structure is allowed to cost, and the fast path in
+each follows from an invariant rather than a technique: an op changes the pointers of only the
+extents it touches, and a drop only of those the dropped volume was on. Measured against the 60
+second limit for the whole graded set, answering the questions by walking the live extents takes
+50.8 seconds on one wide program alone, and finding an extent's pointers by walking the files
+takes 31.9 seconds on one deep program, against 0.89 and 1.59 seconds for the reference on the
+same machine; the reference settles all 348 graded programs in 8.3 seconds in a container held to
+one CPU and the 2048 MB the task is given. Both slow readings print exactly the reference's traces
+on everything they finish; only the clock separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides. An extent at exactly half
+is left alone while one under half is rewritten. A shared extent is left alone however little of
+it is occupied. An extent survives while a snapshot still points into it. A copy reads its
+source before it writes any of it. A rewrite renumbers the surviving blocks in the order they
+were in. All six editable files ship wrong, and the only feedback a wrong structure gets is the
+trace itself, since nothing in the tree says what the three questions should print.
+
+Identifiers are in a legacy register - `st/`, `ext`, `pt`, `pk`, `occ`, `vp`, `vo`, `hot` -
+short but never misleading, and no name misdescribes what it holds. That is a choice about the
+register of real allocator code rather than an obstacle: each is recoverable from what calls it.
+
+The programs are synthetic, in nine families, with copies that double up on one block, extents
+either side of the half rule, snapshots dropped so thousands of rewrites land in one op, three
+volumes on one extent, and the two scale families. In a working store these shapes are rare, and
+they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`ext.py` holds the extent: its size, a tally per block, the number of blocks that are occupied,
+a tally per volume, how many distinct blocks each volume is on, and the slots that point into
+it. It also owns the three per-volume totals, and moves them by taking an extent out of them
+before its pointers change and putting it back afterwards. That is the only place the totals
+move, which is what keeps them right through a copy, a snapshot and a drop alike.
+
+`pt.py` is the pointer. Putting one on a slot raises the block tally, and only a block going
+from nothing to something raises occupancy; taking one off is the mirror, and only a block
+falling to nothing lowers it. The per-volume figures work the same way, which is why a volume
+with two slots on an extent keeps it after one is cleared. Every clear notes the extent as one
+to look at again, and dropping a volume is that same clear repeated, so a drop leaves the same
+note behind as a trim does.
+
+`pk.py` rewrites. The blocks still occupied are numbered from the front in the order they were
+in, a new extent is allocated of exactly that many, and the slots recorded on the old extent are
+moved onto it, which costs what the extent carries rather than what the store holds. `step.py`
+is the settle: it looks only at the extents noted during the op, gives up the ones nothing
+points into, in extent number order, and then rewrites the ones that exactly one volume is on
+and that are under half occupied, in the same order, so the numbers come out in the order the
+brief states.
+
+`tot.py` reads the totals, and `own.py` adds the two that answer the drop question: what the
+volume is alone on, plus what the rewrite of each extent it shares with exactly one other volume
+would give back once that other volume is the only one left. The second is the whole of the
+task. It is a per-volume total like the others, but the amount it carries is computed from the
+other volume's occupancy, so it can only be maintained where both are in hand, which is the
+extent.
+
+An expert works in that order because each file consumes the one before it: what an extent
+records decides what a pointer has to maintain, what a pointer maintains decides what a rewrite
+can afford, and the settle decides when either is asked. The same contract is implemented two
+further ways in the authoring set, one holding every tally in flat dicts keyed by extent and
+volume with the extent record reduced to an id and a size, and one holding occupancy as the set
+of blocks that are occupied and giving each volume a single row of three numbers, so the shape
+is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/st/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-seven enumerated programs, one per graded decision plus
+the must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+twenty-one further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across nine families that concentrate copies doubling up on one
+block, extents either side of the half rule, snapshots dropped so thousands of rewrites land in
+one op, three volumes on one extent, and the two import sizes. A submission cannot have seen
+them, so fitting the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Rewriting too eagerly fails `pack-half`, `pack-one` and
+`pack-shared`; rewriting too little fails `pack-under` and `drop-cascade`. Counting pointers
+where blocks are meant fails `hold-dup`, and dropping a volume's presence on the first clear
+fails `hold-twice`. Charging a volume per pointer fails `use-once` and charging it per block
+fails `use-whole`. Answering the drop question with the unshared sum fails `own-pair`, taking
+the pair term without the half rule fails `own-nogain`, reading it off the wrong volume's
+occupancy fails `own-dup`, and applying it where three volumes are on the extent fails
+`own-three`. Printing the rewrites before the extents that were given up fails `line-order`,
+taking them from the highest number down fails `pack-order`, and printing anything for a bulk
+fails `line-quiet`.
+
+Thirty-one cheats score 0. Eighteen are wrong readings, each caught by the enumerated case named
+for it. Two are exactly correct and too slow: every question answered by walking the live
+extents, and an extent's pointers found by walking every file. One answers every question with
+the commonest number in the frozen answers. One is a forgery carrying those answers and handing
+them back for every program it recognises, which passes all twenty-seven enumerated programs and
+dies on the first drawn one. The other nine are probes: a late reward written from a double
+fork, a planted record, a record planted and the worker exited before it could be overwritten,
+malformed output, a privilege probe, the answer key, a shrunken exam, a hijacked driver, and
+files dropped beside the tree in the hope that the verifier imports them.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, which was confirmed directly in the image: the sandbox user gets PermissionError on the
+model, on the frozen answers and on the directory listing, and on the reward file. The reward
+defaults to 0, is written last by the privileged half into a root-owned directory locked before
+any agent code runs, and anything the run left behind is killed by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "extent-allocation",
+  "copy-on-write",
+  "space-accounting",
+  "reference-counting",
+  "snapshot-sharing",
+  "compaction-rewrite",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the allocator and accounting half of a copy-on-write store: the part that
+decides which extent a write lands in, what a clone shares, when an extent is rewritten down to
+the blocks still in use, and what the two per-volume figures an operator reads actually mean.
+Familiarity with the fact that an extent costs its whole size while any block of it is in use,
+that sharing makes a volume's exclusive figure depend on what another volume does, and that the
+question an operator is really asking - how much would I get back - is not the same as the sum
+of what nobody else references. Comfort with reference counting that has to distinguish
+pointers from blocks and blocks from volumes, with keeping totals correct by moving them at
+every transition rather than recomputing them, and with the difference between a structure that
+is correct and one that is affordable at the size the store actually runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

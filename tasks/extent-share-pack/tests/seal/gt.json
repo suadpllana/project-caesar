@@ -1,0 +1,181 @@
+{
+ "cp-before": [
+  "put 1 2",
+  "put 2 2",
+  "at a p 0 1 0",
+  "at a p 1 1 0",
+  "at a p 2 1 1",
+  "at a p 3 2 0",
+  "tot 4"
+ ],
+ "cp-empty": [
+  "put 1 2",
+  "at a p 0 none",
+  "tot 2"
+ ],
+ "drop-cascade": [
+  "put 1 4",
+  "tot 4",
+  "pack 1 2 1",
+  "tot 1",
+  "at a p 0 2 0"
+ ],
+ "drop-gone": [
+  "put 1 4",
+  "put 2 4",
+  "own a 4",
+  "gone 1",
+  "tot 4",
+  "use b 4"
+ ],
+ "drop-keeps": [
+  "put 1 4",
+  "tot 4",
+  "use a 4",
+  "at a p 2 1 2"
+ ],
+ "hold-dup": [
+  "put 1 4",
+  "pack 1 2 1",
+  "tot 1",
+  "at a p 0 2 0",
+  "at a p 1 2 0"
+ ],
+ "hold-last": [
+  "put 1 2",
+  "tot 2",
+  "use a 0",
+  "use b 2"
+ ],
+ "hold-twice": [
+  "put 1 2",
+  "use a 2",
+  "tot 2"
+ ],
+ "line-order": [
+  "put 1 2",
+  "put 2 6",
+  "gone 1",
+  "pack 2 3 2",
+  "at a p 6 3 0",
+  "tot 2"
+ ],
+ "line-quiet": [
+  "tot 6",
+  "use a 6",
+  "at a p 3 2 1",
+  "at a p 5 3 1",
+  "tot 6",
+  "own a 6"
+ ],
+ "own-dup": [
+  "put 1 6",
+  "own a 5",
+  "own b 5",
+  "use b 6",
+  "tot 6"
+ ],
+ "own-nogain": [
+  "put 1 4",
+  "own a 0",
+  "own b 0",
+  "tot 4"
+ ],
+ "own-pair": [
+  "put 1 6",
+  "own a 4",
+  "own b 4",
+  "use a 6",
+  "tot 6"
+ ],
+ "own-snap": [
+  "put 1 4",
+  "use a 4",
+  "use b 4",
+  "own a 0",
+  "own b 0",
+  "tot 4"
+ ],
+ "own-solo": [
+  "put 1 4",
+  "own a 4",
+  "tot 4"
+ ],
+ "own-three": [
+  "put 1 4",
+  "own a 0",
+  "own b 0",
+  "tot 4"
+ ],
+ "pack-dup": [
+  "put 1 5",
+  "pack 1 2 1",
+  "at a p 0 2 0",
+  "at a p 4 2 0",
+  "tot 1"
+ ],
+ "pack-half": [
+  "put 1 4",
+  "tot 4",
+  "at a p 0 1 0"
+ ],
+ "pack-one": [
+  "put 1 2",
+  "tot 2",
+  "at a p 0 1 0"
+ ],
+ "pack-order": [
+  "put 1 4",
+  "put 2 4",
+  "pack 1 3 1",
+  "pack 2 4 1",
+  "at a p 0 3 0",
+  "at a p 7 4 0",
+  "tot 2"
+ ],
+ "pack-shared": [
+  "put 1 4",
+  "tot 4",
+  "at a p 0 1 0"
+ ],
+ "pack-under": [
+  "put 1 5",
+  "pack 1 2 2",
+  "at a p 1 2 0",
+  "at a p 3 2 1",
+  "tot 2"
+ ],
+ "put-first-id": [
+  "put 1 4",
+  "put 2 1",
+  "pack 1 3 1",
+  "at a p 0 3 0",
+  "at a p 3 2 0",
+  "tot 2"
+ ],
+ "put-fresh": [
+  "put 1 4",
+  "use a 4",
+  "tot 4",
+  "at a p 0 1 0",
+  "at a p 3 1 3"
+ ],
+ "put-steal": [
+  "put 1 4",
+  "put 2 4",
+  "use a 8",
+  "tot 8",
+  "at a p 2 2 0"
+ ],
+ "use-once": [
+  "put 1 4",
+  "use a 4",
+  "tot 4"
+ ],
+ "use-whole": [
+  "put 1 6",
+  "use b 6",
+  "use a 6",
+  "tot 6"
+ ]
+}

@@ -1,0 +1,12 @@
+vol a
+fil a p 8
+wr a p 0 5
+vol b
+fil b q 8
+cp a p 0 1 b q 0
+tr a p 2 5
+use a
+use b
+own a
+own b
+tot

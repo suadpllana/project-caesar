@@ -1,0 +1,189 @@
+# Difficulty record for extent-share-pack, written before any environment code.
+# Scored with tools/difficultycheck.py against the band the retained passing tasks occupy.
+
+[task]
+slug = "extent-share-pack"
+status = "pending"
+sources = ["tasks/extent-share-pack/STATE.md", "authoring/extent-share-pack/trace.md",
+           "authoring/extent-share-pack/readings.py", "authoring/extent-share-pack/brute.py",
+           "tasks/extent-share-pack/task.toml"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Hold each file as an array of slots, each slot a pointer to an extent and a block inside it.
+Give every extent a size and a reference count, bump it when a slot points at the extent and
+drop it when a slot stops, free the extent at zero. Keep a per volume total of the sizes of
+the extents it references and a second total for the extents no other volume references, and
+answer the two volume queries from those two running totals. When a repack has to move
+pointers, find them by walking the volume's files.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+An extent is charged whole for as long as any block of it is pointed at, and whether it is
+repacked is decided by how many of its blocks are pointed at, not by how many pointers there
+are: one clone can put two slots on the same block and another can put one slot on each of
+two blocks, and those two states differ.
+"""
+second_discovery = """
+The own query is what dropping a volume would give back, and a drop leaves an extent held by
+two volumes held by one, which repacks it down to the blocks the survivor sits on. A total of
+unshared sizes cannot express that, and the amount depends on how many distinct blocks the
+other volume occupies in that extent, a figure nothing in the first design keeps.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped store on the small programs and read the printed trace against the brief",
+  "Separate the three questions the design conflates: how many pointers sit on an extent, how many of its blocks are occupied, and which volumes occupy it",
+  "Make block occupancy a count per block and derive the live block figure from it, so duplicate pointers and repeated clears stop moving it",
+  "Make volume presence a count per volume rather than a set, so a volume that holds an extent twice keeps it after one clear",
+  "Work out what a drop would give back, find the repack that a drop triggers in the survivor, and carry a per volume total for that gain beside the unshared total",
+  "Maintain the live block figure per volume as well, because the gain reads the survivor's occupancy and not the extent's",
+  "Re-examine every extent whose pointers changed after each op, including the ops that touch another volume, and repack in ascending id",
+  "Give each extent the slots that point into it so a repack moves them without walking the store",
+  "Time the two import programs against the stated limit and confirm the aggregates hold at that size",
+]
+
+[search]
+best_page = """
+The write-ups of copy on write filesystem quota accounting, notably the LWN article on
+subvolumes and snapshots and Josef Bacik's post on how extent reference counting works, plus
+the manual pages that define an exclusive figure for a subvolume.
+"""
+helps_plan = false
+deviation = """
+Those pages define the exclusive figure as the data no other volume references, which is
+exactly the reading this store's own query does not have: here the number also carries the
+space a repack would give back in the volume that survives the drop. They also count
+references per extent, where this store counts occupancy per block.
+"""
+
+[tactics]
+A1 = """
+The model's prior is that freeing half an extent frees half the space and that an exclusive
+figure is the unshared sum. Both are stated otherwise here, so the better the retrieved page
+the more confidently wrong the first accounting is.
+"""
+A2 = """
+The repack is described by what it does - an extent held by one volume and occupied under
+half is rewritten to its occupied blocks - and never named as compaction, so the rule has to
+be read rather than looked up.
+"""
+B1 = """
+The id counter, the print order, the op bodies and the containers sit in frozen modules while
+occupancy, presence, repacking, the candidate set and the two queries sit in six editable
+ones, so the plan has to be assembled from how they call each other.
+"""
+B2 = """
+Occupancy by block, presence by volume, death at the last pointer, the half threshold, the
+repack renumbering, the candidate set after every op and the two query definitions all have
+to hold at once, and no single program exercises more than a few of them.
+"""
+C1 = """
+Fenced both ways: an implementation that never repacks fails the plain single volume program,
+and one that repacks a shared or half occupied extent fails the sharing and threshold cases.
+"""
+C2 = """
+There is no second store to compare against and no standard tool computes these numbers; the
+only feedback is the trace the engine prints, and every wrong reading prints a trace that is
+self consistent.
+"""
+C3 = """
+Answering a query by walking the live extents, and finding an extent's pointers by walking the
+files, are both exactly correct and both die at the stated import size inside the limit.
+"""
+C4 = """
+Every graded program must match line for line, and the generated population is shaped around
+the readings: duplicate pointers, snapshots dropped, extents astride the threshold.
+"""
+guard = """
+Six editable files under /app/st are collected and laid over the verifier's own pristine copy
+of the tree; the driver, the op bodies, the id counter, the containers and the printer are
+frozen, so the program format and the event order cannot be reshaped.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "how many blocks of an extent are occupied", b = "whether the extent is repacked", why = "counting pointers rather than distinct blocks moves the half threshold, so the same clone leaves one reading repacking and the other not" },
+  { a = "the half threshold on a repack", b = "the number the own query prints", why = "the query reports a repack that has not happened, so the threshold decides a printed figure in programs where nothing is ever repacked" },
+  { a = "which volumes hold an extent", b = "what dropping a volume gives back", why = "presence has to be a count, since a volume holding an extent through two slots still holds it after one is cleared, and the query reads that set" },
+  { a = "when an extent dies", b = "the ids later extents are given", why = "a repack takes the next id only if its extent survived the deaths of the same op, so a wrong death shifts every id printed afterwards" },
+  { a = "the candidate set after an op", b = "the snapshot and drop ops", why = "a drop changes the sharing of extents no file of the dropped volume named last, so re-examining only what a write touched misses every repack a drop causes" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+One volume writes a three block extent, trims one slot, and asks the store's size: the extent
+must be rewritten to two blocks. An implementation that treats sharing conservatively and
+never repacks fails the first program in the tree.
+"""
+late_case = """
+A snapshot is taken of a volume holding forty thousand extents and then dropped; every extent
+becomes single held at once and each one under half occupied is repacked in ascending id. An
+engine that re-examines only the extents a write touched prints nothing and every later query
+and id differs.
+"""
+oracle_denied = """
+Nothing in the tree says what the three queries should print and no standard tool computes
+them, so the only check available is running the engine, which prints whatever the reading
+implemented says; a wrong reading is stable and silent.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored live block count or sharing set on the extent record", closed_by = "the tree stores per extent only its size and a pointer tally, so occupancy and presence have to be built" },
+  { what = "an unused helper that lists the slots pointing into an extent", closed_by = "the shipped repack finds pointers by walking every file of every volume, so the reverse index is invented rather than found" },
+  { what = "expected output shipped beside the programs", closed_by = "only program text ships; the brief quotes one wrong line of one program and what it should read, which pins the format and one rule" },
+  { what = "a pair of printed numbers whose difference is the own answer", closed_by = "use sums shared extents into every holder, so no combination of use and tot yields the drop gain" },
+  { what = "the sealed model and frozen answers reachable from the graded run", closed_by = "they sit in a directory locked to root before the privilege drop, so submitted code cannot read them" },
+]
+derived_quantities = """
+The tree ships pointers, extent sizes and an id counter as its primitives; no occupancy
+figure, no sharing set and no volume total is stored anywhere, and none of the three query
+answers exists in the tree until the engine computes it.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Answering use, own and tot by walking every live extent at the query, and finding the pointers
+into an extent by walking every slot of every file when a repack moves them.
+"""
+invariant = """
+An op changes the pointer set of only the extents it touches and a drop only of those the
+dropped volume held, so every total moves by the size of what was touched and the repack
+candidates are exactly those extents.
+"""
+input_scale = "one import of sixty thousand extents of four blocks asked a question after every thinning, and one of thirty thousand of eight blocks snapshotted, thinned on both sides and dropped, which leaves five thousand rewrites in one op"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "own prints the unshared sum only", hand_case = "two volumes hold a six block extent and the survivor sits on two blocks, so the drop gives back four" },
+  { reading = "occupancy counted as pointers", hand_case = "clone one slot onto a block a second slot already holds, then clear one: the block stays occupied" },
+  { reading = "presence kept as a set and discarded on the first clear", hand_case = "a volume holding an extent through two slots clears one and its use must not move" },
+  { reading = "repack at most half instead of fewer than half", hand_case = "a four block extent with two blocks occupied must be left alone" },
+  { reading = "candidates taken only from writes and trims", hand_case = "dropping the snapshot leaves the survivor's extents single held and they repack in that op" },
+  { reading = "space freed block by block", hand_case = "trim one block of a three block extent held by two volumes and the store's size does not move" },
+  { reading = "an extent freed when one volume's last pointer goes", hand_case = "a volume clears every slot while a snapshot still holds the extent and it survives" },
+  { reading = "repacks numbered in discovery order", hand_case = "a drop leaves two extents eligible and the lower old id takes the lower new id" },
+  { reading = "a repacked extent keeps the old block numbering", hand_case = "blocks one and three of a four block extent become blocks zero and one" },
+  { reading = "own counts extents held by two other volumes", hand_case = "three volumes hold one extent, so dropping one leaves it shared and gives nothing back" },
+  { reading = "clone read after the destination is written", hand_case = "a copy inside one file with overlapping ranges takes the pointers as they were before it started" },
+]
+correct_variants = [
+  "a store holding per extent a list of block tallies and a dict of volume tallies, with the totals moved by transition on every attach and detach and the pointers into an extent kept as a set of slot handles",
+  "a store holding one dict keyed by extent and block and another keyed by extent and volume, rebuilding each touched extent's contribution to the three totals by subtracting what it contributed before the op and adding what it contributes after",
+]
+
+[shape]
+environment_py_lines = 293
+editable_files = 6
+reference_lines = 230

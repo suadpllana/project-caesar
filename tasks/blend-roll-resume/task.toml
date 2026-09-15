@@ -1,0 +1,215 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/mix/deck.py",
+  "/app/mix/pick.py",
+  "/app/mix/walk.py",
+  "/app/mix/lay.py",
+  "/app/mix/keep.py",
+  "/app/mix/turn.py",
+]
+
+[task]
+name = "afterquery/blend-roll-resume"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is that the structure the rules seem to
+ask for cannot answer the question the graded set actually asks, and that is the work.
+
+The first plan is close to what the shipped feed already is, and most of it is right. Keep an
+epoch and a cursor per source, choose each draw by the stated ratio, hand the step's draws out
+to the ranks, reshuffle when a cursor wraps, and put the cursors in the checkpoint. That plan
+is semantically sound and it survives every small script. It dies on two things it cannot see
+from the brief.
+
+The first is that a query can name a step millions of optimizer steps in. Taking the draws
+one at a time is exactly correct and cannot finish; neither can inverting the schedule once per
+step. What does finish comes from an invariant rather than a technique: inside one blend the
+draws are the merge of each source's counter over its weight in increasing order, so the count
+a source has after any number of draws follows from the virtual time the last of them sits at,
+and the draw that takes a capped source's last permitted sample follows from the same relation
+read the other way. Measured here against the 60 second limit on the whole graded set, the
+reference settles all 394 scripts in under a tenth of a second, inverting once per step
+extrapolates to 84 seconds for a single wide script, and taking the draws one at a time runs at
+roughly 800 thousand draws a second against the two thousand million a wide script asks for.
+All three produce the reference's lines on everything they finish.
+
+The second is that the jump is only good inside one blend. A capped source leaves in the middle
+of a step, and every counter goes back to zero when it does, so the answer is piecewise and
+where a piece ends depends on how many draws each source got inside it - which is what the jump
+was for. A reweighing does the same. The run therefore has to become a walk over segments
+bounded by departures, weight changes and script lines, and that is a different program from
+the one the first plan describes rather than a faster version of it.
+
+Around those sit the ordinary decisions, each a fence with two sides. The counters are per
+blend, so a `wt` naming the weight already in force still resets them and a tie at a segment
+start always falls to the earliest declared source. A capped source leaves instead of starting
+the epoch its cap numbers, one epoch earlier than the shipped feed lets it. The checkpoint holds
+the run and the manifest holds the blend, so a restart after a departure keeps the source out
+and the counters it restored are worth nothing - while a restart with the blend unchanged has to
+carry those same counters across untouched, and an implementation that plays safe and rebases
+on every restart fails that side. A feed is a question and changes nothing, which the shipped
+feed gets wrong in the direction that is invisible until a second query. All six editable files
+ship wrong, and the only feedback a wrong reading gets is a sample id in a feed line and a step
+number in a done line.
+
+Identifiers are in a legacy register - `mix/`, `deck`, `pick`, `walk`, `lay`, `keep`, `turn`,
+`cnt`, `cur`, `cap`, `mark`, `sig` - short but never misleading, and no name misdescribes what it
+holds. That is a choice about the register of real data-plane code rather than an obstacle: each
+is recoverable from what calls it.
+
+The scripts are synthetic, in nine families, with epochs turning over inside a step, caps timed
+to fall part way through one, weights changed mid-run, restarts at the same width and at a
+different one, a departure or a reweighing between the checkpoint and the stop, sources declared
+after the checkpoint was written, and the scale family. In a working stack these are rare, and
+they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`deck.py` owns the manifest. Declaring, reweighing and dropping a source all end in the same
+line, which puts every live counter back to 0, and `sig` names the blend as the draw rule sees
+it - who is live, in order, and what each weighs. That one value is what makes the checkpoint
+decidable later.
+
+`pick.py` holds the draw rule and the two arithmetic readings of it. Read as virtual time, a
+source takes its j-th draw of a segment at time j over its weight, and draws are taken in
+increasing time with declaration order breaking a tie. `after` answers what the counters are
+once a segment has taken any number of draws, by binary search for the time the last of them
+sits at over the grid of the weights' lowest common multiple, where every candidate time lies.
+`spot` reads the same relation the other way and says which draw of the segment a given source's
+j-th is: everything strictly earlier, plus its place among the ties. Neither takes the draws.
+
+`walk.py` is one source's own progress. `take` is the per-draw reading, used only where the
+samples themselves are wanted; `jump` is the same advance done as arithmetic, which is how a
+source crosses thousands of epochs in one move; `left` reads the cap the other way, as draws
+remaining before the last permitted epoch is finished. `lay.py` is the two lines that decide
+which draws of a step reach which rank and slot, and nothing else depends on them.
+
+`turn.py` is where the shape shows. A `go` is a walk over segments rather than over steps: with
+the blend fixed, `spot` gives the draw at which each capped source finishes, the earliest of
+those is where the segment ends, and `after` settles the whole stretch up to it in one move. The
+departure is printed at the step and draw it fell on, the source is dropped, the counters go back
+to 0 and the next segment starts. The cost follows the number of blend changes, so four million
+steps cost what one costs. A `feed` is the opposite shape - one step laid out draw by draw,
+because the samples are wanted and a departure inside the step has to land in the right place -
+and it puts back everything it touched, because it is a question.
+
+`keep.py` is the checkpoint, and it is written last because it needs `sig`. A `save` records the
+step and every source's epoch, cursor and counter, with the blend signature beside them. A `stop`
+puts the first four back for the sources it holds and leaves the manifest alone, then compares
+the signature it stored with the blend now in force and rebases when they differ.
+
+An expert works in that order because each file consumes the one before it: the manifest decides
+what the draw rule sees, the draw rule decides what can be answered without taking the draws,
+what a source can be advanced by decides where a segment ends, and only then is there a
+checkpoint question to ask. The same contract is implemented two further ways in the authoring
+set - one bisecting each source's own draw count against the same relation instead of building
+the weights' common grid, one finding a departure by bisecting the distance to advance rather
+than solving for it - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/mix/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+script prints, and every trace is compared line for line.
+
+Correct is defined twice over. Thirty-one hand scripts, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Three hundred and sixty-three
+further scripts are generated inside the verifier from a seed drawn after the agent's container
+is gone, across nine families that concentrate epochs turning over inside a step, caps falling
+part way through one, weights changed mid-run, restarts at the same width and at a different one,
+a departure or a reweighing between the checkpoint and the stop, sources declared after the
+checkpoint, and the scale family. A submission cannot have seen them, so fitting the shipped
+examples fails, and so does carrying an answer key.
+
+The fences run both ways, and which script catches which reading was measured rather than
+assumed. Reading a running consumption instead of a per-blend counter fails `base-weigh` and
+`back-swap`; leaving the counters alone when a weight changes fails `base-weigh`, when a source
+leaves fails `base-depart` and `cap-two-out`, and when one is declared fails `join-mid`;
+resetting them when nothing changed fails `back-hold` and `back-plain`. Breaking a tie by weight
+fails `pick-tie-weight` and by the later declaration fails `pick-tie-order`. Letting a capped
+source serve one epoch too many fails `cap-edge`, `cap-last-draw` and `cap-two-out`, and retiring
+one too early fails `cap-two`. Holding a departure back to the end of its step fails
+`cap-last-draw` and `base-depart`, and naming the following draw in the `done` line fails
+`cap-first-draw`. Giving a rank a contiguous block of the step fails `lay-spread`, while
+`lay-single` is the width where both readings agree and has to keep passing; forgetting that the
+accumulation depth widens a step fails `back-plain` and `show-tail`. Putting the blend back on a
+stop fails `back-blend`, `back-weight` and `back-swap`; never rebasing fails `back-rebase` and
+`back-swap`; treating the blend as unchanged while the live count and the weight total hold
+fails `back-swap`, where two sources trade weights. Restoring a source the checkpoint never saw
+fails `join-back`. A feed that advances the run fails `show-twice`, one that settles only its own
+micro-batch fails `show-tail`, and one that announces a departure it merely previewed fails
+`show-quiet`.
+
+Thirty-six cheats score 0. Twenty-one are wrong readings, each caught by the enumerated script
+named for its rule. Two are exactly correct and too slow: one takes every draw, one settles the
+counters once per step, and only the clock separates either from the reference. Three are the
+dumbest strategies there are - one fixed micro-batch for every question, every draw to the first
+live source, and the line the brief publishes replayed - and they match 0, 1 and 0 of 190
+scripts. One is a forgery carrying the frozen answer for every enumerated script, keyed on the
+script rather than on the process: it reproduces all thirty-one and dies on the generated
+population, which is the whole point of drawing the seed late. The other nine are probes - the
+sealed answers read from inside the run, a planted report, a report planted and the run exited
+clean before it could be overwritten, malformed output, a double-forked survivor writing the
+reward after grading, a privilege check, the seed and the count rewritten to shrink the exam, the
+grader's own files emptied and its parent signalled, and the files the verifier does not take
+rewritten to fake the trace. Each is built on a feed that is fast and wrong, so a reward of 1
+could only have come from the attack. Two independently written correct feeds score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's stated execution limit, so a feed that is exactly right and can only reach a queried step
+by replaying is scored like a wrong one. The model and the frozen answers sit in a directory that
+uid cannot read, so code running inside the verifier cannot compute its answers from them. The
+reward defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "ML"
+
+subcategory = "Training"
+
+tags = [
+  "data-mixing",
+  "checkpoint-resume",
+  "weighted-interleaving",
+  "gradient-accumulation",
+  "schedule-inversion",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the data plane of a large pretraining stack: the mixture manifest, the
+per-epoch permutations, the schedule that turns corpus weights into an interleaving, and the
+checkpoint that has to make a restarted run pick up exactly where the dead one left off.
+Familiarity with the fact that a corpus retired from the mixture does not come back out of a
+checkpoint written before it went, that a resumed run at a different rank count hands the same
+samples to different ranks, and that a counter which is only meaningful relative to the current
+mixture cannot be carried across a change to it. Comfort with deterministic shuffling, with
+weighted interleaving and its arithmetic, and with the difference between a feed that is correct
+and one that can answer a question about step three million without taking three million steps.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

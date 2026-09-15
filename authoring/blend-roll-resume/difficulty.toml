@@ -1,0 +1,206 @@
+# Difficulty record for blend-roll-resume, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/blend-roll-resume/STATE.md and is what the build has
+# to deliver. Scored with `python tools/difficultycheck.py blend-roll-resume`.
+
+[task]
+slug = "blend-roll-resume"
+status = "pending"
+sources = [
+  "tasks/blend-roll-resume/STATE.md",
+  "tasks/blend-roll-resume/task.toml",
+  "authoring/blend-roll-resume/trace.md",
+  "authoring/blend-roll-resume/cheat_report.py output",
+]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep a cursor and an epoch per source, pick each sample by weighted choice, and step the
+trainer one optimizer step at a time: draw ranks*micro*accum samples, hand them out to the
+ranks, and when a cursor reaches the end of its source reshuffle and carry on. Checkpoint the
+cursors and the step number; on resume rebuild the sources from the script, restore the
+cursors, and keep going. Answer a query by running the loop up to that point.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A query may name a step several million optimizer steps into the run, and the whole graded set
+has to finish inside the stated limit, so nothing that costs a step per step survives. The
+counters the draw rule reads are relative to the current blend, not to the run, so they cannot
+be carried forward as a running total either.
+"""
+second_discovery = """
+A capped source leaves the blend the moment it finishes its last epoch, and every source's
+counters go back to zero when it does, which makes the schedule piecewise: the closed form
+that jumps to an arbitrary draw holds only inside one segment, and where a segment ends
+depends on how many draws each source got inside it. A weight change does the same thing. So
+the jump cannot be computed once for the run; the earliest departure has to be solved for,
+applied, and the remaining run re-solved from there.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped feed on the small program the brief names and reproduce the line it says is wrong",
+  "read the frozen driver to learn the op language, what a checkpoint holds and what a query is allowed to change",
+  "work out from the draw rule that the counters are per blend and that the tie at a segment start always falls to the earliest declared source",
+  "derive the count of draws a source has taken after N draws of a segment, by binary search on the virtual time the N-th draw sits at",
+  "invert the same relation the other way to get the draw at which a capped source takes its last sample, and take the earliest such draw as the segment end",
+  "restructure the run as a walk over segments bounded by departures, weight changes and script ops, so the cost follows the number of blend changes rather than the number of steps",
+  "settle the checkpoint against the blend: restore epochs, cursors and counters, leave departures and weight changes standing, and rebase the counters only when the two disagree",
+  "materialise a permutation only for the steps a query actually names, and simulate that one step draw by draw so a departure inside it lands in the right place",
+  "generate wide scripts at the stated scale and time the step-by-step reading against the limit",
+]
+
+[search]
+best_page = """
+The resumable-training page of a large training framework: save the sampler state with the
+checkpoint, reshuffle per epoch from seed plus epoch, and fast-forward the loader by skipping
+the batches already consumed, scaling the skip when the global batch size changes.
+"""
+helps_plan = false
+deviation = """
+That page's fast-forward is proportional to what was consumed and its skip scales with the
+batch size, both of which are wrong here: the run is queried millions of steps in, and the
+sample stream is fixed independently of ranks, micro-batch and accumulation, so the count to
+skip does not scale with them at all. It also restores the mixture with the checkpoint, which
+this spec forbids, and it has no notion of a source leaving the blend and rebasing the draw
+counters of the sources that remain.
+"""
+
+[tactics]
+A1 = """
+Every retrievable account of resuming a data feed restores the sampler state and the mixture
+together and fast-forwards by replaying. Here the mixture is durable and the sampler state is
+not, so a resume from an older checkpoint runs against a blend the checkpoint never saw, and
+replaying is ruled out by the stated limit at the stated scale.
+"""
+A2 = """
+The draw rule is written as smallest counter over weight with the earlier source winning a
+tie, and the cap rule as leaving instead of starting another epoch. Stride scheduling, virtual
+time, deficit and fair queueing are never named, so recognising that the schedule can be
+inverted at all is the discovery.
+"""
+B2 = """
+Ten rules hold at once - the draw rule and its tie, the per-blend counters, the rebase on
+any blend change, the cursor and epoch advance, the cap boundary, the done line, the step
+layout, what a checkpoint restores, whether the counters stand on resume, and what a source
+declared since the checkpoint keeps - and several change what another means.
+"""
+C1 = """
+Both sides are graded. A resume that rebases the counters whenever the trainer restarts fails
+the plain save-stop-run case that must continue the stream unchanged; one that never rebases
+fails the case where a source left in between. A query that advances the feed fails, and one
+that reports a stale step fails.
+"""
+C2 = """
+No query returns a counter, a draw index or a source choice, so a wrong schedule shows only in
+the sample ids a feed prints and the step a done line carries. The shipped feed is wrong in
+six places, a simulator the agent writes encodes its own reading of the rules and confirms
+nothing about them, and the graded scripts are generated from a seed drawn after the agent's
+container is gone.
+"""
+C3 = """
+The step-by-step reading is exactly correct and is measured against the stated limit at the
+stated scale, where a query names a step millions of steps into a run, so cost per step is
+fatal and cost per blend change is not.
+"""
+C4 = """
+Exact lines, all-or-nothing, over enumerated scripts aimed at each decision and both sides of
+each fence, plus generated scripts in families that concentrate departures inside a step,
+weight changes straddling a checkpoint, resumes at a different width, and the wide scale.
+"""
+guard = """
+Six files under /app/mix are editable and are the only artifacts; the driver, the op language,
+the permutation, the state record and the line writer are the verifier's own pristine copy, so
+the feed cannot be reshaped into one the replay plan handles.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a capped source leaves the blend the moment it finishes its last epoch", b = "every live source's counter returns to zero when the blend changes", why = "the departure is what rebases the schedule, so how many draws each remaining source gets afterwards depends on exactly which draw the departure fell on, and the departure point itself depends on the counters it is about to destroy" },
+  { a = "a checkpoint restores epochs, cursors and counters", b = "a departure or a weight change since the checkpoint stands", why = "the restored counters belong to a blend that may no longer exist, so restoring correctly means comparing the two blends and rebasing, and the same stored value is right in one case and must be discarded in the other" },
+  { a = "the step layout is decided by ranks, micro-batch and accumulation", b = "the draw order does not depend on any of them", why = "a resume at a different width must hand the same samples out in a different arrangement, so the feed has to settle the step's draws before it knows who receives them, which the obvious per-rank loop cannot do" },
+  { a = "a weight change rebases the counters", b = "a capped source leaves at a draw the counters decide", why = "a weight change moves the departure of every capped source, and a departure moves the draw counts that decide the next weight change's effect, so neither can be settled before the other along the run" },
+  { a = "a query reports the step the run is about to take", b = "a departure can fall inside that step", why = "the query has to apply the departure and the rebase that follows it to get the rest of the step right, and then leave none of it behind, so the preview and the commit are the same computation with different ownership of the result" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A run that checkpoints, dies and restarts with the same blend and the same width must hand out
+exactly the samples the uninterrupted run would have, with the counters carried across
+untouched; an implementation that turns conservative and rebases on every restart fails it.
+"""
+late_case = """
+A checkpoint, then a source finishes its cap inside the next step and leaves, then the trainer
+dies and restarts at a different width: the counters come back from the checkpoint but the
+blend does not, so they rebase, the step layout changes, and a second capped source now
+departs at a different draw than it would have. Nothing before the restart distinguishes the
+two readings.
+"""
+oracle_denied = """
+The only thing to compare against locally is the shipped feed, which is wrong in six places at
+once. A simulator the agent writes from the brief agrees with its own reading of the rules by
+construction, so it proves the speed-up and nothing about the semantics, and no query exposes
+a counter, a draw index or which source a draw went to.
+"""
+
+[leaks]
+candidates = [
+  { what = "the running draw total the shipped deck keeps per source", closed_by = "it is the shipped mechanism and is the wrong quantity; the rule reads a counter relative to the current blend and nothing in the tree derives one from the other" },
+  { what = "a query returning the counters, the segment start or the source a draw went to", closed_by = "no such op exists in the language; the only observables are the sample ids a feed prints, the epoch and cursor an at prints, and the step a done line carries" },
+  { what = "the example scripts shipped under /app/progs", closed_by = "they exercise the op language and the one wrong line the brief names; none of them has a departure inside a step, a weight change straddling a checkpoint, or a resume at a different width" },
+  { what = "the permutation module, which is shipped correct and cannot be edited", closed_by = "it turns a source, an epoch and a seed into an order and knows nothing about the blend, the counters or the schedule; it is the primitive the task is not about" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+The state holds a cursor, an epoch, a weight and a live flag per source and nothing computed
+from them: no draw total, no departure step, no per-step table, no next-source cache. Every
+count the rules turn on is derived when it is asked for.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+The step-by-step reading, which is exactly correct: draw the step's samples one at a time,
+hand them out, and repeat until the queried step is reached. Also correct and also too slow,
+the per-step reading that inverts the schedule once per step instead of once per segment.
+"""
+invariant = """
+Inside one blend the draws are the merge of each source's counter over its weight in
+increasing order, so the count a source has after N draws follows from the virtual time the
+N-th draw sits at, and the draw that takes a source's last permitted sample follows from the
+same relation read the other way. Both are arithmetic, and the blend only changes at a
+departure, a weight change or a script op.
+"""
+input_scale = "runs queried up to four million optimizer steps in, at global batches of 512 to 1024 samples"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "the draw rule reads the source's total draws rather than its draws since the blend changed", hand_case = "a weight change part way through a run, then a feed on the next step" },
+  { reading = "the counters survive a departure instead of returning to zero", hand_case = "a capped source that leaves mid-run, then a feed two steps later" },
+  { reading = "the counters rebase on every restart", hand_case = "save, stop and run again with the same blend and the same width, then a feed" },
+  { reading = "a stop restores the blend as well as the cursors", hand_case = "a departure between the checkpoint and the stop, then a resume and an at on that source" },
+  { reading = "a capped source serves cap plus one epochs because the roll happens before the cap is checked", hand_case = "a source with three samples and a cap of one, then an at and a done line" },
+  { reading = "a departure is applied at the end of the step it falls in", hand_case = "a departure at the third draw of an eight draw step, then a feed on that step" },
+  { reading = "a tie in the draw rule goes to the heavier source or to the one drawn least recently", hand_case = "two equally weighted sources at the first draw of a segment" },
+  { reading = "ranks take contiguous blocks of the step instead of interleaved micro-batches", hand_case = "a feed at two ranks, micro-batch two and two accumulation steps" },
+  { reading = "a query advances the feed", hand_case = "a feed, then a go of one step, then the same feed again" },
+  { reading = "a done line carries the step of the next draw rather than the step holding the last one", hand_case = "a departure on the final draw of a step" },
+  { reading = "a departed source still reports an epoch and a cursor", hand_case = "an at naming a source that has left" },
+  { reading = "the run is replayed step by step to reach the queried step", hand_case = "the wide family, which is correct under this reading and does not finish" },
+]
+correct_variants = [
+  "a segment walk with a binary search for the virtual time of the N-th draw over the grid of the weights' least common multiple",
+  "a segment walk that bisects each source's own draw count directly under exact rational arithmetic and settles the step with a heap ordered by counter over weight",
+]
+
+[shape]
+environment_py_lines = 236
+editable_files = 6
+reference_lines = 279

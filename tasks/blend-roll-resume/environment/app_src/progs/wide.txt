@@ -1,0 +1,21 @@
+seed 99
+src ab 8192 5 0
+src cd 6144 3 18000
+src ef 4096 2 52000
+src gh 5000 4 0
+run 8 4 32
+go 900000
+feed 5 7
+save
+go 200000
+at cd
+at ef
+wt gh 7
+stop
+run 4 8 16
+go 2000000
+feed 2 9
+at ab
+at cd
+at ef
+at gh

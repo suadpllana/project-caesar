@@ -1,0 +1,149 @@
+{
+ "back-blend": [
+  "done cd 1 1",
+  "at cd out",
+  "at cd out",
+  "at ab 0 1",
+  "feed 0 0 ab:13 ab:17"
+ ],
+ "back-hold": [
+  "feed 0 0 cd:2 ab:1 cd:0"
+ ],
+ "back-plain": [
+  "feed 0 0 ab:5 ab:7",
+  "feed 0 0 cd:9 ab:4",
+  "feed 0 0 ab:5 ab:7"
+ ],
+ "back-rebase": [
+  "done ef 1 0",
+  "feed 0 0 ab:1 cd:1",
+  "at ef out"
+ ],
+ "back-step": [
+  "done cd 5 1",
+  "at cd out"
+ ],
+ "back-swap": [
+  "feed 0 0 ab:7 cd:11 ab:2"
+ ],
+ "back-weight": [
+  "feed 0 0 ab:4 cd:1 cd:8 cd:0"
+ ],
+ "base-depart": [
+  "feed 0 0 ef:1 cd:3",
+  "done ef 3 0",
+  "feed 0 0 cd:6 cd:5",
+  "at ef out"
+ ],
+ "base-hold": [
+  "feed 0 0 ab:7 cd:1 ab:0",
+  "feed 0 0 ab:4 cd:7 ab:2"
+ ],
+ "base-weigh": [
+  "feed 0 0 cd:2 cd:3 ab:1",
+  "feed 0 0 ab:1 cd:2 ab:4"
+ ],
+ "base-weigh-same": [
+  "feed 0 0 ab:0 cd:2",
+  "feed 0 0 ab:0 cd:2"
+ ],
+ "cap-edge": [
+  "done cd 2 1",
+  "at cd out",
+  "at ab 0 3"
+ ],
+ "cap-first-draw": [
+  "feed 0 0 ab:7",
+  "done cd 1 0",
+  "at cd out"
+ ],
+ "cap-last-draw": [
+  "done cd 0 1",
+  "at cd out",
+  "at ab 0 3"
+ ],
+ "cap-none": [
+  "at ab 3 0",
+  "at cd 2 0"
+ ],
+ "cap-two": [
+  "at cd 1 1",
+  "at ab 0 3"
+ ],
+ "cap-two-out": [
+  "done cd 2 0",
+  "done ef 3 0",
+  "at cd out",
+  "at ef out",
+  "at ab 0 4"
+ ],
+ "join-back": [
+  "at cd 0 1",
+  "at cd 0 1",
+  "at ab 0 2",
+  "feed 0 0 ab:10 cd:5"
+ ],
+ "join-cap": [
+  "done cd 2 1",
+  "at cd out",
+  "at ab 0 4"
+ ],
+ "join-mid": [
+  "feed 0 0 ab:0 ab:5",
+  "feed 0 0 ab:0 cd:5",
+  "at cd 0 0"
+ ],
+ "lay-single": [
+  "feed 0 0 ab:9 cd:15",
+  "feed 0 1 ab:0 ab:12",
+  "feed 0 2 cd:13 ab:11"
+ ],
+ "lay-spread": [
+  "feed 0 0 ab:4 cd:9",
+  "feed 1 0 ab:2 ab:10",
+  "feed 0 1 cd:0 ab:13",
+  "feed 1 1 ab:15 cd:12"
+ ],
+ "pick-ratio": [
+  "feed 0 0 ab:2 cd:5 ab:6 ab:3",
+  "feed 0 0 ab:1 cd:3 ab:5 ab:4"
+ ],
+ "pick-tie-order": [
+  "feed 0 0 ab:0",
+  "feed 0 1 cd:0"
+ ],
+ "pick-tie-weight": [
+  "feed 0 0 ab:4",
+  "feed 0 0 cd:0"
+ ],
+ "roll-edge": [
+  "at ab 0 2",
+  "at ab 1 0"
+ ],
+ "roll-over": [
+  "at ab 0 0",
+  "at ab 1 0",
+  "at ab 1 1",
+  "feed 0 0 ab:1"
+ ],
+ "roll-share": [
+  "at ab 1 0",
+  "at cd 0 4",
+  "feed 0 0 ab:1 cd:3 cd:0"
+ ],
+ "show-quiet": [
+  "feed 0 0 ab:0 cd:0",
+  "at cd 0 0",
+  "done cd 0 1",
+  "at cd out"
+ ],
+ "show-tail": [
+  "feed 1 2 cd:18",
+  "feed 0 0 ab:1"
+ ],
+ "show-twice": [
+  "feed 0 0 ab:3 cd:0",
+  "feed 0 0 ab:3 cd:0",
+  "feed 0 0 ab:7 ab:0"
+ ]
+}

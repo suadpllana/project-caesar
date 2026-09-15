@@ -1,0 +1,8 @@
+seed 7
+src ab 12 3 0
+src cd 12 1 0
+run 2 2 2
+go 1
+at ab
+at cd
+feed 1 0

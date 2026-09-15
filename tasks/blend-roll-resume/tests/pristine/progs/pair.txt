@@ -1,0 +1,17 @@
+seed 31
+src ab 40 2 0
+src cd 25 1 0
+run 2 2 3
+go 4
+save
+go 3
+feed 1 2
+at ab
+at cd
+stop
+run 2 2 3
+feed 1 2
+go 6
+feed 0 0
+at ab
+at cd

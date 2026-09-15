@@ -1,0 +1,260 @@
+{
+ "back-free-first": [
+  "fill a 0 8",
+  "done a",
+  "fill b 0 8",
+  "at b 0 3",
+  "at b 4 4"
+ ],
+ "back-oldest": [
+  "fill a 0 12",
+  "done a",
+  "fill b 0 8",
+  "done b",
+  "gone 2 2",
+  "fill c 0 8",
+  "done c"
+ ],
+ "back-order-of-release": [
+  "fill a 0 8",
+  "done a",
+  "gone 1 2",
+  "fill b 0 12",
+  "at b 0 3",
+  "at b 8 1"
+ ],
+ "back-strand": [
+  "fill a 0 20",
+  "done a",
+  "gone 2 4",
+  "fill b 0 12"
+ ],
+ "back-under-part": [
+  "fill a 0 8",
+  "fill b 0 4",
+  "gone 2 1",
+  "fill b 0 4",
+  "fill c 4 0",
+  "at c 0 1",
+  "at c 4 none"
+ ],
+ "end-done-frees": [
+  "fill a 0 8",
+  "done a",
+  "fill b 0 8",
+  "at b 0 3",
+  "at b 4 4"
+ ],
+ "end-stop-live": [
+  "fill a 0 8",
+  "fill b 0 4",
+  "fill b 0 4",
+  "at b 0 4",
+  "at b 4 3"
+ ],
+ "end-stop-part": [
+  "fill a 0 4",
+  "fill a 0 4",
+  "fill b 0 4",
+  "fill b 0 4",
+  "gone 1 2",
+  "fill b 0 4",
+  "at b 0 3",
+  "at b 8 1"
+ ],
+ "end-stop-waiting": [
+  "fill a 0 4",
+  "fill a 0 4",
+  "at a 0 1",
+  "at a 4 2"
+ ],
+ "fill-hold-all": [
+  "fill a 0 4",
+  "fill a 0 4",
+  "fill a 0 4",
+  "at a 0 1",
+  "at a 4 none",
+  "at a 8 3",
+  "gone 2 1",
+  "fill b 0 0"
+ ],
+ "fill-holds-middle": [
+  "fill a 0 8",
+  "fill a 0 4",
+  "hold a",
+  "fill a 12 0",
+  "hold a",
+  "at a 16 none",
+  "at a 0 none"
+ ],
+ "fill-lets-go": [
+  "fill a 0 16",
+  "at a 0 1",
+  "at a 4 none",
+  "at a 8 none",
+  "at a 12 4",
+  "fill b 0 8",
+  "at b 0 6"
+ ],
+ "fill-short-keeps": [
+  "fill a 0 8",
+  "at a 0 1",
+  "at a 4 2",
+  "at a 0 1",
+  "at a 4 2"
+ ],
+ "kick-alone": [
+  "fill a 0 8",
+  "hold a",
+  "fill a 8 0",
+  "hold a"
+ ],
+ "kick-ends-turn": [
+  "fill a 0 8",
+  "fill b 0 8",
+  "hold b",
+  "gone 3 2",
+  "fill b 0 4",
+  "hold a",
+  "fill a 8 0",
+  "fill b 0 4",
+  "fill c 0 0",
+  "hold b"
+ ],
+ "kick-newest": [
+  "fill a 0 8",
+  "fill b 0 4",
+  "hold a",
+  "at a 0 none",
+  "at b 0 4"
+ ],
+ "live-no-sink": [
+  "fill a 0 12",
+  "at a 0 none",
+  "at a 0 none",
+  "at a 8 3",
+  "at a 12 4"
+ ],
+ "live-sink-stays": [
+  "fill a 0 12",
+  "at a 0 1",
+  "at a 4 none",
+  "at a 8 3",
+  "at a 16 none"
+ ],
+ "live-window-edge": [
+  "fill a 0 16",
+  "at a 4 none",
+  "at a 8 3",
+  "at a 12 4",
+  "at a 4 none",
+  "at a 8 3"
+ ],
+ "rest-free-at-once": [
+  "fill a 0 12",
+  "fill b 0 8",
+  "gone 2 1",
+  "done b",
+  "gone 5 2",
+  "fill c 4 8",
+  "at c 0 1",
+  "at c 4 none",
+  "done a"
+ ],
+ "rest-reusable": [
+  "fill a 0 8",
+  "done a",
+  "fill b 0 8",
+  "done b",
+  "fill c 8 0",
+  "at c 0 1",
+  "at c 4 2"
+ ],
+ "rest-strand-frees": [
+  "fill a 0 8",
+  "fill a 0 4",
+  "fill b 0 4",
+  "gone 2 1",
+  "fill b 0 4",
+  "hold b",
+  "fill b 8 0",
+  "hold b",
+  "at c 0 none",
+  "at a 8 none"
+ ],
+ "turn-decode-first": [
+  "fill a 0 4",
+  "fill b 0 0",
+  "at a 4 2",
+  "at b 0 none"
+ ],
+ "turn-no-jump": [
+  "fill a 0 4",
+  "fill a 0 4",
+  "at b 0 none",
+  "fill a 0 4",
+  "fill b 0 2",
+  "at b 0 4"
+ ],
+ "turn-page-edge": [
+  "fill a 0 4",
+  "at a 0 1",
+  "at a 4 none",
+  "fill a 0 4",
+  "at a 0 1",
+  "at a 4 2"
+ ],
+ "turn-reuse-free": [
+  "fill a 0 4",
+  "fill a 0 4",
+  "fill b 8 0",
+  "at b 0 1",
+  "at b 4 2"
+ ],
+ "twin-hands-back": [
+  "fill a 0 8",
+  "fill b 8 0",
+  "done a",
+  "at a 8 none",
+  "at b 8 3",
+  "at b 4 2"
+ ],
+ "twin-other-prev": [
+  "fill a 0 8",
+  "fill b 0 8",
+  "done a",
+  "at a 8 none",
+  "at b 8 7"
+ ],
+ "walk-held": [
+  "fill a 0 8",
+  "fill b 8 0",
+  "at b 0 1",
+  "at b 4 2"
+ ],
+ "walk-part-page": [
+  "fill a 0 10",
+  "fill b 8 2",
+  "at b 0 1",
+  "at b 8 4"
+ ],
+ "walk-stops-at-gap": [
+  "fill a 0 8",
+  "fill a 0 4",
+  "fill b 0 4",
+  "fill b 0 4",
+  "gone 2 1",
+  "fill c 4 0",
+  "hold b",
+  "at c 0 1",
+  "at c 4 none",
+  "at c 8 none"
+ ],
+ "walk-whole": [
+  "fill a 0 12",
+  "fill b 12 0",
+  "at b 0 1",
+  "at b 4 none",
+  "at b 8 3"
+ ]
+}

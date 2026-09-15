@@ -1,0 +1,213 @@
+# Difficulty record for page-window-reuse, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/page-window-reuse/STATE.md and is what the build has
+# to deliver. Scored with `python tools/difficultycheck.py page-window-reuse`.
+
+[task]
+slug = "page-window-reuse"
+status = "pending"
+sources = [
+  "tasks/page-window-reuse/STATE.md",
+  "tasks/page-window-reuse/task.toml",
+  "tasks/page-window-reuse/tests/test_outputs.py docstring",
+  "authoring/page-window-reuse/cheat_report.py output",
+  "authoring/page-window-reuse/trace.md",
+]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Model the pool as a list of fixed pages and give every request a page table. Cut the prompt
+into page-sized blocks, hash each block together with the block before it, look the chain up
+in a reuse index and take the pages that match, then fill the rest. Count a reference per
+request on every page it uses, put a page back in the index when its count reaches zero, and
+when the pool runs dry evict the least recently used zero-count page, skipping any that still
+has a page under it. When there is nothing to evict, preempt the newest request and let it
+recompute later.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A resident request keeps only the pages holding its first few tokens and the pages holding
+its last few, and releases the rest as soon as the prompt is complete, so a request does not
+hold the pages in the middle of its own history and the pool takes back the page released
+longest ago whatever still sits under it.
+"""
+second_discovery = """
+Taking one page back frees every page under it that nobody holds, and leaves the pages under
+it that somebody does hold alive but unreachable, so they go straight to the pool when their
+holder releases them instead of becoming reusable. The reusable set is therefore not a queue
+that pages leave by being taken back: pages leave it in the middle, in groups, because of a
+take-back somewhere else entirely, and a fill that asked for four pages can be handed nine.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped server on the small program in the brief and reproduce the wrong line it names",
+  "read the frozen step loop to learn that decodes run before fills and that a fill stops on a page boundary",
+  "work out that residency is the first and last tokens rather than the whole history, and that the pages a fill releases are the oldest in the reusable set and so the first to go",
+  "rebuild the reuse index so that a walk stops at the first page that is gone rather than matching a chain of hashes",
+  "make the take-back drop the pages under it, and let a fill ask for one page at a time because a single take-back can supply several",
+  "work the case where a preempted request supplies reusable pages rather than free ones, so the next fill takes back a page belonging to a request that is still running",
+  "handle a decode that completes a page whose tokens already sit under the same previous page, giving the private page back to the pool",
+  "generate wide programs at the stated scale and time the three naive families against the stated limit",
+]
+
+[search]
+best_page = """
+The design notes of a public serving stack for its paged cache and its prefix reuse: block
+tables, a reference count per block, blocks published to the reuse index once full, copy on
+write for a forked block, eviction of unreferenced leaves in least-recently-used order, and
+preemption by recompute when the pool runs dry.
+"""
+helps_plan = false
+deviation = """
+That design holds every block of a sequence for as long as the sequence lives, evicts only
+blocks with nothing under them, and preempts when the pool is empty. Here residency is the
+first and last tokens only, a take-back is allowed to strand whatever sits under it, the
+strand is what decides a later request's reuse, and preemption is the last resort rather than
+the first, supplying pages that are reusable rather than free.
+"""
+
+[tactics]
+A1 = """
+The retrievable account of paged attention gives a coherent plan that is wrong in four
+places at once: whole-sequence residency, leaf-only eviction, eviction after preemption, and
+reuse matched by a chain of content hashes. Each is specifically inverted by a stated rule,
+so the better the source the agent retrieves the more confidently wrong its first structure.
+"""
+A2 = """
+The brief states residency as the pages holding the first and last tokens, and reuse as a
+walk from the start of the prompt that stops at the first page that is gone. Sliding window,
+attention sink, prefix cache, radix tree and reference count are never used, so recognising
+that the middle of a live request is the oldest thing in the pool is the discovery itself.
+"""
+B2 = """
+Ten rules hold at once - residency, the release at the end of a fill, the walk that stops at
+a gap, reachability deciding whether a released page is reusable or free, the take-back and
+its strand, the order of supply, preemption as last resort, the page given back when a decode
+completes content that already exists, the budget split between decodes and fills, and the
+page boundary a fill stops on - and each changes what another means.
+"""
+C1 = """
+Both sides are graded. A request whose prompt is shorter than the window must hold all of its
+pages and release none; a page another request still holds must not go back to the pool when
+one request's window passes it; a fill that holds only its window while it runs fails, and one
+that never releases fails.
+"""
+C2 = """
+The shipped server is the only thing to compare against and it is wrong in six places at
+once. Nothing prints the pool's free count, the reusable set or a page's holder count, so a
+wrong take-back shows up only as a page number in a later at query, or as a request that is
+admitted a step early somewhere further down the trace, in programs generated from a seed
+drawn after the agent's container is gone.
+"""
+C3 = """
+Three naive-but-correct families are measured against the stated limit: residency recomputed
+over every page of a request on each decoded token, the reusable set rescanned for its oldest
+member on each take-back, and the strand found by walking the whole page table for
+descendants.
+"""
+C4 = """
+Exact traces, all-or-nothing, over enumerated programs aimed at each decision and both sides
+of each fence, plus generated programs in families that concentrate pool pressure, prompts
+sharing prefixes across a take-back, requests preempted after their own middle went out of
+reach, and the two scale families.
+"""
+guard = """
+Six files under /app/kv are editable and are the only artifacts; the driver, the op language,
+the program reader, the trace writer and the request table are the verifier's own pristine
+copy, so the task cannot be reshaped into one the default plan handles.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a request holds only the pages of its first and last tokens", b = "the pool takes back the page released longest ago", why = "the pages a fill releases at its end are the oldest unheld pages in the pool, so the first thing pressure takes back is the middle of a request that is still running, and that decides what the next request with the same prompt may reuse" },
+  { a = "reuse walks from the start of the prompt and stops at the first page that is gone", b = "a take-back strands whatever sits under the page it took", why = "a stranded page still holds the right tokens and is still in the index, so an implementation that matches content finds it and reuses a page no walk can reach, and the two rules can only be satisfied by one structure" },
+  { a = "a fill holds every page of its prompt until the prompt is complete", b = "a fill stops on a page boundary when the step budget runs out", why = "the budget decides how many steps a fill spans and therefore how long it holds its whole prompt, so a prompt that fits the pool in one step can be impossible to place when the budget splits it" },
+  { a = "preemption is the last resort and supplies reusable pages, not free ones", b = "the order of supply is free page, then take-back, then preemption", why = "the pages a preemption releases are reusable rather than free, so the allocation that forced it takes back the oldest reusable page, which is usually not one of them, and a second preemption can follow immediately" },
+  { a = "a decode that completes a page whose tokens already sit under the same previous page gives its own page back", b = "a request holds the pages of its last tokens", why = "the page handed back goes straight to the free list while the request's window now holds a page somebody else released earlier, so the window's next release returns a page with a different age and the take-back order moves" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A request whose prompt is shorter than the window holds every page it filled and releases
+nothing, and a request that shares a prompt with one still running reuses every page of it;
+an implementation that turns conservative and releases everything outside the last tokens, or
+refuses to reuse a page another request holds, fails both.
+"""
+late_case = """
+Two requests share a long prompt. The first is admitted, fills the whole prompt, releases its
+middle and runs on; pressure from a third request takes back one of those middle pages, which
+strands the rest of the first request's history. The second request arrives forty steps later
+and must reuse only as far as the take-back reached, and the first request is then preempted
+and must refill from the same short point, so the divergence is a page number in a query long
+after the take-back that caused it.
+"""
+oracle_denied = """
+The only local check is the shipped server, which is wrong in six places, so agreeing with it
+proves nothing. No op prints the free count, the reusable set, the holder count of a page or
+the reach of a walk, and the trace carries per-request totals rather than per-page results, so
+a wrong take-back is invisible until a later query in a program the agent did not write.
+"""
+
+[leaks]
+candidates = [
+  { what = "a page record carrying the number of requests holding it, or a flag saying it is reusable", closed_by = "a page carries its tokens and the page before it; who holds it and whether it is reusable are derived where they are asked for, and the shipped server's own bookkeeping is one of the six wrong files" },
+  { what = "an op or a trace line reporting the free count, the reusable set or the depth a walk reached", closed_by = "no such op exists; the trace reports what a fill reused and filled in tokens, and the at query reports one page number" },
+  { what = "the example programs shipped under /app/progs", closed_by = "they exercise the op language and the one wrong line the brief names; none of them puts the pool under enough pressure to take a page back while its holder is still running" },
+  { what = "the shipped request table recording which pages a request ever filled", closed_by = "the request table is frozen and records only the pages a request holds now, which is the residency answer rather than the history the reuse walk would need" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+A page stores its tokens and the page before it and nothing computed from them: no holder
+count, no reusable flag, no age, no strand size, no reuse depth. Residency, reachability, the
+oldest release and the strand are all derived at the moment they are asked for.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Three families that are each exactly correct: residency recomputed over every page of a
+request on each decoded token, the oldest release found by scanning the reusable set on each
+take-back, and the strand of a take-back found by walking the whole page table for pages whose
+chain passes through it.
+"""
+invariant = """
+A request's window moves forward only, so at most one page leaves residency per page width of
+tokens and the released page is the one at the window's old edge; releases are stamped by a
+counter that only rises, so insertion order is age order; and a page names the page before
+it, so the strand is the subtree the index already has and never a scan.
+"""
+input_scale = "100000 requests against a pool of 50000 pages, and six requests sharing a prompt of 9000 pages emitting 24000 tokens each"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a request holds every page of its prompt for as long as it is resident", hand_case = "one long prompt filled, then a second request whose prompt needs the pages the first should have released" },
+  { reading = "reuse matches the longest chain of page contents wherever those pages are", hand_case = "a prompt filled, its second page taken back, then the same prompt asked for again" },
+  { reading = "a page with something under it is never taken back", hand_case = "pressure with only a middle page old enough to take, and a query on the request that was running under it" },
+  { reading = "a take-back frees exactly one page", hand_case = "a finished request whose whole history is reusable, taken back from its first page" },
+  { reading = "a page released by the last request holding it is always reusable", hand_case = "a request holding a page under one that was already taken back, then finishing" },
+  { reading = "the pool preempts when it has no free page", hand_case = "pressure with a reusable page available and two resident requests" },
+  { reading = "a preemption supplies free pages to the fill that forced it", hand_case = "a fill that needs two pages where the newest resident request holds exactly two" },
+  { reading = "a decode that completes a page keeps the page it was filling", hand_case = "two requests emitting the same tokens after the same prompt, then a query on the second" },
+  { reading = "a fill takes as many tokens as the budget allows", hand_case = "a budget that runs out in the middle of a page, then a query on the partly filled page" },
+  { reading = "decodes and fills share the budget in arrival order", hand_case = "a step whose budget covers the resident decodes and one page of a waiting prompt" },
+  { reading = "residency is the last tokens only", hand_case = "a request whose first page is queried after its window has moved past it" },
+  { reading = "a cancelled request that was never resident releases pages", hand_case = "a cancel of a waiting request between two fills" },
+]
+correct_variants = [
+  "pages held in a dict keyed by the page before it and its tokens, with residency kept as an explicit set per request and the reusable order in a linked list",
+  "pages held in an array with the reuse index as a tree of children per page, residency derived from the request length on each decode, and the reusable order in a heap keyed by release stamp",
+]
+
+[shape]
+# Measured from the built tree on 2026-09-15; the planned figures were 460 / 6 / 330.
+environment_py_lines = 377
+editable_files = 6
+reference_lines = 362

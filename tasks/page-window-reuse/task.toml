@@ -1,0 +1,213 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/kv/pool.py",
+  "/app/kv/keep.py",
+  "/app/kv/live.py",
+  "/app/kv/fill.py",
+  "/app/kv/turn.py",
+  "/app/kv/put.py",
+]
+
+[task]
+name = "afterquery/page-window-reuse"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the paged cache every serving stack builds, and most of it looks right
+here: a page table per request, a reference count per page, an index of full pages keyed by
+their content and the page before them, eviction of the least recently used page that has
+nothing under it, and preemption when the pool runs dry. Four of those are specifically
+wrong. A request holds the pages of its first tokens and the pages of its last tokens and
+nothing in between, so the pages it lets go in the middle are the oldest unheld pages in the
+pool and are the first thing pressure takes back. A take-back is allowed to take a page that
+does have something under it, which is the only reason the reusable set is worth anything at
+that point. What the take-back leaves below itself is not evicted, it is out of reach: still
+alive, still holding the right tokens, and not reusable by anybody ever again. And a
+preemption is the last resort rather than the first, and hands back pages that are reusable
+rather than free, so the allocation that forced it still has to take a page back - usually
+one belonging to a request that is still running.
+
+That last part is where the second finding lands, and it invalidates the implementation of
+the first rather than adding a case to it. One take-back removes a group from the reusable
+set: every page below it that nobody holds goes back to the pool in the same breath, and
+every page below it that somebody holds leaves the reusable set for good without ever being
+taken back. So the reusable set is not a queue that pages leave one at a time, the free count
+is not a number that goes up by one, and a fill that asked for four pages can be handed nine.
+The free list, the reuse index and the age order turn out to be one structure, and a page
+still being written when the take-back happened is below it too, which is what makes the
+whole of it apply to a request in the middle of its own prompt.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in
+each follows from an invariant rather than a technique: a request's window moves forward only,
+so at most one page falls out per page width of tokens, and releases are ordered in time, so
+insertion order is age order. Measured here against the 60 second limit for the whole graded
+set, residency recomputed over every page of a request on each token takes 110 seconds, the
+oldest release found by scanning the reusable pages takes 144 seconds, and the reach of a
+take-back found by sweeping the page table takes 203 seconds. All three produce exactly the
+reference's traces on everything they finish; the limit is the only thing that separates them.
+The reference settles all 428 graded programs in about five seconds.
+
+Around those sit the ordinary decisions, each a fence with two sides: a prompt shorter than
+the window that must keep every page it filled, a page another request is holding that must
+still be reused, a fill that must hold its whole prompt until the prompt is complete, a
+budget too small to reach a page boundary, which takes nothing rather than taking what fits,
+and a page completing onto tokens that already sit below the same page. All six editable
+files ship wrong, and the only feedback a wrong structure gets is a page number in an at
+query and a count in a fill or take-back line, because residency, the free count and the
+reach of a walk are not reported anywhere.
+
+Identifiers are in a legacy register - `kv/`, `pool`, `keep`, `live`, `fill`, `turn`, `put`,
+`ask`, `fed`, `made`, `up`, `ok` - short but never misleading, and no name misdescribes what
+it holds. That is a choice about the register of real serving-path code rather than an
+obstacle: each is recoverable from what calls it.
+
+The programs are synthetic, in twelve families, with prompts that share prefixes across a
+take-back, pools short enough that a page is taken back while its holder is still running,
+requests asked for again after their own middle has gone out of reach, budgets that stall on
+a page boundary, pools too small for what is resident, requests emitting the same tokens after
+the same prompt, and the two scale families. In a working service these are rare, and they are
+exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`pool.py` holds three states and the traffic between them. Free pages are a heap of numbers,
+so the lowest is a pop. Held pages carry a count of their holders. Reusable pages sit in an
+ordered mapping whose insertion order is their age, which works because a page only enters it
+when its last holder lets go and leaves it when somebody takes it up again, so the order is
+the order of release. A take-back pops the front of that mapping and then walks down: every
+page below it leaves the tree, those with no holder going back to the free heap and those
+with a holder marked as out of reach, and the count of the first group is what the take-back
+prints. The same walk is what a release uses when the page it is releasing can no longer be
+reached, which is why freeing and taking back are one function.
+
+`keep.py` is the index and the walk. A page is keyed by the page before it and its tokens, a
+page joins the tree the moment it is made rather than when it completes, and its reach is
+inherited from the page it joins under. Joining at that point is what lets a take-back reach
+a page that is still being written: the walk has to stop at a gap, so everything below the
+gap has to leave the index with it, complete or not. The walk itself is a lookup per page
+width of the prompt, stopping at the first miss.
+
+`live.py` is residency. The window moves forward only, so the pages that fall out are a
+prefix of the pages outside the sink, and one pointer per request is enough to release them
+in the order of the tokens they hold - which is also what settles their age, and so what the
+pool takes back first.
+
+`put.py` writes one token. A page is taken when the offset is zero, joined under the page the
+request wrote before it, and when its last slot is filled the index is asked whether those
+tokens already sit below that page: if they do, the private page goes straight back to the
+free heap and the one already there is taken instead, and if they do not, and the page can be
+reached, it becomes reusable from then on.
+
+`fill.py` runs the walk once, then writes chunks that end on a page boundary, and lets go of
+the middle at the moment the prompt is complete rather than as it goes. `turn.py` is the step:
+decodes first, in residency order, one token of budget each; then waiting prompts in arrival
+order until one of them cannot reach a boundary; and a page that cannot be supplied ends the
+step with a preemption.
+
+An expert works in that order because each file consumes the one before it: what the pool does
+with a released page decides what the index can still reach, what the index can reach decides
+what a walk gets, what a walk gets decides what a fill has to write, and what a fill holds
+decides what the pool has left. The same contract is implemented two further ways in the
+authoring set - one keeping the reusable order in a heap of stamps with lazy deletion and
+residency derived arithmetically from the length, one keeping the index as a dict of children
+per page with residency as an explicit set - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/kv/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Thirty-two hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+ninety-six further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across twelve families that concentrate pool pressure, prompts
+shared across a take-back, requests asked for again after their own middle went out of reach,
+budgets stalling on a page boundary, preemption, pages completing onto tokens already below
+the same page, and the two scale families. A submission cannot have seen them, so fitting the
+shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Holding too little fails `live-sink-stays` and `fill-hold-all`;
+holding too much fails `fill-lets-go` and `live-window-edge`. Reusing too much fails
+`walk-stops-at-gap`; reusing too little fails `walk-held` and `walk-whole`. Taking back the
+wrong page fails `back-oldest` and `back-order-of-release`; taking back too little fails
+`back-strand`; taking a page back when a free one was there fails `back-free-first`. Keeping
+an unreachable page as reusable fails `rest-free-at-once`, and a page still being written when
+its ancestor went fails `back-under-part`. Preempting instead of taking a page back fails
+`kick-newest`; preempting the wrong request fails `kick-alone`; carrying on after a preemption
+fails `kick-ends-turn`. Filling before decoding fails `turn-decode-first`; writing past a page
+boundary fails `turn-page-edge`; letting a short prompt jump the queue fails `turn-no-jump`;
+charging the budget for what a walk reused fails `turn-reuse-free`. Keeping a page that
+completed onto tokens already below the same page fails `twin-hands-back`, and handing one
+back under a different page fails `twin-other-prev`.
+
+Thirty-seven cheats score 0. Twenty-five are wrong readings, each caught by the enumerated
+case named for it. Three are exactly correct and too slow: residency recomputed over every page of
+a request, the oldest release found by scanning, and the reach of a take-back found by
+sweeping the page table. One is a forgery carrying the frozen answers for every enumerated
+program, which passes all thirty-two and fails on the programs it could not have seen. The
+other eight are probes: the answer key, a planted report, a report planted and the worker exited
+clean before it could be overwritten, malformed records, privilege, a shrunken population, a
+late reward, and a rewrite of the parts of the tree the verifier does not take. Two
+independently written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid
+cannot read, so code running inside the verifier cannot compute its answers from them. The
+reward defaults to 0, is written last by the privileged stage into a root-owned directory
+locked before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "ML"
+
+subcategory = "Inference"
+
+tags = [
+  "kv-cache-paging",
+  "prefix-reuse",
+  "windowed-residency",
+  "admission-control",
+  "preemption",
+  "page-allocator",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the memory manager of a token-generation service: the part that decides which
+request is resident, which pages of its cache stay in the pool while it runs, how much of a new
+prompt is already there, and which page the pool takes back when it has none free. Familiarity
+with the fact that a request whose residency is narrower than its history leaves the oldest
+pages in the pool in the middle of its own chain, that taking one of those back costs every
+page below it and not just that page, and that what a preemption gives back is reusable rather
+than free. Comfort with fixed-page allocators, with reference counts over shared prefixes, and
+with the difference between a structure that is correct and one that is affordable at the size
+the service actually runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

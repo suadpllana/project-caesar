@@ -1,0 +1,27 @@
+The agent-facing tree is authored, not vendored, so there is no upstream conversion table to
+keep. What the short names in /app/kv mean, for the author's own reference:
+
+  kv/          the token cache this service manages
+  pool.py      the pool of pages: free, reusable, held, and the take-back
+  keep.py      the reuse index and the walk from the start of a prompt
+  live.py      residency - which pages a request is holding right now
+  fill.py      the filling of a prompt, chunk by chunk
+  turn.py      one scheduling step
+  put.py       writing one token, and completing a page
+  store.py     the frozen records: a page, a request, and the trace
+  ops.py       the program language
+  run_kv.py    the driver
+
+  rq.prompt    the prompt tokens of a request
+  rq.out       the tokens it will emit, one per decode
+  rq.fed       how many prompt tokens are placed
+  rq.made      how many tokens it has emitted
+  rq.pg        the pages it holds now, by page slot
+  rq.up        the lowest page outside the sink it still holds
+  kv.n w a s b pool size, page width, sink tokens, window tokens, step budget
+  kv.fr        free page numbers
+  kv.ref       holders per page
+  kv.use       reusable pages, oldest release first
+  kv.ix        the reuse index
+  kv.kid       the pages below each page
+  kv.ok        whether a walk can still reach a page

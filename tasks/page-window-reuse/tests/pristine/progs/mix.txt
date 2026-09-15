@@ -1,0 +1,18 @@
+pool 10 4 4 8 12
+ask a 12:1 4:5
+ask b 12:1 4:6
+step
+step
+at a 0
+at a 4
+ask c 8:2 6:7
+step
+step
+at b 8
+stop c
+ask d 12:1 2:9
+step
+step
+step
+at d 0
+at d 8

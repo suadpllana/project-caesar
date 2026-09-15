@@ -1,0 +1,11 @@
+pool 8 4 4 8 16
+ask a 12:1 6:5
+step
+step
+step
+step
+step
+step
+at a 4
+at a 8
+at a 0

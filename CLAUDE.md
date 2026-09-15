@@ -14,6 +14,48 @@ Before designing or hardening another task, read `docs/DIFFICULTY.md`,
 Historical task transcripts and retired project notes were deliberately removed. Do not restore
 them as examples; only the projects listed in `README.md` belong in this checkout.
 
+## Lessons, measured (2026-09-15, `page-window-reuse`)
+
+Five defects found by local gates before submission, each with the number that found it:
+
+- **Two implementations differing by luck is a contract hole, not a bug in one of them.** The
+  first differential run disagreed on 6 of 200 programs. Neither side was wrong: a freed page
+  number had been handed out again while an older page still named it as the page before it, and
+  the reference and the model happened to resolve it differently. The repair was to the contract
+  - a page joins the tree when it is made rather than when it completes - not to either
+  implementation. Write the second implementation early enough that it can still change the
+  contract.
+- **A cheat that does not express its reading is a reading you have not tested.** `readingcheck`
+  reported two readings as `equivalent`: a sink-less residency whose release pointer still started
+  at the sink, so the pages the predicate no longer asked for were never examined, and a queue
+  jump whose `return` became a `break` at the end of the loop it was already leaving. Both looked
+  like real cheats, both scored 0 in the sweep, and neither changed a single trace. The two it
+  reported as `BLIND` were cheaper to fix than these.
+- **Eight isolation probes scored 0 while doing nothing.** A `\n` written through a quoted
+  heredoc into `emit.py` became a literal newline in the emitted source, so every probe died with
+  a SyntaxError before its attack ran, and the sweep reported eight clean PASS rows. `emit.py` now
+  runs `ast.parse` over every file it writes, which caught a ninth cheat with `continue -1` in it
+  on the very next run. A reward of 0 says nothing about which layer produced it; the probe log
+  saying `PermissionError` on `/tests/seal/gt.json` does.
+- **A scale family has to be measured against the naive form, not sized by arithmetic.** The
+  first `wide` family produced zero take-backs, because each request's single page never filled
+  and an incomplete page is never reusable. The second was correct and far too small: the naive
+  residency reading came in at 3.4 s against a 60 s limit, and the estimate that said otherwise
+  was off by thirty times. Only the third shape put all three naive structures over the limit
+  (110 s, 144 s, 203 s against a reference at 5.2 s).
+- **The forgery has to survive long enough to be graded.** The answer-key cheat rebuilt its
+  lookup key from the whole request table on every op, which is fine on a twelve-line program and
+  fatal on one with a hundred thousand requests: it hit the wall clock and scored 0 for the wrong
+  reason. Keyed by a rolling hash it now reproduces all 32 enumerated programs and fails only the
+  396 it could not have seen, which is what the probe was written to show.
+
+- **`catcheck` and `textcheck` both fired on the first complete draft, and both were right.** The
+  category was carried by the prose: 76 ML words in the brief and metadata, 0 in the tree, which
+  is the shape that got `alias-settle-report` rejected. The repair was to use the domain's own
+  words where they belong - `prompt`, `tokens`, a `decode` phase - rather than to change the
+  label. `textcheck` then found the brief more regular than a retained one on two axes; breaking
+  three long sentences and merging two paragraphs cleared both without staging any informality.
+
 ## Lessons, measured (2026-09-06, `token-seam-emit`)
 
 Four defects found by local gates before submission, each with the number that found it:

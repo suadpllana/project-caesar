@@ -1,0 +1,6 @@
+width 8
+span 2
+floor 3
+rec a 5 2
+rec b 6 3
+seal

@@ -286,6 +286,48 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   The shapes had to change, not the claims. The metadata I had already drafted would have stated
   two boundaries that did not exist - write the number after measuring it, never before.
 
+## Lessons, measured (2026-09-16, `pack-span-settle`)
+
+- **A wrong reading can turn out to be a correct variant, and only running it says which.**
+  "Settle a record by the step it started in" was written down as a wrong reading and shipped as
+  a cheat. `readingcheck` reported it `equivalent`: only one record is ever in flight, and a
+  record completes while its last step is the open one, so keying the settle on the first step
+  and on the last cannot differ. It is now a correct variant that must score 1. Kept as a cheat
+  it would have failed the Stage 6 gate for a real reason attached to the wrong file.
+- **`readingcheck` names the first case that separates a reading, and first is alphabetical.**
+  All twenty-three readings reported `separated`, and five of them only by `band-closes` or
+  `band-waits`, which come first in sorted order. Asserting the case *named for the rule* is a
+  different check, and it found `cut-always-back` separated by nothing it was meant to be:
+  `carry-two` cannot see where a cut fell, because the trace publishes the piece count and the
+  totals rather than the offsets. A dedicated case had to be written for it.
+- **An isolation probe built on the reference scores 1 on merit.** Seven of nine came back 1 the
+  first time they were run: they did the graded work correctly and merely failed to seize the
+  reward, so the row said nothing about the isolation at all. Built on the shipped broken tree
+  the only route to a 1 is the attack working, which is the whole point of running them.
+- **An emitter method nothing calls is a defect not yet shipped.** `say.Sink.skip` had zero call
+  sites, because the shipped engine lays a one-token record instead of passing it over, and
+  preflight reported it as an unused affordance pointing at the trap. Deleting it would have
+  taken the line out of the frozen interface; the repair was to make the shipped bug the
+  realistic one, where the log call survived the rewrite and the early return did not.
+- **The category check reads the tree, not the story.** Filed as ML / Training on the strength of
+  a pretraining data-path brief, `catcheck` measured 0 ML hits in the environment against 57 in
+  the prose - the exact shape that rejected `alias-settle-report` on 2026-09-04. The graded work
+  is laying a record stream into windows and settling an account, so the label is Software /
+  Data engineering and the story stays where it was. Adding tokenizer machinery to earn the ML
+  label would have been scenery, not a repair.
+- **Breaking the long sentences made the cadence more even, not less.** Splitting the four
+  longest sentences of the brief to answer `textcheck` moved burstiness from 0.677 to 0.616,
+  because the measure is the spread: it wants short sentences added, not long ones removed. The
+  retained briefs sit at 0.79 to 0.92 with a maximum sentence of 76 to 112 words, which is a
+  register, not an accident.
+- **`preflight` reads the value after the first colon on the needle's own line, and wants three
+  words.** An answer wrapped onto the following lines reads as unanswered, and so does a bare
+  number - the same finding CLAUDE.md already records for `estimated_solves`, met again on five
+  instruction-contract fields at once.
+- **The lowest measurement is the one to quote.** The per-position family timed at 506 s, then
+  360 s, then 248 s on the same shard under different load. The metadata quotes 248, because a
+  claim that has to hold on someone else's machine is worth less than the number that flatters it.
+
 ## Lessons, measured (2026-09-09, the difficulty checker)
 
 - **The passing shape was already written down; nobody had scored against it.** The ten intake

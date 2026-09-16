@@ -1,0 +1,206 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pipe/cut.py",
+  "/app/pipe/win.py",
+  "/app/pipe/lay.py",
+  "/app/pipe/step.py",
+  "/app/pipe/hold.py",
+  "/app/pipe/weigh.py",
+]
+
+[task]
+name = "afterquery/pack-span-settle"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What the brief cannot say is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is to repair the engine where it stands, and most of it is right. A window is a
+run of token positions, a step is a run of windows, and every rule reads as a statement about
+positions, which is exactly the shape the shipped engine already has. The two token floor is a
+comparison. The boundary that scores nothing is an equality. The floor a step has to reach is
+one operator.
+
+The divisor is not. A record's weight is spread over the scored positions it actually has, and
+a record loses one of them for every piece the layout cut it into, so the divisor belongs to the
+layout rather than to the record and is not known while the record is being laid. Those
+positions then only count if the step holding them was kept, and a step is not kept or dropped
+until it closes, which for the step a record ends in is later still. So a record cannot be
+printed when its last piece lands and a step cannot be printed when its windows run out, and
+both shipped emitters are wrong for a reason no local repair reaches. The line order is the same
+fact seen from outside: a dropped step prints at its close, the records waiting on it print
+after, and the kept steps they release print after those, so a step closed thousands of windows
+earlier can come out between two records.
+
+Then the size. Each wide and deep shard declares about four billion tokens against sixty seconds
+and 2048 MB. Measured here, a correct engine that keeps a value per token position - the shipped
+representation, and the one the rules read as describing - settles one deep shard in 248 seconds
+where the reference settles the whole graded set of 395 shards in 2.02. That is not a faster
+loop away: the layout, the scored counts, both divisors and both weight sums have to be
+re-derived as arithmetic over pieces, which is a different representation of every intermediate
+value the first repair produced.
+
+Around those sit the ordinary decisions, each a fence with two sides. A record that fits in the
+room left still shares the window. A piece may never be one token, and two is allowed. A window
+that can take no piece is closed with its room unused and still counts toward its step. A one
+token record takes no room at all, so nothing downstream of it moves. A width, span or floor op
+does not reach the window or the step already open. All six editable modules ship wrong, and the
+only feedback a wrong structure gets is a trace that stays internally coherent, because no line
+says which rule produced it.
+
+Identifiers are in a legacy register - `pipe/`, `rack`, `band`, `fit`, `put`, `shed`, `flr`,
+`wno`, `ww` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real data-path code rather than an obstacle: each is recoverable
+from what calls it.
+
+The shards are synthetic, in ten families, with records that outlive several steps, floors set
+within a position or two of dropping, windows left with one or two slots, remainders that reach
+exactly one token, settings changed while a window or a step is open, and the two scale
+families. In a working pipeline those are rare, and they are exactly where this class of bug
+lives.
+"""
+
+solution_explanation = """
+Six modules, settled in the order the rules force rather than one that is tidy.
+
+`cut.py` is the piece: the longest run of at least two tokens that fits the room and leaves the
+record finished or with at least two still to place. Written out, that is the room or the
+remainder, whichever is smaller, stepped back by one when taking the whole of it would strand a
+single token, and nothing at all when what is left cannot be cut that way - which is how a
+window comes to be closed with its room unused.
+
+`win.py` owns the window and the three settings. The width, the span and the floor are recorded
+on the window or the step when it is opened, never read live, which is the whole of the rule
+that an op does not reach what is already open. It holds a fill rather than the positions: the
+engine never needs a position, because every scored position of one piece carries the same
+fraction and a piece of `t` tokens carries `t - 1` of them, so what the wide shards would cost
+per token costs per piece instead.
+
+`lay.py` lays a record, one piece at a time, against `cut.fit`. It passes over a one token
+record before opening anything, so the record after it starts where it would have; it takes the
+first window at the first piece rather than at the op, so a short close before it moves it; and
+the scored count it carries is the length less the pieces, which is only known when the last one
+is placed.
+
+`step.py` holds a step: the windows it has taken, the scored positions in it, what each record
+has contributed, and whether it was kept. A record's contribution is recorded as the piece is
+placed, so the step never walks anything.
+
+`hold.py` is the settlement, and it is what the first plan gets wrong. A record goes into a
+queue when its last piece is placed and comes out when the step holding that piece closes; the
+records due are always a prefix of that queue, because records are laid in order and a record
+completes while its last step is the open one. A step is released when it is closed and no
+record it holds is still owed. The order follows: the drop line at the close, then the records,
+then the steps in index order behind a single cursor.
+
+`weigh.py` is the divisor and the two fractions: the scored positions the record has in steps
+that were kept, the weight over that in lowest terms, and a running sum per step folded one
+record at a time.
+
+An expert works in that order because each module consumes the one before it: the piece decides
+the layout, the layout decides the scored counts, the counts and the floor decide the divisor,
+and the divisor decides when anything can be printed at all. The same contract is implemented
+three further ways in the authoring set - one keying the settle on the step a record started in,
+one carrying the contributions on the record and a count of what each step is waiting for
+instead of a map, and one accumulating the step sums with a rational type - so the shape is
+visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six modules under `/app/pipe/` are taken from the agent. The verifier lays them over
+its own pristine copy of the tree, so nothing else it may have touched can change what a shard
+prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-nine hand shards, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+sixty-six further shards are generated inside the verifier from a seed drawn after the agent's
+container is gone, across ten families that concentrate records outliving several steps, floors
+within a position or two of dropping, windows left with one or two slots, remainders reaching
+exactly one token, settings changed across an open window or step, and the two scale families. A
+submission cannot have seen them, so fitting the shipped examples fails, and so does carrying an
+answer key.
+
+The fences run both ways, and which case catches which reading is measured rather than assumed.
+Filling a window to the brim fails `stranded-tail`; allowing a one token piece fails `room-one`;
+stepping back when two or more tokens are left over fails `fill-brim`. Dividing by the length
+fails `carry-two`, as does taking the scored count from the length; dividing by the first step's
+share fails `many-bands`; counting a dropped step fails `drop-part`. Demanding more than the
+floor fails `floor-edge`. Settling a record when its last piece lands fails `band-waits`, as
+does printing a step when its windows run out or printing the step lines ahead of the record
+that released them; holding a dropped step until after those records fails `drop-part`. Taking
+the first window from the op rather than from the first piece fails `first-window`. Laying a one
+token record fails `one-token`, letting a passed over one take a slot fails `one-token` as well,
+and passing over a two token record fails `two-token`. Letting a width, span or floor op reach
+what is already open fails `width-next`, `span-next` and `floor-next`. Scoring the boundary
+between two records fails `cross-count`. Printing a zero weight where `void` belongs fails
+`drop-void`, an unreduced fraction fails `frac-reduce`, and a step reporting its position count
+where its weight belongs fails `frac-sum`.
+
+Thirty-five cheats score 0. Twenty-three are wrong readings, each caught by the enumerated case
+named for it, and that separation is measured rather than assumed. Two are exactly correct and
+too slow: one keeps a value per token position, the representation the shipped engine uses and
+248 seconds on a single deep shard, and one asks every step opened so far for each divisor, 37
+seconds on each of three wide shards against a 60 second clock for the whole set. One is a forgery carrying the frozen
+answers for every enumerated shard, which reproduces all twenty-nine and produces nothing at
+all on the shards it could not have seen. The other nine are probes: the sealed answers, a
+hijacked emitter, a planted report, a report planted with the worker exited clean before it
+could be overwritten, a report of the wrong shape, privilege, a shrunken population, a late
+reward, and a rewrite of the half of the tree the verifier does not take. Three independently
+written correct engines score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked before
+any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Data engineering"
+
+tags = [
+  "sequence-packing",
+  "boundary-masking",
+  "deferred-settlement",
+  "exact-rationals",
+  "run-length-accounting",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the packing and batching half of a pretraining data path: the part that turns
+tokenized records into fixed width training windows, decides which positions carry loss once
+documents are packed end to end, and hands the trainer the normalisation for each optimizer
+step. Familiarity with the fact that a document cut across windows is not the document the
+weighting was written for, that a boundary position has no target inside its own window, and
+that a step whose usable positions fall short is not a step worth taking a gradient on.
+Comfort with the accounting that has to survive a record spanning several steps, with keeping a
+pipeline exact in rationals rather than floats where the normalisation is compared, and with the
+difference between a representation that is correct and one that is affordable at the token
+counts a real run moves.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

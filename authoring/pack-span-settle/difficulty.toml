@@ -1,0 +1,194 @@
+# Difficulty record - pack-span-settle. Scored before any environment code existed, and
+# brought back into line with the built tree at Stage 7.
+
+[task]
+slug = "pack-span-settle"
+status = "pending"
+sources = ["tasks/pack-span-settle/STATE.md", "tasks/pack-span-settle/task.toml",
+           "authoring/pack-span-settle/trace.md", "authoring/pack-span-settle/cheat_report.py"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Read the brief, run the shipped shard reader on the small shard, diff the trace against the one
+line the brief gives, and repair the pipeline in place: fix where a record is cut so no piece is
+one token long, divide the record's weight by its length less one, count the scored positions the
+window arrays already carry, and close a step when its window count reaches the span. Keep the
+per-position label and weight arrays the shipped engine builds, because that is what a training
+pipeline emits and every rule in the brief is stated against positions.
+"""
+first_plan_source = "tree"
+breaking_rule = """
+A record's weight is spread over the scored positions it actually has, and a record loses one
+scored position per piece it is cut into, so the divisor is the record's length less its piece
+count and is unknown until its last piece is placed; a step's weight sum therefore cannot be
+settled while any record with a piece in that step is still being laid, and the step's line is
+printed at that later moment rather than when the step's windows ran out.
+"""
+second_discovery = """
+The wide shards declare token counts in the billions against a sixty second limit and 2048 MB,
+so the per-position arrays the shipped engine builds - and that the first repair keeps, because
+every rule reads naturally as a statement about positions - cannot be built at all; the layout,
+the scored counts and both weight sums have to be re-derived as arithmetic over pieces, which is
+a different representation of every intermediate value rather than a faster loop over the old one.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped reader on every shard and read the trace against the brief line by line",
+  "Separate what the reader and the emitter are frozen to do from what the six editable modules decide",
+  "Derive the piece rule from the two-token floor and check it against the room and remainder corners by hand",
+  "Move the emission of a record's line to the moment its last piece is placed, carrying the piece count",
+  "Hold each step in a ledger keyed by the records that still have pieces in flight, and settle it when the last of them ends",
+  "Recompute the weight as one exact fraction per record and accumulate each step's sum from the pieces inside it",
+  "Replace the per-position arrays with per-piece arithmetic once the wide shard shows the representation cannot be built",
+  "Time both wide shards under the stated limit and re-check the small shards for the ordinary cases",
+]
+
+[search]
+best_page = """
+The torchtune PackedDataset documentation together with the sequence packing without
+cross-contamination paper and the packing-and-token-weighting write-ups, which cover boundary
+masking, per-document normalisation and whether a sample is split or carried whole into the next
+pack.
+"""
+helps_plan = false
+deviation = """
+Those pages reset position ids at every sample inside a pack and either split a sample or move it
+whole on a flag, and they normalise each document by its own token count taken as given; here a
+carried record keeps counting position ids across windows, a piece is never one token long, and
+the divisor is the length less the piece count, which the layout decides rather than the record.
+"""
+
+[tactics]
+A1 = """
+The retrievable convention resets position ids per sample and normalises a document by its own
+length; this pipeline continues position ids across a carried record and divides by the scored
+positions the cut actually left, so a plan built on the better page is confidently wrong.
+"""
+A2 = """
+Nothing is named. The brief describes a window, a piece, a scored position and a step in terms of
+what the pipeline does with them, so the recognition that a record's divisor is a property of the
+layout and not of the record has to be made rather than looked up.
+"""
+B2 = """
+The two-token floor, the tail that may not be left at one, the short close, the refusal of a
+one-token record, the carried position ids, the settlement order and the exact fractions all hold
+at once, and each changes where the next record's pieces fall.
+"""
+C1 = """
+A record that fits in the room left must still be laid there and a step whose records have all
+ended must settle at its close, so an implementation that opens a fresh window per record or holds
+every step to the end of the shard fails the ordinary shards as surely as the adversarial ones.
+"""
+C3 = """
+A shard declaring two billion tokens against sixty seconds and 2048 MB kills every implementation
+that keeps a value per position, which is the representation the shipped engine already uses and
+the one the rules read as describing.
+"""
+C4 = """
+Traces are compared line for line over hand shards aimed at each corner and generated shards drawn
+from a seed the submission never saw, and one wrong line anywhere scores nothing.
+"""
+guard = """
+Six modules under /app/pipe are collected and laid over a pristine tree; the shard reader, the
+emitter and the fraction primitive are frozen, so the trace format, the op set and the order the
+driver calls the engine in cannot be reshaped.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "the piece cut rule", b = "the record's weight divisor", why = "the tail that may not be left at one token adds a piece, and every scored position of the record carries a different fraction because of it" },
+  { a = "a window closed short", b = "which step a later record falls in", why = "the short close still consumes a window index, so the step boundary moves and a later step holds different records and a different position count" },
+  { a = "a record still being laid", b = "when a step's line is printed", why = "a step cannot be settled while a record with a piece inside it has no divisor yet, so a record's length decides where several step lines fall in the trace" },
+  { a = "a width change", b = "the piece cut rule", why = "the next window opens at the new width, so the room arithmetic and the tail corner have to be taken against the width in force rather than the one the record started under" },
+  { a = "a refused one-token record", b = "every later record's cut points", why = "a refusal consumes no room at all, so the window the next record starts in and the offset it starts at both move, and the whole downstream layout shifts with them" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A shard of short records that each fit in the room left: they must share windows, no window may be
+closed short, each divisor is the length less one, and every step settles at its own close.
+"""
+late_case = """
+A long record whose remainder against the room reaches exactly one token deep inside it, which
+forces a shorter piece, leaves one slot unused, closes that window short, moves every later window
+index by one and so moves a step boundary and the records a later step holds.
+"""
+oracle_denied = """
+The shipped engine prints a full trace and is wrong in several places at once, there is no second
+implementation to compare against, and the brief publishes one corrected line; a trace that looks
+coherent confirms only that the engine is self-consistent.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored scored-position count or divisor on the record record", closed_by = "records carry only id, length and weight; every count the task is about is derived from the layout and stored nowhere" },
+  { what = "the emitter formatting a fraction from a pair the engine already reduced", closed_by = "the frozen emitter prints the numerator and denominator it is handed, and the fraction primitive only reduces a pair it is given" },
+  { what = "a per-window dump or debug trace showing pieces and offsets", closed_by = "the trace carries records and steps only; no window line, no offset and no piece listing is printed by any shipped path" },
+  { what = "a shipped shard whose expected trace is checked in beside it", closed_by = "no expected output ships anywhere in the tree; the only published trace line is the one corrected line in the brief" },
+  { what = "a helper that answers how many windows a record will span", closed_by = "no such function exists in the frozen tree; the span is a consequence of the cut rule the agent has to write" },
+]
+derived_quantities = """
+The shard stores lengths, weights, the width and the span, which are primitives; the piece count,
+the scored count, the divisor, the position count and both weight sums are derivations and none of
+them is stored, printed per window, or reachable through a shipped call.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Every implementation that keeps a value per token position - the label mask, the per-position
+weight, or a per-window list of the positions it holds - which is what the shipped engine does and
+what the rules read as describing.
+"""
+invariant = """
+Every scored position of one piece carries the same fraction and a piece contributes exactly its
+length less one, so the position array is constant on each piece and its sums are arithmetic on the
+piece lengths; the engine never has to hold a position at all.
+"""
+input_scale = "two shard families each declaring about four billion tokens, one over forty-five thousand records and one over twenty-five hundred"
+limit_seconds = 60
+measured = true                       # 248 s against 60 s, measured on the built tree
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "divide the weight by the record's length less one", hand_case = "carry-two, a record cut in two whose every position then carries a fraction one too large" },
+  { reading = "divide by the scored positions in the step it started in", hand_case = "many-bands, a record spanning six windows and four steps" },
+  { reading = "count a dropped step toward the divisor", hand_case = "drop-part, one step kept and one dropped over the same record" },
+  { reading = "report the length less one as the scored count", hand_case = "carry-two, where the record was cut into two pieces" },
+  { reading = "settle a record when its last piece is placed", hand_case = "band-waits, a record outliving the step its first piece went into" },
+  { reading = "print a step when its windows run out", hand_case = "band-waits, where the step closes three records before its divisor exists" },
+  { reading = "print the step lines ahead of the record that released them", hand_case = "band-waits, where one record releases three steps at once" },
+  { reading = "fill the window to the brim and allow a one token piece", hand_case = "stranded-tail, a record whose remainder against the room is exactly one" },
+  { reading = "allow a one token piece but keep the step-back", hand_case = "room-one, a window left with a single slot" },
+  { reading = "step back whenever the record is not finished", hand_case = "fill-brim, a record with plenty left over" },
+  { reading = "take the first window from the op rather than the first piece", hand_case = "first-window, where a short close falls between them" },
+  { reading = "lay a one token record like any other", hand_case = "one-token, where it would take the slot the next record needs" },
+  { reading = "pass over a two token record as well", hand_case = "two-token, a record that scores exactly one position" },
+  { reading = "let a passed over record take a slot anyway", hand_case = "one-token, where the record after it starts one slot later" },
+  { reading = "keep a step only when it beats the floor", hand_case = "floor-edge, a step carrying exactly the floor" },
+  { reading = "let a width op resize the open window", hand_case = "width-next, a width op arriving with room still in the window" },
+  { reading = "let a span op resize the open step", hand_case = "span-next, a span op arriving mid-step" },
+  { reading = "let a floor op decide the open step", hand_case = "floor-next, a floor op arriving with the step still open" },
+  { reading = "score every filled position, boundaries included", hand_case = "cross-count, three records meeting inside one window" },
+  { reading = "print a dropped step after the records it was holding", hand_case = "drop-part, where the drop line comes first" },
+  { reading = "print a zero weight where void belongs", hand_case = "drop-void, a record with no scored position in any kept step" },
+  { reading = "print the fraction as it was formed", hand_case = "frac-reduce, a weight of twelve over six positions" },
+  { reading = "report a step's position count where its weight belongs", hand_case = "frac-sum, a step summing three different denominators" },
+]
+correct_variants = [
+  "settle-by-first: keys the settle on the step a record started in rather than the one it ended in, which is equivalent because only one record is ever in flight",
+  "own-tally: no share map at all - each record carries its own list of contributions and each step counts the records it is still waiting for",
+  "rational: accumulates each step's weight with a rational type instead of a pair of integers reduced by hand",
+]
+
+[shape]
+environment_py_lines = 340
+editable_files = 6
+reference_lines = 320

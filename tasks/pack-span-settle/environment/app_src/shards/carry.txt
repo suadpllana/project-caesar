@@ -1,0 +1,12 @@
+width 12
+span 2
+floor 14
+rec a 7 4
+rec b 1 9
+rec c 26 5
+rec d 3 2
+width 9
+rec e 11 6
+floor 40
+rec f 20 1
+seal

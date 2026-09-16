@@ -1,0 +1,202 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/fld/keep.py",
+  "/app/fld/look.py",
+  "/app/fld/make.py",
+  "/app/fld/need.py",
+  "/app/fld/feed.py",
+  "/app/fld/hold.py",
+]
+
+[task]
+name = "afterquery/trial-keep-adopt"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules seem
+to ask for survive all of them at once, and that is the work.
+
+The first plan is close to what the shipped service already is, and most of it is right. A value
+and a stale flag per field; a reverse index from a field to the fields that read it; a
+publication that marks its dependents stale and stops where a recomputed value comes out
+unchanged; a preview served by saving the kept results, working against the copy and putting the
+copy back. Every one of those is a structure, and each is right until the evaluation rule is
+read closely.
+
+A field is worked out again only when re-taking the reads its last evaluation actually took
+returns a different value for one of them, and that re-taking stops at the first read that
+differs. The work is therefore decided by walking down from the field that was asked, not out
+from the field that was published, and a field nothing asks for is never worked out however much
+changed beneath it. The reverse index is the wrong structure, and the record a field needs is
+not a flag but the ordered list of fields it read with the value each returned - because a
+branch that flips reads a different arm next time, and the arm it abandoned must stop being able
+to force a recomputation, which a flag cannot express.
+
+The second finding is what turns the repair into a redesign rather than a patch. The work a
+preview block does is not thrown away when the block ends: publishing that same value to that
+same source afterwards has to stand on the results the preview already produced. A preview
+implemented by saving and restoring the kept results has nothing left to stand on, and saving
+them is also what makes a block cost the size of the whole graph instead of the size of what the
+previewed value reaches. The preview has to be a layer kept apart from the kept results and
+installed on publication, which is a different structure from the one the first plan reached for,
+not an adjustment to it.
+
+Two scale families decide what a correct structure may cost, and the fast path in each follows
+from an invariant rather than a technique: nothing a field reads changes between two publications
+or inside one block, so a field settled once stays settled; and only a field evaluated inside a
+block can differ from the base, so a block is the size of what it evaluated. Measured against the
+60 second limit for the whole graded set, a preview that saves and restores the kept results
+takes 88 to 95 seconds on the wide family alone, and a field settled every time it is reached
+rather than once per publication does not finish one deep program in four minutes, while the
+reference settles all 428 graded programs in about three seconds. Both of those readings print
+exactly the reference's trace on everything they finish; the limit is the only thing that
+separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: a check that stops at the
+first read that moved rather than weighing them all, a branch that records only the arm it took,
+a publication of a value already carried that changes nothing, a pin that stands rather than
+being checked, and a layer thrown away by a different value but kept by an unrelated one. All six
+editable files ship wrong, and the only feedback a wrong structure gets is the run lines, because
+every form is a pure function of what it reads and so a plan that recomputes too much still
+prints every value correctly.
+
+Identifiers are in a legacy register - `fld/`, `keep`, `look`, `make`, `need`, `feed`, `hold`,
+`pub`, `pre` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real evaluation-path code rather than an obstacle: each is
+recoverable from what calls it.
+
+The programs are synthetic, in twelve families, with branch guards that flip, caps that hold a
+value while its source moves, previews adopted after an unrelated publication moved a read,
+pins over moving sources, and the two scale families. In a working service these are rare, and
+they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`keep.py` holds a field's kept result as its value and the fields it read, in order, each with
+the value it returned; it holds the preview as a layer over those results and the pin table. A
+lookup consults the layer first while the block is live, so the kept results are never disturbed
+and a block costs the size of what it evaluated. When the block ends the layer stops being live
+but is not discarded, which is what lets a later publication install it.
+
+`look.py` decides whether a kept result stands: it demands the recorded reads in order and
+compares each with the value it returned, and it stops at the first one that differs, because the
+evaluation that is about to run may not read the rest. Nothing here pushes from what changed; a
+publication is found, or not, by this walk running down from whatever was asked.
+
+`make.py` evaluates a body and records the reads it took, in the order the form takes them and
+with repeats, replacing the previous record outright - which is how a field stops depending on a
+subtree for good. The line is written when the evaluation finishes, so its reads stand above it.
+
+`need.py` is the demand, and the only thing that evaluates a field. It settles each field once
+per question through a memo threaded down the walk, so a diamond is linear rather than
+exponential, and the memo is born and dies with the question so it cannot leak across a
+publication or out of a block. A pin stands; otherwise a kept result stands when `look` says so;
+otherwise the body runs.
+
+`feed.py` publishes to a source. The value already carried is nothing at all. A real publication
+of the previewed value installs the layer - kept, not trusted, so the next demand checks each
+result and the ones whose reads moved run again - a different value discards it, and any other
+source leaves it standing. `hold.py` opens a block by putting a live layer over the kept results
+and closes it by making the layer no longer live.
+
+An expert works in that order because each file consumes the one before it: what a kept result is
+decides how it is checked, how it is checked decides what an evaluation must record, what an
+evaluation records decides how the demand settles a field, and how the demand settles decides
+what a block may keep and install. The same contract is implemented two further ways in the
+authoring set - one recording each read once rather than with repeats, one driving the demand on
+an explicit stack with the value and its reads in separate maps - so the graded shape is visibly
+not the only correct one.
+"""
+
+verification_explanation = """
+Only the six files under `/app/fld/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-two hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Four hundred and six further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across twelve families that concentrate flipped branch guards, caps that hold while a source
+moves, previews adopted after an unrelated publication, pins over moving sources, and the two
+scale families. A submission cannot have seen them, so fitting the shipped examples fails, and so
+does carrying an answer key.
+
+The fences run both ways. Weighing every recorded read instead of stopping at the first that
+moved fails `bail-stops`; recording the form's arguments rather than the reads taken fails
+`flip-drop`; reading both arms of a branch fails `pick-one` and `gate-zero`. Re-evaluating inside
+a block what the base already settled fails `pre-share`; leaving a field the block cannot reach
+alone is the other side, checked by the same case. Throwing the block's results away at its end
+fails `pre-keeps`; writing them into the kept results fails it too from the other side.
+Installing the layer on a publication of a different value fails `adopt-other`; discarding it on
+a publication to another source fails `adopt-check`; installing it without checking the results
+afterwards fails `adopt-check` as well. Invalidating on a publication of the value already
+carried fails `same-holds`; checking a pinned field rather than standing it fails `pin-stands`;
+pinning without demanding the field first fails `pin-takes`.
+
+Twenty-eight cheats score 0. Sixteen are wrong readings, each caught by the enumerated case named
+for it. Two are exactly correct and cannot afford the limit: the preview that saves and restores
+the kept results, and the field settled every time it is reached. One is a forgery carrying the
+frozen answers for every enumerated program, which passes them and fails on the programs it could
+not have seen. The other nine are probes: the answer key, a hijacked driver, a planted report, a
+report planted and the worker exited clean before it could be overwritten, malformed records,
+privilege, a shrunken population, a late reward, and a rewrite of the parts of the tree the
+verifier does not take. Two independently written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "incremental-computation",
+  "dependency-tracking",
+  "early-cutoff",
+  "speculative-evaluation",
+  "memoization",
+  "provenance-tracking",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having built and maintained the evaluation path of a derived-field service: the part that decides
+which derived values a published change forces to be worked out again, and what a preview of an
+unpublished value may reuse and must leave behind. Familiarity with the fact that keeping a
+derived value fresh is a demand that walks down from what is asked rather than a wave that
+propagates out from what changed, that the record a field keeps has to be the reads it actually
+took and not the inputs its definition names, and that a hypothetical evaluation is only worth
+keeping if it is kept apart from the committed results. Comfort with recording a computation so it
+can be checked cheaply, with the difference between settling a value once and settling it on every
+demand, and with the difference between a structure that is correct and one that is affordable at
+the size the service actually runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

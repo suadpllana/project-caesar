@@ -1,0 +1,7 @@
+def x raw
+def y cap x 5
+def z sum y y
+set x 3
+ask z
+set x 9
+ask z

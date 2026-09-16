@@ -1,0 +1,4 @@
+Two correct implementations in the six-file form, kept apart from the reference so the verifier
+is shown to grade the contract and not a choice. dedup records each read once instead of with
+repeats (proven equivalent by readingcheck); iter drives the demand on an explicit stack and
+splits the kept value and its reads into two dicts.

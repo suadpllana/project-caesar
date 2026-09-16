@@ -1,0 +1,184 @@
+{
+ "adopt-check": [
+  "run c",
+  "run e",
+  "val e 6",
+  "run c",
+  "run e",
+  "val e 9",
+  "run e",
+  "val e 12"
+ ],
+ "adopt-install": [
+  "run c",
+  "run d",
+  "val d 10",
+  "run c",
+  "run d",
+  "val d 16",
+  "val d 16"
+ ],
+ "adopt-other": [
+  "run c",
+  "val c 5",
+  "run e",
+  "val e 2",
+  "run e",
+  "val e 2"
+ ],
+ "adopt-second": [
+  "run c",
+  "val c 5",
+  "run e",
+  "val e 2",
+  "run c",
+  "val c 8",
+  "run e",
+  "val e 2",
+  "val c 8"
+ ],
+ "bail-stops": [
+  "run m",
+  "run w",
+  "val w 2",
+  "run n",
+  "run w",
+  "val w 3"
+ ],
+ "block-many": [
+  "run c",
+  "run d",
+  "run e",
+  "val e 12",
+  "run c",
+  "val c 11",
+  "run d",
+  "val d 13",
+  "run e",
+  "val e 24",
+  "val e 12"
+ ],
+ "bulk-small": [
+  "run Bb0",
+  "run Bc0",
+  "val Bc0 2",
+  "run Bb2",
+  "run Bc2",
+  "val Bc2 6",
+  "run Bb0",
+  "run Bc0",
+  "val Bc0 1000",
+  "val Bc2 6"
+ ],
+ "cut-stops": [
+  "run y",
+  "run z",
+  "val z 6",
+  "run y",
+  "run z",
+  "val z 10",
+  "run y",
+  "val z 10"
+ ],
+ "flip-drop": [
+  "run m",
+  "run w",
+  "val w 2",
+  "run n",
+  "run w",
+  "val w 3",
+  "val w 3"
+ ],
+ "gate-zero": [
+  "run k",
+  "val k 0",
+  "val k 0",
+  "run h",
+  "run k",
+  "val k 6"
+ ],
+ "layer-first": [
+  "run c",
+  "run d",
+  "val d 10",
+  "run c",
+  "run d",
+  "val d 16",
+  "run e",
+  "val e 16"
+ ],
+ "no-ask-no-run": [
+  "run c",
+  "val c 5",
+  "run e",
+  "val e 9"
+ ],
+ "pick-one": [
+  "run n",
+  "run w",
+  "val w 5",
+  "val w 5"
+ ],
+ "pin-blocks": [
+  "run c",
+  "run d",
+  "val d 10",
+  "val d 10",
+  "val d 10"
+ ],
+ "pin-stands": [
+  "run c",
+  "run d",
+  "val d 10",
+  "val d 10",
+  "run c",
+  "run d",
+  "val d 14"
+ ],
+ "pin-takes": [
+  "run c",
+  "val c 5"
+ ],
+ "pre-cut": [
+  "run c",
+  "run d",
+  "val d 6",
+  "run c",
+  "val d 6"
+ ],
+ "pre-keeps": [
+  "run c",
+  "run d",
+  "val d 10",
+  "run c",
+  "run d",
+  "val d 16",
+  "val d 10"
+ ],
+ "pre-share": [
+  "run a",
+  "val a 1",
+  "run b",
+  "val b 2",
+  "val b 2"
+ ],
+ "run-order": [
+  "run m",
+  "run n",
+  "run w",
+  "val w 3"
+ ],
+ "same-holds": [
+  "run c",
+  "val c 5",
+  "run e",
+  "val e 2",
+  "val e 2"
+ ],
+ "twice-once": [
+  "run c",
+  "run d",
+  "run e",
+  "val e 20"
+ ]
+}

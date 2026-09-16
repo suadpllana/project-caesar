@@ -1,0 +1,22 @@
+def hits raw
+def cost raw
+def flag raw
+def band cap hits 40
+def spend sum band cost
+def shown pick flag spend band
+set hits 12
+set cost 5
+ask shown
+set flag 1
+ask shown
+set hits 90
+ask shown
+try cost 9
+ask shown
+end
+ask shown
+pin band
+set hits 3
+ask shown
+free band
+ask shown

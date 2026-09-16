@@ -1,0 +1,200 @@
+# Difficulty record for trial-keep-adopt, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/trial-keep-adopt/STATE.md and is what the build has to
+# deliver. Scored with `python tools/difficultycheck.py trial-keep-adopt`.
+
+[task]
+slug = "trial-keep-adopt"
+status = "pending"
+sources = [
+  "tasks/trial-keep-adopt/STATE.md",
+]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Hold the field graph with a cached value and a dirty flag per field, plus the list of fields that
+read each one. When a value is published, walk those reverse edges and mark everything downstream
+dirty. When a field is asked, recompute the dirty fields under it bottom up in dependency order,
+and stop marking further when a recomputed value comes out equal to the one it had. Serve the
+preview by copying the whole cache, overwriting the previewed field, answering the questions
+inside the block against that copy, and putting the saved copy back at the end.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A field is evaluated only when re-taking the reads its last evaluation actually took returns a
+different value for one of them, and that re-taking stops at the first read that differs, so what
+runs is decided by walking down from the field that was asked rather than out from the field that
+was published, and a field nothing asked for never runs however much changed beneath it.
+"""
+second_discovery = """
+The work a preview block does is not thrown away at its end: publishing that same value to that
+same field afterwards has to stand on the results the preview already produced, and those results
+carry read lists that name different fields from the ones the base results carry. A preview
+implemented by saving and restoring the cache has nothing left to stand on, and saving the cache
+is also what makes the preview cost the size of the whole graph rather than the size of what the
+previewed value actually reaches.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run the shipped engine on the small program in the brief and reproduce the wrong line it names",
+  "read the frozen definition table and trace writer to learn that a run line is the only observable and that no query exposes a kept result",
+  "work out from the evaluation rule that the check is a walk down the reads the last evaluation took, in that order, stopping at the first difference",
+  "move the record from a per-field stamp to the ordered list of fields read with the value each returned, and make an evaluation replace that list outright",
+  "make the two branching forms read only the arm they take, so a re-evaluation can drop a field from the record for good",
+  "restructure the preview as a layer laid over the kept results rather than a copy of them, holding only the fields that ran inside the block",
+  "keep that layer past the end of the block and install it when the previewed value is published, discarding it on any other publication",
+  "settle each field once per publication and once per layer, then time the two stated scale programs against the stated limit",
+]
+
+[search]
+best_page = """
+A write-up of a demand-driven incremental computation engine - the Adapton papers, or the
+red-green chapter of a compiler query system's developer guide - explaining dependency
+validation, dirtying and early cutoff.
+"""
+helps_plan = false
+deviation = """
+Those engines validate a node against per-node revision stamps and have no hypothetical layer at
+all. Here the check is against the values the last evaluation read, in the order it read them, the
+read list is replaced rather than merged, and a preview's results are kept past the block and
+installed when that value is published, which no such engine does.
+"""
+
+[tactics]
+A1 = """
+Every retrievable account of keeping derived values fresh pushes outwards from what changed:
+dirty the dependents, recompute them in dependency order. The spec pulls in the other direction
+and grades the difference, so the better the retrieved design the more confidently wrong the work
+list is.
+"""
+A2 = """
+The rules are stated as when the service may show a value it already published and when it must
+work the field out again. Caching, invalidation, memoisation and provenance never appear, so
+recognising that the check is a walk down the reads of the last evaluation is the discovery.
+"""
+B2 = """
+Seven rules hold at once - the check walks reads in order and stops at the first difference, a
+branch reads only the arm it takes, an evaluation replaces its read list, a preview shares what
+it can, a preview leaves the kept results alone, publishing the previewed value installs the
+preview, and publishing a value a field already carries does nothing - and each changes what
+another means.
+"""
+C1 = """
+Both sides are graded. A field re-evaluated when the check should have kept its value fails, and
+a field kept when a read below it differs fails; a preview that shares nothing fails, and a
+preview that shares a field whose read came back different fails.
+"""
+C2 = """
+Values stay right under the wrong plan, because every form is a pure function of what it reads:
+recomputing more than needed changes no value anywhere. The only thing that moves is the run
+lines, so the check an agent naturally runs - ask for values and see whether they are right -
+confirms a plan that is wrong.
+"""
+C3 = """
+Two families are exactly correct and cannot afford the stated limit: a preview that saves and
+restores the kept results costs the size of the graph per block, and a check that settles a field
+every time it is reached instead of once per publication is exponential in the depth of a
+diamond.
+"""
+C4 = """
+Exact traces, all-or-nothing, over enumerated programs aimed at each decision and both sides of
+each fence, plus programs generated inside the verifier from a seed drawn after the agent's
+container is gone, in families that concentrate branch flips, dropped reads, previews adopted
+after an unrelated publication, and the two scale shapes.
+"""
+guard = """
+Six files under /app/fld are editable and are the only artifacts; the driver, the op language,
+the definition table and the trace writer are the verifier's own pristine copy, so the log format
+and the program language cannot be reshaped into something the default plan handles.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "the check stops at the first read whose value differs", b = "an evaluation replaces the read list it recorded", why = "a check that walks past the first difference takes reads the coming evaluation will never take again, and those reads force evaluations of their own, so the stopping rule is what decides which fields exist in the record at all" },
+  { a = "a branching form reads only the arm it takes", b = "the check walks the reads the last evaluation took", why = "the record is the branch taken last time, so a guard that flips makes the check compare against a field the body is about to stop reading, and the arm it is about to start reading has no entry to compare" },
+  { a = "a preview shares a field whose reads come back unchanged", b = "a field evaluated inside the preview that comes out with the value it already had", why = "whether the preview touches a field is decided by the values its reads return and not by whether the previewed field can be reached from it, so a field that re-evaluates to the same value stops the preview spreading any further" },
+  { a = "publishing the previewed value installs the preview's results", b = "the kept results are left exactly as they were by the preview", why = "the isolation and the installation are one structure: results kept apart in a layer can be installed later, and a preview served by copying the kept results and putting them back has nothing to install and costs the whole graph besides" },
+  { a = "publishing a value a field already carries changes nothing", b = "publishing the previewed value installs the preview", why = "a publication that matches both the previewed value and the value already carried has to leave the preview standing and install nothing, so the no-change rule decides whether the installation happens at all" },
+  { a = "a field is settled once per publication", b = "the preview is a layer over the kept results", why = "the settled marks belong to the layer, not to the field, or a field settled inside a preview stays settled after it and a field settled in the base is taken as settled inside one" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+After a preview block ends, asking for the fields it evaluated must produce no run lines at all,
+because the kept results were never disturbed; an implementation that turns conservative and
+drops what the preview touched, or drops the kept results wholesale, fails that program while
+still printing every value correctly.
+"""
+late_case = """
+A preview of a value, then a publication to a different field that changes one read under it,
+then publication of the previewed value: the preview's results have to be installed and then
+checked, so exactly the fields whose reads moved run again and the rest do not. It appears only
+after an ordinary preview, an ordinary publication and an ordinary question have all behaved.
+"""
+oracle_denied = """
+Every form is a pure function of what it reads, so a plan that evaluates too much prints exactly
+the right values; the shipped engine is the only local thing to compare against and it is wrong
+in six places. No query returns a field's kept result or its read list, and the graded programs
+are generated from a seed drawn after the agent's container is gone.
+"""
+
+[leaks]
+candidates = [
+  { what = "a dirty flag or a per-field stamp on the shipped field record", closed_by = "the shipped engine keeps a stamp and it is one of the six defects; nothing in the tree records what a field last read, which is what the correct check needs, and no derivation turns one into the other" },
+  { what = "a query that reports whether a field is fresh, or how many times it ran", closed_by = "the op language has publish, ask, preview and end only; run lines are the sole observable and they are written by a frozen module the agent cannot change" },
+  { what = "the example programs shipped under /app/progs", closed_by = "they exercise the language and the one wrong line the brief names; none of them flips a branch guard, ends a preview and asks again, or publishes a previewed value" },
+  { what = "a helper that collects the fields reachable from a published field", closed_by = "no reverse edge is stored anywhere in the tree; the definition table is forward only, so nothing can be read off it that says which fields a publication reaches" },
+  { what = "the sealed model, the frozen answers and the pristine tree", closed_by = "they exist only in the verifier image, in a directory locked to root before any submitted code runs" },
+]
+derived_quantities = """
+A field record holds what its last evaluation produced and the fields it read with the value each
+returned - primitives. Nothing stores which fields a publication reaches, whether a field is
+stale, or which fields a preview would touch; all three are worked out when they are asked for.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Two families that are each exactly correct: a preview served by saving the kept results, working
+inside the block against the copy and putting the saved ones back at the end, and a check that
+settles a field every time it is reached rather than once per publication.
+"""
+invariant = """
+Nothing a field reads can change between two publications or inside one preview block, so a
+field's verdict is fixed once it is settled; and only a field that was evaluated inside a preview
+can differ from the base, so the preview is the size of what it evaluated.
+"""
+input_scale = "a graph of 60000 fields with 20000 previews over it, and a ladder 40 diamonds deep asked 20000 times"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "dirty the dependents of a publication and recompute them", hand_case = "a publication under a field nothing asks for, then a question about a field elsewhere in the graph" },
+  { reading = "check every recorded read before deciding, rather than stopping at the first difference", hand_case = "a field reading a changed guard first and an untouched expensive field second, asked after the guard moves" },
+  { reading = "merge the reads of a new evaluation into the record instead of replacing it", hand_case = "a branch that flips away from an arm, then a publication under the arm it no longer reads" },
+  { reading = "a branching form reads both arms", hand_case = "a pick whose unchosen arm has never been evaluated, asked once" },
+  { reading = "compare a per-field stamp rather than the value each read returned", hand_case = "a field under a capped value whose input moves without moving the capped result" },
+  { reading = "a publication of the value a field already carries still invalidates", hand_case = "a publication repeating the current value, then the same question twice" },
+  { reading = "drop the kept results at the end of a preview block", hand_case = "a preview, its end, then the question the preview already answered" },
+  { reading = "write the preview's results into the kept results", hand_case = "a preview that moves a value, its end, then a question about a field the preview evaluated" },
+  { reading = "treat every field that can reach the previewed field as needing evaluation inside the block", hand_case = "a preview whose field feeds a capped field that comes out unchanged, with a question above the cap" },
+  { reading = "install the preview on any publication to the previewed field", hand_case = "a preview of one value followed by a publication of a different one, then a question" },
+  { reading = "install the preview and serve its results without checking them", hand_case = "a preview, a publication under it that changes a read, then publication of the previewed value" },
+  { reading = "print the run line before the body rather than when it finishes", hand_case = "any field over two fields that have never been evaluated" },
+]
+correct_variants = [
+  "kept results as a dict from field to a value and a list of read pairs, checked by recursion with a settled mark per publication, and the preview as a second dict consulted first",
+  "kept results as parallel arrays indexed by field number, checked iteratively with an explicit stack, and the preview as a copy-on-write map with its own settled marks",
+]
+
+[shape]
+environment_py_lines = 240
+editable_files = 6
+reference_lines = 213

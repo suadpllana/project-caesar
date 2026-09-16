@@ -1,0 +1,174 @@
+# Difficulty record for lane-yield-drift, written before any environment code exists.
+# Every claim here is restated in tasks/lane-yield-drift/STATE.md and has to match what is built.
+
+[task]
+slug = "lane-yield-drift"
+status = "idea"
+sources = [
+  "authoring/lane-yield-drift/difficulty.toml is the first artifact; STATE.md carries the same claims in prose",
+]
+expert_hours = 8
+estimated_solves = 2
+
+[plan]
+first_plan = """
+For each job, expand its recurrences over the planning window, convert every local time to an
+instant with the shipped zone table, drop the ones outside the job's window, merge all jobs into
+one list sorted by instant, then walk that list forward keeping a cursor at the end of the last
+run and pushing each next run to the cursor when it overlaps. Emit start and end lines in that
+order. Priority only decides ties.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The lane runs one job at a time and never interrupts a started run, and it chooses only when it
+is free, taking the highest-priority run that is waiting and eligible at that instant; a run that
+is waiting is not pushed behind the run that displaced it but competes again at the next free
+instant, so a merged forward sweep starts the wrong job as soon as two runs are ever waiting
+together.
+"""
+second_discovery = """
+A job in follow mode takes its next recurrence from the instant its previous run actually
+started, so lane contention feeds back into that job's own calendar: its later recurrences do not
+exist until the earlier ones have been placed. The per-job expansion phase the first
+implementation is built around cannot be written at all, and the same feedback decides which
+recurrences of other jobs are skipped for overlap.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read the zone module and find where an instant is chosen for a local time that the transition table makes impossible or repeated",
+  "Read the recurrence module and separate the two cadence kinds by their time base, wall clock against elapsed time",
+  "Trace the lane loop and enumerate every instant at which the lane's choice can change: an arrival, an end, a window opening, a cap reset",
+  "Establish that follow-mode recurrences cannot be enumerated ahead of the lane and restructure the planner to advance each job lazily from its own placed history",
+  "Work out the three outcomes an occurrence can have and which of them move the job's attempt anchor",
+  "Key the cap ledger by the group's local day rather than the job's, and charge it at the start instant",
+  "Rebuild the trace writer against the stated event order and re-run the two shipped plans to check the ordinary runs are unchanged",
+]
+
+[search]
+best_page = """
+The time zone database's own notes on gaps and repeated local times, next to the misfire
+documentation of a widely used job scheduling library, which together name wall-clock recurrence,
+missed-run handling and the two ways a local time can fail to be an instant.
+"""
+helps_plan = false
+deviation = """
+That material resolves a repeated local time to the earlier offset, a gap by shifting forward by
+the gap length, and a missed run either by firing every occurrence or by dropping them all; this
+spec takes the later offset, clamps a gap to the transition instant, and re-anchors a follow-mode
+job from the attempt rather than the nominal, so the closer the retrieved defaults are followed
+the more of the trace is wrong.
+"""
+
+[tactics]
+A1 = """
+The prior for recurring work is cron arithmetic on absolute intervals with a library's default
+resolution of impossible and repeated local times; this spec inverts all three in stated places,
+so an implementation that reaches for the familiar idiom is wrong at every transition.
+"""
+A2 = """
+The brief describes the lane, the attempt anchor and the cap ledger as behaviour and never uses
+the vocabulary of misfire policies, fold resolution or priority arbitration, so no single search
+term names the combination the agent has to build.
+"""
+B2 = """
+Twelve graded rules hold at once across the zone table, the recurrence kinds, the window, the
+overlap suppression, the cap ledger and the lane, and the only observable is one exact trace, so
+none of them can be settled on its own.
+"""
+C1 = """
+Plans with no contention and no transitions must still produce every ordinary run, so a planner
+that turns conservative and drops or defers whenever a window is tight fails the everyday side.
+"""
+C2 = """
+The shipped runner prints the broken planner's own trace, the zone table is invented so no
+library reproduces it, and the graded plans are generated from a run nonce after the agent has
+finished, so nothing the agent can run tells it whether a reading is right.
+"""
+C4 = """
+Grading is exact and all-or-nothing over enumerated plans aimed at each rule plus generated
+families shaped around the transitions and around lane contention, so one wrong reading that
+moves a single line scores zero.
+"""
+guard = """
+Only the four planner modules are editable and only those four paths are collected; the zone
+table, the plan parser, the trace writer and the entry point are frozen, hash-checked in the
+verifier and restored from a pristine copy before the run.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "lane arbitration", b = "follow-mode recurrence", why = "what the lane starts changes the instant a follow-mode job next becomes due, so the priority decision rewrites the calendar it is deciding over" },
+  { a = "drop at window close", b = "attempt anchor", why = "whether an occurrence that never started counts as an attempt changes every later recurrence of that job and therefore what the lane is contending over" },
+  { a = "cap ledger day", b = "job window", why = "the cap period ends at midnight in the group's zone while the window is bounded in the job's zone, so an instant can be inside the window and past the reset, and which rule applies decides the start" },
+  { a = "overlap suppression", b = "lane contention", why = "an occurrence is suppressed only while its predecessor is still pending, and how long that is depends on contention, so contention changes how many occurrences exist at all" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A plan whose jobs never contend and whose window contains no transition must produce exactly the
+ordinary runs, in order, with no drop and no skip; a planner that defers or drops whenever a
+window is tight fails it.
+"""
+late_case = """
+A plan in which a repeated local hour makes a window occur twice while a higher-priority run
+holds the lane across that hour, so the ambiguity rule and the arbitration rule both decide the
+same run, and a job in follow mode takes its next recurrence from the displaced start.
+"""
+oracle_denied = """
+The agent's only way to check itself is to run the shipped runner, which prints the broken
+planner's own answer, and no standard library reproduces an invented transition table, so running
+the tree confirms nothing about any reading.
+"""
+
+[leaks]
+candidates = [
+  { what = "a shipped helper that already computes the next occurrence correctly", closed_by = "the shipped recurrence helper implements the wrong time base, so reading it hands the agent a plausible answer rather than the answer" },
+  { what = "expected output beside the sample plans", closed_by = "no expected trace ships anywhere in the agent tree; the runner prints only what the broken planner produces" },
+  { what = "a stored next-run or last-attempt field in the plan files", closed_by = "plan files carry only anchors, cadences, windows, durations, priorities, groups and caps, never any instant the planner is supposed to derive" },
+  { what = "a recognisable real zone whose rules could be looked up", closed_by = "the transition table is invented, with its own offsets and dates, and carries no zone name that resolves to public data" },
+  { what = "case file names that label the corner they exercise", closed_by = "the two shipped plans are named for their sites and nothing in the tree says which rule a plan is aimed at" },
+]
+derived_quantities = """
+The tree stores only primitives: transition instants and offsets, anchors, cadence lengths, window
+bounds, durations, priorities, group membership and caps. No run instant, occurrence index,
+attempt anchor or cap tally is stored anywhere the agent can read.
+"""
+oracle_shipped = false
+
+[gate]
+present = false
+why_not = """
+Every correct planner walks the same decision instants once and does the same asymptotic work, so
+a naive-but-correct family that the limit could kill does not exist here; a limit would tax the
+expert path and the wrong readings equally and would measure the machine rather than the plan.
+"""
+
+[cheats]
+wrong_readings = [
+  { reading = "repeated local time resolved to the earlier offset", hand_case = "a job due at the repeated local hour on a fall-back day, whose run then holds the lane an hour earlier than it should" },
+  { reading = "impossible local time shifted forward by the length of the gap", hand_case = "a job due inside a spring-forward gap whose start lands an hour past the transition instead of on it" },
+  { reading = "clock-mode recurrence advanced by fixed elapsed time", hand_case = "a daily job crossing a transition, whose next local time comes out an hour off for the rest of the plan" },
+  { reading = "follow-mode recurrence advanced from the nominal instant", hand_case = "a follow job displaced by a higher-priority run, whose later recurrences keep the undisplaced cadence" },
+  { reading = "lane chooses the earliest waiting run rather than the highest priority", hand_case = "two runs waiting when the lane frees, the later one outranking the earlier" },
+  { reading = "lane pops only the top of the priority order and idles when it is blocked", hand_case = "the top run's group cap is spent while a lower-priority run is eligible at the same instant" },
+  { reading = "an occurrence dropped at window close still moves the attempt anchor", hand_case = "a follow job whose window closes while it waits, whose next due instant then differs by the cadence" },
+  { reading = "an occurrence suppressed for overlap counted as an attempt", hand_case = "a clock job whose run overruns its next due time, so the suppressed occurrence would re-anchor it" },
+  { reading = "cap counted in the job's local day rather than the group's", hand_case = "two jobs in one group in zones an hour apart, with a run in the hour where their local dates disagree" },
+  { reading = "cap charged at the end of a run rather than at its start", hand_case = "a run that starts before the group's midnight and ends after it, with the cap already spent" },
+  { reading = "window close tested inclusively", hand_case = "a run that becomes eligible exactly at the closing local minute" },
+  { reading = "every missed occurrence of a clock job fires after the lane frees", hand_case = "a long run covering three due times of a lower-priority clock job" },
+  { reading = "the lane is re-examined only at arrivals and ends", hand_case = "a run waiting for its window to open while the lane sits idle and nothing else arrives" },
+  { reading = "occurrence index counts only the runs that started", hand_case = "a job with a dropped occurrence between two started ones" },
+]
+correct_variants = [
+  "an event-driven planner that keeps a heap of candidate decision instants and advances jobs lazily",
+  "a planner that steps forward instant by instant over the union of transition, window and cadence boundaries and re-decides at each",
+]
+
+[shape]
+environment_py_lines = 380
+editable_files = 4
+reference_lines = 300

@@ -1,0 +1,9 @@
+zone coast 0
+shift coast 1560 60
+zone inland 30
+pool main coast 2
+pool side inland 2
+job sweep coast 1 main 90 120 480 clock 1440 135
+job purge inland 2 side 60 60 300 clock 1440 90
+job rollup coast 3 main 45 120 600 follow 300 150
+horizon 4320

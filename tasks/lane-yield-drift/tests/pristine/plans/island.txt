@@ -1,0 +1,9 @@
+zone island -60
+shift island 2940 -120
+zone coast 0
+pool core island 2
+pool aux coast 3
+job scan island 1 core 150 480 720 clock 180 540
+job tally island 2 core 200 420 780 clock 1440 480
+job flush coast 3 aux 90 0 300 clock 1440 60
+horizon 4320

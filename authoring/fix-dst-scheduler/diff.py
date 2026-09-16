@@ -1,6 +1,6 @@
 import sys, os, importlib.util, tempfile, shutil, json
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TASK = os.path.join(ROOT, "tasks", "lane-yield-drift")
+TASK = os.path.join(ROOT, "tasks", "fix-dst-scheduler")
 
 def load_engine(tag, patch_dir):
     d = tempfile.mkdtemp(prefix="lyd-%s-" % tag)

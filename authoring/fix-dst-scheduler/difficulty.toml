@@ -1,11 +1,11 @@
-# Difficulty record for lane-yield-drift, written before any environment code exists.
-# Every claim here is restated in tasks/lane-yield-drift/STATE.md and has to match what is built.
+# Difficulty record for fix-dst-scheduler, written before any environment code exists.
+# Every claim here is restated in tasks/fix-dst-scheduler/STATE.md and has to match what is built.
 
 [task]
-slug = "lane-yield-drift"
+slug = "fix-dst-scheduler"
 status = "idea"
 sources = [
-  "authoring/lane-yield-drift/difficulty.toml is the first artifact; STATE.md carries the same claims in prose",
+  "authoring/fix-dst-scheduler/difficulty.toml is the first artifact; STATE.md carries the same claims in prose",
 ]
 expert_hours = 8
 estimated_solves = 2

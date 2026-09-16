@@ -14,7 +14,7 @@ Three quantities are scored, one per event the trace can carry:
   wait      how long a started occurrence waited, in minutes, or -1 if it never started
   due_gap   how far the job's next occurrence is from this one, or -1 if it has none
 
-    python3 tools/onelinecheck.py lane-yield-drift
+    python3 tools/onelinecheck.py fix-dst-scheduler
 """
 
 import os
@@ -22,7 +22,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "lane-yield-drift")
+TASK = os.path.join(ROOT, "tasks", "fix-dst-scheduler")
 sys.path.insert(0, os.path.join(TASK, "tests"))
 sys.path.insert(0, os.path.join(TASK, "tests", "seal"))
 

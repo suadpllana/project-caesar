@@ -16,7 +16,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "lane-yield-drift")
+TASK = os.path.join(ROOT, "tasks", "fix-dst-scheduler")
 SOL = os.path.join(TASK, "solution")
 
 

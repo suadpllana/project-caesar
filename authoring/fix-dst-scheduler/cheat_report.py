@@ -111,7 +111,7 @@ def isolation_facts(trial):
 
 def main():
     want = sys.argv[1:]
-    trial = Loud("lane-yield-drift")
+    trial = Loud("fix-dst-scheduler")
     if trial.build() != 0:
         return 1
     print("== isolation facts, as the worker uid ==")

@@ -1,10 +1,11 @@
 # Task state
 
-Working memory for `lane-yield-drift`. Assume the next session starts with no memory of this one.
+Working memory for `fix-dst-scheduler`. Assume the next session starts with no memory of this one.
 
 ## Current stage
 
-`Stage 7 - packaged` (every local and container gate below has been run; the external probes have not)
+`Stage 7 - resubmitted` (submitted 2026-09-16 as `lane-yield-drift`; rejected by the quality
+review on the task name alone and resubmitted under `fix-dst-scheduler`)
 
 ## Assistant's assigned role
 
@@ -81,7 +82,7 @@ graded quantities are settled by the interaction of rules that live in four diff
   around a phase that has to be deleted.
 - Estimated solves out of 8: 2 (designed for the hard edge; the realized rate drifts up)
 - Difficulty record score (tools/difficultycheck.py, before Stage 2): 98/100 on the first attempt,
-  2026-09-16, `authoring/lane-yield-drift/difficulty.toml`. In band (95 to 100). The two points
+  2026-09-16, `authoring/fix-dst-scheduler/difficulty.toml`. In band (95 to 100). The two points
   not scored are the resource-gate axis, recorded as `present = false` with the reason: every
   correct planner walks the same decision instants once, so no naive-but-correct family exists for
   a limit to kill, and a limit would tax the expert path equally.
@@ -133,15 +134,15 @@ graded quantities are settled by the interaction of rules that live in four diff
 
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 
-- Instruction trace (authoring/lane-yield-drift/trace.md and its tracecheck result): clean, 64 rows walked - 7 test functions, 21 enumerated cases, 4 collected artifacts, the
+- Instruction trace (authoring/fix-dst-scheduler/trace.md and its tracecheck result): clean, 64 rows walked - 7 test functions, 21 enumerated cases, 4 collected artifacts, the
   graded run's 600 s clock and 31 rows for the branches of the sealed model that can move a
   printed token, each split to one row per rule with its line range. No row was left NOT STATED;
   two decisions were unstated on the first pass and both were written into the instruction rather
   than dropped from grading (see the cold-reader row below). `python tools/tracecheck.py
-  lane-yield-drift` is clean.
+  fix-dst-scheduler` is clean.
 - Identifiability (readings enumerated, which survived, what separated them): 17 readings, none survived from the four clusters, from the model's prior for recurring
   work, and from what the shipped planner itself does. Each is a whole planner in
-  `authoring/lane-yield-drift/readings.py`, and none survives the published evidence: every one
+  `authoring/fix-dst-scheduler/readings.py`, and none survives the published evidence: every one
   is ruled out by a quoted sentence in the trace's Readings table and separated by a named
   enumerated case, confirmed by `casecheck.py` (17 of 17 caught by their named case). Measured on
   240 generated plans they move between 1.2 per cent (lane-top-only) and 68.8 per cent
@@ -157,7 +158,7 @@ graded quantities are settled by the interaction of rules that live in four diff
 - Independent implementation behind every tolerance and limit: tests/seal/model.py and two variants, measured below. The only
   limit is the 600 s clock `tests/test.sh` puts on the graded run. Validated against
   `tests/seal/model.py` (written apart from the reference) and both correct variants under
-  `authoring/lane-yield-drift/variants/`: on the full 321-plan population of 16030 events the
+  `authoring/fix-dst-scheduler/variants/`: on the full 321-plan population of 16030 events the
   sealed model takes 0.09 s inside the verifier image, the reference 0.08 s, ok-heap 0.09 s and
   ok-tick 0.10 s. Nothing else is a tolerance - every graded quantity is an integer compared
   exactly.
@@ -309,6 +310,35 @@ two-container trial the platform runs; `harbor` is not installed in this checkou
 | rubric self-review | pass | walked criterion by criterion; two findings fixed - a stale cheat count in `verification_explanation` and two relative paths in the instruction |
 | easiness probe | not run | external |
 | cold self-probe | not run | this session wrote the model, so a cold solve here would measure memory rather than difficulty; recorded as not run rather than claimed (CLAUDE.md, 2026-09-06) |
+
+## Pipeline result, 2026-09-16
+
+Submitted as `lane-yield-drift`. Structural checks, the AI check, similarity and reference
+verification all passed. The quality review (`claude-fable-5-1`) failed one blocking criterion,
+`task name`:
+
+> 'lane-yield-drift' is valid kebab-case and three words, but it is internal jargon: 'lane' is
+> the author's name for the worker and 'yield'/'drift' name two mechanisms. A reader cannot tell
+> from it that the task is fixing a job scheduler across clock-offset transitions; something like
+> 'fix-dst-scheduler' would be descriptive.
+
+Every other rubric criterion passed, so nothing about the environment, the verifier, the
+instruction or the metadata was at issue. The fix is the reviewer's own example: the slug is now
+`fix-dst-scheduler` in `task.toml`, in both directories and in every authoring script, and the
+single place the instruction still called the worker a "lane" in prose now says "worker".
+`sked/lane.py` keeps its name - it is a file, the instruction refers to it by its exact path, and
+the environment-naming criterion passed.
+
+Worth carrying forward: every retained bundle here is named for its mechanism
+(`guard-mark-unwind`, `token-seam-emit`, `slab-fold-scope`, `reach-pair-sweep`), so this
+criterion is either new or newly enforced. Name a new task for what it is about. It cannot be
+checked mechanically - the slug's words appear in the prose of every bundle in this checkout,
+the rejected one included - so it is recorded in `docs/QUALITY-REVIEW.md` as a reading judgment
+rather than added to `preflight.py`.
+
+After the rename every gate was re-run from scratch: preflight clean, tracecheck clean,
+difficultycheck 98, readingcheck 17 of 17, and in rebuilt containers oracle 1, nop 0, 32 cheats
+0, both correct variants 1.
 
 ## Stage 7 re-attack
 

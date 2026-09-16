@@ -14,7 +14,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "lane-yield-drift")
+TASK = os.path.join(ROOT, "tasks", "fix-dst-scheduler")
 APP_SRC = os.path.join(TASK, "environment", "app_src")
 TESTS = os.path.join(TASK, "tests")
 SEAL = os.path.join(TESTS, "seal")

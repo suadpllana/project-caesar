@@ -8,7 +8,7 @@ artifacts = [
 ]
 
 [task]
-name = "afterquery/lane-yield-drift"
+name = "afterquery/fix-dst-scheduler"
 
 [metadata]
 author_name = "Shiela marie"

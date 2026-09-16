@@ -1,9 +1,9 @@
-# Instruction trace: lane-yield-drift
+# Instruction trace: fix-dst-scheduler
 
 Walked from the verifier toward the instruction (docs/INSTRUCTION-CONTRACT.md). Every graded
 assertion, every enumerated case, every branch of the sealed model that can move a token, every
 collected artifact and the graded run's clock has a row here with the sentence that tells the
-agent about it. Checked with `python tools/tracecheck.py lane-yield-drift`.
+agent about it. Checked with `python tools/tracecheck.py fix-dst-scheduler`.
 
 ## Graded assertions
 
@@ -94,7 +94,7 @@ agent about it. Checked with `python tools/tracecheck.py lane-yield-drift`.
 | end-after-arrive | "runs that finish do so first, then occurrences come due" | same-minute |
 | index-started | "counting the ones that are skipped and the ones that are dropped" | index-gap |
 
-Every reading above is a whole planner in `authoring/lane-yield-drift/readings.py`; the fraction
+Every reading above is a whole planner in `authoring/fix-dst-scheduler/readings.py`; the fraction
 of the generated population each one moves, and the enumerated case that names it, are measured
 by `readings.py` and `casecheck.py`. The smallest is lane-top-only at 1.2 per cent of plans and
 the largest dead-inclusive at 68.8 per cent; none moves nothing.
@@ -114,6 +114,6 @@ the largest dead-inclusive at 68.8 per cent; none moves nothing.
 
 | Tolerance or limit | Independent implementation | Measured |
 |---|---|---|
-| `tests/test.sh:44` a 600 s clock on the graded run | `tests/seal/model.py`, written apart from `solution/`, and the two correct variants under `authoring/lane-yield-drift/variants/` | measured on the full 321-plan population, 16030 events: sealed model 0.09 s inside the verifier image, reference 0.08 s, ok-heap 0.09 s, ok-tick 0.10 s. The clock is roughly 6000 times the slowest of them, so it bounds a hang rather than grading speed |
+| `tests/test.sh:44` a 600 s clock on the graded run | `tests/seal/model.py`, written apart from `solution/`, and the two correct variants under `authoring/fix-dst-scheduler/variants/` | measured on the full 321-plan population, 16030 events: sealed model 0.09 s inside the verifier image, reference 0.08 s, ok-heap 0.09 s, ok-tick 0.10 s. The clock is roughly 6000 times the slowest of them, so it bounds a hang rather than grading speed |
 
 No other tolerance exists: every graded quantity is an integer and every comparison is exact.

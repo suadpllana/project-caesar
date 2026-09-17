@@ -11,6 +11,8 @@ rather than in a handful of lucky plans:
   mix    a pool whose zone differs from its jobs', so the local dates disagree
   drift  follow jobs whose step does not divide the day, so they leave the
          window, drop, and re-enter on the attempt chain
+  reserve a long low-priority run against short higher jobs due soon after,
+         some of which fit before the higher due and some of which straddle it
 
 `plans(nonce, per)` is what the verifier calls; the nonce makes the graded
 population unavailable before the run.
@@ -19,7 +21,7 @@ population unavailable before the run.
 import hashlib
 import random
 
-FAMILIES = ("plain", "shift", "press", "cap", "mix", "drift")
+FAMILIES = ("plain", "shift", "press", "cap", "mix", "drift", "reserve")
 
 ZONE_NAMES = ("coast", "inland", "island", "ridge")
 POOL_NAMES = ("main", "side", "aux")
@@ -66,6 +68,8 @@ def make_job(rng, family, name, prio, zones, pools):
     opn, shut = window_for(rng, family)
     if family == "press":
         dur = rng.choice([120, 180, 240, 300])
+    elif family == "reserve":
+        dur = rng.choice([20, 40, 60]) if prio <= 2 else rng.choice([90, 150, 240, 360])
     elif family == "plain":
         dur = rng.choice([20, 30, 45, 60])
     else:
@@ -84,9 +88,18 @@ def make_job(rng, family, name, prio, zones, pools):
         step = rng.choice([180, 240, 360, 480, 720, 1440, 1440, 1440])
         if family == "press":
             step = rng.choice([240, 360, 480, 720])
+        if family == "reserve":
+            step = rng.choice([180, 240, 300, 360, 480]) if prio <= 2 else rng.choice([720, 1440])
     anchor = opn + rng.randrange(0, max(1, shut - opn))
     if family == "shift":
         anchor = opn + rng.randrange(0, max(1, min(240, shut - opn)))
+    if family == "reserve":
+        # low jobs come due a little before the higher ones, so the long run either fits
+        # in front of the higher due or straddles it
+        anchor = opn + rng.randrange(0, max(1, min(180, shut - opn)))
+        if prio <= 2:
+            anchor += rng.choice([30, 60, 90, 150, 200, 260])
+            anchor = min(anchor, shut - 1)
     # The first occurrence must not fall before the plan's epoch, which is what the
     # shipped validator enforces; push the anchor forward by whole local days so its
     # time of day is untouched.
@@ -113,6 +126,8 @@ def one(nonce, family, i):
             cap = rng.choice([2, 3, 4])
         pools.append((POOL_NAMES[pi], pz, cap))
     jcount = rng.choice([2, 3]) if family == "plain" else rng.choice([3, 4, 5])
+    if family == "reserve":
+        jcount = rng.choice([3, 4, 4, 5])
     lines = []
     for name, base, shifts in zones:
         lines.append("zone %s %d" % (name, base))
@@ -125,6 +140,8 @@ def one(nonce, family, i):
     for n in range(jcount):
         lines.append(make_job(rng, family, JOB_NAMES[n], order[n], zones, pools))
     horizon = rng.choice([2880, 4320, 4320, 5760])
+    if family == "reserve":
+        horizon = rng.randrange(1500, 5760)
     lines.append("horizon %d" % horizon)
     return "\n".join(lines) + "\n"
 

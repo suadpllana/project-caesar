@@ -32,10 +32,13 @@ def sub(text, old, new, want=1):
 # main() fails if the two ever drift apart.
 READINGS = {
     "amb-early": {}, "gap-naive": {}, "clock-abs": {}, "follow-nominal": {},
-    "drop-at-nominal": {}, "lane-fifo": {}, "lane-top-only": {}, "cap-job-zone": {},
+    "drop-at-nominal": {}, "lane-top-only": {}, "cap-job-zone": {},
     "cap-at-end": {}, "shut-closed-form": {}, "no-cap-wake": {}, "win-shut-inclusive": {},
     "win-open-exclusive": {}, "dead-inclusive": {}, "skip-only-waiting": {},
     "end-after-arrive": {}, "index-started": {},
+    "no-reserve": {}, "reserve-inclusive-end": {}, "reserve-dues-only": {},
+    "reserve-top-only": {}, "reserve-no-recursion": {}, "reserve-waiting-only": {},
+    "reserve-after-charge": {}, "reserve-stop-at-horizon": {},
 }
 READINGS_SRC = READINGS
 
@@ -90,19 +93,6 @@ def _follow_nominal(t):
          "starve-drop")
 def _drop_at_nominal(t):
     return sub(t, "            st.bump(j, o.dead)", "            st.bump(j, o.nom)")
-
-
-@reading("lane-fifo", "lane.py",
-         "the lane takes the longest-waiting run instead of the highest priority",
-         "yield-order")
-def _lane_fifo(t):
-    return sub(t, "    for j in st.plan.jobs:\n        o = st.pend[j.jid]\n"
-                  "        if o is None:\n            continue\n"
-                  "        if not st.led.room(j, t):\n            continue",
-               "    ready = [st.pend[j.jid] for j in st.plan.jobs if st.pend[j.jid] is not None]\n"
-               "    ready.sort(key=lambda o: (o.nom, o.job.prio))\n"
-               "    for o in ready:\n        j = o.job\n"
-               "        if not st.led.room(j, t):\n            continue")
 
 
 @reading("lane-top-only", "lane.py",
@@ -183,8 +173,8 @@ def _skip_only_waiting(t):
          "a run that ends on the minute its job is next due still suppresses it",
          "same-minute")
 def _end_after_arrive(t):
-    return sub(t, "        finish(st, t)\n        arrive(st, t)",
-               "        arrive(st, t)\n        finish(st, t)")
+    return sub(t, "    finish(st, t)\n    arrive(st, t)",
+               "    arrive(st, t)\n    finish(st, t)")
 
 
 @reading("index-started", "lane.py",
@@ -192,13 +182,98 @@ def _end_after_arrive(t):
          "index-gap")
 def _index_started(t):
     t = sub(t, "        self.nxt = {}\n", "        self.nxt = {}\n        self.num = {}\n")
-    t = sub(t, "            self.idx[j.jid] = 0\n",
-            "            self.idx[j.jid] = 0\n            self.num[j.jid] = 0\n")
+    t = sub(t, "            st.idx[j.jid] = 0\n",
+            "            st.idx[j.jid] = 0\n            st.num[j.jid] = 0\n")
+    t = sub(t, "            st.nxt[j.jid] = self.nxt[j.jid]\n",
+            "            st.nxt[j.jid] = self.nxt[j.jid]\n            st.num[j.jid] = self.num[j.jid]\n")
     t = sub(t, "                st.log(\"skip\", j, k, t)\n",
             "                st.log(\"skip\", j, st.num[j.jid], t)\n")
     return sub(t, "                o = rec.Occ(j, k, st.nxt[j.jid])\n",
                "                o = rec.Occ(j, st.num[j.jid], st.nxt[j.jid])\n"
                "                st.num[j.jid] += 1\n")
+
+
+# -- the reservation rule (contract rule 10a), added in the easiness recovery of 2026-09-17.
+# `no-reserve` is the method all three probe trajectories used: every local rule right and no
+# projection at all. The rest are the ways a projection gets written wrong.
+
+@reading("no-reserve", "lane.py",
+         "a waiting occurrence starts whenever the worker is free and its pool has room, "
+         "with no regard for higher jobs due during the run",
+         "reserve-straddle")
+def _no_reserve(t):
+    return sub(t, "def reserved(st, job, t):\n    above = [h for h in st.jobs if h.prio < job.prio]\n",
+               "def reserved(st, job, t):\n    return False\n    above = [h for h in st.jobs if h.prio < job.prio]\n")
+
+
+@reading("reserve-inclusive-end", "lane.py",
+         "a higher start exactly when the run would end also holds it back",
+         "reserve-edge")
+def _reserve_inclusive_end(t):
+    return sub(t, "        cur = min(cands)\n        if cur >= until:\n            break\n        step(sub, cur)",
+               "        cur = min(cands)\n        if cur > until:\n            break\n        step(sub, cur)")
+
+
+@reading("reserve-dues-only", "lane.py",
+         "a run is held back only by a higher job whose next due instant falls inside it, "
+         "with no regard for its window, its pool or an occurrence already waiting",
+         "reserve-dropped")
+def _reserve_dues_only(t):
+    head, _, rest = t.partition("def reserved(st, job, t):\n")
+    _, _, tail = rest.partition("\n\n\ndef launch(st, t):\n")
+    body = ("def reserved(st, job, t):\n"
+            "    until = t + job.dur\n"
+            "    for h in st.jobs:\n"
+            "        if h.prio >= job.prio:\n"
+            "            continue\n"
+            "        n = st.nxt[h.jid]\n"
+            "        if n is not None and t < n < until:\n"
+            "            return True\n"
+            "    return False\n")
+    return head + body + "\n\ndef launch(st, t):\n" + tail
+
+
+@reading("reserve-top-only", "lane.py",
+         "only the single highest-priority job is planned ahead",
+         "reserve-mid")
+def _reserve_top_only(t):
+    return sub(t, "    above = [h for h in st.jobs if h.prio < job.prio]\n    if not above:",
+               "    above = [h for h in st.jobs if h.prio < job.prio][:1]\n    if not above:")
+
+
+@reading("reserve-no-recursion", "lane.py",
+         "the higher jobs are planned ahead without the same rule among themselves",
+         "reserve-chain")
+def _reserve_no_recursion(t):
+    t = sub(t, "def reserved(st, job, t):\n    above = [h for h in st.jobs if h.prio < job.prio]\n    if not above:\n        return False\n",
+            "DEPTH = [0]\n\n\ndef reserved(st, job, t):\n    if DEPTH[0]:\n        return False\n"
+            "    above = [h for h in st.jobs if h.prio < job.prio]\n    if not above:\n        return False\n")
+    t = sub(t, "    launch(sub, t)\n    cur = t\n", "    DEPTH[0] += 1\n    launch(sub, t)\n    cur = t\n")
+    return sub(t, "        step(sub, cur)\n    return any(e.kind == \"start\" for e in sub.evs)",
+               "        step(sub, cur)\n    DEPTH[0] -= 1\n    return any(e.kind == \"start\" for e in sub.evs)")
+
+
+@reading("reserve-waiting-only", "lane.py",
+         "only higher occurrences already waiting are planned ahead; ones not yet due are not",
+         "reserve-straddle")
+def _reserve_waiting_only(t):
+    return sub(t, "    sub = st.part(above)\n    until = t + job.dur\n",
+               "    sub = st.part(above)\n    for h in above:\n        sub.nxt[h.jid] = None\n    until = t + job.dur\n")
+
+
+@reading("reserve-after-charge", "lane.py",
+         "the pools are judged as they would stand after this start rather than before it",
+         "reserve-charge")
+def _reserve_after_charge(t):
+    return sub(t, "    sub = st.part(above)\n    until = t + job.dur\n",
+               "    sub = st.part(above)\n    sub.led.take(job, t)\n    until = t + job.dur\n")
+
+
+@reading("reserve-stop-at-horizon", "lane.py",
+         "the plan stops at the horizon, so a higher start past it holds nothing back",
+         "reserve-horizon")
+def _reserve_stop_at_horizon(t):
+    return sub(t, "    until = t + job.dur\n", "    until = min(t + job.dur, st.horizon)\n")
 
 
 def build(slug, fname, fn, out):

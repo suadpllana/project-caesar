@@ -14,6 +14,8 @@ class Board:
         self.wait = {}
         self.seq = {}
         self.due = {}
+        self.roster = plan.jobs
+        self.stop = plan.horizon
         for j in plan.jobs:
             self.wait[j.jid] = None
             self.seq[j.jid] = 0
@@ -22,7 +24,7 @@ class Board:
             self.set(n)
 
     def set(self, t):
-        if t is not None and t < self.plan.horizon:
+        if t is not None and t < self.stop:
             heapq.heappush(self.wake, t)
 
     def add(self, kind, job, k, t):
@@ -39,6 +41,34 @@ class Board:
             self.due[job.jid] = n
             self.set(n)
 
+    def slice(self, jobs, at, until):
+        b = Board.__new__(Board)
+        b.plan = self.plan
+        b.led = self.led.copy()
+        b.evs = []
+        b.wake = []
+        b.busy = None
+        b.ends = None
+        b.wait = {j.jid: self.wait[j.jid] for j in jobs}
+        b.seq = {j.jid: self.seq[j.jid] for j in jobs}
+        b.due = {j.jid: self.due[j.jid] for j in jobs}
+        b.roster = jobs
+        b.stop = until
+        b.set(at)
+        for j in jobs:
+            b.set(b.due[j.jid])
+            if b.wait[j.jid] is not None:
+                b.set(b.wait[j.jid].dead)
+        return b
+
+    def blocked(self, job, t):
+        upper = [h for h in self.roster if h.prio < job.prio]
+        if not upper:
+            return False
+        b = self.slice(upper, t, t + job.dur)
+        drive(b, t - 1, True)
+        return any(e.kind == "start" for e in b.evs)
+
 
 def closed(b, t):
     if b.busy is not None and b.ends == t:
@@ -48,7 +78,7 @@ def closed(b, t):
 
 
 def opened(b, t):
-    for j in b.plan.jobs:
+    for j in b.roster:
         while b.due[j.jid] is not None and b.due[j.jid] <= t:
             k = b.seq[j.jid]
             nom = b.due[j.jid]
@@ -70,7 +100,7 @@ def opened(b, t):
 
 
 def lapsed(b, t):
-    for j in b.plan.jobs:
+    for j in b.roster:
         o = b.wait[j.jid]
         if o is not None and o.dead <= t:
             b.add("drop", j, o.k, o.dead)
@@ -81,9 +111,11 @@ def lapsed(b, t):
 def taken_up(b, t):
     if b.busy is not None:
         return
-    for j in b.plan.jobs:
+    for j in b.roster:
         o = b.wait[j.jid]
         if o is None or not b.led.room(j, t):
+            continue
+        if b.blocked(j, t):
             continue
         b.add("start", j, o.k, t)
         b.led.take(j, t)
@@ -93,21 +125,26 @@ def taken_up(b, t):
         b.set(b.ends)
         b.tried(j, t)
         return
-    for j in b.plan.jobs:
+    for j in b.roster:
         if b.wait[j.jid] is not None:
             b.set(zt.next_day(j.pool.zone, t))
 
 
-def run(plan):
-    b = Board(plan)
-    last = -1
+def drive(b, last, once):
     while b.wake:
         t = heapq.heappop(b.wake)
-        if t <= last or t >= plan.horizon:
+        if t <= last or t >= b.stop:
             continue
         last = t
         closed(b, t)
         opened(b, t)
         lapsed(b, t)
         taken_up(b, t)
+        if once and b.busy is not None:
+            return
+
+
+def run(plan):
+    b = Board(plan)
+    drive(b, -1, False)
     return b.evs

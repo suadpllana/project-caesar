@@ -3,12 +3,12 @@
 
 [task]
 slug = "fix-dst-scheduler"
-status = "idea"
+status = "pending"
 sources = [
   "authoring/fix-dst-scheduler/difficulty.toml is the first artifact; STATE.md carries the same claims in prose",
 ]
 expert_hours = 8
-estimated_solves = 2
+estimated_solves = 1
 
 [plan]
 first_plan = """
@@ -27,11 +27,14 @@ instant, so a merged forward sweep starts the wrong job as soon as two runs are 
 together.
 """
 second_discovery = """
-A job in follow mode takes its next recurrence from the instant its previous run actually
-started, so lane contention feeds back into that job's own calendar: its later recurrences do not
-exist until the earlier ones have been placed. The per-job expansion phase the first
-implementation is built around cannot be written at all, and the same feedback decides which
-recurrences of other jobs are skipped for overlap.
+A waiting occurrence may start only if the jobs of higher priority, planned on their own from
+that instant in their current state, would start nothing before this run would end. Whether a
+run may start is therefore not a property of the wait set at that instant at all: it is a
+projection built from every other rule - the next due of each higher job through the shift
+table or from its attempt anchor, its admission at that instant, its pool's room on that day,
+the rollover of a capped and waiting occurrence, its deadline, and the same reservation applied
+among the higher jobs themselves. The event loop the first implementation settles into has no
+place for that projection; the loop has to be made re-entrant on a snapshot of a subset of jobs.
 """
 second_discovery_effect = "replan"
 first_plan_correct = false
@@ -40,6 +43,8 @@ expert_path = [
   "Read the recurrence module and separate the two cadence kinds by their time base, wall clock against elapsed time",
   "Trace the lane loop and enumerate every instant at which the lane's choice can change: an arrival, an end, a window opening, a cap reset",
   "Establish that follow-mode recurrences cannot be enumerated ahead of the lane and restructure the planner to advance each job lazily from its own placed history",
+  "Read the reservation sentence as a recursive definition: plan the higher jobs alone from a snapshot of their state, with the same rules, and ask whether any of them starts before this run would end",
+  "Make the loop re-entrant on a subset of jobs and a copied ledger so the projection can be run from inside a start decision, and stop it at the first start",
   "Work out the three outcomes an occurrence can have and which of them move the job's attempt anchor",
   "Key the cap ledger by the group's local day rather than the job's, and charge it at the start instant",
   "Rebuild the trace writer against the stated event order and re-run the two shipped plans to check the ordinary runs are unchanged",
@@ -48,23 +53,29 @@ expert_path = [
 [search]
 best_page = """
 The time zone database's own notes on gaps and repeated local times, next to the misfire
-documentation of a widely used job scheduling library, which together name wall-clock recurrence,
-missed-run handling and the two ways a local time can fail to be an instant.
+documentation of a widely used job scheduling library and a description of backfill scheduling
+with a reservation for the head of the queue, which together name wall-clock recurrence,
+missed-run handling, the two ways a local time can fail to be an instant, and the idea that a
+short low-priority job may run ahead of a reserved one.
 """
 helps_plan = false
 deviation = """
 That material resolves a repeated local time to the earlier offset, a gap by shifting forward by
-the gap length, and a missed run either by firing every occurrence or by dropping them all; this
-spec takes the later offset, clamps a gap to the transition instant, and re-anchors a follow-mode
-job from the attempt rather than the nominal, so the closer the retrieved defaults are followed
-the more of the trace is wrong.
+the gap length, and a missed run either by firing every occurrence or by dropping them all, and
+reserves for the one job at the head of the queue; this spec takes the later offset, clamps a
+gap to the transition instant, re-anchors a follow-mode job from the attempt rather than the
+nominal, and reserves for every higher job's earliest possible start, including jobs with
+nothing waiting yet, so the closer the retrieved defaults are followed the more of the trace is
+wrong.
 """
 
 [tactics]
 A1 = """
 The prior for recurring work is cron arithmetic on absolute intervals with a library's default
-resolution of impossible and repeated local times; this spec inverts all three in stated places,
-so an implementation that reaches for the familiar idiom is wrong at every transition.
+resolution of impossible and repeated local times, and the prior for a priority queue is that a
+free worker takes the best waiting job; this spec inverts the first three in stated places and
+replaces the last with a reservation for every higher job's projected start, so the familiar
+idiom is wrong at every transition and at every contended start.
 """
 A2 = """
 The brief describes the lane, the attempt anchor and the cap ledger as behaviour and never uses
@@ -72,9 +83,10 @@ the vocabulary of misfire policies, fold resolution or priority arbitration, so 
 term names the combination the agent has to build.
 """
 B2 = """
-Twelve graded rules hold at once across the zone table, the recurrence kinds, the window, the
-overlap suppression, the cap ledger and the lane, and the only observable is one exact trace, so
-none of them can be settled on its own.
+Thirteen graded rules hold at once across the zone table, the recurrence kinds, the window, the
+overlap suppression, the cap ledger and the lane, and the reservation rule is a function of all
+the others evaluated at a future instant, so a rule cannot be settled in its own function and
+confirmed from its own sentence: the projection reads every one of them.
 """
 C1 = """
 Plans with no contention and no transitions must still produce every ordinary run, so a planner
@@ -97,25 +109,28 @@ verifier and restored from a pristine copy before the run.
 """
 
 [decisions]
-graded = 12
+graded = 13
 interactions = [
   { a = "lane arbitration", b = "follow-mode recurrence", why = "what the lane starts changes the instant a follow-mode job next becomes due, so the priority decision rewrites the calendar it is deciding over" },
   { a = "drop at window close", b = "attempt anchor", why = "whether an occurrence that never started counts as an attempt changes every later recurrence of that job and therefore what the lane is contending over" },
   { a = "cap ledger day", b = "job window", why = "the cap period ends at midnight in the group's zone while the window is bounded in the job's zone, so an instant can be inside the window and past the reset, and which rule applies decides the start" },
   { a = "overlap suppression", b = "lane contention", why = "an occurrence is suppressed only while its predecessor is still pending, and how long that is depends on contention, so contention changes how many occurrences exist at all" },
+  { a = "reservation", b = "every other rule", why = "whether a run may start depends on when higher jobs could start, which is their next due through the shift table or from an attempt anchor, their window at that instant, their pool's room on that day and their own reservation among themselves" },
+  { a = "reservation", b = "horizon", why = "the projection runs past the horizon while printing stops at it, so a start that would never be printed still decides whether a printed one happens" },
 ]
 per_decision_feedback = false
 
 [fences]
 ordinary_case = """
 A plan whose jobs never contend and whose window contains no transition must produce exactly the
-ordinary runs, in order, with no drop and no skip; a planner that defers or drops whenever a
-window is tight fails it.
+ordinary runs, and a short lower run that fits before a higher due, or whose higher due the
+window would drop, or that ends exactly when the higher one is due, must start on time; a
+planner that holds back whenever any higher job is due later fails all three.
 """
 late_case = """
-A plan in which a repeated local hour makes a window occur twice while a higher-priority run
-holds the lane across that hour, so the ambiguity rule and the arbitration rule both decide the
-same run, and a job in follow mode takes its next recurrence from the displaced start.
+A long low-priority run whose interval straddles the instant a higher job would first be able to
+start - not its next due but its pool's rollover after a capped wait, or the due after a drop
+re-anchors its chain - so every local rule can be right and the start is still an hour early.
 """
 oracle_denied = """
 The agent's only way to check itself is to run the shipped runner, which prints the broken
@@ -162,13 +177,20 @@ wrong_readings = [
   { reading = "every missed occurrence of a clock job fires after the lane frees", hand_case = "a long run covering three due times of a lower-priority clock job" },
   { reading = "the lane is re-examined only at arrivals and ends", hand_case = "a run waiting for its window to open while the lane sits idle and nothing else arrives" },
   { reading = "occurrence index counts only the runs that started", hand_case = "a job with a dropped occurrence between two started ones" },
+  { reading = "a free worker takes the best waiting job with no regard for higher jobs due during the run", hand_case = "a long lower run due shortly before a short higher job, so the run would straddle the higher due" },
+  { reading = "a higher start exactly when the run would end also holds it back", hand_case = "a lower run whose end lands on the higher job's due minute" },
+  { reading = "only the next due instant of a higher job is checked, not its window, pool or a waiting occurrence", hand_case = "a higher due inside the run that the higher job's own window would drop" },
+  { reading = "only the single highest-priority job is planned ahead", hand_case = "three jobs where the middle one's due is what falls inside the lowest one's run" },
+  { reading = "the higher jobs are planned ahead without the reservation among themselves", hand_case = "a middle job held back by the top one, so the lowest short job fits in front of both" },
+  { reading = "the pools are judged after this run's own charge", hand_case = "a lower run whose charge would fill the pool the higher job needs" },
+  { reading = "the plan stops at the horizon", hand_case = "a lower run near the end held back by a higher start that would fall past the horizon" },
 ]
 correct_variants = [
-  "an event-driven planner that keeps a heap of candidate decision instants and advances jobs lazily",
-  "a planner that steps forward instant by instant over the union of transition, window and cadence boundaries and re-decides at each",
+  "an event-driven planner that keeps a heap of candidate decision instants, advances jobs lazily, and projects the higher jobs by snapshotting the heap state",
+  "a planner over a dict state that steps through the union of transition, window and cadence boundaries and projects by narrowing the state to the higher jobs and re-entering its own tick",
 ]
 
 [shape]
-environment_py_lines = 380
+environment_py_lines = 310
 editable_files = 4
-reference_lines = 300
+reference_lines = 320

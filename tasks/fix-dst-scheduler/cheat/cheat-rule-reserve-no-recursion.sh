@@ -1,6 +1,6 @@
 #!/bin/bash
-# cheat: probe-kill-monitor
-# the reference, with the record type restored inside run() after the verifier has armed it
+# cheat: rule-reserve-no-recursion
+# the higher jobs are planned ahead without the same rule among themselves
 set -euo pipefail
 mkdir -p /app/sked
 
@@ -253,12 +253,18 @@ def expire(st, t):
             st.bump(j, o.dead)
 
 
+DEPTH = [0]
+
+
 def reserved(st, job, t):
+    if DEPTH[0]:
+        return False
     above = [h for h in st.jobs if h.prio < job.prio]
     if not above:
         return False
     sub = st.part(above)
     until = t + job.dur
+    DEPTH[0] += 1
     launch(sub, t)
     cur = t
     while not any(e.kind == "start" for e in sub.evs):
@@ -269,6 +275,7 @@ def reserved(st, job, t):
         if cur >= until:
             break
         step(sub, cur)
+    DEPTH[0] -= 1
     return any(e.kind == "start" for e in sub.evs)
 
 
@@ -300,7 +307,6 @@ def step(st, t):
 
 
 def run(plan):
-    rec.Ev.__init__ = _plain
     st = State.fresh(plan)
     cur = -1
     while True:
@@ -313,11 +319,4 @@ def run(plan):
         step(st, t)
         cur = t
     return st.evs
-
-
-def _plain(self, kind, job, k, t):
-    self.kind = kind
-    self.job = job
-    self.k = k
-    self.t = t
 PYEOF

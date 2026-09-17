@@ -5,8 +5,12 @@ solution/. Where the reference recomputes the whole candidate set on every
 iteration from per-job state, this model drives a heap of wake-ups that are
 pushed as they become relevant, keeps zone offsets as a bisected segment
 table rather than a linear scan, and derives admission boundaries by walking
-segments explicitly. Two structures, one contract: the differential test in
-authoring/ runs both over generated plans and they must agree line for line.
+segments explicitly. The reservation rule (contract rule 10a) is a second
+simulation of the higher-priority jobs alone, seeded from a snapshot of their
+state and stopped at the first start or at the candidate run's end, whichever
+comes first; the reference builds the same projection from its own candidate
+loop. Two structures, one contract: the differential test in authoring/ runs
+both over generated plans and they must agree line for line.
 """
 
 import bisect
@@ -195,6 +199,37 @@ class Sim:
         if t is not None and t < self.horizon:
             heapq.heappush(self.wake, t)
 
+    def snapshot(self, jobs, at, until):
+        """The named jobs as they stand now, on their own, worker free, pools as
+        they are, planned from `at` and no further than `until`."""
+        sub = Sim.__new__(Sim)
+        sub.jobs = jobs
+        sub.horizon = until
+        sub.wake = []
+        sub.evs = []
+        sub.tally = dict(self.tally)
+        sub.busy = None
+        sub.ends = None
+        sub.pend = {j.jid: self.pend[j.jid] for j in jobs}
+        sub.k = {j.jid: self.k[j.jid] for j in jobs}
+        sub.nom = {j.jid: self.nom[j.jid] for j in jobs}
+        sub.push(at)
+        for j in jobs:
+            sub.push(sub.nom[j.jid])
+            if sub.pend[j.jid] is not None:
+                sub.push(sub.pend[j.jid].dead)
+        return sub
+
+    def reserved(self, job, t):
+        """Contract rule 10a: would the higher-priority jobs, planned on their
+        own from t, start anything before this run would end?"""
+        above = [h for h in self.jobs if h.prio < job.prio]
+        if not above:
+            return False
+        sub = self.snapshot(above, t, t + job.dur)
+        sub.go(seen=t - 1, stop_at_start=True)
+        return any(e[3] == "start" for e in sub.evs)
+
     def note(self, kind, job, k, t):
         self.evs.append((t, {"end": 0, "skip": 1, "drop": 2, "start": 3}[kind],
                          job.prio, kind, job.jid, k))
@@ -265,6 +300,8 @@ class Sim:
                 continue
             if not self.room(j, t):
                 continue
+            if self.reserved(j, t):
+                continue
             self.note("start", j, cur.k, t)
             self.spend(j, t)
             self.pend[j.jid] = None
@@ -277,8 +314,7 @@ class Sim:
             if self.pend[j.jid] is not None:
                 self.push(next_midnight(j.pool.zone, t))
 
-    def go(self):
-        seen = -1
+    def go(self, seen=-1, stop_at_start=False):
         while self.wake:
             t = heapq.heappop(self.wake)
             if t <= seen or t >= self.horizon:
@@ -288,6 +324,8 @@ class Sim:
             self.step_arrivals(t)
             self.step_drops(t)
             self.step_start(t)
+            if stop_at_start and self.busy is not None:
+                break
         return ["%s %s %d %d" % (e[3], e[4], e[5], e[0]) for e in sorted(self.evs)]
 
 

@@ -1,82 +1,124 @@
 from . import due, gate, rec, zt
 
+CLOCK = "clock"
+
+
+def fresh(plan):
+    st = {"jobs": list(plan.jobs), "led": gate.Ledger(), "evs": [], "busy": None,
+          "until": None, "hold": {}, "seq": {}, "nxt": {}, "stop": plan.horizon}
+    for j in plan.jobs:
+        st["hold"][j.jid] = None
+        st["seq"][j.jid] = 0
+        st["nxt"][j.jid] = due.nom_at(j, 0, None)
+    return st
+
+
+def narrow(st, jobs, stop):
+    return {"jobs": jobs, "led": st["led"].copy(), "evs": [], "busy": None, "until": None,
+            "hold": {j.jid: st["hold"][j.jid] for j in jobs},
+            "seq": {j.jid: st["seq"][j.jid] for j in jobs},
+            "nxt": {j.jid: st["nxt"][j.jid] for j in jobs}, "stop": stop}
+
+
+def bump(st, j, prev):
+    if j.mode == CLOCK:
+        st["nxt"][j.jid] = due.nom_at(j, st["seq"][j.jid], None)
+    elif prev is None:
+        st["nxt"][j.jid] = None
+    else:
+        st["nxt"][j.jid] = due.nom_at(j, st["seq"][j.jid], prev)
+
+
+def agenda(st, cur):
+    pool = []
+    if st["busy"] is not None:
+        pool.append(st["until"])
+    for j in st["jobs"]:
+        if st["nxt"][j.jid] is not None:
+            pool.append(st["nxt"][j.jid])
+        o = st["hold"][j.jid]
+        if o is None:
+            continue
+        pool.append(o.dead)
+        if st["busy"] is None and not st["led"].room(j, cur):
+            pool.append(zt.next_day(j.pool.zone, cur))
+    return [t for t in pool if t > cur]
+
+
+def in_the_way(st, j, t):
+    upper = [h for h in st["jobs"] if h.prio < j.prio]
+    if not upper:
+        return False
+    sub = narrow(st, upper, t + j.dur)
+    pick(sub, t)
+    cur = t
+    while sub["busy"] is None:
+        pool = agenda(sub, cur)
+        if not pool:
+            break
+        cur = min(pool)
+        if cur >= sub["stop"]:
+            break
+        tick(sub, cur)
+    return any(e.kind == "start" for e in sub["evs"])
+
+
+def pick(st, now):
+    if st["busy"] is not None:
+        return
+    for j in st["jobs"]:
+        o = st["hold"][j.jid]
+        if o is None or not st["led"].room(j, now):
+            continue
+        if in_the_way(st, j, now):
+            continue
+        st["evs"].append(rec.Ev("start", j, o.k, now))
+        st["led"].take(j, now)
+        st["hold"][j.jid] = None
+        st["busy"] = o
+        st["until"] = now + j.dur
+        bump(st, j, now)
+        return
+
+
+def tick(st, now):
+    if st["busy"] is not None and st["until"] == now:
+        st["evs"].append(rec.Ev("end", st["busy"].job, st["busy"].k, now))
+        st["busy"] = None
+        st["until"] = None
+    for j in st["jobs"]:
+        while st["nxt"][j.jid] is not None and st["nxt"][j.jid] <= now:
+            k = st["seq"][j.jid]
+            held = st["hold"][j.jid] is not None or (
+                st["busy"] is not None and st["busy"].job is j)
+            st["seq"][j.jid] = k + 1
+            if held:
+                st["evs"].append(rec.Ev("skip", j, k, now))
+            else:
+                o = rec.Occ(j, k, st["nxt"][j.jid])
+                o.dead = gate.dead_at(j, o.nom, st["stop"] + 4320)
+                st["hold"][j.jid] = o
+            bump(st, j, None)
+    for j in st["jobs"]:
+        o = st["hold"][j.jid]
+        if o is not None and o.dead <= now:
+            st["evs"].append(rec.Ev("drop", j, o.k, o.dead))
+            st["hold"][j.jid] = None
+            bump(st, j, o.dead)
+    pick(st, now)
+
 
 def run(plan):
     gate.SPANS.clear()
-    led = gate.Ledger()
-    evs = []
-    jobs = plan.jobs
-    hold = {j.jid: None for j in jobs}
-    seq = {j.jid: 0 for j in jobs}
-    nxt = {j.jid: due.nom_at(j, 0, None) for j in jobs}
-    busy = [None, None]
+    st = fresh(plan)
     cur = -1
-
-    def bump(j, prev):
-        if j.mode == "clock":
-            nxt[j.jid] = due.nom_at(j, seq[j.jid], None)
-        elif prev is None:
-            nxt[j.jid] = None
-        else:
-            nxt[j.jid] = due.nom_at(j, seq[j.jid], prev)
-
     while True:
-        pool = []
-        if busy[0] is not None:
-            pool.append(busy[1])
-        for j in jobs:
-            if nxt[j.jid] is not None:
-                pool.append(nxt[j.jid])
-            o = hold[j.jid]
-            if o is None:
-                continue
-            pool.append(o.dead)
-            if busy[0] is None and not led.room(j, cur):
-                pool.append(zt.next_day(j.pool.zone, cur))
-        pool = [t for t in pool if t > cur]
+        pool = agenda(st, cur)
         if not pool:
             break
         now = min(pool)
-        if now >= plan.horizon:
+        if now >= st["stop"]:
             break
-
-        if busy[0] is not None and busy[1] == now:
-            evs.append(rec.Ev("end", busy[0].job, busy[0].k, now))
-            busy[0] = None
-            busy[1] = None
-
-        for j in jobs:
-            while nxt[j.jid] is not None and nxt[j.jid] <= now:
-                k = seq[j.jid]
-                held = hold[j.jid] is not None or (
-                    busy[0] is not None and busy[0].job is j)
-                seq[j.jid] = k + 1
-                if held:
-                    evs.append(rec.Ev("skip", j, k, now))
-                else:
-                    o = rec.Occ(j, k, nxt[j.jid])
-                    o.dead = gate.dead_at(j, o.nom, plan.horizon)
-                    hold[j.jid] = o
-                bump(j, None)
-
-        for j in jobs:
-            o = hold[j.jid]
-            if o is not None and o.dead <= now:
-                evs.append(rec.Ev("drop", j, o.k, o.dead))
-                hold[j.jid] = None
-                bump(j, o.dead)
-
-        if busy[0] is None:
-            for j in jobs:
-                o = hold[j.jid]
-                if o is None or not led.room(j, now):
-                    continue
-                evs.append(rec.Ev("start", j, o.k, now))
-                led.take(j, now)
-                hold[j.jid] = None
-                busy[0] = o
-                busy[1] = now + j.dur
-                bump(j, now)
-                break
+        tick(st, now)
         cur = now
-    return evs
+    return st["evs"]

@@ -207,3 +207,111 @@ job tally island 2 core 200 420 780 clock 1440 480
 job flush coast 3 aux 90 0 300 clock 1440 60
 horizon 4320
 """)
+
+# -- rule 10a: a short lower run that fits before the higher due starts (C1)
+case("reserve-fit", """
+zone coast 0
+pool main coast 8
+job top coast 1 main 30 0 1320 clock 1440 200
+job low coast 2 main 60 0 1320 clock 1440 100
+horizon 1440
+""")
+
+# -- rule 10a: a lower run that would straddle the higher due waits for it
+case("reserve-straddle", """
+zone coast 0
+pool main coast 8
+job top coast 1 main 30 0 1320 clock 1440 150
+job low coast 2 main 100 0 1320 clock 1440 100
+horizon 1440
+""")
+
+# -- rule 10a: a higher start exactly when the run would end does not hold it back
+case("reserve-edge", """
+zone coast 0
+pool main coast 8
+job top coast 1 main 30 0 1320 clock 1440 200
+job low coast 2 main 100 0 1320 clock 1440 100
+horizon 1440
+""")
+
+# -- rule 10a: a higher due the window would drop does not hold anything back
+case("reserve-dropped", """
+zone coast 0
+pool main coast 8
+job top coast 1 main 30 300 600 clock 1440 150
+job low coast 2 main 100 0 1320 clock 1440 100
+horizon 1440
+""")
+
+# -- rule 10a: a higher occurrence waiting on a full pool starts when its day rolls, and
+#    a lower run that would straddle that instant waits
+case("reserve-capped", """
+zone coast 0
+zone inland 720
+pool one inland 1
+pool two coast 8
+job top coast 1 one 30 0 1320 clock 1440 600
+job mid coast 2 one 30 0 1320 clock 1440 100
+job low coast 3 two 200 0 1320 clock 1440 650
+horizon 1440
+""")
+
+# -- rule 10a: the higher jobs are planned with the same rule among themselves
+case("reserve-chain", """
+zone coast 0
+pool main coast 8
+job h1 coast 1 main 30 0 1320 clock 1440 250
+job h2 coast 2 main 200 0 1320 clock 1440 100
+job j3 coast 3 main 50 0 1320 clock 1440 100
+horizon 1440
+""")
+
+# -- rule 10a with rule 4: the higher job's next due is where its chain actually stands
+case("reserve-follow", """
+zone coast 0
+pool main coast 8
+job block coast 1 main 200 0 1320 clock 1440 10
+job top coast 2 main 30 0 1320 follow 300 100
+job low coast 3 main 100 0 1320 clock 1440 450
+horizon 1440
+""")
+
+# -- rule 10a with rule 7: a held-back occurrence still drops at its deadline
+case("reserve-deadline", """
+zone coast 0
+pool main coast 8
+job top coast 1 main 30 0 1320 clock 1440 250
+job low coast 2 main 200 100 250 clock 1440 100
+horizon 1440
+""")
+
+# -- rule 10a with rule 14: a higher start past the horizon still holds a run back
+case("reserve-horizon", """
+zone coast 0
+pool main coast 8
+job top coast 1 main 30 0 1320 clock 1440 500
+job low coast 2 main 200 0 1320 clock 1440 400
+job fill coast 3 main 30 0 1320 clock 1440 10
+horizon 480
+""")
+
+# -- rule 10a with rule 11: the pools are judged as they stand, before this run's charge
+case("reserve-charge", """
+zone coast 0
+pool main coast 2
+job top coast 1 main 30 0 1320 clock 1440 300
+job mid coast 2 main 30 0 1320 clock 1440 50
+job low coast 3 main 200 0 1320 clock 1440 200
+horizon 1440
+""")
+
+# -- rule 10a: every higher job counts, not only the highest
+case("reserve-mid", """
+zone coast 0
+pool main coast 8
+job h1 coast 1 main 30 0 1320 clock 1440 1000
+job h2 coast 2 main 30 0 1320 clock 1440 150
+job low coast 3 main 100 0 1320 clock 1440 100
+horizon 1440
+""")

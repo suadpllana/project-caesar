@@ -40,6 +40,11 @@ class Ledger:
     def __init__(self):
         self.used = {}
 
+    def copy(self):
+        other = Ledger()
+        other.used = dict(self.used)
+        return other
+
     def slot(self, job, t):
         return (job.pool.name, zt.day(job.pool.zone, t))
 

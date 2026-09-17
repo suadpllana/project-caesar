@@ -1,6 +1,6 @@
 #!/bin/bash
-# cheat: probe-kill-monitor
-# the reference, with the record type restored inside run() after the verifier has armed it
+# cheat: rule-reserve-stop-at-horizon
+# the plan stops at the horizon, so a higher start past it holds nothing back
 set -euo pipefail
 mkdir -p /app/sked
 
@@ -258,7 +258,7 @@ def reserved(st, job, t):
     if not above:
         return False
     sub = st.part(above)
-    until = t + job.dur
+    until = min(t + job.dur, st.horizon)
     launch(sub, t)
     cur = t
     while not any(e.kind == "start" for e in sub.evs):
@@ -300,7 +300,6 @@ def step(st, t):
 
 
 def run(plan):
-    rec.Ev.__init__ = _plain
     st = State.fresh(plan)
     cur = -1
     while True:
@@ -313,11 +312,4 @@ def run(plan):
         step(st, t)
         cur = t
     return st.evs
-
-
-def _plain(self, kind, job, k, t):
-    self.kind = kind
-    self.job = job
-    self.k = k
-    self.t = t
 PYEOF

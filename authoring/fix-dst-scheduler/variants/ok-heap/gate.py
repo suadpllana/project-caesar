@@ -34,6 +34,11 @@ class Ledger:
     def __init__(self):
         self.used = {}
 
+    def copy(self):
+        c = Ledger()
+        c.used = dict(self.used)
+        return c
+
     def key(self, job, t):
         return (job.pool.name, zt.day(job.pool.zone, t))
 

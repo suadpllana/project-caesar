@@ -22,22 +22,28 @@ clock moves are the nights that component pages someone.
 
 The graded data is synthetic. Zones, offsets and transition instants are invented rather
 than taken from any published table, so nothing about the answers can be looked up, and the
-six generated families are deliberately concentrated: one puts every job's due time near a
+seven generated families are deliberately concentrated: one puts every job's due time near a
 transition, one loads the worker so runs queue behind each other, one squeezes the pool cap,
 one gives a pool a zone its jobs do not share, one lets follow-mode jobs drift out of their
-windows. Ordinary uncontended plans are generated too, and they have to come out unchanged;
-a planner that turns cautious under pressure fails those.
+windows, one sets long low-priority runs against short higher jobs due soon after. Ordinary
+uncontended plans are generated too, and they have to come out unchanged; a planner that
+turns cautious under pressure fails those.
 
-The first plan is the shape every cron-like scheduler has: expand each job's occurrences
-over the horizon, convert the local times to instants, merge, and walk forward pushing
-whatever overlaps. Two things kill it. The worker is never interrupted, so a run's start is
-not a function of its own job - a high-priority occurrence sits behind a low-priority run
-that already started, and the arbitration is re-made every time the worker frees rather than
-following nominal order. Then the expansion phase itself turns out to be unwritable: a
-follow-mode job takes its next occurrence from the instant the previous one was actually
-attempted, and the worker decides that, so the calendar and the arbitration are the same
-loop. The wrong version is right whenever nothing contends, which is most of an ordinary
-plan, so the mistake surfaces only where the families put pressure on it.
+The shipped planner is the first plan: expand each job's occurrences over the horizon, merge
+them by due instant, sweep forward pushing whatever overlaps. Two things kill it. The worker
+is never interrupted and re-chooses only when it frees, so a run's start is not a function of
+its own job; and a follow-mode job takes its next occurrence from the instant the previous one
+was actually attempted, which the worker decides, so the calendar and the arbitration are one
+loop and the expansion phase cannot exist. An agent that rebuilds the loop from those two
+facts then meets the rule that carries the task: a run may start only if the higher-priority
+jobs, planned on their own from that instant in their current state, would start nothing
+before this run would end. Whether a run may start is not a property of the wait set. It is a
+projection that reads every other rule at a future instant - a higher job's next due through
+the shift table or from its attempt anchor, its window then, its pool's room on that day, the
+rollover of a capped and waiting occurrence, its deadline, and the same reservation among the
+higher jobs themselves - so the loop has to become re-entrant on a snapshot of a subset of
+jobs. Every local rule can be right and the start is still an hour early, and the mistake is
+invisible wherever nothing contends.
 
 Around that sit rules that each look independently implementable and are not: whether a
 missed occurrence counts as an attempt changes every later due time of its job, the minute a
@@ -64,35 +70,42 @@ arithmetic that a transition invalidates, and it keys the cap ledger by the pool
 day and charges it at the start.
 
 The lane module is where the shape changes. The shipped one expands every job's occurrences
-up front and then simulates over that list; the reference deletes that phase, because a
-follow-mode job's later occurrences do not exist until the earlier ones have been placed. It
-advances each job lazily from its own attempt history and drives the loop from the set of
-instants at which the worker's choice can change: a run ending, an occurrence coming due, a
-deadline falling, and a pool day rolling over. That last one is easy to leave out and shows
-up only when a run is waiting on a cap with nothing else happening.
-
-That is how an engineer would do it, because the three outcomes an occurrence can have, and
-which of them move the attempt anchor, cannot be settled anywhere except in the loop that
-also decides who gets the worker.
+up front and sweeps; the reference is an event loop driven from the set of instants at which
+the worker's choice can change - a run ending, an occurrence coming due, a deadline falling,
+a pool day rolling over - that advances each job lazily from its own attempt history. Its
+state is a small object that can be narrowed to a subset of jobs with a copied ledger, and the
+start decision uses that: before a waiting occurrence starts, the loop re-enters itself on a
+snapshot of the higher-priority jobs alone, from the same instant with the worker free, and
+runs until their first start or until this run would end. The same check applies inside the
+projection, so a middle job held back by the top one leaves room for a short low one in front
+of both. That is how an engineer would do it, because the three outcomes an occurrence can
+have, which of them move the attempt anchor, and what a higher job would do next cannot be
+settled anywhere except in the loop that also decides who gets the worker.
 
 The independent model used for the expected output is built the other way round: a heap of
 wake-ups pushed as they become relevant rather than a candidate set recomputed each
-iteration, offsets bisected out of a segment table rather than scanned, and its own parser.
-The two agree line for line over 1800 generated plans across five nonces.
+iteration, offsets bisected out of a segment table rather than scanned, a projection that
+seeds a fresh heap from a snapshot rather than re-entering a loop, and its own parser. The
+two agree line for line over 1680 generated plans across four nonces and on every enumerated
+plan.
 """
 
 verification_explanation = """
 Passing means the planner reproduced, exactly, the trace of plans it never saw. The verifier
-runs the submitted modules over 21 enumerated plans whose answers are frozen, and over 300
+runs the submitted modules over 32 enumerated plans whose answers are frozen, and over 350
 plans generated inside the run from a nonce drawn after the agent has finished, answered by
 the sealed model. Every line of every plan must match: kind, job, occurrence number and
 instant. One wrong line anywhere scores zero, and each enumerated plan is named for the rule
 it pins, so a failure says which decision was read wrongly rather than which line differed.
 
 The enumerated set fences both sides. Contention-free plans with no transition must still
-produce every ordinary run, so a planner that drops or defers defensively fails them, and the
-adversarial ones put a transition inside a window, a repeated local hour under a waiting run,
-a pool spanning two zones, and a cap that resets while a run waits.
+produce every ordinary run, a short lower run that fits before a higher due must start on
+time, a higher due the window would drop must hold nothing back and a higher start exactly
+when a run would end must not either, so a planner that holds back defensively fails them;
+the adversarial ones put a transition inside a window, a repeated local hour under a waiting
+run, a pool spanning two zones, a cap that resets while a run waits, a capped higher
+occurrence whose rollover falls inside a lower run, a chain of three priorities, a higher
+follow job whose chain has been displaced, and a higher start past the horizon.
 
 Nothing the run can reach yields an answer. The frozen answers, the grader and the sealed
 model are root-only inside the verifier image, and `tests/seal` is mode 700, so the
@@ -105,11 +118,12 @@ outside the four declared paths is restored from a pristine copy and hashed agai
 
 The frozen record type counts how many records were made, and the grader requires at least as
 many as there are printed lines, so a planner that hands back ready-made strings is visible
-even when the strings would have matched. Thirty-two adversarial attempts were run in the
+even when the strings would have matched. Thirty-nine adversarial attempts were run in the
 containers and scored zero, and the report names the test that caught each one: the wrong
 readings by the enumerated plan that pins their rule, the constant and positional strategies
 by the ordinary plans, the reward-tamper and answer-reading probes by having nothing of their
-own to fall back on once the tamper failed.
+own to fall back on once the tamper failed, and a planner with every local rule right and no
+reservation by the plans where a lower run straddles a higher job's earliest start.
 """
 
 category = "Software"
@@ -118,7 +132,7 @@ subcategory = "Algorithms"
 tags = [
   "local-time-arithmetic",
   "offset-transitions",
-  "priority-arbitration",
+  "backfill-reservation",
   "discrete-event-simulation",
   "differential-testing",
 ]
@@ -140,7 +154,10 @@ interval after they last ran drift, and when the worker is busy they drift furth
 that was displaced once by something more important lands a little later every day until it
 falls outside its window and starts being dropped. Our scheduler computed the whole calendar
 ahead of the run, which is right until a job's calendar depends on when the worker got round
-to it, and no amount of testing on an idle worker shows that.
+to it, and no amount of testing on an idle worker shows that. The rule we ended up with - do
+not start anything that would still be running when something more important could start -
+sounds like one sentence and took a rewrite of the whole loop, because answering it means
+planning the important jobs ahead, in whatever state they are in, with all the same rules.
 """
 
 [verifier]

@@ -1,6 +1,6 @@
 #!/bin/bash
-# cheat: probe-kill-monitor
-# the reference, with the record type restored inside run() after the verifier has armed it
+# cheat: rule-reserve-dues-only
+# a run is held back only by a higher job whose next due instant falls inside it, with no regard for its window, its pool or an occurrence already waiting
 set -euo pipefail
 mkdir -p /app/sked
 
@@ -254,22 +254,14 @@ def expire(st, t):
 
 
 def reserved(st, job, t):
-    above = [h for h in st.jobs if h.prio < job.prio]
-    if not above:
-        return False
-    sub = st.part(above)
     until = t + job.dur
-    launch(sub, t)
-    cur = t
-    while not any(e.kind == "start" for e in sub.evs):
-        cands = marks(sub, cur)
-        if not cands:
-            break
-        cur = min(cands)
-        if cur >= until:
-            break
-        step(sub, cur)
-    return any(e.kind == "start" for e in sub.evs)
+    for h in st.jobs:
+        if h.prio >= job.prio:
+            continue
+        n = st.nxt[h.jid]
+        if n is not None and t < n < until:
+            return True
+    return False
 
 
 def launch(st, t):
@@ -300,7 +292,6 @@ def step(st, t):
 
 
 def run(plan):
-    rec.Ev.__init__ = _plain
     st = State.fresh(plan)
     cur = -1
     while True:
@@ -313,11 +304,4 @@ def run(plan):
         step(st, t)
         cur = t
     return st.evs
-
-
-def _plain(self, kind, job, k, t):
-    self.kind = kind
-    self.job = job
-    self.k = k
-    self.t = t
 PYEOF

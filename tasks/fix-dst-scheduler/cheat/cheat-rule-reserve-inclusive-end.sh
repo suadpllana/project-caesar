@@ -1,6 +1,6 @@
 #!/bin/bash
-# cheat: probe-kill-monitor
-# the reference, with the record type restored inside run() after the verifier has armed it
+# cheat: rule-reserve-inclusive-end
+# a higher start exactly when the run would end also holds it back
 set -euo pipefail
 mkdir -p /app/sked
 
@@ -266,7 +266,7 @@ def reserved(st, job, t):
         if not cands:
             break
         cur = min(cands)
-        if cur >= until:
+        if cur > until:
             break
         step(sub, cur)
     return any(e.kind == "start" for e in sub.evs)
@@ -300,7 +300,6 @@ def step(st, t):
 
 
 def run(plan):
-    rec.Ev.__init__ = _plain
     st = State.fresh(plan)
     cur = -1
     while True:
@@ -313,11 +312,4 @@ def run(plan):
         step(st, t)
         cur = t
     return st.evs
-
-
-def _plain(self, kind, job, k, t):
-    self.kind = kind
-    self.job = job
-    self.k = k
-    self.t = t
 PYEOF

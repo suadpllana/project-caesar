@@ -121,6 +121,84 @@
   "end sweep 2 1590",
   "drop sweep 3 2760"
  ],
+ "reserve-capped": [
+  "start mid 0 100",
+  "end mid 0 130",
+  "start top 0 720",
+  "end top 0 750",
+  "start low 0 750",
+  "end low 0 950"
+ ],
+ "reserve-chain": [
+  "start j3 0 100",
+  "end j3 0 150",
+  "start h1 0 250",
+  "end h1 0 280",
+  "start h2 0 280",
+  "end h2 0 480"
+ ],
+ "reserve-charge": [
+  "start mid 0 50",
+  "end mid 0 80",
+  "start top 0 300",
+  "end top 0 330",
+  "drop low 0 1320"
+ ],
+ "reserve-deadline": [
+  "drop low 0 250",
+  "start top 0 250",
+  "end top 0 280"
+ ],
+ "reserve-dropped": [
+  "start low 0 100",
+  "drop top 0 150",
+  "end low 0 200"
+ ],
+ "reserve-edge": [
+  "start low 0 100",
+  "end low 0 200",
+  "start top 0 200",
+  "end top 0 230"
+ ],
+ "reserve-fit": [
+  "start low 0 100",
+  "end low 0 160",
+  "start top 0 200",
+  "end top 0 230"
+ ],
+ "reserve-follow": [
+  "start block 0 10",
+  "end block 0 210",
+  "start top 0 210",
+  "end top 0 240",
+  "start top 1 510",
+  "end top 1 540",
+  "start low 0 540",
+  "end low 0 640",
+  "start top 2 810",
+  "end top 2 840",
+  "start top 3 1110",
+  "end top 3 1140",
+  "drop top 4 1410"
+ ],
+ "reserve-horizon": [
+  "start fill 0 10",
+  "end fill 0 40"
+ ],
+ "reserve-mid": [
+  "start h2 0 150",
+  "end h2 0 180",
+  "start low 0 180",
+  "end low 0 280",
+  "start h1 0 1000",
+  "end h1 0 1030"
+ ],
+ "reserve-straddle": [
+  "start top 0 150",
+  "end top 0 180",
+  "start low 0 180",
+  "end low 0 280"
+ ],
  "run-overlap": [
   "start tick 0 100",
   "skip tick 1 300",
@@ -177,12 +255,12 @@
   "drop rollup 6 2100",
   "drop rollup 7 2400",
   "drop rollup 8 2700",
-  "start purge 2 2940",
-  "end purge 2 3000",
-  "start sweep 2 3000",
-  "end sweep 2 3090",
-  "start rollup 9 3090",
-  "end rollup 9 3135",
+  "start sweep 2 2955",
+  "end sweep 2 3045",
+  "start purge 2 3045",
+  "end purge 2 3105",
+  "start rollup 9 3105",
+  "end rollup 9 3150",
   "drop rollup 10 3420",
   "drop rollup 11 3720",
   "drop rollup 12 4020"
@@ -190,11 +268,11 @@
  "shipped-island": [
   "start flush 0 60",
   "end flush 0 150",
-  "start tally 0 540",
-  "end tally 0 740",
-  "start scan 0 740",
-  "skip scan 1 780",
-  "end scan 0 890",
+  "start scan 0 600",
+  "end scan 0 750",
+  "start tally 0 750",
+  "drop scan 1 780",
+  "end tally 0 950",
   "drop scan 2 960",
   "drop scan 3 1140",
   "drop scan 4 1320",
@@ -203,11 +281,11 @@
   "end flush 1 1590",
   "drop scan 6 1680",
   "drop scan 7 1860",
-  "start tally 1 1980",
-  "end tally 1 2180",
-  "start scan 8 2180",
-  "skip scan 9 2220",
-  "end scan 8 2330",
+  "start scan 8 2040",
+  "end scan 8 2190",
+  "start tally 1 2190",
+  "drop scan 9 2220",
+  "end tally 1 2390",
   "drop scan 10 2400",
   "drop scan 11 2580",
   "drop scan 12 2760",
@@ -216,11 +294,11 @@
   "end flush 2 3030",
   "drop scan 14 3180",
   "drop scan 15 3360",
-  "start tally 2 3480",
-  "end tally 2 3680",
-  "start scan 16 3680",
-  "skip scan 17 3720",
-  "end scan 16 3830",
+  "start scan 16 3540",
+  "end scan 16 3690",
+  "start tally 2 3690",
+  "drop scan 17 3720",
+  "end tally 2 3890",
   "drop scan 18 3900",
   "drop scan 19 4080",
   "drop scan 20 4260"
@@ -260,11 +338,11 @@
   "start feed 7 1980"
  ],
  "yield-order": [
-  "start hold 0 10",
-  "end hold 0 210",
-  "start late 0 210",
-  "end late 0 240",
-  "start early 0 240",
-  "end early 0 270"
+  "start early 0 50",
+  "end early 0 80",
+  "start late 0 100",
+  "end late 0 130",
+  "start hold 0 130",
+  "end hold 0 330"
  ]
 }

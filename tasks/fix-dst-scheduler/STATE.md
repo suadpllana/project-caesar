@@ -4,8 +4,7 @@ Working memory for `fix-dst-scheduler`. Assume the next session starts with no m
 
 ## Current stage
 
-`Stage 7 - resubmitted` (submitted 2026-09-16 as `lane-yield-drift`; rejected by the quality
-review on the task name alone and resubmitted under `fix-dst-scheduler`)
+`Easiness recovery, section 5 complete; resubmission pending` (2026-09-17: rebuilt from Stage 2 after an easiness probe of 2 of 3; every local gate and the container suite green; repackaged. The external probe is the exit gate)
 
 ## Assistant's assigned role
 
@@ -174,7 +173,11 @@ graded quantities are settled by the interaction of rules that live in four diff
 
 ## Verifier contract - FROZEN after Stage 2
 
-Frozen 2026-09-16. Changing any of it changes what "correct" means and needs explicit approval.
+Frozen 2026-09-16; re-frozen 2026-09-17 with rule 10a and the horizon clause of rule 14 after the
+contributor asked for the task to be made harder following the easiness probe - that request is
+the explicit approval for a change to what "correct" means. `build_gt.py` recorded the change
+as additive except for three of the 21 frozen answers (`shipped-coast`, `shipped-island`,
+`yield-order`), all moved by the new rule and re-derived by hand; eleven plans were added.
 
 ### Artifacts the agent produces
 
@@ -217,10 +220,19 @@ absolute plus the zone's offset at that absolute minute.
    instant. Follow-mode inputs satisfy `step > duration`, so follow-mode occurrences never skip.
 9. **Lane.** One run at a time; a started run holds the lane for `duration` minutes and is never
    interrupted.
-10. **Arbitration.** At an instant when the lane is free, among the occurrences that have arrived,
-    are not yet started, dropped or skipped, are admitted at that instant, and whose pool has cap
-    left for that instant's pool day, the one whose job has the smallest priority number starts.
-    Priorities are distinct across jobs. If none qualifies the lane stays free.
+10. **Arbitration.** At an instant when the lane is free, the one waiting occurrence that can
+    start does. An occurrence is waiting when it has arrived and has not started, dropped or been
+    skipped; it can start when its pool has cap left for that instant's pool day (rule 11) and it
+    is not held back by rule 10a. Priorities are distinct across jobs. If none can, the lane stays
+    free. Under rule 10a at most one waiting occurrence can start at any instant, so the order in
+    which they are considered is not part of the contract.
+10a. **Reservation.** (Added 2026-09-17 in the easiness recovery.) A waiting occurrence of job J
+    may start at instant t only if the jobs of priority higher than J, planned on their own from t
+    - in the state they are in at t, with the lane free at t, with the pool ledgers as they stand
+    at t before J's charge, and with every rule of this contract including this one applied among
+    them - would start no run at any instant in [t, t + J.dur). A start exactly at t + J.dur is
+    no obstacle. The projection is not bounded by the horizon. An occurrence held back by this
+    rule goes on waiting and still drops at its deadline (rule 7).
 11. **Pool cap.** A pool's day at instant `t` is `floor(loc(pool.zone, t) / 1440)`. Each pool
     starts at most `cap` runs per pool day. The charge is made at the start instant.
 12. **Order within one instant.** Ends complete, then arrivals are recorded or skipped, then
@@ -230,7 +242,8 @@ absolute plus the zone's offset at that absolute minute.
     and dropped ones.
 14. **Horizon.** A plan declares `horizon H`. Every event with instant `< H` is emitted and no
     event with instant `>= H` is. A run that starts before `H` and would end at or after `H`
-    prints its `start` and no `end`.
+    prints its `start` and no `end`. The horizon bounds printing, not planning: rule 10a's
+    projection looks past it.
 
 ### What is checked
 
@@ -242,8 +255,9 @@ with `kind` in `skip`, `drop`, `start`, `end`. Lines are ordered by `t` ascendin
 the order `end`, `skip`, `drop`, `start`, then by ascending job priority. All-or-nothing: one wrong
 line anywhere scores 0.
 
-The graded set is enumerated plans with hand-derived answers, frozen in `tests/gt.json`, plus
-plans generated in the verifier from a per-run nonce, answered by the sealed model.
+The graded set is 32 enumerated plans with hand-derived answers, frozen in `tests/gt.json`, plus
+350 plans generated in the verifier from a per-run nonce across seven families, answered by the
+sealed model.
 
 ### Tolerances
 
@@ -289,24 +303,24 @@ two-container trial the platform runs; `harbor` is not installed in this checkou
 | Check | Status | Notes |
 |---|---|---|
 | Difficulty record in band | pass | 98/100 before any code, 2026-09-16 |
-| Difficulty record, re-measured at Stage 7 | pass | 98/100 on the built tree: 378 environment py lines, 4 editable files, 266 reference lines, 32 cheats, 2 variants; no drift reported |
-| Agent image builds | pass | container |
+| Difficulty record, re-measured at Stage 7 | pass | 98/100 on the rebuilt tree, 2026-09-17: 307 environment py lines, 4 editable files, 310 reference lines, 39 cheats (29 semantic), 2 variants; no drift reported. The first build measured 378 environment lines, 266 reference lines and 32 cheats |
+| Agent image builds | pass | both images build in the container suite, 2026-09-17 |
 | No answer leaked into agent image | pass | `imagecheck` assembles what the image would hold (12 files), drops the reference in and runs both shipped plans; `extraneouscheck` clean; no expected output ships |
-| oracle = 1 | pass | container, 27 tests passed |
-| nop = 0 | pass | container, 11 of 27 fail |
+| oracle = 1 | pass | container, 38 tests passed |
+| nop = 0 | pass | container, 21 of 38 fail |
 | Correct variants = 1 | pass | container, ok-heap and ok-tick both 1 |
-| Cheats all score 0 | pass | container, 32 of 32, and `cheat_report.py` names the test that caught each |
+| Cheats all score 0 | pass | container, 39 of 39, and `cheat_report.py` names the test that caught each; `cheat-rule-no-reserve.sh`, the first probe round's method, is caught by the enumerated `reserve-*` plans and by the generated families |
 | Isolation facts | pass | worker runs as uid 1004; reward.txt, gt.json, tests/seal/model.py, the grader and the worker's report are all PermissionError for read and for write |
-| `forgecheck` | pass | `cheat-probe-answer-key.sh` carries the frozen answers verbatim, reproduces all 21 of them, and is caught only by `test_generated_families` |
-| `readingcheck` | pass | 17 of 17 readings separated by an enumerated case; none blind, none equivalent |
+| `forgecheck` | pass | `cheat-probe-answer-key.sh` carries the frozen answers verbatim, reproduces all 32 of them, and is caught only by `test_generated_families` |
+| `readingcheck` | pass | 24 of 24 readings separated by an enumerated case; none blind, none equivalent |
 | `onelinecheck` | pass | no graded quantity has an exact rule at depth <= 2 over the plan's raw fields |
 | `deadfieldcheck` | pass | one finding fixed: `adm` was written and never read, so `gate.window` became `gate.dead_at` returning the deadline alone |
 | `catcheck` | pass | Software vocabulary present in the environment (29 hits) as well as the prose |
 | `hintcheck` / `structcheck` / `solvecheck` / `extraneouscheck` | pass | no findings |
 | `simcheck` | judged | conceptually distinct from every retained task; the Dockerfile similarity it reports is the shared minimal shape of a python-slim image and was not manufactured by copying |
 | `textcheck` | judged | no finding against `focus-return-point`. Against `note-carry-forward` it reports four: the contraction density is entirely possessives (`site's`, `plan's`) and is not a contraction at all, the narrower vocabulary is the contract's own discipline of one term per concept, and the paragraph-length spread is measured against a brief carrying one very long paragraph |
-| `tracecheck.py` | pass | clean, 64 rows |
-| `preflight.py` | pass | no errors; 15 warnings, all the cross-module false positive that a retained passing bundle also produces 15 of |
+| `tracecheck.py` | pass | clean, 108 rows after the rewrite for the reservation |
+| `preflight.py` | pass | no errors; 14 warnings, all the cross-module false positive (each named function is called from another module or through an instance, checked by grep); a retained passing bundle produces 15 of the same |
 | rubric self-review | pass | walked criterion by criterion; two findings fixed - a stale cheat count in `verification_explanation` and two relative paths in the instruction |
 | easiness probe | not run | external |
 | cold self-probe | not run | this session wrote the model, so a cold solve here would measure memory rather than difficulty; recorded as not run rather than claimed (CLAUDE.md, 2026-09-06) |
@@ -340,32 +354,175 @@ After the rename every gate was re-run from scratch: preflight clean, tracecheck
 difficultycheck 98, readingcheck 17 of 17, and in rebuilt containers oracle 1, nop 0, 32 cheats
 0, both correct variants 1.
 
+## Easiness recovery, 2026-09-17
+
+**Probe result.** Easiness probe rejected: 2 of 3 agents solved it. Trajectories are under
+`probes/fix-dst-scheduler/round1-trial{1,2,3}.md` (agents' words only; the pasted brief
+stripped so `leakcheck` is not circular) with `notes.md` beside them. The files carry no
+verdict; which trial failed is not recorded, and `notes.md` says which one is the best guess
+and why it is only a guess.
+
+**Each successful agent's route.** All three were identical in shape: read every file in one
+command; list every defect in one thinking step by reading the shipped code against the
+brief sentence by sentence; rewrite all four files in one heredoc; check the zone helpers by
+brute force; time a big plan; done. Trials 2 and 3 were correct on both shipped plans on the
+first write. Trial 1 hung on a follow-chain bookkeeping slip and fixed it in six commands.
+Earliest point with enough information to commit to the winning plan: the end of the first
+`cat`, before any code was written.
+
+**Where the plan came from.** The shipped tree, primarily. `lane.py` already had the correct
+phase order within an instant, priority arbitration, the skip rule, deadlines as decision
+instants and a `prev` slot on `due.nom_at`. Every defect was a local edit inside a
+90-per-cent-correct skeleton, and the one structural change I designed the task around -
+the expansion phase cannot exist - reduced to "replace `build()` with lazy generation",
+which the skeleton made a one-paragraph change. The brief contributed as a checklist: every
+rule maps to one function, so "fix each function to match its sentence" is a complete plan.
+`leakcheck` flags one phrase in each trajectory, the gap-resolution convention, quoted back
+in every summary; that sentence is a boundary the contract must state and is not where the
+plan came from, so it stays.
+
+**Tactics that failed in practice.** B2 was a checklist, exactly the shape the quality review
+named on `scope-hold-release` ("each decision maps to one small function"). The twelve rules
+did not change each other's meaning inside the code: each could be settled in its own
+function and confirmed by reading the sentence again. A2 held (no agent searched), A1 held
+(no agent reached for a library default), C2 held (no agent had an oracle; they hand-checked
+lines), C1/C4 were never reached because the plan was right. Estimated solves before this
+round: 2 of 8. Realised: 2 of 3.
+
+**Classification (RAISE-DIFFICULTY.md, section 2).** Two failure modes, both with evidence:
+
+- *The environment delivered the plan*: `environment/app_src/sked/lane.py` lines 60-118 of
+  the shipped file - `marks`/`finish`/`arrive`/`expire`/`launch` in the correct order with
+  priority arbitration and the skip rule already right; `due.py` line 4, the `prev`
+  parameter. The shipped structure was the answer's structure.
+- *The default plan was correct*: "fix each function to match its sentence, generate follow
+  occurrences lazily" is the correct complete plan and all three agents wrote it down first.
+
+Not applicable: no instruction leak beyond a convention, no oracle, no route-around, no
+verifier defect (the failing trial failed on a real rule), no naive method to gate.
+
+**Candidate replans (section 3).**
+
+1. *Provisional starts.* A run is provisional for a per-job setup period during which a
+   strictly higher-priority arrival displaces it back to waiting, un-attempted and uncharged.
+   Attacked: it is a new state inside the existing `launch`/`arrive` phases, and an agent
+   who has already written the event loop adds the state and handles it locally. It raises
+   effort more than planning depth. Rejected.
+
+2. *Overlapping follow occurrences.* Allow a follow job's step below its duration, so an
+   overrun skips the next occurrence and the chain must re-anchor on the last attempt rather
+   than the last occurrence. Attacked: one rule in `bump()`, confirmable from the sentence.
+   Rejected.
+
+3. *Reservation for higher-priority jobs.* A waiting occurrence may start only if the jobs of
+   higher priority, planned on their own from that instant - in their current state, worker
+   free, pools as they stand - would start nothing before the run would end. Attacked: no
+   sentence maps to a function. The decision at one instant needs a projection built from
+   every other rule - next due of a clock job through the shift table, next due of a follow
+   job from its attempt anchor, admission at the projected instant, room in the pool's day
+   at that instant, the rollover of a capped-and-waiting higher occurrence, the deadline drop
+   of that occurrence and what its job does next, and the same reservation applied inside
+   the projection to the higher jobs among themselves. The prior (backfill reserves for the
+   head of the queue) is coherent and wrong: here the reservation protects every higher job,
+   including ones with nothing waiting yet. Ordinary side: a short lower run that fits before
+   the higher due starts, a higher due the window would drop does not block, a higher due
+   exactly at the run's end does not block. Late side: the block is only observable when a
+   lower run would straddle a higher job's earliest possible start. The three trajectories'
+   method - every local rule right, no projection - becomes the named cheat `no-reserve`.
+   Selected.
+
+The replan also repairs the environment side of the diagnosis: the shipped `lane.py` becomes
+the first plan itself - expand each job's occurrences, merge them by due instant, sweep
+forward with a cursor - so the tree no longer hands over the event loop's phases, and the
+reservation cannot be reached by editing what ships.
+
+## Easiness recovery, sections 4 and 5 (2026-09-17)
+
+**Rebuilt from Stage 2.** The contract above carries rule 10a and the horizon clause. The
+environment's `lane.py` is now the first plan itself: `expand` every job's occurrences over the
+horizon, sort them by due instant, and a `Sweep` that places each one after the previous run with
+a cursor, skipping by tail, dropping by deadline against the cursor, charging the ledger in the
+job's zone at the run's end. It no longer carries the event loop's phases, the priority
+arbitration or a `prev` slot that meant anything. The reference gained a `State` that can be
+narrowed to a subset of jobs with a copied ledger, and `reserved()` re-enters the same loop on
+that snapshot; the sealed model gained `snapshot()` and a bounded `go()` that seeds a fresh heap
+instead. Both correct variants were rebuilt with their own projections (a heap snapshot in
+`ok-heap`, a dict-state `narrow()` with recursive `in_the_way()` in `ok-tick`).
+
+**Measured, before another external probe.**
+
+- Reference against the sealed model: 0 disagreements on 1680 generated plans across four
+  nonces of the seven-family population (about 89,000 events) and on all 32 enumerated plans.
+  Both correct variants: 0 disagreements on 280 plans, and 1 in the containers.
+- The old winning plan is the cheat `cheat-rule-no-reserve.sh`: every local rule right, no
+  projection. It fails `reserve-straddle` by hand and ten other enumerated plans, and 42 per
+  cent of the generated population (77 per cent of the `press` family, 15 per cent of `plain`).
+- Eight new readings of the reservation sentence, each a whole planner, each separated by its
+  named enumerated case (`casecheck.py`, `readingcheck.py` 24 of 24): the interval closed at the
+  run's end, the next due checked without its window or pool, only the top job planned ahead, the
+  higher jobs planned without the rule among themselves, only occurrences already waiting
+  considered, the pools judged after this run's charge, the plan stopped at the horizon.
+- The `lane-fifo` reading was dropped: under rule 10a the consideration order is inert (any
+  higher occurrence that could start stands in the way of every lower one), measured at 0 of
+  280 plans, and the instruction now states the choice as an outcome, so no sentence lacks a test.
+- `onelinecheck`: no graded quantity has an exact rule at depth <= 2 over the plan's raw fields
+  (3653 samples per quantity).
+- Timing on the full 382-plan population, 18190 events: model 0.11 s, reference 0.12 s,
+  ok-heap 0.13 s, ok-tick 0.19 s against the 600 s clock.
+- `difficultycheck`: 98 on the built tree (307 environment lines, 4 editable files, 310
+  reference lines, 39 cheats, 2 variants).
+- Container suite, run after the rebuild (`tools/docker_trial.py --all`, both variants,
+  `cheat_report.py`, `forgecheck.py`): oracle 1 with 38 tests passed; nop 0 with 21 of 38
+  failing; 39 of 39 cheats 0 with the catching test named for each; `ok-heap` and `ok-tick` 1;
+  the worker at uid 1004 denied read and write on the reward, the frozen answers, the sealed
+  model, the grader and its own report; the answer-key forgery caught only by
+  `test_generated_families`.
+- The cold self-attack, honestly: the reservation sentence names its own construction ("plan
+  them on their own from there"), so an expert sees where to start; what the sentence does not
+  give is that the projection must carry every other rule at a future instant and be applied
+  recursively, and every shortcut an agent would take to avoid re-entering the loop is one of
+  the eight readings. My first implementation of it would have checked next dues only.
+
+**Estimated solves, updated: 1 of 8.** The three trajectories' method now scores 0, and the
+rule that defeats it is not one they can settle by editing a function.
+
 ## Stage 7 re-attack
 
-Read cold, the brief is complete, and that is deliberate: a careful reader can derive the shape of
-the answer - a forward loop over the instants at which the worker's choice can change, with each
-job advanced from its own history. The brief says the worker is never interrupted and says a
-follow job takes its next occurrence from the previous attempt, so the expansion phase is
-visibly unwritable to anyone who reads both sentences together. What is not one-shot is landing
-all twelve graded decisions at once with no signal: the set of decision instants is a consequence
-of one sentence rather than a list, the deadline has to walk the shift table rather than be
-computed, the cap is keyed to a zone the job does not have, and the three outcomes differ in
-which of them moves the attempt anchor. Each is a plausible mistake with a whole planner written
-for it under `readings.py`, and all-or-nothing grading turns any one of them into a zero.
+Rewritten after the easiness recovery. The first version of this section described the twelve
+decisions of the first build and estimated 2 of 8; the probe measured 2 of 3.
 
-Estimated solves, updated: 2 of 8, unchanged. The honest risk is at both ends. Toward easy: a
-systematic agent that works the twelve decisions one at a time against the brief can get them
-all, and the brief hides none of them. Toward unverifiable: there is no oracle anywhere, so an
-agent that is wrong about one boundary never finds out. The load-bearing facts are still
-distributed - the shift table, the two cadence modes, the admission walk, the ledger key and the
-decision instants live in four modules and none of them can be settled from the brief alone
-without reading what the shipped planner already does. The instruction does not telegraph the
-method: it states outcomes, and the one worked printout in it is the shipped planner's wrong
-answer, not a correct one.
+Read cold, the brief is complete, and that is deliberate: a careful reader can derive the shape
+of the local rules - a forward loop over the instants at which the worker's choice can change,
+with each job advanced from its own history - and the shipped `Sweep` now suggests the wrong
+shape for them, an up-front expansion placed by a cursor. That loop is what all three probe
+agents built, and it scores 0 now. What the brief does not hand over is the reservation: the
+worker may start a waiting occurrence only if the higher jobs, planned on their own from that
+instant with the worker free and the pools as they stand before the charge, would start nothing
+before this run would end. The sentence names its construction, "plan them on their own from
+there", so an expert sees where to begin; what it withholds is that the projection must carry
+every other rule at a future instant - windows, cadences from the attempt, deadlines that walk
+the shift table, pool days in the pool's zone - and be applied recursively among the higher
+jobs. Every shortcut that avoids re-entering the loop is one of the eight `reserve-*` readings,
+each a whole planner under `readings.py` that a named enumerated case separates. All-or-nothing
+grading turns any one of the thirteen graded decisions into a zero, and there is still no oracle
+anywhere, so an agent that is wrong about one boundary never finds out.
+
+Estimated solves, updated: 1 of 8. Toward easy: an agent that recognises the sentence as a
+backfill-style projection and re-enters its own event loop on a narrowed copy of the state gets
+it, and the brief hides no rule. Toward unverifiable: the projection is judged only through the
+trace, so a projection that is right about the top job and wrong about the rule among the higher
+jobs prints the same lines on every plan except the ones shaped to reach it, which is why the
+`reserve` family and `reserve-chain` exist. The load-bearing facts stay distributed - the shift
+table, the two cadence modes, the admission walk, the ledger key and the decision instants live
+in four modules - and the instruction states outcomes, not the method: its one worked printout is
+the shipped sweep's wrong answer.
 
 ## Open questions and next steps
 
-Nothing is blocked locally. What remains is external: the platform's structural, similarity,
-reference-verification, anti-cheat, quality and 8-attempt difficulty gates. If the easiness probe
-rejects it, stop packaging and run `RAISE-DIFFICULTY.md` from trajectory capture onward; the
-winning method becomes a cheat and the repair is a semantic replan, not more cases.
+Nothing is blocked locally. The recovery under `RAISE-DIFFICULTY.md` has been run once, from
+trajectory capture through the rebuild, the measurements and the container suite, and its exit
+gate is external: the platform's structural, similarity, reference-verification, anti-cheat,
+quality and 8-attempt difficulty gates, with the easiness probe the one that rejected the first
+build. If it rejects the rebuild, capture the new trajectories the same way and classify them
+before touching anything: a method that reproduces the reservation from the sentence alone means
+the sentence delivers the plan, and the repair is then in what the brief states, not another case.

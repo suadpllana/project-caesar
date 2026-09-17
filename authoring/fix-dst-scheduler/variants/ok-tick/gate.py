@@ -61,6 +61,11 @@ class Ledger:
     def __init__(self):
         self.tally = {}
 
+    def copy(self):
+        c = Ledger()
+        c.tally = dict(self.tally)
+        return c
+
     def cell(self, job, t):
         return (job.pool.name, zt.day(job.pool.zone, t))
 

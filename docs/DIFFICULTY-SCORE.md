@@ -96,7 +96,7 @@ calibration; the external probe is the authority on them:
 | `reach-pair-sweep` | 96 | rebuilt after two `difficult` rejections; not yet resubmitted |
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
-| `fix-dst-scheduler` | 98 | built 2026-09-16; scored 98 before any code and 98 again on the built tree; oracle, nop, 32 cheats and two correct variants run in the container; external result not yet recorded |
+| `fix-dst-scheduler` | 98 | built 2026-09-16 and scored 98 before any code; easiness probe 2 of 3 on 2026-09-17, so rebuilt from Stage 2 with the reservation rule under `RAISE-DIFFICULTY.md`; 98 again on the rebuilt tree; oracle, nop, 39 cheats and two correct variants run in the container; resubmission pending |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them

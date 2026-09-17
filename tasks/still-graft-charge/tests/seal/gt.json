@@ -1,0 +1,125 @@
+{
+ "cap-cross": [
+  "charge p 6",
+  "charge p 11",
+  "full p",
+  "charge p 11",
+  "at p 3 -"
+ ],
+ "cap-fit": [
+  "charge p 20"
+ ],
+ "cap-none": [
+  "charge p 54"
+ ],
+ "cap-over": [
+  "full p",
+  "charge p 20",
+  "at p 4 -"
+ ],
+ "cap-still": [
+  "charge p 20"
+ ],
+ "cut-free": [
+  "charge p 5",
+  "at p 0 -",
+  "at p 1 1"
+ ],
+ "cut-hold": [
+  "charge p 10",
+  "free a 5",
+  "charge p 5"
+ ],
+ "drop-busy": [
+  "busy a",
+  "charge p 0",
+  "charge q 0"
+ ],
+ "drop-graft": [
+  "free b 0",
+  "charge p 26",
+  "charge q 4"
+ ],
+ "drop-none": [
+  "free a 0",
+  "charge p 10"
+ ],
+ "drop-other": [
+  "free a 0",
+  "free b 5",
+  "charge p 6"
+ ],
+ "drop-some": [
+  "free a 5",
+  "charge p 6"
+ ],
+ "graft-chain": [
+  "charge p 0",
+  "charge q 0",
+  "charge r 3"
+ ],
+ "graft-cut": [
+  "charge p 5",
+  "charge q 0"
+ ],
+ "graft-diverge": [
+  "charge p 5",
+  "charge q 3"
+ ],
+ "graft-share": [
+  "charge p 0",
+  "charge q 0"
+ ],
+ "lift-busy": [
+  "busy a",
+  "charge p 0",
+  "charge q 0"
+ ],
+ "lift-prefix": [
+  "charge p 13",
+  "charge q 0",
+  "charge p 9",
+  "charge q 10"
+ ],
+ "lift-root": [
+  "charge p 3"
+ ],
+ "lift-swap": [
+  "charge p 0",
+  "charge q 15",
+  "charge p 4",
+  "charge q 7"
+ ],
+ "put-fresh": [
+  "charge p 20",
+  "at p 0 1",
+  "at p 3 1",
+  "at p 4 -"
+ ],
+ "put-keep": [
+  "charge p 28",
+  "free a 10",
+  "charge p 18"
+ ],
+ "put-number": [
+  "full p",
+  "at p 0 -",
+  "at p 1 2"
+ ],
+ "put-over": [
+  "charge p 24",
+  "at p 1 2"
+ ],
+ "still-empty": [
+  "charge p 0",
+  "charge q 4"
+ ],
+ "still-frozen": [
+  "charge p 6",
+  "charge q 0",
+  "at q 0 1"
+ ],
+ "still-lines": [
+  "charge p 7"
+ ]
+}

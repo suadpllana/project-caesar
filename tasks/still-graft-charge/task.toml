@@ -1,0 +1,198 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/led/cell.py",
+  "/app/led/hold.py",
+  "/app/led/cost.py",
+  "/app/led/tree.py",
+  "/app/led/gate.py",
+  "/app/led/free.py",
+]
+
+[task]
+name = "afterquery/still-graft-charge"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the one the shipped ledger already is, and most of it is right. A line's head
+is a map from cell to block; a still is that map as it stood; a graft starts as a copy of a
+still; a block is gone when the count of the places holding it reaches zero. The count is where
+it breaks, and it breaks quietly, because a count is the answer to how many places hold a block
+and the charge is decided by how many lines do. A line with four stills over one block is one
+holder, not five, and two lines sharing a block are two holders whatever the count says. The
+repair looks like a set of line names per block until a lift moves a still from one line to
+another, at which point the same block changes payer with nothing written, nothing released and
+nothing copied - so what a line holds cannot be a property of the block either.
+
+The second finding is what that first repair cannot afford. A still is not allowed to be a map.
+The wide programs take six thousand of them over thirty thousand cells, and the copies alone
+are past the limit and past the memory before the answers are wrong, so what a still holds has
+to be derived from the window each block sits in rather than stored - and once it is derived,
+the per-block bookkeeping the count was replaced with has nowhere to live, because the holders
+of a block are now a question about still indexes, their current owners, and the cells a graft
+has since written over. Measured here against the 60 second limit for the whole graded set, a
+ledger that is exactly right in every rule but copies the head into each still spends 94.7 seconds
+on one wide program, and one that counts a charge when it is asked for instead of keeping it
+spends 1630 seconds on one deep program. The reference settles all 438 graded programs in 5.2
+seconds.
+
+Around those sit the ordinary decisions, each a fence with two sides. A put is refused only when
+the charge it would leave the line with is over the cap, so a put over cells whose blocks nobody
+else is holding pays for itself and must be taken, while a refused one lays no block and takes
+no number, which every later at query shows. A drop of the still a line was grafted from is
+refused; a drop of any other releases what nothing holds any more, which is neither what the
+still held nor what no other still held. A cut stops a head holding a cell without releasing a
+block a still is keeping. And because a charge depends on what every other line holds, a put on
+one line moves another line's charge: a graft writing over an inherited cell hands the block it
+stops holding back to the line above, which can be enough to put that line over its cap on a put
+that would have fitted before.
+
+Five of the six editable files ship a rule read the other way, and the sixth ships the right
+answers through the structure that cannot meet the limit. The only feedback any of that gets is
+a refused put, a released size, a charge and the number at one cell, because a put that is
+taken, a still, a graft, a cut and a lift print nothing at all.
+
+Identifiers are in a legacy register - `led/`, `cell`, `hold`, `cost`, `gate`, `free`, `rc`,
+`sc`, `froze`, `thaw`, `spread` - short but never misleading, and no name misdescribes what it
+holds. That is a choice about the register of real storage code rather than an obstacle: each is
+recoverable from what calls it.
+
+The programs are synthetic, in eleven families, with grafts that diverge a cell at a time, lifts
+taken with stills on either side of the origin, drops of every kind including the refused one,
+caps met exactly and crossed by one, and the two scale families. In a working store these are
+rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`cell.py` holds a line as a chain per cell: a block, the still counter it began at, and the one
+it ended at, with the open entry being the head. A still is then an index and nothing else, and
+what it holds at a cell is the entry whose window covers that index - one bisection, no copy.
+That is the whole of the scale answer, and it follows from the rule rather than from a trick: a
+still holds what the head held, and a head only ever changes the cells a put or a cut names.
+
+`hold.py` answers who holds a block. Every place a block sits is an entry on some line, and the
+lines holding it through that entry are the line itself while the entry is open, plus the owners
+of the stills taken on that line whose index falls inside the window. The stills in a window are
+counted by bisection over the indexes taken on the line, and the few a lift has moved elsewhere
+are listed separately, so the usual case - every still in the window still owned by the line it
+was taken on - costs one comparison. A block is settled the moment its holders can have changed,
+and `cost.py` is then a lookup: the charge of a line is a running total that moved when a block
+last changed hands.
+
+`tree.py` is the forest. A still records the line it was taken on, which never changes and
+decides whose chains answer what it holds, and the line that owns it, which decides who is
+holding the blocks. A lift hands the line above's stills up to and including the origin to the
+graft, in order, swaps the two origins, and re-settles the blocks those stills were holding -
+which is how a charge moves without a block being written. A graft is the one place a map is
+walked: its head is laid down as the entries its origin still holds, once.
+
+`gate.py` decides a put by letting the write stand and reading the line's charge, then taking
+the write back if it does not fit. That order is deliberate: what a put costs is what it adds
+less what it lets go of, and what it lets go of depends on stills of its own line and on every
+graft hanging off them, so predicting it duplicates the holder rule while undoing it does not.
+A refused put leaves no entry and never mints a number. `free.py` drops a still: refused while a
+line is grafted from it, and otherwise the still leaves its owner's list and its index leaves
+the line it was taken on, and what is released is the blocks it was holding that now have no
+holder at all.
+
+An expert works in that order because each file consumes the one before it: the chain decides
+what a still can be asked, what a still holds decides who holds a block, who holds a block
+decides a charge, and a charge decides whether a put is taken. The same contract is implemented
+twice more in the authoring set - once with holders read off a compressed run list per line,
+once with the cap decided by arithmetic before anything is written - and a third time in the
+sealed model, which does both and keeps each line's charge as a set of the blocks it holds
+alone rather than as a number. All three score 1, so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/led/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so nothing else the agent may have touched can change what a
+program prints, and every trace is compared line for line.
+
+Correct is defined twice over. Twenty-seven hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Four hundred and eleven
+further programs are generated inside the verifier from a seed drawn after the agent's container
+is gone, across eleven families that concentrate grafts diverging a cell at a time, lifts with
+stills on either side of the origin, drops of every kind, caps met and crossed, cuts against
+stills, and the two scale families. A submission cannot have seen them, so fitting the shipped
+examples fails, and so does carrying an answer key.
+
+The fences run both ways. Counting a line's own still as another holder fails `cap-cross`;
+charging only what a head holds fails `cap-still`; charging everything a line holds fails
+`cap-cross` as well. Moving every still on a lift fails `lift-prefix`, moving the ones after the
+origin fails it too, and leaving the origins as they were fails `lift-swap`. Measuring a cap
+against what the put adds fails `cap-fit`, and minting a number for a refused put fails
+`put-number`. Reporting what a dropped still held fails `cut-hold`, reporting what no other
+still held fails `drop-graft`, and dropping the still a line was grafted from fails `drop-busy`.
+Letting a cut or a put release a block a still is still holding fails `cut-hold` and `cap-cross`.
+A graft that starts from the line above as it stands rather than from its origin still fails
+`still-frozen`.
+
+Thirty-two cheats score 0. Nineteen are wrong readings, each caught by the enumerated case named
+for it. Three are exactly correct and too slow: the head copied into every still, the charge
+counted at every question, and the first plan implemented correctly throughout. One is a forgery
+carrying the frozen answers for every enumerated program, which passes all twenty-seven and
+fails on the programs it could not have seen. The other nine are probes: the answer key, a
+hijacked worker, a planted record, a record planted and the worker exited clean before it could
+be overwritten, malformed records, privilege, a shrunken population, a late reward, and a
+rewrite of the parts of the tree the verifier does not take. Two
+independently written correct ledgers score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked before
+any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "copy-on-write",
+  "snapshot-space-accounting",
+  "clone-promotion",
+  "version-windows",
+  "quota-enforcement",
+  "exclusive-space",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the space accounting of a copy-on-write store: the part that decides what a
+snapshot is keeping alive, what a clone is sharing with the dataset it came from, and which of
+them is charged for a block both of them can reach. Familiarity with the fact that a reference
+count answers a different question from the one an operator asks, that promoting a clone moves a
+charge without moving a byte, and that a quota checked against what a write adds refuses writes
+that would have paid for themselves. Comfort with deriving what a snapshot holds from the
+history of the cells it covers rather than from a copy of them, and with the difference between
+an accounting that is correct and one that is affordable at the size the store actually runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

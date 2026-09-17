@@ -96,6 +96,7 @@ calibration; the external probe is the authority on them:
 | `reach-pair-sweep` | 96 | rebuilt after two `difficult` rejections; not yet resubmitted |
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
+| `still-graft-charge` | 100 | built 2026-09-17; oracle, nop, 32 cheats and two correct variants run through the shipped `test.sh` in a host emulation, because this machine's egress policy blocks the image registry |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them

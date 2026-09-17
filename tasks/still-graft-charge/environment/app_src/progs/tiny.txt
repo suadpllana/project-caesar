@@ -1,0 +1,7 @@
+line p
+still p n1
+put p 1 1 8
+at p 1
+still p n2
+drop n1
+ask p

@@ -1,0 +1,172 @@
+[task]
+slug = "still-graft-charge"
+status = "pending"
+sources = ["tasks/still-graft-charge/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Hold each line's head as a map from cell to block, copy that map when a still is taken and
+again when a graft is made, keep a reference count on every block, read a line's charge off
+the blocks whose count says nobody else holds them, and walk the counts down on a drop,
+reporting what reached zero.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The charge of a line counts the blocks no other line holds, and a line holds a block by its
+head or by any still it owns, so holders are lines and never places - which a count per block
+cannot express, because it records how many places hold a block and never how many lines. A
+lift then moves stills from one line to another, and a block changes payer with nothing
+written, overwritten, dropped or copied.
+"""
+second_discovery = """
+Materialising what a still or a graft holds is what the stated scale forbids: thousands of
+stills over a wide map spend the whole limit on the copies alone, so holdings have to be
+derived from a per-cell version interval, and the per-block holder bookkeeping the first
+repair adds has nowhere left to live.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs and find which of the six ledger files decides a charge",
+  "Replace the copied map with a version chain per cell, each version carrying the still counter at which it began and the one at which it ended",
+  "Derive what a still holds from that interval instead of from a stored map, and a graft head from its origin interval less the cells it has since written",
+  "Hold the forest as an origin still per line and an ordered still list per line, and make a lift move the prefix of that list and relink both lines",
+  "Charge a block to the one line holding it when no other line does, and keep the per-line totals as a ledger settled at every event rather than recounted",
+  "Settle the cap against the charge the line would be left with after the put, counting what the put releases as well as what it adds",
+  "Check the one line the brief names on the small program, then run the wide programs against the limit",
+]
+
+[search]
+best_page = """
+A storage vendor's documentation on how snapshots and clones consume space, what exclusive
+space means, and what promoting a clone does to the dataset that is charged for the blocks
+the two of them share.
+"""
+helps_plan = false
+deviation = """
+That page explains which dataset a vendor charges; it does not settle what this brief already
+states, and it describes no structure that survives a cap checked against the charge a write
+would leave behind while no still may ever be materialised.
+"""
+
+[tactics]
+A1 = """
+The prior is copy-on-write with a reference count per block, which is correct for release and
+silently useless for charge: a count says how many places hold a block and the rule asks how many lines do.
+"""
+A2 = """
+Promotion, exclusive space, and version chains are never named; the brief states what a lift
+moves and what a charge counts as behaviour, so the search query that would retrieve the
+shape has to be formed from the recognition that is the work.
+"""
+B2 = """
+Nine small rules - what a put lays, what a still holds, what a graft head holds, who holds a
+block and the charge that follows, what a lift moves, what a drop refuses, what a drop
+releases, what a cap measures, what a cut releases - each ordinary alone, and each changing
+what another one means.
+"""
+C1 = """
+Puts that must still be taken and drops that must still free their blocks are enumerated
+beside the refusals, so a ledger that turns conservative and refuses more puts fails as
+surely as one that never refuses.
+"""
+C3 = """
+A still that copies the head's map is exactly correct and cannot finish: the wide family takes
+thousands of stills over a map of tens of thousands of cells inside the stated limit.
+"""
+C4 = """
+Every graded program must match line for line, enumerated corners beside programs generated
+from a seed drawn after the agent's container is gone.
+"""
+guard = """
+Six files under /app/led are taken; the runner, the op table, the store and the printer are
+the verifier's own pristine copies, so the op set, the state container and the output format
+cannot be reshaped.
+"""
+
+[decisions]
+graded = 9
+interactions = [
+  { a = "who a block is charged to", b = "what a lift moves", why = "a lift moves stills between lines, so a block a still was holding for one line is held for another, and it changes payer with nothing written" },
+  { a = "what a put releases", b = "who a block is charged to", why = "a put that takes the last head holding a block does not release it when a graft still holds it, it moves that block's charge down to the graft" },
+  { a = "what a cap measures", b = "what a put releases", why = "the charge a put leaves is what it adds less what it releases, so a put over its own unheld cells fits where the added size alone would not" },
+  { a = "what a drop refuses", b = "what a lift moves", why = "an origin still cannot be dropped, and a lift is what stops a still being an origin, so which drops are refused depends on the forest" },
+  { a = "what a still holds", b = "what a graft head holds", why = "a graft head is its origin still less the cells written since, so a still materialised wrongly gives every graft grown from it the wrong holdings" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A put on a line with a cap that overwrites cells no still holds must be taken, because what
+it releases pays for what it adds; a ledger that compares the cap against the added size
+alone refuses it and fails.
+"""
+late_case = """
+A line writes over a cell a graft still holds, so the block does not go away and its charge
+moves to the graft, and the graft's next put crosses a cap it was under before the parent
+wrote anything at all.
+"""
+oracle_denied = """
+The only observables are refused puts, released sizes and charges, and the shipped ledger is
+wrong on several of them at once, so running a program tells the agent what the wrong ledger
+says and there is nothing in the tree that says what it should have said.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored owner or holder count on a block, which would hand over the charge rule", closed_by = "the store keeps cells, versions, stills and the forest; no block carries an owner, a count or a charged-to field" },
+  { what = "the worked example in the brief acting as an oracle for the load-bearing rules", closed_by = "the example program is searched for among the candidates that show every op kind and separates none of the wrong readings" },
+  { what = "the at query, which says which put made the block at a cell", closed_by = "it is a primitive of the map and says nothing about who holds or is charged for that block" },
+  { what = "a helper in the shipped tree that already walks the forest upwards", closed_by = "ancestry is reachable only through the origin field the forest already needs; no unused entry point exists" },
+  { what = "the shipped programs' expected output, left in the tree as a fixture", closed_by = "no expected output ships; the programs are inputs only and the ground truth lives in the sealed verifier" },
+]
+derived_quantities = """
+The tree stores writes, cells, versions, stills and the forest, all primitives. The charge, the
+holder set, the line holding a block alone and the released size are derived at every question, and none of
+them is a field anywhere the agent can read.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+A still that copies the head's map, and a charge counted by walking every block when it is
+asked for. Both are exactly correct. Measured: the first spends 94.7 s on one wide program and
+the second 1630.2 s on one deep program, against a 60 s limit for the whole set, which the
+reference settles in 5.2 s. The first plan carried through - maps per still and holders per
+block - finishes neither family inside 300 s.
+"""
+invariant = """
+A still holds what the head held when it was taken and a head only ever changes one cell at a
+time, so what a still holds is the version of each cell live across that still's counter - an
+interval per version, never a map per still.
+"""
+input_scale = "programs writing across 30000 cells, taking 6000 stills over them, and measuring 24000 puts against a cap"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "charge is the blocks held by this line and by nobody else, so shared blocks are charged to neither", hand_case = "a graft taken from a still, then the parent's charge asked: the shared blocks are still the parent's" },
+  { reading = "a lift moves every still of the parent rather than the prefix up to the origin", hand_case = "a line with two stills, grafted from the first and lifted: the second still stays where it was" },
+  { reading = "a lift moves the stills but leaves the forest alone, so the charge does not follow", hand_case = "a graft lifted, then both charges asked" },
+  { reading = "a put's cap is compared against the charge before the put plus what it adds", hand_case = "a put over its own cells that no still holds, exactly filling the cap" },
+  { reading = "a put that overwrites the last head holding a block releases it even when a graft holds it", hand_case = "a parent writing over a cell its graft's head still holds, then a drop that should free nothing" },
+  { reading = "a drop reports what the stills held rather than what stopped being held", hand_case = "two stills holding the same block, the first dropped" },
+  { reading = "a graft head holds the origin still's map for ever, so writing on the graft does not diverge", hand_case = "a graft that writes one cell, then the parent's charge" },
+  { reading = "an origin still may be dropped once its graft has written over every cell", hand_case = "a graft that overwrites its whole map, then the origin dropped" },
+  { reading = "a refused put still takes a write number and still leaves its blocks", hand_case = "a put refused on a cap, then an at query on the cell it named" },
+  { reading = "a cut releases every block of the cells it names rather than those no still holds", hand_case = "a cut over cells a still holds, then the line's charge" },
+]
+correct_variants = [
+  "a ledger that keeps each line's charge as a running total updated by every event",
+  "a ledger that recomputes a line's charge from the version chains at each query, which is correct and fits the limit only because the chains are never materialised",
+]
+
+[shape]
+environment_py_lines = 255
+editable_files = 6
+reference_lines = 390

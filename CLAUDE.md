@@ -286,6 +286,53 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   The shapes had to change, not the claims. The metadata I had already drafted would have stated
   two boundaries that did not exist - write the number after measuring it, never before.
 
+## Lessons, measured (2026-09-17, `still-graft-charge`)
+
+- **A wrong reading patched into an incremental reference tests nothing.** The first
+  `readings.py` wrote "a line's own still counts as another holder" as a patch to `hold.who`,
+  and the reading reproduced the reference exactly: the charge is a running total settled when a
+  block's holders can have changed, and taking a still changes no holders, so the patched
+  predicate was never consulted. Three of the four charge readings were masked that way, and
+  `readingcheck` reported them separated by cases that were in fact separating something else.
+  They were rewritten as a `cost.py` that counts the charge from the tree at every question -
+  the shape a solver who had not restructured actually writes - and all four then separated on
+  their own cases. A reading has to be implemented the way the wrong solver implements it, not
+  as a diff against the right one.
+- **An answer-key forgery keyed on the process reproduces the first program and drifts after
+  it.** `cheat-forge-from-truth` recorded the op stream in a module-level list, and the worker
+  runs 438 programs in one process, so it matched the first program and nothing after it,
+  scoring 0 for a reason that had nothing to do with the verifier. Keyed on the store object it
+  reproduces all 27 enumerated programs and fails only on the ones drawn after the agent was
+  gone, which is the claim the metadata makes. Assert what the probe reproduces, never only what
+  it scored - this is the same shape as the `publish-settle-order` op-buffer forgery, found the
+  same way and one build later.
+- **The registry can be blocked when the daemon is not.** `dockerd` starts, `docker build` gets
+  as far as fetching the base image, and the egress policy then answers 403 on the blob CDN, so
+  no image can be built or run. The gates that need a container are recorded as not run, and
+  everything that does not need one was run instead: `tools/imagecheck.py` interprets the
+  Dockerfile against the build context, and `authoring/<slug>/host_trial.py` runs the shipped
+  `tests/test.sh` unchanged with the trees laid at `/app` and `/tests`, so the privilege drop,
+  the locked reward channel, the session, the wall clock, the reaper and the grader are all
+  exercised. Say which of the two produced each number.
+- **Two scale families, because one of them lets a naive structure through.** A still that is a
+  copy of the head dies on the wide family at 94.7 s and passes the deep one in 0.6 s; a charge
+  counted when it is asked for passes wide in 2.2 s and spends 1630 s on one deep program. Both
+  are exactly correct. Either family alone would have shipped a task with an affordable wrong
+  structure in it.
+- **A correct variant is evidence about the limit, and it failed first.** `ok-runs` reads
+  holders off a per-line list of owner runs, which is exactly what the sealed model does, and it
+  scored 0: it cut the runs again at every holder question, which is O(stills) on a family that
+  states six thousand of them. Caching the runs until a still actually moves brought it from over
+  the 60 s clock to 20 s. The variant was written to prove the verifier is implementation-neutral
+  and it proved something better - that the gate bites a structure whose only fault is a
+  recomputation, which is the shape the brief warns about. Run the variants through the clock,
+  not only through the answers.
+- **Measure the shape of the answer before believing the difficulty.** `tools/onelinecheck.py`
+  finds no exact rule at depth two for the charge or for a refused put, over anything the tree
+  exposes, and finds one immediately for what a drop releases - because a release is a refcount
+  question and always was. Two of three is the defensible verdict, and knowing which one is
+  short is what says which cheat has to cover it.
+
 ## Lessons, measured (2026-09-09, the difficulty checker)
 
 - **The passing shape was already written down; nobody had scored against it.** The ten intake

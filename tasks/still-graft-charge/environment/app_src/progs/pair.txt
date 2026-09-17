@@ -1,0 +1,20 @@
+line p
+put p 0 5 6
+still p n1
+graft n1 q
+put q 0 1 4
+ask p
+ask q
+cut p 2 3
+still p n2
+put p 0 0 9
+ask p
+drop n1
+lift q
+ask p
+ask q
+drop n1
+ask p
+ask q
+at p 0
+at q 0

@@ -1,0 +1,7 @@
+take j1 b1 w
+fill j1 b1 2000 r
+take j2 b1 r
+take j3 b1 r
+show b1
+end j1
+show b1

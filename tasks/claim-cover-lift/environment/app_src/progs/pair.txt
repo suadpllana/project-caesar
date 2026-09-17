@@ -1,0 +1,9 @@
+take j1 b1 w
+take j2 b1:s4 r
+show b1
+drop j1 b1
+show b1:s4
+take j3 b2:s1 r
+take j3 b2:s2 r
+end j2
+end j3

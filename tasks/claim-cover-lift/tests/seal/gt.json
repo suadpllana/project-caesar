@@ -1,0 +1,331 @@
+{
+ "again-drop": [
+  "grant j1 b1:s1 r",
+  "grant j1 b1:s1 r",
+  "wait j2 b1:s1 w",
+  "free j1 b1:s1",
+  "at b1:s1 j1 r",
+  "free j1 b1:s1",
+  "grant j2 b1:s1 w",
+  "at b1:s1 j2 w"
+ ],
+ "again-lower": [
+  "grant j1 b1:s1 r",
+  "grant j1 b1:s1 w",
+  "wait j2 b1:s1 r",
+  "at b1:s1 j1 rw",
+  "free j1 b1:s1",
+  "grant j2 b1:s1 r",
+  "at b1:s1 j1 r j2 r"
+ ],
+ "busy-line": [
+  "grant j1 b1:s1 w",
+  "wait j2 b1:s1 r",
+  "free j1 b1:s1",
+  "grant j2 b1:s1 r",
+  "grant j2 b2:s1 r",
+  "at b2:s1 j2 r"
+ ],
+ "cover-ahead": [
+  "grant j1 b1 r",
+  "wait j2 b1:s3 w",
+  "grant j1 b1:s3 r",
+  "at b1:s3 j1 r"
+ ],
+ "cover-mode": [
+  "grant j2 b1:s3 r",
+  "grant j1 b1 r",
+  "wait j1 b1:s3 w",
+  "at b1:s3 j2 r",
+  "free j2 b1:s3",
+  "grant j1 b1:s3 w",
+  "at b1:s3 j1 w"
+ ],
+ "cover-up-only": [
+  "grant j2 b1:s5 r",
+  "grant j1 b1:s1 w",
+  "wait j1 b1 w",
+  "at b1",
+  "free j2 b1:s5",
+  "grant j1 b1 w",
+  "at b1 j1 w"
+ ],
+ "drop-none": [
+  "grant j1 b1:s1 r",
+  "at b1:s1 j1 r"
+ ],
+ "end-line": [
+  "grant j1 b1:s1 r",
+  "free j1 b1:s1",
+  "done j1",
+  "at b1:s1"
+ ],
+ "end-order": [
+  "grant j1 b2:s3 r",
+  "grant j1 b10:s2 r",
+  "grant j1 b1:s12 r",
+  "grant j1 b1:s2 r",
+  "grant j1 b1 r",
+  "grant j1 b2 r",
+  "free j1 b1",
+  "free j1 b1:s2",
+  "free j1 b1:s12",
+  "free j1 b2",
+  "free j1 b2:s3",
+  "free j1 b10:s2",
+  "done j1"
+ ],
+ "fair-queue": [
+  "grant j1 b1:s1 r",
+  "wait j2 b1:s1 w",
+  "wait j3 b1:s1 r",
+  "free j1 b1:s1",
+  "grant j2 b1:s1 w",
+  "at b1:s1 j2 w",
+  "free j2 b1:s1",
+  "grant j3 b1:s1 r",
+  "at b1:s1 j3 r"
+ ],
+ "fam-box-slot": [
+  "grant j1 b1 w",
+  "wait j2 b1:s1 r",
+  "at b1 j1 w",
+  "free j1 b1",
+  "grant j2 b1:s1 r",
+  "at b1:s1 j2 r"
+ ],
+ "fam-sibling": [
+  "grant j1 b1:s1 w",
+  "grant j2 b1:s2 w",
+  "at b1:s1 j1 w",
+  "at b1:s2 j2 w"
+ ],
+ "fam-slot-box": [
+  "grant j1 b1:s2 w",
+  "wait j2 b1 r",
+  "at b1",
+  "free j1 b1:s2",
+  "grant j2 b1 r",
+  "at b1 j2 r"
+ ],
+ "lift-covered": [
+  "grant j1 b1 r",
+  "grant j1 b1:s1 r",
+  "grant j1 b1:s2 r",
+  "grant j1 b1:s3 r",
+  "grant j1 b1:s4 r",
+  "grant j1 b1:s5 r",
+  "at b1 j1 r",
+  "at b1:s5 j1 r"
+ ],
+ "lift-few": [
+  "grant j1 b1:s1 r",
+  "grant j1 b1:s2 r",
+  "grant j1 b1:s3 r",
+  "grant j1 b1:s4 r",
+  "free j1 b1:s2",
+  "grant j1 b1:s5 r",
+  "at b1"
+ ],
+ "lift-floor": [
+  "grant j1 b1:s1 r",
+  "grant j1 b1:s2 r",
+  "grant j1 b1:s3 r",
+  "grant j1 b1:s4 r",
+  "lift j1 b1 r",
+  "grant j1 b1 r",
+  "free j1 b1:s1",
+  "free j1 b1:s2",
+  "free j1 b1:s3",
+  "free j1 b1:s4",
+  "grant j1 b1:s5 r",
+  "at b1 j1 r",
+  "at b1:s5 j1 r"
+ ],
+ "lift-free-order": [
+  "grant j1 b1:s9 r",
+  "grant j1 b1:s3 r",
+  "grant j1 b1:s11 r",
+  "grant j1 b1:s2 r",
+  "lift j1 b1 r",
+  "grant j1 b1 r",
+  "free j1 b1:s2",
+  "free j1 b1:s3",
+  "free j1 b1:s9",
+  "free j1 b1:s11",
+  "grant j1 b1:s7 r",
+  "at b1 j1 r"
+ ],
+ "lift-mode": [
+  "grant j1 b1:s1 r",
+  "grant j1 b1:s2 w",
+  "grant j1 b1:s3 r",
+  "grant j1 b1:s4 r",
+  "lift j1 b1 w",
+  "grant j1 b1 w",
+  "free j1 b1:s1",
+  "free j1 b1:s2",
+  "free j1 b1:s3",
+  "free j1 b1:s4",
+  "grant j1 b1:s5 r",
+  "at b1 j1 w"
+ ],
+ "lift-repeat": [
+  "grant j1 b1:s3 w",
+  "grant j1 b1:s1 r",
+  "grant j1 b1:s5 w",
+  "grant j1 b1:s5 r",
+  "grant j1 b1:s1 w",
+  "at b1",
+  "at b1:s1 j1 rw"
+ ],
+ "lift-two": [
+  "grant j1 b1:s1 w",
+  "grant j1 b1:s2 w",
+  "grant j1 b1:s3 w",
+  "grant j1 b1:s4 w",
+  "grant j2 b1:s5 w",
+  "grant j2 b1:s6 w",
+  "grant j2 b1:s7 w",
+  "grant j2 b1:s8 w",
+  "lift j1 b1 w",
+  "wait j1 b1 w",
+  "lift j2 b1 w",
+  "wait j2 b1 w",
+  "stop j2",
+  "free j2 b1:s5",
+  "free j2 b1:s6",
+  "free j2 b1:s7",
+  "free j2 b1:s8",
+  "grant j1 b1 w",
+  "free j1 b1:s1",
+  "free j1 b1:s2",
+  "free j1 b1:s3",
+  "free j1 b1:s4",
+  "grant j1 b1:s9 w",
+  "at b1 j1 w"
+ ],
+ "lift-wait": [
+  "grant j2 b1:s9 r",
+  "grant j1 b1:s1 w",
+  "grant j1 b1:s2 w",
+  "grant j1 b1:s3 w",
+  "grant j1 b1:s4 w",
+  "lift j1 b1 w",
+  "wait j1 b1 w",
+  "at b1:s1 j1 w",
+  "free j2 b1:s9",
+  "grant j1 b1 w",
+  "free j1 b1:s1",
+  "free j1 b1:s2",
+  "free j1 b1:s3",
+  "free j1 b1:s4",
+  "grant j1 b1:s5 w",
+  "at b1 j1 w"
+ ],
+ "read-share": [
+  "grant j1 b1:s1 r",
+  "grant j2 b1:s1 r",
+  "wait j3 b1:s1 w",
+  "at b1:s1 j1 r j2 r"
+ ],
+ "ring-count": [
+  "grant j1 b1:s1 w",
+  "grant j2 b2:s1 w",
+  "grant j2 b2:s1 w",
+  "wait j1 b2:s1 w",
+  "wait j2 b1:s1 w",
+  "stop j1",
+  "free j1 b1:s1",
+  "grant j2 b1:s1 w",
+  "at b1:s1 j2 w",
+  "at b2:s1 j2 ww"
+ ],
+ "ring-fair": [
+  "grant j1 b1:s1 r",
+  "grant j3 b2:s1 w",
+  "wait j2 b1:s1 w",
+  "wait j3 b1:s1 r",
+  "wait j1 b2:s1 r",
+  "stop j2",
+  "grant j3 b1:s1 r",
+  "at b1:s1 j1 r j3 r"
+ ],
+ "ring-tie": [
+  "grant j1 b1:s1 w",
+  "grant j3 b2:s1 w",
+  "wait j1 b2:s1 w",
+  "wait j3 b1:s1 w",
+  "stop j3",
+  "free j3 b2:s1",
+  "grant j1 b2:s1 w",
+  "at b1:s1 j1 w",
+  "at b2:s1 j1 w"
+ ],
+ "ring-two": [
+  "grant j1 b1:s1 w",
+  "grant j1 b1:s2 w",
+  "grant j2 b2:s1 w",
+  "wait j1 b2:s1 w",
+  "wait j2 b1:s1 w",
+  "stop j2",
+  "free j2 b2:s1",
+  "grant j1 b2:s1 w",
+  "at b1:s1 j1 w",
+  "at b2:s1 j1 w"
+ ],
+ "seq-across": [
+  "grant j1 b1:s1 w",
+  "grant j1 b2:s1 w",
+  "wait j2 b2:s1 w",
+  "wait j3 b1:s1 w",
+  "free j1 b1:s1",
+  "free j1 b2:s1",
+  "done j1",
+  "grant j2 b2:s1 w",
+  "grant j3 b1:s1 w"
+ ],
+ "show-format": [
+  "grant j2 b1:s1 r",
+  "grant j10 b1:s1 r",
+  "grant j2 b1:s1 r",
+  "at b1:s1 j2 rr j10 r"
+ ],
+ "show-none": [
+  "grant j1 b1:s1 r",
+  "at b9:s1",
+  "at b1"
+ ],
+ "split-boxes": [
+  "grant j1 b1:s1 w",
+  "grant j2 b2:s1 w",
+  "grant j1 b1 r",
+  "at b1 j1 r",
+  "free j1 b1",
+  "free j1 b1:s1",
+  "done j1",
+  "free j2 b2:s1",
+  "done j2"
+ ],
+ "stop-line": [
+  "grant j1 b1:s1 w",
+  "grant j3 b2:s1 w",
+  "wait j1 b2:s1 w",
+  "wait j3 b1:s1 w",
+  "stop j3",
+  "free j3 b2:s1",
+  "grant j1 b2:s1 w",
+  "at b3:s1"
+ ],
+ "sweep-chain": [
+  "grant j1 b1:s1 w",
+  "wait j2 b1:s1 r",
+  "wait j3 b1:s1 r",
+  "wait j4 b1:s1 r",
+  "free j1 b1:s1",
+  "grant j2 b1:s1 r",
+  "grant j3 b1:s1 r",
+  "grant j4 b1:s1 r",
+  "at b1:s1 j2 r j3 r j4 r"
+ ]
+}

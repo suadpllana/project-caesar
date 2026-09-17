@@ -1,0 +1,187 @@
+# Difficulty record - claim-cover-lift, written before any code exists.
+
+[task]
+slug = "claim-cover-lift"
+status = "idea"
+sources = ["authoring/claim-cover-lift/difficulty.toml", "tasks/claim-cover-lift/STATE.md"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Hold each node as a granted map from job to mode plus a first-in-first-out line of waiting
+requests. On a take, test the requested mode against the modes granted on that node to other
+jobs; grant and record it, or push the request onto that node's line and print a wait. On a
+drop or an end, remove the claims and walk that node's line from the front, granting while the
+front request is compatible. When a request waits, build a waits-for graph from the waiter to
+the jobs holding the claims that conflict with it, run a depth-first search for a cycle, and
+stop the first job the search finds on one. Count the slots a job holds in a box and swap them
+for a claim on the box when the count passes the floor.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A claim on a box and a claim on any of its slots conflict when at least one is w, so what
+decides a request is never the node's own granted map but every claim in its family, and a
+request is granted at once whatever blocks it when the asking job already holds a covering
+claim on that node or on its box - which puts a grant ahead of a line the node-local test
+would have made it join.
+"""
+second_discovery = """
+Grants are ordered by one sequence taken across the whole store and not by node: after every
+change the engine grants the smallest-numbered grantable request and starts over, so one end or
+one stop, which frees claims in several boxes at once, owes grants that interleave by that
+sequence, and a per node line drained front to back emits the right set of grants in the wrong
+order.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read the driver and the printer to fix what a trace is made of, then run the shipped programs to see which events the shipped engine already gets right",
+  "settle what a hold is: a list of acquires per job and node, because a drop removes one acquire and the modes left decide whether anything can now be granted",
+  "settle the conflict test across the family, box against slot and slot against box, and keep per box counts of what each job holds so the test does not walk the slots",
+  "settle coverage before the line: a request the asking job already covers is granted without a sequence number and creates no wait",
+  "put every waiting request in one sequence and make the sweep take the smallest grantable one across all families, repeating until none is grantable",
+  "make the lift a request for the box that keeps the slot claims until it is granted, then frees them in slot order and grants the request that caused it by coverage",
+  "derive the waits-for relation from blockers, granted claims and smaller-numbered waiting requests alike, and stop the job on a cycle with the fewest acquires",
+  "measure the wide programs against the limit and replace every family walk with an index the counts are kept in",
+]
+
+[search]
+best_page = """
+A database textbook chapter or vendor manual on multiple granularity claiming, which gives the
+compatibility table for intent modes, the rule that a child claim needs the parent intent claim,
+and a wait-for graph with victim selection.
+"""
+helps_plan = false
+deviation = """
+There are no intent modes here at all: a claim on a box conflicts directly with other jobs'
+claims on its slots, so the structure the retrieved page prescribes does not exist and the job
+of the intent mode has to be rebuilt as counts kept per box. Coverage grants ahead of the line,
+the sweep is ordered by one store-wide sequence rather than per node, the lift waits while
+holding what it will give up, and the victim is chosen from every job on any cycle by acquire
+count rather than from the cycle the search happened to find.
+"""
+
+[tactics]
+A1 = """
+The prior is multiple granularity claiming with intent modes and per node lines; every rule
+here is stated against it, so the better the recalled design the more confidently wrong the
+structures are - intent modes that do not exist, a per node line that is not the grant order.
+"""
+A2 = """
+No term of art appears in the brief: there is no lock, no intent, no escalation and no deadlock,
+only claims, covering, lifting and jobs that end up waiting for each other, so the concept has
+to be recognised from behaviour rather than retrieved from a name.
+"""
+B2 = """
+Thirteen small rules hold at once - acquires, family conflict, coverage, sequence fairness, the
+lift and what it frees, the sweep fixpoint, cycles, the victim, stopped jobs, drop lowering a
+mode, end order, and the query format - and none of them can be confirmed alone from anything
+the tree prints.
+"""
+C1 = """
+Both sides are graded: programs where claims must be granted at once on disjoint boxes and on
+compatible modes fail an engine that serialises, and programs where a lift or a cycle bites
+fail one that grants too freely.
+"""
+C3 = """
+Three correct but infeasible families are killed by the stated limit: walking a box's slots for
+every conflict test, sweeping every waiting request after every change, and rebuilding the whole
+waits-for relation before every cycle search.
+"""
+C4 = """
+Every graded program is compared line for line, hand programs against frozen answers and
+generated ones against a sealed model, with the generated population drawn from a seed taken
+after the agent's container is gone.
+"""
+guard = """
+Only the six files under /app/hb are collected; the driver, the store, the printer and the
+dispatcher are the verifier's own pristine copies, so the trace format, the operation set and
+the program files cannot be reshaped by the submission.
+"""
+
+[decisions]
+graded = 13
+interactions = [
+  { a = "coverage grants ahead of the line", b = "the waits-for relation", why = "a covered grant creates no waiting request and therefore no edge, so a job that looks blocked by the line is not on a cycle at all" },
+  { a = "a hold is a list of acquires", b = "the victim choice", why = "the victim is the job on a cycle with the fewest acquires counted with repetition, which a map from node to one mode cannot count" },
+  { a = "the lift keeps its slot claims while it waits", b = "the sweep order", why = "the claims it frees on being granted change what is grantable in other families, and the next grant may be an older request somewhere else" },
+  { a = "a drop removes one acquire", b = "the sweep", why = "dropping can lower the modes a job holds without ending its hold, and the requests that become grantable are decided by what is left" },
+  { a = "family conflict", b = "the lift", why = "a lifted box claim conflicts with every other job's slot claims in that box, so lifting can block jobs that the slot claims it replaced never touched" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Two jobs reading the same slot, and jobs working in different boxes, must be granted at once and
+in the order asked; an engine that plays safe by making every request wait for the box fails it.
+"""
+late_case = """
+A job ends while requests wait in two boxes: the claims it frees make both boxes grantable at
+once, and the store-wide sequence puts the older request first whichever box it is in, so a per
+node drain prints the same grants in the wrong order after every ordinary program has passed,
+and every later line naming a job whose request is still waiting is then ignored or not.
+"""
+oracle_denied = """
+The shipped engine is itself wrong, no standard tool implements these rules, and a program's
+trace is only decided by the sealed model, so running the tree tells the agent that its own
+engine is self-consistent and nothing about whether it is right.
+"""
+
+[leaks]
+candidates = [
+  { what = "a per box count of what each job holds, shipped as a field", closed_by = "the shipped tree stores only the acquires themselves; every count the rules need is derived by the submission, and the lift floor cannot be read off a stored number" },
+  { what = "the sequence number printed in an event", closed_by = "events carry job, node and mode only, so the store-wide order has to be inferred from the order grants come out rather than read" },
+  { what = "a shipped helper that returns the jobs a request waits for", closed_by = "no such helper exists in the tree; the waits-for relation has no name in the environment and is built only by the submission" },
+  { what = "the expected trace of a shipped program", closed_by = "nothing under progs carries an answer file, and the frozen answers live in a directory the verifier locks before any submitted code runs" },
+  { what = "a worked example in the brief that decides a load-bearing reading", closed_by = "the example is searched for among small programs and chosen from those that decide none of the enumerated wrong readings" },
+]
+derived_quantities = """
+The tree ships the acquires, the programs and the event text as primitives; every quantity the
+rules turn on - what a family holds, what covers a request, the lift floor, the sequence order,
+the waits-for relation and the acquire count of a victim - is derived by the submission and
+appears nowhere as a stored field.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Three correct readings that walk state they do not need: a conflict test that walks every slot of
+a box, a sweep that reconsiders every waiting request in the store after every change, and a
+cycle search that rebuilds every job's blocker set before it starts.
+"""
+invariant = """
+A request's blockers all lie in its own family, and only a family whose holdings or line changed
+can produce a new grant, so counts kept per box and per job answer the conflict test and the
+sweep only has to reconsider the families it touched.
+"""
+input_scale = "programs of up to forty thousand lines, one leaving forty thousand slot claims in a single box, one with five hundred boxes carrying standing lines"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "conflict tested on the node alone, ignoring the box and its slots", hand_case = "j1 takes b1 in w, j2 asks for b1:s1 in r and must wait" },
+  { reading = "coverage ignored, so a covered request joins the line", hand_case = "j1 holds b1 in r, j2 waits for b1:s3 in w, and j1 asking for b1:s3 in r is granted at once" },
+  { reading = "a hold kept as one mode per job and node, so a drop ends the hold", hand_case = "j1 takes b1:s1 in r twice, drops it once, and j2's w request must still wait" },
+  { reading = "the line drained per node instead of by the store-wide sequence", hand_case = "one job ends holding a slot in two boxes with a request waiting in each, and the older request is granted first" },
+  { reading = "the lift abandoned when the box cannot be granted at once", hand_case = "j1 holds four slots of b1 and asks for a fifth while j2 holds b1:s9 in r, so the lift waits and is granted when j2 drops" },
+  { reading = "the lift's freed claims printed in the order they were taken", hand_case = "j1 takes b1:s4, b1:s3, b1:s2, b1:s1 and then lifts, so the frees print in slot order" },
+  { reading = "waits-for edges drawn only to jobs holding claims, not to older waiting requests", hand_case = "j2 waits behind j1's older request and j1 waits for a claim j2 holds" },
+  { reading = "the victim taken as the first job the search finds on a cycle", hand_case = "a two-job cycle where the job found first holds five acquires and the other holds two" },
+  { reading = "acquire counts taken per node rather than with repetition when choosing a victim", hand_case = "a cycle where one job holds three acquires on one node and the other holds two nodes once each" },
+  { reading = "a stopped job's later lines executed", hand_case = "j3 is stopped and its next take must print nothing" },
+  { reading = "the lift floor counted over every slot ever taken rather than those still held", hand_case = "j1 takes five slots of b1, drops two, and the sixth request must not lift" },
+  { reading = "end releasing in the order taken rather than in node order", hand_case = "j1 holds b2:s1, b1 and b1:s2, and end must free them in node order" },
+]
+correct_variants = [
+  "an engine holding the store as one dict from node to a record with per job acquire lists and a heap of waiting requests keyed by sequence",
+  "an engine holding per job claim maps with per box counters and recomputing grantability from a sorted list of waiting requests on each sweep",
+]
+
+[shape]
+environment_py_lines = 364
+editable_files = 6
+reference_lines = 405

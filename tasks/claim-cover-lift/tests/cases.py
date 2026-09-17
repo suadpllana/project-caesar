@@ -1,0 +1,280 @@
+"""The enumerated programs: one per graded decision, plus the side of each fence that must
+still be granted at once. Each name says which rule fails when its trace differs.
+
+They are frozen: `gt.json` was built from these programs before the grading file existed, and
+the worker checks that the program it ran still hashes to the same lines.
+"""
+
+CASES = {
+    # the family: a claim on a box and a claim on its slots decide each other
+    "fam-box-slot": [
+        "take j1 b1 w",
+        "take j2 b1:s1 r",
+        "show b1",
+        "drop j1 b1",
+        "show b1:s1",
+    ],
+    "fam-slot-box": [
+        "take j1 b1:s2 w",
+        "take j2 b1 r",
+        "show b1",
+        "drop j1 b1:s2",
+        "show b1",
+    ],
+    "fam-sibling": [
+        "take j1 b1:s1 w",
+        "take j2 b1:s2 w",
+        "show b1:s1",
+        "show b1:s2",
+    ],
+    "read-share": [
+        "take j1 b1:s1 r",
+        "take j2 b1:s1 r",
+        "take j3 b1:s1 w",
+        "show b1:s1",
+    ],
+    "split-boxes": [
+        "take j1 b1:s1 w",
+        "take j2 b2:s1 w",
+        "take j1 b1 r",
+        "show b1",
+        "end j1",
+        "end j2",
+    ],
+    # covering: a job that already holds enough is granted ahead of the line
+    "cover-ahead": [
+        "take j1 b1 r",
+        "take j2 b1:s3 w",
+        "take j1 b1:s3 r",
+        "show b1:s3",
+    ],
+    "cover-mode": [
+        "take j2 b1:s3 r",
+        "take j1 b1 r",
+        "take j1 b1:s3 w",
+        "show b1:s3",
+        "drop j2 b1:s3",
+        "show b1:s3",
+    ],
+    "cover-up-only": [
+        "take j2 b1:s5 r",
+        "take j1 b1:s1 w",
+        "take j1 b1 w",
+        "show b1",
+        "drop j2 b1:s5",
+        "show b1",
+    ],
+    # a hold is a list of acquires
+    "again-drop": [
+        "take j1 b1:s1 r",
+        "take j1 b1:s1 r",
+        "take j2 b1:s1 w",
+        "drop j1 b1:s1",
+        "show b1:s1",
+        "drop j1 b1:s1",
+        "show b1:s1",
+    ],
+    "again-lower": [
+        "take j1 b1:s1 r",
+        "take j1 b1:s1 w",
+        "take j2 b1:s1 r",
+        "show b1:s1",
+        "drop j1 b1:s1",
+        "show b1:s1",
+    ],
+    "drop-none": [
+        "take j1 b1:s1 r",
+        "drop j1 b1:s2",
+        "drop j2 b1:s1",
+        "show b1:s1",
+    ],
+    # the line, and the order grants come out in
+    "fair-queue": [
+        "take j1 b1:s1 r",
+        "take j2 b1:s1 w",
+        "take j3 b1:s1 r",
+        "drop j1 b1:s1",
+        "show b1:s1",
+        "drop j2 b1:s1",
+        "show b1:s1",
+    ],
+    "seq-across": [
+        "take j1 b1:s1 w",
+        "take j1 b2:s1 w",
+        "take j2 b2:s1 w",
+        "take j3 b1:s1 w",
+        "end j1",
+    ],
+    "sweep-chain": [
+        "take j1 b1:s1 w",
+        "take j2 b1:s1 r",
+        "take j3 b1:s1 r",
+        "take j4 b1:s1 r",
+        "drop j1 b1:s1",
+        "show b1:s1",
+    ],
+    "end-order": [
+        "take j1 b2:s3 r",
+        "take j1 b10:s2 r",
+        "take j1 b1:s12 r",
+        "take j1 b1:s2 r",
+        "take j1 b1 r",
+        "take j1 b2 r",
+        "end j1",
+    ],
+    # the lift
+    "lift-floor": [
+        "take j1 b1:s1 r",
+        "take j1 b1:s2 r",
+        "take j1 b1:s3 r",
+        "take j1 b1:s4 r",
+        "take j1 b1:s5 r",
+        "show b1",
+        "show b1:s5",
+    ],
+    "lift-few": [
+        "take j1 b1:s1 r",
+        "take j1 b1:s2 r",
+        "take j1 b1:s3 r",
+        "take j1 b1:s4 r",
+        "drop j1 b1:s2",
+        "take j1 b1:s5 r",
+        "show b1",
+    ],
+    "lift-mode": [
+        "take j1 b1:s1 r",
+        "take j1 b1:s2 w",
+        "take j1 b1:s3 r",
+        "take j1 b1:s4 r",
+        "take j1 b1:s5 r",
+        "show b1",
+    ],
+    "lift-wait": [
+        "take j2 b1:s9 r",
+        "take j1 b1:s1 w",
+        "take j1 b1:s2 w",
+        "take j1 b1:s3 w",
+        "take j1 b1:s4 w",
+        "take j1 b1:s5 w",
+        "show b1:s1",
+        "drop j2 b1:s9",
+        "show b1",
+    ],
+    "lift-free-order": [
+        "take j1 b1:s9 r",
+        "take j1 b1:s3 r",
+        "take j1 b1:s11 r",
+        "take j1 b1:s2 r",
+        "take j1 b1:s7 r",
+        "show b1",
+    ],
+    "lift-repeat": [
+        "take j1 b1:s3 w",
+        "take j1 b1:s1 r",
+        "take j1 b1:s5 w",
+        "take j1 b1:s5 r",
+        "take j1 b1:s1 w",
+        "show b1",
+        "show b1:s1",
+    ],
+    "lift-covered": [
+        "take j1 b1 r",
+        "take j1 b1:s1 r",
+        "take j1 b1:s2 r",
+        "take j1 b1:s3 r",
+        "take j1 b1:s4 r",
+        "take j1 b1:s5 r",
+        "show b1",
+        "show b1:s5",
+    ],
+    "lift-two": [
+        "take j1 b1:s1 w",
+        "take j1 b1:s2 w",
+        "take j1 b1:s3 w",
+        "take j1 b1:s4 w",
+        "take j2 b1:s5 w",
+        "take j2 b1:s6 w",
+        "take j2 b1:s7 w",
+        "take j2 b1:s8 w",
+        "take j1 b1:s9 w",
+        "take j2 b1:s10 w",
+        "show b1",
+    ],
+    # jobs that come to wait for each other
+    "ring-two": [
+        "take j1 b1:s1 w",
+        "take j1 b1:s2 w",
+        "take j2 b2:s1 w",
+        "take j1 b2:s1 w",
+        "take j2 b1:s1 w",
+        "show b1:s1",
+        "show b2:s1",
+    ],
+    "ring-fair": [
+        "take j1 b1:s1 r",
+        "take j3 b2:s1 w",
+        "take j2 b1:s1 w",
+        "take j3 b1:s1 r",
+        "take j1 b2:s1 r",
+        "show b1:s1",
+    ],
+    "ring-count": [
+        "take j1 b1:s1 w",
+        "take j2 b2:s1 w",
+        "take j2 b2:s1 w",
+        "take j1 b2:s1 w",
+        "take j2 b1:s1 w",
+        "show b1:s1",
+        "show b2:s1",
+    ],
+    "ring-tie": [
+        "take j1 b1:s1 w",
+        "take j3 b2:s1 w",
+        "take j1 b2:s1 w",
+        "take j3 b1:s1 w",
+        "show b1:s1",
+        "show b2:s1",
+    ],
+    # lines naming a job that cannot act on them
+    "busy-line": [
+        "take j1 b1:s1 w",
+        "take j2 b1:s1 r",
+        "take j2 b2:s1 r",
+        "drop j1 b1:s1",
+        "take j2 b2:s1 r",
+        "show b2:s1",
+    ],
+    "stop-line": [
+        "take j1 b1:s1 w",
+        "take j3 b2:s1 w",
+        "take j1 b2:s1 w",
+        "take j3 b1:s1 w",
+        "take j3 b3:s1 r",
+        "show b3:s1",
+    ],
+    "end-line": [
+        "take j1 b1:s1 r",
+        "end j1",
+        "take j1 b1:s1 w",
+        "drop j1 b1:s1",
+        "show b1:s1",
+    ],
+    # the query
+    "show-format": [
+        "take j2 b1:s1 r",
+        "take j10 b1:s1 r",
+        "take j2 b1:s1 r",
+        "show b1:s1",
+    ],
+    "show-none": [
+        "take j1 b1:s1 r",
+        "show b9:s1",
+        "show b1",
+    ],
+}
+
+ORDER = sorted(CASES)
+
+
+def ops(name):
+    return list(CASES[name])

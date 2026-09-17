@@ -1,0 +1,14 @@
+take j1 b1:s2 w
+take j1 b1:s5 w
+take j1 b1:s3 r
+take j1 b1:s8 r
+take j2 b2:s1 w
+take j1 b1:s6 r
+show b1
+take j2 b1:s1 r
+take j3 b2:s1 r
+show b2:s1
+drop j1 b1
+show b1
+end j1
+end j2

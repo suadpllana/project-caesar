@@ -1,0 +1,6 @@
+take j1 b1:s1 r
+take j2 b1:s1 r
+show b1:s1
+drop j1 b1:s1
+end j2
+show b1:s1

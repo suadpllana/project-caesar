@@ -1,0 +1,199 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/hb/hold.py",
+  "/app/hb/fit.py",
+  "/app/hb/line.py",
+  "/app/hb/lift.py",
+  "/app/hb/knot.py",
+  "/app/hb/gate.py",
+]
+
+[task]
+name = "afterquery/claim-cover-lift"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules seem
+to ask for survive all of them at once, and that is the work.
+
+The recalled design for a service like this one is the one with intent modes: a claim on a slot
+needs an intent claim on its box, every node keeps its own line, a waiting job is linked to the
+jobs holding what it conflicts with, and a job holding too many slots swaps them for the box.
+Three of those are wrong here and the fourth is half right. There are no intent modes at all, so
+what conflicts is decided across the family - a claim on a box against every slot claim inside
+it, and a slot claim against the box - and the work an intent mode does has to be rebuilt as
+counts kept per box, because a family test that walks the slots does not fit the limit.
+
+Two rules then invalidate most of what is left. A request the asking job already covers is
+granted at once, ahead of the line it would otherwise join, so the line is not where
+grantability is decided. And grants are ordered by one sequence taken across the whole store, so
+a line drained per node produces the right set of grants in the wrong order. That stays
+invisible until one operation frees claims in two boxes at once, which an end or a stop does,
+and it does not stay local: a job ignores every line naming it while its own request is waiting,
+so one misordered grant changes whether later lines take effect at all.
+
+The lift is the second finding, and it is the one that forces a replan rather than a patch. A
+slot request by a job already holding four slots of that box becomes a request for the box, and
+if it cannot be granted it waits while keeping those slot claims, so it blocks jobs its slot
+claims never touched and two jobs lifting in one box come to wait for each other. The relation
+that decides which of them is stopped runs through older waiting requests as well as granted
+claims, and the job stopped is the one holding the fewest acquires counted with repetition,
+which a map from node to one mode cannot count - a hold here is a list of acquires, because a
+drop takes back the most recent one and what is left decides what may now be granted.
+
+Three readings that are exactly correct die on the stated limit rather than on a case. Measured
+on the graded set against the sixty second limit: a family test that walks the box's slots takes
+179 seconds, a sweep that reconsiders every waiting request after every change takes 289 seconds,
+and a stuck check that runs after every operation takes 628 seconds. All three print exactly the
+reference's traces on everything they finish; the limit is the only thing that separates them.
+The reference settles all 358 graded programs in 3.0 seconds.
+
+Identifiers are in a legacy register - hb, fit, line, knot, lift, gate, hold, say - short but
+never misleading, and the tree carries no comments or docstrings. That is a choice about the
+register of real claim-path code rather than an obstacle: each name is recoverable from what
+calls it and what its value flows into.
+
+The programs are synthetic, in eleven families, concentrating claims that cross the box and slot
+boundary, jobs covering their own requests, lifts that have to wait, cycles that run through a
+waiting request, repeated acquires on one node, and lines naming jobs that cannot act on them.
+In a working store these are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+hold.py records what each job holds: a list of acquires per job and node, so a drop takes back
+the most recent one and the modes left behind decide the rest. Beside that it keeps two indexes
+the other files need at a fixed cost - for each job, the distinct slots it holds in each box and
+how many of them carry a w, and for each box, one tally per job over the slots of that box. The
+second is what replaces the intent mode: a request for a box reads it instead of walking the
+slots, which is the difference between 90 seconds and 2 seconds on the wide programs.
+
+fit.py answers two questions. Whether the asking job already covers the request, on that node or
+on its box, which is asked before anything else because a covered request neither joins the line
+nor creates a wait. And which jobs block it: the conflicting claims of other jobs in the family,
+plus their conflicting waiting requests with a smaller number. Both answers are sets of jobs,
+because the second question is also the edge set of the relation knot.py walks.
+
+line.py keeps the waiting requests, each with the number it took from the store's one counter,
+indexed by box so that the requests of a family can be read in number order without touching the
+rest of the store.
+
+gate.py drives take, drop and end, and owns the sweep. The sweep holds the boxes whose holdings
+or line have changed, takes each one's smallest grantable request, grants the smallest of those
+across all of them, and starts again - which is how one store-wide order is kept without
+reconsidering requests in families nothing has touched. Every grant feeds the boxes it changed
+back into that set.
+
+lift.py decides when a slot request becomes a request for the box and in which mode, and what
+happens when it is granted: the job's acquires on every slot of that box go back in slot order,
+and the request that caused the lift is then granted by coverage.
+
+knot.py builds the relation from fit.py's blocker sets and answers which jobs lie on a cycle
+through the job that has just started waiting, by intersecting a walk forward with a walk back.
+Only a new wait can create a cycle - a grant adds no edge that the request it granted did not
+already carry, because a request that conflicts with an older waiting one cannot be granted
+before it - so the check runs there and nowhere else, which is what keeps it off the hot path.
+
+An expert works in that order because each file consumes the one before it: what a job holds
+decides what covers and what conflicts, what conflicts decides who waits and in what order, the
+order decides what a lift blocks while it waits, and the lift decides which jobs end up waiting
+for each other. The same contract is implemented two further ways in the authoring set - one
+holding claims job-major as strings of mode letters and finding stuck sets with Tarjan, one
+driving the sweep from a heap of each box's best candidate - so the shape is visibly not what is
+graded.
+"""
+
+verification_explanation = """
+Only the six files under /app/hb are taken from the agent. The verifier lays them over its own
+pristine copy of the tree, so nothing else the agent may have touched can change what a program
+prints, and every trace is compared line for line.
+
+Correct is defined twice over. Thirty-two hand programs, one per graded decision plus the side
+of each fence that must still be granted at once, are checked against gt.json, frozen before the
+grading file was written; the grader first asserts that the sealed model still reproduces
+gt.json exactly, so a model that had drifted could not quietly redefine correct. Three hundred
+and twenty-six further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across eleven families that concentrate claims crossing the box and
+slot boundary, covered requests, lifts that wait, cycles through a waiting request, repeated
+acquires, lines naming jobs that cannot act, and the three wide families the limit is for. A
+submission cannot have seen them, so fitting the shipped examples fails, and so does carrying an
+answer key.
+
+The fences run both ways. Granting too freely fails fam-box-slot, fam-slot-box, fair-queue and
+cover-mode; granting too carefully fails fam-sibling, read-share, split-boxes and cover-ahead.
+Reading a hold as one mode fails again-drop and show-format; taking back the oldest acquire
+fails again-lower. Draining each box's line in turn fails seq-across; counting acquires rather than distinct slots
+at the floor fails lift-repeat. Abandoning a lift that
+cannot be granted at once fails lift-wait; freeing its slot claims in the order they were taken
+fails lift-free-order; lifting a job that already covers the box fails lift-covered. Drawing the
+waits-for relation through granted claims alone fails ring-fair; stopping the first job the
+search reaches fails ring-two; counting acquires per node fails ring-count; breaking a tie
+towards the smaller job number fails ring-tie. Acting on a line that names a waiting, stopped or
+finished job fails busy-line, stop-line and end-line.
+
+Forty-two cheats score 0. Twenty-seven are wrong readings, each caught by the enumerated case
+named for it. Three are exactly correct and too slow: the family test that walks a box's slots,
+the sweep that reconsiders every waiting request, and the stuck check that runs after every
+operation. Two are the dumbest strategies - granting everything at once, and replaying the
+brief's own worked example for every program. One is a forgery carrying the frozen answers for
+every enumerated program and for every prefix of one: it passes all thirty-two and fails on the
+programs it could not have seen. One puts a correct
+engine in the files the verifier does not collect. The other eight are probes: the answer key, a
+late reward, a planted report, a report planted and the worker exited clean before it could be
+overwritten, malformed records, privilege, a shrunken population, and a rewrite of the
+verifier's own copy of the tree. Two independently written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked before
+any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "multi-granularity-claims",
+  "re-entrant-holds",
+  "queue-fairness",
+  "claim-escalation",
+  "wait-cycle-detection",
+  "admission-order",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the claim path of a multi-user store: the part that decides which job may touch
+which box and which slot, what a job is entitled to once it already holds something larger, and
+which job is given up when a set of them have come to wait for each other. Familiarity with the
+fact that the unit a conflict is decided over is the family and not the node, that a hold is a
+count and not a mode, and that the order grants come out in is a property of the store rather
+than of the node that freed them. Comfort with keeping the counts that make an admission test
+constant time, with the difference between a structure that is correct and one that is
+affordable at the size a store actually runs at, and with the kind of cycle that only exists
+because somebody is already waiting.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

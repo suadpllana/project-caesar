@@ -1,0 +1,214 @@
+{
+ "ans-idle": [
+  "idle",
+  "idle",
+  "rec q1 - w=1"
+ ],
+ "ans-idle-after": [
+  "out set q1",
+  "ack set q1",
+  "idle",
+  "rec q1 - w=1"
+ ],
+ "ans-sent": [
+  "out new a",
+  "out set q1",
+  "ack new s1",
+  "ack set q1",
+  "rec q1 - w=9"
+ ],
+ "gone-back": [
+  "out new a",
+  "out set q1",
+  "ack new s1",
+  "gone 1",
+  "out set s1",
+  "rec s1 q1 w=5",
+  "rec q1 -"
+ ],
+ "gone-chain": [
+  "out new a",
+  "gone 4",
+  "rec q2 -"
+ ],
+ "gone-front": [
+  "out new a",
+  "out set q1",
+  "ack new s1",
+  "gone 1",
+  "out mov s1",
+  "rec s1 q1",
+  "rec q1 -"
+ ],
+ "gone-kids": [
+  "out new a",
+  "gone 3",
+  "rec q1 -"
+ ],
+ "gone-one": [
+  "out set q1",
+  "out set q2",
+  "gone 1",
+  "rec q1 -",
+  "rec q2 - h=2"
+ ],
+ "gone-sent": [
+  "out set q1",
+  "out add q1",
+  "out set q2",
+  "gone 2",
+  "ack set q2",
+  "idle",
+  "rec q1 -",
+  "rec q2 - k=2"
+ ],
+ "hold-again": [
+  "out new a",
+  "ack new s1",
+  "out set s1",
+  "rec s1 q1 w=6"
+ ],
+ "hold-new-own": [
+  "out new a",
+  "out new b"
+ ],
+ "hold-new-up": [
+  "out new a"
+ ],
+ "hold-plain": [
+  "out set q1",
+  "out add q1",
+  "out mov q1",
+  "rec q1 - h=2 w=4"
+ ],
+ "hold-spread": [
+  "out new a",
+  "out set q1"
+ ],
+ "hold-spread-far": [
+  "out new a"
+ ],
+ "hold-wait": [
+  "out new a",
+  "rec a q1 w=1"
+ ],
+ "lay-add": [
+  "rec q1 - w=20"
+ ],
+ "lay-add-base": [
+  "rec q1 - w=5",
+  "rec q1 - w=45"
+ ],
+ "lay-miss": [
+  "none"
+ ],
+ "lay-up-miss": [
+  "row q1 -"
+ ],
+ "name-mov-up": [
+  "out new a"
+ ],
+ "name-set-one": [
+  "out new a",
+  "out set q2"
+ ],
+ "reach-cycle": [
+  "rec q1 -",
+  "rec q3 q2"
+ ],
+ "reach-late": [
+  "rec q2 -",
+  "none"
+ ],
+ "reach-out": [
+  "none",
+  "rec q2 -"
+ ],
+ "reach-top": [
+  "rec q2 -"
+ ],
+ "reach-under": [
+  "none",
+  "none"
+ ],
+ "say-fields": [
+  "rec q1 - h=2 k=0 n=4 w=1"
+ ],
+ "say-top": [
+  "rec q1 -",
+  "rec q2 q1",
+  "none"
+ ],
+ "stop-away": [
+  "rec q2 -",
+  "row q1 -",
+  "row q2 -"
+ ],
+ "stop-cut": [
+  "none",
+  "row q1 -"
+ ],
+ "stop-id": [
+  "out new b",
+  "ack new s1",
+  "rec s1 q1"
+ ],
+ "stop-kept": [
+  "out cut q2",
+  "none"
+ ],
+ "stop-side": [
+  "out new b",
+  "row q1 -",
+  "row b q1 w=5"
+ ],
+ "take-base": [
+  "out add q1",
+  "ack add q1",
+  "rec q1 - w=3",
+  "out add q1",
+  "ack add q1",
+  "rec q1 - w=6"
+ ],
+ "take-gone-up": [
+  "out new a",
+  "ack new s1",
+  "none"
+ ],
+ "take-id": [
+  "out new a",
+  "ack new s1",
+  "rec s1 q1"
+ ],
+ "take-order": [
+  "out new a",
+  "out new b",
+  "ack new s1",
+  "ack new s2",
+  "rec s1 q1",
+  "rec s2 q1"
+ ],
+ "view-order": [
+  "row q1 -",
+  "row q2 -",
+  "row a -",
+  "row b -"
+ ],
+ "view-order-move": [
+  "row q1 -",
+  "row a -",
+  "row b -",
+  "out new a",
+  "out new b",
+  "ack new s1",
+  "row q1 -",
+  "row s1 -",
+  "row b -"
+ ],
+ "view-sent": [
+  "out set q1",
+  "rec q1 - w=3",
+  "ack set q1",
+  "rec q1 - w=3"
+ ]
+}

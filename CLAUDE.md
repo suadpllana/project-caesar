@@ -306,3 +306,47 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-17, `queue-hold-drop`)
+
+- **A cheat that ships only the files it patches is graded on the wrong thing.** `emit.py` wrote
+  one file per reading, so the other five stayed as the shipped service, whose view is right and
+  rebuilds per question. Every such cheat then died on the 60 second clock before the rule it was
+  built to break ever mattered: the run reported 43 errors and a reward of 0 for a reading that was
+  never tested. A cheat carries the whole service with the patch in it, and the layer report
+  (`cheat_report.py`) is what says which enumerated case actually caught it.
+- **A probe that carries the reference scores 1 for doing the task.** Seven of the nine isolation
+  probes came back 1 on the first container run, and every one of them was correct: they shipped
+  the reference plus an attack that failed, so the reward measured the work rather than the
+  isolation. Each probe now carries a defect it would have to overcome - here the answer landing on
+  the front of the queue - so a 1 can only mean the attack landed. The two probes that attack files
+  the verifier does not collect need the opposite construction: the collected files are written to
+  depend on the rewritten one, so a 1 would mean the verifier used the agent's copy.
+- **An interaction claimed in the difficulty record was false, and only building it showed that.**
+  The record said that cancelling an unconfirmed creation frees changes that were held behind it.
+  It does not: holding and the take-away follow the same edges, so anything held on account of a
+  record is also taken away with it. The claim was replaced with one that is true and measurable -
+  a cancelled creation never takes an id, so every later creation takes the id it would have had -
+  and `stop-id` pins it. A record written before the code is a hypothesis; the build is where it is
+  checked.
+- **An unshaped family leaves the readings it was supposed to exercise at zero.** Five of the 23
+  wrong readings moved 0 to 4 of 200 generated programs: the backward take-away, the cancellation
+  that leaves what followed, the transitive take-away, a field set to zero, and holding that
+  spreads. Each needs a shape the generator was not producing - an earlier queued change naming the
+  refused record, a cancelled creation with work queued on a record that survives, a move naming
+  two records at once. Reshaping five family builders lifted them to 9 to 54, with no change to any
+  rule. The enumerated set caught all five throughout; the generated set is what says the
+  population exercises the mechanism rather than the corner.
+- **`hintcheck` was right about the one sentence I would have defended.** The brief said the answer
+  lands on the oldest change that went out, and then that this is not the front of the queue once
+  anything has been held. The second sentence names a candidate and rejects it, which hands over
+  the discrimination the task is built on; the first states the rule completely on its own. Cut it,
+  and re-point the trace rows that cited it.
+- **`preflight` reads a STATE.md field as the text after the colon on that one line.** A wrapped
+  answer that starts on the next line reads as unanswered, and so does a line ending in two words.
+  Six required fields were reported blank while the file said everything. Put a full clause on the
+  label line, however long it makes it, then continue underneath.
+- **`pkill -f <pattern>` matches the shell that is running the command containing the pattern.**
+  Killing a background trial from a command whose own text names it kills the caller, and the
+  compound command after it never runs; twice here an edit that looked applied had not been. Put
+  the kill in a script file whose caller does not name the pattern, and re-read the file afterwards.

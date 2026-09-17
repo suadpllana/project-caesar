@@ -1,0 +1,13 @@
+oth new q1 -
+oth new q2 q1
+oth new q3 q1
+set q3 k 22
+set q3 w -9
+oth cut q3
+ask q3
+snd
+ok
+no
+ask q2
+all
+ask q3

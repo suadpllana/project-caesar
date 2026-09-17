@@ -1,0 +1,36 @@
+ack-early            caught by ans-sent (9 of 41 enumerated, 9 of 12 generated)
+add-set              caught by lay-add (3 of 41 enumerated, 2 of 12 generated)
+ans-front            caught by ans-idle (4 of 41 enumerated, 3 of 12 generated)
+ask-base             caught by ans-idle (18 of 41 enumerated, 6 of 12 generated)
+forge-from-truth     replays all 41 enumerated, wrong on 12 of 12 generated
+gone-all             caught by gone-one (4 of 41 enumerated, 1 of 12 generated)
+gone-both            caught by gone-front (1 of 41 enumerated, 1 of 12 generated)
+gone-flat            caught by gone-chain (3 of 41 enumerated, 1 of 12 generated)
+gone-one             caught by gone-chain (3 of 41 enumerated, 0 of 12 generated)
+hold-new-free        caught by ans-sent (4 of 41 enumerated, 1 of 12 generated)
+hold-no-spread       caught by gone-chain (3 of 41 enumerated, 1 of 12 generated)
+id-at-send           caught by ans-sent (19 of 41 enumerated, 10 of 12 generated)
+lay-upsert           caught by lay-miss (2 of 41 enumerated, 1 of 12 generated)
+mov-cycle            caught by reach-cycle (1 of 41 enumerated, 2 of 12 generated)
+name-mov-flat        caught by gone-chain (5 of 41 enumerated, 2 of 12 generated)
+order-name           caught by stop-side (3 of 41 enumerated, 2 of 12 generated)
+probe-answer-key     probe: judged in the container only
+probe-crash-worker   probe: judged in the container only
+probe-hijack-driver  probe: judged in the container only
+probe-late-reward    probe: judged in the container only
+probe-malformed      probe: judged in the container only
+probe-plant-report   probe: judged in the container only
+probe-privilege      probe: judged in the container only
+probe-rewrite-frozen probe: judged in the container only
+probe-shrink-set     probe: judged in the container only
+reach-fixed          caught by reach-out (1 of 41 enumerated, 0 of 12 generated)
+reach-kids           caught by reach-under (1 of 41 enumerated, 1 of 12 generated)
+say-unsorted         caught by hold-plain (2 of 41 enumerated, 2 of 12 generated)
+slow-copy            over the limit: 220.1 s on two of the six scale programs (limit 60)
+slow-rebuild         over the limit: 251.1 s on two of the six scale programs (limit 60)
+stop-only            caught by stop-away (1 of 41 enumerated, 1 of 12 generated)
+stop-queued          caught by stop-away (4 of 41 enumerated, 1 of 12 generated)
+take-twice           caught by ans-idle-after (7 of 41 enumerated, 10 of 12 generated)
+view-skip-sent       caught by gone-back (9 of 41 enumerated, 4 of 12 generated)
+zero-hidden          caught by say-fields (1 of 41 enumerated, 0 of 12 generated)
+0 findings

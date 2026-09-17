@@ -1,0 +1,201 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pend/line.py",
+  "/app/pend/fold.py",
+  "/app/pend/hold.py",
+  "/app/pend/view.py",
+  "/app/pend/lay.py",
+  "/app/pend/reach.py",
+]
+
+[task]
+name = "afterquery/queue-hold-drop"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief, and the plan the brief seems to ask for is the one every write-up of
+this kind of client describes: confirmed records in one dictionary, the user's unconfirmed changes
+in a queue behind them, the view derived by replaying the queue over the records, a send that posts
+the queue front to back, an acceptance that pops the front, a refusal that throws the front away.
+That plan is wrong in four places, and none of them shows until something has been held back.
+
+A change cannot go out until every record it names carries a server id, so the order changes go out
+is not the order they were made, and the order they are answered follows the order they went out.
+The queue is therefore not first in, first out, and an answer that lands on the front of it lands on
+a change the server never saw. Because a creation takes its id at the answer and not at the send,
+which record ends up as `s1` is decided by that same order, and a refusal that takes a change which
+had already gone out moves every answer after it. Holding and taking away are the same forward
+sweep over a growing set of record names, so the reach of either depends on what the other did.
+
+The second finding is about time rather than order, and it invalidates the structure the first one
+leaves. What a queued removal takes is the records under it in the view as it stands when that
+change is laid over, so a move arriving from another client afterwards changes what an already
+queued removal does. The view is therefore a function of the confirmed records and cannot be
+materialised when a change is made. Deriving it per question is exactly right and does not fit:
+measured here, a service that does so takes 111 seconds on one twenty thousand change program and
+48 on one twelve thousand record tree against a 60 second limit for the whole graded set, while the
+reference settles all 497 programs in about a second. What makes the fast path legitimate is an
+invariant of the rules rather than a trick: appending a change cannot alter what the changes before
+it did, so the view can be carried forward as the user works and rebuilt only when the confirmed
+records or the queue move. An implementation that carries it forward and forgets to rebuild is
+fast and fails the arrivals; one that rebuilds per question is right and fails the clock.
+
+Around those sit the ordinary decisions, each fenced on both sides: a creation that does not wait
+for the record it makes but does wait for its parent, a move that names its new parent and a field
+change that names nothing else, a refusal that takes one change when nothing shares its record, a
+removal of a record the server has never confirmed that takes the creation off the queue rather
+than joining it, and a move under one of its own descendants that does nothing. All six editable
+files ship wrong, and nothing in the tree says what any program ought to print: the service can be
+run as often as one likes, and agreeing with it proves nothing, because the only correct line
+published anywhere is the one in the brief.
+
+Identifiers are in a legacy register - `pend/`, `line`, `fold`, `hold`, `lay`, `reach`, `sid`,
+`oid`, `fld`, `up` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real client code rather than an obstacle: each is recoverable from
+what calls it and what its value flows into.
+
+The graded programs are synthetic, in twelve families, with creations queued under parents that
+are themselves unconfirmed, moves that make holding reach records which do carry ids, refusals with
+dependents at varying distance, removals cancelled before they are ever sent, arrivals that move
+records into and out of the reach of a queued removal, fields added to over a base that moves
+underneath them, and the two scale families. In a working client these are the ordinary Monday
+morning of a user who has been offline, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`line.py` holds the queue and says what each change is about and which records it names, which is
+the vocabulary the other five are written in. It also answers which change an answer lands on, by
+scanning for the oldest change that has gone out and is still queued rather than by taking the
+front, and it is where a removal against a record the server has never confirmed is turned into a
+cancellation of that record's creation instead of a new entry.
+
+`fold.py` is what an answer does. The take-away is one forward sweep from the position of the
+change that went, over a set of record names that grows as it goes, and the same sweep serves the
+refusal and the cancellation, which is why the count on a `gone` line and the silence of a
+cancellation come out of one piece of code. Acceptance lays the change over the confirmed records,
+hands a creation the next id and only then prints the identity, because the `ack` of a creation is
+the first line that shows the id.
+
+`hold.py` decides what goes out. It is the same shape of sweep as the take-away and deliberately
+so: a change waits when a record it names has no id, bar the record its own creation makes, and a
+change that waits puts the record it is about beyond reach for everything later. Writing the two
+sweeps as one shape is what keeps the two answers consistent when a refusal and a hold meet on the
+same record.
+
+`view.py` derives what the user sees and carries it forward. A change the user makes is laid
+straight onto the view it already holds; anything that moves the confirmed records or the queue
+drops it, and the next question rebuilds it. That split is the whole of the performance story and
+it follows from the rules: a new change cannot alter the effect of the changes before it, while an
+arrival or an answer can alter the effect of everything queued after it.
+
+`lay.py` is what one change does to a set of records, written once and used on the view, on the
+confirmed records and on the staging the answer does. `reach.py` answers which records lie under
+one and whether a move would put a record under itself, from the parent links as they stand at that
+moment, which is what makes a queued removal follow the tree rather than a set fixed when it was
+made.
+
+An expert works in that order because each file consumes the one before it: the vocabulary decides
+what holding and taking away mean, what an answer does decides which ids exist, what goes out
+decides the order answers arrive in, and the view is the only place any of it is visible. The same
+contract is implemented two further ways in the authoring set, one walking every record's chain of
+parents instead of indexing children and one holding the view as an overlay on the confirmed
+records that copies nothing until it changes, so the graded contract is visibly not one shape.
+"""
+
+verification_explanation = """
+Only the six files under `/app/pend/` are taken from the agent. The verifier lays them over its own
+pristine copy of the tree, so nothing else the agent may have touched can change what a program
+prints, and every trace is compared line for line.
+
+Correct is defined twice over. Forty-one hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Four hundred and fifty-six further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across twelve families that concentrate creations queued under unconfirmed parents, holding that
+spreads to records which do carry ids, refusals with dependents at varying distance, cancelled
+creations, arrivals that move records into and out of the reach of a queued removal, relative
+fields over a moving base, and the two scale families. A submission cannot have seen them, so
+fitting the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Holding too little fails `hold-new-up`, `hold-spread` and
+`hold-spread-far`; holding too much fails `hold-plain` and `name-set-one`. Answering the front of
+the queue fails `ans-sent` and `gone-front`. Handing a creation its id at the send fails
+`take-order`; printing the identity before handing it fails `take-id`. Taking only the refused
+change fails `gone-chain`; taking the rest of the queue fails `gone-one`; sweeping backwards as
+well as forwards fails `gone-front`. Queueing a removal of a record the server never confirmed
+fails `stop-cut` and `stop-away`; taking its creation and leaving what followed fails `stop-away`.
+Fixing what a removal takes when the user makes it fails `reach-out` and `reach-late`; taking only
+the records directly under it fails `reach-under`. Allowing a move under one's own descendant fails
+`reach-cycle`. Bringing back a record a change can no longer see fails `lay-miss`. Every one of
+those was run as a cheat and scored 0, and `tools/readingcheck.py` reports which enumerated case
+separates each of the twenty-three.
+
+Thirty-five cheats score 0. Twenty-three are wrong readings, each caught by the enumerated case
+named for it. Two are exactly correct and outside the limit: the view derived again for every
+question, which takes 251 seconds over two of the six scale programs, and the view carried forward
+but copied whole for each question, which takes 220. One is a forgery carrying the frozen answers
+for every enumerated program, which replays all forty-one and is wrong on 196 of 200 programs it
+could not have seen. The other nine are isolation probes, each carrying a service that cannot earn
+the reward on the work, so that a 1 could only mean the attack landed: a late reward written by a
+double-forked survivor, a planted report, a report planted and the worker exited clean before it
+could be overwritten, malformed records, a privilege sweep, a shrunken population, a reach for the
+sealed model, a rewritten dispatch that would have repaired the service, and a rewritten printer
+the collected files were made to depend on. Two independently written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to 0,
+is written last by the privileged stage into a root-owned directory locked before any agent code
+runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "replication-clients",
+  "write-queue-ordering",
+  "conflict-replay",
+  "identifier-assignment",
+  "cascading-invalidation",
+  "incremental-materialisation",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the write path of an offline-capable client for a shared store: the queue of
+changes a user makes while the connection is down, the order they can be sent in once records
+depend on ids the server has not handed out yet, and what has to be thrown away when the server
+refuses one of them. Familiarity with the fact that the queue stops being first in, first out the
+moment anything is held back, that a change made against what the user could see has to be
+re-settled against what the server has since said, and that the answer to what a removal takes is a
+question about the tree at the moment the change is replayed rather than a set recorded when it was
+made. Comfort with deriving a view from a base and a log, with keeping that derivation affordable
+when the log is long and the questions are frequent, and with the difference between a structure
+that is correct and one that is correct at the size a real client reaches after a day offline.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

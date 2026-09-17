@@ -1,0 +1,4 @@
+wide  ref    46678 lines       0.2 s
+wide  slow   46678 lines     111.0 s
+deep  ref    20013 lines       0.1 s
+deep  slow   20013 lines      48.3 s

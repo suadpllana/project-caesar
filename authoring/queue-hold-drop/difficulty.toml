@@ -1,0 +1,189 @@
+# Difficulty record - queue-hold-drop, written before any environment code exists.
+# Scored with: python tools/difficultycheck.py queue-hold-drop
+
+[task]
+slug = "queue-hold-drop"
+status = "pending"
+sources = [
+  "tasks/queue-hold-drop/STATE.md",
+  "authoring/queue-hold-drop/trace.md",
+]
+expert_hours = 10
+estimated_solves = 3
+
+[plan]
+first_plan = """
+Keep the confirmed records in one dictionary and the user's unconfirmed changes in a
+first-in-first-out list. The view the user sees is the confirmed records with that list
+replayed over a copy of them, recomputed whenever a question is asked. A send posts the
+list front to back. An acceptance pops the front change and folds it into the confirmed
+records. A refusal pops the front change and throws it away. Temporary names are swapped
+for server ids as the acceptances come back.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A change may go out only once every record it names already carries a server id, apart from
+the record a creation makes, and a change that stays behind holds back every later change
+naming any record it names. The server answers in the order changes went out, so an answer
+lands on the oldest change that has gone out and is still queued, which is not the front of
+the queue once anything has been held.
+"""
+second_discovery = """
+What a queued removal takes is the records under it in the view as it stands at the moment
+that change is laid over, not when the user made it, so a later arrival from another client
+that moves a record into or out of that subtree changes what an already queued removal does.
+The laid-over view is therefore a function of the confirmed records, and it cannot be
+materialised when a change is made - while replaying the whole queue per question does not
+fit the stated limit at the size the programs reach.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read the driver and the frozen store to find where the confirmed records end and the queue begins",
+  "Split the state into confirmed records, a queue of changes each carrying its own state, and a view derived from both",
+  "Work out the holding relation over the queue: a change names records, and holding spreads through changes that share a record",
+  "Derive the answer target from the order changes went out rather than from the front of the queue",
+  "Make removal and reparenting ask the view for the subtree at the moment the change is laid over, and give the cycle test the same timing",
+  "Give the refusal and the cancel their two closures over later queued changes, and check that cancelling a creation unblocks what it was holding",
+  "Maintain the derived view as changes are appended and rebuild it only when the confirmed records move, then time both scale programs against the limit",
+]
+
+[search]
+best_page = """
+The rebase section of the Replicache sync documentation together with the TanStack DB
+mutations guide: both describe holding a confirmed base, replaying pending mutations over it
+after every server poke, dropping a rejected mutation and replaying the rest, and swapping
+temporary ids for server ids once creates come back.
+"""
+helps_plan = false
+deviation = """
+Those pages hand over the scaffolding and are wrong on every decision this task grades. They
+replay the pending list on each read, which does not fit the limit here; they drop only the
+rejected mutation, where a refusal here takes a closure of later changes sharing a record;
+they treat the queue as first-in-first-out, where an answer here lands on the oldest change
+that went out and is still queued; and they push creates first to collect id mappings, where
+sends here stay in the order the user made them and ids are handed out in the order the
+server answers.
+"""
+
+[tactics]
+A1 = """
+The retrievable sync-engine plan is the first plan, and it is specifically wrong four ways:
+whole-queue replay per read misses the limit, a refusal takes more than the refused change,
+the queue is not first-in-first-out once a change is held, and creates are not sent ahead of
+their turn.
+"""
+A2 = """
+The brief states the holding, answering and dropping rules operationally, in the terms of
+the program ops, and never uses the words rebase, outbox, optimistic, closure or dependency,
+so the recognition that turns this into a retrieval query is itself the work.
+"""
+B2 = """
+Ten graded decisions hold at once: holding, send order, answer target, id order, the two
+drop closures, cancellation, subtree reach at lay time, the cycle test, and relative fields
+over a moved base. Each changes what another means.
+"""
+C1 = """
+The everyday programs - a queue that never blocks, a removal with no remote arrival under it,
+a refusal with nothing sharing its records - must keep printing exactly what they print now,
+so a solution that holds back or drops more than the rules say fails them.
+"""
+C3 = """
+Replaying the whole queue per question is correct and misses the limit at the size the two
+scale programs reach; the fast path follows from the invariant that appending a change cannot
+change what the changes before it did.
+"""
+C4 = """
+Every graded program is compared line for line, all or nothing, with the enumerated cases
+aimed at each rule and the generated families shaped around the holding, dropping and
+reach mechanisms rather than drawn uniformly.
+"""
+guard = """
+Only the six files under /app/pend named in the brief are collected; the driver, the record
+store, the program reader and the printer are not, and the verifier lays the six over its own
+pristine copy of the tree, so the trace format and the op set cannot be reshaped.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a change is held until every record it names carries a server id", b = "server ids are handed out in the order the server answers", why = "which changes are held decides the order changes go out, which decides the order ids are handed out, which decides which later changes are held" },
+  { a = "a refusal drops later queued changes sharing a record, transitively", b = "an answer lands on the oldest change that went out and is still queued", why = "a refusal can drop changes that already went out, so the next answer lands further down, and a queue treated as first-in-first-out answers the wrong change" },
+  { a = "a removal takes the records under it in the view at the moment it is laid over", b = "arrivals from another client move records between subtrees", why = "the same queued removal takes a different set of records before and after an arrival, so a removal whose reach was fixed when it was made is wrong from then on" },
+  { a = "cutting a record that has never been confirmed cancels its creation", b = "server ids are handed out in the order the server answers", why = "the cancelled creation never goes out and never takes an id, so every later creation takes the id the cancelled one would have had" },
+  { a = "an accepted change is folded into the confirmed records and leaves the queue", b = "a field change that adds to what the field holds is laid over the view", why = "folding and laying over the same change both apply it, so getting one right decides whether the other double counts" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A program where nothing is ever held and nothing is ever refused: the changes go out in the
+order they were made, the ids come back in that order, and a removal takes exactly the
+records under it. A solution that holds back changes it cannot prove sendable, or drops
+neighbours on a refusal, prints fewer sends and larger drop counts and fails here.
+"""
+late_case = """
+A creation is held behind an unconfirmed parent, the change holding it is cancelled by a
+removal, the changes that were behind it go out in the same step and take their ids in that
+order, and a later question reads a record whose subtree an arrival from another client has
+moved. Everything before that point prints correctly under the first plan.
+"""
+oracle_denied = """
+The only way to check a reading is to run the shipped engine, and the shipped engine is wrong
+in all six collected files, so agreement with it proves nothing and disagreement says nothing
+about which of the two is right. Nothing in the tree records what a program should print.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored subtree or member list on a record, which would answer the reach question without deriving it", closed_by = "records carry a parent only; every subtree is walked from the parent links at the moment the question is asked, and no count of descendants is stored anywhere" },
+  { what = "a queue entry field recording which changes a change depends on, which would hand over both closures", closed_by = "a queue entry carries only its kind and the record names it mentions; the holding and dropping relations are derived from the names each time they are needed" },
+  { what = "the pair of counters sent and answered on the queue, whose difference would name the answer target", closed_by = "the queue keeps one state per change and no counters; the answer target is derived by scanning for the oldest change that went out and is still queued" },
+  { what = "sample programs shipped with their expected output, or any recorded trace in the tree", closed_by = "the programs under /app/progs carry no expected output and no trace file ships; the only printed correct line anywhere is the one the brief gives as a worked example" },
+  { what = "an unread field or an uncalled helper in the collected files that would announce where the rules live", closed_by = "tools/deadfieldcheck.py and preflight are run over the built tree and every field and function is reached by the shipped engine" },
+]
+derived_quantities = """
+The tree ships the primitives only: a record's parent and its fields, and for each queued
+change its kind and the record names it mentions. Nothing stores a subtree, a descendant
+count, a dependency edge, a send position or an answer target, and those are exactly the
+quantities the graded decisions are about.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Replaying the whole queue over a copy of the confirmed records every time a question is asked,
+which is what the retrievable sync-engine plan describes and what the shipped engine does.
+"""
+invariant = """
+Appending a change cannot change what the changes before it did, so the laid-over view can be
+carried forward as changes arrive and rebuilt only when the confirmed records move, which the
+program controls and which the scale families make rare.
+"""
+input_scale = "one program queues 20000 changes with a question after each, another stands a removal over a 12000 record tree and asks 8000 questions"
+limit_seconds = 60
+measured = true
+
+[cheats]
+wrong_readings = [
+  { reading = "hold only the change that names an unconfirmed record, not the later changes sharing it", hand_case = "create a under root, create b under a, set a field on b, send: b's creation and the field change must both stay behind" },
+  { reading = "answer the front of the queue rather than the oldest change that went out", hand_case = "hold one change behind an unconfirmed parent, send, accept: the acceptance must land on the change that went out, not on the held one" },
+  { reading = "hand out server ids in the order the changes were made", hand_case = "queue two creations, hold the first behind an unconfirmed parent, send and accept twice: the second creation takes s1" },
+  { reading = "a refusal drops only the refused change", hand_case = "refuse a creation with two later changes naming the record it made: the drop count is three, not one" },
+  { reading = "a refusal drops every later change in the queue", hand_case = "refuse a change with an unrelated later change on another record: the drop count is one and the unrelated change still goes out" },
+  { reading = "fix what a removal takes when the change is made", hand_case = "queue a removal of a record, then have another client move a second record under it, then ask: the moved record is gone too" },
+  { reading = "let a reparenting move a record under its own descendant", hand_case = "queue a move of the root of a branch under a record inside that branch: the move does nothing and the tree is unchanged" },
+  { reading = "cutting an unconfirmed record leaves its creation in the queue", hand_case = "create a record, cut it, send: nothing goes out and the queue is empty" },
+  { reading = "fold an accepted change into the confirmed records and leave it queued", hand_case = "add three to a field, send, accept, ask: the field reads three, not six" },
+  { reading = "apply a queued change to a record the view no longer holds", hand_case = "another client removes a record with a queued field change on it: the record stays gone and the change does nothing" },
+]
+correct_variants = [
+  "a variant that keeps the queue as one list with a state per entry and derives the holding relation by a union of the record names each time a send runs",
+  "a variant that keeps one pending chain per record and merges chains when a change names two records, rebuilding the view from the chains",
+]
+
+[shape]
+environment_py_lines = 330
+editable_files = 6
+reference_lines = 220

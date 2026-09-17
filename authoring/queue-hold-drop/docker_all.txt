@@ -1,0 +1,152 @@
+building queue-hold-drop-env:local
+building queue-hold-drop-test:local
+[oracle]
+    44 passed in 1.47s
+    reward=1 expected=1 -> PASS
+
+[nop]
+    1 passed, 43 errors in 1.10s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-ack-early.sh]
+    10 failed, 34 passed in 1.50s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-add-set.sh]
+    4 failed, 40 passed in 1.27s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-ans-front.sh]
+    5 failed, 39 passed in 1.36s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-ask-base.sh]
+    19 failed, 25 passed in 1.59s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-forge-from-truth.sh]
+    1 failed, 43 passed in 1.22s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-gone-all.sh]
+    5 failed, 39 passed in 1.51s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-gone-both.sh]
+    2 failed, 42 passed in 1.42s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-gone-flat.sh]
+    4 failed, 40 passed in 1.45s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-gone-one.sh]
+    4 failed, 40 passed in 1.47s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-hold-new-free.sh]
+    5 failed, 39 passed in 1.45s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-hold-no-spread.sh]
+    4 failed, 40 passed in 1.49s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-id-at-send.sh]
+    20 failed, 24 passed in 1.36s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-lay-upsert.sh]
+    3 failed, 41 passed in 1.42s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-mov-cycle.sh]
+    2 failed, 42 passed in 1.42s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-name-mov-flat.sh]
+    6 failed, 38 passed in 1.50s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-order-name.sh]
+    4 failed, 40 passed in 1.43s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-answer-key.sh]
+    5 failed, 39 passed in 1.48s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-crash-worker.sh]
+    42 failed, 2 passed in 0.38s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-hijack-driver.sh]
+    5 failed, 39 passed in 1.48s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-late-reward.sh]
+    5 failed, 39 passed in 1.43s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-malformed.sh]
+    32 failed, 12 passed in 1.52s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-plant-report.sh]
+    5 failed, 39 passed in 1.46s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-privilege.sh]
+    5 failed, 39 passed in 1.42s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-rewrite-frozen.sh]
+    27 failed, 17 passed in 1.53s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-probe-shrink-set.sh]
+    5 failed, 39 passed in 1.45s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-reach-fixed.sh]
+    2 failed, 42 passed in 1.54s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-reach-kids.sh]
+    2 failed, 42 passed in 1.45s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-say-unsorted.sh]
+    3 failed, 41 passed in 1.47s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-slow-copy.sh]
+    1 passed, 43 errors in 1.02s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-slow-rebuild.sh]
+    1 passed, 43 errors in 1.03s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-stop-only.sh]
+    2 failed, 42 passed in 1.39s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-stop-queued.sh]
+    5 failed, 39 passed in 1.52s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-take-twice.sh]
+    8 failed, 36 passed in 1.39s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-view-skip-sent.sh]
+    1 passed, 43 errors in 1.12s
+    reward=0 expected=0 -> PASS
+
+[cheat: cheat-zero-hidden.sh]
+    2 failed, 42 passed in 1.39s
+    reward=0 expected=0 -> PASS
+
+37/37 trials behaved as required
+exit=0

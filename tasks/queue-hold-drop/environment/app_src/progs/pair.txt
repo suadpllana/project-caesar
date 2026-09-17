@@ -1,0 +1,13 @@
+oth new q1 -
+new a q1
+new b a
+set b w 6
+set q1 h 2
+snd
+ask b
+ok
+snd
+ok
+ok
+ask b
+all

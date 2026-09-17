@@ -1,6 +1,6 @@
 """Jobs that have come to wait for each other, by strongly connected components."""
-from hb import fit, hold, line, say
-from hb.store import boxof
+from hb import book, fit, line, tell
+from hb.desk import boxof
 
 
 def edges(st, job):
@@ -56,15 +56,15 @@ def ring(st, job):
 
 
 def pick(st, ring_):
-    return min(ring_, key=lambda one: (hold.count(st, one), -int(one[1:])))
+    return min(ring_, key=lambda one: (book.count(st, one), -int(one[1:])))
 
 
 def kill(st, job):
-    say.stop(st, job)
+    tell.stop(st, job)
     st.gone.add(job)
     ask = line.asked(st, job)
     hit = set()
     if ask is not None:
         line.pull(st, ask)
         hit.add(boxof(ask["node"]))
-    return hit | hold.clear(st, job)
+    return hit | book.clear(st, job)

@@ -89,37 +89,37 @@ CASE = {
 }
 
 MODEL = [
-    ("tests/seal/model.py:38-42", "boxof: a slot name carries its box, so the family is a box and its slots", "space"),
-    ("tests/seal/model.py:43-49", "nkey: node order is box number, the box before its slots, then slot number, as numbers", "nodeorder"),
-    ("tests/seal/model.py:50-53", "jkey: jobs are ordered by the number in the name", "joborder"),
-    ("tests/seal/model.py:54-55", "clash: two modes conflict when at least one is w", "conflict"),
-    ("tests/seal/model.py:58-66", "Ask: a waiting request keeps its job, node, mode, sequence number and lift trigger", "waitline"),
-    ("tests/seal/model.py:67-80", "Engine: the state the operations act on", "ops"),
-    ("tests/seal/model.py:84-92", "put: a take adds one acquire to what the job holds on that node", "acquire"),
-    ("tests/seal/model.py:93-116", "take_off: a drop removes the acquire added most recently", "droprule"),
-    ("tests/seal/model.py:117-119", "acquires: a job's acquires are counted with repetition", "victim"),
-    ("tests/seal/model.py:120-130", "free_all: everything a job holds is given back in node order, each printing free", "endrule"),
-    ("tests/seal/model.py:131-137", "covers: a claim on the node or its box in a covering mode grants at once", "cover"),
-    ("tests/seal/model.py:131-137", "covers: w covers either mode, r covers r, and a slot claim covers nothing above it", "covermode"),
-    ("tests/seal/model.py:138-149", "blocked_by: a conflicting granted claim of another job in the family blocks", "boxfam"),
-    ("tests/seal/model.py:150-163", "blocked_by: an older conflicting waiting request of another job blocks", "blocked"),
-    ("tests/seal/model.py:164-171", "park: a blocked request prints wait and takes the next number from one counter", "onecounter"),
-    ("tests/seal/model.py:172-181", "unpark: a granted or cancelled request leaves the line", "sweep"),
-    ("tests/seal/model.py:182-188", "hand: a grant records the acquire and prints grant", "events"),
-    ("tests/seal/model.py:189-196", "hand: a granted lift frees the box's slot claims in slot order, then grants its trigger", "liftfree"),
-    ("tests/seal/model.py:197-203", "ready: the smallest numbered grantable request of a box", "sweep"),
-    ("tests/seal/model.py:204-221", "sweep: grants repeat in sequence order until nothing more can be granted", "sweep"),
-    ("tests/seal/model.py:222-227", "edges: a job waits for the jobs that block its waiting request", "waitsfor"),
-    ("tests/seal/model.py:228-272", "tangle: every job lying on a cycle through the job that has just started waiting", "victim"),
-    ("tests/seal/model.py:273-282", "cut: stopping prints stop, drops the request and frees in node order", "stopdoes"),
-    ("tests/seal/model.py:283-292", "settle: a victim is taken while any job still lies on a cycle", "stopagain"),
-    ("tests/seal/model.py:293-300", "take: a job acts only when it is not waiting, stopped or finished", "ignores"),
-    ("tests/seal/model.py:301-308", "take: a slot request lifts at four distinct slots, in w if any of them is w", "liftmode"),
-    ("tests/seal/model.py:309-313", "take: an unblocked request is granted, a blocked one waits and the check runs", "blocked"),
-    ("tests/seal/model.py:314-320", "drop: a removed acquire prints free and granting resumes", "droprule"),
-    ("tests/seal/model.py:321-328", "end: frees in node order, prints done, then granting resumes", "endrule"),
-    ("tests/seal/model.py:329-336", "show: the holders of a node, by job number, with sorted mode letters", "show"),
-    ("tests/seal/model.py:337-353", "expect: the operation names, and fill as a take of s1 to s<count>", "ops"),
+    ("tests/seal/twin.py:38-42", "boxof: a slot name carries its box, so the family is a box and its slots", "space"),
+    ("tests/seal/twin.py:43-49", "nkey: node order is box number, the box before its slots, then slot number, as numbers", "nodeorder"),
+    ("tests/seal/twin.py:50-53", "jkey: jobs are ordered by the number in the name", "joborder"),
+    ("tests/seal/twin.py:54-55", "clash: two modes conflict when at least one is w", "conflict"),
+    ("tests/seal/twin.py:58-66", "Ask: a waiting request keeps its job, node, mode, sequence number and lift trigger", "waitline"),
+    ("tests/seal/twin.py:67-80", "Engine: the state the operations act on", "ops"),
+    ("tests/seal/twin.py:84-92", "put: a take adds one acquire to what the job holds on that node", "acquire"),
+    ("tests/seal/twin.py:93-116", "take_off: a drop removes the acquire added most recently", "droprule"),
+    ("tests/seal/twin.py:117-119", "acquires: a job's acquires are counted with repetition", "victim"),
+    ("tests/seal/twin.py:120-130", "free_all: everything a job holds is given back in node order, each printing free", "endrule"),
+    ("tests/seal/twin.py:131-137", "covers: a claim on the node or its box in a covering mode grants at once", "cover"),
+    ("tests/seal/twin.py:131-137", "covers: w covers either mode, r covers r, and a slot claim covers nothing above it", "covermode"),
+    ("tests/seal/twin.py:138-149", "blocked_by: a conflicting granted claim of another job in the family blocks", "boxfam"),
+    ("tests/seal/twin.py:150-163", "blocked_by: an older conflicting waiting request of another job blocks", "blocked"),
+    ("tests/seal/twin.py:164-171", "park: a blocked request prints wait and takes the next number from one counter", "onecounter"),
+    ("tests/seal/twin.py:172-181", "unpark: a granted or cancelled request leaves the line", "sweep"),
+    ("tests/seal/twin.py:182-188", "hand: a grant records the acquire and prints grant", "events"),
+    ("tests/seal/twin.py:189-196", "hand: a granted lift frees the box's slot claims in slot order, then grants its trigger", "liftfree"),
+    ("tests/seal/twin.py:197-203", "ready: the smallest numbered grantable request of a box", "sweep"),
+    ("tests/seal/twin.py:204-221", "sweep: grants repeat in sequence order until nothing more can be granted", "sweep"),
+    ("tests/seal/twin.py:222-227", "edges: a job waits for the jobs that block its waiting request", "waitsfor"),
+    ("tests/seal/twin.py:228-272", "tangle: every job lying on a cycle through the job that has just started waiting", "victim"),
+    ("tests/seal/twin.py:273-282", "cut: stopping prints stop, drops the request and frees in node order", "stopdoes"),
+    ("tests/seal/twin.py:283-292", "settle: a victim is taken while any job still lies on a cycle", "stopagain"),
+    ("tests/seal/twin.py:293-300", "take: a job acts only when it is not waiting, stopped or finished", "ignores"),
+    ("tests/seal/twin.py:301-308", "take: a slot request lifts at four distinct slots, in w if any of them is w", "liftmode"),
+    ("tests/seal/twin.py:309-313", "take: an unblocked request is granted, a blocked one waits and the check runs", "blocked"),
+    ("tests/seal/twin.py:314-320", "drop: a removed acquire prints free and granting resumes", "droprule"),
+    ("tests/seal/twin.py:321-328", "end: frees in node order, prints done, then granting resumes", "endrule"),
+    ("tests/seal/twin.py:329-336", "show: the holders of a node, by job number, with sorted mode letters", "show"),
+    ("tests/seal/twin.py:337-353", "expect: the operation names, and fill as a take of s1 to s<count>", "ops"),
 ]
 
 READINGS = [
@@ -182,18 +182,18 @@ def main():
     add("")
     add("| Verifier site | What it grades | Instruction sentence |")
     add("|---|---|---|")
-    add("| `tests/test_outputs.py:116` test_the_model_still_makes_the_frozen_answers | that the sealed model "
+    add("| `tests/test_outputs.py:112` test_the_twin_still_makes_the_frozen_answers | that the sealed twin "
         "still reproduces the frozen answers before anything is judged by it | %s |" % Q["compare"])
-    add("| `tests/test_outputs.py:126` test_enumerated_program | the trace of every enumerated program, "
+    add("| `tests/test_outputs.py:122` test_enumerated_program | the trace of every enumerated program, "
         "line for line, against the frozen answers | %s |" % Q["compare"])
-    add("| `tests/test_outputs.py:135` test_generated_program | the trace of every "
+    add("| `tests/test_outputs.py:128` test_generated_program | the trace of every "
         "generated program against the sealed model | %s |" % Q["nonce"])
-    add("| `tests/test_outputs.py:154` test_every_family_was_run | that the population the "
+    add("| `tests/test_outputs.py:145` test_every_family_was_run | that the population the "
         "worker ran is the one the grader asked for, so a shrunken exam fails | %s |" % Q["notread"])
     for name in cases.ORDER:
         what, key = CASE[name]
         add("| `tests/cases.py` case %s | %s | %s |" % (name, what, Q[key]))
-    for art in ("hold.py", "fit.py", "line.py", "lift.py", "knot.py", "gate.py"):
+    for art in ("book.py", "fit.py", "line.py", "lift.py", "snarl.py", "door.py"):
         add("| artifact `/app/hb/%s` | only the declared files are collected | %s |"
             % (art, Q["collected"]))
     add("| `tests/test.sh:27` a 60 s clock | the whole graded set must finish inside it | %s |"

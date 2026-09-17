@@ -1,44 +1,39 @@
-"""Grading. Runs as root, and never executes agent code.
+"""Stage two: grade the record stage one left behind. Root, and it runs no agent code.
 
 FROZEN CONTRACT
 ---------------
-The agent supplies the six files under `/app/hb/`: `hold.py` records what each job holds,
+`/app/hb/` supplies six files and nothing else is read: `book.py` records what each job holds,
 `fit.py` decides what conflicts and what a job already covers, `line.py` keeps the waiting
-requests, `lift.py` turns a slot request into a request for the box, `knot.py` finds jobs that
-have come to wait for each other, and `gate.py` drives take, drop and end. Everything else in
-the tree is the verifier's own pristine copy, so only those six can change what a program
-prints.
+requests, `lift.py` turns a slot request into a request for the box, `snarl.py` finds the jobs
+that have come to wait for each other, and `door.py` drives take, drop and end. The rest of the
+tree is this container's own copy, so those six are the only thing that can move a trace.
 
-Graded, and settled the same way by two implementations written apart:
+Thirteen decisions are graded, and two implementations written apart settle them the same way:
 
   1  a claim on a box and a claim on any of its slots conflict when at least one is w
-  2  two claims on sibling slots never conflict, and two readers never conflict
-  3  a request is granted at once, ahead of the line, when the asking job already holds a
-     covering claim on that node or on its box; a claim on a slot covers nothing above it
-  4  a hold is a list of acquires: a drop removes the most recent one and what is left decides
-  5  a request that is blocked waits, and a request behind an older conflicting one waits too
-  6  grants are ordered by one sequence taken across the whole store, not per node
-  7  a slot request by a job already holding four or more slots of that box, and no covering
-     claim on it, becomes a request for the box, in w when the request or any of them is w
-  8  a lifted request that cannot be granted waits, keeping the slot claims until it is
-  9  a granted lifted request frees those claims in slot order and then grants its trigger
- 10  a job lies on a cycle of the waits-for relation through granted claims and through older
-     waiting requests alike; the job on any cycle with the fewest acquires is stopped, ties to
-     the largest job number
- 11  a job ignores every line naming it while its own request waits, after it has ended, and
-     after it has been stopped
- 12  end frees every acquire in node order, then says done
- 13  show lists the jobs holding a node in job order with their acquires as sorted letters
+  2  sibling slots never conflict, two readers never conflict, and a job never blocks itself
+  3  a request is granted ahead of the line when the job already covers it on that node or on
+     its box, and a claim on a slot covers nothing above it
+  4  a hold is a list of acquires: a drop takes back the most recent and what is left decides
+  5  a blocked request waits, and so does one behind an older conflicting request
+  6  grants come out in one sequence taken across the store, not one per node
+  7  a slot request lifts at four distinct slots of a box, in w if the request or any of them is
+  8  a lifted request that cannot be granted waits, holding its slot claims until it is
+  9  a granted lift frees those claims in slot order and then grants what caused it
+ 10  the waits-for relation runs through older waiting requests as well as granted claims, and
+     the job stopped is the one on a cycle with the fewest acquires, ties to the largest number
+ 11  a job acts on no line while its own request waits, after it ends, or after it is stopped
+ 12  end frees in node order and then says done
+ 13  show lists holders by job number with their acquires as sorted letters
 
-Implementation choice, and not graded: how holdings are indexed, whether the waiting requests
-are one list or one per box, how the cycle is found, and any internal naming. Not a free choice,
-and not asserted here either: neither the jobs of a family, nor which requests are grantable,
-nor whether a job lies on a cycle can be found by walking the whole store, which the execution
-limit on the worker decides rather than any assertion in this file.
+Not graded, and deliberately: how the six divide the work, how holdings are indexed, whether the
+line is one structure or one per box, and how the cycle is found. Not free either, and not
+asserted here: none of the three questions above can be answered by walking the whole store and
+still finish inside the clock stage one runs under.
 
-Hand cases are checked against `gt.json`, frozen before this file was written. Nonce programs
-are generated here, after the agent has finished, and checked against the sealed model. The
-model must also reproduce `gt.json` exactly, so a drifted model cannot quietly redefine correct.
+The enumerated programs are checked against `seal/gt.json`, frozen before this file existed. The
+generated ones are checked against `seal/twin.py`, which is also made to reproduce `gt.json`
+before it is allowed to judge anything.
 """
 import hashlib
 import json
@@ -51,107 +46,103 @@ import pytest
 import cases
 import gen
 
-SEAL = os.environ.get("CCL_SEAL", "/tests/seal")
-sys.path.insert(0, SEAL)
+SEAL = pathlib.Path(os.environ.get("CCL_SEAL", "/tests/seal"))
+sys.path.insert(0, str(SEAL))
 
-import model  # noqa: E402
+import twin  # noqa: E402
 
-WORK = pathlib.Path(os.environ.get("CCL_WORK", "/work"))
-OUT = WORK / "worker_out.json"
-GT = pathlib.Path(SEAL) / "gt.json"
+YARD = pathlib.Path(os.environ.get("CCL_WORK", "/work"))
 LOGS = pathlib.Path(os.environ.get("CCL_LOGS", "/logs/verifier"))
 
 
-def fingerprint(lines):
-    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+def mark(body):
+    return hashlib.blake2s("\x1f".join(body).encode("utf-8")).hexdigest()
 
 
-def read_record():
-    """Every byte here came from a process that ran agent code. Parse it defensively."""
-    try:
-        raw = json.loads(OUT.read_text(encoding="utf-8"))
-    except Exception as exc:
-        pytest.fail("worker produced no readable output: %s" % exc)
-    if not isinstance(raw, list):
-        pytest.fail("worker output is not a list")
-    by = {}
-    for item in raw:
-        if not isinstance(item, dict):
-            pytest.fail("worker output entry is not an object")
-        name = item.get("name")
-        if not isinstance(name, str):
-            pytest.fail("worker output entry has no name")
-        by[name] = item
-    return by
+class Record:
+    """Stage one's output, read as hostile input: every shape is checked before it is used."""
 
+    def __init__(self, blob):
+        if not isinstance(blob, dict):
+            pytest.fail("the record is not an object")
+        self.ran = blob.get("ran")
+        self.broke = blob.get("broke")
+        if not isinstance(self.ran, dict) or not isinstance(self.broke, dict):
+            pytest.fail("the record has no ran and broke tables")
 
-def trace_of(item):
-    got = item.get("got")
-    if got is None:
-        pytest.fail("the service raised or produced nothing: %s" % (item.get("err"),))
-    if not isinstance(got, list) or not all(isinstance(x, str) for x in got):
-        pytest.fail("the record is not a list of lines")
-    return got
+    @classmethod
+    def load(cls):
+        try:
+            return cls(json.loads((YARD / "bench_out.json").read_text(encoding="utf-8")))
+        except (OSError, ValueError) as exc:
+            pytest.fail("stage one left no readable record: %s" % exc)
+
+    def trace(self, name, body):
+        if name in self.broke:
+            pytest.fail("the service raised on %s: %s" % (name, self.broke[name]))
+        got = self.ran.get(name)
+        if not isinstance(got, dict):
+            pytest.fail("no record for %s" % name)
+        if got.get("sig") != mark(body):
+            pytest.fail("the program %s was not the one that ran" % name)
+        out = got.get("out")
+        if not isinstance(out, list) or not all(isinstance(one, str) for one in out):
+            pytest.fail("the trace of %s is not a list of lines" % name)
+        return out
 
 
 @pytest.fixture(scope="module")
 def record():
-    return read_record()
+    return Record.load()
 
 
 @pytest.fixture(scope="module")
 def frozen():
-    return json.loads(GT.read_text(encoding="utf-8"))
+    return json.loads((SEAL / "gt.json").read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")
 def exam():
     seed = (LOGS / "nonce").read_text(encoding="utf-8").strip()
-    per = int((LOGS / "per").read_text(encoding="utf-8").strip())
-    return seed, per
+    return gen.programs(seed, int((LOGS / "per").read_text(encoding="utf-8").strip()))
 
 
-# --- the sealed side has to agree with itself before it judges anything ---------------
+# --- the sealed side has to agree with itself before it judges anything ----------------
 
-def test_the_model_still_makes_the_frozen_answers(frozen):
-    """gt.json was frozen from the model. If they have drifted apart, grade nothing."""
+def test_the_twin_still_makes_the_frozen_answers(frozen):
+    """gt.json came from the twin. Drifted apart, they would grade nothing between them."""
     assert sorted(frozen) == sorted(cases.ORDER)
     for name in cases.ORDER:
-        assert model.expect(cases.ops(name)) == frozen[name], name
+        assert twin.expect(cases.ops(name)) == frozen[name], name
 
 
-# --- the enumerated programs: one per graded decision, plus both sides of each fence ---
+# --- one enumerated program per graded decision, and per must-still-work fence ---------
 
 @pytest.mark.parametrize("name", cases.ORDER)
 def test_enumerated_program(record, frozen, name):
-    assert name in record, "the service was never run on %s" % name
-    item = record[name]
-    assert item.get("sig") == fingerprint(cases.ops(name)), "hand program was altered: %s" % name
-    assert trace_of(item) == frozen[name]
+    assert record.trace(name, cases.ops(name)) == frozen[name]
 
 
-# --- programs generated from a seed drawn after the agent's container was gone ---------
+# --- and the population drawn from a seed taken after the agent's container was gone ---
 
 def test_generated_program(record, exam):
-    seed, per = exam
-    wanted = gen.programs(seed, per)
-    assert len(wanted) >= 300, "nonce population too small: %d" % len(wanted)
-    bad = []
-    for _fam, name, body in wanted:
-        item = record.get(name)
-        if item is None:
-            bad.append((name, "missing"))
+    assert len(exam) >= 300, "the generated population came out at %d" % len(exam)
+    wrong = []
+    for _family, name, body in exam:
+        if name in record.broke:
+            wrong.append((name, "raised"))
             continue
-        if item.get("sig") != fingerprint(body):
-            bad.append((name, "program altered"))
+        got = record.ran.get(name)
+        if not isinstance(got, dict) or got.get("sig") != mark(body):
+            wrong.append((name, "missing or altered"))
             continue
-        if item.get("got") != model.expect(body):
-            bad.append((name, "record differs"))
-    assert not bad, "%d of %d nonce programs wrong, first: %s" % (
-        len(bad), len(wanted), bad[:4])
+        if got.get("out") != twin.expect(body):
+            wrong.append((name, "trace differs"))
+    assert not wrong, "%d of %d generated programs wrong, first: %s" % (
+        len(wrong), len(exam), wrong[:4])
 
 
 def test_every_family_was_run(record, exam):
-    seed, per = exam
-    fams = {fam for fam, _n, _b in gen.programs(seed, per)}
-    assert fams == {name for name, _big in gen.FAMILIES}
+    """A shrunken exam is a failed one: every family the grader asked for has to be there."""
+    assert {family for family, _n, _b in exam} == {name for name, _big in gen.FAMILIES}
+    assert set(record.ran) | set(record.broke) >= {name for _f, name, _b in exam}

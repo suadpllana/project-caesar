@@ -2,9 +2,9 @@
 # constant: the worked example's output, for every program
 set -euo pipefail
 
-cat > /app/hb/hold.py <<'PYEOF'
-from hb import say
-from hb.store import boxof
+cat > /app/hb/book.py <<'PYEOF'
+from hb import tell
+from hb.desk import boxof
 
 
 def order(node):
@@ -129,7 +129,7 @@ def clear(st, job):
     for node in nodes(st, job):
         while modes(st, job, node):
             sub(st, job, node)
-            say.free(st, job, node)
+            tell.free(st, job, node)
         hit.add(boxof(node))
     return hit
 
@@ -145,8 +145,8 @@ def who(st, node):
 PYEOF
 
 cat > /app/hb/fit.py <<'PYEOF'
-from hb import hold, line
-from hb.store import boxof
+from hb import book, line
+from hb.desk import boxof
 
 
 def clash(one, two):
@@ -155,7 +155,7 @@ def clash(one, two):
 
 def cover(st, job, node, mode):
     for held in (node, boxof(node)):
-        got = hold.modes(st, job, held)
+        got = book.modes(st, job, held)
         if got and (mode == "r" or "w" in got):
             return True
     return False
@@ -163,16 +163,16 @@ def cover(st, job, node, mode):
 
 def blockers(st, job, node, mode, seq=None):
     out = set()
-    for other, got in hold.at(st, node).items():
+    for other, got in book.at(st, node).items():
         if other != job and any(clash(mode, m) for m in got):
             out.add(other)
     box = boxof(node)
     if box != node:
-        for other, got in hold.at(st, box).items():
+        for other, got in book.at(st, box).items():
             if other != job and any(clash(mode, m) for m in got):
                 out.add(other)
     else:
-        for other, sum_ in hold.under(st, box).items():
+        for other, sum_ in book.under(st, box).items():
             if other != job and (mode == "w" or sum_[1] > 0):
                 out.add(other)
     for req in line.ahead(st, node, seq):
@@ -182,8 +182,8 @@ def blockers(st, job, node, mode, seq=None):
 PYEOF
 
 cat > /app/hb/line.py <<'PYEOF'
-from hb import hold, say
-from hb.store import boxof
+from hb import book, tell
+from hb.desk import boxof
 
 
 def ahead(st, node, seq):
@@ -203,8 +203,8 @@ def ahead(st, node, seq):
 def park(st, job, node, mode, trig):
     req = {"job": job, "node": node, "mode": mode, "seq": st.mark(), "trig": trig}
     st.pend.setdefault(boxof(node), {})[req["seq"]] = req
-    hold.book(st, job)["req"] = req
-    say.wait(st, job, node, mode)
+    book.book(st, job)["req"] = req
+    tell.wait(st, job, node, mode)
     return req
 
 
@@ -228,33 +228,33 @@ def queued(st, box):
 PYEOF
 
 cat > /app/hb/lift.py <<'PYEOF'
-from hb import hold, say
+from hb import book, tell
 
 FLOOR = 4
 
 
 def check(st, job, node, mode):
     box = node[:node.find(":")]
-    got, wet = hold.tally(st, job, box)
+    got, wet = book.tally(st, job, box)
     if got < FLOOR:
         return None
     return "w" if mode == "w" or wet else "r"
 
 
 def settle(st, job, box, trig):
-    for node in hold.slots(st, job, box):
-        while hold.modes(st, job, node):
-            hold.sub(st, job, node)
-            say.free(st, job, node)
+    for node in book.slots(st, job, box):
+        while book.modes(st, job, node):
+            book.sub(st, job, node)
+            tell.free(st, job, node)
     node, mode = trig
-    hold.add(st, job, node, mode)
-    say.grant(st, job, node, mode)
+    book.add(st, job, node, mode)
+    tell.grant(st, job, node, mode)
     return {box}
 PYEOF
 
-cat > /app/hb/knot.py <<'PYEOF'
-from hb import fit, hold, line, say
-from hb.store import boxof
+cat > /app/hb/snarl.py <<'PYEOF'
+from hb import book, fit, line, tell
+from hb.desk import boxof
 
 
 def step(st, job):
@@ -304,26 +304,26 @@ def ring(st, job):
 def pick(st, ring_):
     best = None
     for job in ring_:
-        key = (hold.count(st, job), -int(job[1:]))
+        key = (book.count(st, job), -int(job[1:]))
         if best is None or key < best[0]:
             best = (key, job)
     return best[1]
 
 
 def kill(st, job):
-    say.stop(st, job)
+    tell.stop(st, job)
     st.gone.add(job)
     req = line.asked(st, job)
     if req is not None:
         line.pull(st, req)
-    hit = hold.clear(st, job)
+    hit = book.clear(st, job)
     if req is not None:
         hit.add(boxof(req["node"]))
     return hit
 PYEOF
 
-cat > /app/hb/gate.py <<'PYEOF'
-from hb import hold, say
+cat > /app/hb/door.py <<'PYEOF'
+from hb import book, tell
 
 LINES = [
     "grant j1 b1:s1 w",

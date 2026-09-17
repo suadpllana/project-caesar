@@ -9,10 +9,10 @@ with `python tools/tracecheck.py claim-cover-lift`.
 
 | Verifier site | What it grades | Instruction sentence |
 |---|---|---|
-| `tests/test_outputs.py:116` test_the_model_still_makes_the_frozen_answers | that the sealed model still reproduces the frozen answers before anything is judged by it | "every line it prints is compared with the line expected, in order" |
-| `tests/test_outputs.py:126` test_enumerated_program | the trace of every enumerated program, line for line, against the frozen answers | "every line it prints is compared with the line expected, in order" |
-| `tests/test_outputs.py:135` test_generated_program | the trace of every generated program against the sealed model | "The graded programs are generated after your container is gone" |
-| `tests/test_outputs.py:154` test_every_family_was_run | that the population the worker ran is the one the grader asked for, so a shrunken exam fails | "Nothing else you write is read" |
+| `tests/test_outputs.py:112` test_the_twin_still_makes_the_frozen_answers | that the sealed twin still reproduces the frozen answers before anything is judged by it | "every line it prints is compared with the line expected, in order" |
+| `tests/test_outputs.py:122` test_enumerated_program | the trace of every enumerated program, line for line, against the frozen answers | "every line it prints is compared with the line expected, in order" |
+| `tests/test_outputs.py:128` test_generated_program | the trace of every generated program against the sealed model | "The graded programs are generated after your container is gone" |
+| `tests/test_outputs.py:145` test_every_family_was_run | that the population the worker ran is the one the grader asked for, so a shrunken exam fails | "Nothing else you write is read" |
 | `tests/cases.py` case again-drop | a second acquire survives the first drop | "A claim granted to a job adds one acquire, so what a job holds on a node is the list of acquires granted to it there" |
 | `tests/cases.py` case again-lower | a drop takes back the most recent acquire and what is left grants a reader | "A drop gives back the one added most recently and prints free" |
 | `tests/cases.py` case busy-line | a line naming a job whose request is waiting does nothing | "A job ignores every line naming it while its own request is waiting. So does one that has ended. So does one that has been stopped" |
@@ -45,44 +45,44 @@ with `python tools/tracecheck.py claim-cover-lift`.
 | `tests/cases.py` case split-boxes | jobs working in different boxes never wait for each other | "Two different slots are unrelated. Nothing a job holds ever blocks its own request" |
 | `tests/cases.py` case stop-line | a line naming a stopped job does nothing | "A job ignores every line naming it while its own request is waiting. So does one that has ended. So does one that has been stopped" |
 | `tests/cases.py` case sweep-chain | one release grants every request that becomes grantable | "the waiting request with the smallest sequence number that can now be granted is granted, and that repeats until no waiting request can be granted" |
-| artifact `/app/hb/hold.py` | only the declared files are collected | "Six files are taken from your container" |
+| artifact `/app/hb/book.py` | only the declared files are collected | "Six files are taken from your container" |
 | artifact `/app/hb/fit.py` | only the declared files are collected | "Six files are taken from your container" |
 | artifact `/app/hb/line.py` | only the declared files are collected | "Six files are taken from your container" |
 | artifact `/app/hb/lift.py` | only the declared files are collected | "Six files are taken from your container" |
-| artifact `/app/hb/knot.py` | only the declared files are collected | "Six files are taken from your container" |
-| artifact `/app/hb/gate.py` | only the declared files are collected | "Six files are taken from your container" |
+| artifact `/app/hb/snarl.py` | only the declared files are collected | "Six files are taken from your container" |
+| artifact `/app/hb/door.py` | only the declared files are collected | "Six files are taken from your container" |
 | `tests/test.sh:27` a 60 s clock | the whole graded set must finish inside it | "must finish within 60 seconds" |
-| `tests/seal/model.py:38-42` | boxof: a slot name carries its box, so the family is a box and its slots | "It has two levels: boxes, named b1 and up, and slots inside them" |
-| `tests/seal/model.py:43-49` | nkey: node order is box number, the box before its slots, then slot number, as numbers | "Nodes are put in order by box number first, a box before its own slots, then by slot number" |
-| `tests/seal/model.py:50-53` | jkey: jobs are ordered by the number in the name | "Jobs are put in order by number the same way" |
-| `tests/seal/model.py:54-55` | clash: two modes conflict when at least one is w | "Two modes conflict when at least one of them is w" |
-| `tests/seal/model.py:58-66` | Ask: a waiting request keeps its job, node, mode, sequence number and lift trigger | "A blocked request prints wait and takes the next sequence number" |
-| `tests/seal/model.py:67-80` | Engine: the state the operations act on | "The operations are `take <job> <node> <mode>`, `drop <job> <node>`, `end <job>`, `show <node>`, and `fill <job> <box> <count> <mode>`" |
-| `tests/seal/model.py:84-92` | put: a take adds one acquire to what the job holds on that node | "A claim granted to a job adds one acquire, so what a job holds on a node is the list of acquires granted to it there" |
-| `tests/seal/model.py:93-116` | take_off: a drop removes the acquire added most recently | "A drop gives back the one added most recently and prints free" |
-| `tests/seal/model.py:117-119` | acquires: a job's acquires are counted with repetition | "The one stopped is the job on any cycle holding the fewest acquires, counted with repetition. A tie goes to the largest job number" |
-| `tests/seal/model.py:120-130` | free_all: everything a job holds is given back in node order, each printing free | "An end gives back every acquire the job holds in node order, each printing free, prints done, and then granting resumes" |
-| `tests/seal/model.py:131-137` | covers: a claim on the node or its box in a covering mode grants at once | "A request is granted at once, ahead of anything that would otherwise block it, when the asking job already holds a claim on that node or on its box in a mode that covers it" |
-| `tests/seal/model.py:131-137` | covers: w covers either mode, r covers r, and a slot claim covers nothing above it | "A claim in w covers a request in either mode. A claim in r covers a request in r" |
-| `tests/seal/model.py:138-149` | blocked_by: a conflicting granted claim of another job in the family blocks | "A claim on a box conflicts with the claims of another job on that box and on every slot of it" |
-| `tests/seal/model.py:150-163` | blocked_by: an older conflicting waiting request of another job blocks | "a granted claim of another job that conflicts with it, and a waiting request of another job that conflicts with it and holds a smaller sequence number" |
-| `tests/seal/model.py:164-171` | park: a blocked request prints wait and takes the next number from one counter | "The numbers come from one counter for the whole store, not one per node" |
-| `tests/seal/model.py:172-181` | unpark: a granted or cancelled request leaves the line | "the waiting request with the smallest sequence number that can now be granted is granted, and that repeats until no waiting request can be granted" |
-| `tests/seal/model.py:182-188` | hand: a grant records the acquire and prints grant | "The events are `grant <job> <node> <mode>`, `wait <job> <node> <mode>`, `lift <job> <box> <mode>`, `free <job> <node>`, `stop <job>`, `done <job>`" |
-| `tests/seal/model.py:189-196` | hand: a granted lift frees the box's slot claims in slot order, then grants its trigger | "the job's acquires on every slot of that box are given back in slot order, each printing free, and then the request that caused the lift is granted" |
-| `tests/seal/model.py:197-203` | ready: the smallest numbered grantable request of a box | "the waiting request with the smallest sequence number that can now be granted is granted, and that repeats until no waiting request can be granted" |
-| `tests/seal/model.py:204-221` | sweep: grants repeat in sequence order until nothing more can be granted | "the waiting request with the smallest sequence number that can now be granted is granted, and that repeats until no waiting request can be granted" |
-| `tests/seal/model.py:222-227` | edges: a job waits for the jobs that block its waiting request | "One job waits for another when that other blocks its waiting request, whether by a granted claim or by an older waiting request" |
-| `tests/seal/model.py:228-272` | tangle: every job lying on a cycle through the job that has just started waiting | "The one stopped is the job on any cycle holding the fewest acquires, counted with repetition. A tie goes to the largest job number" |
-| `tests/seal/model.py:273-282` | cut: stopping prints stop, drops the request and frees in node order | "Stopping prints stop, takes that job's waiting request out of the line, and gives back every acquire it holds in node order, each printing free" |
-| `tests/seal/model.py:283-292` | settle: a victim is taken while any job still lies on a cycle | "Granting then resumes and the check is made again, until no job lies on a cycle" |
-| `tests/seal/model.py:293-300` | take: a job acts only when it is not waiting, stopped or finished | "A job ignores every line naming it while its own request is waiting. So does one that has ended. So does one that has been stopped" |
-| `tests/seal/model.py:301-308` | take: a slot request lifts at four distinct slots, in w if any of them is w | "The request becomes a request for the box, in mode w if it or any of those claims is in w and in r otherwise" |
-| `tests/seal/model.py:309-313` | take: an unblocked request is granted, a blocked one waits and the check runs | "a granted claim of another job that conflicts with it, and a waiting request of another job that conflicts with it and holds a smaller sequence number" |
-| `tests/seal/model.py:314-320` | drop: a removed acquire prints free and granting resumes | "A drop gives back the one added most recently and prints free" |
-| `tests/seal/model.py:321-328` | end: frees in node order, prints done, then granting resumes | "An end gives back every acquire the job holds in node order, each printing free, prints done, and then granting resumes" |
-| `tests/seal/model.py:329-336` | show: the holders of a node, by job number, with sorted mode letters | "After that comes every job holding that node, in job order, each followed by its acquires as mode letters sorted together" |
-| `tests/seal/model.py:337-353` | expect: the operation names, and fill as a take of s1 to s<count> | "The operations are `take <job> <node> <mode>`, `drop <job> <node>`, `end <job>`, `show <node>`, and `fill <job> <box> <count> <mode>`" |
+| `tests/seal/twin.py:38-42` | boxof: a slot name carries its box, so the family is a box and its slots | "It has two levels: boxes, named b1 and up, and slots inside them" |
+| `tests/seal/twin.py:43-49` | nkey: node order is box number, the box before its slots, then slot number, as numbers | "Nodes are put in order by box number first, a box before its own slots, then by slot number" |
+| `tests/seal/twin.py:50-53` | jkey: jobs are ordered by the number in the name | "Jobs are put in order by number the same way" |
+| `tests/seal/twin.py:54-55` | clash: two modes conflict when at least one is w | "Two modes conflict when at least one of them is w" |
+| `tests/seal/twin.py:58-66` | Ask: a waiting request keeps its job, node, mode, sequence number and lift trigger | "A blocked request prints wait and takes the next sequence number" |
+| `tests/seal/twin.py:67-80` | Engine: the state the operations act on | "The operations are `take <job> <node> <mode>`, `drop <job> <node>`, `end <job>`, `show <node>`, and `fill <job> <box> <count> <mode>`" |
+| `tests/seal/twin.py:84-92` | put: a take adds one acquire to what the job holds on that node | "A claim granted to a job adds one acquire, so what a job holds on a node is the list of acquires granted to it there" |
+| `tests/seal/twin.py:93-116` | take_off: a drop removes the acquire added most recently | "A drop gives back the one added most recently and prints free" |
+| `tests/seal/twin.py:117-119` | acquires: a job's acquires are counted with repetition | "The one stopped is the job on any cycle holding the fewest acquires, counted with repetition. A tie goes to the largest job number" |
+| `tests/seal/twin.py:120-130` | free_all: everything a job holds is given back in node order, each printing free | "An end gives back every acquire the job holds in node order, each printing free, prints done, and then granting resumes" |
+| `tests/seal/twin.py:131-137` | covers: a claim on the node or its box in a covering mode grants at once | "A request is granted at once, ahead of anything that would otherwise block it, when the asking job already holds a claim on that node or on its box in a mode that covers it" |
+| `tests/seal/twin.py:131-137` | covers: w covers either mode, r covers r, and a slot claim covers nothing above it | "A claim in w covers a request in either mode. A claim in r covers a request in r" |
+| `tests/seal/twin.py:138-149` | blocked_by: a conflicting granted claim of another job in the family blocks | "A claim on a box conflicts with the claims of another job on that box and on every slot of it" |
+| `tests/seal/twin.py:150-163` | blocked_by: an older conflicting waiting request of another job blocks | "a granted claim of another job that conflicts with it, and a waiting request of another job that conflicts with it and holds a smaller sequence number" |
+| `tests/seal/twin.py:164-171` | park: a blocked request prints wait and takes the next number from one counter | "The numbers come from one counter for the whole store, not one per node" |
+| `tests/seal/twin.py:172-181` | unpark: a granted or cancelled request leaves the line | "the waiting request with the smallest sequence number that can now be granted is granted, and that repeats until no waiting request can be granted" |
+| `tests/seal/twin.py:182-188` | hand: a grant records the acquire and prints grant | "The events are `grant <job> <node> <mode>`, `wait <job> <node> <mode>`, `lift <job> <box> <mode>`, `free <job> <node>`, `stop <job>`, `done <job>`" |
+| `tests/seal/twin.py:189-196` | hand: a granted lift frees the box's slot claims in slot order, then grants its trigger | "the job's acquires on every slot of that box are given back in slot order, each printing free, and then the request that caused the lift is granted" |
+| `tests/seal/twin.py:197-203` | ready: the smallest numbered grantable request of a box | "the waiting request with the smallest sequence number that can now be granted is granted, and that repeats until no waiting request can be granted" |
+| `tests/seal/twin.py:204-221` | sweep: grants repeat in sequence order until nothing more can be granted | "the waiting request with the smallest sequence number that can now be granted is granted, and that repeats until no waiting request can be granted" |
+| `tests/seal/twin.py:222-227` | edges: a job waits for the jobs that block its waiting request | "One job waits for another when that other blocks its waiting request, whether by a granted claim or by an older waiting request" |
+| `tests/seal/twin.py:228-272` | tangle: every job lying on a cycle through the job that has just started waiting | "The one stopped is the job on any cycle holding the fewest acquires, counted with repetition. A tie goes to the largest job number" |
+| `tests/seal/twin.py:273-282` | cut: stopping prints stop, drops the request and frees in node order | "Stopping prints stop, takes that job's waiting request out of the line, and gives back every acquire it holds in node order, each printing free" |
+| `tests/seal/twin.py:283-292` | settle: a victim is taken while any job still lies on a cycle | "Granting then resumes and the check is made again, until no job lies on a cycle" |
+| `tests/seal/twin.py:293-300` | take: a job acts only when it is not waiting, stopped or finished | "A job ignores every line naming it while its own request is waiting. So does one that has ended. So does one that has been stopped" |
+| `tests/seal/twin.py:301-308` | take: a slot request lifts at four distinct slots, in w if any of them is w | "The request becomes a request for the box, in mode w if it or any of those claims is in w and in r otherwise" |
+| `tests/seal/twin.py:309-313` | take: an unblocked request is granted, a blocked one waits and the check runs | "a granted claim of another job that conflicts with it, and a waiting request of another job that conflicts with it and holds a smaller sequence number" |
+| `tests/seal/twin.py:314-320` | drop: a removed acquire prints free and granting resumes | "A drop gives back the one added most recently and prints free" |
+| `tests/seal/twin.py:321-328` | end: frees in node order, prints done, then granting resumes | "An end gives back every acquire the job holds in node order, each printing free, prints done, and then granting resumes" |
+| `tests/seal/twin.py:329-336` | show: the holders of a node, by job number, with sorted mode letters | "After that comes every job holding that node, in job order, each followed by its acquires as mode letters sorted together" |
+| `tests/seal/twin.py:337-353` | expect: the operation names, and fill as a take of s1 to s<count> | "The operations are `take <job> <node> <mode>`, `drop <job> <node>`, `end <job>`, `show <node>`, and `fill <job> <box> <count> <mode>`" |
 
 ## Readings
 

@@ -105,8 +105,8 @@ grades claim admission, a covering rule, a lift or a stuck set.
 
 Once agreed, this does not change without the contributor's explicit approval.
 
-- Artifacts the agent produces: the six files `/app/hb/hold.py`, `/app/hb/fit.py`,
-  `/app/hb/line.py`, `/app/hb/sweep.py`, `/app/hb/knot.py`, `/app/hb/lift.py`. Nothing else is
+- Artifacts the agent produces: the six files `/app/hb/book.py`, `/app/hb/fit.py`,
+  `/app/hb/line.py`, `/app/hb/sweep.py`, `/app/hb/snarl.py`, `/app/hb/lift.py`. Nothing else is
   collected; the rest of the tree is the verifier's pristine copy.
 - What is checked: for every graded program, the exact list of event lines the service prints,
   compared line for line. Hand programs are checked against `gt.json`, frozen before the grading
@@ -114,7 +114,7 @@ Once agreed, this does not change without the contributor's explicit approval.
   checked against `gt.json` so a drifted model cannot redefine correct. The whole graded set runs
   under one wall clock which is also the task's execution limit.
 - Tolerances: none. Exact string equality on every line, all-or-nothing over the whole set.
-- Ground truth, and where it lives: `tests/seal/model.py` and `tests/seal/gt.json`, in a directory
+- Ground truth, and where it lives: `tests/seal/twin.py` and `tests/seal/gt.json`, in a directory
   `chmod 700` root-owned before any submitted code runs.
 
 ### The frozen rules, in the order the engine applies them
@@ -231,7 +231,7 @@ waiting.
 | No answer leaked into agent image | pass | `extraneouscheck` clean; the tree holds no gt, no model, no expected output; the seal is `chmod 700` before any agent code runs |
 | `harbor run -a oracle` = 1 | host emulation | harbor is not installed here. `authoring/claim-cover-lift/host_trial.py oracle` runs `tests/test.sh` verbatim as root with the privilege drop, the locked reward channel and the artifact upload emulated: reward 1, 35 tests passed |
 | `harbor run -a nop` = 0 | host emulation | reward 0, 20 failed 15 passed |
-| Cheats all score 0 | pass, host emulation | 42 of 42 score 0, and all 42 are caught by the layer they were built for (`authoring/claim-cover-lift/cheat_report.py`): each wrong reading by the enumerated case named for it, the three correct-but-slow readings by the clock, the answer key by the generated population alone, and the three record-destroying probes by the grader's own record checks |
+| Cheats all score 0 | pass, host emulation | 42 of 42 score 0, and all 42 are caught by the layer they were built for (re-run after the rename; the three slow readings were rebuilt when `make_slow.py` was found still patching in a pre-rename name, which made one of them crash instead of run out of clock) (`authoring/claim-cover-lift/cheat_report.py`): each wrong reading by the enumerated case named for it, the three correct-but-slow readings by the clock, the answer key by the generated population alone, and the three record-destroying probes by the grader's own record checks |
 | Correct variants score 1 | pass, host emulation | both `jobmajor` and `heapsweep` score 1 through the full two-stage trial, and agree with the sealed model on 102 programs including the wide families |
 | Readings separated | pass | 27 of 27 wrong readings separated by an enumerated case (`tools/readingcheck.py`) |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
@@ -275,7 +275,7 @@ Instruction against verifier, both directions:
   victim rule reads, and the mode letters a query prints.
 - counts in the brief and the metadata were re-derived from `tests/gen.py` and `tests/cases.py`
   after the last generator change, not from memory.
-- verifier requirements in the text: the six collected files, the entry points `ops.py` calls,
+- verifier requirements in the text: the six collected files, the entry points `step.py` calls,
   the pristine overlay, the wall clock, the CPU and the memory.
 - identifiability: 27 readings, each separated by an enumerated case; the dumbest strategies and
   an answer key all score 0; the limit is validated by two independently written variants.
@@ -295,7 +295,7 @@ rephrased because it said a take adds an acquire when it is a grant that does. N
 bullets, no code block, plain ASCII.
 
 Verifier rigor: the tests grade a trace produced by running the submitted service over a
-pristine copy of the tree (`tests/worker.py`), never a report it wrote; `tests/test_outputs.py`
+pristine copy of the tree (`tests/bench.py`), never a report it wrote; `tests/test_outputs.py`
 is commented section by section and its frozen contract is stated at the top; the population is
 seeded, and the seed is the only wall-clock dependence besides the stated limit.
 
@@ -317,6 +317,71 @@ register and the stripped documentation are deliberate; `solution_explanation` d
 method file by file; `verification_explanation` says what each layer proves; `relevant_experience`
 is written from this task's own domain; ten hours is consistent with six editable files and
 thirteen graded decisions.
+
+## The similarity rejection, and what was measured (2026-09-17)
+
+The bundle was submitted and came back rejected by the similarity screen. The precedent is in
+the repository: `segment-merge-horizon` failed the same gate on 2026-08-15 with "Too similar to
+an existing task", and the analysis kept in the original CLAUDE.md found the brief was never the
+match - it measured 4.3 per cent by sequence ratio against the task it was said to resemble.
+What matched was the shipped plumbing and the shape of the submission.
+
+Measured here before changing anything, against all eleven retained bundles:
+
+| surface | before | after |
+|---|---|---|
+| `tests/worker.py` | 0.877 vs slab-fold-scope | renamed `tests/bench.py`, rewritten, no match |
+| `solution/solve.sh` | 0.829 vs publish-settle-order | 0.240 |
+| `tests/test_outputs.py` | 0.599 vs slab-fold-scope | 0.199 |
+| `environment/Dockerfile` | 0.818 vs three bundles | 0.327 |
+| shipped file names shared | 18 of 26 with slab-fold-scope | 10 of 26, all of them pinned by the platform or the kit |
+| `task.toml` whole | 0.187 sequence, 0.446 token overlap | 0.089 sequence |
+| `verification_explanation` | 0.309 sequence, 0.483 token overlap | 0.034, 0.083 |
+| eight-word phrases shared with any retained metadata | 211 against slab-fold-scope, 173 against publish-settle-order | 0 |
+
+For comparison, the two axes that were already clean and stayed clean: the brief is 0.051 by
+sequence and 0.19 to 0.27 by token overlap against the retained set, which is below the overlap
+between retained pairs that both passed (0.176 to 0.338), and `tools/simcheck.py` has never
+found this task grading what an earlier one grades.
+
+The 211 shared phrases are the finding worth keeping. Calibrating prose against retained bundles
+is what the manual asks for, and it slid into filling in a template: whole clauses of the
+metadata were verbatim - the opening sentence of `difficulty_explanation`, "a seed drawn after
+the agent's container is gone", "a model that had drifted could not quietly redefine correct",
+"the difference between a structure that is correct and one that is affordable at the size the
+store actually runs at". All four fields are rewritten from the task's own evidence and share no
+eight-word phrase with any retained bundle.
+
+What changed, in full: `tests/worker.py` became `tests/bench.py` and was rewritten around a
+different record shape (two tables, `ran` and `broke`, keyed by program, with a blake2s
+fingerprint) instead of a list of records; `tests/test_outputs.py` was rewritten around a
+`Record` class that validates the shape before any assertion; `solution/solve.sh` installs the
+six files in one command instead of looping; `environment/Dockerfile` pins the base tag,
+exports `PYTHONPATH` and compiles the tree at build time so a syntax error fails the build;
+`ops.py`, `run_hb.py`, `hb/store.py`, `hb/say.py`, `hb/hold.py`, `hb/gate.py`, `hb/knot.py`,
+`progs/` and `tests/seal/model.py` were renamed to `step.py`, `hbctl.py`, `hb/desk.py`,
+`hb/tell.py`, `hb/book.py`, `hb/door.py`, `hb/snarl.py`, `tapes/` and `tests/seal/twin.py`, and
+the five shipped programs with them. Nothing about the graded semantics moved: `gt.json` is
+byte-identical, and the oracle, the nop, all 42 cheats and both correct variants were re-run.
+
+`tools/imagecheck.py` went quiet when the driver was renamed - it looked for `run_*.py` - so it
+now falls back to whichever top-level module reads `sys.argv[1]`. Checked on this bundle and on
+`slab-fold-scope`.
+
+A third landed in the packager. The programs first moved from `progs/` to `runs/`, and `runs`
+is in preflight's excluded-directory set because that is where harbor writes its output, so
+`package.py` built an archive without the five shipped programs and `zipcheck`, which reads the
+archive, had nothing to compare it against. The directory is `tapes/` now, and `preflight.py`
+errors when any directory under `environment/`, `tests/` or `solution/` is named `runs`, `logs`,
+`jobs`, `job`, `results` or `trials` - checked to fire on the defect and to stay clean on all
+twelve bundles here.
+
+Two more things the rename broke, both caught by re-running rather than by reading:
+`authoring/claim-cover-lift/make_slow.py` still patched a pre-rename name into the family-walking
+reading, so that cheat crashed on import instead of running out of clock - it was rebuilt and now
+takes the wall clock like the other two. And `cheat_report.py` was still looking for the old
+grader's failure messages, so the probes that destroy the record were reported as caught by hand
+cases; it reads the new vocabulary now.
 
 ## Known risks to flag to a reviewer
 

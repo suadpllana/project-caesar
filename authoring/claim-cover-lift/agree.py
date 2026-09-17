@@ -7,7 +7,7 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parent
 TASK = ROOT.parent.parent / "tasks" / "claim-cover-lift"
-PARTS = ("hold", "line", "fit", "lift", "knot", "gate")
+PARTS = ("book", "line", "fit", "lift", "snarl", "door")
 
 
 def tree(src):
@@ -28,23 +28,23 @@ def main():
     sys.path.insert(0, str(TASK / "tests"))
     sys.path.insert(0, str(TASK / "tests" / "seal"))
     import gen
-    import model
+    import twin
 
     room, app = tree(src)
     sys.path.insert(0, str(app))
-    import ops
-    from hb import store
+    import step
+    from hb import desk
 
     bad, took_ref, took_mod = [], 0.0, 0.0
     work = gen.programs(seed, per)
     for fam, name, body in work:
         start = time.time()
-        st = store.Store()
+        st = desk.Store()
         for raw in body:
-            ops.ex(st, tuple(raw.split()))
+            step.ex(st, tuple(raw.split()))
         took_ref += time.time() - start
         start = time.time()
-        want = model.expect(body)
+        want = twin.expect(body)
         took_mod += time.time() - start
         if st.out != want:
             where = next((i for i, (a, b) in enumerate(zip(st.out, want)) if a != b),

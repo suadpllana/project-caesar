@@ -95,23 +95,25 @@ def caught_by(names, out):
     if names is None:
         return "no report"
     found = []
+    # A record that never arrived, or arrived in the wrong shape, is the first thing to say:
+    # it fails every case at once, so the case ids underneath it mean nothing.
+    for mark in ("stage one left no readable record", "the record is not an object",
+                 "the record has no ran and broke tables", "no record for ",
+                 "was not the one that ran", "is not a list of lines"):
+        if mark in out:
+            found.append("worker")
+            break
     picked = sorted({one.split("[")[1].rstrip("]") for one in names if "[" in one})
-    if picked:
+    if picked and "worker" not in found:
         found.append("hand:" + ",".join(picked))
-    elif any("enumerated_program" in one for one in names):
+    elif not picked and any("enumerated_program" in one for one in names):
         found.append("hand:unnamed")
     if "test_generated_program" in out:
         found.append("nonce")
     if "test_every_family_was_run" in out:
         found.append("population")
-    if "test_the_model_still_makes_the_frozen_answers" in out:
-        found.append("sealed model")
-    for mark in ("worker produced no readable output", "worker output is not a list",
-                 "the service was never run on", "the service raised or produced nothing",
-                 "the record is not a list"):
-        if mark in out:
-            found.append("worker")
-            break
+    if "test_the_twin_still_makes_the_frozen_answers" in out:
+        found.append("sealed twin")
     return "|".join(found) if found else "nothing failed"
 
 

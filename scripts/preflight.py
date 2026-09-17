@@ -1090,6 +1090,30 @@ def check_state_contract(root: Path) -> None:
         )
 
 
+def check_excluded_dirs_in_tree(root: Path) -> None:
+    """A directory the packager drops, inside a tree that has to ship.
+
+    EXCLUDE_DIRS exists to keep harness output out of the zip. A task that happens to name a
+    real directory `runs`, `logs` or `jobs` loses it silently: package.py builds an archive
+    without those files and zipcheck, which reads the archive, has nothing to compare against.
+    Measured on claim-cover-lift, where renaming progs/ to runs/ dropped the five shipped
+    programs and left the instruction pointing at files that were no longer there.
+    """
+    # Caches and version control are excluded because they are genuinely not content; these
+    # are the names that could be a real directory somebody meant to ship.
+    tempting = {"logs", "runs", "jobs", "job", "results", "trials"}
+    for base in ("environment", "tests", "solution"):
+        here = root / base
+        if not here.is_dir():
+            continue
+        for path in here.rglob("*"):
+            if path.is_dir() and path.name in tempting:
+                error(
+                    f"{path.relative_to(root)}/ is named like harness output, so packaging "
+                    f"drops every file under it - rename the directory"
+                )
+
+
 def check_verifier(root: Path) -> None:
     text = read(root / "tests" / "test.sh")
     if text is None:
@@ -1148,6 +1172,7 @@ def main(argv: list[str]) -> int:
     check_artifact_parents(root, cfg)
     check_compose(root, cfg)
     check_verifier(root)
+    check_excluded_dirs_in_tree(root)
     check_state_difficulty(root)
     check_state_contract(root)
     check_verifier_isolation(root, cfg)

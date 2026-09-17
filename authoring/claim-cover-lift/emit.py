@@ -19,7 +19,7 @@ TASK = HERE.parent.parent / "tasks" / "claim-cover-lift"
 SOL = TASK / "solution"
 OUT = TASK / "cheat"
 SLOW = HERE / "slow"
-PARTS = ("hold.py", "fit.py", "line.py", "lift.py", "knot.py", "gate.py")
+PARTS = ("book.py", "fit.py", "line.py", "lift.py", "snarl.py", "door.py")
 
 MADE = []
 BUILT = {}
@@ -68,11 +68,11 @@ def write(name, comment, files, extra=None):
 
 FAMILY_BLOCK = """    box = boxof(node)
     if box != node:
-        for other, got in hold.at(st, box).items():
+        for other, got in book.at(st, box).items():
             if other != job and any(clash(mode, m) for m in got):
                 out.add(other)
     else:
-        for other, sum_ in hold.under(st, box).items():
+        for other, sum_ in book.under(st, box).items():
             if other != job and (mode == "w" or sum_[1] > 0):
                 out.add(other)
 """
@@ -94,7 +94,7 @@ def fit_node_only():
 def fit_slot_blind():
     f = base()
     sub(f, "fit.py", """    else:
-        for other, sum_ in hold.under(st, box).items():
+        for other, sum_ in book.under(st, box).items():
             if other != job and (mode == "w" or sum_[1] > 0):
                 out.add(other)
 """, "")
@@ -112,7 +112,7 @@ def fit_no_line():
 def cover_none():
     f = base()
     sub(f, "fit.py", """    for held in (node, boxof(node)):
-        got = hold.modes(st, job, held)
+        got = book.modes(st, job, held)
         if got and (mode == "r" or "w" in got):
             return True
     return False
@@ -129,17 +129,17 @@ def cover_any_mode():
 def cover_downward():
     f = base()
     sub(f, "fit.py", """    for held in (node, boxof(node)):
-        got = hold.modes(st, job, held)
+        got = book.modes(st, job, held)
         if got and (mode == "r" or "w" in got):
             return True
     return False
 """, """    for held in (node, boxof(node)):
-        got = hold.modes(st, job, held)
+        got = book.modes(st, job, held)
         if got and (mode == "r" or "w" in got):
             return True
     if boxof(node) == node:
-        for slot in hold.slots(st, job, node):
-            got = hold.modes(st, job, slot)
+        for slot in book.slots(st, job, node):
+            got = book.modes(st, job, slot)
             if got and (mode == "r" or "w" in got):
                 return True
     return False
@@ -149,12 +149,12 @@ def cover_downward():
 
 def cover_not_kept():
     f = base()
-    sub(f, "gate.py", """    if fit.cover(st, job, node, mode):
-        hold.add(st, job, node, mode)
-        say.grant(st, job, node, mode)
+    sub(f, "door.py", """    if fit.cover(st, job, node, mode):
+        book.add(st, job, node, mode)
+        tell.grant(st, job, node, mode)
         return
 """, """    if fit.cover(st, job, node, mode):
-        say.grant(st, job, node, mode)
+        tell.grant(st, job, node, mode)
         return
 """)
     return "cover-not-kept", "a covered request is granted but never recorded as an acquire", f
@@ -164,7 +164,7 @@ def cover_not_kept():
 
 def hold_one_mode():
     f = base()
-    sub(f, "hold.py", """def add(st, job, node, mode):
+    sub(f, "book.py", """def add(st, job, node, mode):
     got = cell(st, node)["h"].setdefault(job, [])
 """, """def add(st, job, node, mode):
     if modes(st, job, node):
@@ -176,13 +176,13 @@ def hold_one_mode():
 
 def drop_oldest():
     f = base()
-    sub(f, "hold.py", "    mode = got.pop()\n", "    mode = got.pop(0)\n")
+    sub(f, "book.py", "    mode = got.pop()\n", "    mode = got.pop(0)\n")
     return "drop-oldest", "a drop removes the first acquire instead of the most recent", f
 
 
 def hold_ever_held():
     f = base()
-    sub(f, "hold.py", """        if per[0] == 0 and per[1] == 0:
+    sub(f, "book.py", """        if per[0] == 0 and per[1] == 0:
             del mine["at"][node]
             if not mine["at"]:
                 del bk["bx"][box]
@@ -192,7 +192,7 @@ def hold_ever_held():
 
 def order_by_text():
     f = base()
-    sub(f, "hold.py", """def order(node):
+    sub(f, "book.py", """def order(node):
     box = boxof(node)
     if box == node:
         return (int(node[1:]), 0, 0)
@@ -205,14 +205,14 @@ def order_by_text():
 
 def show_last_mode():
     f = base()
-    sub(f, "hold.py", 'out.append((job, "".join(sorted(one["h"][job]))))',
+    sub(f, "book.py", 'out.append((job, "".join(sorted(one["h"][job]))))',
         'out.append((job, one["h"][job][-1]))')
     return "show-last-mode", "a query prints the mode last taken instead of every acquire", f
 
 
 def show_text_order():
     f = base()
-    sub(f, "hold.py", 'for job in sorted(one["h"], key=lambda name: int(name[1:])):',
+    sub(f, "book.py", 'for job in sorted(one["h"], key=lambda name: int(name[1:])):',
         'for job in sorted(one["h"]):')
     return "show-text-order", "a query lists jobs in text order rather than by number", f
 
@@ -221,7 +221,7 @@ def show_text_order():
 
 def sweep_per_box():
     f = base()
-    sub(f, "gate.py", """def sweep(st, hit):
+    sub(f, "door.py", """def sweep(st, hit):
     live = set(hit)
     while live:
         best = None
@@ -253,12 +253,12 @@ def sweep_per_box():
 
 def end_no_sweep():
     f = base()
-    sub(f, "gate.py", """    hit = hold.clear(st, job)
-    say.done(st, job)
+    sub(f, "door.py", """    hit = book.clear(st, job)
+    tell.done(st, job)
     st.gone.add(job)
     sweep(st, hit)
-""", """    hold.clear(st, job)
-    say.done(st, job)
+""", """    book.clear(st, job)
+    tell.done(st, job)
     st.gone.add(job)
 """)
     return "end-no-sweep", "ending a job frees its claims without granting what they blocked", f
@@ -268,14 +268,14 @@ def end_no_sweep():
 
 def lift_give_up():
     f = base()
-    sub(f, "gate.py", """        up = lift.check(st, job, node, mode)
+    sub(f, "door.py", """        up = lift.check(st, job, node, mode)
         if up is not None:
-            say.lift(st, job, box, up)
+            tell.lift(st, job, box, up)
             ask(st, job, box, up, (node, mode))
             return
 """, """        up = lift.check(st, job, node, mode)
         if up is not None:
-            say.lift(st, job, box, up)
+            tell.lift(st, job, box, up)
             if not fit.blockers(st, job, box, up):
                 sweep(st, give(st, {"job": job, "node": box, "mode": up,
                                     "trig": (node, mode)}))
@@ -286,14 +286,14 @@ def lift_give_up():
 
 def lift_take_order():
     f = base()
-    sub(f, "hold.py", '    return sorted(got["at"], key=order) if got else []',
+    sub(f, "book.py", '    return sorted(got["at"], key=order) if got else []',
         '    return list(got["at"]) if got else []')
     return "lift-take-order", "a granted lift frees its slot claims in the order they were taken", f
 
 
 def lift_count_acquires():
     f = base()
-    sub(f, "hold.py", '    return (0, False) if got is None else (len(got["at"]), got["w"] > 0)',
+    sub(f, "book.py", '    return (0, False) if got is None else (len(got["at"]), got["w"] > 0)',
         '    if got is None:\n'
         '        return 0, False\n'
         '    return sum(n + m for n, m in got["at"].values()), got["w"] > 0')
@@ -309,10 +309,10 @@ def lift_trigger_mode():
 
 def lift_keeps_slots():
     f = base()
-    sub(f, "lift.py", """    for node in hold.slots(st, job, box):
-        while hold.modes(st, job, node):
-            hold.sub(st, job, node)
-            say.free(st, job, node)
+    sub(f, "lift.py", """    for node in book.slots(st, job, box):
+        while book.modes(st, job, node):
+            book.sub(st, job, node)
+            tell.free(st, job, node)
 """, "")
     return "lift-keeps-slots", "a granted lift keeps the slot claims it was meant to replace", f
 
@@ -321,17 +321,17 @@ def lift_keeps_slots():
 
 def knot_holders_only():
     f = base()
-    sub(f, "knot.py", '    return fit.blockers(st, job, req["node"], req["mode"], req["seq"])',
+    sub(f, "snarl.py", '    return fit.blockers(st, job, req["node"], req["mode"], req["seq"])',
         '    return fit.blockers(st, job, req["node"], req["mode"], 0)')
     return "knot-holders-only", "waiting for an older request is not counted as waiting for a job", f
 
 
 def knot_first_found():
     f = base()
-    sub(f, "knot.py", """def pick(st, ring_):
+    sub(f, "snarl.py", """def pick(st, ring_):
     best = None
     for job in ring_:
-        key = (hold.count(st, job), -int(job[1:]))
+        key = (book.count(st, job), -int(job[1:]))
         if best is None or key < best[0]:
             best = (key, job)
     return best[1]
@@ -343,7 +343,7 @@ def knot_first_found():
 
 def knot_count_nodes():
     f = base()
-    sub(f, "hold.py", """def count(st, job):
+    sub(f, "book.py", """def count(st, job):
     one = st.by_job.get(job)
     return one["num"] if one else 0
 """, """def count(st, job):
@@ -355,30 +355,30 @@ def knot_count_nodes():
 
 def knot_tie_small():
     f = base()
-    sub(f, "knot.py", '        key = (hold.count(st, job), -int(job[1:]))',
-        '        key = (hold.count(st, job), int(job[1:]))')
+    sub(f, "snarl.py", '        key = (book.count(st, job), -int(job[1:]))',
+        '        key = (book.count(st, job), int(job[1:]))')
     return "knot-tie-small", "a tie on acquires goes to the smallest job number", f
 
 
 def knot_keeps_request():
     f = base()
-    sub(f, "knot.py", """    req = line.asked(st, job)
+    sub(f, "snarl.py", """    req = line.asked(st, job)
     if req is not None:
         line.pull(st, req)
-    hit = hold.clear(st, job)
+    hit = book.clear(st, job)
 """, """    req = line.asked(st, job)
-    hit = hold.clear(st, job)
+    hit = book.clear(st, job)
 """)
-    sub(f, "gate.py", """def settle(st, job):
+    sub(f, "door.py", """def settle(st, job):
     while True:
-        bad = knot.ring(st, job)
+        bad = snarl.ring(st, job)
         if not bad:
             return
-        sweep(st, knot.kill(st, knot.pick(st, bad)))
+        sweep(st, snarl.kill(st, snarl.pick(st, bad)))
 """, """def settle(st, job):
-    bad = knot.ring(st, job)
+    bad = snarl.ring(st, job)
     if bad:
-        sweep(st, knot.kill(st, knot.pick(st, bad)))
+        sweep(st, snarl.kill(st, snarl.pick(st, bad)))
 """)
     return ("knot-keeps-request",
             "a stopped job's request stays in the line, and one job is stopped per wait", f)
@@ -388,7 +388,7 @@ def knot_keeps_request():
 
 def busy_acts():
     f = base()
-    sub(f, "gate.py", """def busy(st, job):
+    sub(f, "door.py", """def busy(st, job):
     return job in st.gone or line.asked(st, job) is not None
 """, """def busy(st, job):
     return job in st.gone
@@ -398,7 +398,7 @@ def busy_acts():
 
 def stopped_acts():
     f = base()
-    sub(f, "gate.py", """def busy(st, job):
+    sub(f, "door.py", """def busy(st, job):
     return job in st.gone or line.asked(st, job) is not None
 """, """def busy(st, job):
     return line.asked(st, job) is not None
@@ -443,14 +443,14 @@ def forge():
     sys.path.insert(0, str(TASK / "tests"))
     sys.path.insert(0, str(TASK / "tests" / "seal"))
     import cases
-    import model
+    import twin
     keys = {}
     for name in cases.ORDER:
         body = cases.ops(name)
         for cut in range(1, len(body) + 1):
-            keys["\n".join(body[:cut])] = model.expect(body[:cut])
+            keys["\n".join(body[:cut])] = twin.expect(body[:cut])
     f = shipped()
-    f["gate.py"] = f["gate.py"] + """
+    f["door.py"] = f["door.py"] + """
 
 ANSWERS = %s
 
@@ -469,7 +469,7 @@ def _tape(st, line_):
     st.out.extend(want)
     return want
 """ % json.dumps(keys)
-    sub(f, "gate.py", """def take(st, job, node, mode):
+    sub(f, "door.py", """def take(st, job, node, mode):
     if job in st.gone:
         return
 """, """def take(st, job, node, mode):
@@ -478,7 +478,7 @@ def _tape(st, line_):
     if job in st.gone:
         return
 """)
-    sub(f, "gate.py", """def drop(st, job, node):
+    sub(f, "door.py", """def drop(st, job, node):
     if job in st.gone:
         return
 """, """def drop(st, job, node):
@@ -487,7 +487,7 @@ def _tape(st, line_):
     if job in st.gone:
         return
 """)
-    sub(f, "gate.py", """def end(st, job):
+    sub(f, "door.py", """def end(st, job):
     if job in st.gone:
         return
 """, """def end(st, job):
@@ -496,11 +496,11 @@ def _tape(st, line_):
     if job in st.gone:
         return
 """)
-    sub(f, "hold.py", """def who(st, node):
+    sub(f, "book.py", """def who(st, node):
     one = st.by_node.get(node)
 """, """def who(st, node):
-    from hb import gate
-    want = gate._tape(st, "show %s" % node)
+    from hb import door
+    want = door._tape(st, "show %s" % node)
     if want is not None:
         del st.out[-1:]
         row = want[-1].split()
@@ -526,8 +526,8 @@ def probe(name, comment, tail):
     and a probe that ever scored 1 would have earned it by tampering.
     """
     f = base()
-    sub(f, "hold.py", "    mode = got.pop()\n", "    mode = got.pop(0)\n")
-    f["gate.py"] = f["gate.py"] + PROBE_HEAD + tail
+    sub(f, "book.py", "    mode = got.pop()\n", "    mode = got.pop(0)\n")
+    f["door.py"] = f["door.py"] + PROBE_HEAD + tail
     write("probe-" + name, comment, f)
 
 
@@ -562,7 +562,7 @@ _seize()
     probe("answer-key", "reads the sealed model and answers out of the verifier image", """
 def _peek():
     note = []
-    for path in ("/tests/seal/gt.json", "/tests/seal/model.py"):
+    for path in ("/tests/seal/gt.json", "/tests/seal/twin.py"):
         try:
             with open(path, encoding="utf-8") as fh:
                 note.append("%s read %d bytes" % (path, len(fh.read())))
@@ -583,9 +583,9 @@ import json
 
 def _plant():
     try:
-        with open("/work/worker_out.json", "w", encoding="utf-8") as fh:
+        with open("/work/bench_out.json", "w", encoding="utf-8") as fh:
             json.dump([{"fam": "hand", "name": "all", "sig": "x", "got": [], "err": None}], fh)
-        os.chmod("/work/worker_out.json", 0o444)
+        os.chmod("/work/bench_out.json", 0o444)
     except Exception:
         pass
 
@@ -598,7 +598,7 @@ import json
 
 def _plant():
     try:
-        with open("/work/worker_out.json", "w", encoding="utf-8") as fh:
+        with open("/work/bench_out.json", "w", encoding="utf-8") as fh:
             json.dump([{"fam": "hand", "name": "all", "sig": "x", "got": [], "err": None}], fh)
     except Exception:
         pass
@@ -610,9 +610,9 @@ _plant()
     probe("malformed", "returns records built to throw inside the grader", """
 def _spoil():
     try:
-        with open("/work/worker_out.json", "w", encoding="utf-8") as fh:
+        with open("/work/bench_out.json", "w", encoding="utf-8") as fh:
             fh.write("{\\"not\\": \\"a list\\"}")
-        os.chmod("/work/worker_out.json", 0o444)
+        os.chmod("/work/bench_out.json", 0o444)
     except Exception:
         pass
 
@@ -654,7 +654,7 @@ _shrink()
     probe("hijack-driver", "rewrites the verifier's own copy of the tree it is about to stage", """
 def _hijack():
     note = []
-    for path in ("/tests/pristine/ops.py", "/tests/pristine/hb/say.py"):
+    for path in ("/tests/pristine/step.py", "/tests/pristine/hb/tell.py"):
         try:
             with open(path, "a", encoding="utf-8") as fh:
                 fh.write("\\n")
@@ -675,27 +675,27 @@ _hijack()
 def shortcuts():
     """The dumbest positional and constant strategies (docs/INSTRUCTION-CONTRACT.md)."""
     f = base()
-    f["gate.py"] = """from hb import hold, say
+    f["door.py"] = """from hb import book, tell
 
 
 def take(st, job, node, mode):
-    hold.add(st, job, node, mode)
-    say.grant(st, job, node, mode)
+    book.add(st, job, node, mode)
+    tell.grant(st, job, node, mode)
 
 
 def drop(st, job, node):
-    if hold.sub(st, job, node) is not None:
-        say.free(st, job, node)
+    if book.sub(st, job, node) is not None:
+        tell.free(st, job, node)
 
 
 def end(st, job):
-    hold.clear(st, job)
-    say.done(st, job)
+    book.clear(st, job)
+    tell.done(st, job)
 """
     write("shortcut-grant-all", "positional: every request is granted at once, nothing ever waits", f)
 
     f = base()
-    f["gate.py"] = """from hb import hold, say
+    f["door.py"] = """from hb import book, tell
 
 LINES = [
     "grant j1 b1:s1 w",
@@ -742,13 +742,13 @@ def rewrite_frozen():
         body.append("PYEOF")
         body.append("")
     body.append("cat > /app/hb/spare.py <<'PYEOF'")
-    body.append(good["gate.py"].rstrip("\n"))
+    body.append(good["door.py"].rstrip("\n"))
     body.append("PYEOF")
     body.append("")
-    body.append("cat > /app/ops.py <<'PYEOF'")
-    body.append("from hb import spare as gate, hold, say" )
+    body.append("cat > /app/step.py <<'PYEOF'")
+    body.append("from hb import book, spare as gate, tell" )
     body.append("")
-    body.append((TASK / "environment" / "app_src" / "ops.py").read_text(encoding="utf-8")
+    body.append((TASK / "environment" / "app_src" / "step.py").read_text(encoding="utf-8")
                 .split("\n", 1)[1].rstrip("\n"))
     body.append("PYEOF")
     text = "\n".join(["#!/bin/bash",

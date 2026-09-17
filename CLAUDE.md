@@ -286,6 +286,51 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   The shapes had to change, not the claims. The metadata I had already drafted would have stated
   two boundaries that did not exist - write the number after measuring it, never before.
 
+## Lessons, measured (2026-09-17, `claim-cover-lift` similarity)
+
+The bundle was rejected by the similarity screen. Measured against all eleven retained bundles
+before anything was changed, and the numbers say where a submission of this shape is exposed.
+
+- **The prose that gets copied is the metadata, not the brief.** `verification_explanation`
+  shared **211 eight-word phrases** with `slab-fold-scope`'s and 173 with
+  `publish-settle-order`'s; `difficulty_explanation` opened with slab's opening sentence; even
+  `relevant_experience` carried "the difference between a structure that is correct and one that
+  is affordable at the size the store actually runs at" verbatim. The brief, meanwhile, measured
+  0.051 by sequence and 0.19-0.27 by token overlap, *below* the overlap between retained pairs
+  that both passed. AGENTS.md Stage 5 says to calibrate tone and structure against accepted work
+  "without copying their prose", and calibration is exactly how the copying happens: the house
+  sentences are good, so they get reused. Measure the shingles, not the impression -
+  `tools/simcheck.py` compares whole files and never saw this, because `task.toml` as a whole
+  was only 0.187 by sequence while one field inside it was a template fill.
+- **`tools/simcheck.py`'s PLUMBING list is not the plumbing any more.** It watches
+  `reap.py`, `test.sh`, `Dockerfile`, `runner.py`, `test_outputs.py` and `instruction.md`. The
+  two worst files in this bundle were `tests/worker.py` at **0.877** - higher than the 0.871
+  `runner.py` that helped get `segment-merge-horizon` rejected - and `solution/solve.sh` at
+  **0.829**, and neither is on the list, so both were invisible. Compare every shipped file
+  against every retained file by basename as well as by path.
+- **The skeleton is a signal even when every file differs.** 18 of 26 shipped file names were
+  shared with `slab-fold-scope` and 17 with `publish-settle-order`. Ten of those are pinned -
+  `task.toml`, `instruction.md`, the Dockerfiles, `test.sh`, `solve.sh`, and the names the kit
+  hardcodes: `cases.py`, `gen.py`, `seal/gt.json`, `reap.py`, `test_outputs.py` - and the rest
+  moved: `ops.py`, `run_hb.py`, `store.py`, `say.py`, `hold.py`, `gate.py`, `knot.py`, `progs/`
+  and `seal/model.py`. Renaming is cheap at build time and expensive afterwards; pick names that
+  are not already in `tasks/` on the day the tree is laid out.
+- **The packager drops a directory whose name looks like harness output, and nothing says so.**
+  The shipped programs moved from `progs/` to `runs/` during the same rename. `runs` is in
+  `preflight.EXCLUDE_DIRS` because harbor writes there, so `package.py` shipped an archive with
+  five files missing and an instruction pointing at paths that were no longer in it; `zipcheck`
+  reads the archive, so it had nothing to notice. Found by counting: 83 entries where the tree
+  held 93. The directory is `tapes/` now and `preflight.py` errors on `runs`, `logs`, `jobs`,
+  `job`, `results` and `trials` anywhere under `environment/`, `tests/` or `solution/`. Count the
+  files in the zip against the files in the tree; a packager that filters can only ever be
+  checked that way.
+- **A rename blinds whatever check pattern-matched the old name.** `tools/imagecheck.py` looked
+  for `run_*.py`, found nothing, and printed "COPY audit only" - the deep half of the check,
+  which drops the reference in and runs the shipped programs, silently stopped running. It now
+  falls back to the first top-level module that reads `sys.argv[1]`. Same shape as the
+  `readingcheck` and `forgecheck` findings: a tool that identifies a file by its house name goes
+  quiet exactly when a bundle stops using the house name.
+
 ## Lessons, measured (2026-09-09, the difficulty checker)
 
 - **The passing shape was already written down; nobody had scored against it.** The ten intake

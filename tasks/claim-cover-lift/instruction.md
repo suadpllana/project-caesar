@@ -1,7 +1,7 @@
 The store under `/app` hands out claims. It has two levels: boxes, named b1 and up, and slots
 inside them, named b1:s1 and up. Jobs are named j1 and up. A job claims a box or a slot in mode
 r or w. A program is one operation per line, and the service prints the events it decides. Run
-one with `python run_hb.py progs/tiny.txt` from `/app`.
+one with `python hbctl.py tapes/small.txt` from `/app`.
 
 The operations are `take <job> <node> <mode>`, `drop <job> <node>`, `end <job>`,
 `show <node>`, and `fill <job> <box> <count> <mode>`, which takes slots s1 to s<count> of that
@@ -60,21 +60,21 @@ A job ignores every line naming it while its own request is waiting. So does one
 So does one that has been stopped. An end gives back every acquire the job holds in node order,
 each printing free, prints done, and then granting resumes.
 
-The program in `/app/progs/pass.txt` shows the shape of a trace. In it j1 takes `b1:s1` in w,
+The program in `/app/tapes/show.txt` shows the shape of a trace. In it j1 takes `b1:s1` in w,
 j2 takes `b1:s2` in r, j3 asks for `b1:s1` in r, j1 drops `b1:s1`, the node is shown, and j2
 ends, and it prints
 `grant j1 b1:s1 w`, `grant j2 b1:s2 r`, `wait j3 b1:s1 r`, `free j1 b1:s1`,
 `grant j3 b1:s1 r`, `at b1:s1 j3 r`, `free j2 b1:s2`, `done j2`, one to a line and in that
 order.
 
-Six files are taken from your container: `/app/hb/hold.py`, `/app/hb/fit.py`,
-`/app/hb/line.py`, `/app/hb/lift.py`, `/app/hb/knot.py` and `/app/hb/gate.py`. Nothing else you
+Six files are taken from your container: `/app/hb/book.py`, `/app/hb/fit.py`,
+`/app/hb/line.py`, `/app/hb/lift.py`, `/app/hb/snarl.py` and `/app/hb/door.py`. Nothing else you
 write is read.
 
 Every other file under `/app` is replaced by an unmodified copy of the tree as it ships, so
-`/app/ops.py`, `/app/run_hb.py`, `/app/hb/store.py` and `/app/hb/say.py` cannot be changed and a
+`/app/step.py`, `/app/hbctl.py`, `/app/hb/desk.py` and `/app/hb/tell.py` cannot be changed and a
 new file you add under `/app` is not used. How those six divide the work between them is yours to
-decide, as long as `ops.py` still finds `gate.take`, `gate.drop`, `gate.end` and `hold.who` where
+decide, as long as `step.py` still finds `door.take`, `door.drop`, `door.end` and `book.who` where
 it calls them, with the arguments it passes now.
 
 The programs under `/app/progs` are examples. The graded programs are generated after your

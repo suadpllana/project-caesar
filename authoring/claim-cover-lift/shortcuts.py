@@ -18,7 +18,7 @@ sys.path.insert(0, str(lab.TASK / "tests"))
 sys.path.insert(0, str(lab.TASK / "tests" / "seal"))
 import cases  # noqa: E402
 import gen  # noqa: E402
-import model  # noqa: E402
+import twin  # noqa: E402
 
 GT = json.loads((lab.TASK / "tests" / "seal" / "gt.json").read_text(encoding="utf-8"))
 
@@ -35,7 +35,7 @@ def score(label, over):
     tree = lab.tree(over)
     hand = sum(1 for name in cases.ORDER if safe(tree, cases.ops(name)) == GT[name])
     made = [body for _f, _n, body in gen.programs("shortcut", 6) if len(body) < 400]
-    gen_ok = sum(1 for body in made if safe(tree, body) == model.expect(body))
+    gen_ok = sum(1 for body in made if safe(tree, body) == twin.expect(body))
     print("%-26s hand %2d/%d   generated %3d/%d"
           % (label, hand, len(cases.ORDER), gen_ok, len(made)), flush=True)
 

@@ -1,22 +1,22 @@
-from hb import hold, say
+from hb import book, tell
 
 FLOOR = 4
 
 
 def check(st, job, node, mode):
     box = node[:node.find(":")]
-    got, wet = hold.tally(st, job, box)
+    got, wet = book.tally(st, job, box)
     if got < FLOOR:
         return None
     return "w" if mode == "w" or wet else "r"
 
 
 def settle(st, job, box, trig):
-    for node in hold.slots(st, job, box):
-        while hold.modes(st, job, node):
-            hold.sub(st, job, node)
-            say.free(st, job, node)
+    for node in book.slots(st, job, box):
+        while book.modes(st, job, node):
+            book.sub(st, job, node)
+            tell.free(st, job, node)
     node, mode = trig
-    hold.add(st, job, node, mode)
-    say.grant(st, job, node, mode)
+    book.add(st, job, node, mode)
+    tell.grant(st, job, node, mode)
     return {box}

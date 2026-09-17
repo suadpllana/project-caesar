@@ -1,6 +1,6 @@
 """Holdings kept job-major: one string of mode letters per job and node, in the order taken."""
-from hb import say
-from hb.store import boxof
+from hb import tell
+from hb.desk import boxof
 
 
 def order(node):
@@ -76,7 +76,7 @@ def clear(st, job):
     for node in sorted(list(st.by_job.get(job, {})), key=order):
         while letters(st, job, node):
             sub(st, job, node)
-            say.free(st, job, node)
+            tell.free(st, job, node)
         hit.add(boxof(node))
     return hit
 

@@ -1,5 +1,5 @@
-from hb import say
-from hb.store import boxof
+from hb import tell
+from hb.desk import boxof
 
 
 def order(node):
@@ -124,7 +124,7 @@ def clear(st, job):
     for node in nodes(st, job):
         while modes(st, job, node):
             sub(st, job, node)
-            say.free(st, job, node)
+            tell.free(st, job, node)
         hit.add(boxof(node))
     return hit
 

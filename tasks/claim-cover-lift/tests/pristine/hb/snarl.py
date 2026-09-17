@@ -1,5 +1,5 @@
-from hb import fit, hold, line, say
-from hb.store import boxof
+from hb import book, fit, line, tell
+from hb.desk import boxof
 
 
 def step(st, job):
@@ -28,12 +28,12 @@ def pick(st, ring_):
 
 
 def kill(st, job):
-    say.stop(st, job)
+    tell.stop(st, job)
     st.gone.add(job)
     req = line.asked(st, job)
     if req is not None:
         line.pull(st, req)
-    hit = hold.clear(st, job)
+    hit = book.clear(st, job)
     if req is not None:
         hit.add(boxof(req["node"]))
     return hit

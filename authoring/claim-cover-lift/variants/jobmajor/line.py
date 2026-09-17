@@ -1,8 +1,8 @@
 """Waiting requests: one record per sequence number, with the numbers of a box kept sorted."""
 import bisect
 
-from hb import say
-from hb.store import boxof
+from hb import tell
+from hb.desk import boxof
 
 
 def rows(st):
@@ -30,7 +30,7 @@ def park(st, job, node, mode, trig):
     rows(st)[ask["seq"]] = ask
     bisect.insort(order(st, boxof(node)), ask["seq"])
     waiting(st)[job] = ask
-    say.wait(st, job, node, mode)
+    tell.wait(st, job, node, mode)
     return ask
 
 

@@ -1,5 +1,5 @@
-from hb import say
-from hb.store import boxof
+from hb import tell
+from hb.desk import boxof
 
 
 def cell(st, node):
@@ -86,7 +86,7 @@ def clear(st, job):
     hit = set()
     for node in nodes(st, job):
         sub(st, job, node)
-        say.free(st, job, node)
+        tell.free(st, job, node)
         hit.add(boxof(node))
     return hit
 

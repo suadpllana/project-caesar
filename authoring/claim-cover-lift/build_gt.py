@@ -13,14 +13,14 @@ sys.path.insert(0, str(TASK / "tests"))
 sys.path.insert(0, str(TASK / "tests" / "seal"))
 
 import cases  # noqa: E402
-import model  # noqa: E402
+import twin  # noqa: E402
 
 GT = TASK / "tests" / "seal" / "gt.json"
 
 
 def main():
     old = json.loads(GT.read_text(encoding="utf-8")) if GT.is_file() else {}
-    fresh = {name: model.expect(cases.ops(name)) for name in cases.ORDER}
+    fresh = {name: twin.expect(cases.ops(name)) for name in cases.ORDER}
     moved = [name for name in old if name in fresh and old[name] != fresh[name]]
     dropped = [name for name in old if name not in fresh]
     if moved or dropped:

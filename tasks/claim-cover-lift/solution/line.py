@@ -1,5 +1,5 @@
-from hb import hold, say
-from hb.store import boxof
+from hb import book, tell
+from hb.desk import boxof
 
 
 def ahead(st, node, seq):
@@ -19,8 +19,8 @@ def ahead(st, node, seq):
 def park(st, job, node, mode, trig):
     req = {"job": job, "node": node, "mode": mode, "seq": st.mark(), "trig": trig}
     st.pend.setdefault(boxof(node), {})[req["seq"]] = req
-    hold.book(st, job)["req"] = req
-    say.wait(st, job, node, mode)
+    book.book(st, job)["req"] = req
+    tell.wait(st, job, node, mode)
     return req
 
 

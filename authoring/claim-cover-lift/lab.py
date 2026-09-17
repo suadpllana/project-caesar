@@ -10,7 +10,7 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 TASK = ROOT / "tasks" / "claim-cover-lift"
-PARTS = ("hold.py", "fit.py", "line.py", "lift.py", "knot.py", "gate.py")
+PARTS = ("book.py", "fit.py", "line.py", "lift.py", "snarl.py", "door.py")
 
 _TREES = {}
 
@@ -48,11 +48,11 @@ def run(here, lines):
             sys.path.remove(_LOADED)
         sys.path.insert(0, here)
         _LOADED = here
-    import ops
-    from hb import store
-    st = store.Store()
+    import step
+    from hb import desk
+    st = desk.Store()
     for raw in lines:
         raw = raw.strip()
         if raw:
-            ops.ex(st, tuple(raw.split()))
+            step.ex(st, tuple(raw.split()))
     return st.out

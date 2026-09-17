@@ -17,14 +17,14 @@ import pathlib, sys, time
 sys.path.insert(0, %r)
 sys.path.insert(0, %r)
 import gen
-import ops
-from hb import store
+import step
+from hb import desk
 work = gen.programs(%r, %d)
 start = time.time()
 for fam, name, body in work:
-    st = store.Store()
+    st = desk.Store()
     for raw in body:
-        ops.ex(st, tuple(raw.split()))
+        step.ex(st, tuple(raw.split()))
 print("%%.2f" %% (time.time() - start))
 '''
 

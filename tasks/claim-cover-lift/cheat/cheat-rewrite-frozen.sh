@@ -2,9 +2,9 @@
 # puts the repair in files the verifier never collects
 set -euo pipefail
 
-cat > /app/hb/hold.py <<'PYEOF'
-from hb import say
-from hb.store import boxof
+cat > /app/hb/book.py <<'PYEOF'
+from hb import tell
+from hb.desk import boxof
 
 
 def cell(st, node):
@@ -91,7 +91,7 @@ def clear(st, job):
     hit = set()
     for node in nodes(st, job):
         sub(st, job, node)
-        say.free(st, job, node)
+        tell.free(st, job, node)
         hit.add(boxof(node))
     return hit
 
@@ -104,8 +104,8 @@ def who(st, node):
 PYEOF
 
 cat > /app/hb/fit.py <<'PYEOF'
-from hb import hold
-from hb.store import boxof
+from hb import book
+from hb.desk import boxof
 
 
 def clash(one, two):
@@ -113,32 +113,32 @@ def clash(one, two):
 
 
 def cover(st, job, node, mode):
-    got = hold.mode(st, job, node)
+    got = book.mode(st, job, node)
     return got is not None and (mode == "r" or got == "w")
 
 
 def blockers(st, job, node, mode):
     out = set()
-    for other, got in hold.at(st, node).items():
+    for other, got in book.at(st, node).items():
         if other != job and clash(mode, got):
             out.add(other)
     box = boxof(node)
     if box != node:
-        for other, got in hold.at(st, box).items():
+        for other, got in book.at(st, box).items():
             if other != job and clash(mode, got):
                 out.add(other)
     return out
 PYEOF
 
 cat > /app/hb/line.py <<'PYEOF'
-from hb import hold, say
+from hb import book, tell
 
 
 def park(st, job, node, mode, trig):
     req = {"job": job, "node": node, "mode": mode, "seq": st.mark(), "trig": trig}
     st.pend.setdefault(node, []).append(req)
-    hold.book(st, job)["req"] = req
-    say.wait(st, job, node, mode)
+    book.book(st, job)["req"] = req
+    tell.wait(st, job, node, mode)
     return req
 
 
@@ -161,33 +161,33 @@ def queued(st, node):
 PYEOF
 
 cat > /app/hb/lift.py <<'PYEOF'
-from hb import hold, say
+from hb import book, tell
 
 FLOOR = 4
 
 
 def check(st, job, node, mode):
     box = node[:node.find(":")]
-    kept = hold.kept(st, job, box)
+    kept = book.kept(st, job, box)
     if len(kept) < FLOOR:
         return None
-    wet = mode == "w" or any(hold.mode(st, job, one) == "w" for one in kept)
+    wet = mode == "w" or any(book.mode(st, job, one) == "w" for one in kept)
     return "w" if wet else "r"
 
 
 def settle(st, job, box, trig):
-    for node in hold.kept(st, job, box):
-        hold.sub(st, job, node)
-        say.free(st, job, node)
+    for node in book.kept(st, job, box):
+        book.sub(st, job, node)
+        tell.free(st, job, node)
     node, mode = trig
-    hold.add(st, job, node, mode)
-    say.grant(st, job, node, mode)
+    book.add(st, job, node, mode)
+    tell.grant(st, job, node, mode)
     return {box}
 PYEOF
 
-cat > /app/hb/knot.py <<'PYEOF'
-from hb import fit, hold, line, say
-from hb.store import boxof
+cat > /app/hb/snarl.py <<'PYEOF'
+from hb import book, fit, line, tell
+from hb.desk import boxof
 
 
 def step(st, job):
@@ -216,37 +216,37 @@ def pick(st, ring_):
 
 
 def kill(st, job):
-    say.stop(st, job)
+    tell.stop(st, job)
     st.gone.add(job)
     req = line.asked(st, job)
     if req is not None:
         line.pull(st, req)
-    hit = hold.clear(st, job)
+    hit = book.clear(st, job)
     if req is not None:
         hit.add(boxof(req["node"]))
     return hit
 PYEOF
 
-cat > /app/hb/gate.py <<'PYEOF'
-from hb import fit, hold, knot, lift, line, say
-from hb.store import boxof
+cat > /app/hb/door.py <<'PYEOF'
+from hb import book, fit, lift, line, snarl, tell
+from hb.desk import boxof
 
 
 def take(st, job, node, mode):
     if job in st.gone:
         return
     if fit.cover(st, job, node, mode):
-        hold.add(st, job, node, mode)
-        say.grant(st, job, node, mode)
+        book.add(st, job, node, mode)
+        tell.grant(st, job, node, mode)
         return
     box = boxof(node)
     if box != node:
         up = lift.check(st, job, node, mode)
         if up is not None:
-            say.lift(st, job, box, up)
+            tell.lift(st, job, box, up)
             if not fit.blockers(st, job, box, up):
-                hold.add(st, job, box, up)
-                say.grant(st, job, box, up)
+                book.add(st, job, box, up)
+                tell.grant(st, job, box, up)
                 sweep(st, lift.settle(st, job, box, (node, mode)))
                 return
     ask(st, job, node, mode)
@@ -257,8 +257,8 @@ def ask(st, job, node, mode):
         line.park(st, job, node, mode, None)
         settle(st, job)
     else:
-        hold.add(st, job, node, mode)
-        say.grant(st, job, node, mode)
+        book.add(st, job, node, mode)
+        tell.grant(st, job, node, mode)
         sweep(st, {boxof(node)})
 
 
@@ -270,40 +270,40 @@ def sweep(st, hit):
             if fit.blockers(st, req["job"], req["node"], req["mode"]):
                 break
             line.pull(st, req)
-            hold.add(st, req["job"], req["node"], req["mode"])
-            say.grant(st, req["job"], req["node"], req["mode"])
+            book.add(st, req["job"], req["node"], req["mode"])
+            tell.grant(st, req["job"], req["node"], req["mode"])
             if req["trig"] is not None:
                 lift.settle(st, req["job"], req["node"], req["trig"])
 
 
 def settle(st, job):
     while True:
-        bad = knot.ring(st, job)
+        bad = snarl.ring(st, job)
         if not bad:
             return
-        sweep(st, knot.kill(st, knot.pick(st, bad)))
+        sweep(st, snarl.kill(st, snarl.pick(st, bad)))
 
 
 def drop(st, job, node):
     if job in st.gone:
         return
-    if hold.sub(st, job, node) is not None:
-        say.free(st, job, node)
+    if book.sub(st, job, node) is not None:
+        tell.free(st, job, node)
         sweep(st, {boxof(node)})
 
 
 def end(st, job):
     if job in st.gone:
         return
-    hit = hold.clear(st, job)
-    say.done(st, job)
+    hit = book.clear(st, job)
+    tell.done(st, job)
     st.gone.add(job)
     sweep(st, hit)
 PYEOF
 
 cat > /app/hb/spare.py <<'PYEOF'
-from hb import fit, hold, knot, lift, line, say
-from hb.store import boxof
+from hb import book, fit, lift, line, snarl, tell
+from hb.desk import boxof
 
 
 def busy(st, job):
@@ -314,14 +314,14 @@ def take(st, job, node, mode):
     if busy(st, job):
         return
     if fit.cover(st, job, node, mode):
-        hold.add(st, job, node, mode)
-        say.grant(st, job, node, mode)
+        book.add(st, job, node, mode)
+        tell.grant(st, job, node, mode)
         return
     box = boxof(node)
     if box != node:
         up = lift.check(st, job, node, mode)
         if up is not None:
-            say.lift(st, job, box, up)
+            tell.lift(st, job, box, up)
             ask(st, job, box, up, (node, mode))
             return
     ask(st, job, node, mode, None)
@@ -336,8 +336,8 @@ def ask(st, job, node, mode, trig):
 
 
 def give(st, req):
-    hold.add(st, req["job"], req["node"], req["mode"])
-    say.grant(st, req["job"], req["node"], req["mode"])
+    book.add(st, req["job"], req["node"], req["mode"])
+    tell.grant(st, req["job"], req["node"], req["mode"])
     hit = {boxof(req["node"])}
     if req["trig"] is not None:
         hit |= lift.settle(st, req["job"], req["node"], req["trig"])
@@ -370,46 +370,46 @@ def sweep(st, hit):
 
 def settle(st, job):
     while True:
-        bad = knot.ring(st, job)
+        bad = snarl.ring(st, job)
         if not bad:
             return
-        sweep(st, knot.kill(st, knot.pick(st, bad)))
+        sweep(st, snarl.kill(st, snarl.pick(st, bad)))
 
 
 def drop(st, job, node):
     if busy(st, job):
         return
-    if hold.sub(st, job, node) is not None:
-        say.free(st, job, node)
+    if book.sub(st, job, node) is not None:
+        tell.free(st, job, node)
         sweep(st, {boxof(node)})
 
 
 def end(st, job):
     if busy(st, job):
         return
-    hit = hold.clear(st, job)
-    say.done(st, job)
+    hit = book.clear(st, job)
+    tell.done(st, job)
     st.gone.add(job)
     sweep(st, hit)
 PYEOF
 
-cat > /app/ops.py <<'PYEOF'
-from hb import spare as gate, hold, say
+cat > /app/step.py <<'PYEOF'
+from hb import book, spare as gate, tell
 
 
 
 def ex(st, w):
     op = w[0]
     if op == "take":
-        gate.take(st, w[1], w[2], w[3])
+        door.take(st, w[1], w[2], w[3])
     elif op == "drop":
-        gate.drop(st, w[1], w[2])
+        door.drop(st, w[1], w[2])
     elif op == "end":
-        gate.end(st, w[1])
+        door.end(st, w[1])
     elif op == "show":
-        say.at(st, w[1], hold.who(st, w[1]))
+        tell.at(st, w[1], book.who(st, w[1]))
     elif op == "fill":
         job, box, mode = w[1], w[2], w[4]
         for i in range(1, int(w[3]) + 1):
-            gate.take(st, job, "%s:s%d" % (box, i), mode)
+            door.take(st, job, "%s:s%d" % (box, i), mode)
 PYEOF

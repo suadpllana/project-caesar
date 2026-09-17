@@ -1,8 +1,8 @@
 """Jobs that have come to wait for each other, found by two breadth-first walks."""
 from collections import deque
 
-from hb import fit, hold, line, say
-from hb.store import boxof
+from hb import book, fit, line, tell
+from hb.desk import boxof
 
 
 def step(st, job):
@@ -49,17 +49,17 @@ def ring(st, job):
 
 
 def pick(st, ring_):
-    ranked = sorted(ring_, key=lambda one: (hold.count(st, one), -int(one[1:])))
+    ranked = sorted(ring_, key=lambda one: (book.count(st, one), -int(one[1:])))
     return ranked[0]
 
 
 def kill(st, job):
-    say.stop(st, job)
+    tell.stop(st, job)
     st.gone.add(job)
     req = line.asked(st, job)
     if req is not None:
         line.pull(st, req)
-    hit = hold.clear(st, job)
+    hit = book.clear(st, job)
     if req is not None:
         hit.add(boxof(req["node"]))
     return hit

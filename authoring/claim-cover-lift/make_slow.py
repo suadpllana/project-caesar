@@ -25,28 +25,28 @@ def base(name):
     if out.is_dir():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    for part in ("hold", "line", "fit", "lift", "knot", "gate"):
+    for part in ("book", "line", "fit", "lift", "snarl", "door"):
         shutil.copy(REF / (part + ".py"), out / (part + ".py"))
     return out
 
 
 def fam():
     out = base("fam")
-    swap(out / "hold.py",
+    swap(out / "book.py",
          'one = st.by_node[node] = {"h": {}, "s": {}}',
          'one = st.by_node[node] = {"h": {}, "s": {}, "k": set()}')
-    swap(out / "hold.py",
+    swap(out / "book.py",
          '    sum_ = cell(st, box)["s"].setdefault(job, [0, 0])\n',
          '    sum_ = cell(st, box)["s"].setdefault(job, [0, 0])\n'
          '    cell(st, box)["k"].add(node)\n')
-    swap(out / "hold.py",
+    swap(out / "book.py",
          '        if sum_[0] == 0 and sum_[1] == 0:\n'
          '            del st.by_node[box]["s"][job]\n',
          '        if sum_[0] == 0 and sum_[1] == 0:\n'
          '            del st.by_node[box]["s"][job]\n'
          '        if not one["h"]:\n'
          '            st.by_node[box]["k"].discard(node)\n')
-    swap(out / "hold.py",
+    swap(out / "book.py",
          'def under(st, box):\n'
          '    one = st.by_node.get(box)\n'
          '    return one["s"] if one else {}\n',
@@ -54,18 +54,18 @@ def fam():
          '    one = st.by_node.get(box)\n'
          '    return list(one["k"]) if one else []\n')
     swap(out / "fit.py",
-         '        for other, sum_ in hold.under(st, box).items():\n'
+         '        for other, sum_ in book.under(st, box).items():\n'
          '            if other != job and (mode == "w" or sum_[1] > 0):\n'
          '                out.add(other)\n',
-         '        for kid in hold.kids(st, box):\n'
-         '            for other, got in hold.at(st, kid).items():\n'
+         '        for kid in book.kids(st, box):\n'
+         '            for other, got in book.at(st, kid).items():\n'
          '                if other != job and any(clash(mode, m) for m in got):\n'
          '                    out.add(other)\n')
 
 
 def every():
     out = base("all")
-    swap(out / "gate.py",
+    swap(out / "door.py",
          'def sweep(st, hit):\n'
          '    live = set(hit)\n'
          '    while live:\n'
@@ -96,30 +96,30 @@ def every():
 
 def ring():
     out = base("ring")
-    swap(out / "gate.py",
+    swap(out / "door.py",
          'def settle(st, job):\n'
          '    while True:\n'
-         '        bad = knot.ring(st, job)\n'
+         '        bad = snarl.ring(st, job)\n'
          '        if not bad:\n'
          '            return\n'
-         '        sweep(st, knot.kill(st, knot.pick(st, bad)))\n',
+         '        sweep(st, snarl.kill(st, snarl.pick(st, bad)))\n',
          'def settle(st, job):\n'
          '    while True:\n'
          '        bad = set()\n'
          '        for one in sorted(st.by_job):\n'
-         '            bad |= knot.ring(st, one)\n'
+         '            bad |= snarl.ring(st, one)\n'
          '        if not bad:\n'
          '            return\n'
-         '        sweep(st, knot.kill(st, knot.pick(st, bad)))\n')
-    swap(out / "gate.py",
-         '    if hold.sub(st, job, node) is not None:\n'
-         '        say.free(st, job, node)\n'
+         '        sweep(st, snarl.kill(st, snarl.pick(st, bad)))\n')
+    swap(out / "door.py",
+         '    if book.sub(st, job, node) is not None:\n'
+         '        tell.free(st, job, node)\n'
          '        sweep(st, {boxof(node)})\n',
-         '    if hold.sub(st, job, node) is not None:\n'
-         '        say.free(st, job, node)\n'
+         '    if book.sub(st, job, node) is not None:\n'
+         '        tell.free(st, job, node)\n'
          '        sweep(st, {boxof(node)})\n'
          '        settle(st, job)\n')
-    swap(out / "gate.py",
+    swap(out / "door.py",
          '    else:\n'
          '        sweep(st, give(st, {"job": job, "node": node, "mode": mode, "trig": trig}))\n',
          '    else:\n'

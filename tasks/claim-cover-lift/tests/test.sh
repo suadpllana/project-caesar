@@ -31,7 +31,7 @@ install -m 644 -o "${who}" -g "${who}" "${logs}/per" "${yard}/per"
 worker=0
 setpriv --reuid="${who}" --regid="${who}" --clear-groups \
     timeout "${clock}" setsid --wait \
-    python3 /tests/worker.py --out "${yard}/worker_out.json" || worker=$?
+    python3 /tests/bench.py --out "${yard}/bench_out.json" || worker=$?
 echo "worker exit ${worker}"
 
 # A double fork outlives the session and the clock. It does not outlive its uid.

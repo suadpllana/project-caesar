@@ -1,5 +1,5 @@
-from hb import hold, line
-from hb.store import boxof
+from hb import book, line
+from hb.desk import boxof
 
 
 def clash(one, two):
@@ -8,7 +8,7 @@ def clash(one, two):
 
 def cover(st, job, node, mode):
     for held in (node, boxof(node)):
-        got = hold.modes(st, job, held)
+        got = book.modes(st, job, held)
         if got and (mode == "r" or "w" in got):
             return True
     return False
@@ -16,17 +16,17 @@ def cover(st, job, node, mode):
 
 def blockers(st, job, node, mode, seq=None):
     out = set()
-    for other, got in hold.at(st, node).items():
+    for other, got in book.at(st, node).items():
         if other != job and any(clash(mode, m) for m in got):
             out.add(other)
     box = boxof(node)
     if box != node:
-        for other, got in hold.at(st, box).items():
+        for other, got in book.at(st, box).items():
             if other != job and any(clash(mode, m) for m in got):
                 out.add(other)
     else:
-        for kid in hold.kids(st, box):
-            for other, got in hold.at(st, kid).items():
+        for kid in book.kids(st, box):
+            for other, got in book.at(st, kid).items():
                 if other != job and any(clash(mode, m) for m in got):
                     out.add(other)
     for req in line.ahead(st, node, seq):

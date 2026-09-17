@@ -1,19 +1,23 @@
-from hb import fit, hold, knot, lift, line, say
-from hb.store import boxof
+from hb import book, fit, lift, line, snarl, tell
+from hb.desk import boxof
+
+
+def busy(st, job):
+    return job in st.gone or line.asked(st, job) is not None
 
 
 def take(st, job, node, mode):
-    if job in st.gone:
+    if busy(st, job):
         return
     if fit.cover(st, job, node, mode):
-        hold.add(st, job, node, mode)
-        say.grant(st, job, node, mode)
+        book.add(st, job, node, mode)
+        tell.grant(st, job, node, mode)
         return
     box = boxof(node)
     if box != node:
         up = lift.check(st, job, node, mode)
         if up is not None:
-            say.lift(st, job, box, up)
+            tell.lift(st, job, box, up)
             ask(st, job, box, up, (node, mode))
             return
     ask(st, job, node, mode, None)
@@ -28,8 +32,8 @@ def ask(st, job, node, mode, trig):
 
 
 def give(st, req):
-    hold.add(st, req["job"], req["node"], req["mode"])
-    say.grant(st, req["job"], req["node"], req["mode"])
+    book.add(st, req["job"], req["node"], req["mode"])
+    tell.grant(st, req["job"], req["node"], req["mode"])
     hit = {boxof(req["node"])}
     if req["trig"] is not None:
         hit |= lift.settle(st, req["job"], req["node"], req["trig"])
@@ -58,24 +62,24 @@ def sweep(st, hit):
 
 def settle(st, job):
     while True:
-        bad = knot.ring(st, job)
+        bad = snarl.ring(st, job)
         if not bad:
             return
-        sweep(st, knot.kill(st, knot.pick(st, bad)))
+        sweep(st, snarl.kill(st, snarl.pick(st, bad)))
 
 
 def drop(st, job, node):
-    if job in st.gone:
+    if busy(st, job):
         return
-    if hold.sub(st, job, node) is not None:
-        say.free(st, job, node)
+    if book.sub(st, job, node) is not None:
+        tell.free(st, job, node)
         sweep(st, {boxof(node)})
 
 
 def end(st, job):
-    if job in st.gone:
+    if busy(st, job):
         return
-    hit = hold.clear(st, job)
-    say.done(st, job)
+    hit = book.clear(st, job)
+    tell.done(st, job)
     st.gone.add(job)
     sweep(st, hit)

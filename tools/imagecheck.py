@@ -129,7 +129,16 @@ def main(argv):
                     shutil.copy(f, dest)
                     placed += 1
                     break
+            # The driver is whichever top-level module takes a program path on the command
+            # line. `run_*.py` was the house name and stopped being it the moment a bundle
+            # renamed the file, which is exactly when this check goes quiet without saying so.
             runner = next((p for p in sorted(app.glob("run_*.py"))), None)
+            if runner is None:
+                for cand in sorted(app.glob("*.py")):
+                    body = cand.read_text(encoding="utf-8", errors="replace")
+                    if "sys.argv[1]" in body and "def main(" in body:
+                        runner = cand
+                        break
             progs = sorted(p for p in app.rglob("*.txt") if p.is_file())[:6]
             if runner is None or not progs:
                 # Layout differs from bundle to bundle; the COPY audit above is the part that

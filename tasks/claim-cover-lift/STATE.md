@@ -280,7 +280,16 @@ Instruction against verifier, both directions:
 - identifiability: 27 readings, each separated by an enumerated case; the dumbest strategies and
   an answer key all score 0; the limit is validated by two independently written variants.
 
-Instruction prose: read end to end for runs of same-structured sentences. Two openers were
+Instruction prose: `tools/textcheck.py` against `slab-fold-scope` reported an even cadence, too
+few short sentences, two oxford triads, a hedge and a high apostrophe density. The triads were
+"b1, b2 and so on" and "j1, j2 and so on" and are gone; the hedge was "rather than one per node"
+and is now "not one per node"; long rules were split into short sentences and two paragraphs
+were divided, which took burstiness from 0.59 to 0.67 and contractions from 6.2 to 3.5 per
+thousand words. Two findings are left and both are the genre: a rule spec repeats its domain
+nouns, so the type-token ratio stays at 0.25 against a narrative brief's 0.35, and its cadence
+stays more even than prose that tells a story. Widening either would mean saying a requirement
+twice in different words, which is the thing the manual warns against. Read end to end for runs
+of same-structured sentences. Two openers were
 rewritten ("A job waits for another job" and the example paragraph) and one sentence was
 rephrased because it said a take adds an acquire when it is a grant that does. No headings, no
 bullets, no code block, plain ASCII.

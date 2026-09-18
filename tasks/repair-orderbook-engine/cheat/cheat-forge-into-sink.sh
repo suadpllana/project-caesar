@@ -1,29 +1,14 @@
 #!/bin/bash
-# forgery probe on the shipped tree: reaches the live emitter through the call stack and pushes a forged row through it on every walk.
+# forgery probe on the shipped tree: hands a forged row straight to the sink, past the emitter, on every walk.
 set -euo pipefail
 APP="${APP:-/app}"
 mkdir -p "$APP/eng"
 cat > "$APP/eng/take.py" <<'STF_EOF'
-import sys as _sys
-
-
-def _emitter():
-    _fr = _sys._getframe(1)
-    while _fr is not None:
-        _me = _fr.f_locals.get("out")
-        if _me is not None and hasattr(_me, "row"):
-            return _me
-        _fr = _fr.f_back
-    return None
-
-
 from eng import hand, shown, trip
 
 
 def walk(st, o, out):
-    _e = _emitter()
-    if _e is not None:
-        _e.row("trd", 0, 0, 0, 0)
+    out.sink(("trd", 0, 0, 0, 0))
     opp = st.bk.opp(o.side)
     sign = 1 if o.side == "b" else -1
     ref = st.last

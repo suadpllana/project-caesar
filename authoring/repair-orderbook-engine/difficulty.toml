@@ -1,0 +1,122 @@
+# Difficulty record - repair-orderbook-engine, transcribed on 2026-09-18 from the task's own
+# state file, task.toml explanations, cheat headers and verifier docstrings, after the
+# human-review repair of the output channel. Nothing here is claimed that those sources
+# do not say. The estimated solves are the honest current number, not the design aim:
+# the platform's run audit on this bundle scored 3 of 8, and five of the other five had the
+# semantics right and were failed only by the sink rule this repair removes.
+
+[task]
+slug = "repair-orderbook-engine"
+status = "pending"
+sources = [
+  "tasks/repair-orderbook-engine/STATE.md",
+  "tasks/repair-orderbook-engine/task.toml",
+  "tasks/repair-orderbook-engine/tests/test_outputs.py",
+  "tasks/repair-orderbook-engine/cheat/",
+  "authoring/repair-orderbook-engine/trace.md",
+]
+expert_hours = 8
+estimated_solves = 8
+
+[plan]
+first_plan = "Levels as a dict from price to deque; walk the opposite side in price order; for each resting order fill min(remaining, resting.remaining) and pop it when empty; after the incoming order finishes, scan the parked list for anything the new last price has tripped; for all-or-nothing, sum the opposite side's quantity up to the limit first and reject if it is short; under fill pace, run fired orders when the parent finishes."
+first_plan_source = "prior"
+breaking_rule = "A resting order with a shown size offers only that much, discloses the next slice and goes to the back of its price queue mid-walk; the same participant's resting order is pulled from under the walk without a fill; the band is measured from the last fill and steps as the walk trades; parked orders are asked after every fill, in arrival order."
+second_discovery = "Under fill pace a fired order executes before the interrupted order continues, so its fills consume or supply the capacity an all-or-nothing parent needed and move the band; a static read-only admission count that is exactly right under order pace is wrong here, and a failed whole must undo its descendants' work, nested to any depth, while a child's own failure leaves its firing standing."
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "run s1 and s2 and read the printout against the stated rules to find the two visible defects",
+  "read mkt/drv.py and mkt/bk.py to establish what is sealed and that the work is the five files under eng/",
+  "bound the fill by the shown size and requeue the re-disclosed order at the back of its level",
+  "read the last price on every pass of the walk and confirm a same-participant pull does not move it",
+  "decide all-or-nothing admission under order pace with a read-only pass carrying a shadow last price, or walk and restore",
+  "ask the parked orders after every fill and take the ones that fire in arrival order, not id order",
+  "under fill pace run each fill's batch after the resting order's removal or disclosure and before the parent continues, inside a frame that restores descendants on failure",
+  "time wide.txt and book.txt, index the parked set by trip price and keep admission from copying the book",
+]
+
+[search]
+best_page = "An open-source order matching library README that lists the same order-type vocabulary: iceberg disclosure, stop activation, fill-or-kill, self-trade prevention, price bands."
+helps_plan = false
+deviation = "No page combines a shown-size requeue mid-walk, a same-participant cancellation that leaves the last price alone, a band measured from the last fill, activation tested per fill in arrival order, and nested all-or-nothing rollback under fill-boundary execution of fired orders."
+
+[tactics]
+A1 = "The retrievable matching-engine plan - a price-time walk over a level snapshot, fill each resting order, then scan the stops, and count capacity before an all-or-nothing order - is specifically wrong here on four decisions at once."
+A2 = "The concepts are stated as venue behaviour and never named: iceberg, self-trade prevention, fill-or-kill and limit-up-limit-down appear nowhere, so no page is one query away."
+A3 = "The all-or-nothing rule needs the outcome of a walk that mutates what it walks, without any of its effects, and under fill pace with descendants executing inside it; no single retrievable technique satisfies both paces."
+B2 = "Six rules must hold at once and change each other's meaning: disclosure changes queue priority, a same-participant pull leaves the band where it was, a child's fill moves the band the parent resumes against, and nested restoration must keep a child's firing while undoing its work."
+C1 = "Both sides are fenced by named cases: never pulling and pulling too eagerly both fail, never activating and activating everything both fail, over-retaining and under-retaining a shown order both fail, and a whole that fills exactly must fill."
+C2 = "The rulebook is authored, run_book.py prints what the engine does, and the brief quotes only wrong printouts; a self-written reference encodes the solver's own reading and confirms nothing."
+C3 = "Two measured scale boundaries: a per-fill scan of thousands of parked orders on the wide shape, and a book copy per all-or-nothing order on the deep-book shape, both inside a 300-second kill stated in the brief."
+C4 = "Exact all-or-nothing event streams over 55 enumerated cases, 300 nonce order-pace sessions in five shaped families, 120 nonce fill-pace sessions and five large ones, against a sealed model that shares no code."
+guard = "Only the five files under /app/eng are collected; every other file is byte-compared to the shipped tree after the run; the driver, book, reader and emitter functions are fingerprinted in the running interpreter; the five decision entry points keep their parameters and must be entered; rows reach the grader only through the driver's sink."
+
+[decisions]
+graded = 9
+interactions = [
+  { a = "disclosure of the next slice", b = "all-or-nothing admission", why = "the hidden part counts toward what a whole order can have, but each disclosure changes queue priority, so a count and a walk disagree unless the count follows the queue" },
+  { a = "same-participant cancellation", b = "the price band", why = "a pull removes liquidity without a fill, so the last price and the band do not move, and the next level may be out of reach" },
+  { a = "activation per fill", b = "fill-pace whole admission", why = "a fired child's fill consumes or supplies the parent's capacity and moves the band the parent resumes against, so admission cannot be decided before the walk" },
+  { a = "nested restoration", b = "activation", why = "a failed child keeps its firing while a failed ancestor takes the firing back with everything else, so what is restored depends on which frame failed" },
+]
+per_decision_feedback = true
+
+[fences]
+ordinary_case = "plain-cross, plain-rests-both-sides, other-hand-steps and whole-fills-exactly: an engine that pulls, refuses or stops too eagerly fails the everyday sessions."
+late_case = "fill-capacity-is-consumed: a read-only admission count that is right on every order-pace session fails when a fired child takes the unit the parent whole needed, and nothing before the fill-pace cases says so."
+oracle_denied = "run_book.py prints whatever the engine does, no expected stream ships, the brief quotes only wrong printouts, and a reference the solver writes from the same reading agrees with the solver's engine by construction."
+
+[leaks]
+candidates = [
+  { what = "Side.rear, a book method only the correct requeue needed and nothing shipped called", closed_by = "deleted; preflight's affordance check reports the tree clean" },
+  { what = "an expected printout of a correct run in the brief or the tree", closed_by = "the brief quotes only the shipped engine's wrong output and no digest or row count of a correct run appears anywhere" },
+  { what = "a stored derived quantity such as reachable capacity or an arrival sequence on Ord", closed_by = "Ord carries only qty, shown size and remaining; the parked sequence is the solver's to keep" },
+  { what = "annotations in the session files or a manifest naming the unusual ones", closed_by = "sess/ is five plain files found by listing a directory; no line says an order is special" },
+]
+derived_quantities = "Every stored value is a primitive the engine must maintain - quantity, shown size, remaining, price, trip price; no reachable quantity, fill count, arrival stamp or admission verdict ships."
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = "asking every parked order on every fill, and copying the whole state to decide each all-or-nothing order"
+invariant = "a parked order fires only when the last price crosses its trip price, so a set ordered by trip price is touched once per fill; admission needs the reachable quantity along the walk, not a copy of the book"
+input_scale = "wide.txt four thousand messages, book.txt 180 levels holding three thousand orders and 560 whole orders, graded sessions three times larger, fill-pace books of 9,200 orders and 1,700 whole episodes"
+limit_seconds = 300
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "avail-full", hand_case = "show-interleaves" },
+  { reading = "keep-front", hand_case = "show-goes-to-the-back" },
+  { reading = "band-skips", hand_case = "band-does-not-look-past" },
+  { reading = "band-fixed", hand_case = "band-steps-with-the-fills" },
+  { reading = "trip-after-walk", hand_case = "trip-before-disclosure" },
+  { reading = "trip-at-park", hand_case = "trip-waits-for-a-fill" },
+  { reading = "trip-by-price", hand_case = "trip-order-is-arrival" },
+  { reading = "whole-as-day", hand_case = "whole-never-rests" },
+  { reading = "whole-band-fixed", hand_case = "whole-counts-the-step" },
+  { reading = "whole-ignores-band", hand_case = "whole-discounts-past-the-band" },
+  { reading = "whole-ignores-hand", hand_case = "whole-discounts-the-same-hand" },
+  { reading = "whole-no-undo", hand_case = "whole-leaves-nothing-behind" },
+  { reading = "self-trade", hand_case = "hand-pulled-at-the-front" },
+  { reading = "capacity-only", hand_case = "fill-capacity-is-consumed" },
+  { reading = "child-before-disclosure", hand_case = "fill-discloses-before-child-execution" },
+  { reading = "forget-trigger-rollback", hand_case = "fill-rollback-restores-trigger-arrival" },
+  { reading = "inner-frame-only", hand_case = "fill-parent-failure-discards-child-success" },
+  { reading = "last-fill-batch", hand_case = "fill-descendants-before-siblings" },
+]
+correct_variants = [
+  "ok-undo-log: every whole order walks for real inside a frame in both paces, no read-only count",
+  "ok-sorted-list: the parked set as sorted trip-price lists with an arrival stamp per order",
+  "ok-level-list: the best price found by scanning the live levels instead of a lazy heap",
+  "ok-rebuild-level: a disclosure rebuilds the level's queue instead of rotating it",
+  "ok-sink-replay: rows held back during a whole order are committed by calling the sink directly",
+  "ok-relay-emitter: a private emitter class of the solver's own commits its held rows itself",
+]
+
+[shape]
+environment_py_lines = 311
+editable_files = 5
+reference_lines = 215

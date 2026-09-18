@@ -20,9 +20,11 @@ WHAT IS GRADED, on every session, exactly, with no partial credit:
   separate axis, and it is what stops a submission from getting the fills right by
   leaving the book wrong.
 
-  Every one of those rows is written by mkt/ev.py, which is not an editable artifact, so
-  the stream records what the engine actually did rather than what a submission says it
-  did.
+  The rows are whatever the run committed to the runner's sink, by whichever route: sent
+  through mkt/ev.py, which is not an editable artifact, or handed to the sink directly
+  after being held back while an order could still fail. What they must say is settled by
+  the sealed model on sessions that did not exist when the submission was written, and
+  the tally and the fingerprints below establish that the shipped engine produced them.
 
 SESSION SETS, with nonce-generated inputs preventing a reusable answer key:
 
@@ -68,8 +70,11 @@ INTEGRITY, because the verifier executes agent code:
     interpreter, at import and again when each session finished, against digests derived
     here by compiling the pristine sources - nothing is executed to do it. That catches a
     submission that leaves the files alone and rebinds a driver function instead.
-  - Event rows are appended by a closure the runner owns, which refuses any caller that
-    is not Emit.row itself, so a submission cannot write its own stream.
+  - Event rows are appended by a closure the runner owns and the run never holds, so a
+    submission cannot replace or reorder the list. The closure accepts a row from any
+    caller: a held-back row handed to the sink directly is committed exactly like one
+    sent through Emit.row. Refusing one route graded a routing choice, and human review
+    rejected that on 2026-09-10 after it failed correct buffered output.
   - The interpreter's tally of entries into the committed sink must equal the row count,
     and the instrumentation must still have been registered and armed when each session
     ended. On 3.12 that tally comes from sys.monitoring, on older interpreters from the
@@ -417,17 +422,16 @@ def test_functions_untouched():
 
 
 def test_instrumentation_intact():
-    """Every event row came out of Emit.row, and the interpreter's own instrumentation
-    was still registered and still armed when each session ended.
+    """Every event row was counted on its way into the sink, and the interpreter's own
+    instrumentation was still registered and still armed when each session ended.
 
     The per-session check is the row count: the interpreter counted entries into the
-    trusted committed sink, which only accepts calls from the frozen Emit.row code.
-    Private Emit instances may buffer speculative output without committing it.
-    A stream carrying rows the engine did not emit fails here before the model check.
-    Whether a particular
-    decision was consulted is only meaningful in aggregate, because plenty of sessions
-    never reach one - no session with an empty book asks about disclosure - and a correct
-    submission is not asked about what does not arise."""
+    runner's sink, from any caller, and a stream longer or shorter than that count was
+    not produced by this run's sink. A private buffer that never reaches the sink is
+    neither counted nor committed. Whether a particular decision was consulted is only
+    meaningful in aggregate, because plenty of sessions never reach one - no session
+    with an empty book asks about disclosure - and a correct submission is not asked
+    about what does not arise."""
     alive()
     need = os.environ.get("REQUIRE_MONITORING") == "1"
     bad = []

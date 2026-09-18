@@ -21,6 +21,8 @@ Project Caesar AI passed:
 - `focus-return-point`
 - `sheet-block-place`
 - `move-clash-merge`
+- `repair-orderbook-engine` (human review rejected the 2026-09-10 submission on an undocumented
+  verifier rule about how a row reaches the event sink; repaired 2026-09-18, resubmission pending)
 
 Human passed:
 

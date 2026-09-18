@@ -93,9 +93,13 @@ are retained. Nineteen tests cover semantics, integrity and process lifecycle.
 
 Integrity checks compare immutable files and live function fingerprints, check monitored
 committed-sink entry counts against reported rows, and require the existing walk, avail,
-blocks, admit and check decisions to remain in use. The sink accepts only calls from
-the frozen emitter code; private speculative buffers are allowed. The worker has a 300-second cutoff. The
-900-second verifier budget additionally covers model execution and pytest grading.
+blocks, admit and check decisions to remain in use. The sink accepts a committed row
+from any caller: a row held back in a private buffer and later handed to the sink
+directly counts exactly as one sent through the emitter, so no routing choice is graded
+and what a row must say is settled by the sealed model alone. A probe that pushes forged
+rows straight into the sink is caught by the session comparison like any other wrong
+row. The worker has a 300-second cutoff. The 900-second verifier budget additionally
+covers model execution and pytest grading.
 
 The wrapper drops worker privileges, locks the reward directory, defaults the reward
 to zero and grades afterwards as root. The worker and cleanup process must both exit

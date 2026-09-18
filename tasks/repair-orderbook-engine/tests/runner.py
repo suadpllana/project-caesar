@@ -16,19 +16,24 @@ the answers are computed afterwards by a model the run cannot reach.
 Three things are attested alongside the report, because the report is produced inside
 this process.
 
-  The sink. Event rows are appended by a closure created here, which refuses any caller
-  whose frame is not Emit.row's own code object. A submission cannot push rows in from
-  its own module, and cannot replace the list, because it never holds it.
+  The sink. Event rows are appended by a closure created here, and the run never holds
+  the list, so it cannot replace or reorder it. Which frame calls the sink is not
+  checked: a row's cells are the run's to choose whichever route it takes, so refusing
+  one route would grade a routing choice rather than the engine. Human review rejected
+  exactly that on 2026-09-10, when correct output held back in a private buffer and
+  handed to the sink directly was failed for not passing through Emit.row. What a row
+  must say is settled by the sealed model, not by its route.
 
   The fingerprints. Every sealed function is hashed as it actually exists in this
   interpreter, when the tree is imported and again when the session has finished, so a
   submission that rebinds a driver function instead of editing its file is caught the
   same way editing the file already is.
 
-  The tally. The interpreter counts entries into the trusted committed sink and
-  each decision, in a closure rather than in the tree, and reports whether the
-  instrumentation remained registered and armed. Emit.row is also monitored, but
-  private instances used for speculative buffers are not committed output.
+  The tally. The interpreter counts entries into the sink and each decision, in a
+  closure rather than in the tree, and reports whether the instrumentation remained
+  registered and armed. A report whose stream is longer or shorter than that count
+  was not produced by this run's sink. Emit.row is also counted, for the record only;
+  a private buffer that never reaches the sink is neither counted nor committed.
 """
 
 import hashlib
@@ -125,14 +130,17 @@ def seal(book):
     return h.hexdigest()
 
 
-def sink_for(rowcode):
-    """Event rows may only be appended from inside Emit.row."""
+def sink_for():
+    """The committed event stream, appended to by a closure the run never holds.
+
+    Any caller may commit a row: Emit.row, or the run's own code handing over a row it
+    held back while an order could still fail. Both paths are the engine reporting what
+    it did, and the model decides whether the row is right.
+    """
     rows = []
 
     def put(row):
-        if sys._getframe(1).f_code is not rowcode:
-            raise RuntimeError("sink")
-        rows.append(row)
+        rows.append(tuple(row))
 
     return rows, put
 
@@ -207,7 +215,7 @@ def one(text):
     from mkt.ev import Emit
     from mkt.rd import read
     opened = live()
-    rows, put = sink_for(Emit.row.__code__)
+    rows, put = sink_for()
     disarm = arm([Emit.row.__code__, take.walk.__code__, shown.avail.__code__,
                   shown.refill.__code__, hand.blocks.__code__, hold.admit.__code__,
                   trip.check.__code__, trip.park.__code__], put.__code__)

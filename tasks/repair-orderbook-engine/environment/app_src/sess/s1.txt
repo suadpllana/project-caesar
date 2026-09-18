@@ -1,0 +1,5 @@
+cap 6
+mark 100
+new 1 1 s 100 30 10 day -
+new 2 2 s 100 25 - day -
+new 3 3 b 100 60 - day -

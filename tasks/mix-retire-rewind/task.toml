@@ -1,0 +1,207 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/feed/mix.py",
+  "/app/feed/deck.py",
+  "/app/feed/draw.py",
+  "/app/feed/spot.py",
+  "/app/feed/deal.py",
+  "/app/feed/keep.py",
+]
+
+[task]
+name = "afterquery/mix-retire-rewind"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is that no implementation of those rules
+which visits a slot can finish, and that the structure which does not visit slots is invalidated
+by a rule sitting one paragraph away from the one that forced it.
+
+The first plan is the shipped feeder with its mistakes taken out: a cursor and an epoch for each
+source, the mix read off the slot number, a sample over the cap passed over and the same source
+asked again, and a resume that replays the stream until it stands where the checkpoint says. It
+is repairable, and on the small plans it is right. It never prints a line of the wide plans. The
+first two thousand of the seven hundred and eighty thousand steps take 0.96 seconds here, which
+is 373 seconds for one plan against the 60 the whole graded set is given, and the graded set
+holds six plans of that size.
+
+So the feeder has to work out where it stands instead of walking there, and that rests on two
+observations the brief does not make. A permutation does not change a multiset, so every epoch
+of a source delivers the same number of samples, which turns a delivered count into an epoch
+and a position inside one. And between two retirements the mix is fixed, so the count of a
+source over a stretch of slots is periodic in the length of the pattern. The second is where
+the first plan dies for the second time: allowances retire sources, a retired source leaves the
+pattern, and a count taken against the opening pattern is wrong from the first retirement
+onward - silently, because the small plans still pass. What survives is a timeline of stretches
+whose breakpoints are solved for in the pattern that was live before each of them, each one
+moving the next because the survivors take the slots the retired source was taking. Nothing in
+the tree says so: the shipped feeder walks and therefore needs none of it, and the count of
+samples inside the cap, the retirement slots and the delivered counts appear as no field
+anywhere.
+
+Then the resume. A checkpoint carries what the trainer completed and what the feeder produced,
+which differ whenever the feeder was run ahead, and a load has to begin at the first of those
+under the geometry that run was using. The memorised answer is the loader cursor, and the loader
+cursor is the wrong one. Because the base is not a multiple of the new step width, the resumed
+run sits on a grid offset from the original, and a checkpoint taken from a resumed run has to
+carry its base for the next load to compose. The rollback then needs every source state at a
+slot the feeder never stopped at, which is the derivation again, on the far side of a retirement
+the trainer had not yet reached.
+
+Nine decisions are graded and all six editable files ship wrong. There is no oracle to try them
+against: no expected trace ships, the one line quoted in the brief settles the rank deal and the
+printed format, and the graded plans are generated from a seed drawn after the container is gone.
+Measured against the nonce population, the wrong readings move between 7 and 86 per cent of
+plans, and under all-or-nothing grading any one of them scores nothing.
+
+Identifiers are in a legacy register - `feed/`, `mix`, `deck`, `draw`, `spot`, `deal`, `keep`,
+`shuf`, `took`, `hold` - short but never misleading, and no name misdescribes what it holds.
+That is a choice about the register of real loader code rather than an obstacle; each is
+recoverable from what calls it.
+
+The corpora are synthetic, in eleven families, concentrating samples on the cap boundary,
+epochs that end above the cap, allowances spent inside a printed step, retirements that move
+later retirements, feeders run ahead across a retirement, loads of loaded runs, and the two
+scale shapes. In a real mixture these are the rare weeks, and they are exactly where this class
+of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`deck.py` is one source seen alone. It counts the samples inside the cap once, and that count is
+the answer to three questions: how many an epoch delivers, which epoch a delivered count falls
+in, and how many deliveries an allowance of e epochs covers. Given a delivered count it takes
+the hand-over order for the epoch that count divides into, finds the place of the last sample
+inside the cap it used, and the cursor is the place after it, rolled to the start of the next
+epoch when that place is the end. Samples above the cap trailing an epoch are left alone, which
+is why the cursor can sit in front of them rather than past them.
+
+`mix.py` is the timeline. It grows a list of stretches on demand: for each source in the live
+pattern with an allowance left, the slot of the delivery that spends it is the pattern period
+times the whole part of what remains, plus the offset of the right entry within the pattern; the
+earliest of those ends the stretch, the source leaves the pattern, and the next stretch starts
+at the slot after with the delivered counts carried across. Every later breakpoint is solved in
+the pattern the earlier one left behind, so a source that was a quarter of the mix becomes a
+third of it and spends its allowance sooner than a count against the opening pattern would say.
+A slot resolves by finding its stretch and taking the pattern entry at its offset from the start
+of that stretch; a delivered count resolves by adding the periodic count within the stretch to
+the count carried at its start.
+
+`draw.py` fills slots forward from a derived count rather than from a cursor, taking the source
+the stretch names and asking `deck` which sample that delivery hands over, and re-reading the
+stretch whenever a delivery spends an allowance, because a retirement inside a printed step
+changes who owns the slots after it. `spot.py` is the state of every source at a slot, which is
+the delivered counts at that slot turned into an epoch and a cursor, with a source at its quota
+printed as gone. `deal.py` sends the slot at offset o to rank o modulo the world size and fills
+each accumulation micro-batch in arrival order. `keep.py` writes the record from the position
+the feeder reached and reads one back from the position the trainer reached, carrying the base
+so that a load of a resumed run composes.
+
+An expert works in that order because each file consumes the one before it: what a source
+delivers decides what an allowance covers, what an allowance covers decides where the stretches
+break, where the stretches break decides which source owns a slot, and that decides both what a
+micro-batch holds and what a rollback lands on. The same contract is implemented two further
+ways in the authoring set - one building the whole timeline eagerly and bisecting it, with the
+position inside an epoch counted forward; one keeping no timeline at all, re-solving the
+retirements on every query and counting backwards from the end of the hand-over order - so the
+shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/feed/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the plan reader, the hand-over order and the line
+format are its own, and nothing else the agent may have touched can change what a plan prints.
+Every trace is compared line for line.
+
+Correct is defined twice over. Thirty-seven hand plans, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Four hundred and eleven
+further plans are generated inside the verifier from a seed drawn after the agent container is
+gone, across eleven families that concentrate the cap boundary, epochs ending above the cap,
+allowances spent inside a printed step, retirements that move later retirements, one-slot steps
+around a retirement, loads of loaded runs, and the two scale shapes. A submission cannot have
+seen them, so fitting the shipped plans fails, and so does carrying an answer key.
+
+The fences run both ways. Passing over a sample at the cap fails `cap-exactly-at-cap`; delivering
+one above it fails `cap-all-but-one`. Skipping the trailing samples of an epoch early fails
+`epoch-tail-over-cap`; leaving a cursor at the end instead of the start of the next epoch fails
+`cap-pass-by`. Retiring a source when its epoch counter reaches the allowance fails
+`hold-counts-deliveries`; retiring it a delivery early fails `edge-rewind-on-retire`; not
+retiring it at all fails `edge-rewind-over-retire`. Counting pattern offsets from slot zero after
+a retirement fails `edge-save-past-retire`; rebuilding the pattern in source order fails
+`mix-survivors-keep-order`; settling the mix once per step fails `mix-retire-inside-step`.
+Dealing a step to ranks in blocks fails `deal-both`; filling accumulation micro-batches round
+robin fails `deal-seats`. Resuming where the feeder had reached fails `edge-rewind-on-retire`;
+resuming under the new geometry fails `keep-chain-base`; dropping the base of the run a
+checkpoint came from fails `keep-chain-three-deep`. Reporting a state after the slot it names
+fails `cap-all-but-one`, and reporting numbers for a retired source fails `state-never-gone`.
+
+Forty cheats score 0. Twenty-two are wrong readings caught by the enumerated plan named for
+each, and measured against the generated population they move between 7 and 86 per cent of
+plans. Five are exactly correct and too slow: the shipped walker with its mistakes taken out,
+the same with each source stream walked to find where it stands, the same with the retirement
+timeline stepped slot by slot, and the two readings of the refill rule that only a walker can
+hold. Three are the dumbest strategies there are: one constant sample everywhere, always the
+first sample of the owning source, and the line the brief quotes replayed for every request. One
+is a forgery carrying every frozen answer keyed by the plan it belongs to, which passes all
+thirty-seven hand plans and fails all four hundred and eleven it could not have seen. The other
+nine are probes: the sealed model and the frozen answers, the reward channel, a planted report
+left behind by a worker that exits clean, malformed records, privilege, a shrunken exam, a
+rewritten frozen tree, a hijacked line writer, and a process that deletes the report after
+grading begins. Two independently written correct feeders score 1.
+
+The submitted code runs unprivileged, in a session of its own, under the wall clock that is also
+the execution limit of the task. The model and the frozen answers sit in a directory that uid
+cannot read, which the probe reports as a permission error rather than only as a zero. The
+reward defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Data engineering"
+
+tags = [
+  "data-blending",
+  "deterministic-resumption",
+  "gradient-accumulation",
+  "epoch-allowance",
+  "index-arithmetic",
+  "checkpoint-rewind",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the data path of a pretraining stack: the loader that blends several corpora to
+fixed proportions, the token cap that quietly drops the long tail of a source, and the checkpoint
+seam where a loader run ahead of the trainer disagrees with it about what was consumed.
+Familiarity with the fact that a resumed run owes the samples the optimizer never saw and not the
+ones the loader had already drawn, that a per-source epoch is not a run epoch, and that a mixture
+whose sources carry epoch limits stops being one mixture part way through a run. Comfort with
+deriving a loader position arithmetically instead of replaying it, with per-epoch shuffles that
+have to be reproducible from a seed alone, and with the difference between a sampler that is
+correct and one that can still be resumed at the size the run actually reaches.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

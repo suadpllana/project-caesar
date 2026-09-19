@@ -1,0 +1,19 @@
+seed 5507
+cap 1024
+src a 0 533,665,1623,2375,1016,292,720,1823,521
+src b 2 1675,944,981,665,2139,183,144
+src c 0 255,1507,703,324,763
+mix a b c a
+open r 2 2 2
+take r 3
+show r 2 1 1
+feed r 4
+save r k0
+load q k0 4 1 2
+take q 2
+show q 1 3 0
+feed q 6
+save q k1
+load p k1 2 2 1
+take p 4
+show p 3 0 0

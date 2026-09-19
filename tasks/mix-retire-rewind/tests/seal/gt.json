@@ -1,0 +1,244 @@
+{
+ "cap-all-but-one": [
+  "show r 0 0 0 a.0",
+  "show r 4 0 0 a.0",
+  "show r 6 0 0 a.0",
+  "save k0 0 7 8 a:3:2:4 b:1:1:4"
+ ],
+ "cap-exactly-at-cap": [
+  "show r 0 0 0 a.2",
+  "show r 1 0 0 b.0",
+  "show r 4 0 0 a.0",
+  "show r 7 0 0 b.0",
+  "save k0 0 8 9 a:2:1:5 b:2:0:4"
+ ],
+ "cap-none-over": [
+  "show r 0 0 0 a.1",
+  "show r 3 0 0 b.1",
+  "show r 7 0 0 b.2",
+  "save k0 0 8 9 a:1:2:5 b:1:1:4"
+ ],
+ "cap-pass-by": [
+  "show r 1 0 0 b.1",
+  "show r 5 0 0 b.2",
+  "show r 9 0 0 b.1",
+  "save k0 0 10 12 a:2:0:6 b:2:0:6"
+ ],
+ "cap-pass-by-two": [
+  "show r 0 0 0 a.3",
+  "show r 2 0 1 a.4",
+  "show r 5 0 0 b.1",
+  "save k0 0 6 6 a:2:2:8 b:1:1:4"
+ ],
+ "cap-same-source-again": [
+  "show r 0 0 0 a.3",
+  "show r 1 0 0 b.0",
+  "show r 2 0 0 a.1",
+  "show r 5 0 0 b.0"
+ ],
+ "deal-both": [
+  "show r 0 0 0 a.1 a.2",
+  "show r 0 0 1 a.5 a.0",
+  "show r 0 1 0 b.0 b.2",
+  "show r 0 1 1 b.3 b.1"
+ ],
+ "deal-ranks": [
+  "show r 0 0 0 a.2",
+  "show r 0 1 0 b.2",
+  "show r 0 2 0 a.4",
+  "show r 0 3 0 b.3"
+ ],
+ "deal-seats": [
+  "show r 0 0 0 a.2 b.3",
+  "show r 0 0 1 a.0 a.1",
+  "show r 0 0 2 b.1 a.3"
+ ],
+ "deal-steps-follow": [
+  "show r 0 0 0 a.3",
+  "show r 1 1 1 b.0",
+  "show r 2 0 1 b.0",
+  "show r 3 1 0 b.1"
+ ],
+ "deal-wide-geometry": [
+  "show r 0 5 2 b.5 b.1 b.0 b.4",
+  "show r 1 0 0 a.4 a.0 a.2 a.6",
+  "show r 1 7 7 a.6 a.5 a.1 a.6"
+ ],
+ "edge-rewind-on-retire": [
+  "save k0 0 4 8 a:gone b:1:0:3 c:1:0:3",
+  "load q 4 a:gone b:0:1:1 c:0:1:1",
+  "show q 0 0 0 b.0",
+  "show q 1 0 0 c.0",
+  "show q 3 0 0 c.1"
+ ],
+ "edge-rewind-over-retire": [
+  "save k0 0 3 7 a:gone b:2:0:6 c:1:2:5",
+  "load q 6 a:gone b:0:2:2 c:0:1:1",
+  "show q 0 0 0 c.1",
+  "show q 1 1 0 b.1",
+  "show q 3 0 0 c.2"
+ ],
+ "edge-save-past-retire": [
+  "save k0 0 5 11 a:gone b:1:1:4 c:0:3:3",
+  "load q 5 a:1:1:3 b:0:1:1 c:0:1:1",
+  "show q 0 0 0 b.1",
+  "show q 2 0 1 c.3"
+ ],
+ "epoch-cursor-rolls": [
+  "save k0 0 2 2 a:0:1:1 b:0:1:1",
+  "save k1 0 4 4 a:1:0:2 b:1:0:2",
+  "save k2 0 6 6 a:1:1:3 b:1:1:3",
+  "save k3 0 8 8 a:2:0:4 b:2:0:4"
+ ],
+ "epoch-fresh-order": [
+  "show r 0 0 0 a.3",
+  "show r 3 0 0 a.1",
+  "show r 4 0 0 a.1",
+  "show r 7 0 0 a.2",
+  "show r 8 0 0 a.0"
+ ],
+ "epoch-own-counter": [
+  "save k0 0 9 9 a:2:1:5 b:0:4:4",
+  "show r 8 0 0 a.0",
+  "show r 2 0 0 a.1"
+ ],
+ "epoch-tail-over-cap": [
+  "save k0 0 1 1 a:1:0:1 b:0:0:0",
+  "save k1 0 2 2 a:1:0:1 b:0:1:1",
+  "save k2 0 3 3 a:1:1:2 b:0:1:1",
+  "save k3 0 4 4 a:1:1:2 b:1:0:2",
+  "save k4 0 5 5 a:3:0:3 b:1:0:2"
+ ],
+ "epoch-wrap": [
+  "show r 0 0 0 a.2",
+  "show r 6 0 0 a.1",
+  "show r 11 0 0 b.0",
+  "save k0 0 12 12 a:2:0:6 b:3:0:6"
+ ],
+ "hold-counts-deliveries": [
+  "save k0 0 4 4 a:1:0:2 b:0:2:2",
+  "save k1 0 8 8 a:gone b:1:1:4",
+  "save k2 0 12 12 a:gone b:2:2:8",
+  "show r 3 0 0 b.1",
+  "show r 7 0 0 b.0",
+  "show r 11 0 0 b.1"
+ ],
+ "hold-gone-in-record": [
+  "save k0 0 3 3 a:gone b:0:1:1",
+  "save k1 0 7 7 a:gone b:1:2:5"
+ ],
+ "hold-last-delivery": [
+  "save k0 0 1 1 a:gone b:0:0:0",
+  "save k1 0 2 2 a:gone b:0:1:1",
+  "save k2 0 3 3 a:gone b:0:2:2",
+  "save k3 0 4 4 a:gone b:1:0:3",
+  "show r 0 0 0 a.0",
+  "show r 2 0 0 b.1",
+  "show r 3 0 0 b.2"
+ ],
+ "hold-one-epoch": [
+  "save k0 0 3 3 a:0:2:2 b:0:1:1",
+  "save k1 0 5 5 a:gone b:1:0:2",
+  "save k2 0 8 8 a:gone b:2:1:5",
+  "show r 5 0 0 b.0",
+  "show r 7 0 0 b.1"
+ ],
+ "hold-two-epochs": [
+  "save k0 0 9 9 a:1:0:3 b:1:2:6",
+  "save k1 0 18 18 a:gone b:3:0:12",
+  "show r 5 0 0 b.0",
+  "show r 14 0 0 b.1",
+  "show r 17 0 0 b.2"
+ ],
+ "hold-zero-runs-on": [
+  "show r 12 0 0 a.1",
+  "show r 13 0 0 b.1",
+  "save k0 0 14 14 a:3:1:7 b:2:1:7"
+ ],
+ "keep-chain-base": [
+  "save k0 0 4 6 a:0:4:4 b:2:0:8",
+  "load q 8 a:0:3:3 b:1:1:5",
+  "save k1 8 3 6 a:1:2:7 b:3:1:13",
+  "load p 14 a:1:0:5 b:2:1:9",
+  "show p 0 0 0 b.2 b.1",
+  "show p 1 1 0 b.1 a.3"
+ ],
+ "keep-chain-three-deep": [
+  "save k0 0 3 4 a:1:1:4 b:0:4:4",
+  "load q 6 a:1:0:3 b:0:3:3",
+  "save k1 6 2 2 a:1:1:4 b:0:4:4",
+  "load p 8 a:1:1:4 b:0:4:4",
+  "save k2 8 2 4 a:2:0:6 b:1:1:6",
+  "load s 10 a:1:2:5 b:1:0:5",
+  "show s 0 0 0 a.1",
+  "show s 1 0 0 b.3"
+ ],
+ "keep-nothing-to-rewind": [
+  "save k0 0 3 3 a:2:0:8 b:1:1:4",
+  "load q 12 a:2:0:8 b:1:1:4",
+  "show q 0 0 0 a.2",
+  "show q 1 1 1 b.1"
+ ],
+ "keep-record-geometry": [
+  "save k0 0 3 5 a:8:0:40 b:10:0:40",
+  "load q 48 a:4:4:24 b:6:0:24",
+  "show q 0 0 0 a.0",
+  "show q 3 0 0 b.1"
+ ],
+ "keep-rewind-to-done": [
+  "save k0 0 3 8 a:5:1:21 b:3:2:11",
+  "load q 12 a:2:0:8 b:1:1:4",
+  "show q 0 0 0 a.3",
+  "show q 1 1 1 b.2"
+ ],
+ "mix-entries-leave": [
+  "show r 3 0 0 a.1",
+  "show r 5 0 0 c.0",
+  "show r 6 0 0 b.1",
+  "show r 7 0 0 c.2",
+  "show r 11 0 0 c.2",
+  "save k0 0 12 12 a:gone b:1:2:5 c:1:2:5"
+ ],
+ "mix-named-twice": [
+  "show r 5 0 0 a.0",
+  "show r 6 0 0 b.1",
+  "show r 7 0 0 b.0",
+  "show r 15 0 0 b.3",
+  "save k0 0 16 16 a:gone b:3:1:13"
+ ],
+ "mix-offset-from-stretch": [
+  "show r 4 0 0 a.0",
+  "show r 5 0 0 b.2",
+  "show r 6 0 0 c.2",
+  "show r 7 0 0 b.0",
+  "show r 8 0 0 b.0",
+  "show r 13 0 0 b.1",
+  "save k0 0 14 14 a:gone b:2:0:8 c:1:0:4"
+ ],
+ "mix-retire-inside-step": [
+  "show r 0 0 0 a.1 b.0 c.2 a.0 b.1 c.0 b.2 c.1",
+  "show r 1 0 0 b.2 c.1 b.0 c.0 b.1 c.2 b.0 c.1",
+  "save k0 0 2 2 a:gone b:2:1:7 c:2:1:7"
+ ],
+ "mix-survivors-keep-order": [
+  "show r 5 0 0 c.0",
+  "show r 6 0 0 a.2",
+  "show r 7 0 0 c.0",
+  "show r 8 0 0 a.1",
+  "show r 11 0 0 c.2",
+  "save k0 0 12 12 a:1:1:4 b:gone c:2:0:6"
+ ],
+ "mix-two-retire": [
+  "show r 3 0 0 b.1",
+  "show r 7 0 0 b.0",
+  "show r 9 0 0 c.0",
+  "show r 13 0 0 c.1",
+  "show r 17 0 0 c.1",
+  "save k0 0 18 18 a:gone b:gone c:4:0:12"
+ ],
+ "state-before-the-slot": [
+  "save k0 0 1 1 a:0:1:1 b:0:0:0",
+  "save k1 0 2 2 a:0:1:1 b:0:1:1",
+  "save k2 0 3 3 a:0:2:2 b:0:1:1"
+ ]
+}

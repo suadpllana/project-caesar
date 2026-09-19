@@ -1,0 +1,9 @@
+seed 91
+cap 512
+src a 0 152,412,433,157,337,430
+src b 0 380,510,479,87,233
+mix a b a
+open r 2 2 2
+take r 1
+show r 0 0 0
+show r 0 1 0

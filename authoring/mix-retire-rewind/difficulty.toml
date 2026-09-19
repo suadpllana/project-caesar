@@ -1,0 +1,177 @@
+# Difficulty record for mix-retire-rewind, written before any bundle code exists.
+# Measurements quoted here were taken with authoring/mix-retire-rewind/proto/ on 2026-09-19.
+
+[task]
+slug = "mix-retire-rewind"
+status = "idea"
+sources = [
+  "authoring/mix-retire-rewind/proto/spec.py (both implementations)",
+  "authoring/mix-retire-rewind/proto/check.py (400-round differential run)",
+  "authoring/mix-retire-rewind/proto/deep.py (agreement across two retirements)",
+  "authoring/mix-retire-rewind/proto/timing.py (the gate measurement)",
+]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep the feeder the shipped service already is: a cursor and an epoch for each source, the mix
+pattern read off the slot number, a sample whose token length is over the cap passed over and
+the same source asked again, and a resume that replays the stream from the first slot until it
+stands where the checkpoint says the loader stood.
+"""
+first_plan_source = "tree"
+breaking_rule = """
+The graded plans feed and take hundreds of thousands of steps of 256 slots before they print
+anything, and the whole set is given 60 seconds, so nothing that visits a slot ever reaches the
+first line it has to print.
+"""
+second_discovery = """
+A source retires the moment its epoch allowance is spent and its entries leave the mix, so
+there is no single pattern to count against: each retirement slot has to be solved for inside
+the pattern that was live before it, and every later one moves because the survivors' shares
+grew when it left.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped feeder on the small plan and compare its last line with the brief's",
+  "Read the six collected files against the stated rules and fix the refill, epoch and deal decisions",
+  "Time the two wide plans, see that nothing prints, and give up on walking slots",
+  "Count a source's slots over a stretch from the pattern's period rather than by walking",
+  "Turn a delivered count into an epoch and a cursor using the per-epoch delivery count",
+  "Solve each retirement slot inside its own pattern and rebuild the pattern for the next stretch",
+  "Rewind a load to the last step the trainer completed under the geometry that run used",
+  "Carry the base through a chained load and re-derive every source's state at that slot",
+  "Re-run the small plans for the exact traces and both wide plans against the clock",
+]
+
+[search]
+best_page = """
+The elastic-determinism notes published for streaming dataset libraries, the blended-dataset
+index maps of a training framework, and the framework issues where a prefetching loader
+checkpoints a cursor that ran ahead of the trainer.
+"""
+helps_plan = false
+deviation = """
+Those build an index map for the whole run and resume by looking a position up in it; this run
+is longer than any map that fits the memory cap, and the mix itself changes part way through
+when a source spends its allowance.
+"""
+
+[tactics]
+A1 = """
+The memorised resume continues from the loader's own saved cursor and the memorised blend is
+one fixed index map; here both are specifically wrong and a confident retrieval hurts.
+"""
+B2 = """
+Refill, epoch crossing, allowance, pattern rebuild, rank deal, rollback and chaining all have
+to hold at once, and each of them changes what being right means for another.
+"""
+C2 = """
+The only thing the agent can run is the shipped feeder, which is wrong on nine decisions and
+prints no expected values; graded plans come from a seed drawn after its container is gone.
+"""
+C3 = """
+A slot-at-a-time feeder is right in every rule and takes 300 seconds on one graded plan
+against the 60 seconds the whole set is given; deriving the state takes a millisecond.
+"""
+C4 = """
+Exact traces compared line for line over enumerated corners and generated families, every one
+of them, with retirement and resume shapes concentrated on purpose.
+"""
+guard = """
+The six files under /app/feed are the only ones collected; the driver, the plan parser, the
+hand-over order and the line format are the verifier's own copy and cannot be reshaped.
+"""
+
+[decisions]
+graded = 9
+interactions = [
+  { a = "a sample over the cap is passed over and the same source asked again", b = "a cursor that runs off the end of an epoch starts the next one", why = "whether a passed-over sample consumes the slot decides where the epoch boundary falls, and the epoch decides the order the next samples come in" },
+  { a = "a source retires when its allowance in epochs is spent", b = "a sample over the cap is passed over", why = "the allowance is counted in epochs but spent in deliveries, so the refill rule decides which slot the retirement lands on" },
+  { a = "a retired source's entries leave the pattern", b = "the source of a slot is the pattern entry at its offset in the live stretch", why = "once the pattern can change, no count taken against the opening pattern is right and every derivation has to be per stretch" },
+  { a = "a load rewinds to the last step the trainer completed", b = "a retired source's entries leave the pattern", why = "the slot a load rewinds to sits in some stretch, so the rewind cannot be done at all without the retirement timeline being right first" },
+  { a = "the rank deal inside a step", b = "a load rewinds to the last completed step under the geometry that run used", why = "the resumed run deals the same slots under a new world size from a base that is not a multiple of its own step, so the two grids no longer line up" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A run with no checkpoint, no retirement and every sample inside the cap has to deal exactly
+the same ids, so a feeder that rewinds defensively or treats every source as if it dropped
+samples is wrong as well as slow.
+"""
+late_case = """
+A load of a run that was itself loaded, at a slot past a retirement whose position an earlier
+retirement moved, where the recovered cursor lands on the last within-cap sample of an epoch
+and the samples after it are over the cap.
+"""
+oracle_denied = """
+The shipped feeder is the only thing there is to run and it is wrong on nine decisions; no
+expected trace ships, and the single line quoted in the brief settles the printed format and
+the refill rule and nothing else.
+"""
+
+[leaks]
+candidates = [
+  { what = "the within-cap count of each source", closed_by = "only the raw token lengths ship, so the per-epoch delivery count has to be derived and never appears as a field" },
+  { what = "the retirement slots and the stretch timeline", closed_by = "nothing records them; a retired source prints as gone with no slot beside it, and no log line marks the change" },
+  { what = "expected output for the shipped plans", closed_by = "no expected traces ship anywhere in the tree; one line of one small plan is quoted in the brief" },
+  { what = "a helper that counts a source's slots up to a position", closed_by = "the shipped feeder walks and has no such helper, so the count is work the agent has to write" },
+  { what = "the per-source cursors saved in a checkpoint record", closed_by = "they are the feeder's own state at the feeder's own position, which is the wrong slot to resume from, so reading them off is a losing reading rather than a shortcut" },
+]
+derived_quantities = """
+The token lengths, the pattern, the cap, the allowances and the batch geometry are the
+primitives; no delivered count, retirement slot, stretch table or expected trace ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+A feeder that fills one slot at a time, right in every rule, and the repair that derives the
+pattern counts but still walks each source's own stream to find where it stands.
+"""
+invariant = """
+A permutation does not change a multiset, so every epoch of a source delivers the same count,
+and between two retirements the pattern repeats with a fixed period.
+"""
+input_scale = "plans that feed and take 780000 steps of 256 slots, about 200 million samples"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a sample over the cap leaves the slot empty", hand_case = "one source whose second sample is over the cap, two steps printed" },
+  { reading = "a sample over the cap hands the slot to the next source in the pattern", hand_case = "a two-source pattern where one source's first sample is over the cap" },
+  { reading = "the epoch counter is the run's, not the source's", hand_case = "two sources of different lengths, printed past the shorter one's first wrap" },
+  { reading = "the hand-over order is drawn once and reused for every epoch", hand_case = "a three-sample source printed across its own wrap" },
+  { reading = "the allowance is counted in samples rather than epochs", hand_case = "a source of five samples with an allowance of two, printed past slot ten" },
+  { reading = "a source retires when its epoch counter reaches the allowance", hand_case = "a source whose final allowed epoch ends with two over-cap samples" },
+  { reading = "the pattern is indexed by absolute slot after a retirement", hand_case = "a pattern of length three losing its middle source at a slot that is not a multiple of three" },
+  { reading = "the pattern is rebuilt from the surviving weights rather than by deletion", hand_case = "a pattern that names one source twice, losing the source between its two entries" },
+  { reading = "a step is dealt to ranks in contiguous blocks", hand_case = "one step at world two, micro two, accumulation two, both ranks printed" },
+  { reading = "a rank's slots fill accumulation steps round robin instead of in order", hand_case = "one step at world one, micro two, accumulation two, both accumulation steps printed" },
+  { reading = "a load resumes at the position the feeder had reached", hand_case = "feed four steps ahead, take one, save, load, print the first step" },
+  { reading = "a load resumes at the last completed step under the new geometry", hand_case = "save at eight completed steps of 16 slots, load at a geometry of 8 slots" },
+  { reading = "a load starts its base at zero, ignoring the run it came from", hand_case = "a save taken from a run that was itself loaded, then one step printed" },
+  { reading = "the recovered cursor is the delivered count", hand_case = "a source with one over-cap sample early, loaded after it has been passed over" },
+  { reading = "the recovered epoch is the delivered count over the source's length", hand_case = "a source with two over-cap samples, loaded just past its first wrap" },
+  { reading = "a cursor that reaches the end of an epoch is left at the end rather than at the start of the next", hand_case = "a source whose epoch ends with its last within-cap sample, state printed at that moment" },
+  { reading = "the over-cap samples after the last delivery of an epoch are passed over eagerly", hand_case = "a source whose last two samples are over the cap, state printed after the delivery before them" },
+  { reading = "a retired source keeps its slots in the pattern and simply delivers nothing", hand_case = "a two-source pattern where the limited source retires at slot six" },
+]
+correct_variants = [
+  "a feeder that builds the whole stretch timeline eagerly to the queried slot and keeps it as a list, searching it by bisection, with the within-epoch positions found from a prefix count over the hand-over order",
+  "a feeder that keeps no timeline at all and re-solves the retirements from the opening pattern on every query, finding a source's position inside an epoch by scanning its hand-over order backwards from the end",
+]
+
+[shape]
+# Measured from the built tree on 2026-09-19, replacing the planned 300 / 6 / 320. The
+# reference came out denser than planned: the derivation is short to write once it is right,
+# which is also why the walker it replaces is the plan an agent reaches for first.
+environment_py_lines = 237
+editable_files = 6
+reference_lines = 171

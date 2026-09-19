@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-TASK = ROOT / "tasks" / "link-clear-round"
+TASK = ROOT / "tasks" / "referential-action-order"
 SOL = TASK / "solution"
 SRC = TASK / "environment" / "app_src"
 PARTS = ("hit.py", "reach.py", "meld.py", "halt.py", "lay.py", "undo.py")
@@ -25,7 +25,7 @@ PARTS = ("hit.py", "reach.py", "meld.py", "halt.py", "lay.py", "undo.py")
 
 def tree(policy=None, files=None):
     """A fresh copy of the shipped tree with one set of keep files laid over it."""
-    room = Path(tempfile.mkdtemp(prefix="lcr-"))
+    room = Path(tempfile.mkdtemp(prefix="rao-"))
     here = room / "app"
     shutil.copytree(SRC, here)
     if policy is not None:
@@ -60,7 +60,7 @@ def run_text(here, text):
 
 def run_shell(here, text, timeout=180):
     """Run one program in a subprocess, for anything that might not come back."""
-    room = Path(tempfile.mkdtemp(prefix="lcr-prog-"))
+    room = Path(tempfile.mkdtemp(prefix="rao-prog-"))
     prog = room / "p.txt"
     prog.write_text(text.rstrip("\n") + "\n", encoding="utf-8", newline="\n")
     try:

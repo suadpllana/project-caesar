@@ -5,7 +5,7 @@ It reads the existing file first and reports every answer that moved. A rule cha
 meant to be additive and moves a frozen answer is a contract change, and the point of this
 script is that it cannot happen quietly.
 
-    python3 -u authoring/link-clear-round/build_gt.py [--force]
+    python3 -u authoring/referential-action-order/build_gt.py [--force]
 """
 import json
 import sys

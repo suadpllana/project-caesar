@@ -7,7 +7,7 @@ measured rather than chosen. Every run here is a subprocess, because a walk of t
 the wide families does not come back quickly and an in-process run would take the measurement
 down with it.
 
-    python3 -u authoring/link-clear-round/timing.py [per]
+    python3 -u authoring/referential-action-order/timing.py [per]
 """
 import random
 import subprocess

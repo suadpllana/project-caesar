@@ -10,7 +10,7 @@ named for it must be one of the cases it fails.
 The isolation probes are not judged here - their effect is on the verifier, not on a trace - and
 go through tools/docker_trial.py instead.
 
-    python3 -u authoring/link-clear-round/cheat_report.py
+    python3 -u authoring/referential-action-order/cheat_report.py
 """
 import json
 import random

@@ -1,13 +1,13 @@
-# Difficulty record - link-clear-round, written 2026-09-19 before any code existed.
+# Difficulty record - referential-action-order, written 2026-09-19 before any code existed.
 #
 # The machine is the link-keeping half of a row store: what happens to rows that point at a
 # row being taken out or re-keyed. Everything here is a statement of the design; nothing is
 # written to reach a number. STATE.md carries the same claims in prose.
 
 [task]
-slug = "link-clear-round"
+slug = "referential-action-order"
 status = "idea"
-sources = ["tasks/link-clear-round/STATE.md"]
+sources = ["tasks/referential-action-order/STATE.md"]
 expert_hours = 9
 estimated_solves = 2
 

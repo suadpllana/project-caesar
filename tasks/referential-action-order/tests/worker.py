@@ -19,14 +19,14 @@ import sys
 import tempfile
 import traceback
 
-TESTS = os.environ.get("LCR_TESTS", "/tests")
+TESTS = os.environ.get("RAO_TESTS", "/tests")
 sys.path.insert(0, TESTS)
 
 import cases  # noqa: E402
 import gen  # noqa: E402
 
-WORK = pathlib.Path(os.environ.get("LCR_WORK", "/work"))
-SENT = pathlib.Path(os.environ.get("LCR_SUB", "/app/keep"))
+WORK = pathlib.Path(os.environ.get("RAO_WORK", "/work"))
+SENT = pathlib.Path(os.environ.get("RAO_SUB", "/app/keep"))
 PRISTINE = pathlib.Path(TESTS) / "pristine"
 PARTS = ("hit.py", "reach.py", "meld.py", "halt.py", "lay.py", "undo.py")
 

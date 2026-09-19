@@ -6,7 +6,7 @@ the store at the scale the brief states, so the agent can time its own keeper ag
 limit without having to build the file first. It is drawn from a seed of its own, so it is
 the same shape as the graded wide families and none of their contents.
 
-    python3 -u authoring/link-clear-round/make_progs.py
+    python3 -u authoring/referential-action-order/make_progs.py
 """
 import random
 import sys

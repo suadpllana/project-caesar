@@ -1,8 +1,8 @@
-# Instruction trace: link-clear-round
+# Instruction trace: referential-action-order
 
 Walked from the verifier toward the instruction (docs/INSTRUCTION-CONTRACT.md). Every quote is
-word for word from `tasks/link-clear-round/instruction.md`. Checked with
-`python tools/tracecheck.py link-clear-round`.
+word for word from `tasks/referential-action-order/instruction.md`. Checked with
+`python tools/tracecheck.py referential-action-order`.
 
 ## Graded assertions
 
@@ -120,4 +120,4 @@ word for word from `tasks/link-clear-round/instruction.md`. Checked with
 
 | Tolerance or limit | Independent implementation | Measured |
 |---|---|---|
-| `tests/test.sh:35` a 45 s clock | `authoring/link-clear-round/variants/relax` and `.../sweep`, both written apart from the reference | reference 3.5 s, relax 4.0 s, sweep 4.2 s over the whole graded set of 353 programs; the same reference with the rows found by walking the table 322 s, with only the deferred check walking 179 s |
+| `tests/test.sh:35` a 45 s clock | `authoring/referential-action-order/variants/relax` and `.../sweep`, both written apart from the reference | reference 3.5 s, relax 4.0 s, sweep 4.2 s over the whole graded set of 353 programs; the same reference with the rows found by walking the table 322 s, with only the deferred check walking 179 s |

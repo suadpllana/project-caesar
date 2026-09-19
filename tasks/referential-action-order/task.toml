@@ -10,7 +10,7 @@ artifacts = [
 ]
 
 [task]
-name = "afterquery/link-clear-round"
+name = "afterquery/referential-action-order"
 
 [metadata]
 author_name = "Shiela marie"

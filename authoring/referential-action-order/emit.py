@@ -11,7 +11,7 @@ matches nothing ships the reference under a cheat's name and scores 0 for the wr
 Run this after any change to solution/, and before cheat_report.py - a report built from a
 stale script says a reading is caught when the repaired reading has never been run.
 
-    python3 -u authoring/link-clear-round/emit.py
+    python3 -u authoring/referential-action-order/emit.py
 """
 import json
 import pathlib

@@ -5,7 +5,7 @@ The verifier lays the six submitted files over its own copy of the tree, and tha
 copy: rebuild the environment without re-syncing it and the oracle fails inside the worker with
 an ImportError, which reads like a broken task rather than a stale mirror.
 
-    python3 -u authoring/link-clear-round/sync_pristine.py [--check]
+    python3 -u authoring/referential-action-order/sync_pristine.py [--check]
 """
 import filecmp
 import shutil

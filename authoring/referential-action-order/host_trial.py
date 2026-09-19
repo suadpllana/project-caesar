@@ -26,11 +26,11 @@ escaping into a neighbouring image. The isolation rules it does exercise are the
 Absolute paths again, so it takes a lock: two runs of a fixed-path harness are one run with
 the rows interleaved (CLAUDE.md, publish-settle-order).
 
-    python3 -u authoring/link-clear-round/host_trial.py oracle
-    python3 -u authoring/link-clear-round/host_trial.py nop
-    python3 -u authoring/link-clear-round/host_trial.py --dir <directory of the six files>
-    python3 -u authoring/link-clear-round/host_trial.py --cheats
-    python3 -u authoring/link-clear-round/host_trial.py --all
+    python3 -u authoring/referential-action-order/host_trial.py oracle
+    python3 -u authoring/referential-action-order/host_trial.py nop
+    python3 -u authoring/referential-action-order/host_trial.py --dir <directory of the six files>
+    python3 -u authoring/referential-action-order/host_trial.py --cheats
+    python3 -u authoring/referential-action-order/host_trial.py --all
 """
 import fcntl
 import pwd
@@ -48,7 +48,7 @@ APP = Path("/app")
 TESTS = Path("/tests")
 WORK = Path("/work")
 LOGS = Path("/logs")
-LOCK = Path("/tmp/lcr-host-trial.lock")
+LOCK = Path("/tmp/rao-host-trial.lock")
 PARTS = lab.PARTS
 
 
@@ -72,7 +72,7 @@ def trial(name, script, want, quiet=False):
                   % (done.returncode, done.stderr.strip()[-200:]))
 
     # -- only the declared artifacts cross over ----------------------------------------
-    room = Path(tempfile.mkdtemp(prefix="lcr-art-"))
+    room = Path(tempfile.mkdtemp(prefix="rao-art-"))
     for part in PARTS:
         one = APP / "keep" / part
         if one.is_file():

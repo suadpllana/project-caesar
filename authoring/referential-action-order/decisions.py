@@ -18,7 +18,7 @@ it along, and which link decides a column, because the reach meets the links out
 should be short, and honestly so: the direction the groups come out in is a stated rule with
 nothing behind it, and so is which check stops a change.
 
-    python3 tools/onelinecheck.py link-clear-round
+    python3 tools/onelinecheck.py referential-action-order
 """
 import pathlib
 import random

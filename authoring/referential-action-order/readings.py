@@ -7,7 +7,7 @@ as bad luck rather than as a named rule - one of the causes behind a zero-solve 
 The readings come from emit.py, so the cheats that ship and the readings measured here are the
 same files and cannot drift apart. Run emit.py first, always.
 
-    python tools/readingcheck.py link-clear-round [rounds]
+    python tools/readingcheck.py referential-action-order [rounds]
 """
 import pathlib
 import random

@@ -63,7 +63,7 @@ once, and the structure the rules ask for is not the one the domain's own idiom 
   the emit order has to be built after the reach rather than during it. My first plan is wrong
   in the place that matters, and the expert path is clear once those two findings are in hand.
 - Estimated solves out of 8: 2 (designed for the hard edge; the realized rate drifts up)
-- Difficulty record score (tools/difficultycheck.py on authoring/link-clear-round/difficulty.toml,
+- Difficulty record score (tools/difficultycheck.py on authoring/referential-action-order/difficulty.toml,
   before Stage 2): 100/100 on the first attempt, inside the 95-100 band of the passed tasks, with
   one warning - the resource gate was declared before it was measured. It has since been measured
   (below) and the record updated.
@@ -108,12 +108,12 @@ once, and the structure the rules ask for is not the one the domain's own idiom 
 
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 
-- Instruction trace: `authoring/link-clear-round/trace.md`, walked from the verifier - 4 test
+- Instruction trace: `authoring/referential-action-order/trace.md`, walked from the verifier - 4 test
   functions, 29 enumerated cases, 6 declared artifacts, the 45 s clock and 24 top-level model
   rules split into one row per rule with cited lines. No `NOT STATED` row remains; two rows carry
   verifier-internal assertions (the model-versus-frozen-answers seal and the family-coverage
   guard) which grade the verifier rather than the submission, and both are cited anyway.
-  `python tools/tracecheck.py link-clear-round` is clean.
+  `python tools/tracecheck.py referential-action-order` is clean.
 - Identifiability: 24 wrong readings were written down as running code and measured with
   `tools/readingcheck.py`; every one is separated by an enumerated case named for the rule it
   breaks, and `cheat_report.py` asserts that the case named for a cheat is among the cases it
@@ -125,7 +125,7 @@ once, and the structure the rules ask for is not the one the domain's own idiom 
   names matches 10 of 29 and 23 of 96; the worked example replayed as an answer key for all 29
   enumerated programs matches every one of them and 1 of 96 generated. All four score 0.
 - Independent implementation behind every tolerance and limit: the 45 s clock is validated
-  against `authoring/link-clear-round/variants/relax` and `.../sweep`, both written apart from
+  against `authoring/referential-action-order/variants/relax` and `.../sweep`, both written apart from
   the reference, under the declared caps.
 - Undecided decisions from the cold-reader pass: author-run, put mechanically over every graded
   output. It added the sentence
@@ -152,6 +152,15 @@ Once agreed, this does not change without the contributor's explicit approval.
 
 ## Decisions and their reasons
 
+- The slug was `link-clear-round` until the quality review of 20 September failed the `task name`
+  criterion on it: three kebab-case words, but `round` means nothing in the task and `link-clear`
+  names one minor action out of many, so a reader cannot tell the task is about fixing a
+  referential-action engine. Renamed to `referential-action-order`, which names the domain (the
+  actions a link carries when a parent row is taken out or re-keyed) and the sharpest graded axis
+  (the order the effects come out in). Nothing else changed: the instruction and the whole
+  agent-facing tree never referred to the slug, so the contract, the reference and the frozen
+  answers are untouched, and every gate was re-run against the new name.
+
 - The link graph over tables is required to be acyclic (the parser rejects a table reachable from
   itself, and a link joining a table to itself). Without it the longest-chain group rule is not
   well defined. Real engines refuse cyclic cascading actions for their own reasons, so this is
@@ -173,9 +182,9 @@ Once agreed, this does not change without the contributor's explicit approval.
 
 | Check | Status | Notes |
 |---|---|---|
-| Agent image builds | not run | Docker cannot pull `python:3.12-slim` in this session: the blob host `production.cloudfront.docker.com` is denied by the environment's egress policy (the proxy logs `connect_rejected` for it), so neither image can be built. `python tools/imagecheck.py link-clear-round` interprets `environment/Dockerfile` against the build context instead, assembles the 15 files the image would hold, drops the reference in and runs all four shipped programs: clean |
+| Agent image builds | not run | Docker cannot pull `python:3.12-slim` in this session: the blob host `production.cloudfront.docker.com` is denied by the environment's egress policy (the proxy logs `connect_rejected` for it), so neither image can be built. `python tools/imagecheck.py referential-action-order` interprets `environment/Dockerfile` against the build context instead, assembles the 15 files the image would hold, drops the reference in and runs all four shipped programs: clean |
 | No answer leaked into agent image | pass | nothing from `tests/` or `solution/` is copied into `environment/`; the only COPY is `app_src/`, and imagecheck lists exactly what the image would hold |
-| `harbor run -a oracle` = 1 | pass, on the host | `authoring/link-clear-round/host_trial.py` stands the host in for both containers and runs the shipped `tests/test.sh` itself, so the privilege drop, the root-owned 0700 reward channel, the sealed directory, the session, the 45 s clock and the reap are all exercised as written. Only the container boundary is missing |
+| `harbor run -a oracle` = 1 | pass, on the host | `authoring/referential-action-order/host_trial.py` stands the host in for both containers and runs the shipped `tests/test.sh` itself, so the privilege drop, the root-owned 0700 reward channel, the sealed directory, the session, the 45 s clock and the reap are all exercised as written. Only the container boundary is missing |
 | `harbor run -a nop` = 0 | pass, on the host | same harness, no agent script |
 | Cheats all score 0 | pass, on the host | 40 of 40, in the same run as the oracle and the nop: 42/42 trials behaved as required. The ten probes sit on the reference with its order reading broken, so each one scores 0 without its payload and reaches the grader rather than being killed by the clock |
 | Correct variants score 1 | pass, on the host | `--dir variants/relax` and `--dir variants/sweep`, both 1 |
@@ -183,10 +192,10 @@ Once agreed, this does not change without the contributor's explicit approval.
 | `preflight.py` | pass | no errors; 18 warnings, all of the unused-public-function class the retained bundles also carry (the checker counts only bare calls, so `work.st.held(...)` is invisible to it) |
 | `harbor check` rubric | not run | harbor is not installed in this environment and no model API key is present |
 | Reference and model agree | pass | the 29 enumerated programs, 1600 generated ones and both wide families |
-| Every reading separated by a named case | pass | `tools/readingcheck.py link-clear-round`: 24 readings, each separated by the enumerated case named for its rule |
-| Which case catches each cheat | pass | `authoring/link-clear-round/cheat_report.py`: 0 findings |
-| How short the answer is | pass | `tools/onelinecheck.py link-clear-round`: three of the four graded quantities have no exact rule at depth two; the fourth is a stated rule with two cheats covering it |
-| Difficulty record against the built tree | pass | `tools/difficultycheck.py link-clear-round`: 100/100, 391 environment lines, 6 editable files, 396 reference lines |
+| Every reading separated by a named case | pass | `tools/readingcheck.py referential-action-order`: 24 readings, each separated by the enumerated case named for its rule |
+| Which case catches each cheat | pass | `authoring/referential-action-order/cheat_report.py`: 0 findings |
+| How short the answer is | pass | `tools/onelinecheck.py referential-action-order`: three of the four graded quantities have no exact rule at depth two; the fourth is a stated rule with two cheats covering it |
+| Difficulty record against the built tree | pass | `tools/difficultycheck.py referential-action-order`: 100/100, 391 environment lines, 6 editable files, 396 reference lines |
 | Prose screens | mixed | `hintcheck`, `catcheck`, `deadfieldcheck`, `solvecheck`, `extraneouscheck` and `forgecheck` clean. `textcheck` puts the instruction's cadence (burstiness 0.69) below the retained set's 0.79 to 1.01 while its short-sentence share and model tells are in range; `simcheck` reports the environment Dockerfile and the verifier's test file as near-identical to retained bundles, which is the house shape rather than copied content, and its conceptual verdict is that this task grades nothing an earlier one grades |
 
 ## Stage 7 re-attack, and the cold pass

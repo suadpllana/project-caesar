@@ -1,0 +1,20 @@
+tab site k
+tab room k site host
+tab desk k room site
+tab card k desk room
+link l1 room site site drop follow
+link l2 desk room room drop follow
+link l3 desk site site clear bar
+link l4 card desk desk drop follow
+link l5 card room room wait wait
+put site 2
+put site 5
+put room 3 2 5
+put room 8 5 2
+put desk 1 3 2
+put desk 4 8 5
+put card 6 1 3
+put card 9 4 8
+out site 5
+mov site 2 7
+out site 2

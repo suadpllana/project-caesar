@@ -1,0 +1,8 @@
+tab job k own
+tab step k job
+link l1 step job job drop follow
+put job 4 2
+put job 9 2
+put step 7 4
+put step 3 4
+out job 4

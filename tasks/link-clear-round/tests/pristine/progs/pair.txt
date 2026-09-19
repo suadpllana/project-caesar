@@ -1,0 +1,14 @@
+tab job k own
+tab step k job
+tab note k step own
+link l1 step job job drop follow
+link l2 note step step wait follow
+link l3 note own job clear clear
+put job 4 6
+put job 6 6
+put step 7 4
+put note 1 7 6
+put note 5 7 9
+mov job 6 8
+out job 4
+out job 6

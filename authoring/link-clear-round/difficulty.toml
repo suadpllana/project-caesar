@@ -1,0 +1,187 @@
+# Difficulty record - link-clear-round, written 2026-09-19 before any code existed.
+#
+# The machine is the link-keeping half of a row store: what happens to rows that point at a
+# row being taken out or re-keyed. Everything here is a statement of the design; nothing is
+# written to reach a number. STATE.md carries the same claims in prose.
+
+[task]
+slug = "link-clear-round"
+status = "idea"
+sources = ["tasks/link-clear-round/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Walk out from the row the change names, following each link to the rows that point at it,
+applying that link's action as I reach it - take the child out and recurse, or clear its
+column, or fail on a restrict, or note a deferred check - printing each effect as it is
+applied, with a visited set so a row already handled is skipped, and a final pass over the
+deferred links before the change is done.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Nothing the change does is decided against the store as it is being changed: every match, every
+restrict and every merge reads the store as it stood when the change began, so a column one
+link clears is still holding its old key when the next link looks at it, and a row another link
+has already taken out is still there to be found.
+"""
+second_discovery = """
+Where a row lands in the printed order is the greatest number of links on any chain reaching
+it, not the first one found, so a row met again along a longer route moves later and carries
+every row met through it further still; and because rows are taken out deepest group first, a
+row that moved later prints earlier.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read the runner, the parser and the row store to see what a change is handed and what the trace writer is given",
+  "Establish that the reach runs to completion against the starting store before anything is applied, and separate deciding from applying",
+  "Build the reach as a longest-chain relaxation over the links rather than a first-seen walk, propagating through rows taken out and through follows that land on a key column",
+  "Merge the effects on each row under the two merge rules: a row taken out ignores everything else, and one column goes to the link declared first",
+  "Order the groups by the direction the change requires, deepest first for a row going out and shallowest first for a re-key, and the effects inside a group by table, key and column",
+  "Put the restrict check between the reach and the application and the deferred check after it, with an exact walk-back of everything applied when either stops the change",
+  "Replace the scanning matcher with an index over link and value, maintained as effects are applied and walked back when a change is undone, and confirm the wide programs finish inside the stated limit",
+]
+
+[search]
+best_page = """
+The PostgreSQL documentation on foreign key actions together with the SQL standard's account of
+ON DELETE CASCADE, RESTRICT and NO ACTION, and any of the blog posts explaining that RESTRICT is
+immediate while NO ACTION is deferred to the end of the statement.
+"""
+helps_plan = false
+deviation = """
+Every engine that page describes works a row at a time against the store as it currently stands
+and leaves the order of the deletes to its own trigger queue; this store decides the whole change
+against the starting state first, groups rows by the longest chain reaching them, and applies the
+groups deepest first for a removal and shallowest first for a re-key.
+"""
+
+[tactics]
+A1 = """
+The prior is a recursive cascade applied as it walks, which is what every engine and every
+tutorial does; here the same walk gives the wrong matches, the wrong groups and the wrong order,
+and the better the recalled implementation the more confidently wrong the plan built on it.
+"""
+A2 = """
+The brief never names a snapshot, a longest path, a topological layer or a deferred constraint;
+it states when each decision is read and in which order the groups are applied, and leaves the
+recognition of what structure satisfies all of them at once to the solver.
+"""
+B2 = """
+Twelve rules hold at once and several change each other's meaning: reading everything from the
+starting store is what makes the column merge rule reachable, the longest-chain group is what
+makes the print order unknowable until the reach is finished, and the restrict check has to sit
+between the two.
+"""
+C1 = """
+The verifier fences both sides: a pre-existing dangling pointer must not stop a change, a
+restrict link with no matching row must not fire, and a change that touches nothing must print
+its one line, so a service that turns conservative fails as surely as one that cascades too far.
+"""
+C3 = """
+Matching children by scanning the child table for every affected parent is exactly correct and
+is what the first plan writes; two wide families put ninety-three thousand rows behind nine
+thousand parents under nine thousand changes, where the whole graded set costs the reference
+3.5 seconds against a 45 second limit and the walking matcher 322 seconds.
+"""
+C4 = """
+Every enumerated corner and every generated program must match the reference trace exactly, with
+the generated population drawn from a seed taken after the agent's container is gone, so a
+service that is right on the shipped examples and wrong on a diamond scores zero.
+"""
+guard = """
+Six files under /app/keep are collected and nothing else; the verifier lays them over its own
+pristine copy of the tree, so the parser, the row store, the trace writer and the sample programs
+cannot be changed, a seventh file put beside them is never collected, and the function names the
+runner calls are frozen.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "everything is read from the store as it stood when the change began", b = "two links acting on one column go to the link declared first", why = "a service that applies each effect as it reaches it never sees the second link match the column the first one cleared, so the merge rule it wrote is dead code that never fires and the disagreement only shows on a program with two links on one column" },
+  { a = "a row's group is the greatest number of links on any chain reaching it", b = "groups are applied deepest first when the change takes a row out", why = "re-dating a row to a longer chain moves it earlier in the printed order rather than later, so the line order depends on a number that is not settled until the whole reach is finished and cannot be emitted during the walk" },
+  { a = "a restrict link fires against the starting store over the whole affected set", b = "a row taken out ignores every other effect on it", why = "the child that bars the change is very often one the change itself would have taken out, so a check run after the effects are merged and the removed rows dropped finds nothing to complain about and the change wrongly goes through" },
+  { a = "the deferred check reads the store after everything is applied", b = "a change that stops leaves the store as it found it", why = "the only state the deferred check can be answered from is one that must then be thrown away, so an engine that mutates in place has to be able to walk every applied effect back exactly, in a way the next change cannot see" },
+  { a = "a follow that lands on a row's key column re-keys that row and carries on from it", b = "a row's group is the greatest number of links on any chain reaching it", why = "following onto a key column turns a leaf into a propagating row, which lengthens chains below it and re-dates rows that were already given a group earlier in the same reach" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A change whose children all sit under deferred links and leave nothing dangling, in a store that
+already holds a row pointing at a key that was never there, which must print its effects and
+finish rather than stopping on the pointer it did not create.
+"""
+late_case = """
+A row reached both directly from the changed row and again through a second link two hops away,
+so a first-seen walk gives it a group one too early and prints it after rows that point at it;
+ordinary programs never show it because most reaches are trees.
+"""
+oracle_denied = """
+The agent will reach for a real database to settle the corners, and every one of them decides a
+cascade a row at a time against the current store with its own trigger ordering, so the answers
+it gets back disagree with this store exactly where the task is decided.
+"""
+
+[leaks]
+candidates = [
+  { what = "a group or hop number stored on a row or printed on a line", closed_by = "rows carry only their columns and the trace names the table, the key, the column and the link, so the grouping is never observable except through the order lines come out in" },
+  { what = "a shipped helper that lists the children of a parent under a link", closed_by = "matching lives in one of the six collected files and ships wrong, so the agent writes it rather than calling it, and the frozen store holds raw rows with no index on them" },
+  { what = "the worked example in the brief becoming an oracle for the load-bearing rules", closed_by = "the example quoted is a two-line printout that pins the line format and the one rule the shipped tree already gets wrong, chosen after measuring that it decides none of the group, merge, restrict or undo readings" },
+  { what = "the shipped broken implementation being taken as a specification of intent", closed_by = "all six collected files ship wrong in different ways, so no single one of them is a reading worth keeping, and none of them carries a comment" },
+  { what = "a count of affected rows or a per-change summary line that would confirm the reach", closed_by = "a change prints only the effects it applied and, when it names a key that is not there, one line saying so, with no totals to check a reach against" },
+]
+derived_quantities = """
+Rows store their columns and nothing else; the group a row lands in, the set a link matches, the
+affected set the restrict check reads and the keys the deferred check looks for are all derived
+inside the collected files and none of them is stored, printed or reachable from the frozen tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Matching the children of an affected parent by scanning the child table, and answering the
+deferred check by walking the store, both exactly correct and what a first implementation writes.
+Measured over the whole graded set against a 45 second limit: reference 3.5 s, the two correct
+variants 4.0 and 4.2 s, the scanning matcher 322 s, the scanning deferred check alone 179 s.
+"""
+invariant = """
+A column under a link changes only through an effect this change applies, so an index over link
+and value stays true across changes if it is updated with each effect and walked back with each
+undo, which makes matching a lookup rather than a scan.
+"""
+input_scale = "two wide families of a hundred thousand rows under nine thousand changes each, stated in the brief with /app/progs/wide.txt shipped at that size"
+limit_seconds = 45
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "applies each effect as it reaches it", hand_case = "two links onto one column of one row, where the second link matches only if the first link's clear has not landed yet" },
+  { reading = "gives a row the group it was first reached at", hand_case = "a diamond where the row is reached directly and again two links away, so a first-seen group prints it after a row that points at it" },
+  { reading = "prints the groups of a removal shallowest first", hand_case = "a two-level removal, where the parent's line comes out before its children's instead of after" },
+  { reading = "applies a re-key deepest first as well", hand_case = "a re-key with one level of followers, where the follower's new key prints before the row it names has taken it" },
+  { reading = "runs the restrict check after merging effects and dropping the removed rows", hand_case = "a restrict link whose only child is one the change itself takes out through another link" },
+  { reading = "answers the deferred check against the store before the change is applied", hand_case = "a row under a deferred link that survives the change and is left naming a key the change took away" },
+  { reading = "leaves a stopped change applied", hand_case = "a change stopped by a deferred check followed by a second change over the same rows, which must see the store as it was" },
+  { reading = "lets the link declared last decide a column two links act on", hand_case = "one row, one column, a clear from an early link and a clear from a late one carrying different columns' worth of consequence" },
+  { reading = "clears a row that another link is taking out", hand_case = "a row reached by a clear link and a removal link in the same change" },
+  { reading = "matches an empty column against a parent whose key is absent", hand_case = "a child whose pointer was already cleared before the change and must not be reached at all" },
+  { reading = "stops a change on a pointer that was dangling before it began", hand_case = "a store holding a row pointing at a key that was never inserted, and a change elsewhere under a deferred link" },
+  { reading = "does not carry a follow that lands on a key column any further", hand_case = "a re-key whose follower's pointer is its own key, with a third table pointing at that follower" },
+  { reading = "orders effects inside a group by the order they were discovered", hand_case = "one group holding two tables' rows reached in the reverse of declaration order" },
+  { reading = "prints nothing for a change naming a key that is not there", hand_case = "a removal of a key that was never inserted, between two changes that do print" },
+]
+correct_variants = [
+  "reach held as a dict from row to group with a relaxation queue, effects merged into a per-row dict of column to link, undo replayed from a list of (row, column, old value) triples",
+  "reach held as successive frontier lists with groups recomputed by a second pass over the recorded chains, effects merged by sorting the reached pairs and taking the first link per column, undo by keeping a copy of every touched row",
+]
+
+[shape]
+environment_py_lines = 391
+editable_files = 6
+reference_lines = 396

@@ -1,0 +1,137 @@
+{
+ "bar-nothing-applied": [
+  "bar l2 b 10",
+  "move a 2 k 5 -",
+  "bar l2 b 10"
+ ],
+ "bar-on-removed-row": [
+  "bar l2 b 10"
+ ],
+ "bar-pick-first": [
+  "bar l1 b 10"
+ ],
+ "bar-quiet": [
+  "drop b 10 l1",
+  "drop a 1 -"
+ ],
+ "clash-held": [
+  "clash a 2",
+  "drop a 1 -"
+ ],
+ "clash-noop": [
+  "move a 1 k 1 -"
+ ],
+ "clear-stays": [
+  "clear b 10 p l1",
+  "drop a 1 -"
+ ],
+ "col-first-link": [
+  "clear c 20 x l2",
+  "drop q 5 l1",
+  "drop a 5 -"
+ ],
+ "drop-first-link": [
+  "drop c 20 l2",
+  "drop q 5 l1",
+  "drop a 5 -"
+ ],
+ "drop-over-clear": [
+  "drop c 20 l3",
+  "drop b 10 l1",
+  "drop a 1 -"
+ ],
+ "follow-key-carries": [
+  "move a 3 k 8 -",
+  "move b 3 k 8 l1",
+  "move c 20 p 8 l2"
+ ],
+ "follow-plain-stops": [
+  "move a 3 k 8 -",
+  "move b 10 p 8 l1"
+ ],
+ "group-longest": [
+  "drop c 20 l2",
+  "drop b 10 l1",
+  "drop a 1 -"
+ ],
+ "group-order-col": [
+  "clear c 20 x l2",
+  "clear c 20 y l1",
+  "drop a 5 -"
+ ],
+ "group-order-key": [
+  "drop b 10 l1",
+  "drop b 30 l1",
+  "drop a 1 -"
+ ],
+ "group-order-table": [
+  "drop b 30 l1",
+  "drop c 20 l2",
+  "drop a 1 -"
+ ],
+ "kind-picks-action": [
+  "move a 1 k 7 -",
+  "move b 10 p 7 l1",
+  "bar l1 b 10"
+ ],
+ "match-plain": [
+  "drop b 10 l1",
+  "drop a 1 -"
+ ],
+ "mov-shallow-first": [
+  "move a 1 k 7 -",
+  "move b 10 p 7 l1"
+ ],
+ "move-and-clear": [
+  "move a 5 k 8 -",
+  "move q 5 k 8 l1",
+  "move c 5 k 8 l2",
+  "clear c 5 y l3"
+ ],
+ "none-missing": [
+  "none a 9",
+  "none a 9",
+  "drop a 1 -"
+ ],
+ "ordinary-quiet": [
+  "drop a 1 -"
+ ],
+ "out-deep-first": [
+  "drop c 20 l2",
+  "drop b 10 l1",
+  "drop a 1 -"
+ ],
+ "undo-cols": [
+  "move a 5 k 8 -",
+  "move q 5 k 8 l1",
+  "clear c 20 y l2",
+  "wait l3 d 30",
+  "move a 5 k 9 -",
+  "move q 5 k 9 l1",
+  "clear c 20 y l2",
+  "wait l3 d 30"
+ ],
+ "wait-after-change": [
+  "drop a 1 -",
+  "wait l1 b 10"
+ ],
+ "wait-child-removed": [
+  "drop b 10 l1",
+  "drop a 1 -"
+ ],
+ "wait-dangle-stands": [
+  "drop a 1 -"
+ ],
+ "wait-pick-first": [
+  "drop a 1 -",
+  "wait l1 b 10"
+ ],
+ "wait-undone": [
+  "drop b 10 l1",
+  "drop a 1 -",
+  "wait l2 c 20",
+  "drop b 10 l1",
+  "drop a 1 -",
+  "wait l2 c 20"
+ ]
+}

@@ -1,0 +1,212 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/keep/hit.py",
+  "/app/keep/reach.py",
+  "/app/keep/meld.py",
+  "/app/keep/halt.py",
+  "/app/keep/lay.py",
+  "/app/keep/undo.py",
+]
+
+[task]
+name = "afterquery/link-clear-round"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What the brief cannot say is which of the structures those rules
+seem to ask for survives all of them at once, and that is the work.
+
+The first plan is the one every engine and every tutorial has: walk out from the changed row,
+follow each link to the rows that point at it, apply that link's action as you reach it, recurse
+into the rows you removed, keep a visited set, print as you go, and sweep the deferred links at
+the end. The shipped keeper is exactly that, and it is wrong three ways over before any corner
+case is reached. Nothing may be applied while the reach is running, because every link reads the
+store as it stood when the change began - so a column one link empties is still holding its old
+key when a link declared earlier looks at it, and a row another link has already taken out is
+still there to be found by the restrict link that will stop the whole change. A walk that applies
+as it goes never sees either, and both are ordinary rather than rare.
+
+The rule that takes the plan apart is where a row sits in the printed order. Its group is the
+greatest number of links on any chain that reached it, not the first chain that got there, and
+removals come out deepest group first. So a row met again by a longer route moves down, every row
+reached through it moves down with it, and because the deepest group is printed first, a row that
+moved down prints earlier. The order of the lines therefore depends on a number that is not
+settled until the whole reach is finished, which leaves nothing for a walk to print as it walks.
+Three more rules then interact with that one rather than sitting beside it: a follow that lands on
+a row's key column re-keys that row and lengthens every chain below it; a re-key comes out the
+other way up, shallowest group first, because no pointer may be moved onto a key before the row
+holding it has taken that key; and a change stopped by a deferred link has to be walked back
+exactly - rows, emptied columns and moved keys - since the only state that check can be answered
+from is one that then has to be thrown away.
+
+A scale family decides what a correct structure is allowed to cost, and the fast path in it
+follows from an invariant rather than a technique: a column under a link changes only through an
+effect a change applies, so a lookup from link and value to rows stays true if it is carried
+through every write and walked back with every undo. Measured here against the 45 second limit for
+the whole graded set, the reference takes 3.5 seconds and two independently written keepers 4.0
+and 4.2; the same reference with the rows that point at a key found by walking the table takes 322
+seconds, and with only the deferred check walking it takes 179. Both of those produce exactly the
+reference's traces on everything they finish.
+
+Around those sit the ordinary decisions, each a fence with two sides: a pointer that was already
+dangling before a change began must not stop it, a restrict link with nothing pointing through it
+must not fire, a row the change itself removes cannot be the one a deferred link complains about
+though it is exactly the one a restrict link complains about, and a re-key onto the key the row
+already has is not a clash. All six editable files ship wrong, and the only feedback a wrong
+structure gets is the order of a few lines.
+
+Identifiers are in a legacy register - `keep/`, `hit`, `reach`, `meld`, `halt`, `lay`, `kid`,
+`par`, `ci` - short but never misleading, and no name misdescribes what it holds. That is a choice
+about the register of real storage-path code rather than an obstacle: each is recoverable from
+what calls it.
+
+The programs are synthetic, in ten families, with links crowded onto one column from several
+parents, rows reachable by a short route and a long one, links onto key columns, restrict and
+deferred links over rows the change removes, re-keys into a key space too small to be free, and
+the two scale families. In a live store these concentrations are rare, and they are exactly where
+this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`hit.py` answers the only question the reach asks: which rows of a child table hold, in a link's
+column, one of a set of keys. The shipped answer walks the table, which is exact and is why the
+wide programs do not finish; the reference keeps a lookup from link and value to row keys and
+carries it through every write, which is sound because a column under a link changes only through
+an effect a change applies.
+
+`reach.py` works the change out without touching the store. Links run from a parent table to a
+child table and no table is reachable from itself, so walking the tables in that order settles
+every row of a table before the table is expanded: by the time a table is reached, every link into
+it has been followed and its rows' groups are final. That is what turns the longest-chain rule
+from a relaxation into a single pass, and it is also why the reach can ask `meld.py` for a row's
+new key at the moment it needs it.
+
+`meld.py` is what one row ends up taking. A row taken out ignores its columns; otherwise the
+smallest link index wins each column, which has to be explicit because the reach meets the links
+in an order that has nothing to do with the order they were declared in.
+
+`halt.py` holds the three checks, and their timing is the point. The restrict check is read off
+the reach before anything is applied, so a row the change would itself have removed still stops
+it. A key already held is checked there too. The deferred check can only be answered from the
+store the change leaves, and only a key its parent table held when the change began and does not
+hold now can bring it down, which is what keeps a pointer that was dangling beforehand from
+stopping a change that never touched it.
+
+`lay.py` orders and applies. The groups go deepest first for a removal and shallowest first for a
+re-key, and inside a group it is table, then the key the row had when the change began, then
+column - which also means a row that takes a new key and a written column in one change has to be
+found under the key it now has while still being named by the key it began with.
+
+`undo.py` walks a stopped change back from a log of what each effect replaced, in reverse, so a
+row taken out after its column was written is restored before that write is undone, and the lookup
+is walked back through the same calls the applying side made.
+
+An expert works in that order because each file consumes the one before it: what a link matches
+decides what the reach finds, what the reach finds decides what a row takes, what a row takes
+decides whether a check fires, and what is applied decides what has to be walked back. The same
+contract is implemented two further ways in the authoring set - one relaxing a worklist until no
+group and no new key moves again, with every write going through the lookup and the walk-back
+restoring remembered slots; one sweeping the whole link list until nothing changes, merging the
+links that reached a row by sorting them there, emptying explicit group buckets and copying every
+row the first time a change touches it - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/keep/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the parser, the row store, the trace writer and the sample
+programs cannot change what a program prints, and a new file put beside the six is never collected
+at all.
+
+Correct is defined twice over. Twenty-nine hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and twenty-four further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across ten families that concentrate links crowded onto one column, rows reached by two chains of
+different lengths, links onto key columns, restrict and deferred links over rows the change
+removes, re-keys into a small key space, and the two scale families. A submission cannot have seen
+them, so fitting the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Applying effects while the reach is still running fails `col-first-link`
+and `bar-on-removed-row`; giving a row the group it was first reached at fails `group-longest`;
+printing a removal shallowest group first fails `out-deep-first` and a re-key deepest first fails
+`mov-shallow-first`. Letting the link declared last decide a column fails `col-first-link`, and
+letting it name a removal fails `drop-first-link`. Clearing a row another link takes out fails
+`drop-over-clear`; carrying the change on from a row that was only cleared fails `clear-stays`.
+Carrying a follow on from any column fails `follow-plain-stops` and never carrying one on fails
+`follow-key-carries`. Reading the restrict check after the removed rows are dropped fails
+`bar-on-removed-row`, and a restrict link that fires with nothing pointing through it fails
+`bar-quiet`. A deferred link that stops a change on a pointer that was already dangling fails
+`wait-dangle-stands`, and one that complains about a row the change removed fails
+`wait-child-removed`. Leaving a stopped change applied fails `wait-undone`, and putting back only
+its removed rows fails `undo-cols`. Missing the clash check fails `clash-held` and calling a re-key
+onto its own key a clash fails `clash-noop`. Ordinary programs where there is nothing to cascade
+fail an over-eager keeper through `ordinary-quiet` and `match-plain`.
+
+Forty cheats score 0. Twenty-five are wrong readings, each caught by the enumerated case named for
+it, the shipped keeper among them. Two are exactly correct and too slow: the rows that point at a
+key looked for by walking the table, and the deferred check answered the same way. Two are
+shortcut strategies - one fixed output for every program, and only ever touching the row the
+change names. One is a forgery carrying the frozen answers for all twenty-nine enumerated
+programs, which passes every one of them and fails on the programs it could not have seen. The
+other ten are probes: the answer key, the reward written directly, a reward written late by a
+double-forked survivor, a planted worker record, a record planted and the worker exited before it
+could be overwritten, a record spoiled on the way out, a rewritten grader and generator, a
+shrunken exam size, a privilege probe, and an engine hidden in a seventh file beside the six that
+are collected. Two independently written correct keepers score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "referential-actions",
+  "cascade-ordering",
+  "snapshot-semantics",
+  "deferred-constraints",
+  "secondary-index-maintenance",
+  "transaction-rollback",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the integrity half of a row store: the part that decides what happens to the
+rows pointing at a row being taken out or re-keyed, and in what order those changes are written
+down. Familiarity with the fact that a cascade is a policy rather than a law, that restrict and
+deferred checks differ only in when they are asked and therefore disagree about a row the change
+itself removes, and that a set-based engine deciding a whole change before it touches anything
+behaves differently from one that walks and applies at the same time. Comfort with the bookkeeping
+a secondary lookup needs to survive both the writes a change makes and the walk-back when a check
+stops it, and with the difference between an implementation that is correct and one that is
+affordable at the row counts a live store runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

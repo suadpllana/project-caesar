@@ -1,0 +1,216 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/lay/gate.py",
+  "/app/lay/cap.py",
+  "/app/lay/buf.py",
+  "/app/lay/back.py",
+  "/app/lay/put.py",
+  "/app/lay/trim.py",
+  "/app/lay/tally.py",
+]
+
+[task]
+name = "afterquery/expert-defer-shed"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the published one, and the shipped service already is it: rank the experts,
+take the top ones until the gate mass clears the threshold, size a buffer per expert from the
+capacity factor, walk the tokens appending into the buffers they want, and send the overflow
+down the residual path. Every implementation of this that exists drops the token a full buffer
+turns away, so a per-expert counter is all a buffer needs and the routing table can be settled
+before any dispatch happens. Both of those are wrong here, and neither is wrong in a way that
+ordinary testing shows.
+
+A full buffer here gives up its weakest occupant, and the token that leaves loses not only that
+slot but every slot it holds at a later rank, because what a token holds is a prefix of its want
+list and never a set. Placements are therefore revocable in the middle of a step, buffers develop
+holes that the next arrival fills at the lowest free index rather than the next unused one, and a
+counter cannot represent any of it. That much is a structure to rebuild. The rule after it is the
+one that takes the plan apart: an expert that refuses a token is struck out of that token's
+ranking, so when it comes back in the next microbatch its want list is recomputed over what is
+left and generally runs further than before. Being refused makes a token want more experts, the
+wanted totals the balance number is defined over grow while the step runs, and the buffer size
+they press against was fixed from the first microbatch before any of them existed. A pass that
+settled routing and then filled buffers has nowhere left to put that.
+
+Then the step ends over budget. A device holds fewer placements than its experts' buffers
+together can, so banks shed in index order, weakest placement first, and each removal carries the
+token's later ranks with it wherever they sit - which means a removal in the first bank can bring
+the fourth under budget, and the list of banks that must shed is only true of the state it was
+read from. The final placement is not the placement the streaming pass produced.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in each
+follows from an invariant rather than a technique: a token is displaced at most once in a step, so
+the displaceable occupants of an expert only ever leave that set, and a freed slot is known at the
+moment it is freed. Measured here against the 60 second limit for the whole graded set, one wide
+program of twenty-eight thousand tokens takes 14.3 seconds with the weakest occupant looked for by
+scanning the buffer and 75.7 seconds with the bank re-sorted on every removal, and one deep
+program of twenty-one thousand six hundred takes 30.1 seconds with the lowest free slot scanned
+for, against 0.32 and 0.49 seconds for the reference. All three of those readings produce exactly
+the reference's traces on everything they finish; the limit is the only thing that separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: an occupant scoring exactly
+the arrival's stays, a token that keeps rank zero is not queued however much it lost after it, a
+loss in the last microbatch is held rather than queued and prints nothing, and equal scores break
+three different ways in three different places. All seven editable files ship wrong, and the only
+feedback a wrong structure gets is a slot index and two numbers, because the step prints nothing
+while it is running except a queue line.
+
+Identifiers are in a legacy register - `lay/`, `put`, `back`, `trim`, `tally`, `gsc`, `wl`, `mb`,
+`bw` - short but never misleading, and no name misdescribes what it holds. That is a choice about
+the register of real dispatch-path code rather than an obstacle: each is recoverable from what
+calls it.
+
+The step files are synthetic, in eleven families, with buffers barely big enough, first
+microbatches nothing like the rest of their step, tokens holding four ranks meeting a much
+stronger arrival, top scores a hair under the threshold, bank shares small enough to shed, equal
+scores everywhere, rankings that never reach the threshold, and the two scale families. In a
+training run these concentrations are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Seven files, settled in the order the rules force rather than one that is tidy.
+
+`gate.py` ranks an expert list by score descending with the smaller index first, and takes the
+shortest prefix of that ranking whose scores reach the threshold, skipping the experts a token has
+been refused. The ranking is computed once per token and kept; the want list is not, because
+placement rewrites it.
+
+`cap.py` is the arithmetic that sizes the step: the first microbatch's wanted slots, scaled by the
+capacity factor and the microbatch count and divided over the experts, rounded up; and the bank
+budget from that, the bank width and the share, rounded up.
+
+`buf.py` is where the first plan has to be given up. A buffer is a slot map with its returned
+indices kept in order beside it, so the lowest free slot is the lowest returned one or the next
+never used; and the displaceable occupants of an expert are a heap on (score, negated slot) read
+with lazy deletion. The lazy deletion is sound because of the step's own invariant - a token is
+displaced at most once, so an entry that has stopped being valid can never become valid again -
+and that invariant is also why the weakest occupant does not have to be looked for.
+
+`back.py` carries what belongs to a token rather than to a buffer: the experts that have refused
+it, whether it has already been displaced, the want list as it now stands, and the queue that
+survives a microbatch. Only a token that lost or never got rank zero goes on that queue, in the
+order the losses happened, and a loss in the last microbatch goes nowhere.
+
+`put.py` runs the step. A token takes the experts of its want list in rank order and stops at the
+first it cannot enter, so what it holds is always a prefix. When an expert is full its weakest
+eligible occupant leaves if the arrival outscores it there, losing that placement and everything
+it holds behind it, and the arrival takes that exact slot rather than the lowest free one, because
+the slot never became free.
+
+`trim.py` is the shed, and it is a loop rather than a filter: banks in index order, the load read
+when the bank is reached so that earlier cascades count, the weakest placement removed with its
+token's later ranks wherever they sit, and the order over a bank built at that moment.
+
+`tally.py` reports. The residual is the scores the final want list asked for and did not get; the
+balance number pairs each expert's final demand with the placements it kept.
+
+An expert works in that order because each file consumes the one before it: the ranking decides
+what a token can want, the sizing decides how much of it can be had, the buffer decides what
+happens when it cannot, what a loss takes decides whether the token comes back, and what comes
+back decides what the demand finally was. The same contract is implemented two further ways in the
+authoring set - one holding free slots as a bit per slot and the displaceable occupants as a list
+kept in score order, with a token's placements as two parallel lists and the shed walking a list
+sorted once; one holding free slots as a descending list popped from the end, placements in a
+dict, refusals in a list and the queue in a deque - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the seven files under `/app/lay/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the step-file grammar, the trace writer and the
+sample programs cannot change what a program prints, and a new file put beside the seven is never
+collected at all.
+
+Correct is defined twice over. Thirty hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and sixty-six further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across eleven families that concentrate tight buffers, first microbatches unlike the rest of their
+step, cascading losses, threshold-edge scores, small bank shares, ties, short rankings and the two
+scale families. A submission cannot have seen them, so fitting the shipped examples fails, and so
+does carrying an answer key.
+
+The fences run both ways. Turning an arrival away from a full buffer fails `disp-take-slot`;
+taking the occupant whatever the arrival scores fails `disp-equal-holds` and `disp-below-holds`;
+taking one that has already been displaced fails `disp-once-only`. Keeping the later ranks of a
+displaced token fails `cont-later-ranks`; queuing a token that kept rank zero fails
+`defer-keeps-prefix` and `cont-mid-rank`; queuing none at all fails `defer-ahead`. Placing past a
+blocked rank fails `place-prefix-stop`; appending instead of filling the lowest free slot fails
+`place-lowest-free`. Sizing from the whole step fails `cap-first-mb`, and rounding either number
+down fails `cap-round-up` and `bank-round-up`. Shedding without the cascade fails `shed-cascade`;
+listing the over-budget banks before shedding begins fails `shed-recheck`. Carrying the want list a
+token started with fails `strike-widens`; never striking out an expert that refused without
+displacing fails `strike-refusal`. Reading the residual off the whole ranking fails
+`res-want-only`, and counting placements against themselves fails `bal-final-wants`. A step that
+leans on the one before it fails `step-apart`, and a service that displaces or queues where it
+should not fails `place-ordinary`, where there is room for everyone.
+
+Thirty-seven cheats score 0. Twenty-two are wrong readings, each caught by the enumerated case
+named for it. Three are exactly correct and too slow: the weakest occupant scanned for, the lowest
+free slot scanned for, and the bank re-sorted on every removal. Two are shortcut strategies - one
+fixed output for every step, and every token taking its top expert only. One is a forgery carrying
+the frozen answers for every enumerated program, which passes all thirty and fails on the programs
+it could not have seen. The other nine are probes: the answer key, the reward written directly, a
+reward written late by a double-forked survivor, a planted worker record, a record planted and the
+worker exited clean before it could be overwritten, a record spoiled on the way out, a rewritten
+generator, a rewritten grader, and an engine hidden in a file beside the seven that are collected.
+Two independently written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "ML"
+
+subcategory = "Training"
+
+tags = [
+  "sparse-expert-routing",
+  "token-dispatch",
+  "buffer-capacity-sizing",
+  "gradient-accumulation",
+  "expert-parallelism",
+  "load-balance-accounting",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the dispatch stage of a sparse layer in a training runtime: the part that turns
+gate scores into buffer slots, sizes those buffers before a step runs from what the first
+microbatch asks for, and keeps the accounting that the load-balancing term is computed from.
+Familiarity with the fact that what a runtime does when a buffer is full is a policy rather than a
+law, that a token which has been refused an expert is not the token it was, and that a device
+budget is smaller than the sum of the buffers it holds. Comfort with slot arithmetic over buffers
+that develop holes while a step is running, with carrying per-token state across the microbatches
+of a gradient accumulation, and with the difference between a structure that is correct and one
+that is affordable at the token counts a real step runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

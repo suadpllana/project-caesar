@@ -55,8 +55,8 @@ the trainer had not yet reached.
 Nine decisions are graded and all six editable files ship wrong. There is no oracle to try them
 against: no expected trace ships, the one line quoted in the brief settles the rank deal and the
 printed format, and the graded plans are generated from a seed drawn after the container is gone.
-Measured against the nonce population, the wrong readings move between 7 and 86 per cent of
-plans, and under all-or-nothing grading any one of them scores nothing.
+Measured against one generated population, the wrong readings move between 7 and 86 per cent
+of its plans, and under all-or-nothing grading any one of them scores nothing.
 
 Identifiers are in a legacy register - `feed/`, `mix`, `deck`, `draw`, `spot`, `deal`, `keep`,
 `shuf`, `took`, `hold` - short but never misleading, and no name misdescribes what it holds.
@@ -143,8 +143,7 @@ checkpoint came from fails `keep-chain-three-deep`. Reporting a state after the 
 fails `cap-all-but-one`, and reporting numbers for a retired source fails `state-never-gone`.
 
 Forty cheats score 0. Twenty-two are wrong readings caught by the enumerated plan named for
-each, and measured against the generated population they move between 7 and 86 per cent of
-plans. Five are exactly correct and too slow: the shipped walker with its mistakes taken out,
+each, and against one generated population they move between 7 and 86 per cent of its plans. Five are exactly correct and too slow: the shipped walker with its mistakes taken out,
 the same with each source stream walked to find where it stands, the same with the retirement
 timeline stepped slot by slot, and the two readings of the refill rule that only a walker can
 hold. Three are the dumbest strategies there are: one constant sample everywhere, always the

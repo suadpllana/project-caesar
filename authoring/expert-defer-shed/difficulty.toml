@@ -1,0 +1,189 @@
+# Difficulty record - written 2026-09-19, before any environment or verifier code existed.
+# Restated in prose in tasks/expert-defer-shed/STATE.md.
+
+[task]
+slug = "expert-defer-shed"
+status = "pending"
+sources = ["tasks/expert-defer-shed/STATE.md", "authoring/expert-defer-shed/trace.md", "authoring/expert-defer-shed/timing.py", "authoring/expert-defer-shed/cheat_report.py"]
+expert_hours = 9
+estimated_solves = 3
+
+[plan]
+first_plan = """
+Read the gate scores, take each token's top experts until the cumulative score clears the
+threshold, count how many tokens want each expert, size the per-expert buffer from the
+capacity factor, then walk the tokens in order and append each one into the buffers of the
+experts it wants, skipping any expert whose buffer is already full and sending the overflow
+down the residual path. Keep a per-expert counter and a per-token list of the experts it
+got, then sum the balance statistic at the end from those counters.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A full expert does not turn an arriving token away: the arrival takes the slot of the
+lowest-scoring occupant that has not yet been displaced in this step, and that occupant
+loses not only that slot but every slot it holds at a later rank, because a token holds a
+prefix of its want list and never a set. Placements are therefore revocable, buffers develop
+holes that later tokens fill at the lowest free index, and a per-expert counter cannot
+express any of it.
+"""
+second_discovery = """
+An expert that turned a token away is struck out of that token's ranking before it is
+considered again, so the shortest prefix reaching the threshold now runs further and the
+token wants more experts than it did. Want lists are produced by placement rather than
+consumed by it, the wanted totals the balance statistic is defined over grow during the
+step while the capacity sized from the first microbatch does not, and any pass that settled
+routing before filling buffers has to be taken apart rather than corrected.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs and read the one line the brief says is wrong, to find which module owns it",
+  "Derive from the contiguity rule that a token's placements are a prefix of its want list, so placement stops at the first expert it cannot enter",
+  "Rebuild the expert buffer as slots with a free set rather than an append counter, because displacement and deferral both free slots mid-step",
+  "Make the want list a per-token value that placement rewrites, keeping the full ranking once and a struck-out set beside it",
+  "Settle the deferral queue: only a token that loses or never gets rank zero is deferred, in displacement order, ahead of the next microbatch's own tokens",
+  "Write the end-of-step shed as a bank-by-bank loop in index order whose removals cascade into later banks through the same contiguity rule",
+  "Compute the balance statistic from the want lists as they finally stand and the placements as the shed left them, not from the demand counted at the start",
+  "Time the wide programs and replace the buffer scans with a per-expert order over displaceable occupants and a free-slot heap",
+]
+
+[search]
+best_page = """
+The capacity-factor routing described in the GShard and Switch Transformer papers, and the
+dispatch-mask implementations in the public training frameworks that follow them, which is
+what a query about expert capacity and overflow returns first.
+"""
+helps_plan = false
+deviation = """
+Every one of those drops the overflow token and computes placement with a cumulative-sum
+mask over a routing table settled before dispatch; here the overflow displaces an occupant,
+the displaced token is retried in a later microbatch with a wider want list, and a bank
+budget removes placements after the step is over, so the retrieved plan is confidently
+wrong at each of the three points that decide the output.
+"""
+
+[tactics]
+A1 = """
+The published answer to a full expert buffer is to drop the token; here the arrival takes a
+slot and the occupant leaves, so the memorised dispatch-mask idiom is a wrong answer at the
+first decision point and the better the recalled implementation the more confident the error.
+"""
+A2 = """
+The brief states the contiguity, deferral and shed rules operationally as what the runtime
+does, and never names the prefix property, the re-ranking widening effect, or the cascade,
+so the consequences that decide the structure have to be derived rather than looked up.
+"""
+B2 = """
+Seven rules hold at once - prefix placement, displacement eligibility, deferral, striking
+out, capacity from the first microbatch, the bank shed cascade and a statistic over wants -
+and each one changes what a correct implementation of the others looks like.
+"""
+C1 = """
+Both sides are graded: a service that never displaces fails the ordinary programs where an
+arrival must take a slot, and one that displaces without the score test or the once-per-step
+exclusion fails the programs where the buffer must hold its occupant.
+"""
+C3 = """
+A wide family makes the per-displacement buffer scan and the per-shed bank scan infeasible
+inside the stated limit while leaving both exactly correct, so semantic correctness alone
+does not pass and the fast path has to follow from the once-displaced invariant.
+"""
+C4 = """
+Every graded program must match line for line, and the population is generated inside the
+verifier from a seed drawn after the agent's container is gone, with families shaped at
+each decision point rather than sampled uniformly.
+"""
+guard = """
+Seven files under /app/lay are collected and nothing else; the driver, the step-file parser,
+the trace writer and the sample programs are the verifier's own pristine copies laid under
+the submission, so the output format and the program semantics cannot be reshaped.
+"""
+
+[decisions]
+graded = 9
+interactions = [
+  { a = "placements are a prefix of the want list", b = "displacement frees the occupant's slots", why = "a displacement at rank one takes away every later placement too, so the freed slots are scattered across experts and the next arrival's slot index depends on a token it never met" },
+  { a = "an expert that turned a token away is struck out", b = "the want list is the shortest prefix reaching the threshold", why = "striking out an expert lengthens the list rather than shortening it, so being refused makes a token demand more capacity and changes the wanted totals other rules are defined over" },
+  { a = "capacity is sized from the first microbatch", b = "deferred tokens are placed ahead of the next microbatch", why = "the buffer size is fixed before any deferral exists while the pressure that consumes it is created by deferral, so the two clocks disagree and later microbatches cannot be treated like the first" },
+  { a = "the bank shed runs in bank index order", b = "removing a placement removes the token's later-rank placements", why = "a removal in an early bank lowers a later bank's load, so the set of banks that must shed cannot be computed before shedding starts" },
+  { a = "the balance statistic is defined over want lists", b = "want lists are rewritten by deferral", why = "the statistic cannot be computed from the demand counted at the start of the step, which is the only point at which a routing-then-dispatch implementation still has it" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A step whose first microbatch fills one expert exactly and whose second sends a
+higher-scoring token at it: the occupant must leave and the arrival must take its slot
+index, so a service that treats a full buffer as closed prints the wrong slot and the wrong
+residual for two tokens.
+"""
+late_case = """
+A step where every microbatch places cleanly and the last one displaces a token holding
+three ranks: its slots free in three banks, a later token of the same microbatch takes the
+lowest of them, and the shed in the first bank then removes a placement whose token also
+holds a rank in the last bank, bringing that bank under budget so it sheds nothing.
+"""
+oracle_denied = """
+The natural check is to compare against a known dispatch implementation or to reason that
+the totals add up, but no public implementation displaces, defers or sheds, and the shipped
+service prints a coherent trace for every program, so running it confirms only that it runs.
+"""
+
+[leaks]
+candidates = [
+  { what = "a per-expert load line in the trace", closed_by = "not printed; the loads are recoverable only by summing the per-token placement lines, which is the work itself" },
+  { what = "a displaced or deferred flag stored on the token record", closed_by = "the shipped state holds gate scores and placements only; displacement history lives in the run and is never a field" },
+  { what = "the wanted count per expert as a shipped field or helper", closed_by = "no helper counts demand; the want list is computed where it is used and nothing caches it" },
+  { what = "the sample programs' correct output shipped beside them", closed_by = "only one line of one program is quoted in the brief, and it is the cut-and-dried report line rather than a decision the task turns on" },
+  { what = "a free-slot list already maintained by the frozen buffer module", closed_by = "the buffer module is editable and ships with an append counter, so the hole-filling structure has to be built rather than found" },
+]
+derived_quantities = """
+The step file carries gate scores, the microbatch boundaries and the four configuration
+numbers, which are primitives; the capacity, the bank budget, the want lists, the placements,
+the residual masses and the balance statistic are all derived and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct services that find the displacement victim by scanning the expert's buffer,
+find the lowest free slot by scanning it, and find the bank's lowest placement by scanning
+every placement in the bank on each shed iteration.
+"""
+invariant = """
+A token can be displaced at most once in a step and a placement is a prefix, so the
+displaceable occupants of an expert only ever leave the set and the freed slots are known
+as they are freed; both can be kept in order incrementally instead of being searched for.
+"""
+input_scale = "wide steps of forty thousand tokens over eight microbatches with buffers of a few thousand slots"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a full expert turns the arrival away", hand_case = "one microbatch fills an expert, the next sends a higher scorer at it" },
+  { reading = "displacement takes only the occupant's slot at that expert", hand_case = "an occupant holding rank zero and rank two is displaced at rank zero" },
+  { reading = "placements are a set, so a blocked rank is skipped and later ranks still placed", hand_case = "a token whose rank one is full and whose rank two is empty" },
+  { reading = "the lowest-scoring occupant is taken even when it scores above the arrival", hand_case = "a low-scoring arrival at an expert whose weakest occupant outscores it" },
+  { reading = "an occupant already displaced this step may be displaced again", hand_case = "a token displaced in microbatch one that lands again and is met by a third arrival" },
+  { reading = "the arrival appends rather than taking the freed slot index", hand_case = "a displacement at slot two in a buffer that already holds six" },
+  { reading = "every truncated token is deferred, not only one that loses rank zero", hand_case = "a token that places rank zero and is blocked at rank one" },
+  { reading = "a deferred token keeps its original want list", hand_case = "a token turned away from its highest-scoring expert whose next two scores are small" },
+  { reading = "deferred tokens are placed after the next microbatch's own tokens", hand_case = "a deferred token and a fresh token competing for the last slot of one expert" },
+  { reading = "capacity is sized from the whole step rather than the first microbatch", hand_case = "a step whose first microbatch is narrow and whose second is wide" },
+  { reading = "the bank shed removes only the placement, not the token's later ranks", hand_case = "an over-budget bank whose weakest placement belongs to a token holding two later ranks" },
+  { reading = "banks that must shed are determined before shedding begins", hand_case = "two over-budget banks where the first shed brings the second under budget" },
+  { reading = "the balance statistic uses the want lists as first computed", hand_case = "a step with one deferral that widens a want list by two experts" },
+  { reading = "the residual mass is renormalised over the placed experts", hand_case = "a token that places one of three wanted experts" },
+]
+correct_variants = [
+  "a service that keeps each expert's displaceable occupants in a heap and its free slots in a heap, driving placement from those",
+  "a service that keeps each expert's buffer as a slot array with a sorted list of occupant scores rebuilt lazily, and reconstructs each token's want list from a stored ranking and a struck-out set",
+]
+
+[shape]
+environment_py_lines = 380
+editable_files = 7
+reference_lines = 300

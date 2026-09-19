@@ -1,0 +1,229 @@
+{
+ "bal-final-wants": [
+  "cap 1 2",
+  "def 0",
+  "tok 0 1:0 2:0 3:0 res 0",
+  "tok 1 0:0 res 0",
+  "tok 2 res 600",
+  "bal 6"
+ ],
+ "bank-round-up": [
+  "cap 3 5",
+  "tok 0 res 750",
+  "tok 1 0:1 1:1 2:1 res 0",
+  "tok 2 0:2 1:2 2:2 res 0",
+  "tok 3 0:0 res 390",
+  "bal 28"
+ ],
+ "cap-first-mb": [
+  "cap 1 2",
+  "tok 0 0:0 res 0",
+  "tok 1 1:0 res 0",
+  "tok 2 res 750",
+  "tok 3 res 760",
+  "tok 4 res 770",
+  "tok 5 res 740",
+  "tok 6 res 730",
+  "tok 7 res 720",
+  "bal 14"
+ ],
+ "cap-round-up": [
+  "cap 1 2",
+  "tok 0 0:0 res 0",
+  "tok 1 1:0 res 0",
+  "tok 2 2:0 res 0",
+  "bal 3"
+ ],
+ "cont-later-ranks": [
+  "cap 1 2",
+  "tok 0 res 720",
+  "tok 1 0:0 res 0",
+  "bal 2"
+ ],
+ "cont-mid-rank": [
+  "cap 1 3",
+  "tok 0 0:0 res 450",
+  "tok 1 1:0 res 0",
+  "tok 2 3:0 res 0",
+  "bal 4"
+ ],
+ "defer-ahead": [
+  "cap 1 2",
+  "def 0",
+  "tok 0 1:0 2:0 3:0 res 0",
+  "tok 1 0:0 res 0",
+  "tok 2 res 300",
+  "bal 8"
+ ],
+ "defer-keeps-prefix": [
+  "cap 2 6",
+  "tok 0 0:0 res 0",
+  "tok 1 0:1 res 0",
+  "tok 2 2:0 res 450",
+  "tok 3 3:0 res 0",
+  "bal 8"
+ ],
+ "defer-last-mb": [
+  "cap 1 2",
+  "tok 0 res 700",
+  "tok 1 0:0 res 0",
+  "bal 2"
+ ],
+ "defer-order": [
+  "cap 1 3",
+  "def 0",
+  "def 1",
+  "tok 0 2:0 res 0",
+  "tok 1 res 300",
+  "tok 2 0:0 res 0",
+  "tok 3 1:0 res 0",
+  "tok 4 5:0 res 0",
+  "bal 9"
+ ],
+ "defer-twice": [
+  "cap 1 3",
+  "def 0",
+  "def 0",
+  "tok 0 2:0 3:0 res 0",
+  "tok 1 0:0 res 0",
+  "tok 2 1:0 res 0",
+  "tok 3 4:0 res 0",
+  "tok 4 5:0 res 0",
+  "bal 8"
+ ],
+ "disp-below-holds": [
+  "cap 1 2",
+  "tok 0 0:0 res 0",
+  "tok 1 res 700",
+  "bal 2"
+ ],
+ "disp-equal-holds": [
+  "cap 1 2",
+  "tok 0 0:0 res 0",
+  "tok 1 res 700",
+  "bal 2"
+ ],
+ "disp-once-only": [
+  "cap 1 2",
+  "def 0",
+  "def 2",
+  "tok 0 1:0 2:0 3:0 res 0",
+  "tok 1 0:0 res 0",
+  "tok 2 res 0",
+  "tok 3 res 900",
+  "bal 8"
+ ],
+ "disp-take-slot": [
+  "cap 1 2",
+  "tok 0 res 700",
+  "tok 1 res 650",
+  "tok 2 0:0 res 0",
+  "bal 3"
+ ],
+ "disp-tie-slot": [
+  "cap 2 4",
+  "tok 0 0:0 res 0",
+  "tok 1 res 700",
+  "tok 2 0:1 res 0",
+  "bal 6"
+ ],
+ "place-lowest-free": [
+  "cap 2 4",
+  "tok 0 res 600",
+  "tok 1 0:1 1:1 res 0",
+  "tok 2 0:0 1:0 res 0",
+  "bal 12"
+ ],
+ "place-ordinary": [
+  "cap 2 6",
+  "tok 0 0:0 res 0",
+  "tok 1 1:0 res 0",
+  "tok 2 2:0 res 0",
+  "tok 3 3:0 res 0",
+  "tok 4 4:0 res 0",
+  "tok 5 5:0 res 0",
+  "bal 6"
+ ],
+ "place-prefix-stop": [
+  "cap 2 6",
+  "tok 0 0:0 res 0",
+  "tok 1 0:1 res 0",
+  "tok 2 2:0 res 450",
+  "bal 7"
+ ],
+ "rank-tie": [
+  "cap 1 2",
+  "tok 0 0:0 1:0 res 0",
+  "bal 2"
+ ],
+ "res-want-only": [
+  "cap 1 2",
+  "tok 0 0:0 res 0",
+  "tok 1 res 700",
+  "bal 2"
+ ],
+ "shed-cascade": [
+  "cap 1 1",
+  "tok 0 0:0 res 450",
+  "bal 1"
+ ],
+ "shed-recheck": [
+  "cap 1 1",
+  "tok 0 0:0 res 450",
+  "tok 1 3:0 res 0",
+  "bal 2"
+ ],
+ "shed-tie": [
+  "cap 1 1",
+  "tok 0 0:0 res 300",
+  "bal 1"
+ ],
+ "shed-weakest": [
+  "cap 1 1",
+  "tok 0 0:0 res 450",
+  "tok 1 2:0 res 0",
+  "bal 3"
+ ],
+ "step-apart": [
+  "cap 1 2",
+  "def 0",
+  "tok 0 1:0 2:0 3:0 res 0",
+  "tok 1 0:0 res 0",
+  "tok 2 res 300",
+  "bal 8",
+  "cap 1 2",
+  "def 0",
+  "tok 0 1:0 2:0 3:0 res 0",
+  "tok 1 0:0 res 0",
+  "tok 2 res 300",
+  "bal 8"
+ ],
+ "strike-refusal": [
+  "cap 1 2",
+  "def 1",
+  "tok 0 0:0 res 0",
+  "tok 1 1:0 2:0 3:0 res 0",
+  "tok 2 res 0",
+  "bal 8"
+ ],
+ "strike-widens": [
+  "cap 1 2",
+  "def 0",
+  "tok 0 1:0 2:0 3:0 res 0",
+  "tok 1 0:0 res 0",
+  "tok 2 res 900",
+  "bal 5"
+ ],
+ "want-one": [
+  "cap 1 2",
+  "tok 0 0:0 res 0",
+  "tok 1 1:0 res 0",
+  "bal 2"
+ ],
+ "want-short-of": [
+  "cap 2 4",
+  "tok 0 0:0 1:0 2:0 3:0 res 0",
+  "tok 1 0:1 1:1 2:1 3:1 res 0",
+  "bal 16"
+ ]
+}

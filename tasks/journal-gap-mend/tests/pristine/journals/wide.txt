@@ -1,0 +1,21 @@
+cfg 3 3 1
+acq 0 0 grant
+dig 1 26bc32a8ff82
+acq 1 1 grant
+dig 2 91d4575abc05
+acq 2 2 grant
+dig 3 c0be322c1ad6
+aud 3 3 0 0 e01fd77209c1
+beat 2
+gap
+aud 3 5 0 3 a5c8aa830993
+back
+acq 0 0 again
+aud 3 10 2 5 f3f37288110c
+rel 1 1 keep
+rel 1 1 keep
+rel 0 0 keep
+rel 2 2 keep
+rel 1 1 free
+rel 2 2 free
+aud 3 10 8 5 5bd1b8c47412

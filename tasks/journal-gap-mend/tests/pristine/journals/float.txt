@@ -1,0 +1,28 @@
+cfg 3 3 3
+acq 2 1 grant
+gap
+aud 1 2 0 0 9e74faa46dac
+back
+acq 0 1 again
+beat 1
+rel 0 1 keep
+acq 1 2 grant
+dig 3 45db9b8e2fb4
+acq 1 2 again
+beat 2
+rel 1 2 keep
+rel 1 2 free
+acq 2 0 wait
+acq 1 1 grant
+aud 4 8 4 2 82468390ad6e
+acq 0 1 again
+acq 1 2 wait
+aud 4 10 4 2 d83a6694e17b
+acq 1 1 again
+acq 1 1 again
+aud 4 12 4 2 826c910240e5
+rel 0 1 keep
+aud 4 12 5 2 9b3b91542914
+acq 1 1 again
+rel 2 1 pass
+aud 5 13 6 2 d5a833bf57ca

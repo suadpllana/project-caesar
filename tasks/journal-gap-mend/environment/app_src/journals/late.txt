@@ -1,0 +1,25 @@
+cfg 2 3 2
+acq 1 0 grant
+aud 1 1 0 0 b23ed3d1539b
+acq 1 0 again
+acq 1 0 again
+rel 1 0 keep
+acq 1 0 again
+acq 1 0 again
+gap
+back
+rel 1 0 keep
+rel 1 0 keep
+rel 1 0 free
+acq 1 0 grant
+dig 2 044bc233cf50
+rel 1 0 free
+gap
+back
+rel 1 1 keep
+beat 1
+beat 1
+gap
+back
+rel 1 1 keep
+aud 3 9 8 3 ac7abaaa9962

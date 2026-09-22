@@ -1,0 +1,118 @@
+{
+ "audit-before-loss": [
+  "gap 1",
+  "acq 1 0 grant"
+ ],
+ "audits-inside": [
+  "gap 1",
+  "? acq 0 0 grant | acq 0 1 grant | acq 0 2 grant | acq 1 0 grant | acq 1 1 grant | acq 1 2 grant"
+ ],
+ "beat-needs-lock": [
+  "gap 1",
+  "beat 1"
+ ],
+ "both-empty": [
+  "gap 1",
+  "gap 2"
+ ],
+ "choices-first": [
+  "gap 1",
+  "? acq 0 0 grant | acq 1 1 wait | beat 0"
+ ],
+ "dash-first": [
+  "gap 1",
+  "? - | acq 1 0 again",
+  "gap 2",
+  "? - | acq 1 0 again | rel 1 0 keep"
+ ],
+ "digest-anchored": [
+  "gap 1",
+  "rel 0 0 free",
+  "acq 0 0 grant"
+ ],
+ "digest-before-gap": [
+  "gap 1",
+  "acq 1 2 wait",
+  "acq 1 1 wait"
+ ],
+ "digest-on-grant": [
+  "gap 1",
+  "? acq 0 0 grant | acq 0 1 grant | acq 0 2 grant"
+ ],
+ "empty-then-grant": [
+  "gap 1",
+  "gap 2",
+  "acq 0 1 grant"
+ ],
+ "end-of-span": [
+  "gap 1",
+  "? - | rel 1 1 free",
+  "gap 2",
+  "? rel 1 1 free | rel 2 0 free"
+ ],
+ "kinds-in-order": [
+  "gap 1",
+  "? acq 0 0 wait | beat 1 | rel 0 1 free"
+ ],
+ "later-evidence": [
+  "gap 1",
+  "rel 2 0 free"
+ ],
+ "live-candidates": [
+  "gap 1",
+  "? acq 0 1 wait | acq 1 2 wait"
+ ],
+ "pass-first-waiter": [
+  "gap 1",
+  "rel 0 2 pass"
+ ],
+ "pass-is-grant": [
+  "gap 1",
+  "beat 0"
+ ],
+ "queue-order": [
+  "gap 1",
+  "acq 1 0 grant",
+  "acq 1 2 wait",
+  "acq 1 1 wait"
+ ],
+ "reentry-depth": [
+  "gap 1",
+  "acq 0 1 again"
+ ],
+ "restored-then-choice": [
+  "gap 1",
+  "acq 0 0 again",
+  "? acq 0 0 again | rel 0 0 keep"
+ ],
+ "restored-then-dash": [
+  "gap 1",
+  "acq 0 1 grant",
+  "? - | acq 0 0 wait",
+  "gap 2",
+  "? - | acq 0 0 wait | acq 0 2 wait"
+ ],
+ "small": [
+  "gap 1",
+  "acq 0 0 grant",
+  "? acq 0 0 again | acq 0 1 wait"
+ ],
+ "three-spans": [
+  "gap 1",
+  "rel 0 1 free",
+  "gap 2",
+  "gap 3",
+  "acq 0 1 wait"
+ ],
+ "two-spans-one-beat": [
+  "gap 1",
+  "? beat 0 | rel 0 0 free",
+  "gap 2",
+  "? beat 0 | rel 0 0 free"
+ ],
+ "waiter-silent": [
+  "gap 1",
+  "acq 0 0 grant",
+  "acq 1 0 wait"
+ ]
+}

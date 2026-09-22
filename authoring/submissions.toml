@@ -65,6 +65,15 @@ mechanism = "Produce the trace of a cooperative run: which guard opened and clos
 verdict = "ai-passed"
 
 [[submission]]
+slug = "journal-gap-mend"
+category = "Software"
+label = "Algorithms"
+tags = ["log-gap-inference", "reentrant-locks", "lock-handoff-queues", "partial-state-fingerprints", "identifiability"]
+substrate = "the recovery tool of a lock service with reentrant locks and first-come wait queues, reading a journal that lost spans of entries in a crash, with its digests and the operator's audits recorded apart from it"
+mechanism = "Restore the entries a crash lost from spans of a lock service's journal only as far as every whole-journal account agrees that reproduces the recorded outcomes, holder digests anchored to the grant that triggers them, and audits that fix the running totals and the whole table at a point the span does not locate, and name everything an account could hold next where those accounts first part."
+verdict = "pending"
+
+[[submission]]
 slug = "note-carry-forward"
 category = "Software"
 label = "Algorithms"

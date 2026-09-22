@@ -1,0 +1,203 @@
+# Difficulty record - journal-gap-mend. Written 2026-09-22 at Stage 1, after the originality
+# record and before any environment, verifier or solution code; brought up to date at Stage 7
+# with what the build measured (the scale families, the slack bound, the tree shape). Restated
+# in prose in tasks/journal-gap-mend/STATE.md. Never ships.
+
+[task]
+slug = "journal-gap-mend"
+status = "built"
+sources = ["tasks/journal-gap-mend/STATE.md", "authoring/journal-gap-mend/originality.toml", "authoring/journal-gap-mend/proto/", "authoring/journal-gap-mend/timing_full.py", "authoring/journal-gap-mend/slow/"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Replay the journal up to each lost span, read the holder fingerprint the next digest after
+the span demands, and search the shortest sequence of acquisitions, releases and heartbeats
+that turns the table before the span into one with that fingerprint and makes the entries
+after it legal, backtracking over the lock and session choices; print it, and call the span
+undetermined when two shortest sequences exist. This is what the shipped search does, span by
+span, starting each span from the one table the previous span's answer left.
+"""
+first_plan_source = "tree"
+breaking_rule = """
+The audit totals count every acquisition request, release and heartbeat, and a reentrant
+acquisition, a heartbeat, a release that only lowers depth and a request that joins a queue
+all move a total without moving the holder fingerprint, so the shortest closing sequence is
+wrong whenever an audit says more happened than the fingerprints show; the criterion is
+agreement with every digest, audit and recorded outcome, not length.
+"""
+second_discovery = """
+What decides a span is not all inside or next to it. An audit that pins the request and
+heartbeat totals can sit several spans later, so those spans' counts are only settled
+together; the depth and queues a span leaves are invisible to the fingerprint and decide the
+recorded outcome of a surviving release, or what a later span can hold, well after it; and a
+span two fillings explain leaves two tables for the next one. A per-span search from one
+starting table has to be replaced by a settle over the whole journal that carries every
+table and running total forward and prunes from the end backward before any span is printed.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Fix the table semantics from the brief: reentrancy depth, first-come hand-off counted as a grant, silence while waiting, heartbeats only while holding a lock",
+  "Make a search node the full table with depths and queues plus the running grant, request, release and heartbeat totals, never the fingerprint alone",
+  "Treat each digest as forced immediately after the entry that brings the grant total to a multiple of the digest period, and each audit as an exact check that may fall anywhere inside its lost span, in the listed order",
+  "Run a forward pass over the whole journal building the layered graph of nodes through surviving entries and lost spans, each span bounded by its slack: the totals of every later digest and audit less what the surviving entries before them add",
+  "Run a backward pass from the final audit marking the nodes that can still complete the journal, and drop every edge into a dead node",
+  "For each span walk from its live entry nodes, taking the entry every live continuation agrees on and stopping at the first point with two or more candidates, the end of the span included",
+  "Print the candidates in text order, then time the wide journals and confirm the whole graded set fits inside the stated limit",
+]
+
+[search]
+best_page = """
+Process-mining trace repair (alignment-based conformance checking with A*, and Denisov,
+Fahland and van der Aalst on inferring unobserved events in systems with shared resources and
+queues) together with observer-based state estimation for discrete-event systems, which is
+what a query about inferring missing events from partial observations returns.
+"""
+helps_plan = false
+deviation = """
+Those either insert one minimum-cost set of missing events, bound the timestamps of events a
+model already names, or track the states consistent with observed events; here the evidence
+is cumulative totals and a fingerprint covering holders only, digests are anchored to the
+grant that triggers them, later evidence narrows earlier spans, the minimum-cost repair is
+wrong by construction, and the answer is agreement over every consistent history.
+"""
+
+[tactics]
+A1 = """
+The prior for repairing a log is replay plus the minimum-cost insertion, and the prior for a
+state digest is that it pins the state; here totals move without the fingerprint and the
+fingerprint covers holders only, so both priors produce confident wrong restorations.
+"""
+A2 = """
+The brief describes restoring what every account of the journal agrees on and listing what
+could come next, and never names identifiability, observers, liveness or forward-backward
+settling, so the structure the answer needs has to be derived from the definition.
+"""
+A3 = """
+The candidate line needs every consistent history of the journal, which the stated scale
+forbids enumerating, while the natural forward carry of possible tables cannot tell a branch
+that is still live from one the final audit kills.
+"""
+B2 = """
+Reentrant depth, first-come hand-off counted as a grant, silence while waiting, heartbeats
+only while holding, digests anchored to the grant that triggers them and audits pinning
+totals across spans all hold at once, and each changes what the others admit.
+"""
+C1 = """
+Spans that one filling explains exactly must print in full with no candidate line, and spans
+two fillings explain must stop at the first disagreement, so an overcautious solver and an
+eager one both fail ordinary graded journals.
+"""
+C3 = """
+Enumerating every complete account of a journal is exact and dies on the busy family, where
+twelve to fourteen entries of one span can come in almost any order; bounding a span by the
+next audit alone lets it swell toward the whole journal in the far family, where the only
+audit is the last line; settling histories that meet at one node together, with a backward
+pass and each span's slack, fits the stated limit.
+"""
+C4 = """
+Hand-written journals for every rule and both sides of each fence plus several hundred
+journals generated inside the verifier after the agent finishes, graded all-or-nothing on
+exact text.
+"""
+guard = """
+Only the five editable files under /app/jl named in the brief are collected and laid over the
+verifier's own pristine tree; the driver, the journal parser, the fingerprint and the sample
+journals are frozen, and the submission may use the standard library only.
+"""
+
+[decisions]
+graded = 11
+interactions = [
+  { a = "reentrant acquisition raises a depth the fingerprint does not show", b = "a release frees or passes a lock only when depth reaches zero", why = "how many requests of a span were reentries decides whether a surviving release after the span is recorded as keep, free or pass, and that recorded outcome in turn caps how many reentries the span can have held" },
+  { a = "heartbeats are legal only while the session holds a lock", b = "the audit's heartbeat total fixes how many heartbeats the spans held", why = "the count the total admits can only be placed inside holding windows, so it decides the order of acquisitions and releases around them, and a different order changes which windows exist" },
+  { a = "a hand-off at release counts as a grant", b = "a digest is written immediately after the entry that brings grants to a multiple of the period", why = "a release that passes a lock can trigger a digest, so which releases pass decides where digests fall inside a span and which entries may still sit before each one" },
+  { a = "a session waiting in a queue sends nothing", b = "the fingerprint shows holders only, never queues", why = "who waited where is invisible until a later pass hands a lock over, so a surviving entry from a session after the span is evidence that it was not waiting, which removes fillings the span alone allowed" },
+  { a = "an audit pins totals only at its own position", b = "a span is restored only as far as every account of the whole journal agrees", why = "the audit that settles an early span can come after later spans, so the early span's restoration depends on how the later spans can be filled, and a per-span settle is wrong in both directions" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A span holding two acquisitions and a release that the digests, outcomes and totals admit in
+exactly one way must be printed in full with no candidate line, so a solver that reports
+doubt it cannot justify, or pads the span with invisible entries, fails.
+"""
+late_case = """
+A journal whose first span has two fillings that agree on the fingerprint at every digest and
+differ by one heartbeat; only the audit at the very end, counting heartbeats across both
+spans, decides which filling the first span held, after every earlier check has passed.
+"""
+oracle_denied = """
+Running the tool on the shipped journals prints only its own guess; no expected output ships,
+the fingerprint function reveals holders and nothing else, and a brute-force enumerator
+written from the same reading of the brief shares every misreading of it.
+"""
+
+[leaks]
+candidates = [
+  { what = "expected restorations for the sample journals", closed_by = "none ship; the driver prints the tool's own output and the brief quotes one line of one span, chosen so it decides no wrong reading" },
+  { what = "a helper that checks a filling against the journal", closed_by = "the frozen side parses and fingerprints only; the only search in the tree is the editable per-span shortest search, so there is no verifier for an intermediate filling" },
+  { what = "per-span counts of requests, releases or heartbeats", closed_by = "audits carry cumulative totals at their own positions only, several spans apart in the shaped families, and digests carry the grant total alone" },
+  { what = "reentrancy depth or queue order stored in a digest", closed_by = "the fingerprint is computed over who holds each lock and nothing else, so depth and queues are recoverable only by reasoning from outcomes and later passes" },
+  { what = "a generator for consistent journals shipped in the tree", closed_by = "no generator ships; the sample journals are fixed files and the graded journals are generated inside the verifier from a seed drawn after the agent is gone" },
+]
+derived_quantities = """
+The journal carries entries with their recorded outcomes, digests with the grant total and a
+holder fingerprint, and audits with totals, which are primitives; depths, queues, per-span
+counts, restored entries and candidate lines are derived and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct solvers that enumerate every complete account of the journal by depth-first
+search over all spans and read each span's agreed prefix and candidates off the list, solvers
+that test each candidate by an unmemoized depth-first search for one completion, and settles
+that bound each lost span by the next audit's totals alone rather than by what the surviving
+entries leave room for.
+"""
+invariant = """
+The rest of a journal depends only on the full table and the running totals at a point, so
+histories that meet at one node settle together, and which entries can come next depends on
+whether the node they lead to can still complete the journal; a span's slack is the next
+audit's totals less what the surviving entries before it are known to add.
+"""
+input_scale = "358 journals: at most four locks, five sessions and a digest period of 3; in 354 no lost span holds more than five entries, thirty of those run to 36-44 entries with only the final audit, and four busy journals each have one lost span of 12 to 14 entries from three sessions that hold a lock throughout"
+limit_seconds = 120
+measured = true
+why_not = ""
+# Measured 2026-09-22 on the scratch prototype (five wide journals): settle 0.47 to 2.58 s,
+# top-down memoized variant 0.84 to 4.03 s, full enumeration and memo-less existence search
+# both over 30 s on every one. Re-measured on the built tree over the whole 358-journal set on
+# four seeds: reference 1.9 to 5.1 s, sealed model 2.0 to 4.3 s, top-down variant 3.4 to 8.3 s,
+# packed variant 2.8 to 6.2 s; enumeration and memo-less search each past 40 s on one busy
+# journal; the audit-alone bound killed by the 120 s clock under a 2 GB address space.
+
+[cheats]
+wrong_readings = [
+  { reading = "the shortest closing sequence is the restoration", hand_case = "a span whose fingerprints close with one acquisition while the audit counts a heartbeat as well" },
+  { reading = "each span is settled from local evidence only", hand_case = "two spans before one audit, where the audit's heartbeat total decides which span held the heartbeat" },
+  { reading = "a later span starts from the one table the first answer left", hand_case = "a first span two fillings explain, leaving two different queues, and a second span whose candidates come from both" },
+  { reading = "candidates are pruned forward only, never back from the end", hand_case = "an entry that fits the span's digests but leaves no completion that matches the final audit" },
+  { reading = "histories are merged by fingerprint, dropping depth and queues", hand_case = "two fillings with the same holders and different reentrancy depth, and a surviving release after the span recorded as keep" },
+  { reading = "a digest may sit anywhere inside its span", hand_case = "a heartbeat that could fall before or after an in-span digest if digests floated, and must follow it" },
+  { reading = "a hand-off at release is not counted as a grant", hand_case = "a release that passes a lock and brings the grant total to a multiple of the period" },
+  { reading = "a waiting session may still send entries", hand_case = "a session queued on one lock that would otherwise heartbeat for another it holds" },
+  { reading = "a heartbeat is legal without a held lock", hand_case = "a span whose heartbeat total can only be met by a session that holds nothing" },
+  { reading = "the end of a span is never a candidate", hand_case = "a span where one account stops after two entries and another continues with a heartbeat" },
+  { reading = "an audit listed inside a span is checked against the table the span ends with", hand_case = "a span whose audit counts one release fewer than the span holds, so the release must follow it" },
+  { reading = "a release frees the lock whatever its depth", hand_case = "a reentered lock released once and then requested by another session" },
+]
+correct_variants = [
+  "a top-down memoized search over journal position and node that answers whether the rest of the journal can be completed, driving each span's walk from that answer",
+  "an explicit forward layering and backward liveness pass over frozensets of nodes per journal step, with each span's walk over a dictionary of live successor sets",
+]
+
+[shape]
+environment_py_lines = 284
+editable_files = 5
+reference_lines = 288

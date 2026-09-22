@@ -1,0 +1,214 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/jl/table.py",
+  "/app/jl/tally.py",
+  "/app/jl/span.py",
+  "/app/jl/seek.py",
+  "/app/jl/walk.py",
+]
+
+[task]
+name = "afterquery/journal-gap-mend"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in it is which structure all of them allow at once, and
+that is the work.
+
+The first plan is the shipped one, and it is how a log repair is usually framed: replay the
+journal to each lost stretch, then search for the shortest run of acquisitions, releases and
+heartbeats that takes the table there to the one the next digest shows and keeps what follows
+legal, each stretch starting from the table the stretch before it was given. It is wrong twice
+before it is slow. The counts move without the fingerprint - a reentry, a heartbeat, a release
+that only lowers depth and a request that joins a queue each change a total and leave the
+holder fingerprint alone - so the audits say more happened than the digests show, and the
+criterion is agreement with every digest, audit and recorded outcome, not length.
+
+The second finding takes the per-stretch plan apart. What decides a stretch is neither inside
+it nor next to it: an audit that fixes the request and heartbeat totals can come several
+stretches later, so those stretches are settled together; the depths and queues a stretch
+leaves are invisible to the holder fingerprint and decide the recorded outcome of a release
+after it; and a stretch two fillings explain hands two different tables to the next one. The
+answer is a settle over the whole journal - every table and running total carried forward and
+pruned back from the end - before any stretch can be printed, and the printout needs, at each
+point, the entries that lie on some complete account, not the ones the stretch alone allows.
+Digests and audits look alike and behave differently: a digest sits immediately after the
+grant that triggered it, while an audit listed inside a stretch may have been taken anywhere
+among its lost entries, so a walk that forgets an audit can come before the next entry misses
+candidates.
+
+Two scale families decide what a correct structure may cost, and the fast path in each follows
+from an invariant rather than a technique. In one, a stretch of twelve to fourteen lost entries
+comes from three sessions that each hold a lock: the orders are astronomically many and the
+tables they pass through are few, so histories that meet at one table and one set of totals
+have to be settled together. In the other, a short early stretch in a journal of 36 to 44
+entries has no audit until the last line; what the stretch can have added is that audit less
+everything that survived after it, and a bound read off the audit alone lets the search swell
+toward the whole journal. Against the 120-second limit for the whole graded set, enumerating
+every account and searching without a memo each run past 40 seconds on a single busy journal,
+and a settle bounded by the audit alone is stopped by the clock on the full set, while the
+reference finishes all 358 journals in 2 to 5 seconds and two independently written correct
+designs in under 9.
+
+Around those sit the ordinary decisions, each a fence with two sides: a stretch one filling
+explains prints in full with no candidate line, a stretch whose accounts differ stops at the
+first difference with every candidate and a dash where an account ends, a waiting session sends
+nothing, a heartbeat needs a held lock, a pass counts as a grant, and the queue hands a lock to
+its first waiter. All five editable files ship wrong, and nothing ships to check a restoration
+against: the sample journals come without answers, and a brute force written from the same
+reading of the brief shares every misreading of it.
+
+The tree ships without comments, and its identifiers are in the register of a service's own
+recovery code - `jl/`, `fp`, `say`, `seek`, `tally`, `room`, `due`, `asks`, `rels` - short, and
+none misdescribes what it holds. That is a design choice: the rules come from the brief rather
+than from comments beside the code, and every name is recoverable from what calls it.
+
+The journals are synthetic, in twelve families concentrated on reentry and depth, queues that
+only a later pass reveals, heartbeat windows, anchored digests, audits taken during a loss,
+stretches that inherit several tables, stretches that end on entries no fingerprint shows, and
+the two scale families. In a real journal these concentrations are rare, and they are exactly
+where a recovery tool goes wrong.
+"""
+
+solution_explanation = """
+Five files, settled in the order the rules force.
+
+`table.py` is the service. A table is one (holder, depth, queue) row per lock, and a request is
+answered only from a session that is not waiting: `acq` grants a free lock at depth 1, deepens
+one the session holds or queues the session behind another holder, `rel` lowers the holder's
+depth and at zero passes the lock to the first waiter or frees it, and `beat` needs a held lock.
+The requests a table accepts are worked out once per table and cached, because the same table
+recurs under many different totals.
+
+`tally.py` keeps the four running totals, with a pass counted as a grant, the digest rule, and
+each lost stretch's slack: the totals of every later digest and audit, less what the surviving
+entries before them are known to add from their recorded outcomes. That bound is what keeps a
+stretch from being searched further than it can really have reached.
+
+`span.py` expands one lost stretch, from every table it can begin with, into a graph of inner
+nodes - table, totals and markers used - with an edge for each request the table accepts. A
+digest is consumed exactly when the entry that triggers it is taken, and an entry that would
+trigger a digest the stretch does not list has no edge; an audit is an edge of its own, taken
+wherever its totals and whole-table fingerprint match.
+
+`seek.py` settles the whole journal: it carries the set of nodes forward through every
+surviving line - an entry that triggers a digest obliges the very next line to be that digest -
+and through every stretch's graph, then walks back from the final audit marking the nodes from
+which the rest of the journal can still be completed.
+
+`walk.py` reads each stretch off that marked graph. From the live starting nodes, closed over
+audit edges, it follows the entry every live continuation agrees on, and at the first point
+with two or more choices, the end of the stretch included, it returns them all for the frozen
+printer to sort.
+
+An expert works in that order because each piece consumes the one before it: the table decides
+which entries can exist, the totals decide how many a stretch can hold, the stretch graph
+decides what can happen inside it, the settle decides which of those histories the rest of the
+journal allows, and only then can a stretch be read. The same contract is implemented two
+further ways in the authoring set - one asking a memoized question, whether the rest of the
+journal can be completed from here, of every successor, and one building numbered nodes and
+finding liveness by a breadth-first search over reverse edges - so the shape is visibly not
+what is graded.
+"""
+
+verification_explanation = """
+Only the five files under `/app/jl/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the journal parser, the fingerprints, the printer
+and the sample journals cannot change what a journal prints, and a sixth file put beside the
+five is never collected.
+
+Correct is defined twice over. Twenty-four hand journals, every one found by search rather than
+written from memory - fifteen are the shortest small journals a named wrong reading gets wrong,
+eight the shortest with a named shape on the ordinary side of a fence (headers alone, a choice
+at the first entry, the end offered first, agreed entries before a choice, three kinds of
+candidate, three stretches, a digest just before a stretch), and one is the brief's worked
+example - are checked against `gt.json`, frozen from the sealed model; the grader first asserts that the model still reproduces `gt.json` and that its
+fingerprints are the frozen `fp.py`'s, so a drifted model cannot redefine correct. Three
+hundred and thirty-four further journals are generated inside the verifier from a seed drawn
+after the agent's container is gone, across twelve families. The root side generates them and
+works out their printouts before any submitted code runs, and the worker is handed the journal
+texts and nothing else. The sealed model asks one memoized question, whether the rest of the
+journal can still be completed, and was written apart from the reference, which settles forward
+and prunes backward; they share only the journal grammar and the fingerprint format, and they
+agree on every journal generated in authoring.
+
+The fences run both ways. Padding stretches with entries no evidence asks for, or doubting
+where the evidence is complete, fails the journals whose stretches one filling explains.
+Settling each stretch from the evidence up to the next one fails `empty-then-grant`, and pruning
+only forward fails `later-evidence`;
+starting each stretch from one table fails `two-spans-one-beat`; candidates read off local
+legality fail `live-candidates`; histories merged by the holder fingerprint fail `queue-order`;
+a digest matched anywhere fails `digest-anchored`, and one written after any entry that leaves
+the count on a multiple fails `digest-on-grant`; an audit checked at the end of its stretch
+fails `audits-inside`, and a walk that forgets an audit can come first fails
+`audit-before-loss`; no dash fails `end-of-span`; a pass not counted fails `pass-is-grant`; a
+waiting session that still sends fails `waiter-silent`; a heartbeat without a held lock fails
+`beat-needs-lock`; a reentry that does not deepen fails `reentry-depth`; a pass to the last
+waiter fails `pass-first-waiter`.
+
+Thirty-two cheats score 0. Sixteen are wrong readings, each caught by the hand journal named
+for it. Three are exactly correct and too slow - every account enumerated, every question
+answered by a fresh search, and stretches bounded by the next audit alone - and the clock stops
+each. Three are shortcut strategies: every stretch printed as its header alone, the worked
+example replayed, and one account printed in full. One is a forgery carrying the frozen answer
+of every hand journal, which passes all of them and fails the generated set. The other nine are
+probes: the answer key, a report and a reward planted directly, a reward written late by a
+double-forked survivor, a report planted and the worker exited clean before it could write its
+own, objects built to confuse the comparison, a privilege probe of every root-owned path, a
+rewritten grader, a shrunken list of journals, and an engine hidden in a file beside the five
+that are collected. Two independently written correct designs score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model, the generator, the hand journals and the frozen answers sit
+in a directory that uid cannot read, and the graded set with its expected printouts is written
+into the root-only reward directory before the worker starts, so code running inside the
+verifier can neither compute answers from the model nor regenerate the true histories. The
+reward defaults to 0, is written last by the privileged stage into a directory locked before any
+agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Algorithms"
+
+tags = [
+  "log-gap-inference",
+  "reentrant-locks",
+  "lock-handoff-queues",
+  "partial-state-fingerprints",
+  "identifiability",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the recovery side of a lock service: the tooling that replays a journal of
+acquisitions, releases and heartbeats against a table of reentrant locks with first-come queues,
+checks it against the service's own digests and an operator's audits, and after a loss has to
+say which entries the evidence proves and where it stops proving anything. Familiarity with the
+difference between a history that fits the evidence and one the evidence forces, with state a
+fingerprint does not cover deciding what can come later, and with evidence that arrives well
+after the gap it constrains. Comfort with exact search over histories, with settling a layered
+graph forward and pruning it backward, and with bounding a search by what the evidence leaves
+room for rather than by the first cap in sight.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

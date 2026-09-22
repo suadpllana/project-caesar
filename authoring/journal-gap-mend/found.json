@@ -1,0 +1,344 @@
+{
+ "readings": {
+  "shortest-plan": [
+   "cfg 3 2 3\nacq 2 0 grant\nbeat 0\ngap\nback\nacq 1 0 grant\nrel 1 0 free\nacq 0 0 grant\ndig 3 26bc32a8ff82\naud 3 3 2 1 b920d82cb9fc",
+   [
+    "gap 1",
+    "rel 2 0 free"
+   ],
+   [
+    "shortest-plan",
+    "forward-only"
+   ]
+  ],
+  "forward-only": [
+   "cfg 3 2 3\nacq 2 0 grant\nbeat 0\ngap\nback\nacq 1 0 grant\nrel 1 0 free\nacq 0 0 grant\ndig 3 26bc32a8ff82\naud 3 3 2 1 b920d82cb9fc",
+   [
+    "gap 1",
+    "rel 2 0 free"
+   ],
+   [
+    "shortest-plan",
+    "forward-only"
+   ]
+  ],
+  "candidates-local": [
+   "cfg 2 3 3\nacq 0 2 grant\nacq 1 1 grant\ngap\naud 2 4 0 0 2697654ec57c\nback\nacq 1 0 wait\naud 2 5 0 0 7f2bcef64ed7",
+   [
+    "gap 1",
+    "? acq 0 1 wait | acq 1 2 wait"
+   ],
+   [
+    "candidates-local"
+   ]
+  ],
+  "digest-on-multiple": [
+   "cfg 1 3 3\nacq 0 1 grant\nrel 0 1 free\ngap\ndig 3 6b86b273ff34\nback\nacq 0 0 wait\naud 3 4 2 0 fea1d7ff7365",
+   [
+    "gap 1",
+    "? acq 0 0 grant | acq 0 1 grant | acq 0 2 grant"
+   ],
+   [
+    "digest-on-multiple"
+   ]
+  ],
+  "beat-anytime": [
+   "cfg 1 4 3\nacq 0 0 grant\nrel 0 0 free\nacq 0 1 grant\ngap\naud 2 2 1 1 acb80112efcf\nback\nbeat 1\nacq 0 2 wait\naud 2 3 1 2 2f1ff8c3e53c",
+   [
+    "gap 1",
+    "beat 1"
+   ],
+   [
+    "beat-anytime"
+   ]
+  ],
+  "digest-floats": [
+   "cfg 3 2 2\nacq 0 0 grant\nbeat 0\ngap\ndig 2 26bc32a8ff82\nback\nacq 1 1 grant\nrel 1 1 free\naud 3 3 2 1 b920d82cb9fc",
+   [
+    "gap 1",
+    "rel 0 0 free",
+    "acq 0 0 grant"
+   ],
+   [
+    "digest-floats",
+    "candidates-local"
+   ]
+  ],
+  "audit-at-end": [
+   "cfg 2 3 3\nacq 0 1 grant\nrel 0 1 free\ngap\ndig 3 044bc233cf50\naud 3 3 2 0 b23ed3d1539b\naud 4 4 2 0 d989a2909c09\nback\nrel 1 0 free\naud 4 4 3 0 5384a078621f",
+   [
+    "gap 1",
+    "? acq 0 0 grant | acq 0 1 grant | acq 0 2 grant | acq 1 0 grant | acq 1 1 grant | acq 1 2 grant"
+   ],
+   [
+    "shortest-plan",
+    "audit-at-end"
+   ]
+  ],
+  "walk-no-closure": [
+   "cfg 2 3 2\nacq 0 0 grant\nrel 0 0 free\ngap\naud 1 1 1 0 f0b6737b73fa\ndig 2 044bc233cf50\nback\nacq 0 2 grant\nbeat 2\nacq 1 2 wait\nacq 0 0 wait\nacq 1 1 wait\naud 3 6 1 1 acd14d5601c9",
+   [
+    "gap 1",
+    "acq 1 0 grant"
+   ],
+   [
+    "shortest-plan",
+    "audit-at-end",
+    "walk-no-closure"
+   ]
+  ],
+  "pass-uncounted": [
+   "cfg 2 2 2\nacq 1 0 grant\nacq 1 1 wait\ngap\naud 1 2 0 1 6018808dce80\nback\nbeat 0\nrel 1 0 pass\ndig 2 416c970e7550\naud 2 2 1 2 ac7abaaa9962\nacq 0 1 grant\nbeat 1\naud 3 3 1 3 b5e2519463ae",
+   [
+    "gap 1",
+    "beat 0"
+   ],
+   [
+    "pass-uncounted"
+   ]
+  ],
+  "merge-holders": [
+   "cfg 3 3 3\nacq 2 1 grant\ngap\nback\nacq 2 0 wait\naud 2 5 0 0 cdbd2410815c",
+   [
+    "gap 1",
+    "acq 1 0 grant",
+    "acq 1 2 wait",
+    "acq 1 1 wait"
+   ],
+   [
+    "shortest-plan",
+    "forward-only",
+    "merge-holders",
+    "candidates-local"
+   ]
+  ],
+  "no-depth": [
+   "cfg 1 2 2\nacq 0 1 grant\nbeat 1\nacq 0 0 wait\nbeat 1\ngap\naud 1 3 0 2 afe33a9e346d\nback\nacq 0 1 again\naud 1 4 0 2 c0e364e71ae5",
+   [
+    "gap 1",
+    "acq 0 1 again"
+   ],
+   [
+    "no-depth"
+   ]
+  ],
+  "last-come-pass": [
+   "cfg 1 4 3\nacq 0 0 grant\naud 1 1 0 0 798af9f668bf\nacq 0 2 wait\naud 1 2 0 0 f1900605d633\nrel 0 0 pass\nacq 0 1 wait\nacq 0 3 wait\nacq 0 0 wait\ngap\ndig 3 6b86b273ff34\naud 3 5 2 0 61eae9422c3f\nback\nrel 0 1 pass\naud 4 5 3 0 1c44c16b24e0",
+   [
+    "gap 1",
+    "rel 0 2 pass"
+   ],
+   [
+    "pass-uncounted",
+    "last-come-pass"
+   ]
+  ],
+  "span-local": [
+   "cfg 2 4 3\nacq 1 0 grant\nacq 0 1 grant\ngap\nback\nrel 0 1 free\ngap\ndig 3 b0e4f9bb7b55\nback\nrel 1 0 free\nrel 0 1 free\naud 3 3 3 0 f0b6737b73fa",
+   [
+    "gap 1",
+    "gap 2",
+    "acq 0 1 grant"
+   ],
+   [
+    "span-local",
+    "forward-only",
+    "candidates-local",
+    "digest-on-multiple"
+   ]
+  ],
+  "no-end": [
+   "cfg 3 3 3\nacq 1 1 grant\naud 1 1 0 0 371206488273\nbeat 1\ngap\nback\nacq 2 0 grant\ngap\naud 2 2 2 1 3ce7d894f784\nback\nacq 2 2 grant\ndig 3 649489c96db5\naud 3 3 2 1 c69762e3977e",
+   [
+    "gap 1",
+    "? - | rel 1 1 free",
+    "gap 2",
+    "? rel 1 1 free | rel 2 0 free"
+   ],
+   [
+    "shortest-plan",
+    "no-end"
+   ]
+  ],
+  "single-start": [
+   "cfg 1 4 3\nacq 0 0 grant\ngap\nback\nacq 0 0 grant\ngap\nback\nacq 0 0 grant\ndig 3 5feceb66ffc8\naud 3 3 2 1 798af9f668bf",
+   [
+    "gap 1",
+    "? beat 0 | rel 0 0 free",
+    "gap 2",
+    "? beat 0 | rel 0 0 free"
+   ],
+   [
+    "shortest-plan",
+    "forward-only",
+    "single-start",
+    "beat-anytime"
+   ]
+  ],
+  "waiting-sends": [
+   "cfg 2 2 2\nacq 1 1 grant\ngap\ndig 2 83b97b859aa5\naud 2 3 0 0 ca1aecdafc16\nback\nacq 0 1 wait\naud 2 4 0 0 ded6a3318fdb",
+   [
+    "gap 1",
+    "acq 0 0 grant",
+    "acq 1 0 wait"
+   ],
+   [
+    "candidates-local",
+    "digest-on-multiple",
+    "waiting-sends"
+   ]
+  ]
+ },
+ "fences": {
+  "full": [
+   "cfg 3 3 3\nacq 2 1 grant\ngap\nback\nacq 2 0 wait\naud 2 5 0 0 cdbd2410815c",
+   [
+    "gap 1",
+    "acq 1 0 grant",
+    "acq 1 2 wait",
+    "acq 1 1 wait"
+   ],
+   [
+    "shortest-plan",
+    "forward-only",
+    "merge-holders",
+    "candidates-local"
+   ]
+  ],
+  "full-long": [
+   "cfg 3 3 3\nacq 2 1 grant\ngap\nback\nacq 2 0 wait\naud 2 5 0 0 cdbd2410815c",
+   [
+    "gap 1",
+    "acq 1 0 grant",
+    "acq 1 2 wait",
+    "acq 1 1 wait"
+   ],
+   [
+    "shortest-plan",
+    "forward-only",
+    "merge-holders",
+    "candidates-local"
+   ]
+  ],
+  "none": [
+   "cfg 2 2 3\nacq 1 0 grant\ngap\nback\nacq 1 0 again\naud 2 4 0 2 bcaee0a87a5a",
+   [
+    "gap 1",
+    "? acq 0 0 grant | acq 1 1 wait | beat 0"
+   ],
+   [
+    "shortest-plan",
+    "forward-only",
+    "candidates-local",
+    "beat-anytime",
+    "no-depth"
+   ]
+  ],
+  "partial-dash": [
+   "cfg 2 3 3\nacq 1 2 grant\ngap\nback\nbeat 1\ngap\nback\nacq 1 1 wait\naud 2 5 0 1 c12daa42ff7e",
+   [
+    "gap 1",
+    "acq 0 1 grant",
+    "? - | acq 0 0 wait",
+    "gap 2",
+    "? - | acq 0 0 wait | acq 0 2 wait"
+   ],
+   [
+    "shortest-plan",
+    "span-local",
+    "forward-only",
+    "merge-holders",
+    "single-start",
+    "no-end",
+    "candidates-local",
+    "beat-anytime"
+   ]
+  ],
+  "text-order": [
+   "cfg 3 2 3\nacq 0 1 grant\ngap\nback\nacq 0 0 again\naud 2 4 1 1 97ce49245634",
+   [
+    "gap 1",
+    "? acq 0 0 wait | beat 1 | rel 0 1 free"
+   ],
+   [
+    "shortest-plan",
+    "forward-only",
+    "candidates-local",
+    "pass-uncounted",
+    "beat-anytime",
+    "no-depth"
+   ]
+  ],
+  "none-dash": [
+   "cfg 2 3 2\nacq 1 0 grant\ngap\nback\nacq 1 0 again\ngap\nback\nrel 1 0 keep\naud 1 4 2 0 f56131a8338b",
+   [
+    "gap 1",
+    "? - | acq 1 0 again",
+    "gap 2",
+    "? - | acq 1 0 again | rel 1 0 keep"
+   ],
+   [
+    "shortest-plan",
+    "span-local",
+    "forward-only",
+    "merge-holders",
+    "single-start",
+    "no-end",
+    "candidates-local",
+    "no-depth"
+   ]
+  ],
+  "three-spans": [
+   "cfg 1 3 3\nacq 0 1 grant\ngap\nback\nacq 0 0 grant\ngap\nback\nacq 0 2 wait\ngap\nback\nbeat 0\naud 2 4 1 1 df21d539b072",
+   [
+    "gap 1",
+    "rel 0 1 free",
+    "gap 2",
+    "gap 3",
+    "acq 0 1 wait"
+   ],
+   [
+    "shortest-plan",
+    "span-local",
+    "forward-only",
+    "merge-holders",
+    "candidates-local"
+   ]
+  ],
+  "digest-before-gap": [
+   "cfg 2 3 2\nacq 0 1 grant\nacq 1 0 grant\ndig 2 b0e4f9bb7b55\ngap\nback\nacq 0 0 wait\naud 2 5 0 0 0a9fed251803",
+   [
+    "gap 1",
+    "acq 1 2 wait",
+    "acq 1 1 wait"
+   ],
+   [
+    "shortest-plan",
+    "forward-only",
+    "merge-holders",
+    "candidates-local",
+    "digest-on-multiple"
+   ]
+  ],
+  "empty": [
+   "cfg 2 2 3\nacq 0 1 grant\ngap\nback\nacq 1 0 grant\ngap\nback\nacq 0 0 wait\nacq 1 1 wait\naud 2 4 0 0 889de78585d7",
+   [
+    "gap 1",
+    "gap 2"
+   ],
+   []
+  ],
+  "partial": [
+   "cfg 1 2 3\nacq 0 0 grant\ngap\naud 1 4 1 0 ecfc2875abf3\nback\nbeat 0\naud 1 4 1 1 ecfc2875abf3",
+   [
+    "gap 1",
+    "acq 0 0 again",
+    "? acq 0 0 again | rel 0 0 keep"
+   ],
+   [
+    "candidates-local",
+    "no-depth"
+   ]
+  ]
+ }
+}

@@ -1,0 +1,8 @@
+cfg 1 2 3
+acq 0 0 grant
+rel 0 0 free
+gap
+aud 2 4 1 0 92e4c90eb2d3
+back
+beat 0
+aud 2 4 1 1 92e4c90eb2d3

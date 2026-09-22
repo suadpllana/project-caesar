@@ -1,0 +1,62 @@
+# Originality record - journal-gap-mend. Written at Stage 1, before the difficulty record
+# and before any code. Never ships. Scored by `python tools/originalitycheck.py journal-gap-mend`.
+
+[task]
+slug = "journal-gap-mend"
+category = "Software"
+label = "Algorithms"
+tags = ["log-gap-inference", "reentrant-locks", "lock-handoff-queues", "partial-state-fingerprints", "identifiability"]
+status = "idea"
+
+[mechanism]
+# Written first, before anything else in this record.
+sentence = "Restore the entries a crash lost from spans of a lock service's journal only as far as every whole-journal account agrees that reproduces the recorded outcomes, holder digests anchored to the grant that triggers them, and audits that fix the running totals and the whole table at a point the span does not locate, and name everything an account could hold next where those accounts first part."
+substrate = "the recovery tool of a lock service with reentrant locks and first-come wait queues, reading a journal that lost spans of entries in a crash, with its digests and the operator's audits recorded apart from it"
+graded_output = "for every lost span, the restored entries in journal order with their recorded outcomes, then either nothing or one line listing in text order every entry some account holds next, with a dash where an account ends the span"
+failure_mode = "closing the fingerprint difference across each span separately with the shortest legal sequence of entries, and calling a span settled when that shortest sequence is unique"
+interaction = "reentrant acquisitions and heartbeats move the request and heartbeat totals without touching the holder fingerprint, while the depth and queues they leave decide whether a later release keeps, frees or passes a lock and heartbeats are legal only while a lock is held, so the count the totals admit and the orders the preconditions allow settle each other"
+
+[nearest.public]
+name = "Inferring unobserved events in systems with shared resources and queues (Denisov, Fahland, van der Aalst), with alignment-based event log repair"
+url = "https://arxiv.org/abs/2103.00167"
+covers = "Reconstructs bounds on the timestamps of events that a process model says must have happened but were not recorded, for systems where cases compete for shared resources and queue, using linear programming over token trajectories; alignment-based repair inserts the minimum-cost set of missing events that makes a trace conform to a model, found by A* search."
+plans_this = false
+separation = "There the missing events are named by a model and only their times are sought, or one minimum-cost repair is chosen. Here which entries were lost, how many and in what order are the unknowns, the evidence is cumulative totals and a fingerprint that covers only part of the state, the minimum-cost repair is wrong by construction, and the answer is the agreement across every consistent history of the whole journal, including evidence that arrives after the span."
+
+[nearest.submitted]
+name = "alias-settle-report"
+source = "ledger"
+shares = "both decide what is certain across every possibility the evidence still allows, and commit nothing beyond the point where those possibilities disagree"
+same_mechanism = false
+separation = "alias-settle-report files a row online, at the first tick at which no future tie or post could move it, over the closure of keys under ties and bars. This task works offline over a finished journal whose lost spans must be filled with lock-service entries, where the possibilities are whole-journal histories constrained by fingerprints, recorded outcomes and cumulative totals, and the graded output is the restored entries and the first point of disagreement rather than the timing of a filing."
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "online filing time decided by the closure of keys under ties and declared differences", ours = "offline inference of lost journal entries over whole-journal histories constrained by digests, outcomes and totals" },
+  { axis = "substrate", theirs = "the filing end of an evaluation harness posting run scores under watched keys", ours = "the recovery tool of a lock service journal with reentrant locks and first-come wait queues" },
+  { axis = "graded_output", theirs = "one row per watched key with the tick at which it was filed", ours = "the restored entries of each lost span and every candidate at the first point accounts disagree" },
+  { axis = "failure_mode", theirs = "filing a row before a later tie can move it, or waiting for every source to shut", ours = "the shortest fingerprint-closing sequence per span, blind to totals that move without the fingerprint" },
+  { axis = "interaction", theirs = "ties and bars declared by overlapping tag pools that change which keys join an item", ours = "reentrancy depth, wait queues and heartbeat windows against request, release and heartbeat totals" },
+]
+
+[search]
+queries = [
+  "reconstruct lost log entries from periodic checkpoint counters and state hash",
+  "infer missing events between snapshots state machine replay counters digest gap",
+  "lock service journal recovery missing entries reentrant lock wait queue audit log reconstruction",
+  "discrete event system state estimation partial observation observer automaton diagnosability",
+  "reconstruct missing operations lost log span from metrics counters and state fingerprint identifiability undetermined",
+  "alignment-based event log repair missing events minimal cost process model trace completion",
+  "plan recognition as planning partial observations missing actions all valid plans intermediate state observations",
+  "infer hidden action sequence between checkpoints given cumulative counter totals and state hash all consistent sequences common prefix",
+  "terminal-bench task reconstruct lost journal entries lock service digest",
+]
+results = "Crash-recovery material (FASTER checkpointing, ARIES-style lecture notes, checkpoint-and-replay issue threads) assumes the log after the checkpoint is complete and replays it. Process-mining repair either picks one minimum-cost alignment or bounds the timestamps of events the model already names (Denisov et al., Graph-based Event Log Repair). Discrete-event-system observers track the set of states consistent with observed events, but take the events as the observation and never restore a sequence from totals. Plan recognition ranks goals by plan cost. Nothing found fills a lost span from cumulative totals and a partial fingerprint, or reports agreement across every consistent history. No benchmark task with this mechanism turned up."
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "write-ahead log crash recovery, from the Databases list; the shipped first plan is also a shortest-path search over entry sequences"
+on_list = true
+departure = "Crash recovery replays a complete log forward from a checkpoint, and the state it rebuilds is the truth. Here the log itself has holes, the checkpoint evidence is a fingerprint that omits reentrancy depth and wait queues plus totals that move without any visible change, and the graded output is what every consistent history of the whole journal agrees on, which neither a replay nor a shortest-path search can produce."
+substrate_used_before = false

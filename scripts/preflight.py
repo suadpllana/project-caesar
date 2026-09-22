@@ -730,6 +730,7 @@ def check_environment_docs(root: Path) -> None:
 
 
 DEF_NAME_RE = re.compile(r"^\s*(?:async\s+)?def\s+([a-zA-Z_]\w*)\s*\(", re.MULTILINE)
+METHOD_DEF_RE = re.compile(r"^[ \t]+(?:async\s+)?def\s+([a-zA-Z_]\w*)\s*\(", re.MULTILINE)
 DUNDER_OR_PRIVATE = re.compile(r"^_")
 # Names a framework or runtime may call without an in-tree reference.
 ENTRYPOINT_NAMES = {
@@ -753,12 +754,26 @@ def check_leaks_by_affordance(root: Path) -> None:
     if py_files:
         sources = {p: p.read_bytes().decode("utf-8", errors="replace") for p in py_files}
         corpus = "\n".join(sources.values())
+        # A bare `name(` is not the only way a definition in this tree gets called. A method is
+        # reached through an instance (`keep.has(path)`) and a module function through its
+        # module (`mark.read_mark(path, keep)`), and counting bare calls alone reported every
+        # one of those as uncalled - 9 to 28 findings on each retained bundle, none of them
+        # true. Both receivers are recognised, and only those: an attribute call on anything
+        # else still does not count, so a genuinely unused affordance is still found.
+        methods = set(METHOD_DEF_RE.findall(corpus))
+        modules = {p.stem for p in py_files}
         for path, text in sources.items():
             for name in set(DEF_NAME_RE.findall(text)):
                 if DUNDER_OR_PRIVATE.match(name) or name in ENTRYPOINT_NAMES:
                     continue
                 # Count references outside the definition line itself.
                 refs = len(re.findall(rf"(?<![\w.]){re.escape(name)}\s*\(", corpus))
+                if name in methods:
+                    refs += len(re.findall(rf"\.{re.escape(name)}\s*\(", corpus))
+                elif modules:
+                    holder = "|".join(re.escape(m) for m in sorted(modules))
+                    refs += len(re.findall(rf"(?<![\w.])(?:{holder})\.{re.escape(name)}\s*\(",
+                                           corpus))
                 defs = len(re.findall(rf"def\s+{re.escape(name)}\s*\(", corpus))
                 if refs <= defs and f'"{name}"' not in corpus and f"'{name}'" not in corpus:
                     rel = "/".join(path.relative_to(root).parts)

@@ -1,0 +1,193 @@
+# Difficulty record for pull-check-stale, written before any task code exists.
+# Scored with tools/difficultycheck.py against the band of the retained passing tasks.
+
+[task]
+slug = "pull-check-stale"
+status = "idea"
+sources = [
+  "authoring/pull-check-stale/difficulty.toml",
+  "tasks/pull-check-stale/STATE.md",
+  "prototype timing run 2026-09-22 (scratchpad, diamond depth 14 and 20)",
+]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+# 1. The frontier agent's first plan.
+first_plan = """
+Walk the steps, build a dependency graph, topologically sort it, and rebuild bottom up. Keep
+for each step the set of files it read with their hashes and the set of steps it pulled; a
+step is out of date when any recorded hash differs or when a step it pulled rebuilt, so mark
+the step dirty, re-run it, and record what the run touched. Memoise the steps already
+brought up to date this round in a visited set so each one is rebuilt at most once, and
+recurse through pulls for the dependencies that are only known after a run.
+"""
+first_plan_source = "prior"
+
+# 2. The stated requirement that makes the first plan wrong.
+breaking_rule = """
+A record is the ordered list of observations a run made, and a step is brought up to date by
+taking those observations in order and stopping at the first that fails; an observation of
+another step is tested by bringing that step up to date, so checking is itself the thing
+that runs steps, and every observation after the first failure is neither tested nor run.
+"""
+
+# 3. The later discovery that invalidates the implementation of the first.
+second_discovery = """
+Being up to date is a fact about a moment, not about a round: a step found sound earlier can
+be undone by a later write in the same round, and because a step runs at most once per round
+the re-request that finds it undone reports stuck rather than running it again. The visited
+set that the diamond programs force the solver to add for speed is the same structure that
+decides between stuck, a second run and a silently stale value, so it has to carry the write
+count it was taken at, and the whole recursion is rebuilt around that.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+
+# 10. The expert path.
+expert_path = [
+  "Run the shipped engine on the sample programs and read the driver to fix the trace vocabulary and the order in which lines appear",
+  "Work out that a record has to be an ordered list of four observation kinds, because a look and a read on the same path are not the same observation and a pull sits between them",
+  "Rewrite the check as an ordered walk that stops at the first failed observation and dispatches a pull observation back into the scheduler, then confirm on a hand program that the stop changes which steps run",
+  "Separate the per step state into the record, the value or failure reason, the write count at which it was last found sound, and whether it has already run this round",
+  "Derive that a step found sound at a write count stays sound until the next write, and use that to memoise, then check the diamond program finishes inside the stated limit",
+  "Make an output write advance the write count only when the bytes change, so a re-run that emits the same value leaves every earlier verdict standing and dependents are not re-run",
+  "Handle the two failure shapes: a read of an absent path records the absence and ends the run, and the partial record is what later brings the step back to life",
+  "Fence stuck against an ordinary re-run by checking whether the step ran this round rather than whether it was visited, and test both sides on hand programs",
+]
+
+[search]
+best_page = """
+The Build Systems a la Carte paper together with the Shake manual, which between them describe
+suspending schedulers, early cutoff and tracking whether a file exists.
+"""
+helps_plan = false
+deviation = """
+Those sources make dependency checking a pure query and treat a rebuild as the only side
+effect; here checking is effectful and stops at the first failure, a read of another step's
+output without a pull is legal and sees stale bytes, a failed run's partial record is kept and
+consulted, and a step that goes stale after it has already run is an error rather than a
+second rebuild. An implementation copied from either source is wrong on all four.
+"""
+
+[tactics]
+A1 = """
+The prior is the declared dependency graph of make and bazel: sort it, mark dirty, propagate.
+Here nothing is declared, checking runs code, and reading a produced file without pulling it
+is a legal way to see last round's bytes rather than a bug to be repaired.
+"""
+A2 = """
+The suspending scheduler, early cutoff, absence tracking and negative caching are all present
+and all described as behaviour of the engine; not one of them is named, so the recognition
+that would turn the brief into a search query is itself the work.
+"""
+B2 = """
+Ten graded decisions that change each other: the order of a record decides which steps run,
+the write count decides what a verdict is worth, and whether a step ran decides between an
+error and a rebuild.
+"""
+C1 = """
+Both sides of every rule are graded: a step that only went stale must rebuild while one that
+already ran must report stuck, and a look must survive a content change while failing on the
+path appearing.
+"""
+C3 = """
+Diamond programs make a check that does not remember its verdict exponential while leaving its
+output identical, so a semantically perfect engine dies on the clock rather than on a case.
+"""
+C4 = """
+Thirty hand programs aimed at each decision plus several hundred generated inside the verifier
+from a seed drawn after the agent is gone, compared as exact traces, all or nothing.
+"""
+guard = """
+Only the five files under /app/eng that carry the engine are collected; the parser, the digest,
+the trace writer and the driver are overlaid from a pristine copy, so the program grammar and
+the output format cannot be redefined and an engine hidden in a sixth file is never read.
+"""
+
+[decisions]
+graded = 11
+interactions = [
+  { a = "checking stops at the first failed observation", b = "a pull observation is tested by bringing that step up to date", why = "stopping early decides which other steps are run, so the order of a record is part of the observable trace rather than an implementation detail" },
+  { a = "the verdict memo", b = "a step runs at most once per round", why = "the memo added to survive the diamond programs is the structure that decides between stuck, a rebuild and a silently stale value, so speed and correctness are the same choice" },
+  { a = "a write advances the count only when the bytes change", b = "a pull observation holds while the emitted value is unchanged", why = "cutoff is what leaves the count alone, so an engine that counts every write manufactures re-checks and then reports stuck where nothing went stale" },
+  { a = "a read of a produced path records bytes, not a dependency", b = "the order in which a step pulls and reads", why = "whether a step sees this round's or last round's bytes is decided by where its pull sits relative to its read, and the same order governs the re-check" },
+  { a = "a failed run keeps its partial record", b = "a read of an absent path records the absence", why = "the absence mark is the last entry of the partial record, so it is exactly what brings a dead step back to life when the file appears" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A step whose record still holds must not be rebuilt and must print nothing, including the case
+where another step it pulled was rebuilt and emitted the same value as before.
+"""
+late_case = """
+A step is pulled twice in one round with a rebuild of a producer between the two pulls, so the
+first pull is answered from a record that the producer's write has since undone; only an engine
+that carries the write count on its verdict and knows the step already ran reports stuck.
+"""
+oracle_denied = """
+The natural check is to run the shipped engine and compare, but the shipped engine is one
+coherent wrong reading and no expected output ships with any sample program, so agreeing with
+it is evidence of nothing and the wrong readings differ from the reference by a line or two in
+traces that are otherwise identical.
+"""
+
+[leaks]
+candidates = [
+  { what = "sample programs under /app/progs", closed_by = "they exercise the grammar and no expected output ships with any of them; each was checked to leave every wrong reading standing" },
+  { what = "the shipped engine's own record structure", closed_by = "it is a coherent wrong reading rather than a partly correct one, and nothing in the tree says which of its choices are the contract" },
+  { what = "a list of which collected files are defective", closed_by = "no such list ships, every one of the five carries at least one graded defect, and nothing marks a defect in place" },
+  { what = "the write count exposed in the trace", closed_by = "the trace prints only round numbers, run lines and one outcome per request, never a count, a record or a verdict" },
+]
+derived_quantities = """
+The store holds file bytes and the program holds ops; which steps run, in what order, what they
+emit and whether a request ends stuck, dead or looping are derived while the program runs and
+are written nowhere in the shipped tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+An engine that re-checks a step's record every time the step is pulled instead of remembering
+the write count at which it was last found sound; its traces are identical to the reference.
+"""
+invariant = """
+A step found sound at a write count is still sound at that same write count, because every
+change to any path advances the count and a re-run that emits the same bytes changes nothing.
+"""
+input_scale = "diamond programs of twenty-three nested pairs over several rounds"
+limit_seconds = 150
+measured = true
+
+[cheats]
+wrong_readings = [
+  { reading = "check every observation instead of stopping at the first failure", hand_case = "a record whose first entry is a changed read and whose second entry pulls a step that would otherwise not run this round" },
+  { reading = "keep the record as a path keyed map and lose the order", hand_case = "a step that reads a produced path before pulling its producer, then reads it again afterwards" },
+  { reading = "memoise the verdict as a boolean for the round", hand_case = "two steps sharing an output path with a reader pulled on either side of the second one" },
+  { reading = "mark a step as having run when it was only checked", hand_case = "a step found sound early in a round and undone by a later write, then pulled again" },
+  { reading = "treat a look as a read of the content", hand_case = "a step that looks at a path whose bytes are then rewritten without the path appearing or vanishing" },
+  { reading = "record nothing when a look finds the path absent", hand_case = "a step that looks at a missing path, then the path is created" },
+  { reading = "re-run a failed step on every request instead of keeping its record", hand_case = "a step that reads a missing path and is pulled twice in the same round" },
+  { reading = "keep a failed step dead until something it succeeded on changes", hand_case = "a step that died on a missing path, then the path is created" },
+  { reading = "merge the new record into the old one on a re-run", hand_case = "a run that takes a shorter path than last time and leaves a stale entry behind" },
+  { reading = "treat a pull as invalid whenever the pulled step ran", hand_case = "a producer re-run that emits the same literal value while its own inputs changed" },
+  { reading = "advance the write count on every write", hand_case = "a producer re-run that rewrites its output with the same bytes while a third step has already been checked" },
+  { reading = "bring a step up to date when one of its output paths is read", hand_case = "a step that reads a produced path without pulling its producer in the same round" },
+  { reading = "detect a cycle from the recorded pull graph rather than the live stack", hand_case = "a record naming a pull that this round's run does not make" },
+  { reading = "forget to record the output that a successful run wrote", hand_case = "an external write that overwrites a step's output with other bytes" },
+  { reading = "let a pull of a dead step succeed with an empty value", hand_case = "a step that pulls one that died on a missing path" },
+  { reading = "require the failure reason to match when re-checking a dead pull", hand_case = "a dead step whose reason changes from a missing path to a dead pull" },
+  { reading = "print the run line after the run instead of before it", hand_case = "a step whose run pulls two others that both have to run" },
+  { reading = "apply the round's external edits after the requests", hand_case = "a round that writes a path and then requests a step reading it" },
+]
+correct_variants = [
+  "recursive scheduler with records as tuples in a list, per step objects, and a digest cached on the store entry",
+  "iterative scheduler with an explicit resume stack, records as small objects answering holds, and a per path version counter",
+]
+
+[shape]
+environment_py_lines = 470
+editable_files = 5
+reference_lines = 340

@@ -1,0 +1,18 @@
+seed here h1
+step look1 out.look1
+op look1 look absent
+op look1 read here
+op look1 emit *
+step need1 out.need1
+op need1 read absent
+op need1 emit k
+step use1 out.use1
+op use1 pull need1
+op use1 emit *
+round
+want look1
+want use1
+round
+put absent z1
+want look1
+want use1

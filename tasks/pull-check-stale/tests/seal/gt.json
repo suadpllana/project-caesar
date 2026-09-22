@@ -1,0 +1,289 @@
+{
+ "bare-fresh": [
+  "round 1",
+  "run rd",
+  "run mk",
+  "ok rd 7c5bae",
+  "round 2",
+  "run mk",
+  "run rd",
+  "ok rd 9a2373"
+ ],
+ "bare-stale": [
+  "round 1",
+  "run mk",
+  "ok mk 75c24d",
+  "round 2",
+  "run drive",
+  "run rd",
+  "run mk",
+  "ok drive edc714"
+ ],
+ "cut-value-holds": [
+  "round 1",
+  "run u",
+  "run p",
+  "ok u a02e51",
+  "round 2",
+  "run p",
+  "ok u a02e51"
+ ],
+ "cut-value-moves": [
+  "round 1",
+  "run u",
+  "run p",
+  "ok u 2efdc6",
+  "round 2",
+  "run p",
+  "run u",
+  "ok u ec804b"
+ ],
+ "dead-reason-changes": [
+  "round 1",
+  "run u",
+  "run b",
+  "err u via b",
+  "round 2",
+  "run b",
+  "err u via b"
+ ],
+ "dead-via-name": [
+  "round 1",
+  "run t",
+  "run m",
+  "run d",
+  "err t via m"
+ ],
+ "dead-writes-nothing": [
+  "round 1",
+  "run d",
+  "err d missing ghost",
+  "run r",
+  "err r missing od"
+ ],
+ "diamond-small": [
+  "round 1",
+  "run a0",
+  "run b0",
+  "run a1",
+  "run b1",
+  "run a2",
+  "run c1",
+  "run c0",
+  "ok a0 ffb7fb",
+  "round 2",
+  "ok a0 ffb7fb",
+  "round 3",
+  "run a2",
+  "run b1",
+  "run a1",
+  "run c1",
+  "run b0",
+  "run a0",
+  "run c0",
+  "ok a0 5b2758"
+ ],
+ "emit-mix-pulls": [
+  "round 1",
+  "run t",
+  "run p",
+  "ok t 98d3c6"
+ ],
+ "look-appear": [
+  "round 1",
+  "run t",
+  "ok t f97638",
+  "round 2",
+  "run t",
+  "ok t f97638"
+ ],
+ "look-content-quiet": [
+  "round 1",
+  "run t",
+  "ok t f97638",
+  "round 2",
+  "ok t f97638"
+ ],
+ "look-vanish": [
+  "round 1",
+  "run t",
+  "ok t f97638",
+  "round 2",
+  "run t",
+  "ok t f97638"
+ ],
+ "loop-inner": [
+  "round 1",
+  "run lead",
+  "run p",
+  "run q",
+  "run r",
+  "loop q r q"
+ ],
+ "loop-keeps-finished": [
+  "round 1",
+  "run a",
+  "run pre",
+  "run b",
+  "loop a b a",
+  "ok pre 75c24d"
+ ],
+ "loop-leaves-nothing": [
+  "round 1",
+  "run a",
+  "run b",
+  "loop a b a",
+  "run solo",
+  "ok solo 75c24d",
+  "round 2",
+  "run a",
+  "run b",
+  "loop a b a"
+ ],
+ "loop-self": [
+  "round 1",
+  "run z",
+  "loop z z"
+ ],
+ "miss-cached-in-round": [
+  "round 1",
+  "run u1",
+  "run d",
+  "err u1 via d",
+  "run u2",
+  "err u2 via d"
+ ],
+ "miss-dies": [
+  "round 1",
+  "run t",
+  "err t missing ghost"
+ ],
+ "miss-revives": [
+  "round 1",
+  "run u",
+  "run d",
+  "err u via d",
+  "round 2",
+  "run d",
+  "run u",
+  "ok u 711332"
+ ],
+ "ord-flat-after-pull": [
+  "round 1",
+  "run t",
+  "run mk",
+  "ok t 7c5bae",
+  "round 2",
+  "run mk",
+  "run t",
+  "ok t 9a2373"
+ ],
+ "ord-nothing-moves": [
+  "round 1",
+  "run b",
+  "run a",
+  "ok b 2efdc6",
+  "round 2",
+  "ok b 2efdc6",
+  "ok a 75c24d"
+ ],
+ "ord-pull-first": [
+  "round 1",
+  "run t",
+  "run mk",
+  "ok t 090745",
+  "round 2",
+  "run mk",
+  "run t",
+  "ok t 6c5c97"
+ ],
+ "ord-stop-short": [
+  "round 1",
+  "run t",
+  "run mk",
+  "ok t 77ac99",
+  "round 2",
+  "run t",
+  "err t missing g"
+ ],
+ "out-clobber": [
+  "round 1",
+  "run t",
+  "ok t 75c24d",
+  "round 2",
+  "run t",
+  "ok t 75c24d"
+ ],
+ "out-same-quiet": [
+  "round 1",
+  "run t",
+  "ok t kk",
+  "round 2",
+  "ok t kk"
+ ],
+ "rec-replaced": [
+  "round 1",
+  "run t",
+  "ok t 7ed512",
+  "round 2",
+  "run t",
+  "err t missing g",
+  "round 3",
+  "err t missing g"
+ ],
+ "stuck-checked-then-undone": [
+  "round 1",
+  "run rd",
+  "ok rd c206da",
+  "round 2",
+  "run drive",
+  "run mk2",
+  "run rd",
+  "ok drive 483576"
+ ],
+ "stuck-edit-midround": [
+  "round 1",
+  "run a",
+  "ok a 75c24d",
+  "ok a 75c24d",
+  "stuck a"
+ ],
+ "stuck-inside-run": [
+  "round 1",
+  "run a",
+  "ok a 75c24d",
+  "run outer",
+  "stuck a",
+  "round 2",
+  "run outer",
+  "run a",
+  "ok outer ec804b"
+ ],
+ "stuck-only-checked": [
+  "round 1",
+  "run a",
+  "ok a 75c24d",
+  "round 2",
+  "ok a 75c24d",
+  "run a",
+  "ok a 557d00"
+ ],
+ "stuck-second-pull": [
+  "round 1",
+  "run drive",
+  "run one",
+  "run peek",
+  "run two",
+  "stuck peek"
+ ],
+ "twin-a": [
+  "round 1",
+  "run t",
+  "ok t 75c24d"
+ ],
+ "twin-b": [
+  "round 1",
+  "run t",
+  "ok t 557d00"
+ ]
+}

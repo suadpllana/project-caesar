@@ -306,3 +306,39 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-22, `pull-check-stale`)
+
+- **`preflight.py` reported every method and every module function in the tree as uncalled, and
+  had done so on all twelve retained bundles.** The affordance check counted a reference only as
+  a bare `name(`, with a negative lookbehind that excluded `.`, so `keep.has(path)` and
+  `mark.read_mark(path, keep)` were both invisible to it. Twelve bundles carried 9 to 28 of these
+  findings each, none of them true, which is how a check that is right about something important
+  stops being read. Counting an attribute call when the name is defined as a method, and a
+  module-qualified call when the receiver is a module in the same tree, takes the twelve bundles
+  to 0 to 2 findings and leaves the check still firing on the one real case here: `say.stuck()`
+  exists in the frozen trace writer and the shipped engine never reaches it. Fix the class, and
+  verify in both directions - that the false positives go and that a true one survives.
+- **A field the shipped tree already has is an answer `onelinecheck` can see before the probe
+  does.** The shipped `Board` kept two sets, one joined on a check and one only on a run, which is
+  exactly the checked-against-ran distinction the `stuck` rule turns on. Nothing in the leak audit
+  caught it, because it was used rather than unused. `decisions.py` caught it: the rule was one
+  field. Deleting the set, and giving the shipped engine a correct cutoff instead of the defect
+  that needed it, closed it - and only `tools/onelinecheck.py` would have said so.
+- **Int labels quietly disable that tool.** `onelinecheck` searches pairs of terms only when every
+  label is a `bool`; with `0`/`1` it falls back to identity matching and reports "no exact rule at
+  depth <= 2" for everything. All four of this task's decisions passed that way before the labels
+  were changed to booleans, after which one of them turned out to have a two-term rule. A gate
+  that passes for a reason you did not intend is worth less than no gate.
+- **Two sentences of an instruction had no test behind them, and the walk found them by reading
+  the instruction rather than the verifier.** "A run that dies writes nothing" and "everything
+  that finished before the cut stands" were both true of the reference and graded nowhere. Two
+  hand cases fixed it, and `build_gt.py` proved the addition left all 31 frozen answers
+  byte-identical. The contract runs in both directions: every assertion needs a sentence, and
+  every sentence needs a test.
+- **Counts drift the moment a case is added, and one of them was quoted inside the trace.** Going
+  from 31 to 33 hand programs moved a number in `instruction.md`, three in `task.toml`, eight in
+  `trace.md` - one of which was a verbatim citation of the instruction, so `tracecheck` failed on
+  it - and five in `STATE.md`. Four `tests/cases.py:NNN` citations had also slid. Re-derive every
+  number and every `file:line` from the code after any change; a citation the checker only tests
+  for existence is one you have to test for truth yourself.

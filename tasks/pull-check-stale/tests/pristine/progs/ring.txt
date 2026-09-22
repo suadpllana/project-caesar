@@ -1,0 +1,16 @@
+seed s s1
+step p out.p
+op p pull q
+op p emit *
+step q out.q
+op q pull r
+op q emit *
+step r out.r
+op r pull q
+op r emit *
+step lead out.lead
+op lead read s
+op lead pull p
+op lead emit *
+round
+want lead

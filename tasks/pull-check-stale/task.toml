@@ -1,0 +1,211 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/eng/keep.py",
+  "/app/eng/mark.py",
+  "/app/eng/hold.py",
+  "/app/eng/step.py",
+  "/app/eng/wake.py",
+]
+
+[task]
+name = "afterquery/pull-check-stale"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which structures survive all of them
+together, and that is the work.
+
+The first plan is the one every build system in the training data implements, and the shipped
+service already is it: keep per step the paths it read with their digests and the steps it
+pulled, rebuild a step when any of those moved, propagate, and memoise with a set of the steps
+already brought up to date this round. Two things about this task make that plan wrong, and
+neither is wrong in a way that ordinary testing shows.
+
+A record here is an ordered list of four different observations, and taking it stops at the
+first one that no longer holds. Because a pull observation is taken by bringing that step up to
+date, taking a record is the thing that runs steps: stopping early is the difference between a
+step running and not running, and the trace prints run lines. A map from path to digest cannot
+express any of it - a look and a read on the same path are different observations, a pull sits
+between them in an order that decides what runs, and a run that dies keeps the prefix it built
+with the absence it died on at the end, which is what brings it back to life later. That much
+is a structure to rebuild.
+
+The rule after it takes the plan apart. Being up to date is a fact about a moment, not about a
+round. A step found sound early in a round can be undone later in the same round by another
+step's output or by an edit between two requests, and because a step runs at most once per
+round, the request that finds it undone reports stuck rather than running it a second time -
+while a step that was only checked and then undone simply runs. The two differ by one line in
+traces that are otherwise identical, and the boolean set the first plan memoised with cannot
+tell them apart: it reports neither, and hands back a stale value instead. The same memo is
+compulsory for another reason. Two generated programs are pull graphs twenty-four and
+twenty-one levels deep in which every level is reachable two ways, so an engine that re-walks
+a record every time its step is pulled does twice the work per level. Measured here against the
+60 second limit for the whole graded set: 217 and 88 seconds for those two programs with the
+verdict forgotten, against 0.003 seconds each for the reference, and the traces the slow engine
+produces are byte-identical. So the structure the solver reaches for to survive the clock is
+the structure that decides a correctness rule it did not know it was deciding.
+
+Around those sit the ordinary decisions, each a fence with two sides: a producer that re-runs
+and emits what it emitted before must not disturb what pulled it, a look must survive a rewrite
+of the path it looked at and must not survive that path appearing, a step that died must not
+re-run until the absence it died on stops holding, a read of a path some step writes must see
+the bytes standing there rather than bring that step up to date, and a loop chain runs from
+where the repeated step first stands on the live chain and not from the step the request named.
+All five editable files ship wrong, and the only feedback a wrong structure gets is a run line
+in the wrong place or one line out of a dozen, because the service prints nothing about what it
+remembers.
+
+Identifiers are in a legacy register - `eng/`, `keep`, `mark`, `hold`, `wake`, `rec`, `seen`,
+`dgc` - short but never misleading, and no name misdescribes what it holds. That is a choice
+about the register of real build-tool code rather than an obstacle: each is recoverable from
+what calls it.
+
+The programs are synthetic, in nine families plus the two scale programs, with two steps writing
+one path, readers pulled on either side of a writer, producers that emit a fixed word, paths
+that come and go, runs that die on the first of three absent paths and later on the second, and
+reads of produced paths with no pull to order them. In a real workspace these concentrations are
+rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Five files, settled in the order the rules force rather than one that is tidy.
+
+`keep.py` is the workspace. It counts the changes it has taken and advances that count only
+when a path's bytes actually move, which is what leaves an earlier verdict standing when a
+re-run emits what it emitted before. Digests are cached per path and dropped when the path
+changes, which is sound for the same reason: bytes only move through a write or a removal.
+
+`mark.py` is the four observations and what each one means. A read keeps the digest, or the
+mark for a path that was not there. A look keeps presence only, so a rewrite does not disturb
+it. A pull keeps the value, or that the step was dead without the reason, so a step that dies
+of something else afterwards leaves it standing. A successful run keeps what it wrote to its
+own path.
+
+`hold.py` is what the engine remembers per step, and it is where the first plan has to be given
+up. Four facts rather than one: the record, the value or the reason, the change count at which
+the record was last found to hold, and whether the step has run in this round. The third is a
+count and not a flag because a verdict is only worth something while the workspace has not
+moved; the fourth is separate from the third because being checked and having run are different
+facts, and the difference between them is `stuck` and an ordinary rebuild.
+
+`step.py` runs one step and builds the record as the run makes each observation, so what is
+kept is a prefix of what a whole run would have made. A run that dies keeps that prefix with
+the observation it died on at the end. A run cut short by a loop or a stuck below it keeps
+nothing and does not count as having run, while the run line it already printed stays.
+
+`wake.py` decides. A step on the live chain is a loop, reported from where it first stands on
+it. A step whose count still matches needs nothing. Otherwise the record is walked in order and
+the walk stops at the first observation that fails, with a pull observation sent back into the
+same function - which is why the walk runs steps and why stopping early is observable. Only
+then does a failure mean anything: the step runs, or, if it has already run this round, the
+request ends stuck.
+
+An expert works in that order because each file consumes the one before it: what the workspace
+counts decides what a verdict is worth, what an observation keeps decides what can disturb it,
+what is remembered decides whether a failure is a rebuild or an error, what a run keeps decides
+whether a dead step can come back, and all of that decides what the walk does. The same contract
+is implemented two further ways in the authoring set - one with the scheduler as an explicit
+frame stack that suspends and resumes instead of recursing, observations as small classes
+answering for themselves, per-step state as parallel dicts and the workspace versioned per path;
+one with the change count advanced on every write and no digest cache at all, and observations
+as dicts - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the five files under `/app/eng/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the program grammar, the driver, the digest and the trace
+writer cannot change what a program prints, and a new file put beside the five is never
+collected at all.
+
+Correct is defined twice over. Thirty-three hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+eight further programs are generated inside the verifier from a seed drawn after the agent's
+container is gone, across nine families that concentrate shared output paths, readers pulled on
+either side of a writer, fixed-word producers, paths that come and go, runs that die on
+different absences in different rounds, reads of produced paths with no pull, long records and
+cycles - plus the two scale programs. A submission cannot have seen them, so fitting the shipped
+examples fails, and so does carrying an answer key.
+
+The fences run both ways. Not stopping the walk at the first failed observation fails
+`diamond-small`; taking the cheap observations before the pulls fails `ord-flat-after-pull`;
+stopping where nothing failed fails `ord-stop-short`. Memoising a verdict for the round fails
+`stuck-checked-then-undone`, counting a check as a run fails the same program the other way, and
+reporting no stuck at all fails `stuck-edit-midround`. Treating a pull as broken because the step
+ran fails `cut-value-holds`. Recording a look as a read fails `look-content-quiet`, and ignoring
+a look that found nothing fails `look-appear`. Throwing away a dead run's record fails
+`miss-revives`, keeping a dead step dead fails `dead-reason-changes`, and carrying the inner
+reason up fails `dead-via-name`. Bringing a producer up to date because its path was read fails
+`bare-stale`. Not observing the output a run wrote fails `out-clobber`. A loop chain from the
+request rather than from the repeat fails `loop-inner`. Merging a re-run's record into the old
+one fails `rec-replaced`. Every one of twenty-one wrong readings was run as a whole engine over
+the generated population before any of it shipped, and each is separated by the enumerated case
+named for it.
+
+Thirty-eight cheats score 0. Twenty-one are wrong readings, each caught by its enumerated case.
+One is exactly correct and too slow: the verdict forgotten, so every record is re-walked on
+every pull. Four are shortcut strategies - one fixed outcome for every request, the first seeded
+word, every step run on every request, and the worked example's trace replayed - and each misses
+all thirty-three hand programs and all three hundred and eight generated ones. One is a forgery
+carrying the frozen answers for every enumerated program, which reproduces twenty-five of the
+thirty-three and fails on everything it could not have seen. The other eleven are probes: the
+sealed answers read, the reward written directly, a reward written late by a double-forked
+survivor, a worker record planted, a record planted and the worker exited clean before it could
+write its own, a record spoiled on the way out, the generator rewritten, the grading file
+rewritten, a privilege probe, the frozen driver rewritten, and a working engine hidden in a
+sixth file beside the five that are collected. Two independently written correct engines score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked before
+any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "incremental-rebuild",
+  "dynamic-dependencies",
+  "early-cutoff",
+  "content-digests",
+  "negative-caching",
+  "dependency-records",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the scheduler of an incremental build service: the part that decides whether a
+step has to run again, what a run is allowed to remember about the last one, and what a recorded
+dependency is worth once the workspace has moved on. Familiarity with the fact that a dependency
+set discovered while a step runs is an ordered thing rather than a set, that checking one of
+those dependencies can itself run work, and that a failed step's partial record is more useful
+than no record at all. Comfort with content digests and the cache invalidation around them, with
+telling a step that was checked from a step that ran, and with the difference between a
+scheduler that is correct and one that finishes on a graph whose every level is reachable two
+ways.
+"""
+
+[verifier]
+timeout_sec = 300.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

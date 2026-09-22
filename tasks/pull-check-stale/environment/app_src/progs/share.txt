@@ -1,0 +1,19 @@
+seed a a1
+seed b b1
+step one shared
+op one read a
+op one emit *
+step two shared
+op two read b
+op two emit *
+step peek out.peek
+op peek read shared
+op peek emit *
+step drive out.drive
+op drive pull one
+op drive pull peek
+op drive pull two
+op drive pull peek
+op drive emit *
+round
+want drive

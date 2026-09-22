@@ -1,0 +1,17 @@
+seed src a1
+seed side b1
+step base out.base
+op base read src
+op base emit *
+step top out.top
+op top pull base
+op top read side
+op top emit *
+round
+want top
+round
+put side b2
+want top
+round
+put src a2
+want top

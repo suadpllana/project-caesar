@@ -1,0 +1,12 @@
+dev 2 1 1
+grid 4
+show 4 5
+prog
+brnz %bid rest
+st [4] 2
+out r2
+exit
+rest:
+out r0
+spin.cg r3 [5] ge 2
+exit

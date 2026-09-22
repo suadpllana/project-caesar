@@ -1,0 +1,100 @@
+# Difficulty record for stale-line-spin, written at Stage 1 before any code.
+# Scored with: python tools/difficultycheck.py stale-line-spin
+# Every claim here is restated in tasks/stale-line-spin/STATE.md.
+
+[task]
+slug = "stale-line-spin"
+status = "built"
+sources = ["tasks/stale-line-spin/STATE.md", "authoring/stale-line-spin/originality.toml"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = "Read the brief as a cycle-stepped simulator of a machine whose caches are a speed-up: one global array that every load really answers from, a cache per block that dies with it, blocks sent to multiprocessor number modulo the device, and, once the big launches run slow, each spinning block parked until something stores to the word it watches."
+first_plan_source = "prior"
+breaking_rule = "Each multiprocessor's four-word-line cache is its own copy and lives for the whole launch: a load answers from the line as it was when that multiprocessor last filled it, a store updates only the storer's copy, atomics touch no copy at all and a fence empties only its own, so what a block reads depends on which blocks ran on its multiprocessor before it and what they touched."
+second_discovery = "A spinning block is not waiting on a word, it is issuing loads: an attempt that misses fills the line and pushes out the oldest one, a bypassing attempt drops its line, and a neighbour's load or fence on the same multiprocessor can do either, so a spinner is released without any store and a launch where nothing can store has not necessarily hung; time may only be skipped while every attempt leaves its cache untouched, and the skipped cycles still hand each rotation to its spinners one cycle at a time."
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the sample launches and read the engine end to end: parser, dispatcher, issue rotation, memory, clock and hang check",
+  "Replace the memory with a line cache per multiprocessor that outlives its blocks: fill on a cached miss with the oldest line dropped, bypassing loads that drop their line, stores that update only the storer's copy, atomics that touch no copy and fences that empty their own",
+  "Fix placement to the multiprocessor with the most free slots, ties to the lower number, with a slot free the cycle after its block exits, and the rotation to slot order after the last issuer with spinners taking their turns",
+  "Derive the frozen condition: every ready block is at a spin whose attempt fails and leaves its cache as it was, and only then skip to the next wake, advancing each rotation by the skipped cycles over its ready blocks",
+  "Settle hangs from the same condition: once every block sits at a spin and none is busy, step the unfrozen stretch until it freezes, succeeds or repeats, and report the cycle the stretch began",
+  "Time the wide and deep launches against the stated limit and diff the fast clock against the plain stepper on hundreds of small generated launches",
+]
+
+[search]
+best_page = "Alglave et al., GPU concurrency: weak behaviours and programming assumptions (ASPLOS 2015), with Sorensen et al. OOPSLA 2016 on co-residency deadlock"
+helps_plan = false
+deviation = "they show that stale reads and co-residency deadlocks happen on real devices and which fences help; they give no placement, rotation, line capacity, replacement or spin rule and compute nothing about a given launch, so a plan built from them still has every graded rule to derive"
+
+[tactics]
+A1 = "The prior is a coherent machine, so every agent's memory answers from one array or from a cache that is kept in step; here a later block inherits the stale lines its multiprocessor fetched for earlier ones, and atomics leave the atomic issuer's own copy stale."
+A2 = "The brief never says coherence, staleness, livelock or when time may be skipped; it states what a fill copies, what each instruction does to which cache and what a hang is, and the consequences have to be derived."
+B2 = "Placement, rotation, fill order, bypass drops, store updates, atomic bypass, fences, spin attempts, work and exit timing all land in one trace, and each changes what another produces: placement decides which stale copy a load meets, capacity decides whether a spin is ever released."
+C1 = "Ordinary launches with no sharing must still come out cycle-exact, so answering every load from global memory fails the stale cases and never declaring a hang or skipping nothing fails the rest."
+C2 = "No expected output ships; the only runner is the model the agent is repairing, and a real GPU would not settle the rules because its caches and dispatcher differ."
+C3 = "Launches of thousands of blocks spend hundreds of thousands of cycles in work while other blocks spin; a stepper that only skips cycles with nothing ready never skips at all, while skipping frozen stretches with rotation arithmetic finishes in seconds."
+C4 = "Exact, all-or-nothing on per-block placement, cycles and printed values, hang cycles and final memory over hand launches and hundreds generated from a seed drawn after the agent is gone, shaped so each cache and spin rule changes the output."
+guard = "Only the six model files under /app/sim are collected; the parser, reporter and runner are replaced by the verifier's pristine copies and their interfaces are frozen, so the output cannot be produced any other way."
+
+[decisions]
+graded = 13
+interactions = [
+  { a = "caches last for the whole launch per multiprocessor", b = "placement on the multiprocessor with the most free slots", why = "which stale copy a block reads depends on which blocks ran before it where the dispatcher put it, so placement changes values, not only cycles" },
+  { a = "a full cache drops the line filled longest ago", b = "a spin attempt is a load", why = "a spinner is released when a neighbour's fill pushes its stale line out, so capacity decides whether a spin succeeds and whether time may be skipped" },
+  { a = "a bypassing load drops its line from its own cache", b = "lines are four words", why = "a bypassing spin on one word refreshes the cached neighbours of that word for every other block on the multiprocessor" },
+  { a = "atomics touch no cache", b = "stores update only the storer's cached copy", why = "a counter bumped by atomics reads stale on the multiprocessor that bumped it while a stored word is fresh there and stale everywhere else" },
+  { a = "spinners take their turn in the rotation", b = "skipping frozen stretches", why = "the block that issues first after a wake depends on how many cycles were skipped over the ready blocks, so a skip that parks spinners moves every later cycle" },
+  { a = "the hang definition", b = "fills and drops made by spin attempts", why = "a launch where nothing can store still changes its caches through its own attempts, so declaring the hang early or at the wrong cycle both fail" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = "Launches with no shared lines, no spinning and grids that fit the device must come out cycle-exact, so a model that answers every load from global memory, never skips or declares nothing still has to match the plain timing rules to the cycle."
+late_case = "A last block reading its peers' partials through a line an earlier block on its multiprocessor fetched sees the stale copy, and a spinner whose multiprocessor has more spun-on lines than cache lines is released by a neighbour's fill long after a frozen-spinner model called the launch hung."
+oracle_denied = "The agent can only run the model it is repairing and nothing ships the expected lines; generating launches and diffing against its own stepper checks the clock against itself but never the cache rules."
+
+[leaks]
+candidates = [
+  { what = "sample launch files under /app/launches", closed_by = "they carry only device shape, initial words and programs; no expected output, placement or cycle ships beside them" },
+  { what = "the worked example in the brief", closed_by = "found by search, not chosen: of the 31 cheats that are not isolation probes it decides three conventions the brief states outright - a placed block issues in the placing cycle, a slot is free the cycle after its exit, the loaded value is on the left of a comparison - and the constant, positional and replay strategies, and none of the cache, residency, skipping or hang readings" },
+  { what = "names in the shipped engine", closed_by = "legacy-register names that say what a structure is, never how it should behave; no helper exists that only the correct rules would call" },
+  { what = "the engine's own trace output", closed_by = "it prints only what the graded format prints, with no per-cycle log that would show a fill, a drop or a skipped stretch" },
+]
+derived_quantities = "launch files ship primitives only - device shape, initial memory, the program - and nothing records where a block will land, which lines a cache holds or when anything ends"
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = "a stepper that advances one cycle at a time and skips only cycles in which no block is ready, which never happens while any block spins"
+invariant = "a failing attempt that hits its line, or bypasses a line not cached, changes nothing but its multiprocessor's rotation, so while every multiprocessor holds only such spinners or busy blocks the machine is fixed up to the next work completion"
+input_scale = "launches of 3200 to 4400 blocks on sixteen multiprocessors with work of up to 60000 cycles while other blocks spin, and of 2200 to 2800 blocks on eight, three of each size in the graded set"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "every load answers from global memory", hand_case = "block 1 lands on the multiprocessor where block 0 fetched the partials' line, the partial is stored elsewhere, and block 1 must print the old value" },
+  { reading = "a cache per block that is emptied when the block exits", hand_case = "a later block on the same multiprocessor reads a word it never fetched and must see the copy its predecessor fetched" },
+  { reading = "stores update every cached copy", hand_case = "a store on one multiprocessor followed by a cached load of the same word on another must still read the old value" },
+  { reading = "atomics update the issuer's cached copy", hand_case = "a block bumps a counter it had cached and reads it back cached, and must print the value before the bump" },
+  { reading = "hits refresh a line's place in the replacement order", hand_case = "a line hit repeatedly is still the one dropped when it is the oldest fill" },
+  { reading = "bypassing loads leave the cache alone", hand_case = "a bypassing load of one word followed by a cached load of its neighbour must refetch the neighbour" },
+  { reading = "blocks placed on multiprocessor number modulo the device", hand_case = "block 5 goes to the multiprocessor that freed two slots, not to the one its number points at" },
+  { reading = "spinners parked outside the rotation", hand_case = "a working block sharing its multiprocessor with a spinner issues every other cycle, and its exit cycle shows it" },
+  { reading = "a hang declared as soon as nothing can store", hand_case = "two spinners on a one-line cache push each other's lines out until the stale one refetches and succeeds" },
+  { reading = "time skipped whenever every ready block is spinning", hand_case = "a spinner whose line is not cached fills during a stretch a skip would jump over, and is released inside it" },
+]
+correct_variants = [
+  "an event-driven model with a heap of wake cycles, per-multiprocessor sorted ready lists whose rotation is advanced by bisection, placement from a lazy heap of free counts, and caches held as tagged slot arrays with fill stamps",
+  "a plain cycle loop that rebuilds the live list every cycle, a whole-device idle check before each jump to the next wake, and caches held as fill-ordered lists of line records",
+]
+
+[shape]
+environment_py_lines = 405
+editable_files = 6
+reference_lines = 382

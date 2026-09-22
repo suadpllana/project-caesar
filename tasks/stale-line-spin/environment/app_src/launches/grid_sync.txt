@@ -1,0 +1,15 @@
+dev 3 3 4
+grid 6
+show 8
+prog
+mov r1 %bid
+add r5 r1 1
+mod r5 r5 6
+mul r2 r1 3
+add r2 r2 1
+st [r1+0] r2
+atom.add r3 [8] 1
+spin.ca r4 [8] ge %nb
+ld.cg r6 [r5+0]
+out r6
+exit

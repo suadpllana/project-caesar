@@ -1,0 +1,35 @@
+dev 16 5 16
+grid 3784
+show 7576 7580 7584 7588
+prog
+mov r1 %bid
+mod r2 r1 4
+sub r3 r1 r2
+mul r5 r1 1
+mul r6 r2 -6209
+add r6 r6 23325
+work r6
+mul r7 r1 3
+add r7 r7 1
+st [r5+0] r7
+sub r6 r2 3
+brz r6 owner
+atom.add r6 [r5+3784] 1
+exit
+owner:
+mov r4 0
+mov r0 r7
+loop:
+sub r6 r4 3
+brz r6 done
+add r2 r3 r4
+mul r2 r2 1
+spin.cg r6 [r2+3784] eq 1
+ld.ca r6 [r2+0]
+add r0 r0 r6
+add r4 r4 1
+bra loop
+done:
+st [r3+7576] r0
+out r0
+exit

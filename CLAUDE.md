@@ -306,3 +306,32 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-22, `stale-line-spin`)
+
+- **The judge's working directory is part of its import path.** `python3 -m pytest` puts the
+  current directory first on `sys.path`, and `test.sh` never set one. Started from a directory the
+  worker can write, the root judge imports whatever `pytest.py` the submission left there:
+  `probe-cwd-plant` scored 1 against a verifier copy started from `/work`. `cd /tests` and
+  `python3 -I` for every root interpreter close it, and the probe scores 0 even from `/work`.
+  Every retained bundle here runs `python3 -m pytest` without setting a directory; whether the
+  platform's directory is writable is not known from this checkout.
+- **A probe that cannot score 1 without its defence attests nothing.** Four of the first isolation
+  probes scored 0 for reasons that had nothing to do with the defence they named: the answer-key
+  probe read the seal and then ignored it, the privilege probe wrote a reward that `test.sh`
+  overwrites, the late-reward survivor slept a fixed 25 s, the planted report was overwritten by
+  the worker. `authoring/stale-line-spin/potency.py` runs each against a copy with the defence
+  removed; now each isolation probe scores 1 there and 0 on the real image, with a marker naming
+  the layer that stopped it.
+- **Count what is on disk, not what the writer returned.** A `name` parameter added to a builder
+  whose loop already used `name` wrote two forgeries under the last hand case's name; the emitter
+  still reported 40 scripts. Listing the directory caught it.
+- **Copied plumbing is the similarity screen's target.** `reap.py` had been carried over byte for
+  byte and `test_outputs.py` sat at 0.64 against the kit; rewriting each in its own structure, same
+  guarantees, brought every file under 0.45.
+- **Re-run the example search whenever a reading is added.** `cmp-reversed` came after the search,
+  and the example's `ge 2` spin decides it. It is a convention and fine to give, but the leak record
+  claimed otherwise until it was re-measured against the cheat trees.
+- **A cadence edit can delete a definition.** Splitting sentences for `textcheck` turned
+  "`ld.ca` answers..." into "A cached load answers...", and nothing said which op that was. Re-read
+  the brief as a stranger after every edit made for a gate.

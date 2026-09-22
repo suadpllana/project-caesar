@@ -1,0 +1,176 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/sim/line.py",
+  "/app/sim/mem.py",
+  "/app/sim/place.py",
+  "/app/sim/turn.py",
+  "/app/sim/step.py",
+  "/app/sim/clock.py",
+]
+
+[task]
+name = "afterquery/stale-line-spin"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+The brief describes a small GPU: multiprocessors with a few block slots each, a cache of four-word
+lines per multiprocessor, and an instruction set whose loads, stores, atomics, fences and spin-waits
+say which cache they go through. The shipped model is wrong the way a first plan from the prior is
+wrong: memory behaves coherently (a store updates every cached copy), each block carries a cache
+that dies with it, blocks go to multiprocessor number modulo the device, lines are replaced
+least-recently-used, and a spinning block is parked until something stores to the word it watches.
+Each is the textbook shape of a cache or a scheduler and each is wrong here. It fails 17 of the 30
+hand launches and 253 of 326 generated ones. The shipped tree is terse on purpose - short module and
+field names, no comments or docstrings - so that nothing in it names a rule or says which structure
+is the wrong one; the naming is a design choice, not carelessness.
+
+The first discovery is that the caches are copies and nothing keeps them in step. A
+multiprocessor's lines outlive the blocks placed on it; a load answers from the line as that
+multiprocessor last filled it; a store updates only the storer's copy; an atomic touches no copy
+at all, so a block that cached a counter and bumped it reads the old value back; a fence empties
+only its own cache. What a block reads therefore depends on which blocks ran on its multiprocessor
+before it, which makes placement - most free slots, ties to the lower number, a slot free the cycle
+after its block exits - part of what a load returns and not only of when things happen.
+
+The second discovery replans the clock. A spinning block is not waiting on a word: it is issuing
+loads. An attempt that misses fills its line and pushes out the oldest one, a bypassing attempt
+drops its line, and a neighbour's load or fence on the same multiprocessor can do either, so a
+stale spinner can be released without any store, and a launch in which nothing can store any more
+has not necessarily hung. Parking spinners, calling a hang once no store can come, and skipping
+time whenever every ready block spins are each wrong, and each is what a fast model reaches for
+first.
+
+Some skip cannot be avoided, because the scale is stated: up to 4400 blocks on sixteen
+multiprocessors whose work runs for tens of thousands of cycles while other blocks spin, and the
+whole graded set inside 60 seconds on one CPU. A model that steps every cycle while any block
+spins gets every launch it reaches right and has not finished the large chain launches after 240
+seconds; the reference takes 10 to 12 seconds. The exact skip has to be derived. Time may jump only
+while every ready block sits at a spin whose attempt fails and leaves its cache exactly as it was
+(a hit, or a bypass of a line that is not cached), and the skipped cycles still hand each rotation
+to its spinners one cycle at a time, so each rotation has to be advanced by the length of the jump
+over its ready slots. A hang is the same condition with no block busy, dated from the first cycle
+of the stretch, and a stretch that is not frozen has to be stepped until it freezes, an attempt
+succeeds, or its state repeats.
+
+Nothing ships an expected output but one worked example, found by search so that it decides only
+conventions the brief states outright, and the only runner is the model under repair. Grading is
+exact and all-or-nothing over 30 hand launches, each named for the rule it pins, and 326 launches
+generated at grading time from patterns shaped so that each cache and spin rule changes the
+output; each of 27 plausible wrong readings fails a named hand launch.
+"""
+
+solution_explanation = """
+The reference keeps the machine exactly as the brief states it and adds two exact shortcuts.
+`line.py` is one multiprocessor's cache: a dict from line number to its four words in fill order,
+where a hit reads without reordering and a fill into a full cache drops the first entry. `mem.py`
+holds global memory as a dict and one cache per multiprocessor for the whole launch; a load returns
+the value and whether it changed a cache, and a side-effect-free peek answers the same question for
+a spinner's next attempt. A store writes memory and the storer's own copy if it is there, an atomic
+touches memory only, and a fence clears the issuer's cache. `place.py` keeps free counts per
+multiprocessor and puts the next block on the one with the most, ties to the lower number, in its
+lowest free slot, giving an exited block's slot back at the next cycle's placement. `turn.py` keeps
+the slot that issued last and scans after it, wrapping. `step.py` executes one instruction, reading
+operands before writing, and classifies a spin attempt as passing, failing with a cache change, or
+failing quietly.
+
+`clock.py` runs wake, place and issue each cycle, with wake cycles in a heap. The first shortcut is
+the frozen stretch: when every ready block is at a spin whose next attempt would fail and change no
+cache, and some block is busy, nothing can change before the next wake except the rotations, so the
+clock jumps there and each multiprocessor's rotation lands on the d-th of its ready slots in cyclic
+order after the last issuer, for a jump of d cycles. It is checked only after a cycle made entirely
+of quiet attempts; stepping one more cycle is always exact. The second is the hang: once every
+placed block sits at a spin and none is busy, the machine is closed. If the stretch is frozen it
+hung at its first cycle; otherwise it is stepped, remembering a snapshot of every cache in fill
+order and every rotation, until an attempt succeeds (the stretch is over) or a snapshot repeats
+(no attempt ever will).
+
+This is how an expert would build it because both shortcuts rest on an invariant rather than a
+heuristic: a failing attempt that hits its cached line, or bypasses a line that is not cached,
+leaves the machine unchanged except for whose turn it is, so skipping is exact whenever that holds
+for every ready block and wrong whenever it does not. It is quiescence detection from
+discrete-event simulation, applied to a machine whose idle-looking blocks are in fact issuing loads.
+The instruction names borrow PTX's cache operators - `.ca` caches in the first level, `.cg`
+bypasses it - and everything below the first level is one global memory. The shipped modules keep
+plain names that say what each structure is and never how it should behave. Two variants written
+apart from the reference, an event heap with bisected rotations and slot-array caches and a cycle
+loop that rebuilds its lists every cycle, agree with it on every graded launch and take 16 and 27
+to 30 seconds for the whole set at one CPU.
+"""
+
+verification_explanation = """
+`tests/test.sh` grades in two halves. The first runs `tests/worker.py` as an unprivileged user (uid
+1002, no groups) under a 60-second timeout in its own session, and is the only code that executes
+the submission: it copies the verifier's pristine tree, lays the six submitted files over it,
+imports `run_launch` once and records what every graded launch printed, with a digest of the launch
+it was given. Survivors are reaped by uid. The second half runs as root and never executes
+submitted code: pytest compares the 30 hand launches with `tests/seal/gt.json`, answers frozen from the
+sealed model that the grader first checks the model still reproduces, and 326 generated launches with the sealed model
+itself, from a seed drawn with `secrets` at grading time, after the agent's container is gone. The
+model has its own parser and clock and shares no code with the reference. `tests/seal` is made
+root-only before the worker starts, so submitted code cannot import the model, and the reward
+starts at 0 and becomes 1 only when the worker exits cleanly inside the clock and every test passes.
+
+The hand launches are one per graded rule and named for it, and each of 27 plausible wrong readings
+fails at least one. The generated families are shaped around the mechanism rather than sampled:
+split-K fixups whose last segment reads partials through a line an earlier block fetched, grid
+barriers larger than the device, look-back chains, tile queues, statistics lines rewritten under
+blocks placed later, more spun-on lines than a cache holds, dense load, store and fence mixes on one-
+and two-line caches, and a stale spinner released only by a neighbour's miss; the two large
+families put the scale boundary inside the graded set. Every cheat scores 0 in the two-container
+run: each wrong reading built from the reference, one fixed answer for every launch, one block at
+a time in number order, a replay of the frozen hand answers keyed by launch, the correct per-cycle
+stepper, and ten isolation probes against the reward file, the grader, the sealed model, the
+collected set and the judge's own imports. Each of those probes was also run against a copy of the
+verifier with its defence removed and scored 1 there, so its 0 is the defence and not an accident.
+The judge runs from `/tests` with every root interpreter isolated (`python3 -I`), so no file the
+submission leaves behind can stand in for a module it imports. Two correct variants written apart from the reference score 1. Passing therefore
+means the six files implement the stated machine, including its exact skip and hang rules, fast
+enough, on launches nobody had seen.
+"""
+
+category = "ML"
+
+subcategory = "Kernels"
+
+tags = [
+  "non-coherent-caches",
+  "thread-block-residency",
+  "spin-wait-liveness",
+  "inter-block-synchronization",
+  "write-through-l1",
+  "fifo-replacement",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on GPU kernels that synchronize across thread blocks - split-K reductions with a
+fixup pass, grid-wide barriers, decoupled look-back scans, persistent kernels that pull tiles from
+an atomic queue - or on the simulators and race checkers used to reason about them. Familiarity
+with first-level caches that nothing keeps coherent and with the PTX cache operators, with why a
+flag one block sets may never become visible to a block spinning on a cached copy, and with
+co-residency deadlock, where a kernel that waits on the whole grid hangs because the grid never
+fits on the device at once. Comfort with cycle-level and discrete-event simulation, with the
+difference between a machine that is idle and one whose idle-looking parts are still changing
+state, and with making a skip-ahead exact rather than approximately right.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

@@ -1,0 +1,40 @@
+dev 3 3 3
+grid 8
+mem 18 2
+mem 21 1
+mem 22 0
+show 0 8
+prog
+mov r1 %bid
+sub r2 r1 7
+brz r2 reducer
+loop:
+atom.add r3 [0] 1
+slt r4 r3 8
+brz r4 finish
+mul r5 r3 4
+add r5 r5 15
+work r5
+mul r6 r3 5
+add r6 r6 2
+ld.ca r0 [r3+16]
+add r6 r6 r0
+st [r3+16] r6
+atom.add r7 [8] 1
+bra loop
+finish:
+exit
+reducer:
+spin.ca r3 [8] ge 8
+mov r4 0
+mov r0 0
+rl:
+slt r5 r4 8
+brz r5 rdone
+ld.cg r6 [r4+16]
+add r0 r0 r6
+add r4 r4 1
+bra rl
+rdone:
+out r0
+exit

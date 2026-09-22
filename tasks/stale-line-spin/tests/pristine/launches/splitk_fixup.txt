@@ -1,0 +1,36 @@
+dev 4 2 2
+grid 9
+show 24 27 30
+prog
+mov r1 %bid
+mod r2 r1 3
+sub r3 r1 r2
+mul r5 r1 2
+ld.ca r7 [r5+0]
+mul r6 r2 4
+add r6 r6 16
+work r6
+mul r7 r1 3
+add r7 r7 1
+st [r5+0] r7
+sub r6 r2 2
+brz r6 owner
+st [r5+1] 1
+exit
+owner:
+mov r4 0
+mov r0 r7
+loop:
+sub r6 r4 2
+brz r6 done
+add r2 r3 r4
+mul r2 r2 2
+spin.ca r6 [r2+1] eq 1
+ld.ca r6 [r2+0]
+add r0 r0 r6
+add r4 r4 1
+bra loop
+done:
+st [r3+24] r0
+out r0
+exit

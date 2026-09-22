@@ -1,0 +1,18 @@
+dev 4 3 2
+grid 9
+show 12
+prog
+mov r1 %bid
+brz r1 go
+sub r2 r1 1
+spin.cg r3 [r2+0] eq 1
+go:
+ld.ca r4 [12]
+add r4 r4 1
+st [12] r4
+out r4
+mul r6 r1 1
+add r6 r6 25
+work r6
+st [r1+0] 1
+exit

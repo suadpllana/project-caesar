@@ -1,0 +1,25 @@
+flags lite
+mod log
+pub item emit
+pub item flush
+item buf if !lite
+mod log.file
+use log::*
+pub use log::flush as sync
+ref buf
+mod net
+pub item emit
+item dial
+pub use log::*
+mod net.tcp
+use net::*
+ref dial
+ref sync
+mod app
+use net::*
+use log::*
+use log.file::*
+ref emit
+ref flush
+ref sync
+ref dial

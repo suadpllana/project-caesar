@@ -1,0 +1,31 @@
+flags
+mod r0
+pub use r1::*
+use r2::*
+pub use s0::h
+ref h
+ref f
+mod r1
+pub use r2::*
+use s0::*
+pub use s1::*
+pub use s0::h
+ref f
+mod r2
+pub use r0::*
+pub use r0::*
+pub item g
+ref g
+ref h
+mod s0
+item h
+pub item f
+pub item g
+mod s1
+pub item h
+mod o0
+use r1::*
+ref g
+mod o1
+pub use r0::*
+ref g

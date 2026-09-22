@@ -56,6 +56,15 @@ mechanism = "Decide which widget holds focus after every event as dialogs open a
 verdict = "ai-passed"
 
 [[submission]]
+slug = "glob-route-hide"
+category = "Software"
+label = "Languages"
+tags = ["import-resolution", "glob-reexports", "restricted-visibility", "name-shadowing", "conditional-compilation", "least-fixed-point"]
+substrate = "the name-resolution pass in the front half of a compiler for a small module language, whose items, explicit imports and globs are gated on build flags"
+mechanism = "Decide what each name reference in a module tree denotes when glob re-exports form cycles, every import narrows what it passes on to the modules that may see that import, the widest route to an item decides who sees it, and a module's own binding of a name hides every glob candidate for it from every reader."
+verdict = "pending"
+
+[[submission]]
 slug = "guard-mark-unwind"
 category = "Software"
 label = "Languages"

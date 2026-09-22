@@ -1,0 +1,64 @@
+# Originality record for glob-route-hide, written 2026-09-22 before any task file existed.
+# The mechanism sentence was written first and every other field was checked against it.
+
+[task]
+slug = "glob-route-hide"
+category = "Software"
+label = "Languages"
+tags = ["import-resolution", "glob-reexports", "restricted-visibility", "name-shadowing", "conditional-compilation", "least-fixed-point"]
+status = "idea"
+
+[mechanism]
+# Written before anything else in this record, and held to the twin test: no tutorial
+# resolves imports with visibility that narrows per hop and widens across routes, and the
+# hiding rule is a documented Rust footgun that no resolver write-up models.
+sentence = "Decide what each name reference in a module tree denotes when glob re-exports form cycles, every import narrows what it passes on to the modules that may see that import, the widest route to an item decides who sees it, and a module's own binding of a name hides every glob candidate for it from every reader."
+substrate = "the name-resolution pass in the front half of a compiler for a small module language, whose items, explicit imports and globs are gated on build flags"
+graded_output = "one line per reference in file order naming the item it denotes, or unresolved, or broken, or ambiguous followed by every candidate in the order of its item line"
+failure_mode = "a symbol table per module filled over public names by memoized recursion, with visibility fixed at the item and shadowing applied only where the reader can see the shadowing line"
+interaction = "own-binding hiding decides which glob candidates exist at all while route-narrowed visibility decides which of the survivors each reader can see, so one name resolves, breaks or turns ambiguous depending on which module asks and which flags are on"
+
+[nearest.public]
+name = "Rust RFC 1560, name resolution changes, with the nikomatsakis rust-name-resolution-algorithm prototype"
+url = "https://github.com/nikomatsakis/rust-name-resolution-algorithm"
+covers = "explicit imports and items taking precedence over globs, the same item imported through several paths being legal, two globs conflicting only when the name is used, and a fixed-point loop over a work list with back links so a glob picks up names its source gains later"
+plans_this = false
+separation = "The prototype states outright that it does no privacy or visibility tracking and no performance work, and the RFC makes an unresolved single import an error at the import. The brief instead carries a visibility with every candidate that narrows at each hop and widens across routes, lets a private or broken own binding hide a public glob's name from readers who cannot see it, reports that at each reference, orders ambiguity candidates by declaration, and grades module trees that are one cycle of globs within a stated time limit, where the prototype's per-module propagation is quadratic."
+
+[nearest.submitted]
+name = "publish-settle-order"
+source = "ledger"
+shares = "both decide which provider answers a name when several offer it, and in both a visibility rule restricts which providers a given asker can see, so the same name gets different answers for different askers"
+same_mechanism = false
+separation = "publish-settle-order is a runtime: units come up and go down, a call is answered by the first visible publisher in a publication order built while the program runs, and reference counts tear units down. This task runs nothing. It is a static least fixed point over import lines in a module tree, with no order, no lifetime and no teardown; visibility here is a region that narrows along each chain of imports rather than a scope a unit was opened into, and a reference is answered by every candidate some chain reaches, not by the first in an order."
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "first visible publisher in a publication order built at run time, with lazy activation and reference-counted teardown", ours = "least fixed point over static import lines with own-binding hiding and visibility narrowed per hop and widened across routes" },
+  { axis = "substrate", theirs = "an extension host bringing units up and down while ops execute", ours = "the name-resolution pass of a compiler over a tree of modules gated on build flags" },
+  { axis = "graded_output", theirs = "an event trace of ups, downs, runs, misses and dead calls in time order", ours = "one resolution line per reference, with ambiguity candidates listed in declaration order" },
+  { axis = "failure_mode", theirs = "queueing a lazily activated unit at the back of the publication order instead of ahead of its caller", ours = "fixing a candidate's visibility where it was declared and resolving cycles by memoized recursion" },
+  { axis = "interaction", theirs = "publication order against scope visibility against teardown by holds", ours = "own-binding hiding against route-narrowed visibility against cycles of glob re-exports" },
+]
+
+[search]
+queries = [
+  "glob import shadowing explicit import fixed point name resolution algorithm",
+  "glob re-export visibility narrowing private item re-exported through glob rust",
+  "\"export *\" cycle ambiguous star export ResolveExport resolveSet circular",
+  "private import shadows public glob re-export rust issue",
+  "rustc effective visibilities fixed point re-export chain widest visibility reachable items",
+  "barrel files \"export *\" cycles performance large monorepo resolution quadratic",
+  "cfg gated glob import ambiguity rust-analyzer inactive code name resolution cycle",
+]
+results = "RFC 1560 and the nikomatsakis prototype cover glob precedence, same-item imports, use-site ambiguity and the fixed point, and the prototype says it does no privacy and no performance work; fetching the RFC page itself was blocked by the egress proxy, so its content is taken from the search summaries and from memory. The Rust Reference states that a glob-imported name gets the minimum of the glob's and the name's visibility, and the hidden_glob_reexports lint and the opencl3 regression document a private item hiding a public glob re-export. ECMA-262 ResolveExport resolves export star with a resolve set and returns ambiguous for differing bindings. rustc's effective-visibility pass iterates to a fixed point over bindings. Barrel-file posts report slow resolution of recursive export star graphs. rust-lang/rust 98467 reports glob ambiguity depending on import order. Each covers one rule; none combines per-hop narrowing, widest-route visibility, hiding from readers who cannot see the hider, gated lines and declaration-ordered candidates, and none gives an algorithm for a tree that is one cycle of globs."
+twin_found = false
+twin = ""
+
+[collision]
+# The Languages list has no import-resolution entry. The nearest crowded shape is lexical
+# name lookup through scopes, which is what a reader holding the brief might file this under.
+archetype = "closures and scope chains, the lexical name-lookup archetype"
+on_list = true
+departure = "Nothing here is lexical. A module never sees its parent's names, there are no closures, environments or evaluation, and lookup never walks outward. The graded work is a fixed point over import lines across a module tree in which each candidate's visibility narrows at every hop and widens across routes and an own binding hides glob candidates from readers who cannot see it; a scope-chain lookup has no re-exports, no cycles and no per-route visibility, so it cannot produce these outcomes."
+substrate_used_before = false

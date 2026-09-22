@@ -1,0 +1,144 @@
+{
+ "amb-carried": [
+  "n x ambiguous p.x q.x"
+ ],
+ "amb-explicit": [
+  "n x ambiguous p.x q.x"
+ ],
+ "amb-file-order": [
+  "m x ambiguous z.x y.x"
+ ],
+ "amb-filtered": [
+  "m x ambiguous p.x q.x",
+  "n x p.x"
+ ],
+ "amb-two-globs": [
+  "m x ambiguous p.x q.x"
+ ],
+ "cycle-alone": [
+  "a x unresolved"
+ ],
+ "cycle-cut": [
+  "r0 x r1.x",
+  "r1 x r1.x",
+  "r2 x ambiguous r1.x s.x",
+  "r3 x ambiguous r1.x s.x"
+ ],
+ "cycle-fed": [
+  "r0 x s.x",
+  "r1 x s.x",
+  "r2 x s.x"
+ ],
+ "dup-item-lines": [
+  "m x ambiguous m.x m.x",
+  "m y m.y"
+ ],
+ "explicit-ancestor": [
+  "a.b x a.x"
+ ],
+ "explicit-denied": [
+  "b x broken"
+ ],
+ "gate-negated": [
+  "b x unresolved",
+  "b y a.y",
+  "b z a.z"
+ ],
+ "glob-unbound-name": [
+  "b x b.x",
+  "b y a.y"
+ ],
+ "hide-broken": [
+  "m x broken"
+ ],
+ "hide-descendant-sees": [
+  "m.k x r.x"
+ ],
+ "hide-gated-off": [
+  "m x r.x"
+ ],
+ "hide-gated-on": [
+  "m x q.x"
+ ],
+ "hide-own-private": [
+  "m x r.x",
+  "o x unresolved"
+ ],
+ "missing-module": [
+  "m x broken"
+ ],
+ "narrow-explicit": [
+  "m.k x c.x",
+  "o x unresolved"
+ ],
+ "narrow-keeps-item": [
+  "a.c x a.x",
+  "d x unresolved"
+ ],
+ "narrow-private-glob": [
+  "m x c.x",
+  "o x unresolved"
+ ],
+ "narrow-pub-keeps": [
+  "o x c.x"
+ ],
+ "ordinary-tree": [
+  "core.io help core.help",
+  "app run core.run",
+  "app read core.io.read",
+  "app stop core.stop"
+ ],
+ "own-two-lines": [
+  "m x ambiguous a.x m.x"
+ ],
+ "rename-chain": [
+  "c y a.x",
+  "c x unresolved"
+ ],
+ "rename-hides-bound": [
+  "m y a.x",
+  "m x a.x"
+ ],
+ "route-same-item": [
+  "m x c.x"
+ ],
+ "self-glob": [
+  "m x m.x",
+  "m y unresolved"
+ ],
+ "self-import": [
+  "m x broken"
+ ],
+ "unresolved-plain": [
+  "a x unresolved"
+ ],
+ "vis-child-sees": [
+  "a.b h a.h"
+ ],
+ "vis-grandchild": [
+  "a.b.c h a.h"
+ ],
+ "vis-no-inherit": [
+  "a.b h unresolved"
+ ],
+ "vis-outsider-denied": [
+  "c h unresolved"
+ ],
+ "vis-parent-denied": [
+  "a h unresolved"
+ ],
+ "vis-sibling-prefix": [
+  "ab h unresolved",
+  "a.b h a.h"
+ ],
+ "widen-gated-arm": [
+  "m x c.x",
+  "o x unresolved"
+ ],
+ "widen-late-cycle": [
+  "o x c.x"
+ ],
+ "widen-two-routes": [
+  "o x c.x"
+ ]
+}

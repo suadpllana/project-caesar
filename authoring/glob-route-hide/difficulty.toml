@@ -1,0 +1,185 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/glob-route-hide/STATE.md.
+
+[task]
+slug = "glob-route-hide"
+status = "pending"
+sources = ["tasks/glob-route-hide/STATE.md", "authoring/glob-route-hide/originality.toml", "authoring/glob-route-hide/trace.md", "authoring/glob-route-hide/cheat_report.py", "authoring/glob-route-hide/slow/"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Build a symbol table for every module: its own items first, then its explicit imports, then
+fill each glob from the source module's public names, looping over the modules until no table
+changes. Resolve a reference by looking its name up in its module's table, report ambiguity
+when two globs give different items and unresolved when nothing does, and let a failed
+explicit import fall back to whatever the globs give.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A glob gives the importing module every candidate of the source that the importing module can
+see, and every import passes a candidate on visible only to the modules that can see both the
+candidate and the import line. A module nested inside the source therefore receives its private
+bindings, an outsider does not, and what a module offers depends on who is reading it, so there
+is no single public table per module to iterate over.
+"""
+second_discovery = """
+The large programs are module trees in which every module reads its parent and re-exports its
+children, so the whole tree is one cycle of globs and every module ends up holding every name.
+Tables per module are quadratic in the module count and resolving name by name on demand still
+walks the whole tree once per name. The propagation has to move all of a module's names at once
+along the one module graph, and it has to keep the cut a module's own binding makes in each name,
+which is what makes one shared table per cycle wrong.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs through the driver and map which module decides each printed field",
+  "Write the visibility algebra first: a line's region, who can see a candidate, narrowing at each hop, widening across routes",
+  "Decide what a module binds itself from its present item and explicit lines alone, whatever those lines turn out to give",
+  "Write the plain fixed point over module and name pairs with item-to-region maps, and keep it as a slow checker",
+  "Settle the outcomes: broken against unresolved, ambiguity carried on as candidates, candidates in item-line order",
+  "Time the tree program, then replace name-by-name propagation with sets over bindings under a per-module mask of own names and a set per visibility depth",
+  "Differential-test the fast resolver against the slow checker on generated cycles, hides, private hops and gated arms",
+]
+
+[search]
+best_page = """
+Rust RFC 1560 on name resolution together with the rust-name-resolution-algorithm prototype,
+which give explicit-over-glob precedence, same-item imports, use-site ambiguity and a
+fixed-point work list with back links from each glob to its source.
+"""
+helps_plan = false
+deviation = """
+The prototype says outright that it does no visibility and no performance work, and the RFC makes
+an unresolved import an error at the import. Here every candidate's visibility narrows at each hop
+and widens across routes, a private or broken own binding hides a public glob's name from readers
+that cannot see it, a failed import surfaces at each reference, candidates are ordered by
+declaration, and the graded trees are one cycle of globs under a stated clock where the
+prototype's per-module propagation is quadratic.
+"""
+
+[tactics]
+A1 = """
+The shipped resolver, the prototype and the usual reading of glob imports all treat visibility
+as a property of the item and a glob as importing public names; that is right for most programs
+and wrong whenever a module nested inside the source reads it or a private hop sits on the only
+route, and a failed import that falls back to the globs is the prior's other habit.
+"""
+A2 = """
+The brief states route-narrowed and route-widened visibility, hiding and the least fixed point
+as what a module has under a name and through which lines, and never names minimum visibility,
+widest paths, effective visibility, stratification or the hidden glob re-export lint.
+"""
+B2 = """
+Hiding, narrowing, widening, the fixed point over cycles, gating, ambiguity carried on as
+candidates and declaration-ordered candidates hold at once, and each changes what a correct
+implementation of another has to keep: hiding decides which candidates exist, visibility decides
+which survivors a reader sees, and widening decides when the fixed point is done.
+"""
+C1 = """
+Both sides are graded: a child reading its parent's private helper through a glob must resolve
+while an outsider reading the same glob must not, and a name nobody binds must still resolve
+through the globs while a broken own binding of it must hide them.
+"""
+C3 = """
+Trees in which every module re-exports its children and reads its parent are one cycle of
+globs; per-module tables and name-by-name propagation are exactly correct and too slow for the
+stated limit, and the fast path follows from hiding being decided by lines alone, so every name
+moves along the same module graph under a fixed per-module mask.
+"""
+C4 = """
+Every reference line must match exactly across a population generated inside the verifier after
+the agent is gone, shaped around cycles with several sources for one name, private hops,
+hides seen from outside and gated arms, with enumerated corners at each rule.
+"""
+guard = """
+Only the five resolution files under /app/fe are collected; the reader, the flag helper, the
+driver and the sample programs are replaced from a pristine copy before any program runs, and a
+file added beside the five is never collected, so the task cannot be reshaped around them.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a module's own binding of a name hides every glob candidate for it", b = "each import narrows who can see what it passes on", why = "a private own binding hides a public glob's name even from readers that cannot see the binding, so which candidates exist for an outsider depends on a line it has no right to see" },
+  { a = "a candidate is visible to every module any route allows", b = "cycles are resolved as the least fixed point over chains ending at an item line", why = "in a cycle the wide route can close after the narrow one delivered the candidate, so the fixed point has to carry and re-propagate a widening, not only new items" },
+  { a = "a line whose flag condition fails is not present", b = "a present own binding hides even when it gives nothing", why = "a gated-off import does not hide while a present broken one does, so one flag moves a name between ambiguous, resolved through the other glob, and broken" },
+  { a = "an ambiguous name travels on as all of its candidates", b = "each reader sees only the candidates visible to it", why = "a name that is ambiguous in one module resolves cleanly in a module that reads it but cannot see one of the candidates, and the reverse" },
+  { a = "own bindings cut a name's routes module by module", b = "the scale trees are one cycle of globs", why = "one shared table per cycle is wrong exactly where a member binds a name that also flows round the cycle, so the fast structure has to keep the per-name cut" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A plain tree of modules with public globs and one declaration per name: every reference resolves,
+and a child that reads its parent's private helper through a glob resolves too, which a resolver
+that hides too much or treats private lines as unreadable below their module fails.
+"""
+late_case = """
+A cycle of globs in which an item first arrives at a module through a private hop, visible only
+inside that module's subtree, and reaches readers outside it only when a longer public route
+round the cycle closes; a resolver that fixed visibility on first arrival, or stopped once no new
+item appeared, reports the outside reference unresolved.
+"""
+oracle_denied = """
+No expected output ships and the brief quotes one line. The shipped resolver prints plausible
+lines that are wrong, and Rust and the ECMAScript module algorithm each disagree with the brief
+on failed imports, ambiguity carried through re-exports or candidate order, so checking against
+either confirms a wrong reading.
+"""
+
+[leaks]
+candidates = [
+  { what = "a per-module export table or region field in the shipped tree", closed_by = "none ships; the reader stores lines as written and the only frozen helper says whether a line is present, so every region has to be derived" },
+  { what = "the shipped resolver's candidate lists", closed_by = "they follow the prior's rules in discovery order, so they agree with the brief only where no rule under test applies" },
+  { what = "sample programs with their correct output", closed_by = "no output ships; the one quoted line decides only the reading its own sentence states" },
+  { what = "a frozen helper that computes a route's region or a module's own names", closed_by = "the frozen helper only says whether a line is present under the flags; depth and nesting arithmetic are left to the editable files" },
+]
+derived_quantities = """
+Lines are stored as written: kind, name, source path, rename, the pub mark and the flag
+condition. Nothing records whether a name is bound, hidden, visible to a reader or ambiguous.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+per-module tables filled by a fixed point over module and name pairs with item-to-region maps,
+and name-by-name demand-driven resolution with memoization, both exactly correct
+"""
+invariant = """
+hiding is decided by lines alone, so every name moves along one module graph under a fixed
+per-module mask and all names can be propagated together as sets over bindings
+"""
+input_scale = "trees of about four thousand modules where every module reads its parent and re-exports each child, two to four items each"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a glob gives only public candidates", hand_case = "a child reads its parent with a glob and refers to the parent's private item" },
+  { reading = "an own binding the reader cannot see does not hide", hand_case = "a module with a public glob giving x and a private import of x, read through a glob by an outsider" },
+  { reading = "a broken own binding falls back to the globs", hand_case = "a module imports x from a module without it and globs another that has x" },
+  { reading = "a gated-off own binding still hides", hand_case = "the same module with its import of x gated on a flag that is off" },
+  { reading = "an import passes candidates on at their original visibility", hand_case = "a private glob of c in m, and an outsider reading m through a public glob" },
+  { reading = "a candidate keeps the visibility of the first route that reached it", hand_case = "a cycle where the narrow route arrives first and the wide one closes later" },
+  { reading = "the same item through two routes is two candidates", hand_case = "a module globs two modules that both re-export one item" },
+  { reading = "an ambiguous name is dropped by a glob instead of carried on", hand_case = "a module reads through one glob a module where x is ambiguous" },
+  { reading = "memoized recursion with an in-progress mark", hand_case = "a ring of three globs where the in-progress cut drops a candidate" },
+  { reading = "candidates listed in the order they were found", hand_case = "an ambiguity whose later-declared candidate is reached first" },
+  { reading = "private means visible only in the declaring module", hand_case = "a grandchild reads its grandparent's private item through its parent" },
+  { reading = "a module sees its parent's names without importing them", hand_case = "a child refers to its parent's item with no import line" },
+  { reading = "one shared table per cycle of globs", hand_case = "a ring where one member binds a name that also flows round the ring" },
+]
+correct_variants = [
+  "bitsets over bindings propagated by a worklist, with a mask per module of the names it binds itself and one cumulative set per visibility depth",
+  "per-name propagation grouped by source, one pass over the module graph for names with a single source and an exact per-name pass where an own binding cuts a cycle",
+]
+
+[shape]
+environment_py_lines = 320
+editable_files = 5
+reference_lines = 260

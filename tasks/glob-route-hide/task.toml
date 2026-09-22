@@ -1,0 +1,208 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/fe/vis.py",
+  "/app/fe/own.py",
+  "/app/fe/glob.py",
+  "/app/fe/fix.py",
+  "/app/fe/say.py",
+]
+
+[task]
+name = "afterquery/glob-route-hide"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief, and each one alone is ordinary module-system behaviour. What the
+brief does not say is which structure survives all of them, and the one every resolver starts
+from does not.
+
+The first plan is the textbook one, and the shipped resolver already is it: a table per module,
+filled from its own items and imports and then from each glob's public names, lookups memoized,
+a module in progress answering nothing. It is wrong at the first private line. A glob here gives
+the importing module every candidate the source has that the importer can see, so a module
+nested inside the source receives its private bindings while an outsider reading the same glob
+does not, and every import passes a candidate on seen only from the modules that can see both
+the candidate and the import line. What a module offers therefore depends on who reads it, and a
+candidate's reach is settled route by route and widened across routes: a table of names per
+module cannot hold the answer, and a visibility fixed when a candidate first arrives is wrong
+whenever a wider route closes later, which in a cycle of re-exports is after the narrow one has
+already been passed on.
+
+Beside it sits the documented footgun of real glob imports: a module's own item or explicit
+import of a name hides every glob candidate for that name, even when the import finds nothing
+and even from readers that cannot see the import. A private helper import silently removes a
+public name from everything downstream, and a broken import turns what would have been an
+ambiguity into a different diagnostic. Hiding is decided by lines alone, which is also what keeps
+the whole resolution a well-defined fixed point; the natural alternatives, hiding only when the
+import resolves or dropping a name that is ambiguous at its source, make the answer depend on the
+order a cycle is visited.
+
+Then the scale. The large graded programs are module trees in which every module reads its
+parent through a glob and re-exports its children, and flat meshes of modules reading each other
+at random. Both are one large cycle of globs in which every module ends up holding nearly every
+name, so any structure that settles (module, name) pairs one at a time is quadratic. Measured
+against the 60 second limit for the whole graded set, on one 4000-module tree program: the exact
+fixed point over pairs runs out of 2 GB of memory after 34 seconds and a full table per module
+after 20, a memory-light sweep of the module graph for each referenced name takes 94.6 seconds,
+and a correct set-based resolver with a last-in-first-out worklist takes 77.8, against 0.8
+seconds for the reference. The graded set holds three such trees and three meshes of three
+thousand modules. The fast structure has to move all of a module's names at once while keeping
+the cut each own binding makes in a single name, which is exactly what makes the obvious repair,
+one shared table per cycle, wrong.
+
+Around those sit the ordinary fences, each with two sides: a gated-off own import hides nothing
+while a present broken one hides everything, a public re-export keeps a candidate as wide as it
+came but cannot widen a private item, one item through two routes is one candidate while two
+item lines with one name are two, candidates print in the order of their item lines, and `ab` is
+not inside `a`. All five editable files ship wrong, and the only feedback is the printed lines.
+
+Identifiers are in a legacy register - `fe/`, `rd`, `vis`, `own`, `fix`, `say`, `Ln`, `nm`, `bn`,
+`pb`, `cf`, `cv`, `flag` - short but never misleading; each is recoverable from what calls it or
+what it holds. That is a choice about the register of real front-end code rather than an
+obstacle. The programs are synthetic, in twelve families that concentrate private hops, hides
+seen from outside, broken and gated own lines, cycles fed at one member and cut at another,
+ambiguities carried through re-exports and filtered by readers, renames, flags and the two large
+shapes. In a real code base these concentrations are rare, and they are where this class of
+resolver bug lives.
+"""
+
+solution_explanation = """
+Five files, each owning one part of the rules, arranged so that every name moves at once.
+
+`vis.py` is visibility as a single number. A candidate a module holds is always seen from that
+module, so the set of modules it can be seen from is either every module or the subtree of one
+of the module's own ancestors - a depth. Along a chain of lines that depth only deepens and
+across chains the shallowest wins, so a module's holdings are kept as cumulative sets, one per
+depth, the set at depth t holding every binding seen from depth t or wider. Passing through a
+line is then one indexing rule: what reaches the reader at depth t is what the source holds at
+the smaller of t and the two paths' common prefix, and nothing reaches it at a depth shallower
+than the line's own visibility.
+
+`own.py` decides what a module binds itself, from its present item and explicit import lines
+alone and never from what they find, and gives every (item, name) pair a bit: each item under
+its own name, then closed under the renames the program's imports make. A module's item lines
+seed it; its explicit imports take the named bindings of the source, narrowed, and carry them to
+the new name.
+
+`glob.py` gives a glob's contribution: everything the source holds that the reader can see,
+narrowed, minus a mask of every binding under a name the reader binds itself. The mask is why
+hiding reaches every reader - it takes the names out of the module's holdings, not out of one
+reader's view of them.
+
+`fix.py` is the least fixed point over the whole program at once. Every module starts from its
+own items, and a module is re-derived whenever something it reads has grown, first in, first out,
+until nothing grows. Every rule is monotone once hiding is decided by lines, so this is the least
+fixed point, and because a module's holdings are integers, one operation moves every name. That
+is what the large programs need: when every module reads its parent and re-exports its children,
+every module holds every name, and anything that settles (module, name) pairs one at a time is
+quadratic.
+
+`say.py` reads the reference's module at its full depth, keeps the bindings under the name, and
+prints the one candidate, `broken` or `unresolved`, or `ambiguous` with the candidates in the
+order of their item lines.
+
+An expert works in that order because each file consumes the one before it: the visibility
+algebra decides what a line passes on, the binding rule decides what a glob may give, the fixed
+point decides what is held, and only then can a reference be answered. The same contract is
+implemented two further ways in the authoring set - whole rounds over exact per-depth sets with
+the bindings allocated up front, and strongly connected components processed in dependency order
+with a depth-keyed map per module and bindings allocated as they first appear - so the structure
+is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the five files under `/app/fe/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the reader, the flag helper and the sample
+programs cannot change what a program prints, and a sixth file put beside the five is never
+collected at all.
+
+Correct is defined twice over. Forty hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen from the sealed model
+and checked by hand before the grading file was written; the grader first asserts that the model
+still reproduces `gt.json`, so a model that had drifted could not quietly redefine correct. Four
+hundred and six further programs are generated when grading starts, from a seed drawn after the
+agent's container is gone: ten small families of forty that concentrate private hops, hides seen
+from outside, broken and gated own lines, cycles fed at one member and cut at another,
+ambiguities carried through re-exports and filtered by readers, renames and flags, and three
+programs of each large shape. Root writes the programs before any submitted code runs, into a
+directory the submission can read and not change, and the grader rebuilds them from the seed
+rather than trusting that copy; the worker attests a digest of every program it ran.
+
+The fences run both ways. Passing only public candidates fails `vis-child-sees`, and letting an
+outsider see a private one fails `vis-outsider-denied`; treating `ab` as inside `a` fails
+`vis-sibling-prefix`. Passing a candidate on as widely as it came fails `narrow-private-glob`
+and `narrow-explicit`, and letting a public re-export widen a private item fails
+`narrow-keeps-item`. Keeping the visibility of the first route fails `widen-two-routes`. Hiding
+only from readers that can see the hider fails `hide-own-private`; letting a broken own import
+fall back to the globs fails `hide-broken`, and letting a gated-off one hide fails
+`hide-gated-off`, while a module binding one name must still get the rest from its globs,
+`glob-unbound-name`. Counting one item reached two ways twice fails `route-same-item`, merging
+two item lines into one fails `dup-item-lines`, dropping a name that is ambiguous at its source
+fails `amb-carried`, and any order but the item lines' fails `amb-two-globs` or `amb-file-order`.
+Memoized recursion fails `cycle-fed`, and one shared table per cycle fails `cycle-cut`.
+
+Forty-eight cheats score 0. Thirty are wrong readings, each the reference with one reading
+changed, each caught by the enumerated case named for it and each wrong on between 2 and 47 per
+cent of the generated small programs. Four are exactly correct and too slow: the fixed point over
+(module, name) pairs, a full table per module, a per-name sweep of the module graph, and a
+set-based resolver with a last-in-first-out worklist; each matches every hand program and only
+the clock stops it. Four are shortcut strategies - every reference unresolved, the first
+candidate of an ambiguity, the first glob only, and the brief's quoted line replayed. One is a
+forgery carrying every frozen hand answer, which passes all forty and fails the programs it could
+not have seen. Nine are probes: the answer key, the reward written directly, a reward written
+late by a double-forked survivor, a planted record followed by a clean exit, a crash after the
+plant, malformed output, a rewritten exam, a correct resolver hidden in a sixth file, and one
+pasted into the driver. Two independently written correct resolvers score 1.
+
+The submitted code runs unprivileged, in its own session, under the 60 second clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read. The reward defaults to 0, is written last by the privileged stage into a root-owned
+directory locked before any submitted code runs, and anything the run left behind is killed by
+owner first.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "import-resolution",
+  "glob-reexports",
+  "restricted-visibility",
+  "name-shadowing",
+  "conditional-compilation",
+  "least-fixed-point",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Familiarity with how module systems resolve names - explicit imports, glob imports and
+re-exports, visibility restricted to a module and the modules nested inside it, and conditional
+compilation - and with the ways real resolvers get it wrong: a private helper import silently
+removing a name from a public API, a re-export narrowing visibility nobody meant to narrow, and
+answers that change with the order a cycle of re-exports is visited. Comfort writing fixed-point
+computations over a module graph that stay exact and affordable when the whole graph is one
+cycle, and building the independent checkers and shaped populations that show a resolver is right
+rather than merely plausible.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

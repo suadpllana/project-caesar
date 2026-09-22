@@ -187,12 +187,56 @@ medium chain scripts and 3 deep ones. Changes from here need the contributor's a
 |---|---|---|
 | Agent image builds | pass | Docker 29.3.1 here; the test image builds with a local accommodation only (authoring/partial-key-purge/local_trial.py drops the apt step because deb.debian.org answers 403 to this sandbox); the shipped Dockerfiles are unchanged |
 | No answer leaked into agent image | pass | tools/imagecheck.py assembles the image, 14 files, runs the four samples with the reference; tools/extraneouscheck.py clean |
-| `harbor run -a oracle` = 1 | pass (docker, not harbor) | tools/docker_trial.py flow via local_trial.py, --cpus 1 --memory 2g: reward 1, 28 passed; harbor 0.23.0 is installed but was not run, because its build would hit the same blocked apt mirror |
-| `harbor run -a nop` = 0 | pass (docker) | reward 0, 21 failed / 7 passed (the 4 hand cases the shipped engine gets right plus the 3 sealed-side checks) |
-| Cheats all score 0 | see Stage 6 | authoring/partial-key-purge/cheat_report.py asserts the layer per cheat |
+| `harbor run -a oracle` = 1 | pass (docker; harbor blocked) | tools/docker_trial.py flow via local_trial.py on the final images, --cpus 1 --memory 2g: reward 1, 29 passed, worker 39 s; `harbor run` itself stopped at the verifier image build on the 403 from the Debian mirror (see Harbor) |
+| `harbor run -a nop` = 0 | pass (docker) | final images: reward 0, 22 failed / 7 passed (the 4 hand cases the shipped engine gets right plus the 3 sealed-side checks) |
+| Cheats all score 0 | pass | `python tools/forgecheck.py partial-key-purge` on the final images: the gt.json forgery found, and `34/34 cheats scored 0 for the intended reason` through authoring/partial-key-purge/cheat_report.py, which asserts per cheat the separating hand case (readings), a failing hand case (shortcuts), the wall clock with every hand case passing (replay audit), the nonce set failing with every hand case passing (forgery), and the probe's own denial notes, reaping or refused report (probes) |
+| Correct variants score 1 | pass | variants/chk and variants/walk through the docker_trial flow: reward 1 each; whole-run worker time 63 s and 48 s |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
 | `preflight.py` | pass with warnings | the unused-function warnings are false positives: the functions are reached through attribute calls (`parse.read`, `store.get`, `match.ups`), which the check's `(?<![\w.])` pattern does not count |
 | `harbor check` rubric | not run | manual criterion-by-criterion review recorded under Stage 7 |
+
+## Cheat report (Stage 6), second full run on the final images
+
+Run 2026-09-22 with `python -u authoring/partial-key-purge/cheat_report.py` after forgecheck's
+own run had reported `34/34 cheats scored 0 for the intended reason`; each run draws a fresh
+nonce population. Every cheat scored 0 and each was caught by the layer named for it:
+
+| Cheat | Reward | Layer that caught it |
+|---|---|---|
+| `cheat-audit-retained-set.sh` | 0 | hand audit-loop fails |
+| `cheat-audit-sums-children.sh` | 0 | hand audit-diamond fails |
+| `cheat-cleared-only-if-changed.sh` | 0 | hand setnull-already-null fails |
+| `cheat-constant.sh` | 0 | 25 hand cases fail |
+| `cheat-end-check-before-clearing.sh` | 0 | hand setnull-all fails |
+| `cheat-example-replayed.sh` | 0 | 25 hand cases fail |
+| `cheat-forge-from-truth.sh` | 0 | 0 hand cases fail (all carried), nonce population fails it |
+| `cheat-fork-needs-both.sh` | 0 | hand fork-either fails |
+| `cheat-full-half-null-accepted.sh` | 0 | hand full-broken-by-clear fails |
+| `cheat-held-counts-zero.sh` | 0 | hand cascade-tree fails |
+| `cheat-key-null-allowed.sh` | 0 | hand setnull-key-column fails |
+| `cheat-name-by-row-first.sh` | 0 | hand order-decl fails |
+| `cheat-named-not-counted.sh` | 0 | hand audit-diamond fails |
+| `cheat-named-only.sh` | 0 | 24 hand cases fail |
+| `cheat-no-self-match.sh` | 0 | hand self-restrict fails |
+| `cheat-noaction-as-restrict.sh` | 0 | hand noaction-removed-anyway fails |
+| `cheat-probe-answer-key.sh` | 0 | 261 denials, 0 successes |
+| `cheat-probe-crash-worker.sh` | 0 | worker exit 137 after the kill |
+| `cheat-probe-hijack-driver.sh` | 0 | 21 hand cases fail |
+| `cheat-probe-late-reward.sh` | 0 | lingered True, reaped 4 |
+| `cheat-probe-malformed-report.sh` | 0 | grader refused the corrupted report |
+| `cheat-probe-malformed.sh` | 0 | 25 hand cases fail |
+| `cheat-probe-plant-verdict.sh` | 0 | 174 denials, 0 successes |
+| `cheat-probe-privilege.sh` | 0 | 264 denials, 0 successes |
+| `cheat-probe-rewrite-frozen.sh` | 0 | 261 denials, 0 successes |
+| `cheat-probe-shrink-set.sh` | 0 | 870 denials, 0 successes |
+| `cheat-reachability-frees-loops.sh` | 0 | hand audit-loop fails |
+| `cheat-refuse-first.sh` | 0 | 25 hand cases fail |
+| `cheat-replay-audit.sh` | 0 | worker exit 124 (wall clock), 0 hand cases fail |
+| `cheat-restrict-as-noaction.sh` | 0 | hand restrict-removed-anyway fails |
+| `cheat-restrict-only-by-losing.sh` | 0 | hand restrict-broken-by-clear fails |
+| `cheat-row-by-row-clear-feeds-back.sh` | 0 | hand clear-no-feedback fails |
+| `cheat-setnull-clears-all.sh` | 0 | hand full-broken-by-clear fails |
+| `cheat-simple-for-all.sh` | 0 | hand audit-diamond fails |
 
 ## Cold self-attack (Stage 7) - author-run, contaminated
 
@@ -266,5 +310,15 @@ container evidence recorded above.
 
 ## Open questions and next steps
 
-- Stage 3: shipped wrong modules and samples, Dockerfiles, test.sh/worker/reap/make/grader,
-  hand scripts and gt.json, solve.sh; host trial and Docker oracle/nop.
+- Submission is the contributor's step: tasks/partial-key-purge.zip (82 entries, zipcheck clean)
+  is built from the committed bundle. When the platform answers, update the verdict of the
+  `partial-key-purge` entry in authoring/submissions.toml, and on a similarity flag record what
+  it was flagged against and the wording.
+- Not run here, and why: a real `harbor run` (the verifier image build is refused by this
+  sandbox's egress policy at the Debian mirror; the two-container Docker flow stands in), a cold
+  solve by a fresh session (this session may not start one; the author-run pass is recorded as
+  contaminated), and the platform's easiness probe. The estimate of 2 solves in 8 is a design
+  estimate, not a measurement.
+- If the easiness probe solves it 8 of 8: follow RAISE-DIFFICULTY.md from the winning
+  trajectories; the lever to look at first is how much of the fast audit's structure the deep
+  samples and the brief's scale sentence give away, not the delete rules.

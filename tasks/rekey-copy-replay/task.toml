@@ -1,0 +1,155 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/reb/walk.py",
+  "/app/reb/mark.py",
+  "/app/reb/sift.py",
+  "/app/reb/place.py",
+  "/app/reb/wait.py",
+  "/app/reb/tally.py",
+]
+
+[task]
+name = "afterquery/rekey-copy-replay"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What the brief cannot say is which of the structures those rules seem
+to ask for survive all of them together, and that is where the work is.
+
+The first plan is the published one, and the shipped service is already most of it: hold the
+rebuild as a row per source key and a second map from the new key to whoever owns it, walk the
+source in key order a chunk at a time, and replay the journal in order, applying every entry the
+walk has already passed and dropping the ones it has not because the walk will read those rows
+live. Two halves of that are wrong here and neither announces itself.
+
+The first is that an entry behind the cursor can still be older than the copy. A chunk reads the
+source as it stands, so the row it wrote is newer than any entry written before it, and replaying
+such an entry puts a stale row into the rebuild that no later entry will correct. The reach a
+chunk covered therefore has to be written down against the journal length standing when it was
+read, and the mark that decides an entry is the one belonging to the reach covering that entry's
+key. One position taken when the rebuild began answers the same question and answers it wrongly
+for every chunk after the first, which is why the rows it corrupts are the ones nothing else
+touches again.
+
+The second is that the new key is read off two of the row's fields, so an ordinary field update
+moves a row in the rebuild although its source key never changed, and the key it is moving off is
+the one the rebuild is holding rather than anything the source says now. Every move frees a key,
+every freed key goes to the smallest source key set aside for it, and the walk sets rows aside on
+the same terms as the replay does. The rows set aside are therefore fed in two different orders
+and drained in a third, which is the point at which a list in arrival order and a pair of maps
+stop being enough and the whole placement half has to be built again rather than patched.
+
+On top of those, taking a chunk by looking through the live keys and finding an entry's mark by
+walking the reaches from the start are both correct, and both are what the shipped service does.
+The two large programs make each of them hundreds of millions of comparisons against a stated
+sixty second limit, so a rebuild whose answers are right and whose structures are the obvious ones
+is scored exactly like a wrong one. The fast route is not a trick: the cursor never goes back, so
+the source is one forward walk in which each key is reached once across the whole program, and the
+reaches are disjoint and written down in increasing key order.
+
+Identifiers in the agent-facing tree are deliberately short and the tree carries no prose. That is
+a design choice, not neglect: the meaning of a value is meant to come from what writes it and what
+reads it, which is the modelling this task is about.
+"""
+
+solution_explanation = """
+The reference replaces the six files under `/app/reb/` and leaves the rest of the tree alone.
+
+`walk.py` stops looking through the live keys. It reads the journal forward from wherever it last
+left off, pushes every key a `set` named that is still above the cursor onto a heap, and pops the
+chunk off that heap, skipping a key that has since been deleted or overtaken. Because the cursor
+only ever moves forward, each key reaches the heap once for the whole program. It lands the cursor
+on the largest key it actually took, and writes that reach down.
+
+`mark.py` keeps the reaches in two appended lists, the tops and the marks, and finds the reach
+covering a key by binary search on the tops, which is sound only because the reaches are disjoint
+and arrive in increasing order.
+
+`sift.py` walks the journal through a single position, consumes every entry it is asked for, and
+gives each one its verdict: above the cursor is ahead, at or below the cursor with a position at
+most the covering mark is seen, everything else is applied.
+
+`place.py` carries the row as the rebuild holds it, not as the source has it, so a move knows the
+pair it is leaving. It separates holding a pair from being set aside for one, which is what makes
+the difference between freeing a pair and quietly leaving it alone. `wait.py` gives each pair its
+own heap of source keys with a count of the ones withdrawn since, so the smallest key set aside is
+found without looking at the others, and the running count stays exact. `tally.py` closes over the
+rows holding a pair alone.
+
+This is the shape an engineer who has run one of these rebuilds would reach for, because each
+piece answers a question the job actually asks: what have I already read, what did I read it
+after, what am I holding for this row, and who is next in line for a key I am about to free.
+"""
+
+verification_explanation = """
+Only the six files under `/app/reb/` are taken from the agent. The verifier lays them over its own
+pristine copy of the tree, so the entry point, the program grammar, the source store and the line
+writer cannot change what a program prints, and a new file put beside the six is never collected.
+
+Correct is defined twice over. Thirty-four hand programs, one for each graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and thirty further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across eleven families that concentrate entries a chunk has already reflected, entries far above
+the cursor, keys written below a cursor that has passed them, field updates that move a row,
+sources emptied by deletes so a chunk stops short, and rows queueing for one pair. Every line of
+every trace has to match; ninety-nine programs right scores nothing.
+
+The two largest families are there for the limit rather than for a rule. The worker runs under a
+sixty second wall clock, which the brief states, and a rebuild that is right but looks through the
+live keys for each chunk or through the reaches for each entry does not finish: measured here, the
+same answers took 3.4 seconds one way and 176.3 seconds the other.
+
+Nothing the submission writes can raise its own reward. The reward is set to 0 and the verifier's
+log directory is locked to root before a submitted line runs; the half that executes the rebuild
+runs unprivileged in its own session under that clock and decides nothing, everything still owned
+by that user is killed when it returns, and the half that grades runs as root, never executes agent
+code, and treats the other half's output as hostile input. The reward is raised only when both
+halves came back clean.
+"""
+
+category = "Software"
+subcategory = "Databases"
+tags = [
+  "online-table-rebuild",
+  "change-journal-replay",
+  "chunked-backfill",
+  "key-remapping",
+  "cursor-marks",
+  "unique-key-contention",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the rebuild path of a live table: the part that walks a source in key order while
+writes keep landing on it, replays the change journal behind that walk, and has to decide for each
+entry whether the copy already reflects it. Familiarity with the fact that a chunk read is newer
+than the entries written before it, that a rebuild keyed differently from its source turns an
+ordinary field update into a move, and that a unique key in the new table is something rows queue
+for rather than something they are guaranteed. Comfort with cursor and reach arithmetic over a
+source that grows under the walk, with keeping per-key ordering for rows that two different stages
+put aside, and with the difference between a structure that is correct and one that is affordable
+at the journal lengths a real rebuild runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

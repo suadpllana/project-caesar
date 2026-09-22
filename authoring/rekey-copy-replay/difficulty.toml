@@ -1,0 +1,175 @@
+# Difficulty record for rekey-copy-replay, written before any code exists.
+
+[task]
+slug = "rekey-copy-replay"
+status = "idea"
+sources = ["authoring/rekey-copy-replay/difficulty.toml", "tasks/rekey-copy-replay/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep the rebuilt table as a map from source key to row and a second map from the new key to the
+source key that owns it. Walk the source in key order a chunk at a time, writing each row into
+both maps. Replay the journal in order, applying every entry whose source key the walk has
+already passed and dropping the ones it has not, because the walk will read those rows live.
+On a clash under the new key keep one row and set the other aside.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+An entry the walk has already passed must still be dropped when the chunk that carried its key
+was read after the entry was written, because the row the walk copied is newer than the row the
+entry describes. Each chunk therefore leaves a mark, the journal position standing when it was
+read, and the mark that decides an entry is the one belonging to the chunk whose range covers
+that entry's key rather than any single position taken when the rebuild began.
+"""
+second_discovery = """
+The new key is read off two of the row's fields, so an ordinary field update moves a row from
+one new key to another without its source key changing, and the key it is moving off is the one
+the rebuild is holding for it rather than anything the source says now. Every move frees a key,
+every freed key is taken by the smallest source key set aside for it, and the walk sets rows
+aside too, so the set-aside rows are a per-key ordered structure fed from two places that the
+first plan's pair of maps has nowhere to put.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read run_reb.py and the reb package end to end and write down what the shipped rebuild actually does with a chunk, a mark and an entry",
+  "Run the three small programs in the tree, compare against the two traces the brief prints, and find the first line where the shipped engine and the brief disagree",
+  "Build the walk first: the next chunk of source keys standing above the cursor, the cursor moving to the largest key taken, a chunk that finds nothing leaving the cursor where it is",
+  "Record a mark against each chunk range and make the entry verdict a lookup into that range list rather than a comparison against one position",
+  "Work out the new key from the fields the entry carries, and keep what the rebuild holds for each source key so a move knows the key it is leaving",
+  "Give every new key its own set-aside rows ordered by source key, fed by the walk and by the replay alike, and take from it whenever a key is freed",
+  "Time the two large programs, find the per-copy source scan and the per-entry range scan are both quadratic, and replace each with a forward-only walk",
+  "Compare every line of every program against a plain implementation kept aside, then time both",
+]
+
+[search]
+best_page = """
+The comparisons of the two mainstream online table rebuild tools, their documentation of how a
+chunked copy and a change stream are combined, and the threads about changing a table's key
+while it is being rebuilt.
+"""
+helps_plan = false
+deviation = """
+Those pages refuse the case this task is about: one tool requires the rebuilt table to keep a
+key covering the same columns in the same order and declines the job otherwise, and the other
+warns that it falls back to an unindexed match. Neither states what a replay does when a field
+update moves a row under the new key, which is the whole of the work here.
+"""
+
+[tactics]
+A1 = """
+The prior for a rebuild replay is that an entry behind the walk is applied and an entry ahead of
+it is dropped, keyed the way the source is keyed. Both halves are wrong here, and an engine built
+from the retrieved tools writes rows that are older than the ones the walk already copied.
+"""
+A2 = """
+Nothing is named. The brief speaks of a walk, a chunk, a mark, a journal position, a key being
+held and a row set aside, and never uses the vocabulary that would turn the problem into a query
+a search engine can answer.
+"""
+B2 = """
+Thirteen small rules have to hold at once: how a chunk is taken, where the cursor lands, what a
+mark covers, two distinct reasons to drop an entry, how the new key is read, what a move frees,
+who takes a freed key, what a delete reaches, the order the walk places in, and what the closing
+counts mean.
+"""
+C1 = """
+Every entry prints why it was dropped, so a replay that plays safe by applying everything behind
+the cursor fails the ordinary programs where nothing was ever stale, and one that drops anything
+it is unsure of fails them too.
+"""
+C3 = """
+Taking the next chunk by scanning the source keys, and finding an entry's mark by scanning the
+chunk ranges, are both correct and are what the shipped engine does; on the two large programs
+they are hundreds of millions of comparisons against a sixty second limit.
+"""
+guard = """
+Six files under /app/reb are the only ones collected; the entry point, the program parser and the
+source store are replaced by the verifier's own copy before any program runs, so neither the
+printed format nor the program language can be reshaped.
+"""
+
+[decisions]
+graded = 13
+interactions = [
+  { a = "a chunk's mark decides which entries it has already reflected", b = "the walk sets rows aside when the new key is held", why = "an entry dropped as already reflected is only sound because the walk placed or set aside that row, so getting the mark right changes what the set-aside structure has to contain" },
+  { a = "the new key is read off two of the row's fields", b = "a move frees the key the rebuild was holding", why = "an ordinary field update becomes a move, so which key is freed comes from what the rebuild holds rather than from the entry, and the freeing wakes rows set aside by an unrelated part of the program" },
+  { a = "a freed key goes to the smallest source key set aside for it", b = "the walk places rows in source key order while the replay works in journal order", why = "the two producers set rows aside in different orders, so the winner cannot be the first to ask and the set-aside rows cannot be a queue" },
+  { a = "an entry ahead of the cursor is dropped and never revisited", b = "the cursor stops at the largest key a chunk actually took", why = "a key above the cursor but below the next existing key is covered by no mark, so whether a later entry for it is dropped or applied turns on where the previous chunk stopped" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A program where nothing is ever stale and no two rows want the same new key, which a replay that
+applies every entry behind the cursor gets right in the rows and wrong in every printed reason,
+and which a replay that sets rows aside defensively gets wrong in the closing counts.
+"""
+late_case = """
+A field update moves a row off a key that a row set aside by the walk four chunks earlier is
+waiting for, while the entry that made the move is itself dropped as already reflected in a
+later chunk, so the key is freed by the walk and not by the replay.
+"""
+oracle_denied = """
+The rebuild in the tree is the wrong one, so running it confirms nothing, and the two public
+tools this resembles decline to rebuild a table under a different key at all, so an
+implementation checked against either of them is checked against a refusal. No correct output
+for any program ships.
+"""
+
+[leaks]
+candidates = [
+  { what = "a field on a copied row recording the mark it was copied under", closed_by = "the store keeps rows and journal entries only, and every mark is derived from the chunk ranges the walk built" },
+  { what = "a helper that answers which rows are waiting on a new key", closed_by = "the shipped tree keeps set-aside rows in one flat list with no index, so the question the release rule asks has no shipped answer" },
+  { what = "the two traces printed in the brief", closed_by = "the programs quoted are searched for among those that fix the output format and decide none of the thirteen graded rules, and the search is recorded" },
+  { what = "the closing counts of the shipped engine", closed_by = "the shipped engine drops the wrong entries and holds the wrong keys, so its counts disagree with the brief on the programs the brief quotes" },
+]
+derived_quantities = """
+The store holds source rows and journal entries as written. Chunk ranges, marks, new keys, the
+held map and the set-aside order are all worked out, and none of them ships as a stored field.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Taking a chunk by scanning every source key standing above the cursor, and finding an entry's
+mark by walking the chunk ranges from the start, which is what the shipped engine does and is
+correct.
+"""
+invariant = """
+The cursor never goes back, so the whole rebuild is one forward walk of the source keys and each
+key is reached once across the entire program, and the chunk ranges are disjoint and built in
+increasing key order, so the range covering a key is reached without a scan.
+"""
+input_scale = "two programs of about a hundred thousand writes and three thousand chunks"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "apply every entry whose key the cursor has passed", hand_case = "an entry written before the chunk carrying its key was read, with no later entry for that key" },
+  { reading = "take one mark when the rebuild starts instead of one per chunk", hand_case = "an entry written between two chunks whose key falls in the earlier one" },
+  { reading = "drop an entry that is ahead of the cursor and keep it for later", hand_case = "a key above the cursor that is updated twice before the chunk carrying it is read" },
+  { reading = "read the key a move leaves from the entry's own fields", hand_case = "two updates to one row where only the second is applied" },
+  { reading = "give a freed key to the row that was set aside first", hand_case = "a larger source key set aside before a smaller one wants the same key" },
+  { reading = "let the walk overwrite a new key the replay already placed", hand_case = "a row moved into a key belonging to a chunk not yet read" },
+  { reading = "stop the cursor at the top of the requested range rather than the largest key taken", hand_case = "a chunk whose range has been emptied by deletes below its top" },
+  { reading = "count a row set aside among the placed rows in the closing line", hand_case = "any program ending with two rows wanting one key" },
+  { reading = "treat an update that does not change the two key fields as a move", hand_case = "a row whose third field alone is updated while another row waits on its key" },
+  { reading = "apply a delete to the source key rather than to the key the rebuild holds", hand_case = "a delete of a row that has been moved since it was copied" },
+  { reading = "leave the cursor unchanged when a chunk finds nothing and treat that as the end", hand_case = "a chunk that finds nothing because every key in reach was deleted, with rows above" },
+  { reading = "let a row set aside keep waiting on the key it wanted before a later entry moved it", hand_case = "a set-aside row updated onto a different pair of fields" },
+]
+correct_variants = [
+  "chunk ranges in one appended list read by binary search, set-aside rows in a heap per new key with lazy removal",
+  "chunk ranges kept as a running index alongside a forward pointer over the journal, set-aside rows in a sorted list per new key maintained by bisect",
+]
+
+[shape]
+environment_py_lines = 294
+editable_files = 6
+reference_lines = 187

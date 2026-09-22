@@ -1,0 +1,11 @@
+cfg 2
+set 4 1 1 7
+set 6 1 1 9
+set 9 2 5 3
+copy
+set 4 3 3 2
+play 9
+copy
+play 9
+del 6
+cut

@@ -129,6 +129,15 @@ substrate = "the part of an inference server that decides what to put on the wir
 mechanism = "Release bytes from a streaming decode only when no stop sequence and no character boundary can still change what has already left."
 verdict = "pending"
 
+[[submission]]
+slug = "owed-check-rewind"
+category = "Software"
+label = "Databases"
+tags = ["deferrable-constraints", "savepoint-rollback", "referential-actions", "constraint-check-timing", "undo-logging"]
+substrate = "the statement executor of a single-session relational database with tables, declared checks and foreign references, savepoints and per-constraint checking modes"
+mechanism = "Decide what each statement of a transaction reports when deferred constraint checks are owed as an ordered ledger that savepoint rollback restores exactly, check points settle in declaration order, and referential actions change inside the statement that fired them."
+verdict = "pending"
+
 # --- Submitted, bundle not in this checkout -----------------------------------------
 # README.md records these as passed. Their trees were removed, so their tags, substrate
 # and mechanism are not recoverable here and are deliberately left out rather than

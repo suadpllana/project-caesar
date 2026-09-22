@@ -1,0 +1,67 @@
+# Originality record - owed-check-rewind. Written at Stage 1, before any code.
+# Never ships. Scored by: python tools/originalitycheck.py owed-check-rewind
+
+[task]
+slug = "owed-check-rewind"
+category = "Software"
+label = "Databases"
+tags = ["deferrable-constraints", "savepoint-rollback", "referential-actions", "constraint-check-timing", "undo-logging"]
+status = "idea"
+
+[mechanism]
+# Written first, and held to the twin test: this is not the abstract of any tutorial on
+# deferrable constraints, which all stop at "checked at commit", and it does not describe
+# the concurrency tasks the rest of the Databases label is made of.
+sentence = "Decide what each statement of a transaction reports when deferred constraint checks are owed as an ordered ledger that savepoint rollback restores exactly, check points settle in declaration order, and referential actions change inside the statement that fired them."
+substrate = "the statement executor of a single-session relational database with tables, declared checks and foreign references, savepoints and per-constraint checking modes"
+graded_output = "one line per statement, in order: ok with the ledger entries it removed and added, raise naming the constraint, table and key, error, aborted, or rollback"
+failure_mode = "keeping the owed checks as a set recomputed from the rows after every statement and after a rollback to a savepoint, with each savepoint a copy of the database, which is what the shipped executor does and what every course on transactions describes"
+interaction = "the savepoint restore rule decides which entries are owed after a rollback and where each one stands, and the ledger order decides which of them a check point raises on and lists first; neither can be settled without the other"
+
+[nearest.public]
+name = "PostgreSQL SET CONSTRAINTS documentation, with the deferred after-trigger event queue in src/backend/commands/trigger.c"
+url = "https://www.postgresql.org/docs/current/sql-set-constraints.html"
+covers = "deferrable constraints, per-transaction immediate and deferred modes, the retroactive check when a constraint is set immediate, and in the source the truncation of the deferred event list and the un-marking of fired events when a savepoint is rolled back"
+plans_this = false
+separation = "that queue is judged only at commit or at set immediate and never reports what it holds, while here every statement reports the entries it added and removed; an entry mended from elsewhere stays owed until its own row or key is looked at again; a key violation is named from the side that caused it; row checks run at the write, restrict at the delete and key checks at the end of the statement; cascades go depth-first in declaration and key order; and a rollback puts every entry back in its old place in the order check points walk"
+
+[nearest.submitted]
+name = "focus-return-point"
+source = "ledger"
+shares = "both keep bookkeeping whose effect is deferred to an outer commit, and both require a nested abort to restore that bookkeeping exactly as it stood when the frame opened rather than recompute it from the current state"
+same_mechanism = false
+separation = "focus-return-point settles which widget holds focus in a widget tree and grades one focus holder per event, and what it defers is focus requests bound to widget instances; this grades constraint verdicts on rows and keys, an ordered ledger of owed checks that check points settle in declaration order, and referential actions with their own timing inside a statement, so a reviewer holding both sees a toolkit focus controller and a relational statement executor that share no rule"
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "focus restoration after dialogs close and widgets are removed under focus", ours = "deferred constraint bookkeeping restored by savepoint rollback and settled by check points in declaration order" },
+  { axis = "substrate", theirs = "a terminal widget toolkit with a widget tree and a screen stack", ours = "the statement executor of a relational database with tables, checks, foreign references and savepoints" },
+  { axis = "graded_output", theirs = "the widget holding focus after every event of a script", ours = "one line per statement naming the ledger entries it added and removed, or the constraint, table and key that raised" },
+  { axis = "failure_mode", theirs = "processing focus effects immediately or deferring the whole render transaction", ours = "recomputing owed checks from the rows after a rollback and copying the database at every savepoint" },
+  { axis = "interaction", theirs = "instance-bound focus requests against rollbackable deletion history under nested render transactions", ours = "the savepoint restore of an ordered ledger against check points that settle it in declaration order" },
+]
+
+[search]
+queries = [
+  "deferred constraint savepoint rollback pending violations restored",
+  "SET CONSTRAINTS IMMEDIATE rollback to savepoint deferred trigger events un-marked postgres",
+  "DERBY-6670 rollback to savepoint allows violation of deferrable constraints",
+  "deferrable foreign key \"rollback to savepoint\" deferred check lost violation bug",
+  "implement deferred constraint checking savepoints toy database engine tutorial",
+  "ON DELETE RESTRICT vs NO ACTION timing end of statement cascade order check constraint per row",
+  "deferred foreign key violation reported parent key \"is still referenced\" versus child key \"is not present\" savepoint",
+  "sqlite fkey.c nDeferredCons counter savepoint rollback deferred foreign key",
+  "\"rollback to savepoint\" \"set constraints\" restored deferred mode savepoint subtransaction",
+]
+results = "What came back is the PostgreSQL manual pages for SET CONSTRAINTS, SAVEPOINT and ROLLBACK TO SAVEPOINT, which say a set immediate is retroactive and a rollback restores the transaction state without saying what happens to owed checks; blog posts on deferrable keys (Hashrocket, emmer.dev, Alibaba Cloud) that stop at checked at commit; the SQLite foreign key source, which keeps deferred violations as a single counter saved and restored by savepoints and so can never name a row or an order; Apache Derby issue DERBY-6670, a bug where violation information was lost when a dropped table was restored by a rollback to a savepoint; a Django thread on keys not checked at the end of nested atomic blocks; and patents on deferred uniqueness enforcement. None reports owed checks per statement, none keeps mended entries owed, none names a violation from its causing side under a stated action walk, and none restores an order a later check point walks."
+twin_found = false
+twin = ""
+
+[collision]
+# The nearest crowded archetype on the Databases list is the recovery one: savepoints and
+# partial rollback belong to ARIES-style recovery. MVCC and the concurrency archetypes do
+# not apply at all, since there is one session and no concurrency.
+archetype = "write-ahead log and crash recovery"
+on_list = true
+departure = "There is no log on disk, no crash, no redo and no second session; what is graded is the ledger of owed constraint checks, what each statement adds to it and removes from it, and the order check points settle it in, which no recovery write-up carries, because a recovery algorithm restores rows and cannot say which deferred violation a later check point names first."
+substrate_used_before = false

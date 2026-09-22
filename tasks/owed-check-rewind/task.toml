@@ -1,0 +1,221 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/tx/heap.py",
+  "/app/tx/act.py",
+  "/app/tx/chk.py",
+  "/app/tx/owe.py",
+  "/app/tx/sp.py",
+  "/app/tx/sess.py",
+]
+
+[task]
+name = "afterquery/owed-check-rewind"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+The executor is small and every rule is in the brief. What the brief does not say is which of the
+structures those rules seem to ask for survive all of them at once, and that is where the work is.
+
+The shipped executor is the plan every course on transactions teaches: apply the statement, check
+every constraint over the tables at the end of it, keep the deferred violations as the set of rows
+that violate now, and copy the database at a savepoint. The brief replaces that with a ledger of
+owed checks that changes only when a statement end looks at an entry's own row or key. That one
+rule makes the ledger history rather than a function of the rows. A child whose missing key is
+inserted elsewhere stays owed; a key left behind stays owed after its holders move away; and a
+rollback to a savepoint has to bring back an entry that a check point cleared since, whose row may
+be perfectly fine by then. Nothing that recomputes from the rows can produce that, so the owed set
+has to be undone, not derived.
+
+The interacting pair is the restore rule and the check point. `set C immediate`, `set all
+immediate` and `commit` walk the entries in ledger order - declaration first, then the order the
+entries were made - and name the first one still violated. After a rollback the restored entries
+are back in the places they held, so which entry a check point names depends on when each was
+recorded before the savepoint. An undo that re-adds a cleared entry at the back, or a ledger rebuilt
+in key order, names a different entry, and the listing on every `ok` line shows the difference as
+well. A check point that raises changes nothing, so it has to judge every entry before it removes
+any.
+
+Inside one statement three timings coexist that the textbook collapses into one. A written row is
+checked against the immediate checks at the write, including a null that `setnull` writes in the
+middle of a cascade; `restrict` raises when the walk reaches it; and immediate foreign keys are
+judged when the writes are over, in declaration order, over rows and parent keys in the order the
+statement first touched them. The walk is depth-first, and the rows holding a key are taken when
+each referring key is reached, not listed up front. A key left behind is owed on the parent's
+side, one entry however many children hold it, so one constraint can owe the same violation twice:
+once for a child written against a missing key and once for the key.
+
+Two scale shapes decide what a correct structure may cost. A client that wraps each of six
+thousand statements in its own savepoint over a hundred and fifty thousand rows, and a load of
+sixty thousand children ahead of their parents with each insert in its own savepoint, make every
+copy quadratic. Measured on a single program, against a 60 second limit for the whole graded set:
+on the savepoint-wrapped client, copying rows and ledger at every savepoint takes 168 seconds and
+finding holders by scanning takes 73; on the load, copying the ledger alone at each savepoint takes
+79 seconds. Each of them prints exactly the right lines. The state layer has to become one undo
+journal whose positions are the savepoints and which restores rows, the holder index, ledger
+entries and modes together - so the ledger's order has to come from something the journal
+restores, not from where an entry happens to sit in a container. The reference runs the whole
+graded set in under ten seconds.
+
+All six editable modules ship wrong. The brief shows one wrong line and what it should be, which
+settles how a key left behind is named and nothing else; the other programs ship without their
+output. Thirty-nine distinct wrong readings of the rules each print a plausible transcript, and
+each is separated by a hand program built for it.
+
+Identifiers are in a legacy register - `owe`, `sp`, `chk`, `act`, `heap`, `cur`, `redo`, `marks`,
+`tx/` - short but never misleading, and no name misdescribes what it holds. That is a choice about
+the register of real engine code rather than an obstacle: each is recoverable from what calls it.
+
+The programs are synthetic, in eleven families: lazy mending, keys left behind, the action walk,
+ledger order, savepoint rewind, mode changes, aborted transactions, edge cases and mixtures, plus
+the two scale shapes. Each concentrates one situation far above its natural rate. In a working
+application a rollback past a check point, or a key left behind under a deferred constraint, is
+rare, and that is exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six modules, settled in the order each one needs the one before it.
+
+`sp.py` is one undo journal for the whole transaction. Every change - a row, a ledger entry, a
+mode - is noted as the record that undoes it, and a savepoint is the journal's length when it was
+made, kept by name in a list so that the latest of two with one name is found from the back. A
+statement that raises is unwound to the length it started at, `rollback to S` unwinds to S's
+length and drops the marks after it, and `release S` drops S and everything after it. Nothing is
+ever copied, so the client that wraps every statement in a savepoint costs what it changes.
+
+`heap.py` keeps rows as tuples, so a before-image is simply the old tuple, and for every foreign
+key an index from each key value to the child keys holding it. One function changes a row and
+keeps the index in step, so undoing a row through that function restores the index too, and the
+holders of a key come out of the index in key order without a scan.
+
+`chk.py` holds the three predicates: a row violating a check or the child side of a foreign key,
+a parent key left behind, and whether an owed entry is still a violation, which side it names
+being decided by its table.
+
+`owe.py` is the ledger: a dict from (constraint, table, key) to the number the entry was recorded
+under. Its order is (declaration index, number), computed from the entry rather than from where
+the entry sits in a container, so an entry a rollback puts back is in its old place without
+anything reinserting it; each change is journalled with the number the entry had before. At a
+statement end it goes over the deferred constraints in declaration order and only over the rows
+and keys the statement touched, in first-touch order - a parent key only when the statement
+deleted or inserted it - adding an entry for a violation that has none and removing one that is no
+violation now. A check point finds the first of its entries still violated before removing
+anything.
+
+`act.py` runs one statement's writes. Insert, update and `setnull` all go through one write that
+checks the row against the immediate checks of its table at once. A delete removes the row, then
+takes the foreign keys referring to its table in declaration order and, for each, the rows holding
+the key at that moment: `restrict` raises, `cascade` recurses into each holder still there before
+moving to the next, and `setnull` writes. Every row and key is recorded in the order it is first
+touched, and when the writes are over the immediate foreign keys are judged in declaration order
+over that order.
+
+`sess.py` dispatches statements. A statement notes its journal position and unwinds to it on a
+raise. `set` and `commit` are check points over the ledger, and a commit that raises unwinds the
+whole transaction. `rollback to S` collects the ledger entries that its unwound records touch,
+notes which were in the ledger and where, unwinds, and lists those that left in the order they
+stood and those that came back in ledger order, so its cost is what it undoes rather than the
+ledger's size.
+
+An expert works in that order because each module consumes the one before: the journal decides
+what can be restored, the index decides what a walk costs, the walk decides what is touched, and
+what is touched decides which entries a statement end may change. The same contract is
+implemented three further ways - the sealed model keeps a map of before-images per savepoint level,
+one variant keeps a journal of undo closures with the ledger as a list sorted by bisect, and the
+other keeps owed entries as an append-only event queue with a kill log, a savepoint being four
+lengths. All four print identical lines on 1,320 generated programs and every hand program, so the
+shape of the reference is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/tx/` are taken from the agent. The verifier lays them over its own
+pristine copy of the tree, so the driver, the parser, the catalog and the line writer are always
+the shipped ones, a file added anywhere else is never read, and every printed line is compared
+exactly.
+
+Correct is defined twice over. Fifty hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen from the sealed model
+before the grading file was written; the grader first asserts that the model still reproduces
+`gt.json` exactly, so a model that had drifted could not quietly redefine correct. Three hundred
+and thirty further programs are generated inside the verifier from a seed drawn at grading time -
+thirty-six in each of nine small families and three in each of the two scale shapes the brief
+names - and compared with the sealed model. A submission cannot have seen them, so fitting the
+shipped programs fails, and so does carrying an answer key.
+
+Every wrong reading has its own case. Checking a row at the end of the statement fails
+`row-at-write`, and its partner `row-final-state` holds a deferred check to the row as it ends up;
+`restrict` waiting for the end fails `restrict-at-once`, and an immediate `noaction` raising at the
+delete fails `noaction-at-end`. A breadth-first walk fails `walk-depth-first`, holders listed up
+front fail `walk-listed-late`, and entries made in key order fail `walk-touch-order`. Clearing an
+entry mended from elsewhere fails `lazy-mend`, beside `lazy-own-write`, where the row's own write
+does clear it. Naming a key left behind by its children fails `side-parent`, and clearing it when
+the holders move away fails `side-holders-moved`. A ledger ordered by recording alone fails
+`order-decl`, newest first fails `order-within`, and a failing check point that clears what it
+passed fails `failset-atomic`. Recomputing the ledger after a rollback fails
+`rewind-cleared-back`, a restored entry put at the back fails `replace-place`, a mode left in force
+fails `rewind-mode`, and dropping S with its own rollback fails `rewind-keeps`. A deferred key
+that waits to cascade fails `action-deferred`, owing a rewritten row afresh fails
+`rewrite-keeps-place`, and listing an entry that a rollback only moved fails `replace-place`.
+
+Fifty-three cheats score 0. Thirty-nine are wrong readings, each caught by the hand program named
+for it. Three are exactly correct and too slow - copying at every savepoint, scanning for holders,
+copying the ledger - and only the clock separates them; one prints `ok` for everything. One is a
+forgery carrying the frozen answer for every hand program, which passes all fifty and fails
+the generated programs it could not have seen. The other nine are probes: reading the sealed model
+and the frozen answers, writing the reward directly, a double-forked process writing it after
+grading, planting a record, planting one and exiting the worker early, spoiling the record on
+exit, shrinking the graded set and rewriting the generator, rewriting the grading file, and moving
+the executor into a file beside the six, which is never collected. Two independently written
+correct executors score 1.
+
+The submitted executor runs as an unprivileged user, in its own process, under a 60 second wall
+clock that is also the task's execution limit. The model and the frozen answers sit in a
+directory that user cannot read, and the seed and population size the grader uses are its own
+copies. The reward defaults to 0, is written last by the privileged stage into a root-owned
+directory locked before any agent code runs, and anything the run left behind is killed first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "deferrable-constraints",
+  "savepoint-rollback",
+  "referential-actions",
+  "constraint-check-timing",
+  "undo-logging",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Having worked on the statement layer of a relational engine or a database compatibility layer:
+when a constraint is checked - at the row, at the end of the statement, at a check point or at
+commit - deferrable keys and checks under SET CONSTRAINTS, referential actions and the order they
+run in, and savepoints kept as marks in an undo log rather than as copies. Familiarity with the
+fact that the owed checks of a transaction are state a partial rollback has to restore, not
+something that can be read back off the rows, and that what the standard says about check timing
+is not what every engine does. Comfort with undo journals, before-images and secondary indexes
+kept in step through the same undo path, and the habit of timing a correct implementation against
+the workload a real client sends.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

@@ -1,0 +1,106 @@
+table t0 k u v
+table t1 k u v
+table t2 k u v
+table t3 k u v w
+fk f4 t2 v t1 restrict
+fk f3 t2 u t1 noaction
+fk f2 t1 u t0 setnull
+check c7 t0 u min 0
+fk f5 t3 w t0 restrict
+check c8 t2 u notnull
+fk f6 t3 u t0 noaction
+fk f1 t1 v t0 cascade
+row t0 1 6 3
+row t0 3 0 3
+row t0 4 2 6
+row t0 7 0 3
+row t0 8 1 0
+row t1 1 - 1
+row t1 3 8 3
+row t1 7 - 4
+row t1 8 7 4
+row t1 10 1 -
+row t1 12 4 1
+row t2 3 7 8
+row t2 4 1 1
+row t2 7 12 1
+row t2 10 8 -
+row t3 5 3 1 7
+row t3 6 1 0 7
+row t3 7 1 6 -
+row t3 9 1 4 7
+begin
+insert t2 33 3 8
+savepoint m
+insert t1 34 3 3
+insert t2 35 34 34
+insert t0 34 5 5
+savepoint g
+delete t1 34
+rollback to g
+rollback to m
+update t2 7 v 3
+savepoint m
+insert t0 37 2 4
+insert t3 33 7 2 37
+insert t3 36 7 6 37
+insert t3 37 37 2 -
+insert t3 40 37 1 8
+insert t1 35 3 37
+insert t1 38 1 37
+insert t2 38 38 -
+savepoint g
+delete t3 5
+release g
+savepoint h
+delete t0 37
+release h
+rollback to m
+commit
+begin
+savepoint r
+savepoint g
+delete t2 3
+rollback to g
+savepoint m
+insert t0 40 3 4
+insert t3 41 40 0 40
+insert t1 40 - 40
+insert t2 41 8 40
+insert t2 43 40 10
+update t2 43 u 35
+savepoint g
+delete t0 40
+rollback to g
+release m
+insert t1 41 - 3
+savepoint m
+insert t1 44 7 3
+insert t2 44 8 44
+insert t2 47 8 44
+insert t2 48 44 3
+savepoint h
+delete t1 44
+release h
+rollback to m
+savepoint h
+delete t1 10
+release h
+rollback
+begin
+savepoint r
+insert t2 49 1 -
+set c8 immediate
+savepoint h
+delete t1 40
+release h
+rollback to r
+rollback to r
+savepoint m
+insert t1 46 4 8
+insert t0 42 6 4
+savepoint g
+delete t1 46
+release g
+release m
+rollback

@@ -1,0 +1,24 @@
+table dept k size
+table emp k dept pay
+table task k emp hours
+check pay_min emp pay min 1 deferrable deferred
+check hours_nn task hours notnull
+fk emp_dept emp dept dept noaction deferrable deferred
+fk task_emp task emp emp cascade
+row dept 1 5
+row dept 2 3
+row emp 10 1 4
+row emp 11 1 6
+row emp 12 2 2
+row task 30 10 8
+row task 31 12 3
+begin
+insert emp 13 7 3
+insert dept 7 1
+savepoint a
+delete dept 1
+update emp 12 pay 0
+set all immediate
+rollback to a
+set emp_dept immediate
+commit

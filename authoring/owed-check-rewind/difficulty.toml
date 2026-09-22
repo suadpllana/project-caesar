@@ -1,0 +1,104 @@
+# Difficulty record - owed-check-rewind. Written at Stage 1, before any code. Never ships.
+# Scored by: python tools/difficultycheck.py owed-check-rewind
+# Every claim here is restated in tasks/owed-check-rewind/STATE.md.
+
+[task]
+slug = "owed-check-rewind"
+status = "idea"
+sources = ["tasks/owed-check-rewind/STATE.md", "authoring/owed-check-rewind/originality.toml"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = "Keep the shipped shape: apply each statement's writes and cascades, then check every constraint over the tables, keep the deferred violations as the set of rows that violate now, copy the database at each savepoint, recompute that set after a rollback to it, and have set immediate and commit scan the tables and raise on the first violating row they meet."
+first_plan_source = "prior"
+breaking_rule = "The owed checks are a ledger that belongs to the transaction and that a rollback to a savepoint puts back exactly as it stood, entries in the same order; only a later look at an entry's own row or key removes it, so an entry mended from somewhere else stays owed and recomputing from the rows is wrong in what it holds and in where each entry stands."
+second_discovery = "A client that wraps every statement in its own savepoint over a large database, or that loads tens of thousands of children before their parents, makes every copy of the rows and of the ledger quadratic, so savepoints have to become marks in an undo log over rows, the key index, ledger entries with their places, and modes; that log must put a cleared entry back at its old place rather than at the end, and it is the same log that undoes a statement which raises halfway through its referential actions."
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs and map which module parses, writes, checks, owes and restores.",
+  "Move row checks into the write path so each insert, update and setnull is checked as written, and restrict into the delete itself.",
+  "Walk referential actions depth-first in declaration order over the rows holding the key when each constraint is reached, recording the order rows and keys are first touched.",
+  "Rebuild the owed checks as a ledger of entries per constraint and row, or per constraint and key left behind, ordered by declaration and then by recording, changed only when a statement end looks at a touched row or key.",
+  "Settle set immediate and commit by walking the ledger in its order, raising on the first entry still violated and changing nothing when one raises.",
+  "Replace savepoint copies with an undo log over rows, the key index, the ledger entries with their places, and the modes, so a rollback undoes back to its mark and prints the entries that left and came back.",
+  "Time the savepoint-wrapped, bulk-load and fan-out programs against the stated clock, and replace any remaining table scans with the key index.",
+]
+
+[search]
+best_page = "the PostgreSQL SET CONSTRAINTS page together with the deferred after-trigger event queue in trigger.c, which truncates the event list and un-marks fired events when a savepoint is rolled back"
+helps_plan = false
+deviation = "that queue is judged only at commit or at set immediate and never reports its contents; here each statement end judges the rows and keys it touched and reports the change, an entry is named from the side that caused it, mended entries stay owed, checks at the write and at the statement end are separate moments, cascades follow a stated walk rather than a trigger queue, and the ledger order is declaration first, recording second"
+
+[tactics]
+A1 = "The shipped executor is the textbook plan faithfully implemented: deferred violations recomputed from the rows after every statement and after a rollback, and savepoints as copies of the database; both are wrong here and both look right on ordinary programs."
+A2 = "Lazy mending, the two sides a key violation is named from, and the place a rolled-back entry returns to are stated as behaviour and never as a structure, so what they require of the ledger and of rollback has to be derived."
+B2 = "About fifteen stated rules hold at once - key, check and reference timing, the action walk, ledger gain and loss, check points, modes, savepoints, the aborted state and the listing - and several change what a correct version of another prints: the walk decides recording order, recording order decides check-point order, rollback decides both."
+C1 = "Both sides are graded: owing an entry past a statement that looked at its row fails ordinary programs, and clearing an entry mended from elsewhere fails the lazy ones; a restrict that waits for the statement end fails, and a noaction that raises at the delete fails."
+C2 = "No correct output ships and the brief quotes one line that decides only a token format; a real database differs from these rules in when it judges and how it names, and the standard libraries keep deferred violations as a counter, so running either confirms fragments and misleads on the rest."
+C3 = "The savepoint-wrapped, bulk-load and fan-out families keep copying and scanning implementations exactly correct and put them far over the stated clock, while an undo log and a key index fit inside it."
+C4 = "Every line of every program is compared exactly, over hand programs one per decision and a population generated after the agent has finished and shaped around each interaction."
+guard = "Only the six files under /app/tx that decide checking, owing and restoring are collected, and they are laid over the verifier's own pristine copy of the tree, so the parser, the catalog, the line writer and the driver cannot be reshaped."
+
+[decisions]
+graded = 15
+interactions = [
+  { a = "savepoint restore of the ledger", b = "ledger order at check points", why = "which entries a rollback brings back decides what a check point can raise on, and the place each comes back to decides which of them it names and lists first" },
+  { a = "lazy mending", b = "savepoint restore", why = "an entry survives only because nothing looked at its row, so a rollback past a check point that cleared it brings back an entry whose row is fine, which recomputing from the rows can never produce" },
+  { a = "row checks at the write", b = "the depth-first action walk", why = "a setnull write is checked when the walk reaches it while key checks wait for the statement end, so the walk order decides which constraint and which row a delete raises on" },
+  { a = "restrict at the delete", b = "noaction at the statement end", why = "whether a delete raises at all depends on whether another path of the walk removes the referencing rows before the statement ends, which only the noaction reading allows" },
+  { a = "undo log for speed", b = "entry places after rollback", why = "the fast rollback has to reinsert a cleared entry at the place it held, or the next check point lists and raises in a different order" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = "A transaction that inserts a child whose key is missing, then updates that child to a key that exists, then commits: the update removes the entry at once, and an engine that owes everything until commit prints it at the wrong statement."
+late_case = "An entry mended by an insert of its key elsewhere, cleared by set all immediate after a savepoint, and brought back by a rollback to that savepoint: the rollback must list it with a plus and put it back ahead of entries recorded later, and only the next check point shows whether it stands first."
+oracle_denied = "Running the shipped programs shows only the shipped executor's wrong lines, no expected output ships, and a real database or the bundled SQLite library judges and names differently, so neither can confirm the ledger lines or the order."
+
+[leaks]
+candidates = [
+  { what = "the shipped sample programs", closed_by = "they ship without their correct output, and the brief quotes one line of one program; measured against all 35 wrong readings, that line decides the token format and one reading - how a key left behind is named, which the definitions state in a sentence of their own" },
+  { what = "a helper that lists owed entries or orders them", closed_by = "the shipped ledger is recomputed from the rows and ordered by key; nothing ships that orders entries by recording or remembers them across a rollback" },
+  { what = "a count of owed entries per constraint", closed_by = "nothing prints or stores a count; an entry appears only as a token on the line of the statement that changed it" },
+  { what = "the catalog's constraint flags", closed_by = "they carry only what the program declares - kind, table, column, parent, action, deferrable and initial mode - never the ledger, the modes in force or a touch order" },
+]
+derived_quantities = "Rows, keys and the declared constraint flags are primitives; nothing stores which entries are owed, in what order, or what a rollback will restore, and the key index the fast path needs is not shipped."
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = "copying the rows and the ledger at every savepoint, or before every statement, and scanning a child table for the rows that hold a deleted key"
+invariant = "a rollback only has to undo what was done since its savepoint, and the rows holding a key in a column are exactly the ones an index on that column lists"
+input_scale = "programs of tens of thousands of statements, each wrapped in its own savepoint, over databases near a hundred thousand rows, and deletes that fan out to thousands of rows"
+limit_seconds = 60
+measured = true
+
+[cheats]
+wrong_readings = [
+  { reading = "recompute the ledger from the rows after a rollback to a savepoint", hand_case = "an entry mended by inserting its key, cleared by set all immediate after the savepoint, then rolled back: it must come back with a plus" },
+  { reading = "clear an entry when its missing key is inserted elsewhere", hand_case = "insert a child with a missing key, insert the key, and the insert line must list nothing until a check point" },
+  { reading = "name a left-behind key by its referencing rows", hand_case = "delete a parent under a deferred noaction key while two children hold it: one entry on the parent table and key, not two on the children" },
+  { reading = "a rollback keeps current places and only restores membership", hand_case = "an entry cleared and re-recorded after the savepoint, then rolled back, must stand ahead of an entry recorded between the two at the next check point" },
+  { reading = "check points walk entries in recording order across constraints", hand_case = "two deferred constraints owing one entry each, the later-declared one recorded first: set all immediate raises on the earlier-declared one" },
+  { reading = "a failing set immediate still clears what it checked or changes the mode", hand_case = "set all immediate raising on the second constraint, then rollback to an earlier savepoint: the first constraint is still deferred and still owes its entry" },
+  { reading = "rollback to a savepoint keeps the modes in force", hand_case = "set a constraint immediate after a savepoint, roll back to it, and a violating insert is owed rather than raised" },
+  { reading = "row checks wait for the end of the statement", hand_case = "a delete whose setnull writes null into a column an immediate check forbids, before a later cascade removes that row: it raises at the write" },
+  { reading = "restrict waits for the end of the statement like noaction", hand_case = "a delete whose earlier-declared cascade path removes the rows a later restrict key protects: restrict still raises when the walk reaches it" },
+  { reading = "noaction raises at the delete like restrict", hand_case = "a delete whose later cascade path removes the rows holding the deleted key before the statement ends: noaction does not raise" },
+  { reading = "the walk goes breadth-first or lists children once at the start", hand_case = "a two-level cascade under setnull and cascade keys: the recorded entries follow the depth-first order" },
+  { reading = "a min check fails on null", hand_case = "a setnull into a column under a deferred min check owes nothing" },
+  { reading = "release keeps the savepoints made after it, or rollback to removes the savepoint itself", hand_case = "rollback to a savepoint twice in a row, and release of an outer savepoint followed by rollback to an inner name: error" },
+  { reading = "the newest of two savepoints with one name is not the one addressed", hand_case = "two savepoints named alike, release the newer, then rollback to the name reaches the older" },
+  { reading = "a commit in an aborted transaction keeps the work", hand_case = "raise, then commit: the line is rollback and the next transaction sees the committed rows only" },
+]
+correct_variants = [
+  "an executor whose rollback restores per-level maps of first before-images for rows, entries and modes, merged into the parent level on release",
+  "an executor with one sequential undo journal of closures, a ledger kept as a sorted list keyed by declaration index and recording number, and children found through a per-key set index",
+]
+
+[shape]
+environment_py_lines = 420
+editable_files = 6
+reference_lines = 330

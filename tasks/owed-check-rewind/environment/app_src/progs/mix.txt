@@ -1,0 +1,130 @@
+table t0 k u v
+table t1 k u v w
+table t2 k u v
+check c8 t0 v notnull deferrable deferred
+check c5 t2 v notnull
+fk f1 t1 w t0 noaction
+fk f2 t1 v t0 setnull deferrable deferred
+check c99 t2 u notnull deferrable deferred
+check c6 t1 v min 0 deferrable
+check c7 t0 u min 3 deferrable deferred
+fk f3 t1 u t0 restrict
+fk f98 t2 v t1 setnull deferrable deferred
+fk f4 t2 u t0 setnull deferrable deferred
+row t0 3 6 2
+row t0 8 5 2
+row t0 9 3 3
+row t1 2 3 9 9
+row t1 8 9 9 8
+row t1 11 3 3 3
+row t2 1 9 2
+row t2 2 8 2
+row t2 3 3 8
+begin
+savepoint r
+insert t0 36 4 5
+insert t1 34 8 36 8
+savepoint m
+insert t1 35 3 - 36
+savepoint h
+update t1 35 v -1
+release h
+savepoint h
+update t1 35 v 1
+rollback to h
+savepoint h
+update t1 35 v 0
+release h
+update t1 2036 v 1
+release m
+rollback to r
+update t1 34 v 8
+set c6 deferred
+insert t1 39 36 -1 -
+savepoint b
+set all immediate
+savepoint g
+update t1 34 u 1037
+rollback to g
+insert t0 38 4 3
+rollback to b
+insert t1 41 8 -1 3
+insert t2 35 9 11
+commit
+begin
+savepoint r
+insert t0 40 6 -
+savepoint b
+set all immediate
+update t1 35 v 8
+rollback to b
+insert t0 41 6 -
+savepoint m
+insert t0 43 4 2
+insert t1 43 3 38 43
+savepoint g
+delete t0 43
+release g
+savepoint q
+set c8 immediate
+release q
+release m
+commit
+begin
+savepoint r
+insert t2 38 3 43
+savepoint m
+savepoint a
+savepoint g
+delete t0 36
+rollback to g
+savepoint h
+delete t0 8
+rollback to h
+savepoint a
+update t0 41 v 0
+insert t0 46 3 4
+release a
+release a
+rollback to a
+rollback to m
+savepoint m
+insert t2 40 3 1046
+insert t0 48 5 -
+savepoint q
+set all immediate
+rollback to q
+release m
+commit
+begin
+insert t2 41 9 41
+savepoint m
+insert t1 48 - 50 -
+update t2 38 u 38
+insert t1 49 48 - -
+insert t0 50 6 3
+savepoint q
+set c6 immediate
+rollback to q
+rollback to m
+savepoint h
+delete t1 43
+rollback to h
+savepoint m
+insert t2 38 46 48
+savepoint h
+delete t1 34
+rollback to h
+rollback to m
+savepoint h
+delete t1 11
+release h
+insert t2 43 46 39
+set c5 immediate
+savepoint g
+delete t2 1
+release g
+update t0 3 u 4
+insert t2 46 3 41
+insert t1 50 48 50 3
+commit

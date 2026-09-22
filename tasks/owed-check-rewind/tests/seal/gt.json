@@ -1,0 +1,387 @@
+{
+ "abort-commit": [
+  "ok",
+  "ok",
+  "raise pay_min emp 10",
+  "rollback",
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "abort-ignored": [
+  "ok",
+  "ok",
+  "raise pay_min emp 10",
+  "aborted",
+  "aborted",
+  "aborted",
+  "aborted",
+  "error",
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "action-deferred": [
+  "ok",
+  "ok +yn c 7",
+  "ok +bx b 6",
+  "raise bx b 6",
+  "ok -bx b 6 -yn c 7"
+ ],
+ "cascade-clears": [
+  "ok",
+  "ok +vmin b 7",
+  "ok +vmin b 4",
+  "ok -vmin b 7",
+  "raise vmin b 4"
+ ],
+ "check-and-key": [
+  "ok",
+  "ok +pay_min emp 13 +emp_dept emp 13",
+  "ok",
+  "ok -pay_min emp 13 -emp_dept emp 13",
+  "ok"
+ ],
+ "commit-fail": [
+  "ok",
+  "ok +emp_dept emp 13",
+  "raise emp_dept emp 13",
+  "ok",
+  "ok",
+  "ok +pay_min emp 11",
+  "ok -pay_min emp 11"
+ ],
+ "commit-lists": [
+  "ok",
+  "ok +emp_dept emp 14",
+  "ok +emp_dept emp 13",
+  "ok",
+  "ok",
+  "ok -emp_dept emp 14 -emp_dept emp 13"
+ ],
+ "deleted-row-clears": [
+  "ok",
+  "ok +pay_min emp 13 +emp_dept emp 13",
+  "ok -pay_min emp 13 -emp_dept emp 13",
+  "ok"
+ ],
+ "error-unknown": [
+  "ok",
+  "ok",
+  "error",
+  "aborted",
+  "ok",
+  "ok +pay_min emp 11",
+  "raise pay_min emp 11"
+ ],
+ "failset-atomic": [
+  "ok",
+  "ok +emp_site emp 14",
+  "ok",
+  "ok +emp_dept emp 13",
+  "ok",
+  "raise emp_dept emp 13",
+  "aborted",
+  "ok",
+  "ok -emp_site emp 14",
+  "raise emp_dept emp 13"
+ ],
+ "imm-key-end": [
+  "ok",
+  "raise emp_dept emp 13",
+  "aborted",
+  "aborted",
+  "ok",
+  "ok",
+  "raise emp_dept dept 1",
+  "ok"
+ ],
+ "imm-order": [
+  "ok",
+  "raise dz b 1",
+  "ok"
+ ],
+ "key-dup": [
+  "ok",
+  "raise key emp 10",
+  "aborted",
+  "ok"
+ ],
+ "lazy-mend": [
+  "ok",
+  "ok +emp_dept emp 13",
+  "ok",
+  "ok",
+  "ok -emp_dept emp 13"
+ ],
+ "lazy-own-write": [
+  "ok",
+  "ok +emp_dept emp 13",
+  "ok",
+  "ok -emp_dept emp 13",
+  "ok"
+ ],
+ "min-floor": [
+  "ok",
+  "ok",
+  "raise pay_min emp 11",
+  "ok"
+ ],
+ "min-null": [
+  "ok",
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "miss-noop": [
+  "ok",
+  "ok",
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "modes-per-txn": [
+  "ok",
+  "ok",
+  "ok",
+  "ok",
+  "ok +emp_dept emp 13",
+  "ok -emp_dept emp 13"
+ ],
+ "noaction-at-end": [
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "notnull-null": [
+  "ok",
+  "ok +vnn b 5",
+  "ok -vnn b 5",
+  "ok +vnn b 5",
+  "raise vnn b 5"
+ ],
+ "order-decl": [
+  "ok",
+  "ok +emp_dept emp 13",
+  "ok +pay_min emp 12",
+  "raise pay_min emp 12"
+ ],
+ "order-listing": [
+  "ok",
+  "ok +emp_dept emp 13",
+  "ok +emp_site emp 14",
+  "ok",
+  "ok",
+  "ok -emp_site emp 14 -emp_dept emp 13",
+  "ok"
+ ],
+ "order-within": [
+  "ok",
+  "ok +pay_min emp 12",
+  "ok +pay_min emp 10",
+  "raise pay_min emp 12"
+ ],
+ "place-ordinary": [
+  "ok",
+  "ok",
+  "ok",
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "release-drops-later": [
+  "ok",
+  "ok",
+  "ok",
+  "ok +pay_min emp 10",
+  "ok",
+  "error",
+  "ok -pay_min emp 10"
+ ],
+ "release-merges": [
+  "ok",
+  "ok",
+  "ok +pay_min emp 10",
+  "ok",
+  "ok +pay_min emp 11",
+  "ok",
+  "ok -pay_min emp 10 -pay_min emp 11",
+  "ok"
+ ],
+ "replace-place": [
+  "ok",
+  "ok +pay_min emp 10",
+  "ok +pay_min emp 11",
+  "ok",
+  "ok -pay_min emp 10",
+  "ok +pay_min emp 10",
+  "ok",
+  "raise pay_min emp 10"
+ ],
+ "restrict-at-once": [
+  "ok",
+  "raise cy a 1",
+  "ok"
+ ],
+ "rewind-cleared-back": [
+  "ok",
+  "ok +emp_dept emp 13",
+  "ok",
+  "ok",
+  "ok -emp_dept emp 13",
+  "raise emp_dept emp 14",
+  "ok +emp_dept emp 13",
+  "ok -emp_dept emp 13",
+  "ok"
+ ],
+ "rewind-keeps": [
+  "ok",
+  "ok",
+  "ok +pay_min emp 10",
+  "ok -pay_min emp 10",
+  "ok +pay_min emp 11",
+  "ok -pay_min emp 11",
+  "ok"
+ ],
+ "rewind-lists": [
+  "ok",
+  "ok +pay_min emp 10",
+  "ok +pay_min emp 11",
+  "ok",
+  "ok -pay_min emp 10",
+  "ok +pay_min emp 12",
+  "ok +emp_dept emp 13",
+  "ok -pay_min emp 12 -emp_dept emp 13 +pay_min emp 10",
+  "raise pay_min emp 10"
+ ],
+ "rewind-mode": [
+  "ok",
+  "ok",
+  "ok",
+  "raise pay_min emp 10",
+  "ok",
+  "ok +pay_min emp 10",
+  "ok -pay_min emp 10"
+ ],
+ "rewrite-keeps-place": [
+  "ok",
+  "ok +pay_min emp 10",
+  "ok +pay_min emp 11",
+  "ok",
+  "raise pay_min emp 10",
+  "ok -pay_min emp 10 -pay_min emp 11"
+ ],
+ "rollback-lists": [
+  "ok",
+  "ok +pay_min emp 11",
+  "ok +emp_dept dept 2",
+  "ok -pay_min emp 11 -emp_dept dept 2",
+  "ok",
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "row-at-write": [
+  "ok",
+  "raise znn c 9",
+  "ok"
+ ],
+ "row-final-state": [
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "set-all-deferred": [
+  "ok",
+  "ok",
+  "ok +emp_dept emp 13",
+  "raise emp_dept emp 13",
+  "ok -emp_dept emp 13"
+ ],
+ "set-immediate-nondeferrable": [
+  "ok",
+  "error",
+  "aborted",
+  "ok",
+  "ok",
+  "ok",
+  "ok +emp_dept emp 13",
+  "raise emp_dept emp 13",
+  "ok -emp_dept emp 13"
+ ],
+ "set-named-only": [
+  "ok",
+  "ok +pay_min emp 12",
+  "ok +emp_dept emp 13",
+  "ok",
+  "ok",
+  "ok -emp_dept emp 13",
+  "raise pay_min emp 12"
+ ],
+ "set-nondeferrable": [
+  "ok",
+  "error",
+  "ok",
+  "ok",
+  "ok",
+  "raise pay_min emp 10",
+  "aborted",
+  "rollback"
+ ],
+ "shadow": [
+  "ok",
+  "ok",
+  "ok +pay_min emp 10",
+  "ok",
+  "ok +pay_min emp 11",
+  "ok",
+  "ok -pay_min emp 10 -pay_min emp 11",
+  "ok"
+ ],
+ "side-both": [
+  "ok",
+  "ok +emp_dept dept 1",
+  "ok +emp_dept emp 10",
+  "raise emp_dept dept 1"
+ ],
+ "side-holders-moved": [
+  "ok",
+  "ok +emp_dept dept 1",
+  "ok",
+  "ok",
+  "ok -emp_dept dept 1"
+ ],
+ "side-parent": [
+  "ok",
+  "ok +emp_dept dept 1",
+  "ok",
+  "ok -emp_dept dept 1"
+ ],
+ "side-reinsert": [
+  "ok",
+  "ok +emp_dept dept 1",
+  "ok -emp_dept dept 1",
+  "ok"
+ ],
+ "walk-decl-order": [
+  "ok",
+  "raise ynn b 4",
+  "ok"
+ ],
+ "walk-depth-first": [
+  "ok",
+  "raise znn c 9",
+  "ok"
+ ],
+ "walk-listed-late": [
+  "ok",
+  "ok",
+  "ok",
+  "ok"
+ ],
+ "walk-touch-order": [
+  "ok",
+  "ok +znn c 9 +znn c 2",
+  "raise znn c 9"
+ ]
+}

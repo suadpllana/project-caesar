@@ -1,0 +1,261 @@
+{
+ "edge-empty": [
+  "live",
+  "go call 0 ax",
+  "ok call 0 11",
+  "go timer 0 ti",
+  "ok timer 0 12",
+  "fin 12"
+ ],
+ "edge-feed-out": [
+  "live",
+  "go call 0 ax",
+  "ok call 0 40",
+  "go call 1 bo",
+  "ok call 1 0",
+  "go call 2 cy",
+  "ok call 2 0",
+  "fin 0"
+ ],
+ "edge-global": [
+  "live",
+  "go call 0 ax",
+  "ok call 0 30",
+  "go timer 0 ti",
+  "ok timer 0 0",
+  "drift left timer 0"
+ ],
+ "edge-none": [
+  "go call 0 ax",
+  "ok call 0 4",
+  "go call 1 bo",
+  "ok call 1 6",
+  "fin 6"
+ ],
+ "edge-once": [
+  "go call 0 ax",
+  "ok call 0 1",
+  "live",
+  "go call 1 bo",
+  "ok call 1 21",
+  "go call 2 cy",
+  "ok call 2 22",
+  "go call 3 de",
+  "ok call 3 23",
+  "fin 23"
+ ],
+ "feed-order": [
+  "live",
+  "go child 0 ax",
+  "go child 1 bo",
+  "ok child 0 61",
+  "ok child 1 62",
+  "fin 62"
+ ],
+ "hold-cmd": [
+  "go call 0 ax",
+  "ok call 0 2",
+  "go call 1 bo",
+  "hold call 1"
+ ],
+ "hold-none": [
+  "go call 0 ax",
+  "ok call 0 2",
+  "hold none"
+ ],
+ "join-first": [
+  "go call 0 ax",
+  "go call 1 bo",
+  "ok call 0 5",
+  "ok call 1 7",
+  "fin 7"
+ ],
+ "kind-count": [
+  "go call 0 ax",
+  "ok call 0 3",
+  "go timer 0 ti",
+  "ok timer 0 9",
+  "go call 1 bo",
+  "ok call 1 4",
+  "fin 4"
+ ],
+ "kind-count-same": [
+  "go call 0 ax",
+  "ok call 0 1",
+  "go call 1 bo",
+  "ok call 1 2",
+  "go call 2 cy",
+  "ok call 2 3",
+  "fin 3"
+ ],
+ "kind-count-three": [
+  "go child 0 ax",
+  "ok child 0 6",
+  "go call 0 bo",
+  "ok call 0 5",
+  "go timer 0 ti",
+  "ok timer 0 7",
+  "go child 1 cy",
+  "ok child 1 8",
+  "fin 8"
+ ],
+ "left-after-live": [
+  "go call 0 ax",
+  "ok call 0 2",
+  "live",
+  "go call 1 bo",
+  "ok call 1 50",
+  "drift left timer 0"
+ ],
+ "left-earliest": [
+  "go call 0 ax",
+  "ok call 0 2",
+  "drift left timer 0"
+ ],
+ "left-not-ok": [
+  "go call 0 ax",
+  "ok call 0 2",
+  "fin 2"
+ ],
+ "left-not-sig": [
+  "go call 0 ax",
+  "ok call 0 2",
+  "fin 2"
+ ],
+ "left-skip-hold": [
+  "go call 0 ax",
+  "ok call 0 2",
+  "go call 1 bo",
+  "hold call 1"
+ ],
+ "name-check": [
+  "go call 0 ax",
+  "ok call 0 1",
+  "drift call 1 zz bo"
+ ],
+ "name-check-kind": [
+  "go call 0 ax",
+  "ok call 0 1",
+  "drift timer 0 zz ti"
+ ],
+ "over-steps": [
+  "over"
+ ],
+ "pair-dup": [
+  "go call 0 ax",
+  "go call 1 ax",
+  "go call 2 bo",
+  "ok call 0 1",
+  "ok call 1 2",
+  "ok call 2 9",
+  "fin 9"
+ ],
+ "pair-kind-name": [
+  "go call 0 ax",
+  "ok call 0 5",
+  "go timer 0 ax",
+  "ok timer 0 9",
+  "fin 9"
+ ],
+ "pair-name": [
+  "go call 0 ax",
+  "ok call 0 5",
+  "go call 1 bo",
+  "ok call 1 7",
+  "fin 7"
+ ],
+ "pair-order": [
+  "go call 0 ax",
+  "ok call 0 5",
+  "go call 1 bo",
+  "ok call 1 7",
+  "fin 7"
+ ],
+ "parse-blank": [
+  "go call 0 ax",
+  "ok call 0 6",
+  "fin 6"
+ ],
+ "plain-ordinary": [
+  "go call 0 ax",
+  "ok call 0 4",
+  "go timer 0 ti",
+  "ok timer 0 0",
+  "sig pay 21",
+  "go call 1 bo",
+  "go child 0 cy",
+  "ok child 0 9",
+  "ok call 1 12",
+  "fin 14"
+ ],
+ "race-answered": [
+  "go call 0 ax",
+  "go call 1 bo",
+  "ok call 1 7",
+  "ok call 0 5",
+  "fin 5"
+ ],
+ "race-live-after": [
+  "go call 0 bo",
+  "live",
+  "go child 0 ax",
+  "ok call 0 7",
+  "ok child 0 60",
+  "fin 60"
+ ],
+ "race-none": [
+  "go call 0 ax",
+  "go call 1 bo",
+  "hold call 0"
+ ],
+ "sig-after-live": [
+  "live",
+  "go call 0 ax",
+  "ok call 0 70",
+  "sig pay 33",
+  "fin 33"
+ ],
+ "sig-hold": [
+  "sig pay 11",
+  "hold sig ship"
+ ],
+ "sig-tag": [
+  "sig pay 11",
+  "sig ship 40",
+  "sig pay 12",
+  "fin 12"
+ ],
+ "ver-branch": [
+  "ver road 0",
+  "go call 0 slow",
+  "ok call 0 6",
+  "fin 6"
+ ],
+ "ver-empty-zero": [
+  "ver road 0",
+  "fin 0"
+ ],
+ "ver-live-cur": [
+  "live",
+  "go call 0 ax",
+  "ok call 0 80",
+  "ver road 3",
+  "fin 3"
+ ],
+ "ver-per-key": [
+  "ver road 1",
+  "ver turn 7",
+  "ver road 2",
+  "fin 2"
+ ],
+ "ver-recorded": [
+  "ver road 1",
+  "fin 1"
+ ],
+ "ver-replay-zero": [
+  "ver road 0",
+  "go call 0 ax",
+  "ok call 0 5",
+  "fin 5"
+ ]
+}

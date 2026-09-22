@@ -1,0 +1,11 @@
+b mark road 2
+b jz stay
+b call far
+b jmp done
+b lab stay
+b call near
+b lab done
+b nap rest
+b fin
+r 30
+r 41

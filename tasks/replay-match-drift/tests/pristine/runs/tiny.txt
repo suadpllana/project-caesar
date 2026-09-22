@@ -1,0 +1,9 @@
+b fire a1
+b fire a2
+b join
+b join
+b fin
+e go call a1
+e go call a2
+e ok call a2 7
+e ok call a1 5

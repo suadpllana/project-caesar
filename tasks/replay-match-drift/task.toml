@@ -1,0 +1,212 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/dur/tab.py",
+  "/app/dur/edge.py",
+  "/app/dur/pair.py",
+  "/app/dur/pend.py",
+  "/app/dur/sigq.py",
+  "/app/dur/ver.py",
+]
+
+[task]
+name = "afterquery/replay-match-drift"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which structures survive all of them at
+once, and the first structure anyone writes survives none of them.
+
+The remembered shape of replaying a workflow against its recorded history is a cursor: walk the
+history beside the code, check that the event under the cursor is the command the code just
+issued, read the answer sitting next to it, advance, and switch to running for real when the
+cursor reaches the end. The shipped service is that cursor, and it is wrong three times over.
+A command is matched by its position among the recorded commands of its own kind, so a timer
+between two calls does not move the second call's position. An answer is paired with its command
+on kind and name together, which is a different counter from the one that matched the command,
+and answers are recorded in the order the work finished rather than the order it was issued, so
+the answering event is not the event after the command. One position into one list cannot
+express either counter, and the two of them disagree on exactly the programs where a rewritten
+body meets an old history.
+
+The rule that takes the plan apart is the version marker. A marker with no recorded choice gives
+the legacy value while the run is still replaying and the body's own value once it has gone
+live, and the value decides which arm of the body runs, which decides which commands are issued
+at all, which is what crosses the boundary the marker reads. The history cannot be walked ahead
+of the body or turned into a command plan, because the plan is produced by the answers the
+history gives. An implementation that decided which side it was on by looking at how much of the
+history was left has to be turned around rather than corrected.
+
+Around those sit the decisions that fence both sides. The boundary is one crossing for the whole
+run and prints one line, so an engine that crosses per kind matches a record it should have left
+alone; a body that matches its history exactly must replay to the end and never print that line
+at all. A recorded command the body never issued fails a run that otherwise finished, named by
+the earliest of them, while a recorded signal or answer nobody took is not a failure and a run
+that stopped short makes no such check. Taking the result of the outstanding command issued
+earliest and taking the one answered earliest are two rules over one set, and a live command
+counts as answered after every recorded one. None of these can be confirmed one at a time: the
+only feedback a wrong structure gets is a position and a value on one line of one printout, and
+the brief gives the correct text of exactly one line.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path follows
+from an invariant rather than a technique: the history is fixed before the body starts, so the
+two counters are tables built once. Measured against the 60 second limit for the whole graded
+set, the six large run files take 0.9 seconds under the reference and 1.0 under each of two
+independently written correct engines, against 306.4 seconds with every lookup walking the
+history and 153.2 seconds with the commands indexed and only the answers walked for. Both of
+those settle
+every rule the way the reference does; the limit is the only thing separating them.
+
+Identifiers are in a legacy register - `dur/`, `tab`, `edge`, `pair`, `pend`, `sigq`, `ver`,
+`mach` - short but never misleading, and no name misdescribes what it holds. That is a choice
+about the register of real runtime code rather than an obstacle: each is recoverable from what
+calls it and what its value flows into.
+
+The run files are synthetic, in fourteen families, with the recorded interleaving deliberately
+unlike the order the body issues commands, answers recorded in reverse, one name used under two
+kinds, histories that stop part way, histories carrying commands the body never issues, markers
+on both sides of the boundary, signals of several tags out of order, and the two scale families.
+In a live system these shapes are rare and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`tab.py` indexes the history once, on the two axes the rules count on: the recorded commands of
+each kind in a list per kind, and the recorded answers in a list per kind and name together. It
+also keeps the recorded commands in history order with the position each one holds inside its
+kind, because the leftover a finished run has to name is the earliest recorded command nobody
+matched and after a boundary crossing the unmatched ones are not a suffix of anything.
+
+`edge.py` owns the boundary and is where the first plan has to be given up. It holds one count
+per kind and one flag for the whole run: a command whose kind has no slot left sets the flag,
+says so once, and every command after it skips the history whatever its kind. The matched
+positions are a set rather than a count, which is what lets the leftover be named.
+
+`pair.py` binds an answer to a command at the moment the command is issued rather than when its
+result is taken. A replayed command takes the next recorded answer of its kind and name; a live
+one takes the next value the run file offers and is given a position past every recorded one, in
+issue order. Binding at issue is what makes the race rule cheap, because the position an answer
+arrived at is already on the record by the time anything competes over it.
+
+`pend.py` holds the outstanding commands under two orders that are not the same order: the one
+issued earliest is the front of the list, the one answered earliest is the smallest bound
+position, and a command with no answer never wins a race however early it was issued.
+
+`sigq.py` is a counter per tag over the recorded signals, and `ver.py` a counter per key over
+the
+recorded choices, with the default that depends on which side of the boundary the run is on.
+
+An expert works in that order because each file consumes the one before it: how the history is
+indexed decides what a command can match, what it matches decides whether the boundary opens,
+the boundary decides what a marker yields, the marker decides which commands are issued, and
+what was issued decides what the history has left over. The same contract is implemented two
+further ways in the authoring set - one holding the answers as a queue per kind and name that is
+popped rather than indexed, with the outstanding set as two parallel lists; one indexing the
+history into flat arrays with the matched commands in a bytearray and the race settled from a
+heap - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/dur/` are taken from the agent. The verifier lays them over its
+own clean copy of the tree, so the run file grammar, the body machine, the trace writer and the
+driver cannot change what a run file prints, and a seventh file put beside the six is never
+collected at all.
+
+Correct is defined twice over. Thirty-eight hand run files, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Four hundred and eighty-six
+further run files are generated inside the verifier from a seed drawn after the agent's
+container
+is gone, across fourteen families that concentrate mismatched interleavings, reversed answer
+orders, repeated and cross-kind names, truncated histories, leftover records, markers on both
+sides of the boundary, several signal tags and the two scale families. A submission cannot have
+seen them, so fitting the shipped examples fails and so does carrying an answer key.
+
+The fences run both ways. Counting a command over the whole history fails `kind-count`; matching
+it by name fails `pair-dup`. Pairing an answer on kind alone fails `join-first`, on name alone
+fails `pair-kind-name`, and answers in issue order must still work, which is `pair-order`.
+Crossing the boundary per kind fails `edge-empty`, printing it at every live command fails
+`edge-empty` too, and never crossing fails `edge-once`; a body that matches its history and must
+not print it at all is `edge-none`. Reporting the last leftover instead of the earliest fails
+`left-earliest`, counting a spare signal as one fails `left-not-sig`, and checking at all after
+a
+run stopped short fails `left-skip-hold`. Settling a race by issue order fails `race-answered`,
+settling a join by answer order fails `join-first`, and ranking a live answer ahead of a
+recorded
+one fails `race-live-after`. A marker giving the body's own value while replaying fails
+`ver-branch` and giving the legacy value once live fails `ver-live-cur`. Delivering signals from
+one queue across tags fails `sig-tag`, and answering a missing record from the live list fails
+`hold-cmd`.
+
+Thirty-eight cheats score 0. Twenty-three are wrong readings, each caught by the enumerated run
+file named for it, measured by `tools/readingcheck.py`. Two are exactly correct and too slow:
+the
+history walked for every lookup, and walked for the answers alone. Two are forgeries. One
+recognises the thirty-eight shipped histories by fingerprint and is the reference only for
+those,
+which passes all of them and fails the run files it could not have seen; the other carries the
+frozen answers themselves and replaces the trace writer to hand them back. The remaining eleven
+are
+probes: the sealed answers read from inside the run, the reward written directly, a reward
+written late by a double-forked survivor, a planted record, a record planted and the stage
+exited
+clean before it could be overwritten, a record spoiled on the way out, the generator rewritten,
+the grading file rewritten, the exam shrunk, a privilege probe, and an engine hidden in a
+seventh
+file beside the six that are collected. Two independently written correct engines score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "durable-execution",
+  "deterministic-replay",
+  "event-history-matching",
+  "workflow-versioning",
+  "out-of-order-completion",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the replay half of a durable execution runtime: the part that takes a workflow
+body and the history an earlier attempt recorded and decides, command by command, which recorded
+event each one is entitled to. Familiarity with the fact that commands are counted on one axis
+and their answers on another, that work completes in an order the code never issued it in, and
+that a version marker reached during replay must answer for the code that was running when the
+history was written rather than for the code running now. Comfort with the difference between a
+history that has run out and a history the body has diverged from, with carrying a signal queue
+across that boundary, and with the difference between an engine that is correct and one that is
+affordable against the history lengths a long-running workflow accumulates.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

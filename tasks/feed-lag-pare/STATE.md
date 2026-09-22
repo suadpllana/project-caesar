@@ -248,12 +248,14 @@ where an item is `<seq>s<v>`, `<seq>a<n>` or `<seq>d`.
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
 | `preflight.py` | pass | no errors; 18 warnings, all the known `(?<![\w.])name\(` false positive on module-qualified calls, which every retained bundle also reports |
 | `harbor check` rubric | not run | needs an API key, which this session does not have |
+| isolation probes, layer asserted | pass | `authoring/feed-lag-pare/probe_layer.py` keeps the verifier's own log: the privilege probe reports `uid 1002` and `reward PermissionError`, the answer-key probe `gt PermissionError` and `model ModuleNotFoundError`, the generator probe `PermissionError` on both `/tests/gen.py` and `/tests/cases.py`. The reward is 0 because the tamper was refused, not because the probe never ran |
+| packaged | pass | `scripts/package.py` then `tools/zipcheck.py`: 85 entries, no findings; `STATE.md`, the authoring kit and the caches stay out and both `.sh` files keep their executable bit |
 | `readingcheck.py` | pass | 24 of 24 readings separated by an enumerated case |
 | `onelinecheck.py` | pass | no graded decision has an exact rule at depth two |
 | `forgecheck.py` | pass | the forgery carrying the frozen answers scores 0 |
 | `solvecheck` / `deadfieldcheck` / `catcheck` / `hintcheck` / `structcheck` / `extraneouscheck` | pass | clean |
 | `simcheck` | pass with a note | conceptually distinct; `environment/Dockerfile` identical to three retained bundles, which are identical to each other |
-| correct variants score 1 | pass in host emulation | `ok-flat` and `ok-effect` reproduce the model on 33 hand, 300 shaped and 406 generated programs; the container runs are recorded below |
+| correct variants score 1 | pass | `ok-flat` and `ok-effect` reproduce the model on 33 hand, 300 shaped and 406 generated programs, and both score 1 in the container trial, 36 tests passed each |
 | three-way differential | pass | slow transcription, reference and sealed model agree on 33 hand, 2500 random and 406 generated programs |
 
 ## Quality self-review (docs/QUALITY-REVIEW.md, walked criterion by criterion)

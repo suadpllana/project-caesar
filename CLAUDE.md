@@ -43,8 +43,9 @@ them as examples; only the projects listed in `README.md` belong in this checkou
 - **`forgecheck` drew its marks from a case name.** A ground truth kept as `{case: trace}` can
   hold one token longer than the 24-character bar, and if that token is a key the single-token
   path returns it alone - so a forgery carrying every answer but keyed on the program rather than
-  on its name is reported as absent. It now draws its marks from the values. Checked to keep
-  reporting the carriers of all eight other bundles.
+  on its name is reported as absent. It now draws its marks from the values. The change is
+  strictly additive: the twelve other bundles report exactly the carriers they reported
+  before, and this one goes from none to ten.
 - **`readingcheck` has no timeout, and two readings do not end.** One climbs a link cycle for
   ever and one wakes and un-wakes the same entry for ever; the worker's wall clock is what scores
   them. Left in the table they hang the checker with no output at all, which reads exactly like a

@@ -229,7 +229,7 @@ a lookup stopped at, which only the `mask` family and `mask-lifted` reach, and t
 | Cheats all score 0 | pass | 45 of 45 in the container: 30 wrong readings, 2 correct and too slow, 2 shortcut strategies, 1 forgery, 10 isolation probes |
 | Correct variants score 1 | pass | `--dir authoring/entry-lift-restate/variants/ok-flat` and `.../ok-coarse`, both reward 1 |
 | Isolation probes score 0 | pass | all ten, after the rebuild that made each one depend on its own attack |
-| `forgecheck.py` | pass | reports ten carriers of the frozen answers - the forgery and the nine probes built on it - and every one scores 0. Its slice picker had to be taught to draw its marks from the answers rather than from the case names beside them; checked to keep reporting the carriers of all eight other bundles |
+| `forgecheck.py` | pass | reports ten carriers of the frozen answers - the forgery and the nine probes built on it - and every one scores 0. Its slice picker had to be taught to draw its marks from the answers rather than from the case names beside them; the same twelve carriers are reported for the twelve other bundles before and after, and none is lost |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
 | `preflight.py` | pass | no errors; eleven warnings, all module-qualified calls |
 | `harbor check` rubric | not run | no API key in this environment; the manual walk of docs/QUALITY-REVIEW.md is below |

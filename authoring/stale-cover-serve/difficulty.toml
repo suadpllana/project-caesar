@@ -1,0 +1,209 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/stale-cover-serve/STATE.md.
+
+[task]
+slug = "stale-cover-serve"
+status = "idea"
+sources = ["tasks/stale-cover-serve/STATE.md", "authoring/stale-cover-serve/trace.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep a cache of range entries, each holding the rows it covers and a live flag. On a read,
+collect the entries that are still live and see whether they cover the requested range; if
+they do, return their rows, otherwise fetch the parts that are missing from the store, install
+them as new entries and return the union. On a commit, delete every entry whose range contains
+a written key. Treat the staleness allowance as permission to return an entry that has not
+been invalidated yet.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+An answer is served as of one version, and every piece of it has to be correct at that same
+version: the read is answered at the newest version inside the client's allowance for which
+the whole requested range lies inside cached ranges valid at that version. A cached range
+whose content stopped being current is therefore not dead - it still answers reads aimed at
+the versions it was right for - and a set of ranges that are each valid at some allowed
+version is not an answer unless one version is allowed by all of them.
+"""
+second_discovery = """
+A fetch is installed as valid from the version at which the store last touched the fetched
+keys, not from the moment of the fetch, so the cache acquires knowledge about versions that
+are already in the past and validity intervals do not arrive in time order. Together with the
+rule that fetches fill only what is uncovered at the current version, this puts a fresh range
+on top of a closed one covering the same keys: the cache stops being a disjoint map of key
+ranges and becomes a set of key-by-version rectangles, so the interval map the first repair
+builds - one entry per stretch of keys, with a validity field - cannot represent the state at
+all and the read has to become a maximisation over overlapping rectangles.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs and confirm the read path ignores the staleness field, then find which module decides the served version",
+  "Replace the live flag with a version range per cached stretch, because a commit ends the stretch's correctness rather than destroying what it knew",
+  "Install a fetched stretch from the store's last-touch version so it answers reads aimed at versions older than the fetch itself",
+  "Watch the fetched stretches begin to overlap closed ones and replace the disjoint key map with a set of key-by-version rectangles",
+  "Write the serving decision as the largest version inside the allowance at which the whole range is covered, and keep it separate from the uncovered-at-now computation that drives fetching",
+  "Settle the two boundaries: a commit ends validity at the version before it, and retention runs after each commit against the horizon",
+  "Time the long programs, then replace the per-version scan with a sweep over the rectangles' endpoints and the per-commit table scan with an index over the key space",
+]
+
+[search]
+best_page = """
+The semantic-caching literature on probe and remainder queries together with the write-ups of
+snapshot-versioned result caches, which is what a query about answering a range read from
+cached fragments returns first, plus the byte-range assembly documentation of the HTTP caches.
+"""
+helps_plan = false
+deviation = """
+Byte-range assembly is defined over immutable objects, so it never asks at which version the
+assembled pieces were simultaneously true; the snapshot-versioned result caches compare one
+entry against the reader's snapshot and discard anything older, which is the per-entry test
+this runtime specifically forbids; and no source backdates a freshly fetched fragment to the
+last write that touched it, which is what makes the cached ranges overlap.
+"""
+
+[tactics]
+A1 = """
+Cache-aside with delete-on-write is the most rehearsed pattern in the domain and the shipped
+engine is exactly that, serving every read at the current version; here an invalidated range
+keeps answering older reads and the allowance decides the answer, so the recalled idiom is
+wrong at the first decision point of every read that matters.
+"""
+A2 = """
+The brief states what the runtime does - one version for the whole answer, the newest allowed
+one, fetches sized against the present - and never names coverage, the intersection of
+validity intervals, or the maximisation, so the structure that survives all three has to be
+derived rather than looked up.
+"""
+B2 = """
+Ten rules hold at once: the serving version, one version for the whole answer, holes taken at
+the present, combining within the slack, the cap on how many runs a read may send, backdated
+installation of whatever run was actually fetched, invalidation at the version before the
+commit, retention against the horizon, row order and duplicates across an overlapping cover,
+and touch semantics. Each changes what a correct implementation of the others looks like.
+"""
+C1 = """
+Both sides are graded: an engine that fetches whenever the newest version is not available
+prints fetch lines a correct one never issues, and an engine that serves whichever cached
+ranges are individually allowed prints rows that were never all true at once.
+"""
+C3 = """
+A deep family makes both of the searches a first implementation reaches for infeasible inside
+the stated limit while leaving each exactly correct: the one that walks every version of the
+allowance, and the one that tries only the ends but rebuilds the coverage at each of them. The
+fast path follows from coverage only improving where a validity run ends.
+"""
+C4 = """
+Every graded program must match line for line, and the population is generated inside the
+verifier from a seed drawn after the agent's container is gone, with families shaped at each
+decision point rather than sampled uniformly.
+"""
+guard = """
+Seven files under /app/rng are collected and nothing else; the driver, the row store, the
+program parser and the trace writer are the verifier's own pristine copies laid under the
+submission, so neither the trace format nor the store's interface can be reshaped, and a new
+file anywhere is never collected.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "the answer is served at the newest allowed version with a whole cover", b = "fetches fill what is uncovered at the current version", why = "the two questions are asked about different versions, so an engine that reuses its best partial cover to decide what to fetch issues fetches a correct one never issues, and one that fetches as soon as the current version is not available never serves an older cover at all" },
+  { a = "a fetched stretch is valid from the store's last touch", b = "the answer needs one version common to the whole cover", why = "backdating creates validity in the past, so a read issued later can be answered at a version older than any cache entry that existed at the time, and the set of versions at which a cover exists is not monotone in the order the entries were created" },
+  { a = "a commit ends validity at the version before it", b = "a fetched stretch is valid from the store's last touch", why = "the closed stretch and the refetched one abut in version space and overlap in key space, so the cache holds two entries for the same keys that are never valid together and a disjoint key map cannot hold them" },
+  { a = "retention discards stretches whose validity ended below the horizon", b = "the served version is the newest allowed one with a whole cover", why = "discarding a stretch removes versions from the set a later read can choose, so how long ago a commit happened decides which version a read is answered at and therefore which rows it returns" },
+  { a = "fetches are issued one per maximal uncovered stretch", b = "each fetched stretch is installed as one entry", why = "the key boundaries of the entries are a record of what was covered when the fetch happened, so a later read's cover is decided by the shape of earlier reads and not only by which keys are known" },
+  { a = "two runs close enough together are fetched as one", b = "a fetched run is correct from the store's newest write across the whole of it", why = "the combined run spans cached ground the narrow holes did not, so its last-write number is newer and the reach a later read has into the past shrinks every time the service saves a round trip" },
+  { a = "the cap replaces the runs with the whole requested range", b = "a fetched run is not folded into anything already held", why = "the capped run is installed over content the cache already has, so the table holds overlapping entries that are still current at the same time and the answer has to be deduplicated rather than concatenated" },
+  { a = "the answer lists each key once in key order", b = "the cover may use overlapping entries", why = "entries valid at the same version agree on their shared keys, so the answer is well defined, but an implementation that concatenates the cover repeats rows and one that trusts entry order emits them unsorted" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A read whose range is wholly inside entries still valid at the current version must issue no
+fetch and be answered at the current version, so an engine that prefers an older common
+version, or that refetches because some neighbouring entry closed, prints both a wrong
+version and fetch lines that should not be there.
+"""
+late_case = """
+A program in which every read is fresh until one commit writes a single key in the middle of
+a covered stretch; the next read of the whole stretch tolerates enough staleness to be served
+from the version before that commit, and the read after it - aimed at the same keys with no
+allowance - then differs again because the entries the first read would have installed do not
+exist.
+"""
+oracle_denied = """
+The natural check is to compare the answer against the store, but the store is reachable only
+through the fetch path the cache itself decides to drive, the trace never prints the store's
+contents or its versions, and the shipped engine produces a coherent trace for every program,
+so running it says nothing about whether the served version is right.
+"""
+
+[leaks]
+candidates = [
+  { what = "a validity or version field on the shipped cache entry, which would name the mechanism", closed_by = "the shipped entry holds a key range and its rows and nothing else; the version structure has to be introduced, not filled in" },
+  { what = "the store exposing the version at which a key last changed, which would hand over the backdating input for free", closed_by = "the store's only public call returns the rows of a range and the one last-touch number for that range, which is the fetch's own result and is the primitive the rule is defined over" },
+  { what = "a shipped helper that computes coverage of a range by a set of entries", closed_by = "no such helper exists; the shipped engine tests coverage inline against live entries only and that code is one of the six files the agent replaces" },
+  { what = "the trace printing the number of cached entries or the served version of the shipped engine as a hint", closed_by = "the trace prints only the fetches and the answer, and the served version it prints is a graded output rather than a report about the cache" },
+  { what = "a sample program shipped with its correct output, or a second engine to compare against", closed_by = "the sample programs ship without expected output and the tree holds exactly one engine" },
+]
+derived_quantities = """
+The program carries the horizon, the writes and the reads with their allowances, and the store
+carries rows and commit versions; these are primitives. The served version, the cover, the
+uncovered stretches, the validity intervals and the retained set are all derived and none of
+them appears as a field anywhere in the agent's tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct engines that find the served version by testing coverage at every version from
+the current one down to the allowance floor, and the first optimisation of that, which tries
+only the versions where some entry's validity ends but rebuilds the coverage from scratch at
+each of them instead of carrying it down.
+"""
+invariant = """
+Coverage of a range can only improve at a version where some entry's validity ends, because
+everywhere else the usable set only loses members as the version drops; so the newest covered
+version is found by sweeping those ends once per read while carrying a covered-key count, and
+no version in between is ever visited.
+"""
+input_scale = "programs of twelve thousand commits over a hot key space, with about five thousand reads whose allowances reach back over the whole history; stated in the brief as the scale of the two shipped sample programs"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "every read is answered at the current version and the allowance is ignored", hand_case = "a range covered at the version before the last commit and not at the current one" },
+  { reading = "each entry in the cover need only be valid at some allowed version", hand_case = "two entries covering the two halves of a range whose validity intervals do not overlap" },
+  { reading = "the oldest allowed version with a whole cover is served", hand_case = "a range covered at both the current version and three versions back" },
+  { reading = "the uncovered stretches are computed against the best partial version instead of the current one", hand_case = "a range whose left half is covered only at an older version and whose right half is fresh" },
+  { reading = "a fetch is issued whenever the current version cannot be served", hand_case = "a read served whole from a cover one version old" },
+  { reading = "a fetched stretch is valid only from the version at which it was fetched", hand_case = "a fetch of a range untouched since the start, then a read reaching back before the fetch" },
+  { reading = "a fetched stretch that comes back empty is treated as valid from the beginning", hand_case = "a range whose only key was deleted three versions ago" },
+  { reading = "a commit ends validity at its own version rather than the one before it", hand_case = "a read aimed exactly at the version the commit created" },
+  { reading = "a write that stores the value already there does not end validity", hand_case = "a covered key written with the value it already holds" },
+  { reading = "a delete of a key that is not there does not end validity", hand_case = "a covered range in which a missing key is deleted" },
+  { reading = "an invalidated entry is discarded rather than closed", hand_case = "a read with an allowance issued straight after a commit" },
+  { reading = "retention keeps a fixed number of closed entries instead of a horizon", hand_case = "two closed entries with the horizon shorter than the gap between them" },
+  { reading = "retention discards an entry whose validity ended exactly at the horizon", hand_case = "a commit that puts a closed entry exactly at the boundary" },
+  { reading = "retention also discards entries that are still open but were installed long ago", hand_case = "a range never written to and read again much later" },
+  { reading = "the rows of the cover are concatenated in entry order", hand_case = "a cover of two overlapping entries whose ranges share a key" },
+  { reading = "the allowance floor is one version lower than stated", hand_case = "a read whose only cover sits exactly at the oldest allowed version" },
+  { reading = "fetches are issued per uncovered key rather than per maximal uncovered stretch", hand_case = "a read over a range with one two-key hole" },
+  { reading = "fetches are issued in descending key order", hand_case = "a read over a range with two holes" },
+  { reading = "a commit that stages nothing does not advance the version", hand_case = "an empty commit followed by a read that tolerates no staleness" },
+]
+correct_variants = [
+  "an engine that answers the serving question by sweeping the entries' validity endpoints downward while maintaining a covered-key counter over the requested range",
+  "an engine that collects, for each key of the requested range, the union of validity intervals covering it and intersects those unions, with a bucketed key index driving invalidation",
+]
+
+[shape]
+environment_py_lines = 360
+editable_files = 6
+reference_lines = 240

@@ -1,0 +1,211 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/rng/seg.py",
+  "/app/rng/pick.py",
+  "/app/rng/hole.py",
+  "/app/rng/mend.py",
+  "/app/rng/knit.py",
+  "/app/rng/age.py",
+  "/app/rng/ask.py",
+]
+
+[task]
+name = "afterquery/stale-cover-serve"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What the brief does not say is which of the structures those rules
+seem to ask for survives all of them at once, and that is the work.
+
+The first plan is the one the domain rehearses most: a cache entry per range, a lookup, a fetch
+of whatever is missing, and a delete of the entry when a write lands inside it. The shipped
+service is that plan, down to treating the staleness allowance as an age limit on an entry, and
+it is wrong at the first decision of every read that matters. Here an answer is served as of one
+version and every part of it has to be correct at that same version, which does two things at
+once. An entry a write has overtaken is not dead - it is exactly what answers a read aimed at
+the versions it was right for, so nothing can be deleted. And a set of entries that are each
+recent enough on their own is not an answer unless one version is allowed by all of them, so the
+per-entry staleness test the pattern comes with produces rows that were never simultaneously
+true. Both of those have to be got right at once, because an implementation that keeps entries
+but tests them one at a time serves torn answers, and one that insists on the present refetches
+what it already has.
+
+The discovery that takes the repair apart rather than correcting it comes next. A fetch is
+correct from the version the store last wrote the keys it covers, not from the moment it
+happened, so the cache acquires knowledge about versions already in the past and its runs of
+validity do not arrive in time order. Combine that with the rule that a read fetches only what
+is uncovered at the present version and cached ranges start sitting on top of each other: a
+refetched range overlaps the closed one under it, a combined fetch spans ground the cache
+already had, and a capped read takes the whole requested range across everything in it. The
+tidy interval map the first repair builds - one entry per stretch of keys, carrying a validity
+field - cannot hold that state at all. What the read actually asks is a maximisation over
+overlapping key-by-version rectangles, and there is no way to reach that by patching the map.
+
+Combining then turns out to cost something in the same currency. A run that spans two holes and
+the cached ground between them is reported by the store against the whole of itself, so it is
+correct from later than the two narrow holes would have been, and the reach a read has into the
+past shrinks every time the service saves a round trip. The cap does the same thing harder. The
+slack is measured across the covered ground between two runs and the cap counts what is left
+after combining, so doing the two in the other order fetches a different set of ranges and
+diverges thereafter.
+
+A resource gate decides what a correct structure may cost, and the fast path follows from a
+property of the rule rather than from a technique: coverage can only improve at a version where
+some range's validity ends, so the answer is found by sweeping those ends once while carrying a
+covered-key count, never by visiting versions. Measured against the 60 second limit for the whole
+graded set, one deep program of 28841 lines takes 267.2 seconds with the allowance searched one
+version at a time and 70.4 seconds with only the ends tried but the coverage rebuilt at each of
+them, against 3.4 seconds for the reference. The whole graded set of 401 programs is 5.1 seconds.
+Both of those readings produce the reference's traces exactly on everything they finish. The
+limit is the only thing that separates them.
+
+Around the centre sit the fences, each with two sides: a range wholly covered now must not be
+refetched, a commit ends a run at the version before it and not at its own, a write of the value
+already there is still a write, a delete of a key that is not there is still a write, retention
+keeps a run that ended exactly on the horizon and never touches one still open, and a cover
+assembled from overlapping ranges lists every key once and in key order. All seven editable
+files ship wrong, and a read prints only the fetches it issued and one answer line, so a wrong
+structure gets almost no feedback on the way.
+
+Identifiers are in the register of real read-path code - `rng/`, `seg`, `pick`, `hole`, `mend`,
+`knit`, `age`, `ask`, `mark`, `tune` - short but never misleading, and no name misdescribes what
+it holds. Each is recoverable from what calls it.
+
+The programs are synthetic, in eleven families, with commits landing inside covered ranges,
+ranges left alone long enough that a fetch reaches well behind itself, halves whose runs never
+meet, horizons short enough to take the past away again, allowances of zero mixed through, and
+two families sized for the limit. In a running service these concentrations are rare, and they
+are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Seven files, in the order the rules force rather than one that is tidy.
+
+`seg.py` holds a cached stretch as a key range, its rows, the version it became correct at and
+the last version it was still correct at, with -1 standing for a run that is still open. Two
+block indexes sit over it, because both directions of scan would otherwise be over the whole
+table: a commit walks only the stretches that are still open in the block of a written key, and
+a stretch leaves that index the first time a scan meets it after it was closed; a read walks
+every retained stretch in the blocks its range touches, closed ones included, since those are
+what answer a read aimed backwards. Retention is a heap of closed stretches ordered by their
+last correct version, so a commit that drops nothing pays nothing.
+
+`pick.py` answers the version a read is served at. Coverage is not monotone in the version -
+dropping a version brings a closed stretch back and takes a later-fetched one away - so nothing
+can be searched by halving, and visiting every version in the allowance is what the limit
+forbids. What holds is that coverage can only improve where a stretch's validity ends, so the
+candidates are the present version and those ends. The sweep runs down them once, adding a
+stretch as its end is reached and dropping it through a heap when the version falls below its
+start, carrying a per-key count over the requested range and a running tally of how many keys
+are still uncovered. The first candidate at which nothing is uncovered is the answer.
+
+`hole.py` is the other question, asked about the present version only: the maximal runs of keys
+no open stretch covers, taken in key order after sorting by first key, because refetched and
+capped stretches arrive out of key order and sit inside one another.
+
+`mend.py` shapes those runs into the fetches that actually go: combine while the next run starts
+no more than the slack past the end of the previous one, then, if more runs are left than the
+cap allows, replace all of them with the whole requested range.
+
+`knit.py` builds the answer. Every stretch correct at the served version agrees with the store
+there, so overlapping stretches agree with each other and a shared key may be read from either;
+the rows go into a map and come out sorted, which is what keeps a capped fetch sitting on top of
+three others from printing anything twice.
+
+`age.py` is the horizon, applied to closed stretches only.
+
+`ask.py` composes them, and the composition is the part that has to be right rather than
+plausible. A commit closes what it wrote inside at the version before it and then runs
+retention. A read asks pick first; if an allowed version has a whole cover, nothing is fetched
+and the answer is that version's. Only when none does it go to the store, and then it goes as of
+now: hole, then mend, then one fetch per run, each installed from the version the store reports
+it last wrote the keys of that run, and the answer taken at the present version.
+
+`solution/solve.sh` copies the seven files into /app/rng and runs two of the sample programs.
+It computes nothing and writes no answer.
+"""
+
+verification_explanation = """
+Grading has two halves and the trust runs one way only. Half one runs as an unprivileged user in
+a session of its own under the 60 second clock, lays the seven submitted files over the
+verifier's own pristine copy of the tree, replays every graded program through the driver in that
+copy and writes down what each printed. It reaches no verdict. Half two runs as root, executes
+no line the agent wrote, and treats half one's record as input from a stranger: it rebuilds the
+program list itself from a seed kept in a root-owned directory, insists on a record for every
+program, and recomputes the digest of the text each record claims to have been run on, so a run
+that quietly skipped programs or shortened them fails on the record rather than on the answers.
+Every value that came out of half one is checked for type before it is used, and the reward
+starts at 0 and is raised only when both halves came back clean, so a crash, a hang, a timeout
+or a truncated record all score 0.
+
+What is compared is the whole trace, line for line, with no tolerance anywhere. Thirty-seven
+enumerated programs are held to answers frozen before the grading file was written, each named
+for the decision it pins - the served version, the fences on both sides of it, the commit
+boundary, the horizon edge, the combining slack, the fetch cap, key order and duplicates - so a
+failure names a rule instead of reading as bad luck. The other 364 programs are generated inside
+the verifier from a seed drawn after the agent's container is gone, in eleven families shaped at
+the decisions rather than sampled uniformly, which is what stops a submission being fitted to the
+readable half. The sealed model that judges them is an independent implementation: it answers the
+serving question per key, by unioning each key's runs of validity and counting events across
+them, and it takes the answer rows from its own copy of the store's history rather than from the
+cache, so a run also proves that what the cache claims at a version is what the store held there.
+On every run the model is itself re-checked against the frozen answers before it judges anything.
+
+The ground truth and the model live in a directory that is root-owned and mode 0700 from before
+the first submitted line runs, and the reward file sits in another one. Survivors are reaped by
+owner after half one returns, so a process that forked twice to outlive the clock finds the
+reward channel already shut. Thirty-eight cheats were run through the whole trial: the shipped
+tree, a constant answer, a positional strategy, the frozen answers replayed over the shipped
+engine, every wrong reading of every rule, and the reward-tamper and answer-key probes. All
+scored 0, and each probe reports the layer that stopped it rather than only that it failed - the
+unprivileged uid it ran as, the permission error on the reward channel, the permission error on
+the sealed answers and the import error on the model. Three independently written correct
+engines, one sweeping validity ends with a coverage counter, one intersecting per-key unions and
+one carrying no key index at all, all score 1.
+"""
+
+category = "Software"
+subcategory = "Databases"
+
+tags = [
+  "range-cache",
+  "mvcc",
+  "bounded-staleness",
+  "cache-invalidation",
+  "version-intervals",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+I work on read paths that put a cache in front of a versioned store, which is where this task
+comes from: the part that decides whether an answer can be assembled from what is already held
+and, if it can, which version it is an answer at. I have written the invalidation side of one of
+these and the assembly side of another, and the bugs that cost the most were never in the
+lookup. They were in what a cache is allowed to claim: an entry treated as dead the moment a
+write overtook it, fragments combined into one answer that had never been simultaneously true,
+and a fetch stamped with the time it happened rather than with the last write it actually
+reflects. I have also spent enough time on the cost side to know that the search for a usable
+version has to be driven off the points where validity changes, because walking versions is
+fine in a test and hopeless against a real history.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

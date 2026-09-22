@@ -97,6 +97,7 @@ calibration; the external probe is the authority on them:
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
 | `expert-defer-shed` | 100 | built 2026-09-19; oracle, nop, 37 cheats and two correct variants run in the container; external result not yet recorded |
+| `stale-cover-serve` | 100 | built 2026-09-22; oracle, nop, 38 cheats and three correct variants run against the bundle's own test.sh on the host, because Docker Hub's blob host is refused by that session's egress policy; external result not yet recorded |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them

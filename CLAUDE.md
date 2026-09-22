@@ -349,7 +349,8 @@ memory and a hold restricted to laid-out items coupled into the anchoring rules.
 - **A limit checked between documents is not a limit, and a killed run prints nothing.**
   `time_all.py --limit 900` under `timeout 1000` left an empty file for the push repair: one long
   document outlasted the whole window, so the check between documents never ran, and the empty
-  file read like a crash. `--each` now prints every large document as it finishes.
+  file read like a crash. `--each` now prints every large document as it finishes, and the rerun
+  measured it: 1,525.7 s for the first long document alone, stopped at 2,400 s inside the second.
 - **A whole-set time is measured, not multiplied.** STATE.md said the lazy repair "takes about
   426 s" on the three long documents - three times the 142 s of one. Measured over the whole set
   it is 409.4 s, 403.7 s of it on the long documents. Close, and still a number presented as a

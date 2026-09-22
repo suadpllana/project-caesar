@@ -35,7 +35,8 @@ group that changed. Both are exactly correct, and neither finishes the family th
 a reader scrolling down half a million groups measures new rows at the bottom of every window,
 which changes the height carried into the whole rest of the document on every frame. Measured on
 one such document, the reference takes 4.6 seconds, a block decomposition 8.6 and the re-summing
-repair 142.0, all three with identical output; the graded set carries three. What finishes is a
+repair 142.0, all three with identical output, and the push-down repair took 1525.7 seconds on
+another; the graded set carries three. What finishes is a
 derivation from the rule rather than a structure it names: given the height carried into a run
 of groups, the run's rows before its first remembered row all take it and the rest are fixed by
 the run, which hands on its last remembered row's height or what it was given. A run is three

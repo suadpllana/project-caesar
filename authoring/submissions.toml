@@ -129,6 +129,15 @@ substrate = "the part of an inference server that decides what to put on the wir
 mechanism = "Release bytes from a streaming decode only when no stop sequence and no character boundary can still change what has already left."
 verdict = "pending"
 
+[[submission]]
+slug = "anchor-band-settle"
+category = "Software"
+label = "Frontend"
+tags = ["scroll-anchoring", "sticky-positioning", "block-flow-layout", "fixed-point-settling", "incremental-layout"]
+substrate = "the layout and scrolling half of a document view: block flow, sticky headers and the box that holds the reader's place across a frame's edits"
+mechanism = "Settle a scrolling view's offset once per frame so the box being read keeps its distance below the bottom of the headers stuck at that offset, judged on the mutated tree, falling back to its nearest pre-frame container at that container's own distance, with every adjusted offset able to stick or unstick headers and disqualify the holder again."
+verdict = "pending"
+
 # --- Submitted, bundle not in this checkout -----------------------------------------
 # README.md records these as passed. Their trees were removed, so their tags, substrate
 # and mechanism are not recoverable here and are deliberately left out rather than

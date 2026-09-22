@@ -1,0 +1,135 @@
+{
+ "band-floor": [
+  "1 65 r3"
+ ],
+ "band-lowest": [
+  "1 60 r2"
+ ],
+ "clamp-pass": [
+  "1 0 h4"
+ ],
+ "clamp-start": [
+  "1 0 h6"
+ ],
+ "fall-dropped": [
+  "1 110 s1"
+ ],
+ "fall-empty": [
+  "1 60 p1"
+ ],
+ "fall-hidden": [
+  "1 60 p1"
+ ],
+ "fall-lifted": [
+  "1 70 p1"
+ ],
+ "fall-none": [
+  "1 0 none"
+ ],
+ "fall-two": [
+  "1 75 c1"
+ ],
+ "flow-lift": [
+  "1 40 r3",
+  "2 70 r3"
+ ],
+ "flow-shut": [
+  "1 110 r3",
+  "2 50 r3"
+ ],
+ "hold-band": [
+  "1 105 r2",
+  "2 125 r2"
+ ],
+ "hold-ordinary": [
+  "1 80 r2",
+  "2 50 r2"
+ ],
+ "hold-still": [
+  "1 50 r2",
+  "2 50 r2"
+ ],
+ "none-before": [
+  "1 0 off live",
+  "2 0 r2"
+ ],
+ "none-late": [
+  "1 70 none"
+ ],
+ "off-both": [
+  "1 45 off scroll"
+ ],
+ "off-live": [
+  "1 50 off live",
+  "2 50 r1"
+ ],
+ "off-live-add": [
+  "1 50 off live",
+  "2 80 r1"
+ ],
+ "off-scroll": [
+  "1 120 off scroll",
+  "2 25 off scroll"
+ ],
+ "pick-below": [
+  "1 50 r2"
+ ],
+ "pick-edges": [
+  "1 65 r2",
+  "2 49 off scroll",
+  "3 34 r1"
+ ],
+ "pick-empty": [
+  "1 20 none"
+ ],
+ "pick-first": [
+  "1 45 k1"
+ ],
+ "pick-partial": [
+  "1 30 r1"
+ ],
+ "pick-skips": [
+  "1 50 r2"
+ ],
+ "settle-cycle": [
+  "1 30 s1"
+ ],
+ "settle-drift": [
+  "1 45 r5"
+ ],
+ "settle-fourth": [
+  "1 98 r6"
+ ],
+ "settle-holder": [
+  "1 0 s1"
+ ],
+ "settle-stick": [
+  "1 19 r3"
+ ],
+ "stick-none": [
+  "1 30 r2"
+ ],
+ "stick-push": [
+  "1 90 r3",
+  "2 80 r3"
+ ],
+ "stick-strict": [
+  "1 10 h1",
+  "2 11 off scroll",
+  "3 11 r1"
+ ],
+ "stuck-inside": [
+  "1 0 s1"
+ ],
+ "top-held": [
+  "1 25 r1"
+ ],
+ "turn-back": [
+  "1 90 h1",
+  "2 90 h1",
+  "3 60 h1"
+ ],
+ "turn-late": [
+  "1 20 s4"
+ ]
+}

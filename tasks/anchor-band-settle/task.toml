@@ -1,0 +1,198 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/view/lay.py",
+  "/app/view/stick.py",
+  "/app/view/pick.py",
+  "/app/view/hold.py",
+]
+
+[task]
+name = "afterquery/anchor-band-settle"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule the frame obeys is in the brief. What is not in the brief is that the plan those rules
+seem to ask for is right for the frames a reviewer pictures and wrong for the ones the grading is
+built from, and undoing that costs the whole settle loop rather than a line.
+
+The natural plan is the one place-keeping has always been: before the edits, pick the first box
+that shows in the view and note its top less the offset; after the edits, lay out again and move
+the offset so that box sits at the same distance; if it is gone, pick again on the new tree. That
+holds an image resolving above the reader or a row growing below, which is what the reader notices,
+and a first plan gets those exactly. It is wrong in four places at once, and none of them shows on
+an ordinary frame. The distance is measured not from the top of the view but from below the
+headers stuck at the offset - the band - so a header that stays stuck across the frame is already
+folded into the plain plan and hides the rule. A box the edits disqualify - dropped, under a shut
+row, lifted out of the flow, of no height, or stuck - does not surrender the view to a fresh pick;
+it falls back to the nearest box that contained it before the frame, at that container's own
+distance measured before the edits, so the whole pre-frame chain has to be kept, not one number.
+And a box the view rests on at the very top is held like any other, where the spec everyone half
+remembers holds nothing at offset zero.
+
+The rule that turns the restore into a loop is that the distance is measured below the band and a
+stuck box can never hold the view. Every offset the frame tries has its own stuck set: raising the
+offset can stick a header, which lowers the band and disqualifies a holder inside that header, and
+lowering it can unstick one. So the offset that answers the frame is a fixed point - the band read
+at the offset you land on has to be the band the offset was computed from - and it is reached by
+passes, at most four, each re-reading the band and re-resolving the first still-qualifying box of
+the saved chain at the offset it starts from, stopping on a pass that does not move and otherwise
+keeping the smallest offset any pass asked for. A single restore, a single pick, three passes or
+five, the last offset instead of the smallest: each is a plausible reading that a hand trace of an
+ordinary frame confirms and a frame that sticks mid-adjustment refutes. Nothing local tells the
+agent which: there is no browser in the image, the real scroll-anchoring spec behaves differently
+on purpose, and the samples print one line per frame and nothing about bands, passes or distances,
+so a wrong loop looks right to the person who wrote it.
+
+Thirteen rules hold at once - flow in whole rows, sticking with the push from the section end, the
+band, the pick region below the band, the pick walk, the chain and its distances, per-pass
+eligibility, fallback, the pass target, clamping into the post-edit range, the four-pass settle,
+the scroll and live switches, and the no-holder line - and the stuck rule changes what the pick,
+the eligibility test and the target mean on every pass, so they cannot be got right one at a time.
+
+A scale boundary decides what a correct implementation is allowed to cost, and the fast path
+follows from flow layout rather than from a trick. Laying the whole tree out again on every frame
+answers every program exactly and takes 489 seconds on the two scale shapes; scanning every header
+on every pass to find the stuck ones takes 471 seconds; the graded set has to finish inside 90.
+The invariant is that an edit changes heights only along its own ancestor chain and a box's top is
+its parent's top plus earlier siblings, so a frame reads a few root-to-leaf paths, and a header
+can only be stuck across the view while its section crosses the top strip, so the stuck set is
+found by descending that strip rather than by a full scan. The reference settles the whole graded
+set in about five seconds; the naive families are exact and are separated from it by the clock
+alone.
+
+Identifiers are in the short register of real layout code - `vh`, `own`, `pin`, `band`, `hh` for a
+box's laid-out height, `cf` for its contribution to its parent, `ks` for its children's flow sum -
+never misleading and each recoverable from what reads it; that is the register of the substrate,
+not an obstacle bolted on. The four shipped modules implement the plain plan coherently - sticking
+without the push, the band as a sum, the pick over the whole view, a single restore with a fresh
+pick on removal - so reading them names no rule of the settled design. The generated programs are
+synthetic, in thirteen families that concentrate sticking during the adjustment, fallback halfway
+through the loop, cycles that never converge, clamping at the ends of the range and the two
+switches - rare in a real document, and exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Four modules, each consumed by the next: layout decides tops and heights, sticking reads those for
+the band, the pick reads the band to choose the holder, and the settle reads all three on every
+pass.
+
+`lay.py` keeps layout incremental. Each box caches its laid-out height, its contribution to its
+parent (zero when lifted), and its children's flow sum; each row caches its child offsets, rebuilt
+only when a child's contribution changes; tops are computed on demand from a parent's top and
+earlier siblings and memoised per sync. `sync` replays the frame's change log by recomputing each
+touched box from the current tree and pushing the difference up its ancestor chain, so the order
+edits arrive in cannot matter. A full relayout is never done.
+
+`stick.py` decides sticking and the band. A pinned box that is laid out and has height sticks at an
+offset when the lesser of the offset plus its inset and the end of its section less its height is
+greater than its top; `drawn` returns where it is drawn, `stuck_in` asks whether a box or any box
+above it is stuck. `band` descends only the rows that cross the top strip of the view and takes the
+lowest bottom edge any stuck header reaches below the offset, floored at zero, so the stuck set is
+never scanned in full.
+
+`pick.py` chooses the holder over the part of the view below the band. It returns nothing when the
+band fills the view; otherwise it walks document order, skips a box that is lifted, live or of no
+height with everything inside it, takes a box whose rows all lie in the region, and looks into a
+box only partly in it unless it is shut, taking the box itself when nothing inside it is. Row ends
+are held sorted so the walk bisects rather than scans.
+
+`hold.py` is the settle. Before the edits it picks the holder and records every box above it with
+its distance below the band. After the edits it takes the scroll switch, then the live switch,
+then - for a real holder - runs the passes: each reads the band at the offset it starts from, takes
+the first box of the saved chain that still qualifies there, asks for that box's top less its
+distance less the band, clamped into the post-edit range, and stops when a pass does not move.
+Four passes that never agree end at the smallest offset any of them asked for, held by the first
+pass that asked for it.
+
+The same contract is implemented two further ways in the authoring set - the whole of it in one
+module with a Fenwick tree per row and a fixed four-step loop, and a second with dictionary
+heights recomputed bottom-up by depth, per-frame memoised tops and a while loop - and a third time
+by the sealed model in the verifier, written from the brief before the reference, so the shape that
+ships is visibly not the shape that is graded.
+"""
+
+verification_explanation = """
+Only the four files under `/app/view/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the grammar, the tree and its edits, the frame driver and the
+line it prints cannot be changed, and a file placed beside the four is never read. Every trace is
+compared line for line.
+
+Correct is defined twice. Thirty-nine hand programs, one per graded decision and the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and ninety further small
+programs and three of each of two scale shapes - about forty thousand boxes and ten thousand frames
+each - are generated inside the verifier from a seed drawn after the agent's container is gone,
+across thirteen families that concentrate sticking during the adjustment, fallback mid-loop,
+cycles, clamping and the switches. A submission cannot have seen them, so fitting the shipped
+sample fails and so does carrying an answer key.
+
+Forty-five cheats score 0. Thirty-three are wrong readings, each caught by the enumerated case
+named for it - the band as a sum, sticking without the section push, a box under a shut row still
+qualifying, the distance from the top of the view, one pass, three passes, five, the last offset
+kept, a fresh pick on removal, nothing held at offset zero, and the rest. Two are exact and too
+slow - a full relayout per frame and a scan of every header per pass - and are separated by the 90
+second clock alone. Three are the dumbest strategies, a constant line, the first box always, and
+the worked example replayed, each failing the enumerated grading. One is a forgery that carries the
+frozen answer for every enumerated program and replays it, which passes all thirty-nine and fails
+on the generated programs it could not have seen. The last six are probes on the verifier rather
+than readings of the task: reading the sealed model and answers, a survivor that writes the reward
+after grading, a survivor that forges the worker's output, a rewrite of the program file and its
+hash, a probe of what the code may write, and a crash that loses the record. Two independently
+written correct implementations score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit, and any survivor is reaped by owner. The sealed model and the frozen
+answers sit in a directory that uid cannot read, so code running inside the verifier cannot compute
+its answers from them. The program file is written by root into a directory the sandbox can read
+and cannot write, and its hash is kept where only root can read it, so the grader proves it is
+grading the file the worker was given. The reward defaults to 0 and is raised only by the
+privileged half, which never executes an agent line, when both halves come back clean.
+"""
+
+category = "Software"
+
+subcategory = "Frontend"
+
+tags = [
+  "scroll-anchoring",
+  "sticky-positioning",
+  "block-flow-layout",
+  "fixed-point-settling",
+  "incremental-layout",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having built or maintained the layout and scrolling half of a document view: something that lays a
+tree of boxes out in flow, keeps headers pinned as the content scrolls under them, and holds the
+reader's place across a batch of edits so the box they were reading does not jump. Familiarity with
+the fact that the offset that preserves a reading is a fixed point rather than a single adjustment,
+because pinned headers change the effective top of the view and every offset tried has its own set
+of them; with the difference between where a box is laid out and where a stuck header is drawn; and
+with keeping layout incremental - updating heights along an edit's ancestor chain rather than
+laying the whole tree out again - because a full relayout per frame does not survive a real
+document's size. The habit of asking, when the tree has changed under a saved position, whether the
+box the reader was on still qualifies to hold the view and, if not, what contained it.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

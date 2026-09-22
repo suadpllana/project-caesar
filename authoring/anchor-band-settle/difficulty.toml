@@ -1,0 +1,104 @@
+# Difficulty record for anchor-band-settle, written at Stage 1 before any code and scored with
+# `python tools/difficultycheck.py anchor-band-settle`. It never ships. Every claim here is
+# restated in tasks/anchor-band-settle/STATE.md and must match what is built; the resource gate
+# is a promise until it is measured at Stage 4.
+
+[task]
+slug = "anchor-band-settle"
+status = "pending"
+sources = ["tasks/anchor-band-settle/STATE.md", "authoring/anchor-band-settle/originality.toml"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = "Before the edits, walk the boxes in document order and take the first one that shows in the view, note its top minus the scroll offset, apply the edits, lay the tree out again, set the offset to the box's new top minus that number, clamp it to the scroll range and print it, picking a fresh box on the new tree if the old one is gone."
+first_plan_source = "prior"
+breaking_rule = "A holder is judged on the tree as it stands after the edits: dropped, under a shut row, lifted out of the flow, of no height or stuck disqualifies it, and the view is then held by the nearest box that contained it before the frame and still qualifies, at that box's own distance before the frame - neither the holder's distance nor a fresh pick."
+second_discovery = "Distance is measured below the bottom of the headers stuck at the offset being tried, and a stuck box can never hold the view, so every adjusted offset can stick or unstick a header, move the line it is measured from and disqualify the holder halfway through the frame; the single restore has to become a loop of at most four passes that resolves the holder again over the whole saved pre-frame chain on every pass, and keeps the smallest offset when the passes never agree."
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read the program grammar, the tree's edit operations and its change log, and the frame driver's calls into the four editable modules",
+  "Make layout incremental: subtree heights updated along each edit's ancestor chain, per-parent child offsets rebuilt only where a child changed, tops computed on demand",
+  "Write the stuck rule with the push from the end of the section, and the band as the lowest bottom edge of the stuck headers, found from the boxes crossing the top strip of the view",
+  "Write the pre-frame pick against the part of the view below the band, skipping lifted, live and zero-height boxes, and record the distance of every box on the holder's chain",
+  "Write the settle loop: each pass resolves the nearest qualifying chain box at the offset it starts from, targets that box's own distance below that offset's band, clamps, and stops on a pass that does not move",
+  "Cap the loop at four passes with the smallest offset kept, then add the two switches - an explicit scroll and any edit inside a live box - and the line for a frame with no holder",
+  "Time the two scale programs under the stated limit, and hand-trace small frames that stick, unstick, cycle and fall back halfway through the loop",
+]
+
+[search]
+best_page = "The CSS Scroll Anchoring Module Level 1 with the WICG explainer: the first fully visible node of a document-order walk, one adjustment S1 = S0 + (L1 - L0) per layout, suppression on position changes along the anchor chain and at offset zero; Chromium measures the anchor with sticky offsets stripped."
+helps_plan = false
+deviation = "Here the line the holder is measured from is the bottom of the headers stuck at the offset being tried, so the adjustment feeds back into itself and settles over bounded passes; stuck boxes never hold the view; a disqualified holder falls back to its pre-frame container at that container's own distance; lifting a container falls back instead of suppressing; a view at offset zero is held like any other."
+
+[tactics]
+A1 = "The prior - restore one saved distance from the top of the view, and the spec's single S1 = S0 + (L1 - L0) with sticky offsets stripped and nothing held at offset zero - is wrong here in its reference line, its single pass, its fallback and its handling of the top of the document."
+A2 = "The brief never says scroll anchoring, overflow-anchor or position sticky; it describes a box the view is held by, headers that stick at an inset and passes over the frame, so the key that would retrieve the spec's plan has to be recognised rather than read."
+A3 = "Restore-once wants one saved number, per-pass fallback wants every chain box's distance from before the edits, and the scale rules out the full relayout the spec's per-layout model assumes; no single known recipe satisfies the three together."
+B2 = "Thirteen small rules - flow, sticking with the push from the section end, the band, the pick region, the pick walk, chain distances, eligibility per pass, fallback, the pass target, clamping, settle with its cap, two switches and the no-holder line - hold at once, and the stuck rule changes what the pick, eligibility and target rules mean on every pass."
+C1 = "Ordinary frames - an image resolving above the view, a row expanding below it, nothing near the top changing whether it is stuck - must hold exactly, so an implementation that turns cautious, falls back eagerly or switches holding off too often fails as surely as the naive restore."
+C2 = "Nothing local says what the offset should be: there is no browser in the image, the spec behaves differently on purpose, and the samples print one line per frame and nothing about passes, bands or distances, so a wrong settle loop looks plausible to its author."
+C3 = "The scale programs are answered exactly by a full relayout per frame (489 s measured) or by a scan of every header on every pass (471 s) and cannot finish inside the stated 90 seconds that way; the fast path follows from flow layout itself: an edit changes heights only along its ancestor chain, and a header can only be stuck across the view while its section crosses the top strip."
+C4 = "All-or-nothing over every frame of about four hundred programs generated after the agent has finished, in families shaped around sticking during the adjustment, fallback halfway through the loop, cycles, clamping and the two switches, plus one enumerated program per decision."
+guard = "Only /app/view/lay.py, stick.py, pick.py and hold.py are collected; the verifier lays them over its own pristine tree, so the grammar, the tree's edits and change log, the frame driver and the line writer cannot be altered, and a file placed beside the four is never read."
+
+[decisions]
+graded = 13
+interactions = [
+  { a = "stuck band", b = "pre-frame pick", why = "which box shows first depends on which headers are stuck at the offset the frame starts from, so the band decides the holder before any edit" },
+  { a = "stuck band", b = "pass target", why = "each adjusted offset changes the stuck set, which moves the line the next pass measures the holder's distance from" },
+  { a = "stuck eligibility", b = "fallback distance", why = "an offset that sticks a header disqualifies a holder inside it halfway through the frame, and the fallback's own pre-frame distance then sets the next target" },
+  { a = "clamping", b = "stuck band", why = "a pass clamped at the end of the scroll range sits at an offset whose stuck set differs from the one its target assumed, so the next pass reads another band" },
+  { a = "live switch", b = "next frame pick", why = "a frame whose edit inside a live box was not held hands the next frame an offset the content has moved under, which changes what that frame picks" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = "An image above the view resolves to its real height with no header near the top: the offset moves by exactly the growth and the same box is printed; a cautious implementation that falls back, switches off or picks again fails it."
+late_case = "An outer header's section ends during the adjustment, so the band drops and the next pass raises the offset until an inner header containing the holder sticks; the holder is disqualified at pass three and its container, which the frame resized, sets the final offset."
+oracle_denied = "The agent can only run its own reading of the rules: no browser or reference engine is in the image, the spec differs on purpose, and the samples print one line per frame with no intermediate state, so a wrong loop confirms itself."
+
+[leaks]
+candidates = [
+  { what = "sample programs with quoted answers", closed_by = "the brief quotes one frame of one sample, found by search so that it separates none of the wrong readings of the loop, the stuck rule or the fallback" },
+  { what = "the shipped stick and pick modules", closed_by = "they implement the prior coherently - sticking without the push, the band as a sum, the pick over the whole view - so reading them names no rule of the correct design" },
+  { what = "the tree's change log", closed_by = "it records only which box each edit named and the kind of edit; heights, tops and stuck state are never stored on the frozen side" },
+  { what = "per-pass or per-box output", closed_by = "only the final offset and one id or reason per frame are printed; no pass count, band, distance or stuck set is ever written anywhere" },
+]
+derived_quantities = "Only own heights, flags, insets, child order and the view height are stored; subtree heights, tops, the stuck set, the band and every distance are derived at run time and never ship."
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = "a full relayout of the tree on every frame, or a scan of every header on every pass, each of which answers every scale program exactly and slowly"
+invariant = "in flow layout an edit changes heights only along its ancestor chain, and a box's top is its parent's top plus the parent's own height plus the heights of earlier siblings, so a frame reads a few root-to-leaf paths"
+input_scale = "three programs of each of two shapes, about forty thousand boxes and ten thousand frames each, beside 429 smaller programs"
+limit_seconds = 90
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "distance measured from the top of the view, band ignored", hand_case = "a holder under a header that is stuck before and after the frame, with growth above it" },
+  { reading = "one pass, no settling", hand_case = "growth above the view sticks a header during the adjustment" },
+  { reading = "fallback picks a fresh box on the new tree", hand_case = "the holder's row is shut, and the right holder is that row at its own distance" },
+  { reading = "fallback reuses the holder's distance for the container", hand_case = "the holder is dropped from a section whose top was far above the view" },
+  { reading = "eligibility judged once, before the passes", hand_case = "the adjustment sticks the header that is the holder at pass two" },
+  { reading = "clamping only after the last pass", hand_case = "a document shrinking under the view, where the unclamped pass reads a band the clamped one does not" },
+  { reading = "last offset kept when four passes cycle", hand_case = "a header that sticks and unsticks on alternate passes" },
+  { reading = "band as the sum of stuck header heights", hand_case = "two stuck headers whose insets overlap" },
+  { reading = "stuck headers ignore the end of their section", hand_case = "a header whose section ends inside the top strip of the view" },
+  { reading = "nothing held at offset zero", hand_case = "a view at the very top with a row inserted above its holder" },
+  { reading = "live boxes only excluded from the pick", hand_case = "a live box above the view grows and the offset must not move" },
+  { reading = "pick over the whole view, band ignored", hand_case = "the first box showing lies under a stuck header" },
+]
+correct_variants = [
+  "the whole contract in one module: a Fenwick tree over each row of children with contributions pushed up eagerly by point update, tops recomputed on every call with no memo, the band by recursion over the rows crossing the top strip, and the settle as a fixed four-step loop that records each pass and keeps the least offset (variants/ok-onefile)",
+  "layout in dictionaries repaired after each frame by recomputing every edited box and every box above it deepest-first with no difference pushed up, row offsets and tops as per-frame memo tables thrown away on any change, the pick as an explicit stack, and the settle as a while loop over a pass counter (variants/ok-memo)",
+]
+
+[shape]
+environment_py_lines = 356
+editable_files = 4
+reference_lines = 376

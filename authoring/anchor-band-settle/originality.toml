@@ -1,0 +1,67 @@
+# Originality record for anchor-band-settle. Written at Stage 1, before any code, and scored
+# with `python tools/originalitycheck.py anchor-band-settle`. It never ships.
+#
+# The mechanism sentence was written first, before any other field, and held to the twin test:
+# it is not the abstract of a scroll-anchoring tutorial (those restore one saved offset once),
+# and it does not describe focus-return-point, the other Frontend task in the ledger, because
+# nothing here is about which node holds something after a tree edit - the graded quantity is an
+# integer offset produced by a geometric settlement.
+
+[task]
+slug = "anchor-band-settle"
+category = "Software"
+label = "Frontend"
+tags = ["scroll-anchoring", "sticky-positioning", "block-flow-layout", "fixed-point-settling", "incremental-layout"]
+status = "idea"
+
+[mechanism]
+sentence = "Settle a scrolling view's offset once per frame so the box being read keeps its distance below the bottom of the headers stuck at that offset, when the box is judged on the mutated tree, falls back to its nearest pre-frame container at that container's own distance, and every adjusted offset can stick or unstick headers and disqualify the holder again."
+substrate = "the layout and scrolling half of a document view: a box tree laid out in one vertical flow, with collapsible rows, lifted overlays, live regions and section headers that stick at an inset until the end of their section pushes them off, painted once per frame after a batch of edits"
+graded_output = "one line per frame - the integer scroll offset after the frame and the box the view was held by, or why holding was switched off, or that no box qualified - compared exactly over every frame of every program"
+failure_mode = "record the first box that shows and its distance from the top of the view before the edits, then restore that distance once afterwards: the plan every keep-the-scroll-position answer and the published adjustment formula give"
+interaction = "the eligibility rule decides which box holds the view and the stuck-header rule decides where the same distance is measured from; each adjusted offset changes which headers are stuck, which moves that line and can disqualify a holder inside a header that has just stuck"
+
+[nearest.public]
+name = "CSS Scroll Anchoring Module Level 1 with the WICG scroll anchoring explainer"
+url = "https://github.com/WICG/ScrollAnchoring/blob/master/explainer.md"
+covers = "anchor selection by a document-order walk that takes the first fully visible node and descends into partially visible ones, skipping fixed, out-of-flow and overflow-anchor:none subtrees; one adjustment per layout as S1 = S0 + (L1 - L0); suppression when position properties change along the anchor chain, and at scroll offset zero"
+plans_this = false
+separation = "The spec measures the anchor against the scrollport and Chromium strips sticky offsets before measuring, so there is no feedback loop to settle; here the reference line is the bottom of the headers stuck at the offset being tried, stuck boxes can never hold the view, the adjustment is a bounded settle with a stated answer when its passes cycle, a disqualified holder falls back to its nearest pre-frame container at that container's own distance instead of a fresh pick, lifting a container out of the flow falls back instead of suppressing, a view at offset zero is held like any other, and none of it may cost a full relayout per frame."
+
+[nearest.submitted]
+name = "focus-return-point"
+source = "ledger"
+shares = "Both are Frontend tasks over a tree edited by batches of operations, and both must decide what a removed or unavailable node's role passes to: there the place a dropped widget stood, here the nearest pre-frame container of a disqualified holder."
+same_mechanism = false
+separation = "focus-return-point grades which widget holds focus after each event, through a screen stack, keyboard traversal, deferred render transactions and the identity of reused widget instances. This task grades an integer scroll offset per frame produced by settling a flow layout against a band of stuck headers; it has no events, no focus, no screens, no traversal keys and no id reuse, and its difficulty is the feedback between the offset and the stuck set plus a layout that has to stay incremental at scale."
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "which widget holds keyboard focus after each event, with deferred focus effects and saved return points", ours = "which integer scroll offset keeps the held box at its distance below the stuck-header band, settled over bounded passes" },
+  { axis = "substrate", theirs = "a terminal widget tree under a stack of screens receiving key events and render transactions", ours = "a document box tree laid out in one vertical flow inside a scrolling view with sticky section headers and collapsible rows" },
+  { axis = "graded_output", theirs = "the id of the focused widget printed after every event of a script", ours = "the settled scroll offset of every frame, with the holding box or the reason holding was off" },
+  { axis = "failure_mode", theirs = "processing every event immediately or deferring the whole render, and binding requests to ids instead of instances", ours = "restoring one saved distance from the top of the view in a single pass, with no stuck band, no per-pass eligibility and a full relayout" },
+  { axis = "interaction", theirs = "immediate tree edits against deferred focus effects, and object lifetime against id lookup", ours = "the stuck set moving the reference line against the eligibility rule that a stuck box cannot hold the view" },
+]
+
+[search]
+queries = [
+  "css scroll anchoring spec anchor node selection algorithm suppression triggers",
+  "scroll anchoring position sticky header jitter loop",
+  "maintain scroll position when content above viewport changes height javascript",
+  "chromium scroll_anchor.cc sticky position excluded anchor candidate",
+  "scroll anchoring adjustment iterate until stable sticky header offset settle passes",
+  "scroll anchor fallback nearest ancestor when anchor element removed layout shift",
+  "implement scroll anchoring from scratch layout engine tutorial anchor selection sticky",
+  "benchmark task scroll anchoring sticky headers scroll offset per frame graded",
+  "github scroll anchoring simulator box tree viewport sticky anchor python",
+]
+results = "The CSS Scroll Anchoring spec, the WICG explainer, MDN and a WebKit pull request describe one adjustment per layout from the first fully visible node, with sticky offsets stripped in Chromium and anchoring suppressed at offset zero; the rest are scroll-padding and hash-link offset fixes for sticky headers, a jitter postmortem about a header that resizes on scroll, a tail-follow scroll box issue and a small preservePosition library. None has a reference line that moves with the offset being settled, none falls back to a pre-frame container at its own distance, and no benchmark task or simulator for it turned up."
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "virtualized or infinite lists"
+on_list = true
+departure = "Keeping the scroll position when content above changes is the famous subproblem of virtualized and infinite lists, and every write-up of it restores one saved offset from a measured height delta. Nothing here is windowed or recycled and no item size is estimated: the invariant is that the held box keeps its distance below a band of stuck headers that itself depends on the offset being settled, with a disqualified holder handing over to its pre-frame container at that container's own distance - a graded output the list form cannot produce because it has no band and no fallback."
+substrate_used_before = false

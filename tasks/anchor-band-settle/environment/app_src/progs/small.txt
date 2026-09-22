@@ -1,0 +1,23 @@
+view 120
+box b1 - 20
+box h2 b1 16 pin=0
+box b3 b1 34
+box b4 b3 10
+box b5 b1 57
+box b6 b1 84
+box b7 - 0
+box h8 b7 20 pin=4
+box b9 b7 82
+box b10 b7 10
+box h11 b10 14 pin=20
+box b12 b10 28
+box b13 b10 63
+at 31
+frame
+size b12 68
+frame
+to 383
+frame
+size h2 0
+frame
+to 253

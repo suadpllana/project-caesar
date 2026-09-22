@@ -1,0 +1,218 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/scn/hdr.py",
+  "/app/scn/dct.py",
+  "/app/scn/live.py",
+  "/app/scn/pick.py",
+  "/app/scn/step.py",
+  "/app/scn/proj.py",
+]
+
+[task]
+name = "afterquery/scan-chunk-pick"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+The surviving rows are the easy half and they are not what is graded. What is graded is the
+list of chunks the scan actually read, in the order it read them, and an engine that reads
+every chunk and filters produces exactly the right surviving rows while that list is wrong from
+its first entry. So the check a solver reaches for first - run it, see whether the answer is
+right - confirms a plan that has already failed.
+
+The first plan is the published one and the shipped layer already is it: prune each chunk on
+its recorded low and high, use the dictionary where there is one, read what is left, intersect
+the surviving row sets, and settle the order of the conditions once at the top of the query
+from the statistics, cheapest first, each condition run over its whole column. Three of the
+stated rules take that apart rather than adjust it. The unit of work is one chunk of one
+condition and the choice is made again after every one of them, so the outer loop is a
+re-choice loop and not a pass per condition. The score a pair is chosen on is capped by the
+rows that chunk still holds, so it moves every time any condition anywhere kills a row. And a
+chunk that has been read is scored from then on by the exact number of its rows that satisfy
+each condition over that column, which means a read has to settle every condition of the
+column at once - record only the condition that asked and every later score over that column is
+too high and the engine reads a different chunk next, which the printed list records.
+
+Those three interact, which is why they cannot be picked off one at a time. Which chunk is read
+depends on the scores; the scores depend on which chunks have been read; and the survivor counts
+that cap them depend on what the last decision killed. The report pass then inherits all of it:
+it reads only the chunks that still hold a survivor and were not read already, so what it prints
+is a function of the order the condition phase happened to take.
+
+Around those sit rules that are each ordinary and that a wrong reading of any one of fails a
+case. A header whose exactness flag is off was rounded inward, so its usable pair is wider than
+the recorded one and reading it as exact skips chunks that hold matches. A chunk holding a null
+is never kept unread however well its bounds fit. A dictionary answers only when it covers every
+row of its chunk, is charged once however many conditions consult it, and never answers a null
+test. The interpolation the order is chosen on rounds up and takes its endpoints inclusive, and
+both are visible only as a different read order.
+
+There is a measured boundary underneath. The survivors have to be held so that a chunk's count
+of them is cheap, because every step scores every pending pair and there are as many steps as
+pairs. Holding them as a collection of row ids that each score walks is exactly correct and
+dies: measured here, a forty-thousand-row segment in chunks of about two thousand takes 9.79
+seconds against 0.13 for the reference, and one in chunks of about two hundred takes 398.26
+against 0.50, printing exactly the reference's trace both times. The whole graded set is 1.81
+seconds for the reference, and 2.13 and 4.55 for two correct implementations written apart from
+it, inside a stated 60.
+
+Identifiers are in a legacy register - `scn/`, `hdr`, `dct`, `live`, `pick`, `step`, `proj`,
+`mn`, `mx`, `sv`, `dic`, `lit` - short but never misleading, and no name misdescribes what it
+holds. That is a choice about the register of real scan-path code rather than an obstacle: each
+is recoverable from what calls it.
+
+The segment files are synthetic, in twelve families, with headers rounded inward, dictionaries
+that fall back to a literal partway through, chunk partitions that disagree between columns,
+null runs, conditions that collapse the survivor counts on their first chunk, scores built to
+tie, reports over columns a condition already read, and the two scale shapes. In a warehouse
+these concentrations are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`hdr.py` is the header. `bounds` widens a recorded pair by the granularity less one when the
+exactness flag is off, which is the whole of that rule and the thing every later decision reads.
+`miss` and `allsat` are the two sound tests, read off those bounds and the null count, and they
+are kept apart from `guess`, which is the interpolation the order is chosen on and is allowed to
+be wrong: live rows times the width of the part over the width of the pair, rounded up, with
+`ne` taking the complement.
+
+`live.py` is where the first plan has to be given up. The survivors are a byte per row and every
+chunk carries the count of them it still holds, maintained as rows die rather than counted when
+asked, because every step scores every pending pair and a step that walks the survivors is
+correct and does not fit the limit. A row belongs to one chunk of each column and the partitions
+differ between columns, so a death is charged to one chunk of every column the query touches,
+through a row-to-chunk map built once per column.
+
+`dct.py` decides when a dictionary may answer and what it charges. It may answer a comparison
+only when the chunk's overflow list is empty, and the charge is per chunk rather than per
+consult, so whether a second condition reaching the same chunk prints anything depends on which
+condition got there first.
+
+`step.py` decides one chunk for one condition: the header first, both ways round, then the
+dictionary if there is a usable one, then the read. A read stores the values and the exact count
+of every condition over that column, which is what lets the order be settled on exact counts
+afterwards, and the condition being applied then filters the chunk's survivors.
+
+`pick.py` is the loop. It scores every pending pair on the smaller of the chunk's survivors and
+the condition's count there, takes the smallest with the two stated tie-breaks, and asks again.
+Nothing is precomputed because nothing survives a decision: the counts move, and a read replaces
+a guess with a count.
+
+`proj.py` reports, reading only what still holds a survivor and was not read already, in the
+order the query names its columns.
+
+An expert works in that order because each file consumes the one before it: the bounds decide
+what the header can settle, what the header settles decides whether a dictionary is reached, what
+the dictionary says decides whether a chunk is read, what a read settles decides the next score,
+and the scores decide what the report pass is left to read. The same contract is implemented two
+further ways in the authoring set - one counting a chunk's survivors by summing the slice of the
+row flags rather than keeping a count, one holding the survivors as a per-chunk list of row ids
+with the row-to-chunk map searched rather than tabulated - so the shape is visibly not what is
+graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/scn/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the grammar, the value decoder, the trace writer, the driver
+and the sample segments cannot change what a segment file prints, and a new file put beside the
+six is never collected at all.
+
+Correct is defined twice over. Thirty-one hand-written segment files, one per graded decision
+plus the must-still-work side of each fence, are checked against `gt.json`, frozen before the
+grading file was written; the grader first asserts that the sealed model still reproduces
+`gt.json` exactly, so a model that had drifted could not quietly redefine correct. Three hundred
+and six further files are built inside the verifier from a seed drawn after the agent's
+container is gone, across twelve families that concentrate inward-rounded headers, dictionaries
+with and without an overflow list, misaligned partitions, null runs, early collapses, ties,
+reports over already-read columns and the two scale shapes. A submission cannot have seen them,
+so fitting the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Reading a widened header as exact fails `hdr-widen-high`,
+`hdr-widen-low` and `hdr-widen-eq`; keeping a chunk unread while it holds nulls fails
+`hdr-nulls-block-pass`; never letting the header settle a null test fails `hdr-nu-no-nulls`,
+and skipping a chunk that must be dropped or kept unread fails `hdr-miss-skip` and
+`hdr-all-pass`. Using a dictionary that falls back to a literal fails `dic-overflow-read`;
+charging it per consult fails `dic-charge-once`; ignoring the nulls in the keep verdict fails
+`dic-nulls-read`; answering a null test from it fails `dic-not-for-null`; refusing to drop a
+chunk whose dictionary rules the condition out because it holds nulls fails `dic-drop-with-nulls`.
+Settling the order once at the top of the query fails `ord-nothing-prunes`, as do dropping the
+cap by the chunk's survivors, taking the highest pending chunk and taking the largest score.
+Scoring a chunk that has been read from its header fails `ord-exact-after-read`, and so does
+recording only the condition that asked for the read; counting the hits over the rows still
+alive rather than over the whole chunk fails `dec-hits-whole-chunk`. Rounding the interpolation
+down fails `ord-spread-rounds-up` and taking its endpoint exclusive fails `ord-spread-takes-edge`.
+Reading every chunk of a reported column fails `dic-drop-with-nulls`, reporting the columns in
+index order fails `prj-listed-order`, counting nulls in the reported figures fails
+`hdr-nu-no-nulls`, and carrying state from one query into the next fails `qry-starts-over`.
+
+Thirty-nine cheats score 0. Twenty-three are wrong readings, each caught by the enumerated case
+named for it. One is exactly correct and too slow: the survivors held as a collection of row ids
+that every score walks. Three are shortcut strategies - one fixed output for every file, the
+worked example replayed, and the conditions run in query order over whole columns - and the
+shipped tree is the fourth, run as the do-nothing agent. One is a forgery carrying the frozen
+answers for every enumerated file, which reproduces all thirty-one and fails on the files it
+could not have seen. The other eleven are probes, each on an engine that prints a constant so
+that a reward of 1 can only have come from the tamper: reading the frozen answers out of the
+sealed directory, the reward written directly, a reward written late by a double-forked
+survivor, a planted worker record, a record planted and the worker exited clean before it could
+be overwritten, a record spoiled on the way out, a rewritten generator, a rewritten grader, a
+rewritten case list, a uid and root-path probe, and an engine hidden in a file beside the six
+that are collected. Two independently written correct scan layers score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The graded segment files are built before that clock starts, by the
+privileged stage, so the limit measures the submitted engine and nothing else, and the seed they
+came from is never handed to the process that runs the submission. The model and the frozen
+answers sit in a directory that uid cannot read, so code running inside the verifier cannot
+compute its answers from them. The reward defaults to 0, is written last by the privileged stage
+into a root-owned directory locked before any agent code runs, and anything the run left behind
+is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "columnar-scan",
+  "chunk-statistics",
+  "dictionary-encoding",
+  "selectivity-estimation",
+  "null-semantics",
+  "late-materialization",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the scan layer of a columnar store: the part that turns a segment footer and a
+filter into rows, decides which chunks are fetched at all, and keeps the per-chunk statistics
+that decision rests on. Familiarity with statistics that are bounds rather than facts, with
+dictionaries that stop being usable the moment a chunk falls back to a literal, and with the
+difference between a filter order chosen once from the footer and one chosen again as each
+chunk lands. Comfort with null semantics that decide whether a chunk can be skipped or has to
+be fetched, with chunk partitions that do not line up between columns of the same table, and
+with the difference between a scan that is correct and one that is affordable at the row counts
+a real segment carries.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

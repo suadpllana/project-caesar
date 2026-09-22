@@ -238,9 +238,9 @@ written with every rule right - fell over the clock.
 | No answer leaked into agent image | pass | `tools/imagecheck.py`: 14 files, no `tests/` or `solution/` content; `extraneouscheck` and `deadfieldcheck` clean; `forgecheck` finds the forgery probe and no ground truth in the agent tree |
 | `harbor run -a oracle` = 1 | pass | `docker_trial.py lock-behind-escalate oracle`: reward 1, 40 tests in 44 s |
 | `harbor run -a nop` = 0 | pass | `docker_trial.py lock-behind-escalate nop`: reward 0, 26 of 40 failing |
-| Cheats all score 0 | pending | `docker_trial.py --all` over 32 cheats is running; results are recorded below when it finishes |
+| Cheats all score 0 | pass | `docker_trial.py --all`: 34 of 34 trials behaved as required - oracle 1, nop 0, all 32 cheats 0. `cheat-slow-search` was killed by the 600 s clock and graded as no record; `probe-crash-worker`, `probe-malformed` and `probe-uncollected-file` left the grader with a planted, spoiled or missing record and scored 0 in under two seconds of grading |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
-| `preflight.py` | pending | re-run after this file and `tests/test.sh` were brought up to date |
+| `preflight.py` | pass | 0 errors; the 21 warnings are the method-call false positive on `put`, `rows`, `holders`, `on`, `add`, `remove`, `targets` (every one is called as a method) and the package-call notes every retained bundle trips |
 | `harbor check` rubric | not run | no API key in this session; the manual quality review in docs/QUALITY-REVIEW.md was walked instead |
 
 ## Open questions and next steps
@@ -248,6 +248,26 @@ written with every rule right - fell over the clock.
 The easiness probe has not been run: this session has no probe harness. The reading
 separations, the layer report, the short-rule measurement, the measured gate and the cold
 re-attack stand in its place, and the estimate above is what they support.
+
+## What the isolation probes actually report, not just that they score 0
+
+Run in the verifier image built from the final bundle, reading the worker's own record rather
+than the reward:
+
+- `cheat-probe-answer-key` first two trace lines: `gt PermissionError`, `model
+  ModuleNotFoundError`. The frozen answers cannot be read and the sealed model cannot be
+  imported by code running inside the verifier.
+- `cheat-probe-privilege` first two trace lines: `uid 1002`, `reward PermissionError`. Submitted
+  code is unprivileged and the reward is not writable by it.
+- `/logs/verifier` is `drwx------ root root` at the moment the submission runs, `reward.txt`
+  inside it is root-owned, and `/tests/seal` is `drwx------ root root`.
+
+A zero alone would not have distinguished any of these from a probe whose patch never fired.
+
+The final verifier image differs from the one the full suite ran on by two edits made after
+that suite started: the reward path written literally in `tests/test.sh`, and
+`tests/test_outputs.py` restructured around a record class. Oracle, nop and the nine probes
+were re-run on the final image; the table above records that run.
 
 ## Quality self-review (docs/QUALITY-REVIEW.md, walked criterion by criterion)
 

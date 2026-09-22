@@ -35,7 +35,7 @@ M = "tests/seal/model.py"
 J = "tests/judge.py"
 F = "tests/seal/forge.py"
 P = "tests/probe.py"
-T = "tests/test_stops.py"
+T = "tests/test_outputs.py"
 
 # (site, what it grades, [quotes])
 GRADED = [
@@ -220,7 +220,7 @@ def main():
     lines += ["", "## Readings", "",
               "| Reading | Sentence or published example that rules it out | Case that separates it |",
               "|---|---|---|"]
-    for name, (what, _) in readings.READINGS.items():
+    for name, (what, _) in readings.EDITS.items():
         lines.append("| %s: %s | %s | case %s |" % (name, what, q(readings.RULE[name]), name))
     lines += ["", "## Shortcuts", "", "| Strategy | Result |", "|---|---|"]
     for name, r in shortcuts.items():

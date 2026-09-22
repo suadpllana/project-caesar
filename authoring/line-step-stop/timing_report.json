@@ -1,0 +1,19 @@
+{
+ "rows": [
+  [
+   "300 seconds for the whole graded set (`tests/judge.py` LIMIT, stated as the debugger's 300 seconds)",
+   "`authoring/line-step-stop/variants/v2/steps.py`, a second engine written apart from the reference (plants every decision address of the stepping function)",
+   "V2 used 24.3 s (reward 1) and the reference 24.4 s (reward 1) of debugger time for the whole set in the host trial; the exactly correct single-stepping `authoring/line-step-stop/variants/slow/steps.py`: reward 0, stopped by the clock on sample-long after 300 s of debugger time; the half-way `authoring/line-step-stop/variants/half/steps.py`: reward 0, stopped by the clock on sample-long after 300 s of debugger time"
+  ],
+  [
+   "programs of up to 400 addresses (`tests/seal/forge.py` MAX_ADDRESSES)",
+   "`tests/seal/forge.py` rejects any longer program before a session is built; `tests/seal/model.py` parses every graded image",
+   "largest program over the 63 frozen sessions and 900 freshly generated ones: 399 addresses"
+  ],
+  [
+   "loops of up to 700,000 iterations (`authoring/line-step-stop/make_heavy.py` draws heavy counts from 250,000 to 700,000)",
+   "`tests/seal/model.py` executes every frozen session one instruction at a time",
+   "largest value on any frozen tape: 699958; largest on 900 freshly generated tapes: 3"
+  ]
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "cut-shipped": {
+  "what": "the shipped tree unchanged (nop)",
+  "matched": 130,
+  "of": 344,
+  "result": "reward 0 in the host trial (first failing session: sample-calls); matches 130 of 344 sessions exactly (37.8%)"
+ },
+ "cut-constant": {
+  "what": "constant: every command prints exit and every breakpoint resolves to nothing",
+  "matched": 0,
+  "of": 344,
+  "result": "reward 0 in the host trial (first failing session: sample-calls); matches 0 of 344 sessions exactly (0.0%)"
+ },
+ "cut-first-location": {
+  "what": "positional: every breakpoint takes only its first statement row",
+  "matched": 191,
+  "of": 344,
+  "result": "reward 0 in the host trial (first failing session: sample-inline); matches 191 of 344 sessions exactly (55.5%)"
+ },
+ "cut-one-instruction": {
+  "what": "positional: every step, next and finish moves exactly one instruction",
+  "matched": 61,
+  "of": 344,
+  "result": "reward 0 in the host trial (first failing session: sample-calls); matches 61 of 344 sessions exactly (17.7%)"
+ },
+ "cut-innermost-only": {
+  "what": "positional: a stop prints only the innermost real frame",
+  "matched": 135,
+  "of": 344,
+  "result": "reward 0 in the host trial (first failing session: sample-calls); matches 135 of 344 sessions exactly (39.2%)"
+ },
+ "cut-replay-example": {
+  "what": "the worked example's output replayed for every session",
+  "matched": 4,
+  "of": 344,
+  "result": "reward 0 in the host trial (first failing session: sample-calls); matches 4 of 344 sessions exactly (1.2%)"
+ },
+ "read-inrow-call-unplanted": {
+  "what": "the previous revision of a correct engine (V2 before its in-row call fix)",
+  "matched": 343,
+  "of": 344,
+  "result": "reward 0 in the host trial (first failing session: case-inrow-call-unplanted); matches 343 of 344 sessions exactly (99.7%)"
+ }
+}

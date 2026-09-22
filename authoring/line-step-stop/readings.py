@@ -5,17 +5,20 @@ Every replacement must fire at least once (count recorded), or the script fails:
 silently changes nothing produces a "reading" that is the reference, scores 1 for the wrong
 reason, and hides the gap it was written to find.
 """
+import json
 import os
+import random
 import re
 import shutil
 import sys
 
-from lab import SOL, HERE
+from lab import SEAL, SOL, HERE, forge
+import fastbench
 
 OUT = os.path.join(HERE, "readings")
 
 # name -> (what the reading believes, [(file, old, new, regex?)])
-READINGS = {
+EDITS = {
     "ret-address": (
         "caller frames are shown at the return address instead of the call instruction",
         [("frames.py", "[(r - 1, 0) for r in reversed(stack)]", "[(r, 0) for r in reversed(stack)]", False)]),
@@ -129,7 +132,7 @@ READINGS = {
 
 
 def build(name):
-    what, patches = READINGS[name]
+    what, patches = EDITS[name]
     d = os.path.join(OUT, name)
     if os.path.exists(d):
         shutil.rmtree(d)
@@ -155,7 +158,7 @@ def build(name):
 
 
 if __name__ == "__main__":
-    names = sys.argv[1:] or list(READINGS)
+    names = sys.argv[1:] or list(EDITS)
     for n in names:
         build(n)
     print("wrote %d readings to %s" % (len(names), OUT))
@@ -193,4 +196,86 @@ RULE = {
     "ret-unplanted": "When the stepping frame returns, its caller becomes the stepping frame",
     "step-callee-shows-all": "`step` stops at the first address of the called function if that function has lines, hiding the instances that start there",
 }
-assert set(RULE) == set(READINGS), set(RULE) ^ set(READINGS)
+assert set(RULE) == set(EDITS), set(RULE) ^ set(EDITS)
+
+
+# ---- the contract tools/readingcheck.py reads --------------------------------------------
+# A session is passed around as JSON text (image, tape, commands); run() returns the lines
+# the session driver prints, with any exception, so a reading that crashes also separates.
+
+REFERENCE = SOL
+
+
+def _patched(name):
+    """The files a reading replaces, as source: the reference with that reading's edits."""
+    texts = {}
+    for f, old, new, is_re in EDITS[name][1]:
+        if f not in texts:
+            texts[f] = open(os.path.join(SOL, f)).read()
+        if is_re:
+            texts[f], n = re.subn(old, new, texts[f])
+        else:
+            n = texts[f].count(old)
+            texts[f] = texts[f].replace(old, new)
+        if n == 0:
+            raise SystemExit("reading %s: patch did not fire in %s: %r" % (name, f, old[:60]))
+    return texts
+
+
+READINGS = {name: _patched(name) for name in EDITS}
+
+_SEEN = {}
+_RESULTS = {}
+
+
+def _text(s):
+    return json.dumps({"image": s["image"], "tape": s["tape"], "cmds": s["cmds"]}, sort_keys=True)
+
+
+def enumerated():
+    """The frozen sessions small enough to replay: the samples, the cases and the fences."""
+    gt = json.load(open(os.path.join(SEAL, "gt.json")))
+    out = []
+    for grp in ("samples", "cases", "fences"):
+        for s in gt[grp]:
+            t = _text(s)
+            _SEEN[t] = True
+            out.append((s["name"], t))
+    return out
+
+
+def generated(n):
+    rng = random.Random(8086)
+    fams = sorted(forge.FAMILIES)
+    out = []
+    for i in range(n):
+        fam = fams[i % len(fams)]
+        t = _text(forge.session(fam, rng))
+        _SEEN[t] = True
+        out.append(("%s-%d" % (fam, i), t))
+    return out
+
+
+def run(policy, text):
+    """Play one session in process under a policy directory.
+
+    readingcheck asks once per session per reading, so the first question about a policy
+    plays every session handed out so far through one bench process and keeps the answers.
+    """
+    key = str(policy)
+    if (key, text) not in _RESULTS:
+        todo = [t for t in _SEEN if (key, t) not in _RESULTS]
+        if text not in _SEEN:
+            todo.append(text)
+        for t, r in zip(todo, fastbench.run(key, [json.loads(t) for t in todo])):
+            _RESULTS[(key, t)] = (tuple(r["got"]), r["err"])
+    return _RESULTS[(key, text)]
+
+
+def reductions(text):
+    """Shorter sessions for the shrinker: one command fewer, last first, keeping the run."""
+    s = json.loads(text)
+    for i in range(len(s["cmds"]) - 1, -1, -1):
+        cmds = s["cmds"][:i] + s["cmds"][i + 1:]
+        if "run" in cmds:
+            yield json.dumps(dict(s, cmds=cmds), sort_keys=True)

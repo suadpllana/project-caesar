@@ -49,7 +49,7 @@ def weight(s, k):
 
 
 cases = {}
-for name, (what, _) in make_readings.READINGS.items():
+for name, (what, _) in make_readings.EDITS.items():
     res = fastbench.run(os.path.join(HERE, "readings", name), pop)
     best = None
     for i in bench.compare(pop, res):

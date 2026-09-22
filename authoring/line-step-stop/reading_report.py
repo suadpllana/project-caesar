@@ -15,7 +15,7 @@ rng = random.Random(4242)
 sess = [forge.session(f, rng) for f in forge.FAMILIES for _ in range(N)]
 size = lambda s: len(s["image"].splitlines()) + 3 * len(s["cmds"])
 report = {}
-for name in make_readings.READINGS:
+for name in make_readings.EDITS:
     res = fastbench.run(os.path.join(HERE, "readings", name), sess)
     bad = bench.compare(sess, res)
     fam = {}

@@ -67,7 +67,7 @@ def main():
     os.makedirs(CHEAT, exist_ok=True)
 
     # ---- one misread rule each, on the reference -------------------------------------
-    for name, (what, _) in make_readings.READINGS.items():
+    for name, (what, _) in make_readings.EDITS.items():
         d = os.path.join(HERE, "readings", name)
         files = {f: src(os.path.join(d, f)) if os.path.exists(os.path.join(d, f)) else reference(f)
                  for f in FILES}
@@ -342,19 +342,24 @@ try:
 except Exception as e:
     _log("key", "model %r" % (e,))
 '''),
-        "tape-theft": ("tries to read the tape from the target process to simulate locally",
+        "tape-theft": ("tries to read the tape out of every other user's process to simulate locally",
                        '''import os
 for pid in os.listdir("/proc"):
     if not pid.isdigit():
         continue
-    for leaf in ("fd/0", "cmdline", "mem", "environ"):
+    try:
+        owner = os.stat("/proc/" + pid).st_uid
+    except Exception:
+        continue
+    if owner == os.getuid():
+        continue
+    for leaf in ("fd/0", "mem", "environ"):
         try:
             with open("/proc/%s/%s" % (pid, leaf), "rb") as f:
                 data = f.read(64)
-            if leaf != "cmdline":
-                _log("tape", "OK /proc/%s/%s %r" % (pid, leaf, data[:16]))
+            _log("tape", "READ /proc/%s/%s of uid %d %r" % (pid, leaf, owner, data[:16]))
         except Exception as e:
-            pass
+            _log("tape", "denied /proc/%s/%s of uid %d %s" % (pid, leaf, owner, type(e).__name__))
 _log("tape", "scan done")
 '''),
         "kill-target": ("tries to kill the target process and every process it can see",

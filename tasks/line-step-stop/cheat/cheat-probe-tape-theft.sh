@@ -1,6 +1,6 @@
 #!/bin/bash
 # cheat: probe-tape-theft
-# tries to read the tape from the target process to simulate locally
+# tries to read the tape out of every other user's process to simulate locally
 set -euo pipefail
 mkdir -p /app/dbg
 cat > /app/dbg/frames.py <<'LSS_EOF'
@@ -65,14 +65,19 @@ import os
 for pid in os.listdir("/proc"):
     if not pid.isdigit():
         continue
-    for leaf in ("fd/0", "cmdline", "mem", "environ"):
+    try:
+        owner = os.stat("/proc/" + pid).st_uid
+    except Exception:
+        continue
+    if owner == os.getuid():
+        continue
+    for leaf in ("fd/0", "mem", "environ"):
         try:
             with open("/proc/%s/%s" % (pid, leaf), "rb") as f:
                 data = f.read(64)
-            if leaf != "cmdline":
-                _log("tape", "OK /proc/%s/%s %r" % (pid, leaf, data[:16]))
+            _log("tape", "READ /proc/%s/%s of uid %d %r" % (pid, leaf, owner, data[:16]))
         except Exception as e:
-            pass
+            _log("tape", "denied /proc/%s/%s of uid %d %s" % (pid, leaf, owner, type(e).__name__))
 _log("tape", "scan done")
 
 from dbg import frames

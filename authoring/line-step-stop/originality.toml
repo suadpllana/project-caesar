@@ -6,7 +6,7 @@ slug = "line-step-stop"
 category = "Software"
 label = "Languages"
 tags = ["source-level-debugging", "inlined-call-frames", "line-number-tables", "step-over-breakpoints", "remote-debug-stub"]
-status = "idea"
+status = "pending"
 
 [mechanism]
 sentence = "Decide where a source-level debugger stops after each step, next, finish and continue, and which inlined frames it shows there, when inlined call sites share addresses with their callers, line-table rows differ in statement status, and single-stepping the target is too slow to use."

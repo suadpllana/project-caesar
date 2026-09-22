@@ -34,7 +34,7 @@ def main():
             "# the other way, the session prints a different line. Keyed by the reading's name.",
             "CASES = {"]
     for s in doc["cases"]:
-        what = readings.READINGS[s["reading"]][0]
+        what = readings.EDITS[s["reading"]][0]
         out.append("    %r: %r," % (s["reading"], "separates the reading that " + what))
     out += ["}", "", "# Ordinary sessions - no inlining, no special rows - that an engine which hides,",
             "# reveals or stops more than the rules say prints wrongly.", "FENCES = {"]

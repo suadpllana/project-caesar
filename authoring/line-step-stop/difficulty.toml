@@ -173,7 +173,7 @@ so the target may run freely until it reaches an exit of the current row, a plan
 address at the stepping depth, or a breakpoint.
 """
 # Measured on the built tree, 2026-09-22 (host trials, tests/test.sh unmodified): the reference
-# used 24.0 s of debugger time for all 369 sessions; the exactly correct single-stepping engine
+# used 24.4 s of debugger time for all 369 sessions; the exactly correct single-stepping engine
 # and the half-way engine that plants return addresses were both stopped by the clock at
 # 300 s on sample-long, two sessions in. The half-way engine alone on the lightest frozen heavy
 # session (heavy-15, 3.0M instructions inside a stepping frame) took 157 s, every line right

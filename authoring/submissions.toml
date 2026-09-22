@@ -65,6 +65,15 @@ mechanism = "Produce the trace of a cooperative run: which guard opened and clos
 verdict = "ai-passed"
 
 [[submission]]
+slug = "line-step-stop"
+category = "Software"
+label = "Languages"
+tags = ["source-level-debugging", "inlined-call-frames", "line-number-tables", "step-over-breakpoints", "remote-debug-stub"]
+substrate = "a source-level debugger that drives a separate target process through a link which runs to planted addresses or single-steps at a round-trip cost, reading a line table with inlined call instances"
+mechanism = "Decide where a source-level debugger stops after each step, next, finish and continue, and which inlined frames it shows there, when inlined call sites share addresses with their callers, line-table rows differ in statement status, and single-stepping the target is too slow to use."
+verdict = "pending"
+
+[[submission]]
 slug = "note-carry-forward"
 category = "Software"
 label = "Algorithms"

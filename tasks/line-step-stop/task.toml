@@ -26,7 +26,7 @@ optimizing compiler does: calls inlined at the start of a line or after code of 
 nested and back to back, split and non-statement rows, back edges into the middle of a line,
 recursion through a single call site, functions with no line information. The machine and the
 image format are invented for the task. The rules are the ones real debuggers have had to
-settle, and where gdb and lldb settle them differently the brief picks one and says so.
+settle, and where gdb and lldb settle them differently the brief picks one and states it.
 
 The first plan is the remembered one: single-step, stop when the line number changes, read the
 inline frames off the program counter, step over a call with a breakpoint on its return
@@ -75,7 +75,7 @@ return address.
 That is the shape real debuggers give run control - a step range, resume breakpoints and a
 frame identity check on every stop - adapted to a target that cannot step a range itself. A
 command costs a handful of round trips however long the loops it crosses, so the reference
-plays the whole graded set in a small fraction of the limit.
+plays the whole graded set in about 24 of the 300 seconds.
 """
 
 verification_explanation = """
@@ -96,10 +96,12 @@ set shares one 300-second clock for the debugger's processes. The reward is root
 0 before any submitted code runs and written to 1 only when the trusted judge and the report
 both pass, and every process of both users is killed after each session.
 
-The reference, and a second correct engine written apart from it, score 1. Each of the 29
-single-rule readings, the shipped tree, four degenerate strategies, two exactly correct but
-single-stepping engines and eight isolation probes score 0, each caught by a named session or
-by the clock.
+The reference and a second correct engine written apart from it score 1, each in about 24 of
+the 300 seconds. Each of the 29 single-rule readings, the shipped tree, five degenerate
+strategies including a replay of the published example, two exactly correct but
+single-stepping engines, a submission that carries every frozen session's expected lines and
+eight isolation probes score 0, each caught by a named session, by the nonce population or by
+the clock.
 """
 
 category = "Software"

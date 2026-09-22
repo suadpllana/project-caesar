@@ -17,7 +17,7 @@ judge=0
 python3 /tests/judge.py || judge=$?
 
 report=0
-pytest --ctrf /logs/verifier/ctrf.json /tests/test_stops.py -rA || report=$?
+pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA || report=$?
 
 if [ "$judge" -eq 0 ] && [ "$report" -eq 0 ]; then
     echo 1 > /logs/verifier/reward.txt

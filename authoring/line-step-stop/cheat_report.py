@@ -57,10 +57,19 @@ if __name__ == "__main__":
             res["reproduced_frozen"] = full
             print("      carrier passed every frozen session and was stopped by nonce: %s" % full,
                   flush=True)
+        if name == "probe-tape-theft":
+            # Only a read of another user's process counts, and the target's is the one that
+            # holds the tape; every attempt on it must have been refused.
+            reads = [ln for ln in res.get("probe_log", []) if ln.startswith("tape READ")]
+            tried = [ln for ln in res.get("probe_log", []) if " of uid " in ln]
+            res["tape_sealed"] = bool(tried) and not reads
+            print("      other users' processes probed: %d attempts, %d reads" % (len(tried), len(reads)),
+                  flush=True)
         for ln in res.get("probe_log", [])[:8]:
             print("      probe: " + ln[:150], flush=True)
         json.dump(report, open(out, "w"), indent=1)
     bad = [n for n, r in report.items() if r.get("reward") != "0"]
     bad += [n for n, r in report.items() if n.startswith("forge-") and not r.get("reproduced_frozen")]
+    bad += [n for n, r in report.items() if n == "probe-tape-theft" and not r.get("tape_sealed")]
     print("cheats scoring anything but 0, or carriers that did not reproduce the frozen set:", bad)
     sys.exit(1 if bad else 0)

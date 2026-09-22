@@ -1,17 +1,13 @@
-"""The recorded log, indexed once on the axes the rules actually count on.
+"""The recorded history, indexed once on the axes the rules count on.
 
-Two different counters decide two different things, and the whole task turns on their
-being different:
+Three different counters read three different things and the task turns on their being
+different: a command is matched to the recorded command at its position among those OF ITS
+KIND, its answer is the recorded answer at its position among those of that KIND AND NAME
+together, and a signal is taken at its position among those of its TAG. Every one of them
+also needs the position of the line in the history, because that position is what decides
+which branch runs next.
 
-  * a command is matched to a recorded `go` by its position among the `go` events OF ITS
-    OWN KIND, so `go` is a dict keyed by kind;
-  * an answer is paired with a command by their positions among the events of that KIND
-    AND NAME together, so `ok` is a dict keyed by the pair.
-
-Everything is built in one pass over the log because the log is fixed before the body
-starts. That is the invariant the execution limit rests on: the shipped service looks the
-answer up by walking the log for every command, which stays exactly correct and cannot
-finish the wide programs.
+Everything is built in one pass, because the history is fixed before the body starts.
 """
 
 

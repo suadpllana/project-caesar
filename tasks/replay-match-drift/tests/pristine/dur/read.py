@@ -2,11 +2,10 @@ KIND = {
     "call": "call",
     "fire": "call",
     "spawn": "child",
-    "open": "child",
     "nap": "timer",
 }
 
-TAKES = ("call", "spawn", "nap")
+AWAITS = ("call", "spawn", "nap")
 
 
 class Prog(object):

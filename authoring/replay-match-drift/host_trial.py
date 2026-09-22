@@ -87,7 +87,7 @@ def run_agent(how, arg):
     if how == "nop":
         return 0, "nop: the shipped tree, untouched"
     if how == "dir":
-        for part in ("tab", "edge", "pair", "pend", "sigq", "ver"):
+        for part in ("tab", "edge", "pair", "hold", "sched", "wake", "ver"):
             one = pathlib.Path(arg) / (part + ".py")
             if one.is_file():
                 shutil.copy(one, APP / "dur" / (part + ".py"))

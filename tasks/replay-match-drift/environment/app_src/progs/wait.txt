@@ -1,0 +1,21 @@
+b fork side
+b wait pay
+b fire lift
+b take
+b end
+b lab side
+b wait pay
+b mark road 2
+b jz slow
+b call fast
+b jmp out
+b lab slow
+b call slow
+b lab out
+b end
+e sig pay 11
+e go call lift
+e sig pay 12
+e ok call lift 8
+e go call slow
+e ok call slow 9

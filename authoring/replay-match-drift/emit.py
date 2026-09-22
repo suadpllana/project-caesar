@@ -46,46 +46,66 @@ def reading(key, note, **files):
     NOTES[key] = note
 
 
-# --- how a command finds its recorded slot ------------------------------------------------
+# --- which branch runs next ----------------------------------------------------------------
 reading(
-    "flat-count", "a command counted over the whole log rather than among its own kind",
-    **{"tab.py": patch(
-        "tab.py",
-        ("                self.go.setdefault(kind, []).append((pos, args[1]))",
-         "                self.go.setdefault(kind, []).append((pos, args[1]))\n"
-         "                self.flat.append((pos, args[1]))"),
-        ("        self.order = []",
-         "        self.order = []\n        self.flat = []"),
-        ("        row = self.go.get(kind)\n        if row is None or i >= len(row):\n"
-         "            return None\n        return row[i]",
-         "        if i >= len(self.flat):\n            return None\n"
-         "        return self.flat[i]"),
+    "sched-mark-first", "a branch that has to be woken taken ahead of one that can just run",
+    **{"sched.py": patch(
+        "sched.py",
+        ("    def pick(self):\n        while self.ready:", "    def pick(self):\n        while self.marked:\n"
+         "            _mark, bid = heapq.heappop(self.marked)\n"
+         "            who = self.all[bid]\n            if who.state == \"parked\":\n"
+         "                who.state = \"running\"\n                return who\n"
+         "        while self.ready:"),
     )})
 
 reading(
-    "slot-by-name", "a command matched to the first recorded command of its kind sharing its name",
-    **{"tab.py": patch(
-        "tab.py",
-        ("    def slot(self, kind, i):\n        row = self.go.get(kind)\n"
-         "        if row is None or i >= len(row):\n            return None\n"
-         "        return row[i]",
-         "    def slot(self, kind, i):\n        row = self.go.get(kind)\n"
-         "        if row is None or i >= len(row):\n            return None\n"
-         "        return row[i]\n\n"
-         "    def named(self, kind, name, i):\n        row = self.go.get(kind) or []\n"
-         "        for at in range(len(row)):\n            if row[at][1] == name:\n"
-         "                return row[at]\n        return None if i >= len(row) else row[i]"),
-    ), "edge.py": patch(
-        "edge.py",
-        ("        found = self.tab.slot(kind, i)",
-         "        found = self.tab.slot(kind, i)\n"
-         "        if found is not None:\n"
-         "            found = self.tab.named(kind, found[1], i) or found"),
+    "sched-park-order", "the waiting branches taken in the order they went down, not by mark",
+    **{"sched.py": patch(
+        "sched.py",
+        ("            heapq.heappush(self.marked, (mark, who.bid))",
+         "            self.marked.append((len(self.marked), who.bid))"),
     )})
 
-# --- how an answer is paired with its command ----------------------------------------------
 reading(
-    "kind-answer", "answers paired on kind alone, so two names of one kind swap values",
+    "sched-last-mark", "the waiting branch whose mark is largest taken first",
+    **{"sched.py": patch(
+        "sched.py",
+        ("            heapq.heappush(self.marked, (mark, who.bid))",
+         "            heapq.heappush(self.marked, (-mark, who.bid))"),
+    )})
+
+reading(
+    "sched-ready-last", "the ready branches taken from the highest number down",
+    **{"sched.py": patch(
+        "sched.py",
+        ("        heapq.heappush(self.ready, made.bid)\n        return made.bid",
+         "        heapq.heappush(self.ready, -made.bid)\n        return made.bid"),
+        ("            who = self.all[heapq.heappop(self.ready)]",
+         "            who = self.all[-heapq.heappop(self.ready)]"),
+        ("                heapq.heappush(self.ready, bid)\n        self.idle = []",
+         "                heapq.heappush(self.ready, -bid)\n        self.idle = []"),
+    )})
+
+# --- what a branch waits for ------------------------------------------------------------------
+reading(
+    "wake-no-claim", "a signal taken when the branch wakes rather than claimed as it goes down",
+    **{"wake.py": patch(
+        "wake.py",
+        ("        self.n[payload] = at + 1\n        self.claim[bid] = found[1]\n        return found[0]",
+         "        return found[0]"),
+    )})
+
+reading(
+    "wake-mark-is-go", "a branch marked by where its command was recorded, not where its answer was",
+    **{"pair.py": patch(
+        "pair.py",
+        ("        return Rec(kind, idx, found[1], found[0])",
+         "        return Rec(kind, idx, found[1], idx)"),
+    )})
+
+# --- pairing an answer with its command ----------------------------------------------------------
+reading(
+    "pair-kind-only", "answers paired on kind alone, so two names of one kind swap values",
     **{"tab.py": patch(
         "tab.py",
         ('                self.ok.setdefault((args[0], args[1]), []).append((pos, int(args[2])))',
@@ -93,11 +113,11 @@ reading(
         ("        row = self.ok.get((kind, name))", "        row = self.ok.get(kind)"),
     ), "pair.py": patch(
         "pair.py",
-        ("            key = (kind, name)", "            key = kind"),
+        ("        key = (kind, name)", "        key = kind"),
     )})
 
 reading(
-    "name-answer", "answers paired on name alone, so one name used under two kinds collides",
+    "pair-name-only", "answers paired on name alone, so one name under two kinds collides",
     **{"tab.py": patch(
         "tab.py",
         ('                self.ok.setdefault((args[0], args[1]), []).append((pos, int(args[2])))',
@@ -105,48 +125,40 @@ reading(
         ("        row = self.ok.get((kind, name))", "        row = self.ok.get(name)"),
     ), "pair.py": patch(
         "pair.py",
-        ("            key = (kind, name)", "            key = name"),
+        ("        key = (kind, name)", "        key = name"),
     )})
 
 reading(
-    "pair-kind-counter", "the answer counter kept per kind while the lookup stays on the pair",
+    "pair-feed-at-issue", "an unrecorded result taken when the command is issued, not when it is taken",
     **{"pair.py": patch(
         "pair.py",
-        ("            key = (kind, name)", "            key = kind"),
+        ("        if not replayed:\n            return Rec(kind, idx, None, None)",
+         "        if not replayed:\n            return Rec(kind, idx, self.spare(), None)"),
     )})
 
-# --- the boundary ----------------------------------------------------------------------------
+# --- how a command finds its recorded slot -----------------------------------------------------
 reading(
-    "edge-per-kind", "a boundary opened for each kind on its own rather than once for the run",
-    **{"edge.py": patch(
-        "edge.py",
-        ("        self.on = False", "        self.on = {}"),
-        ("        if self.on:\n            return i, None, False",
-         "        if self.on.get(kind):\n            return i, None, False"),
-        ("            self.on = True", "            self.on[kind] = True"),
-        ("    def live(self):\n        return self.on",
-         "    def live(self):\n        return bool(self.on)"),
-    )})
-
-reading(
-    "edge-each-time", "the boundary line printed at every live command instead of once",
-    **{"edge.py": patch(
-        "edge.py",
-        ("        if self.on:\n            return i, None, False",
-         "        if self.on:\n            return i, None, True"),
+    "tab-flat-count", "a command counted over the whole history rather than among its own kind",
+    **{"tab.py": patch(
+        "tab.py",
+        ("                self.go.setdefault(kind, []).append((pos, args[1]))",
+         "                self.go.setdefault(kind, []).append((pos, args[1]))\n"
+         "                self.flat.append((pos, args[1]))"),
+        ("        self.order = []", "        self.order = []\n        self.flat = []"),
+        ("        row = self.go.get(kind)\n        if row is None or i >= len(row):\n"
+         "            return None\n        return row[i]",
+         "        if i >= len(self.flat):\n            return None\n        return self.flat[i]"),
     )})
 
 reading(
-    "edge-log-empty", "the boundary decided by the log running out of events altogether",
+    "edge-match-after-live", "commands still matched against the history once the live side is open",
     **{"edge.py": patch(
         "edge.py",
-        ("        found = self.tab.slot(kind, i)\n        if found is None:",
-         "        found = self.tab.slot(kind, i)\n"
-         "        if found is None and len(self.hit) < len(self.tab.issued()):\n"
-         "            return i, None, False\n        if found is None:"),
+        ("        if self.on:\n            return i, None\n        return i, self.tab.slot(kind, i)",
+         "        return i, self.tab.slot(kind, i)"),
     )})
 
-# --- what the log has left over -----------------------------------------------------------------
+# --- what the history has left over --------------------------------------------------------------
 reading(
     "left-latest", "the leftover reported as the last recorded command left over, not the earliest",
     **{"edge.py": patch(
@@ -158,93 +170,37 @@ reading(
     )})
 
 reading(
-    "left-counts-all", "every unconsumed event counted, so a spare signal or answer fails the run",
+    "left-counts-all", "every unconsumed line counted, so a spare signal fails the run",
     **{"tab.py": patch(
         "tab.py",
         ("    def issued(self):\n        return self.order",
-         "    def issued(self):\n        return self.order + self.spare"),
-        ("        self.order = []",
-         "        self.order = []\n        self.spare = []"),
+         "    def issued(self):\n        return sorted(self.order + self.spare)"),
+        ("        self.order = []", "        self.order = []\n        self.spare = []"),
         ('            elif ev == "sig":',
-         '            elif ev == "sig":\n'
-         '                self.spare.append((pos, args[0], 0))'),
-    )})
-
-# --- taking a result ------------------------------------------------------------------------------
-reading(
-    "race-issued", "a race settled by which command was issued first",
-    **{"pend.py": patch(
-        "pend.py",
-        ("    def fastest(self):\n        best = None\n        for rec in self.q:\n"
-         "            if rec.pos is None:\n                continue\n"
-         "            if best is None or rec.pos < best.pos:\n                best = rec\n"
-         "        if best is None:\n            return self.q[0]\n        return best",
-         "    def fastest(self):\n        return self.q[0]"),
+         '            elif ev == "sig":\n                self.spare.append((pos, args[0], 0))'),
     )})
 
 reading(
-    "race-latest", "a race settled by the answer that arrived last",
-    **{"pend.py": patch(
-        "pend.py",
-        ("            if best is None or rec.pos < best.pos:",
-         "            if best is None or rec.pos > best.pos:"),
+    "left-none", "no leftover check at all, so a finished body always reports its value",
+    **{"edge.py": patch(
+        "edge.py",
+        ("    def leftover(self):\n        for pos, kind, at in self.tab.issued():",
+         "    def leftover(self):\n        return None\n\n    def unused(self):\n"
+         "        for pos, kind, at in self.tab.issued():"),
     )})
 
+# --- what a take reaches for -------------------------------------------------------------------
 reading(
-    "join-answered", "join reading the answer order where it should read the issue order",
-    **{"pend.py": patch(
-        "pend.py",
-        ("    def first(self):\n        return self.q[0]",
-         "    def first(self):\n        return self.fastest()"),
-    )})
+    "hold-last", "a take reaching for the branch's newest untaken command instead of its earliest",
+    **{"hold.py": patch("hold.py", ("        return row[0]", "        return row[-1]"))})
 
-reading(
-    "race-live-first", "a live command counted as answered before every recorded one",
-    **{"pair.py": patch(
-        "pair.py",
-        ("        return Rec(kind, idx, value, AFTER + self.late)",
-         "        return Rec(kind, idx, value, -self.late)"),
-    )})
-
-reading(
-    "hold-as-live", "a recorded command with no recorded answer answered from the live list",
-    **{"pair.py": patch(
-        "pair.py",
-        ("            if found is None:\n                return Rec(kind, idx, None, None)",
-         "            if found is None:\n"
-         "                spare = self.feed[self.at] if self.at < len(self.feed) else 0\n"
-         "                self.at += 1\n                return Rec(kind, idx, spare, None)"),
-    )})
-
-# --- signals -------------------------------------------------------------------------------------
-reading(
-    "sig-one-queue", "one counter over every tag together instead of one per tag",
-    **{"sigq.py": patch(
-        "sigq.py",
-        ("    def __init__(self, tab):\n        self.tab = tab\n        self.n = {}",
-         "    def __init__(self, tab):\n        self.tab = tab\n        self.n = {}\n"
-         "        self.at = 0"),
-        ("        j = self.n.get(tag, 0)\n        found = self.tab.signal(tag, j)\n"
-         "        if found is None:\n            return None\n        self.n[tag] = j + 1\n"
-         "        return found[1]",
-         "        found = self.tab.signal(tag, self.at)\n        if found is None:\n"
-         "            return None\n        self.at += 1\n        return found[1]"),
-    )})
-
-reading(
-    "sig-stuck", "a signal taken without advancing its tag, so the same one comes back",
-    **{"sigq.py": patch(
-        "sigq.py",
-        ("        self.n[tag] = j + 1\n        return found[1]", "        return found[1]"),
-    )})
-
-# --- markers --------------------------------------------------------------------------------------
+# --- markers -------------------------------------------------------------------------------------
 reading(
     "ver-cur-replay", "an unrecorded marker giving the body's own value while still replaying",
     **{"ver.py": patch("ver.py", ("        return cur if live else 0", "        return cur"))})
 
 reading(
-    "ver-zero-live", "an unrecorded marker giving the legacy value once live",
+    "ver-zero-live", "an unrecorded marker giving the legacy value once the live side is open",
     **{"ver.py": patch("ver.py", ("        return cur if live else 0", "        return 0"))})
 
 reading(
@@ -252,11 +208,9 @@ reading(
     **{"ver.py": patch(
         "ver.py",
         ("    def __init__(self, tab):\n        self.tab = tab\n        self.n = {}",
-         "    def __init__(self, tab):\n        self.tab = tab\n        self.n = {}\n"
-         "        self.at = 0"),
+         "    def __init__(self, tab):\n        self.tab = tab\n        self.n = {}\n        self.at = 0"),
         ("        j = self.n.get(key, 0)\n        found = self.tab.choice(key, j)\n"
-         "        if found is not None:\n            self.n[key] = j + 1\n"
-         "            return found[1]",
+         "        if found is not None:\n            self.n[key] = j + 1\n            return found[1]",
          "        found = self.tab.choice(key, self.at)\n        if found is not None:\n"
          "            self.at += 1\n            return found[1]"),
     )})
@@ -265,11 +219,10 @@ reading(
     "ver-stuck", "a recorded choice taken without advancing, so one choice answers every marker",
     **{"ver.py": patch(
         "ver.py",
-        ("            self.n[key] = j + 1\n            return found[1]",
-         "            return found[1]"),
+        ("            self.n[key] = j + 1\n            return found[1]", "            return found[1]"),
     )})
 
-# --- strategies that do no work at all ----------------------------------------------------------
+# --- strategies that do no work at all ---------------------------------------------------------
 reading(
     "const-zero", "one fixed shape for every run file: position zero and a zero answer",
     **{"edge.py": patch(
@@ -278,13 +231,14 @@ reading(
          "        i = 0\n        self.n[kind] = self.n.get(kind, 0) + 1"),
     ), "pair.py": patch(
         "pair.py",
-        ("            return Rec(kind, idx, found[1], found[0])",
-         "            return Rec(kind, idx, 0, found[0])"),
+        ("        return Rec(kind, idx, found[1], found[0])",
+         "        return Rec(kind, idx, 0, found[0])"),
     )})
 
 reading(
     "pos-first", "always the first recorded answer of the kind and name",
-    **{"pair.py": patch("pair.py", ("            self.n[key] = j + 1", "            self.n[key] = 0"))})
+    **{"pair.py": patch("pair.py", ("        self.n[key] = j + 1", "        self.n[key] = 0"))})
+
 
 READING_ORDER = sorted(READINGS)
 
@@ -307,7 +261,7 @@ def write_reading_cheats():
             rows.append("PYEOF")
             rows.append("")
         rows.append("cd /app")
-        rows.append("python run_dur.py runs/tiny.txt > /dev/null")
+        rows.append("python run_dur.py progs/tiny.txt > /dev/null")
         path = CHEATS / ("cheat-%s.sh" % key)
         path.write_text("\n".join(rows) + "\n", encoding="utf-8", newline="\n")
         path.chmod(0o755)
@@ -361,22 +315,69 @@ class Tab(object):
         return out
 """
 
-HALF_TAB = SCAN_TAB.replace(
-    '    def slot(self, kind, i):\n        got = self._nth("go", ((0, kind),), i)\n'
-    '        return None if got is None else (got[0], got[1][1])',
-    '    def slot(self, kind, i):\n        if not hasattr(self, "go"):\n'
-    '            self.go = {}\n'
-    '            for pos, (ev, args) in enumerate(self.log):\n'
-    '                if ev == "go":\n'
-    '                    self.go.setdefault(args[0], []).append((pos, args[1]))\n'
-    '        row = self.go.get(kind)\n        if row is None or i >= len(row):\n'
-    '            return None\n        return row[i]')
+SCAN_SCHED = """
+class Branch(object):
+    __slots__ = ("bid", "pc", "acc", "due", "state")
+
+    def __init__(self, bid, pc):
+        self.bid = bid
+        self.pc = pc
+        self.acc = 0
+        self.due = None
+        self.state = "ready"
+
+
+class Sched(object):
+    def __init__(self):
+        self.all = []
+        self.mark = {}
+
+    def open(self, pc):
+        made = Branch(len(self.all), pc)
+        self.all.append(made)
+        return made.bid
+
+    def pick(self):
+        best = None
+        for who in self.all:
+            if who.state == "ready":
+                if best is None or who.bid < best.bid:
+                    best = who
+        if best is not None:
+            best.state = "running"
+            return best
+        for who in self.all:
+            if who.state != "parked":
+                continue
+            mark = self.mark.get(who.bid)
+            if mark is None:
+                continue
+            if best is None or mark < self.mark[best.bid]:
+                best = who
+        if best is None:
+            return None
+        best.state = "running"
+        return best
+
+    def park(self, who, mark):
+        who.state = "parked"
+        self.mark[who.bid] = mark
+
+    def close(self, who):
+        who.state = "ended"
+
+    def release(self):
+        for who in self.all:
+            if who.state == "parked":
+                who.state = "ready"
+                self.mark[who.bid] = None
+"""
 
 SLOW = {
-    "slow-scan": ("exactly correct, and looks every command up by walking the log",
-                  {"tab.py": SCAN_TAB.lstrip("\n")}),
-    "slow-answers": ("exactly correct, with the commands indexed and the answers walked for",
-                     {"tab.py": HALF_TAB.lstrip("\n")}),
+    "slow-sched": ("exactly correct, and walks the branches for the one whose turn is next",
+                   {"sched.py": SCAN_SCHED.lstrip("\n")}),
+    "slow-history": ("exactly correct, and walks the recorded history for every lookup",
+                     {"tab.py": SCAN_TAB.lstrip("\n")}),
 }
 
 
@@ -605,7 +606,7 @@ def write_one(name, note, files, tail=None):
         rows.append(text.rstrip("\n"))
         rows.append("PYEOF")
         rows.append("")
-    rows.extend(tail or ["cd /app", "python run_dur.py runs/tiny.txt > /dev/null"])
+    rows.extend(tail or ["cd /app", "python run_dur.py progs/tiny.txt > /dev/null"])
     path = CHEATS / ("cheat-%s.sh" % name)
     path.write_text("\n".join(rows) + "\n", encoding="utf-8", newline="\n")
     path.chmod(0o755)
@@ -644,14 +645,27 @@ def write_extra_cheats():
               "PYEOF",
               "",
               "cd /app",
-              "python run_dur.py runs/tiny.txt > /dev/null"]))
+              "python run_dur.py progs/tiny.txt > /dev/null"]))
     return made
 
 
 def main():
+    """Write every cheat this design has, and take away every one it does not.
+
+    A redesign leaves the previous design's cheats on disk, where they ship, score 0 for
+    reasons that no longer mean anything, and make the bundle claim coverage it does not have.
+    Eighteen of them survived the rebuild on 2026-09-22 before this was added.
+    """
     CHEATS.mkdir(exist_ok=True)
     made = write_reading_cheats()
     more = write_extra_cheats()
+    keep = set(made) | set(more)
+    gone = sorted(p.name for p in CHEATS.glob("cheat-*.sh") if p.name not in keep)
+    for name in gone:
+        (CHEATS / name).unlink()
+    if gone:
+        print("removed %d cheats left from an earlier design: %s"
+              % (len(gone), ", ".join(gone)))
     print("%d reading cheats, %d further cheats" % (len(made), len(more)))
     for name in made + more:
         print("   %s" % name)

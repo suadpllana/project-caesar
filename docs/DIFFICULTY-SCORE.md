@@ -97,7 +97,7 @@ calibration; the external probe is the authority on them:
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
 | `expert-defer-shed` | 100 | built 2026-09-19; oracle, nop, 37 cheats and two correct variants run in the container; external result not yet recorded |
-| `replay-match-drift` | 100 | built 2026-09-22; oracle, nop, 38 cheats and two correct variants run through the shipped `tests/test.sh` on the host, because image pulls are refused by this session's egress policy; external result not yet recorded |
+| `replay-match-drift` | 100 | rebuilt 2026-09-22 after the quality review failed `difficult` on the first build; oracle, nop, 36 cheats and two correct variants run through the shipped `tests/test.sh` on the host, because image pulls are refused by this session's egress policy; external result not yet recorded |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them
@@ -126,3 +126,22 @@ and update the constants and this file together.
    pass padding is caught the next time `--calibrate` runs.
 4. **A score in the band is necessary, not sufficient.** It says the design has every part the
    passing tasks have. The probe decides whether those parts are real.
+
+## Measured against the checker, 2026-09-22
+
+The first build of `replay-match-drift` scored **100** on a complete, honest record and the
+quality review failed it on `difficult`: "the full solution is ~150 lines of per-kind counters,
+a dict keyed by (kind,name), a set of matched positions and a min over pending records. The
+performance requirement is satisfied by ordinary dict indexing." Nothing in that record was
+padded or false. The checker reads whether a design has a second discovery, interacting pairs,
+a gate with an invariant and a reference of the right size; it cannot read whether the graded
+patch is a derivation or four standard containers, nor whether the gate kills the structure a
+first implementation actually writes rather than one nobody would.
+
+That is the first recorded case of a design scoring inside the band and being rejected on the
+criterion the band exists to predict, and it is kept here rather than repaired into the rubric,
+because the repair a rule would need - "is the answer a lookup?" - is the judgement the doctrine
+already asks for in prose and the checker would only be able to fake. It is not added to
+`authoring/controls/`: a control that scores 100 would make `--calibrate` fail on every future
+run without saying anything the sentence above does not. The reading to take from it is the one
+point 4 already makes, now with a measurement behind it.

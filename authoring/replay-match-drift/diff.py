@@ -13,7 +13,7 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 TASK = ROOT / "tasks" / "replay-match-drift"
-PARTS = ("tab", "edge", "pair", "pend", "sigq", "ver")
+PARTS = ("tab", "edge", "pair", "hold", "sched", "wake", "ver")
 
 
 def staged(which):
@@ -37,7 +37,7 @@ def main():
     import run_dur
 
     work = []
-    for name in sorted((TASK / "environment" / "app_src" / "runs").glob("*.txt")):
+    for name in sorted((TASK / "environment" / "app_src" / "progs").glob("*.txt")):
         work.append(("sample", name.name, name.read_text(encoding="utf-8").splitlines()))
     for seed in seeds:
         work.extend(gen.programs(seed, 12))

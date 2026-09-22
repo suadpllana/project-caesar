@@ -1,0 +1,14 @@
+b fork side
+b call plan
+b add 1
+b end
+b lab side
+b nap wake
+b call draw
+b end
+e go call plan
+e go timer wake
+e ok timer wake 3
+e go call draw
+e ok call draw 6
+e ok call plan 4

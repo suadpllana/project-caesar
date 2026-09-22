@@ -2,39 +2,44 @@
 
 FROZEN CONTRACT
 ---------------
-The agent hands over six files under `/app/dur/`. `tab.py` indexes the recorded log,
-`edge.py` owns where replay stops and what the log has left over, `pair.py` binds an answer
-to a command, `pend.py` holds the commands whose result has not been taken, `sigq.py`
-delivers signals and `ver.py` settles version markers. Everything else under `/app` is the
-verifier's own copy, so nothing but those six can change what a run file prints, and a file
-left beside them is never collected.
+The agent hands over seven files under `/app/dur/`. `tab.py` indexes the recorded history,
+`edge.py` owns the live side and what the history has left over, `pair.py` binds an answer to
+a command, `hold.py` holds a branch's untaken commands, `sched.py` decides which branch runs
+next, `wake.py` says what a branch is waiting for and what will release it, and `ver.py`
+settles version markers. Everything else under `/app` is the verifier's own copy, so nothing
+but those seven can change what a run file prints, and a file left beside them is never
+collected.
 
 Graded, and settled the same way by two implementations written apart:
 
-  1  a command matches the recorded command at its own position among the recorded commands
-     OF ITS KIND; other kinds do not shift that position
+  1  a command is matched to the recorded command at its own position among those OF ITS
+     KIND; other kinds do not shift it, and once the live side is open nothing is matched
   2  a recorded command naming something else ends the run where it happens
-  3  the first command whose kind has no recorded position left opens the live side, once
-     for the whole run, and nothing after it looks at the log for a position
-  4  a replayed command's answer is the recorded answer at its position among the answers of
-     its KIND AND NAME together
-  5  live answers come from the run file's own list, in the order the live commands were
-     issued, and count as arriving after every recorded answer
-  6  `join` takes the outstanding command issued earliest, `race` the one answered earliest
-  7  a command whose answer is not recorded stops the run and names it
-  8  signals are taken per tag in recorded order, on either side of the boundary, and a
-     signal nobody waited for is not a failure
-  9  a marker with no recorded choice is zero while replaying and the body's own value once
-     live
- 10  a body that reaches its end while the log still holds a command it never issued fails,
-     naming the earliest of them; a body that stopped short does not
- 11  a body past the step ceiling ends over
+  3  a matched command's answer is the recorded answer at its position among those of that
+     KIND AND NAME together
+  4  an awaiting command takes its own answer; a `take` takes the branch's earliest untaken
+     command, and with none it changes nothing
+  5  a branch that waits goes down with a mark - the position of the line that releases it -
+     or with no mark when the history recorded none
+  6  a branch waiting for a signal claims one as it goes down, per tag, in recorded order
+  7  a branch able to run without waiting goes before one that has to be woken; among the
+     first the lowest numbered, among the second the smallest mark
+  8  the live side opens when nothing can run and nothing can be woken; it is said once,
+     every waiting branch is released in number order, and after it nothing waits
+  9  a result the history does not carry comes off the run file's list, in the order the
+     branches take them
+ 10  an unrecorded marker is zero while the history can still move the run and the body's own
+     value once the live side is open
+ 11  branch zero ending ends the run; a recorded command no command matched is a failure
+     naming the earliest, and nothing else in the history is; a body past the step ceiling
+     ends over
 
-Implementation choice, and not graded: how the log is indexed, whether the outstanding set
-is a list or a pair of structures, whether the answer positions are held on the records or
-looked up, and any internal naming. Not a free choice either, and not asserted here: none of
-the three lookups may be a walk over the log, which the execution limit on stage one decides
-rather than any assertion in this file.
+Implementation choice, and not graded: how the history is indexed, how a branch's untaken
+commands are held, whether the waiting branches are a heap or an ordered list, and any
+internal naming. Not a free choice either, and not asserted here: the waiting branch whose
+turn is next may not be found by walking the branches, and a command may not be found by
+walking the history, which the execution limit on stage one decides rather than any
+assertion in this file.
 
 The hand programs are checked against `gt.json`, frozen before this file was written. The
 generated population is built here from a seed drawn after the agent's container is gone and

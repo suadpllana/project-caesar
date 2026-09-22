@@ -1090,6 +1090,37 @@ def check_state_contract(root: Path) -> None:
         )
 
 
+def check_nothing_silently_dropped(root: Path) -> None:
+    """A file the tree has and the zip does not is invisible to every other gate.
+
+    `shipped_files()` drops whole directories by name so harbor's own output never ships.
+    Those names are ordinary words - `runs`, `logs`, `results`, `job` - and a task that calls
+    its sample programs `runs/` loses them from the archive while keeping them in git, in the
+    working tree, and in every local run. That happened to `replay-match-drift` on 2026-09-22
+    and reference verification caught it as `solve.sh` exiting non-zero on inputs that were not
+    there. `imagecheck` copies from the working tree, `zipcheck` reads the archive alone, and
+    the host trial stages `app_src` directly, so none of the three could see it.
+    """
+    kept = {p.resolve() for p in shipped_files(root)}
+    harness = harness_output_dirs(root)
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or path.resolve() in kept:
+            continue
+        rel = path.relative_to(root)
+        if path.name in EXCLUDE_NAMES or path.suffix.lower() in EXCLUDE_SUFFIXES:
+            continue
+        if any(str(path).startswith(str(d)) for d in harness):
+            continue
+        blame = next((part for part in rel.parts if part in EXCLUDE_DIRS), None)
+        if blame in (".git", "__pycache__", ".pytest_cache", ".ruff_cache", ".venv", "venv"):
+            continue
+        error(
+            f"{rel}: packaging drops every file under a directory named `{blame}`, so this "
+            f"ships in git and not in the zip. Rename the directory - the retained bundles "
+            f"call theirs `progs/` or `plans/`"
+        )
+
+
 def check_verifier(root: Path) -> None:
     text = read(root / "tests" / "test.sh")
     if text is None:
@@ -1147,6 +1178,7 @@ def main(argv: list[str]) -> int:
     check_leaks_by_affordance(root)
     check_artifact_parents(root, cfg)
     check_compose(root, cfg)
+    check_nothing_silently_dropped(root)
     check_verifier(root)
     check_state_difficulty(root)
     check_state_contract(root)

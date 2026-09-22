@@ -7,209 +7,235 @@ covers combinations; these pin the rules.
 
 CASES = {
     # --- a command is counted among the commands of its own kind ----------------------
-    "kind-count": [
-        "b call ax", "b nap ti", "b call bo", "b fin",
+    "count-kind": [
+        "b call ax", "b nap ti", "b call bo", "b end",
         "e go call ax", "e ok call ax 3",
         "e go call bo", "e ok call bo 4",
         "e go timer ti", "e ok timer ti 9",
     ],
-    "kind-count-same": [
-        "b call ax", "b call bo", "b call cy", "b fin",
+    "count-same": [
+        "b call ax", "b call bo", "b end",
         "e go call ax", "e ok call ax 1",
         "e go call bo", "e ok call bo 2",
-        "e go call cy", "e ok call cy 3",
     ],
-    "kind-count-three": [
-        "b spawn ax", "b call bo", "b nap ti", "b spawn cy", "b fin",
+    "count-three": [
+        "b spawn ax", "b call bo", "b nap ti", "b spawn cy", "b end",
         "e go call bo", "e ok call bo 5",
         "e go child ax", "e ok child ax 6",
         "e go timer ti", "e ok timer ti 7",
         "e go child cy", "e ok child cy 8",
     ],
 
-    # --- a slot naming something else stops the run where it happens -------------------
-    "name-check": [
-        "b call ax", "b call bo", "b call cy", "b fin",
+    # --- a recorded command under another name stops the run where it happens ----------
+    "name-drift": [
+        "b call ax", "b call bo", "b call cy", "b end",
         "e go call ax", "e ok call ax 1",
         "e go call zz", "e ok call zz 2",
         "e go call cy", "e ok call cy 3",
     ],
-    "name-check-kind": [
-        "b call ax", "b nap ti", "b fin",
+    "name-drift-kind": [
+        "b call ax", "b nap ti", "b end",
         "e go call ax", "e ok call ax 1",
         "e go timer zz", "e ok timer zz 2",
     ],
 
     # --- an answer is paired on kind and name together ---------------------------------
-    "pair-name": [
-        "b call ax", "b call bo", "b fin",
+    "pair-swap": [
+        "b call ax", "b call bo", "b end",
         "e go call ax", "e go call bo",
         "e ok call bo 7", "e ok call ax 5",
     ],
     "pair-dup": [
-        "b fire ax", "b fire ax", "b fire bo", "b join", "b join", "b join", "b fin",
+        "b fire ax", "b fire ax", "b fire bo", "b take", "b take", "b take", "b end",
         "e go call ax", "e go call ax", "e go call bo",
         "e ok call bo 9", "e ok call ax 1", "e ok call ax 2",
     ],
-    "pair-kind-name": [
-        "b call ax", "b nap ax", "b fin",
+    "pair-cross": [
+        "b call ax", "b nap ax", "b end",
         "e go call ax", "e go timer ax",
         "e ok timer ax 9", "e ok call ax 5",
     ],
     "pair-order": [
-        "b call ax", "b call bo", "b fin",
+        "b call ax", "b call bo", "b end",
         "e go call ax", "e ok call ax 5",
         "e go call bo", "e ok call bo 7",
     ],
 
-    # --- the boundary: one crossing for the whole run, printed once ---------------------
-    "edge-once": [
-        "b call ax", "b call bo", "b call cy", "b call de", "b fin",
+    # --- which branch runs next --------------------------------------------------------
+    "sched-mark": [
+        "b fork side", "b call ax", "b end",
+        "b lab side", "b call bo", "b end",
+        "e go call ax", "e go call bo",
+        "e ok call bo 7", "e ok call ax 5",
+    ],
+    "sched-ready-first": [
+        "b fork side", "b call ax", "b end",
+        "b lab side", "b call bo", "b end",
         "e go call ax", "e ok call ax 1",
-        "r 21", "r 22", "r 23",
+        "e go call bo", "e ok call bo 2",
     ],
-    "edge-global": [
-        "b call ax", "b nap ti", "b fin",
-        "e go timer ti", "e ok timer ti 8",
-        "r 30",
+    "sched-id": [
+        "b fork one", "b fork two", "b call ax", "b end",
+        "b lab one", "b call bo", "b end",
+        "b lab two", "b call cy", "b end",
+        "e go call ax", "e go call bo", "e go call cy",
+        "e ok call cy 3", "e ok call bo 2", "e ok call ax 1",
     ],
-    "edge-none": [
-        "b call ax", "b call bo", "b fin",
-        "e go call ax", "e ok call ax 4",
-        "e go call bo", "e ok call bo 6",
-    ],
-    "edge-empty": [
-        "b call ax", "b nap ti", "b fin",
-        "r 11", "r 12",
-    ],
-    "edge-feed-out": [
-        "b call ax", "b call bo", "b call cy", "b fin",
-        "r 40",
+    "sched-chain": [
+        "b fork side", "b call ax", "b call bo", "b end",
+        "b lab side", "b call cy", "b end",
+        "e go call ax", "e go call cy",
+        "e ok call cy 30", "e ok call ax 10",
+        "e go call bo", "e ok call bo 20",
     ],
 
-    # --- what the log has left when the body is done ------------------------------------
-    "left-earliest": [
-        "b call ax", "b fin",
-        "e go call ax", "e ok call ax 2",
-        "e go timer ti", "e go child cy",
-    ],
-    "left-not-sig": [
-        "b call ax", "b fin",
-        "e go call ax", "e ok call ax 2", "e sig pay 30",
-    ],
-    "left-not-ok": [
-        "b call ax", "b fin",
-        "e go call ax", "e ok call ax 2", "e ok call bo 8", "e ch road 4",
-    ],
-    "left-skip-hold": [
-        "b call ax", "b call bo", "b fin",
-        "e go call ax", "e ok call ax 2",
-        "e go call bo",
-        "e go timer ti",
-    ],
-    "left-after-live": [
-        "b call ax", "b call bo", "b fin",
-        "e go call ax", "e ok call ax 2",
-        "e go timer ti", "e ok timer ti 3",
-        "r 50",
-    ],
-
-    # --- taking a result: issued earliest against answered earliest ----------------------
-    "join-first": [
-        "b fire ax", "b fire bo", "b join", "b join", "b fin",
+    # --- what a take reaches for ---------------------------------------------------------
+    "take-first": [
+        "b fire ax", "b fire bo", "b take", "b take", "b end",
         "e go call ax", "e go call bo",
         "e ok call bo 7", "e ok call ax 5",
     ],
-    "race-answered": [
-        "b fire ax", "b fire bo", "b race", "b race", "b fin",
-        "e go call ax", "e go call bo",
-        "e ok call bo 7", "e ok call ax 5",
-    ],
-    "race-live-after": [
-        "b fire bo", "b open ax", "b race", "b race", "b fin",
-        "e go call bo", "e ok call bo 7",
-        "r 60",
-    ],
-    "feed-order": [
-        "b open ax", "b open bo", "b join", "b join", "b fin",
-        "r 61", "r 62",
-    ],
-    "race-none": [
-        "b fire ax", "b fire bo", "b race", "b fin",
-        "e go call ax", "e go call bo",
-    ],
-    "hold-cmd": [
-        "b call ax", "b call bo", "b fin",
-        "e go call ax", "e ok call ax 2",
-        "e go call bo",
-    ],
-    "hold-none": [
-        "b call ax", "b join", "b fin",
-        "e go call ax", "e ok call ax 2",
+    "take-none": [
+        "b take", "b add 4", "b call ax", "b end",
+        "e go call ax", "e ok call ax 6",
     ],
 
-    # --- signals, per tag, on either side of the boundary --------------------------------
-    "sig-tag": [
-        "b wait pay", "b wait ship", "b wait pay", "b fin",
+    # --- signals, claimed per tag as a branch goes down -----------------------------------
+    "sig-claim": [
+        "b fork one", "b fork two", "b fork three", "b call ax", "b end",
+        "b lab one", "b wait pay", "b end",
+        "b lab two", "b wait pay", "b end",
+        "b lab three", "b call bo", "b end",
+        "e go call ax", "e sig pay 11", "e go call bo",
+        "e ok call bo 6", "e sig pay 12", "e ok call ax 9",
+    ],
+    "sig-tags": [
+        "b wait pay", "b wait ship", "b wait pay", "b end",
         "e sig ship 40", "e sig pay 11", "e sig pay 12",
     ],
-    "sig-hold": [
-        "b wait pay", "b wait ship", "b fin",
-        "e sig pay 11",
-    ],
-    "sig-after-live": [
-        "b call ax", "b wait pay", "b fin",
+    "sig-live": [
+        "b call ax", "b wait pay", "b end",
         "e sig pay 33",
         "r 70",
     ],
 
-    # --- markers ---------------------------------------------------------------------------
+    # --- the live side ---------------------------------------------------------------------
+    "edge-standstill": [
+        "b call ax", "b call bo", "b call cy", "b end",
+        "e go call ax", "e ok call ax 1",
+        "r 21", "r 22",
+    ],
+    "edge-none": [
+        "b call ax", "b call bo", "b end",
+        "e go call ax", "e ok call ax 4",
+        "e go call bo", "e ok call bo 6",
+    ],
+    "edge-empty": [
+        "b call ax", "b nap ti", "b end",
+        "r 11", "r 12",
+    ],
+    "edge-release-id": [
+        "b fork one", "b fork two", "b call ax", "b end",
+        "b lab one", "b call bo", "b end",
+        "b lab two", "b call cy", "b end",
+        "r 51", "r 52", "r 53",
+    ],
+    "edge-no-wait": [
+        "b fork side", "b call ax", "b call bo", "b end",
+        "b lab side", "b call cy", "b end",
+        "r 71", "r 72", "r 73",
+    ],
+    "edge-feed-out": [
+        "b call ax", "b call bo", "b end",
+        "r 40",
+    ],
+    "edge-after-live-go": [
+        "b fork side", "b call ax", "b call bo", "b end",
+        "b lab side", "b nap ti", "b end",
+        "e go call ax",
+        "e go call bo", "e ok call bo 9",
+        "e go timer ti", "e ok timer ti 7",
+        "r 50", "r 51",
+    ],
+    "edge-no-match-after": [
+        "b fork side", "b call ax", "b end",
+        "b lab side", "b nap ti", "b end",
+        "e go timer ti", "e ok timer ti 7",
+        "r 31",
+    ],
+
+    # --- what the history has left over -------------------------------------------------
+    "left-earliest": [
+        "b call ax", "b end",
+        "e go call ax", "e ok call ax 2",
+        "e go timer ti", "e go child cy",
+    ],
+    "left-not-ok": [
+        "b call ax", "b end",
+        "e go call ax", "e ok call ax 2", "e ok call bo 8",
+        "e sig pay 30", "e ch road 4",
+    ],
+    "left-unissued": [
+        "b fork side", "b call ax", "b end",
+        "b lab side", "b call bo", "b end",
+        "e go call ax", "e ok call ax 2",
+        "e go timer ti",
+        "r 50",
+    ],
+    "left-after-live": [
+        "b fork side", "b call ax", "b call bo", "b end",
+        "b lab side", "b nap ti", "b end",
+        "e go call ax", "e ok call ax 2",
+        "e go timer ti", "e go child cy",
+        "r 50",
+    ],
+    "stop-mid": [
+        "b fork side", "b call ax", "b end",
+        "b lab side", "b call bo", "b end",
+        "e go call ax", "e go call bo",
+        "e ok call ax 5", "e ok call bo 7",
+    ],
+
+    # --- markers ----------------------------------------------------------------------------
     "ver-recorded": [
-        "b mark road 3", "b fin",
+        "b mark road 3", "b end",
         "e ch road 1",
     ],
     "ver-replay-zero": [
-        "b mark road 3", "b call ax", "b fin",
+        "b mark road 3", "b call ax", "b end",
         "e go call ax", "e ok call ax 5",
     ],
     "ver-live-cur": [
-        "b call ax", "b mark road 3", "b fin",
+        "b call ax", "b mark road 3", "b end",
         "r 80",
     ],
     "ver-empty-zero": [
-        "b mark road 3", "b fin",
+        "b mark road 3", "b end",
     ],
     "ver-per-key": [
-        "b mark road 5", "b mark turn 5", "b mark road 5", "b fin",
+        "b mark road 5", "b mark turn 5", "b mark road 5", "b end",
         "e ch turn 7", "e ch road 1", "e ch road 2",
     ],
     "ver-branch": [
         "b mark road 2", "b jz slow", "b call fast", "b jmp out",
-        "b lab slow", "b call slow", "b lab out", "b fin",
+        "b lab slow", "b call slow", "b lab out", "b end",
         "e go call slow", "e ok call slow 6",
     ],
 
-    # --- the step ceiling ---------------------------------------------------------------------
+    # --- the step ceiling, the grammar, and an everyday program ------------------------------
     "over-steps": [
-        "b set 1", "b lab spin", "b add 1", "b jmp spin", "b fin",
+        "b set 1", "b lab spin", "b add 1", "b jmp spin", "b end",
     ],
-
-    # --- an everyday program that an overconservative engine breaks ----------------------------
     "parse-blank": [
-        "b call ax", "", "b fin", "",
+        "b call ax", "", "b end", "",
         "e go call ax", "", "e ok call ax 6",
     ],
-
-    # --- an everyday program that an overconservative engine breaks ----------------------------
     "plain-ordinary": [
-        "b call ax", "b nap ti", "b wait pay", "b fire bo", "b spawn cy", "b join",
-        "b add 2", "b fin",
-        "e go call ax", "e ok call ax 4",
-        "e go timer ti", "e ok timer ti 0",
-        "e sig pay 21",
-        "e go call bo",
-        "e go child cy", "e ok child cy 9",
-        "e ok call bo 12",
+        "b fork side", "b call ax", "b wait pay", "b fire bo", "b take", "b add 2", "b end",
+        "b lab side", "b nap ti", "b spawn cy", "b end",
+        "e go call ax", "e go timer ti",
+        "e ok timer ti 3", "e go child cy", "e ok child cy 9",
+        "e sig pay 21", "e ok call ax 4", "e go call bo", "e ok call bo 12",
     ],
 }
 

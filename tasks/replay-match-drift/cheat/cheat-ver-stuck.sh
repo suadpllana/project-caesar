@@ -14,12 +14,11 @@ class Edge(object):
         i = self.n.get(kind, 0)
         self.n[kind] = i + 1
         if self.on:
-            return i, None, False
-        found = self.tab.slot(kind, i)
-        if found is None:
-            self.on = True
-            return i, None, True
-        return i, found, False
+            return i, None
+        return i, self.tab.slot(kind, i)
+
+    def cross(self):
+        self.on = True
 
     def live(self):
         return self.on
@@ -34,11 +33,34 @@ class Edge(object):
         return None
 PYEOF
 
+cat > /app/dur/hold.py <<'PYEOF'
+class Hold(object):
+    def __init__(self):
+        self.q = {}
+
+    def add(self, bid, rec):
+        self.q.setdefault(bid, []).append(rec)
+
+    def first(self, bid):
+        row = self.q.get(bid)
+        if not row:
+            return None
+        return row[0]
+
+    def drop(self, bid, rec):
+        row = self.q.get(bid)
+        if not row:
+            return
+        for at in range(len(row)):
+            if row[at] is rec:
+                row.pop(at)
+                return
+PYEOF
+
 cat > /app/dur/pair.py <<'PYEOF'
-AFTER = 1 << 30
-
-
 class Rec(object):
+    __slots__ = ("kind", "idx", "value", "pos")
+
     def __init__(self, kind, idx, value, pos):
         self.kind = kind
         self.idx = idx
@@ -52,65 +74,88 @@ class Pair(object):
         self.feed = feed
         self.at = 0
         self.n = {}
-        self.late = 0
 
     def bind(self, kind, name, idx, replayed):
-        if replayed:
-            key = (kind, name)
-            j = self.n.get(key, 0)
-            self.n[key] = j + 1
-            found = self.tab.answer(kind, name, j)
-            if found is None:
-                return Rec(kind, idx, None, None)
-            return Rec(kind, idx, found[1], found[0])
+        if not replayed:
+            return Rec(kind, idx, None, None)
+        key = (kind, name)
+        j = self.n.get(key, 0)
+        self.n[key] = j + 1
+        found = self.tab.answer(kind, name, j)
+        if found is None:
+            return Rec(kind, idx, None, None)
+        return Rec(kind, idx, found[1], found[0])
+
+    def settle(self, rec):
+        if rec.value is not None:
+            return rec.value
+        return self.spare()
+
+    def spare(self):
         value = self.feed[self.at] if self.at < len(self.feed) else 0
         self.at += 1
-        self.late += 1
-        return Rec(kind, idx, value, AFTER + self.late)
+        return value
 PYEOF
 
-cat > /app/dur/pend.py <<'PYEOF'
-class Pend(object):
+cat > /app/dur/sched.py <<'PYEOF'
+import heapq
+
+
+class Branch(object):
+    __slots__ = ("bid", "pc", "acc", "due", "state")
+
+    def __init__(self, bid, pc):
+        self.bid = bid
+        self.pc = pc
+        self.acc = 0
+        self.due = None
+        self.state = "ready"
+
+
+class Sched(object):
     def __init__(self):
-        self.q = []
+        self.all = []
+        self.ready = []
+        self.marked = []
+        self.idle = []
 
-    def add(self, rec):
-        self.q.append(rec)
+    def open(self, pc):
+        made = Branch(len(self.all), pc)
+        self.all.append(made)
+        heapq.heappush(self.ready, made.bid)
+        return made.bid
 
-    def empty(self):
-        return not self.q
+    def pick(self):
+        while self.ready:
+            who = self.all[heapq.heappop(self.ready)]
+            if who.state == "ready":
+                who.state = "running"
+                return who
+        while self.marked:
+            _mark, bid = heapq.heappop(self.marked)
+            who = self.all[bid]
+            if who.state == "parked":
+                who.state = "running"
+                return who
+        return None
 
-    def first(self):
-        return self.q[0]
+    def park(self, who, mark):
+        who.state = "parked"
+        if mark is None:
+            self.idle.append(who.bid)
+        else:
+            heapq.heappush(self.marked, (mark, who.bid))
 
-    def fastest(self):
-        best = None
-        for rec in self.q:
-            if rec.pos is None:
-                continue
-            if best is None or rec.pos < best.pos:
-                best = rec
-        if best is None:
-            return self.q[0]
-        return best
+    def close(self, who):
+        who.state = "ended"
 
-    def drop(self, rec):
-        self.q.remove(rec)
-PYEOF
-
-cat > /app/dur/sigq.py <<'PYEOF'
-class Sigq(object):
-    def __init__(self, tab):
-        self.tab = tab
-        self.n = {}
-
-    def take(self, tag):
-        j = self.n.get(tag, 0)
-        found = self.tab.signal(tag, j)
-        if found is None:
-            return None
-        self.n[tag] = j + 1
-        return found[1]
+    def release(self):
+        for bid in sorted(self.idle):
+            who = self.all[bid]
+            if who.state == "parked":
+                who.state = "ready"
+                heapq.heappush(self.ready, bid)
+        self.idle = []
 PYEOF
 
 cat > /app/dur/tab.py <<'PYEOF'
@@ -178,5 +223,35 @@ class Ver(object):
         return cur if live else 0
 PYEOF
 
+cat > /app/dur/wake.py <<'PYEOF'
+class Wake(object):
+    def __init__(self, tab):
+        self.tab = tab
+        self.n = {}
+        self.claim = {}
+
+    def mark(self, bid, due):
+        kind, payload = due
+        if kind == "ok":
+            return payload.pos
+        at = self.n.get(payload, 0)
+        found = self.tab.signal(payload, at)
+        if found is None:
+            return None
+        self.n[payload] = at + 1
+        self.claim[bid] = found[1]
+        return found[0]
+
+    def take(self, bid, tag, pair):
+        if bid in self.claim:
+            return self.claim.pop(bid)
+        at = self.n.get(tag, 0)
+        found = self.tab.signal(tag, at)
+        if found is None:
+            return pair.spare()
+        self.n[tag] = at + 1
+        return found[1]
+PYEOF
+
 cd /app
-python run_dur.py runs/tiny.txt > /dev/null
+python run_dur.py progs/tiny.txt > /dev/null

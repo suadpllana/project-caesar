@@ -1,0 +1,14 @@
+b fork side
+b mark road 2
+b jz stay
+b call far
+b jmp done
+b lab stay
+b call near
+b lab done
+b end
+b lab side
+b nap rest
+b end
+r 30
+r 41

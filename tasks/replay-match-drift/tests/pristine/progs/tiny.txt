@@ -1,0 +1,7 @@
+b call ax
+b call bo
+b end
+e go call ax
+e go call bo
+e ok call bo 7
+e ok call ax 5

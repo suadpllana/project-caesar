@@ -10,68 +10,69 @@ estimated_solves = 2
 
 [plan]
 first_plan = """
-Parse the recorded log into a list and keep a cursor into it. Walk the workflow body from
-the top; each time the body issues a command, look at the event under the cursor, check it
-is the command we expected, advance the cursor, read the result event that follows it, and
-hand the value back to the body. Keep going until the cursor reaches the end of the log,
-then switch to running for real and record what happens. Version markers return whatever
-the code asks for, signals are read off the log in the order they appear, and a body that
-asks for something the log does not have is a history mismatch.
+Parse the recorded history into a list and keep a cursor into it. Walk the workflow body from
+the top; each time the body issues a command, look at the line under the cursor, check it is
+the command we expected, advance, read the result that follows it, and hand the value back.
+When the body forks, keep a list of branches and run each one until it needs something, then
+move to the next one that has been waiting longest. Switch to running for real when the cursor
+reaches the end. Version markers return whatever the code asks for, and a body that asks for
+something the history does not have is a history mismatch.
 """
 first_plan_source = "prior"
 breaking_rule = """
-A command is matched by its position among the commands of its own kind, not by its
-position in the log: the third call matches the third recorded call whatever number of
-timers and children sit between them, and a result is paired with its command by the order
-of the two of them within kind and name together, which is a different counter from the one
-that matched the command. Results also arrive out of the order their commands were issued,
-so the answering event is not the event after the command. One cursor over one list cannot
-express any of that.
+The order branches run in is the order their lines were recorded. A branch that waits goes down
+carrying the position in the history of the line that will release it, and the branch that runs
+next is the one able to run without waiting or, failing that, the waiting branch whose mark is
+smallest - not the one that has waited longest, not the order they were forked, and not the
+order anything was issued. A branch's place in that queue is a recorded position that cannot be
+known until the branch has been matched, which cannot happen until the branch runs, so no list
+of branches and no cursor over the history holds the schedule; it has to be derived.
 """
 second_discovery = """
-A version marker with no recorded choice yields the legacy value while the engine is still
-replaying and the body's own value once it has gone live, so the branch the body takes -
-and therefore which commands it issues at all - depends on whether the boundary has already
-been crossed, while the boundary is crossed by a command running out of recorded slots. The
-log cannot be walked ahead of the body or turned into a command plan, because the plan is
-produced by the answers the log gives; the direction of the whole pass has to be inverted
-from reading the log to asking it.
+The live side is not a test any command makes. It opens when the whole run comes to a stop -
+nothing able to run and nothing waiting for anything recorded - and from that point no command
+is matched at all, which is what leaves recorded commands unmatched. A version marker with no
+recorded choice reads that same state, so the arm a branch takes, and therefore which commands
+exist, depends on a standstill its own branches have to reach. An implementation that decided
+the boundary per command, or from how much history was left, has to be turned around rather
+than corrected, and the per-kind counting it was built on is global across branches, so a wrong
+schedule gives every later command the wrong recorded slot.
 """
 second_discovery_effect = "replan"
 first_plan_correct = false
 expert_path = [
-  "Run the shipped programs and read the one line the brief says is wrong, to find which module decides it",
-  "Split the log into a table of issued commands per kind and a table of results per kind and name, since the brief counts the two on different axes",
-  "Drive the pass from the body rather than from the log, so a command asks its kind's table for the slot its own counter names",
-  "Hold the outstanding commands in issue order and the log's result order beside it, because taking the earliest issued and taking the earliest answered are different rules",
-  "Settle the boundary as one global crossing that prints once, not one per kind, and make the marker read that state rather than the log's length",
-  "Keep the matched set so the end-of-body check can name the earliest recorded command the body never issued, and skip that check when the body stopped short",
-  "Deliver signals from a per-tag queue that survives the boundary, and leave them out of the unmatched check",
-  "Time the wide programs and replace the per-command scans of the log with the tables built once, since the result order and the outstanding set are both read at every step",
+  "Run the shipped run files and read the one line the brief says is wrong, to find which module decides it",
+  "Split the history into tables of commands per kind, results per kind and name and signals per tag, each carrying the position of its own line",
+  "Give a waiting branch the position of the line that releases it, claiming a signal as it goes down rather than when it wakes",
+  "Build the two queues the scheduling rule describes, one keyed by branch number and one by mark, and keep the branches with no mark apart",
+  "Settle the live side as the standstill those set-aside branches make, printed once, after which nothing waits and nothing is matched",
+  "Keep the matched positions as a set so the end-of-run check can name the earliest recorded command nobody matched",
+  "Time the wide run files and replace the walk over the branches with a heap, which the history being fixed before the body starts makes sound",
 ]
 
 [search]
 best_page = """
-The determinism and versioning pages of the published durable-execution runtimes, which is
-what a query about replaying a workflow against its recorded history returns first: they
-explain that a code change breaks replay, that a version marker returns the recorded branch,
-and that activity results must come from history rather than from running the work again.
+The determinism and versioning pages of the published durable-execution runtimes, which is what
+a query about replaying a workflow against its recorded history returns first: they explain that
+a code change breaks replay, that a version marker returns the recorded branch, and that results
+must come from the history rather than from running the work again.
 """
 helps_plan = false
 deviation = """
-Those pages describe a command sequence matched by a single running position and a result
-that follows its command, and they never say on what axis a command is counted, how an
-answer is paired with a command that completed out of order, when a marker with no record
-yields the legacy value rather than the asked one, or that a recorded command the body never
-issued is a failure while a recorded signal it never took is not. Every one of those is a
-decision here, and the retrieved page gives a plan that is wrong at the first of them.
+Those pages describe a single running position walked beside the code, and they say nothing
+about what decides the order a concurrent body's branches run in on replay, on what axis a
+command is counted against a result, when a marker with no record yields the legacy value, or
+that a recorded command nobody issued is a failure while a recorded signal nobody took is not.
+Every one of those is a decision here, and the retrieved page gives a plan that is wrong before
+it starts.
 """
 
 [tactics]
 A1 = """
-The remembered shape of replay is a cursor walking the history beside the code with the
-answer sitting next to the question; here the two counters differ and answers arrive out of
-order, so the more faithfully the familiar structure is reproduced the earlier it is wrong.
+The remembered shape of replay is a cursor walking the history beside the code with the answer
+next to the question; here the body is concurrent and the order its branches run in is the order
+their lines were recorded, so the more faithfully the familiar structure is reproduced the
+earlier it is wrong.
 """
 A2 = """
 The brief states the counting, pairing, boundary and leftover rules as what this runtime
@@ -90,9 +91,10 @@ print the boundary line, and a body with an empty log must cross it at the first
 a service that goes live early and one that never goes live both fail.
 """
 C3 = """
-A wide family with tens of thousands of recorded events makes the per-command scan of the
-log infeasible while leaving it exactly correct on everything it finishes, and the tables
-that replace it follow from the log being fixed before the body starts.
+Eight thousand branches over a history of a hundred and twenty-eight thousand lines make the
+natural queue - a list of branches walked at each step for the one whose turn is next - take
+137.8 seconds against a stated 60, while leaving it exactly correct; the reference takes 2.6 and
+two engines written apart from it 3.3 and 2.5.
 """
 C4 = """
 Every program is compared line for line against a population generated inside the verifier
@@ -100,10 +102,9 @@ from a seed drawn after the agent's container is gone, plus enumerated programs 
 each rule and at both sides of each fence, all or nothing.
 """
 guard = """
-Only the six files under /app/dur that carry the matching rules are collected; the run
-file grammar, the body machine, the trace writer and the driver are the verifier's own
-pristine copies, so a new file beside the six is never read and the interface between them
-is frozen.
+Only the seven files under /app/dur that carry the rules are collected; the run file grammar,
+the body machine, the trace writer and the driver are the verifier's own clean copies, so an
+eighth file beside the seven is never read and the interface between them is frozen.
 """
 
 [decisions]
@@ -153,35 +154,36 @@ oracle_shipped = false
 [gate]
 present = true
 naive_family = """
-Walking the recorded log for each command the body issues and again for each result taken,
-which settles every rule the way the reference does. Measured on the six scale run files:
-306.4 seconds with every lookup walked and 153.2 with the commands indexed and only the
-answers walked, against 0.9 for the reference and 1.0 for each of the two correct variants.
+Keeping the branches in a list and walking it at each step for the one whose turn is next, which
+settles every rule the way the reference does. Measured on the six scale run files: 137.8
+seconds, against 2.6 for the reference and 3.3 and 2.5 for the two correct engines written apart
+from it. Walking the history for every lookup does not finish them at all.
 """
 invariant = """
-The log is fixed before the body starts and commands of a kind are matched in order, so the
-tables of commands per kind and of answers per kind and name can be built once and read by a
-counter, and the answer order is a single index over the log.
+The history is fixed before the body starts, so the line that will release a waiting branch is
+known at the moment it goes down; the queue of waiting branches is therefore keyed by a value
+already in hand and can be a heap rather than a walk.
 """
-input_scale = "three run files of thirty thousand commands against sixty thousand recorded lines, and three of twenty-two thousand against forty-four thousand"
+input_scale = "three run files of eight thousand branches over a history of a hundred and twenty-eight thousand lines, and three of twenty-four thousand commands on one branch against forty-eight thousand"
 limit_seconds = 60
 measured = true
 why_not = ""
 
 [cheats]
 wrong_readings = [
-  { reading = "one cursor over the whole log instead of a counter per kind", hand_case = "a body that issues a call, a timer and a call, whose log records the two calls with the timer between them" },
-  { reading = "answers paired with commands by the per-kind index rather than by kind and name together", hand_case = "two calls of different names issued together whose recorded answers arrive in the opposite order" },
-  { reading = "a version marker returning the body's own value while still replaying", hand_case = "a body whose marker has no recorded choice and whose branch on zero issues a command the log holds" },
-  { reading = "a version marker returning the legacy value after the boundary", hand_case = "a body with an empty log whose branch decides which of two commands is issued live" },
-  { reading = "crossing the boundary per kind rather than once for the whole run", hand_case = "a body whose calls run out of recorded slots while a recorded timer is still waiting to be matched" },
-  { reading = "the boundary line printed at every live command instead of once", hand_case = "a body with an empty log that issues three commands" },
-  { reading = "taking the earliest issued outstanding command where the rule takes the earliest answered", hand_case = "two commands issued in one order and answered in the other, with the body racing them" },
-  { reading = "the leftover check counting unconsumed signals as well as commands", hand_case = "a body that finishes with one recorded signal it never waited for" },
-  { reading = "the leftover check applied to a body that stopped short", hand_case = "a body that blocks on a missing answer while later recorded commands are still unmatched" },
-  { reading = "a missing answer treated as the boundary rather than as a stop", hand_case = "a log that records a command with no answer and nothing after it" },
-  { reading = "a name mismatch reported at the end of the body instead of where it happens", hand_case = "a body whose second call is recorded under another name and which would otherwise finish" },
-  { reading = "signals delivered in log order regardless of tag", hand_case = "two signals of different tags recorded in one order and waited for in the other" },
+  { reading = "the waiting branch with the smallest mark taken ahead of one that can just run", hand_case = "a branch forked while the forking branch is waiting on a line recorded early" },
+  { reading = "the waiting branches taken in the order they went down", hand_case = "two branches whose marks are in the opposite order to the order they started waiting" },
+  { reading = "the waiting branch whose mark is largest taken first", hand_case = "two branches waiting on lines recorded far apart" },
+  { reading = "the branches able to run taken from the highest number down", hand_case = "two branches forked and both able to run with nothing recorded for either" },
+  { reading = "a signal taken when the branch wakes instead of claimed as it goes down", hand_case = "two branches on one tag with a third branch marked between their two lines" },
+  { reading = "a branch marked by where its command was recorded rather than where its result was", hand_case = "two branches whose commands are recorded in one order and answered in the other" },
+  { reading = "commands still matched against the history after the live side opens", hand_case = "a body that comes to a standstill with a recorded command of its own kind still standing" },
+  { reading = "results paired on kind alone, so two names of one kind swap values", hand_case = "two names of one kind whose results are recorded in the opposite order" },
+  { reading = "results paired on name alone, so one name under two kinds collides", hand_case = "one name issued as a call and as a timer, answered in the other order" },
+  { reading = "an unrecorded result taken when the command is issued rather than when it is taken", hand_case = "two branches issuing before either takes, with the live side already open" },
+  { reading = "a command counted over the whole history rather than among its own kind", hand_case = "a timer recorded between two calls whose own count must not move" },
+  { reading = "the leftover reported as the last recorded command left over, not the earliest", hand_case = "a finished run owing the history two commands of different kinds" },
+  { reading = "a version marker giving the body's own value while the run can still replay", hand_case = "a marker with no recorded choice whose arms issue different commands" },
 ]
 correct_variants = [
   "a service holding the log as one list of events with per-kind cursors into it and the answer order as a dict of deques keyed by kind and name",
@@ -189,6 +191,6 @@ correct_variants = [
 ]
 
 [shape]
-environment_py_lines = 330
-editable_files = 6
-reference_lines = 300
+environment_py_lines = 440
+editable_files = 7
+reference_lines = 320

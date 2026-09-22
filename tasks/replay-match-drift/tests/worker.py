@@ -6,13 +6,14 @@ wall clock that is also the task's execution limit, and it reaches no verdict: i
 a record, and stage two reads that record as hostile input. A crash, a hang, a truncated
 file or a silent exit costs the record, and a missing record is a failure.
 
-What it stages is the verifier's own copy of the tree with the six submitted files dropped
+What it stages is the verifier's own copy of the tree with the seven submitted files dropped
 into it, so the run-file grammar, the body machine, the trace writer and the driver are
 the ones the task shipped whatever the submission did to them, and a seventh file left
-beside the six is never picked up.
+beside the seven is never picked up.
 
-The two scale families are here for the clock. An engine that looks a command up by walking
-the recorded log rather than indexing it once is exactly correct and cannot finish them.
+The two scale families are here for the clock. An engine that looks a branch up by walking
+every branch for the one whose turn is next, or a command up by walking the recorded
+history, is exactly correct and cannot finish them.
 """
 import hashlib
 import json
@@ -32,7 +33,8 @@ import gen  # noqa: E402
 WORK = pathlib.Path(os.environ.get("RMD_WORK", "/work"))
 SENT = pathlib.Path(os.environ.get("RMD_SENT", "/app/dur"))
 CLEAN = pathlib.Path(TESTS) / "pristine"
-PARTS = ("tab.py", "edge.py", "pair.py", "pend.py", "sigq.py", "ver.py")
+PARTS = ("tab.py", "edge.py", "pair.py", "hold.py", "sched.py", "wake.py",
+         "ver.py")
 
 
 def stamp(lines):

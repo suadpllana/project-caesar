@@ -12,7 +12,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 TASK = ROOT / "tasks" / "replay-match-drift"
 SOL = TASK / "solution"
 SRC = TASK / "environment" / "app_src"
-PARTS = ("tab.py", "edge.py", "pair.py", "pend.py", "sigq.py", "ver.py")
+PARTS = ("tab.py", "edge.py", "pair.py", "hold.py", "sched.py", "wake.py",
+         "ver.py")
 
 
 def sealed():

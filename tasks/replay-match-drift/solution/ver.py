@@ -1,13 +1,13 @@
 """Version markers.
 
-A recorded choice wins whatever the body asks for. With no recorded choice the answer
-depends on which side of the boundary the run is on: while replaying, the marker did not
-exist when the log was written, so the run has to take the value that behaviour had before
-the marker was added, which is zero; once live there is no history to honour and the body's
-own value stands.
+A recorded choice wins whatever the body asks for. With none left the answer depends on
+which side of the boundary the run is on: while the history can still move the run, the
+marker did not exist when that history was written and has to answer for the code that did,
+which is zero; once the live side is open the body's own value stands.
 
-That is the loop in this task: the value decides which branch runs, the branch decides which
-commands are issued, and the commands are what cross the boundary the marker reads.
+That is the loop in this task. The value decides which arm a branch takes, the arm decides
+which commands it issues, the commands decide what the branches wait for, and what they wait
+for decides whether the run can still move - which is the thing the marker reads.
 """
 
 

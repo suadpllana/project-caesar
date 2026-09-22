@@ -1,43 +1,57 @@
 """Run files generated inside the verifier, from a seed drawn after the agent has finished.
 
-Each family is shaped around one decision, because an unshaped population does not exercise
-a mechanism: the interleavings, the answer orders and the boundary positions here are placed
-deliberately rather than sampled and hoped for.
+A history is a recording, so these are produced by simulating one: the generator forks the
+branches, issues each branch's commands in the order the scheduling rules put them, and
+gives every answer a key that decides where its line lands. Sorting by those keys at the end
+turns the simulation into a history the engine reproduces, which is why the recorded
+interleavings here are the ones a real run would leave rather than a shuffle.
 
-  plain  the body matches its log exactly, one kind, answers in issue order - the ordinary
-         case an engine that goes live on anything unfamiliar fails
-  mix    three kinds whose recorded interleaving differs from the order the body issues
-         them, so a command counted on the whole log lands on another kind's record
-  swap   one kind, distinct names, answers recorded in an order that is not the issue order
-  dup    the same kind and name issued several times beside distinct ones, so the answer
-         counter has to be on the pair
-  edge   a log that stops part way, so the run crosses to the live side and takes the
-         values the run file offers
-  left   a full log carrying recorded commands the body never issues
-  late   both at once: the run crosses on one kind and still owes another kind's record
-  sigs   several tags recorded out of the order they are waited for, some never taken
-  vers   markers that decide which arm runs, recorded and not, on both sides of the boundary
-  race   bursts of outstanding commands answered out of the order they were issued
-  hold   a recorded command with no recorded answer
+Each family is shaped around one decision, because an unshaped population does not exercise
+a mechanism.
+
+  plain  one branch, answers recorded in the order the work was issued - the ordinary case
+  mix    one branch over three kinds, whose recorded interleaving is not the issue order
+  swap   one branch whose answers were recorded in the opposite order
+  dup    the same kind and name issued several times, and one name used under two kinds
+  pair   two branches whose answers interleave, so the schedule alternates between them
+  many   four to seven branches whose marks reorder the run away from fork order
+  sigs   several tags, with two branches competing for the same one
+  vers   markers deciding which arm a branch takes, recorded and not, on both sides
+  edge   a history that stops part way, so the run comes to a standstill and goes live
+  left   a full history carrying recorded commands the body never issues
+  late   both at once: the run goes live and still owes the history a command
+  stop   branch zero ending while other branches are still waiting
   bad    a recorded command under another name
-  long   the scale family: a long log against a long body
-  wide   the scale family: many races over a long log
+  long   the scale family for the history tables: one branch, a long history
+  wide   the scale family for the schedule: eight thousand branches over a long history
 """
+import heapq
 import random
 
 FAMILIES = [
     ("plain", False), ("mix", False), ("swap", False), ("dup", False),
-    ("edge", False), ("left", False), ("late", False), ("sigs", False),
-    ("vers", False), ("race", False), ("hold", False), ("bad", False),
-    ("long", True), ("wide", True),
+    ("pair", False), ("many", False), ("sigs", False), ("vers", False),
+    ("edge", False), ("left", False), ("late", False), ("stop", False),
+    ("bad", False), ("long", True), ("wide", True),
 ]
 
 KINDS = ("call", "child", "timer")
-TAKE_OP = {"call": "call", "child": "spawn", "timer": "nap"}
-OPEN_OP = {"call": "fire", "child": "open"}
+AWAIT_OP = {"call": "call", "child": "spawn", "timer": "nap"}
 NAMES = ("ax", "bo", "cy", "de", "ef", "gu", "ho", "ir", "ja", "ko", "lu", "mi")
 TAGS = ("pay", "ship", "pack", "fix")
-KEYS = ("road", "shape", "turn", "grip")
+KEYS = ("road", "shape")
+
+
+class Step(object):
+    """One thing a branch does, in the order it does it."""
+
+    def __init__(self, what, kind=None, name=None, tag=None, key=None, cur=0):
+        self.what = what
+        self.kind = kind
+        self.name = name
+        self.tag = tag
+        self.key = key
+        self.cur = cur
 
 
 def _names(rng, n, unique):
@@ -47,159 +61,191 @@ def _names(rng, n, unique):
         while len(pool) < n:
             pool.append("%s%d" % (rng.choice(NAMES), len(pool)))
         return pool[:n]
-    return [rng.choice(NAMES[:5]) for _ in range(n)]
+    return [rng.choice(NAMES[:4]) for _ in range(n)]
 
 
-def _merge(rng, cmds, drop, ok_order):
-    """Interleave the recorded commands with their answers, answers never before their own."""
+def _body(plans, labels):
+    """Branch zero forks every other block, then runs its own steps."""
+    rows = []
+    for at in range(1, len(plans)):
+        rows.append("b fork %s" % labels[at])
+    rows.extend(_steps(plans[0]))
+    rows.append("b end")
+    for at in range(1, len(plans)):
+        rows.append("b lab %s" % labels[at])
+        rows.extend(_steps(plans[at]))
+        rows.append("b end")
+    return rows
+
+
+def _steps(plan):
+    rows = []
+    for step in plan:
+        if step.what == "await":
+            rows.append("b %s %s" % (AWAIT_OP[step.kind], step.name))
+        elif step.what == "fire":
+            rows.append("b fire %s" % step.name)
+        elif step.what == "take":
+            rows.append("b take")
+        elif step.what == "wait":
+            rows.append("b wait %s" % step.tag)
+        elif step.what == "mark":
+            rows.append("b mark %s %d" % (step.key, step.cur))
+        elif step.what == "add":
+            rows.append("b add %d" % step.cur)
+    return rows
+
+
+def _sim(rng, plans, delay):
+    """Walk the branches the way the scheduling rules do, recording as we go.
+
+    Every event gets a sort key. A command's own line takes the clock it was issued at; its
+    answer takes that clock plus a delay, which is what decides how far down the history the
+    branch's next turn lands. Sorting by key gives a history whose positions reproduce the
+    simulated schedule, so the recorded interleaving is one a real run would have left.
+    """
     events = []
-    placed = set()
-    gi = 0
-    oi = 0
-    order = [at for at in ok_order if at not in drop]
-    while gi < len(cmds) or oi < len(order):
-        ready = oi < len(order) and order[oi] in placed
-        if gi < len(cmds) and (not ready or rng.random() < 0.55):
-            kind, name, _v = cmds[gi]
-            events.append("e go %s %s" % (kind, name))
-            placed.add(gi)
-            gi += 1
-        elif ready:
-            at = order[oi]
-            kind, name, value = cmds[at]
-            events.append("e ok %s %s %d" % (kind, name, value))
-            oi += 1
+    clock = [0.0]
+    # Keys have to be distinct: two answers landing on one key would be ordered by the sort
+    # here and by their line position in the engine, and the two orders need not agree.
+    nudge = [0]
+    at = [0] * len(plans)
+    held = [[] for _ in plans]
+    ready = list(range(len(plans)))
+    waiting = []
+    sig_key = {}
+
+    def tick():
+        clock[0] += 1.0
+        return clock[0]
+
+    def apart(key):
+        nudge[0] += 1
+        return key + nudge[0] * 1e-7
+
+    while ready or waiting:
+        if ready:
+            bid = ready.pop(0)
         else:
-            kind, name, _v = cmds[gi]
-            events.append("e go %s %s" % (kind, name))
-            placed.add(gi)
-            gi += 1
-    return events
+            bid = heapq.heappop(waiting)[1]
+        plan = plans[bid]
+        while at[bid] < len(plan):
+            step = plan[at[bid]]
+            at[bid] += 1
+            if step.what in ("await", "fire"):
+                key = tick()
+                events.append((key, "e go %s %s" % (step.kind, step.name)))
+                done = apart(key + delay(rng, bid, at[bid]))
+                if step.what == "fire":
+                    held[bid].append((step, done))
+                    continue
+                events.append((done, "e ok %s %s %d"
+                               % (step.kind, step.name, rng.randint(0, 99))))
+                heapq.heappush(waiting, (done, bid))
+                break
+            if step.what == "take":
+                if not held[bid]:
+                    continue
+                step_held, done = held[bid].pop(0)
+                events.append((done, "e ok %s %s %d"
+                               % (step_held.kind, step_held.name, rng.randint(0, 99))))
+                heapq.heappush(waiting, (done, bid))
+                break
+            if step.what == "wait":
+                key = apart(max(sig_key.get(step.tag, 0.0) + 0.25, tick()))
+                sig_key[step.tag] = key
+                events.append((key, "e sig %s %d" % (step.tag, rng.randint(10, 99))))
+                heapq.heappush(waiting, (key, bid))
+                break
+    events.sort(key=lambda row: row[0])
+    return [row[1] for row in events]
 
 
-def _sprinkle(rng, events, extra):
-    """Place extra rows among the events, keeping the order they were given in."""
-    spots = sorted(rng.randrange(len(events) + 1) for _ in extra)
-    out = []
-    at = 0
-    for i in range(len(events) + 1):
-        while at < len(spots) and spots[at] == i:
-            out.append(extra[at])
-            at += 1
-        if i < len(events):
-            out.append(events[i])
-    return out
-
-
-def _body_from(rng, cmds, bursts):
-    """Body ops that issue cmds in order, some through outstanding bursts."""
-    body = []
-    at = 0
-    n = len(cmds)
-    while at < n:
-        kind = cmds[at][0]
-        room = 0
-        while at + room < n and cmds[at + room][0] in OPEN_OP:
-            room += 1
-        if bursts and room >= 2 and rng.random() < 0.85:
-            size = rng.randint(2, min(4, room))
-            for k in range(size):
-                body.append("b %s %s" % (OPEN_OP[cmds[at + k][0]], cmds[at + k][1]))
-            for _ in range(size):
-                body.append("b %s" % ("race" if rng.random() < 0.5 else "join"))
-            at += size
-            continue
-        body.append("b %s %s" % (TAKE_OP[kind], cmds[at][1]))
-        if rng.random() < 0.25:
-            body.append("b add %d" % rng.randint(1, 5))
-        at += 1
-    return body
+def _plans(rng, fam):
+    """The branches and what each of them does."""
+    count = {"plain": 1, "mix": 1, "swap": 1, "dup": 1, "bad": 1, "left": 1,
+             "pair": 2, "stop": 3}.get(fam, rng.randint(2, 5))
+    if fam == "many":
+        count = rng.randint(4, 7)
+    kinds = ("call",) if fam in ("plain", "swap", "dup") else KINDS
+    if fam == "late":
+        kinds = KINDS[:2]
+    each = rng.randint(2, 4)
+    longest = each + 2 * (count - 1) if fam != "stop" else each
+    unique = fam not in ("dup",)
+    pool = _names(rng, count * each + 4, unique)
+    take = 0
+    plans = []
+    for bid in range(count):
+        plan = []
+        for _i in range(longest if bid == 0 else each):
+            name = pool[take % len(pool)]
+            take += 1
+            kind = rng.choice(kinds)
+            if fam in ("pair", "many", "stop", "edge", "late") and rng.random() < 0.3:
+                plan.append(Step("fire", kind="call", name=name))
+                plan.append(Step("take"))
+            else:
+                plan.append(Step("await", kind=kind, name=name))
+            if rng.random() < 0.3:
+                plan.append(Step("add", cur=rng.randint(1, 5)))
+        plans.append(plan)
+    if fam == "sigs":
+        tags = list(TAGS[:rng.randint(2, 3)])
+        for plan in plans:
+            plan.insert(rng.randrange(len(plan) + 1), Step("wait", tag=rng.choice(tags)))
+        plans[0].insert(0, Step("wait", tag=tags[0]))
+        if len(plans) > 1:
+            plans[1].insert(0, Step("wait", tag=tags[0]))
+    if fam == "vers":
+        for plan in plans:
+            plan.insert(0, Step("mark", key=rng.choice(KEYS), cur=rng.randint(1, 3)))
+    return plans
 
 
 def _one(rng, fam):
-    kinds = ("call",) if fam in ("plain", "swap", "dup", "hold") else KINDS
-    if fam == "mix":
-        kinds = KINDS
-    size = {"long": 0, "wide": 0}.get(fam, rng.randint(4, 9))
     if fam == "long":
         return _long(rng)
     if fam == "wide":
         return _wide(rng)
+
+    plans = _plans(rng, fam)
+    labels = ["main"] + ["arm%d" % at for at in range(1, len(plans))]
+    pool = {"swap": (7.5, 6.5, 5.5), "mix": (0.5, 3.5, 6.5), "dup": (0.5, 4.5),
+            "pair": (0.5, 2.5), "many": (0.5, 1.5, 3.5, 7.5)}.get(fam, (0.5, 1.5, 2.5))
+    body = _body(plans, labels)
+    events = _sim(rng, plans, lambda r, b, i: r.choice(pool))
+
     if fam == "vers":
-        return _vers(rng)
+        keys = sorted({step.key for plan in plans for step in plan if step.what == "mark"})
+        rows = ["e ch %s %d" % (key, rng.choice([0, rng.randint(1, 3)]))
+                for key in keys if rng.random() < 0.6]
+        events = _place(rng, events, rows)
 
-    unique = fam in ("swap", "race", "left", "late", "edge", "bad")
-    picked = _names(rng, size, unique)
-    cmds = []
-    for i in range(size):
-        kind = rng.choice(kinds)
-        cmds.append((kind, picked[i], rng.randint(0, 99)))
-    if fam == "dup":
-        for i in range(1, size):
-            if rng.random() < 0.5:
-                cmds[i] = (cmds[i - 1][0], cmds[i - 1][1], rng.randint(0, 99))
-
-    live_from = size
-    if fam == "edge":
-        live_from = rng.randint(1, size - 1)
-    if fam == "late":
-        last = cmds[-1][0]
-        cut = [i for i, c in enumerate(cmds) if c[0] == last]
-        live_from = cut[max(0, len(cut) - rng.randint(1, 2))]
-    recorded = cmds[:live_from]
-
-    drop = set()
-    if fam == "hold" and recorded:
-        drop.add(rng.randrange(len(recorded)))
-
-    ok_order = list(range(len(recorded)))
-    if fam == "race":
-        ok_order.reverse()
-    elif fam in ("swap", "dup", "mix"):
-        rng.shuffle(ok_order)
-
-    body = _body_from(rng, cmds, fam in ("race", "mix", "left", "late", "edge"))
-    rows = []
-    if fam == "sigs":
-        tags = list(TAGS[:rng.randint(2, 4)])
-        rows = ["e sig %s %d" % (rng.choice(tags), rng.randint(10, 99))
-                for _ in range(rng.randint(4, 8))]
-        body = _with_waits(rng, body, rows, rng.random() < 0.25)
-    body.append("b fin")
-
-    events = _merge(rng, recorded, drop, ok_order)
-    if fam == "mix":
-        events = _shuffle_go(rng, events)
+    if fam in ("edge", "late", "stop"):
+        cut = rng.randint(max(1, len(events) // 3), max(2, len(events) - 2))
+        events = events[:cut]
     if fam in ("left", "late"):
-        other = [k for k in KINDS if k != cmds[-1][0]] if fam == "late" else list(KINDS)
-        spare = ["e go %s %s" % (rng.choice(other), rng.choice(NAMES))
-                 for _ in range(rng.randint(1, 2))]
-        events = events + spare
-    if fam == "sigs":
-        events = _sprinkle(rng, events, rows)
-    if fam == "bad" and events:
+        spare = KINDS[2] if fam == "late" else rng.choice(KINDS)
+        events = events + ["e go %s %s" % (spare, rng.choice(NAMES))
+                           for _ in range(rng.randint(1, 2))]
+    if fam == "bad":
         events = _rename(rng, events)
 
-    spare = max(0, size - live_from) + 2
-    feed = ["r %d" % rng.randint(1, 99) for _ in range(spare)]
+    feed = ["r %d" % rng.randint(1, 99) for _ in range(len(body) // 2 + 3)]
     return body + events + feed
 
 
-def _shuffle_go(rng, events):
-    """Move the recorded commands around without changing their order inside a kind."""
-    slots = [i for i, row in enumerate(events) if row.startswith("e go ")]
-    rows = [events[i] for i in slots]
-    by_kind = {}
-    for row in rows:
-        by_kind.setdefault(row.split()[2], []).append(row)
-    order = []
-    while any(by_kind.values()):
-        live = [k for k in by_kind if by_kind[k]]
-        pick = rng.choice(live)
-        order.append(by_kind[pick].pop(0))
-    out = list(events)
-    for i, row in zip(slots, order):
-        out[i] = row
+def _place(rng, events, rows):
+    spots = sorted(rng.randrange(len(events) + 1) for _ in rows)
+    out = []
+    at = 0
+    for i in range(len(events) + 1):
+        while at < len(spots) and spots[at] == i:
+            out.append(rows[at])
+            at += 1
+        if i < len(events):
+            out.append(events[i])
     return out
 
 
@@ -214,93 +260,29 @@ def _rename(rng, events):
     return out
 
 
-def _with_waits(rng, body, rows, overdraw):
-    """Waits drawn from the signals that were actually recorded, so most of them land."""
-    have = {}
-    for row in rows:
-        have[row.split()[2]] = have.get(row.split()[2], 0) + 1
-    want = []
-    for tag, n in sorted(have.items()):
-        want.extend([tag] * (n if overdraw else max(1, n - rng.randint(0, 1))))
-    if overdraw:
-        want.append(sorted(have)[0])
-    rng.shuffle(want)
-    out = []
-    for row in body:
-        out.append(row)
-        if want and rng.random() < 0.45:
-            out.append("b wait %s" % want.pop())
-    out.extend("b wait %s" % tag for tag in want)
-    return out
-
-
-def _vers(rng):
-    """Markers that choose an arm, with the arm the generator knows is taken."""
-    body = []
-    cmds = []
-    events = []
-    chs = []
-    kept = rng.randint(3, 5)
-    rec_cmds = rng.randint(1, kept - 1) if rng.random() < 0.6 else kept
-    for step in range(kept):
-        key = KEYS[step % 2]
-        cur = rng.randint(1, 3)
-        if rng.random() < 0.45:
-            value = rng.choice([0, cur])
-            chs.append("e ch %s %d" % (key, value))
-        else:
-            value = cur if len(cmds) >= rec_cmds + 1 else 0
-        body.append("b mark %s %d" % (key, cur))
-        body.append("b jz arm%d" % step)
-        hot = (rng.choice(KINDS), rng.choice(NAMES), rng.randint(0, 99))
-        cold = (rng.choice(KINDS), rng.choice(NAMES), rng.randint(0, 99))
-        body.append("b %s %s" % (TAKE_OP[hot[0]], hot[1]))
-        body.append("b jmp out%d" % step)
-        body.append("b lab arm%d" % step)
-        body.append("b %s %s" % (TAKE_OP[cold[0]], cold[1]))
-        body.append("b lab out%d" % step)
-        cmds.append(cold if value == 0 else hot)
-    body.append("b fin")
-    events = _merge(rng, cmds[:rec_cmds], set(), list(range(rec_cmds)))
-    events = _sprinkle(rng, events, chs)
-    feed = ["r %d" % rng.randint(1, 99) for _ in range(kept + 2)]
-    return body + events + feed
-
-
 def _long(rng):
-    size = 30000
-    picked = ["n%d" % (i % 700) for i in range(size)]
-    cmds = [(KINDS[i % 3], picked[i], (i * 7) % 100) for i in range(size)]
-    body = [("b %s %s" % (TAKE_OP[c[0]], c[1])) for c in cmds]
-    body.append("b fin")
-    events = []
-    for kind, name, value in cmds:
-        events.append("e go %s %s" % (kind, name))
-        events.append("e ok %s %s %d" % (kind, name, value))
+    """One branch, a long history: the gate on the tables the history is read through."""
+    size = 24000
+    plan = [Step("await", kind=KINDS[i % 3], name="n%d" % (i % 600)) for i in range(size)]
+    body = _body([plan], ["main"])
+    events = _sim(rng, [plan], lambda r, b, i: 0.5)
     return body + events
 
 
 def _wide(rng):
-    size = 22000
-    cmds = [("call" if i % 2 else "child", "w%d" % i, (i * 11) % 100) for i in range(size)]
-    body = []
-    at = 0
-    while at < size:
-        room = min(4, size - at)
-        for k in range(room):
-            body.append("b %s %s" % (OPEN_OP[cmds[at + k][0]], cmds[at + k][1]))
-        for _ in range(room):
-            body.append("b race")
-        at += room
-    body.append("b fin")
-    gos = ["e go %s %s" % (c[0], c[1]) for c in cmds]
-    oks = ["e ok %s %s %d" % (c[0], c[1], c[2]) for c in cmds]
-    events = []
-    for at in range(0, size, 4):
-        events.extend(gos[at:at + 4])
-        block = oks[at:at + 4]
-        block.reverse()
-        events.extend(block)
+    """Three thousand branches whose answers are scattered, so the queue never empties."""
+    arms = 8000
+    each = 8
+    plans = []
+    for at in range(arms):
+        plans.append([Step("await", kind="call", name="w%d-%d" % (at, step))
+                      for step in range(each)])
+    labels = ["main"] + ["a%d" % at for at in range(1, arms)]
+    body = _body(plans, labels)
+    # branch zero waits longest at every step, so it is the last to finish and the run ends
+    # on its own value rather than on what the others left behind
+    events = _sim(rng, plans, lambda r, b, i:
+                  40000.0 + i * 500.0 if b == 0 else r.uniform(1.0, 36000.0))
     return body + events
 
 

@@ -1,0 +1,12 @@
+page 12
+@0
+add 1 0 end el div
+set 1 aria-live polite
+add 2 1 end tx online
+add 3 1 end tx idle
+@1
+text 2 offline
+@4
+text 3 offline
+@8
+text 2 online

@@ -1,0 +1,180 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/sr/look.py",
+  "/app/sr/know.py",
+  "/app/sr/watch.py",
+  "/app/sr/unit.py",
+  "/app/sr/line.py",
+  "/app/sr/voice.py",
+]
+
+[task]
+name = "afterquery/heard-cut-revoice"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+The reader is small and every rule is in the brief. What the brief does not say is which of the
+structures those rules seem to ask for survive all of them at once, and that is the work.
+
+Who does this for a living: an engineer who owns the announcement layer of a screen reader or a
+browser's accessibility bridge, or the headless virtual screen reader a UI test suite asserts
+against. The graded pages are synthetic scripts. Eight generated families are each shaped around
+one part of the model, a ninth mixes them, two more exist for scale, and 35 short pages are written
+by hand, one per rule and per side of each fence. The trees and mutation patterns are ordinary for
+a busy web application; the density of updates that overlap speech is deliberately higher than a
+real session produces, because that overlap is the only place the rules disagree with the obvious
+reader.
+
+The shipped reader is that obvious reader, the announcer every live-region integration starts
+as: it walks each tick's mutation records, turns an insertion, a removal or a text edit inside a
+polite or assertive region into a string, drops a string equal to the last one said for its
+region and queues the rest, and an assertive string cuts polite speech and flushes the queue. On
+a page whose updates are spaced further apart than their speech takes it prints exactly the right
+log, and it goes wrong as soon as they overlap.
+
+The first thing to see is that speech here is a comparison and not an event stream. What is
+voiced is the difference between what a region exposes now and what the listener will believe
+once the playing utterance has finished, and belief moves only when an utterance finishes or a
+difference is absorbed. A change edited again while it waits is voiced once, with its newest
+words; a change undone before its turn is never voiced; a node moved inside its region is no
+change; a node moved to another region is a removal in one and an addition in the other, each
+with its own relevance, hold and age. A mutation record says what was touched, never what the
+listener believes, so a reader built on the record stream cannot express any of this.
+
+The second discovery is the one that forces a replan rather than a patch. An assertive difference
+cuts a polite utterance off, the cut utterance teaches nothing, and every pair it carried is
+compared again and waits at the age it had when it was taken. So belief cannot be written when
+speech starts; the carried value is a third layer between belief and the page; and a pair can
+hold a difference whose age predates its current words. Absorption has to rewrite that carried
+layer as well, or finishing re-creates a difference that was just silenced. A removed node is
+nowhere, so whether its removal is held depends on the parent it was believed under, which a move
+inside the region does not update. An atomic unit reads held text as it stands but does not carry
+the held difference, so the unit is spoken again when the hold lifts.
+
+Then scale. Recomputing every region against belief on every tick, or rescanning the waiting line
+at every selection, is exactly correct and does not fit: the graded set includes pages of about
+seventeen thousand text nodes over 2400 ticks and a busy container that gathers over fifteen
+thousand held differences, all inside one 60 second call. Measured in the verifier container on
+one CPU, those two readers take 483.7 s and 208.3 s for the graded set against 2.4 s for the
+reference. Fitting the limit means settling only the keys a tick's records can reach, indexing
+removals by the parent they are placed under, keeping held differences out of the line until an
+element on their path releases them, and a line whose stale entries are thrown away as they
+surface.
+
+The environment names things tersely - par, kid, att and txt for a node's parent, children,
+attributes and text; look, know, watch, unit, line and voice for the six reader modules - and
+ships without docstrings or comments. That is a deliberate choice: the tree reads as the internal
+code of a test harness, and the brief, not the code, carries the rules.
+"""
+
+solution_explanation = """
+The reference keeps three layers for every pair of a region and a text node: what the listener
+believes, with the parent the node had when those words were taken; what the playing utterance
+carries for the pair, with the age the difference had when it was taken; and what the page
+exposes now. Exposure and region are read by walking up from the node, so nothing cached can go
+stale behind a record.
+
+Each tick it finishes a due utterance first, teaching belief what it carried. It then settles
+only the pairs the tick could have changed: text nodes a record names, every text node under an
+added, moved, dropped, hidden or shown subtree, every pair already believed or waiting for one of
+those nodes, and every waiting pair of a region element that sits in such a subtree or whose
+aria-live or aria-relevant changed. Settling compares the current words with the expected ones -
+the carried value if the playing utterance carries the pair, belief otherwise - and absorbs the
+difference when the region does not voice or its own aria-relevant does not name the kind,
+releasing the pair from the carried layer too; otherwise the pair goes into the line at its
+first-seen age, with its hold. Holds are recomputed only for the waiting pairs in the region of an
+element whose aria-busy changed, and for removals placed under an element that moved or was
+hidden or shown; an index from each parent to the removals placed under it makes that a lookup
+rather than a scan.
+
+A cut hands every carried pair back through the same settling, at the age it had when it was
+taken. Selection takes the top of an assertive heap, else a polite one, keyed by age, node id and
+region id. An entry is valid only while its pair still has that age, is unheld and has that
+loudness, and anything else is discarded when it surfaces, which is sound because a stale entry
+can become valid again only through a fresh push. The unit is the first explicit aria-atomic
+between the start and the region element; a unit's utterance reads the unit's exposed text as it
+is now and carries the unheld waiting pairs whose unit it is, found from the unit's own text
+nodes and the removals placed under its elements. An empty unit is believed at once and the
+reader chooses again.
+
+That is how an engineer who has built an announcement layer would do it: keep the listener's
+model explicit instead of deriving speech from events, and make each tick cost what the tick
+touched, because a page that is mostly quiet is the normal case and the reader runs on every tick
+of it.
+"""
+
+verification_explanation = """
+The verifier runs in two halves. The first runs as an unprivileged user, after the reward
+directory, the sealed model and the frozen answers have been locked away from it: it lays the six
+submitted modules over the verifier's own copy of the rest of the tree, runs every graded page
+through run_sr and writes down each log, and decides nothing. It runs under one 60 second wall
+clock, which is the task's execution limit, and anything it leaves running is killed before
+grading starts. The second half runs as root, never executes submitted code, and reads that
+record as hostile input.
+
+Every log has to match line for line, on 35 hand pages and 276 generated ones. The hand pages each
+pin one rule, with both sides of each fence, and their answers were frozen only after the sealed
+model, the reference and a third reader that recomputes the whole page on every tick printed the
+same log for every one; the model must still reproduce them before anything is graded. The
+generated pages come from a seed drawn after the agent's container is gone - 30 from each of nine
+small families, eight of them shaped around one part of the model and one mixing them, and three
+from each of two scale families - and are checked against the sealed model.
+
+Passing means the reader implements the stated model rather than something near it. Each of 29
+wrong readings of the brief, written as a whole reader, fails the hand page written for its rule,
+and each also gets between 1 and 88 percent of one draw of generated pages wrong. The two exactly
+correct readers that recompute the page or rescan the line are cut off by the clock. A silent
+reader, a record-order queue, a replay of the worked example and a reader that carries the frozen
+answers by page all score 0, the last because the generated pages are new. Ten isolation probes -
+reaching for the model and the answers, writing the reward directly or from a process left running,
+rewriting the grader or shrinking the page set, planting, spoiling or cutting short the worker's
+record, and hiding the reader in a file beside the six - are each stopped by the lock meant for
+them, and the two that could score are shown to score 1 once that lock is taken off. Two correct
+readers written apart from the reference, one caching exposure and one keeping a line per region,
+score 1.
+"""
+
+category = "Software"
+
+subcategory = "Frontend"
+
+tags = [
+  "aria-live-regions",
+  "screen-reader-speech",
+  "accessibility-tree",
+  "utterance-interruption",
+  "net-change-detection",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having built or maintained the announcement side of assistive technology: the part of a screen
+reader, a browser's accessibility bridge or a virtual screen reader for UI tests that turns live
+region changes into speech. Familiarity with what aria-live, aria-atomic, aria-relevant and
+aria-busy each ask of that layer, and with how much the specification leaves queueing,
+interruption and repetition to the implementation. Comfort with keeping a model of what the
+listener has actually heard rather than what the page emitted, with speech that can be cut off
+halfway and has to give back what it had not finished saying, and with making the cost of a tick
+proportional to what the tick touched on pages of tens of thousands of nodes.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

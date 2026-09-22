@@ -1,0 +1,152 @@
+page 72
+@0
+add 1 0 end el header
+add 2 1 end tx welcome
+add 3 0 end el main
+add 4 3 end el aside
+set 4 aria-live polite
+add 5 4 end tx update ready ten muted
+add 6 4 end tx syncing cart seven failed
+add 7 4 end tx online update
+add 8 4 end el ul
+add 9 8 end tx busy row eight
+add 10 3 end el section
+set 10 aria-live assertive
+add 11 10 end tx mail busy download
+add 12 10 end tx high cart high playing
+add 13 10 end tx four saved
+add 14 10 end el ul
+add 15 14 end tx closed online high sent
+add 16 14 end tx update row two
+add 17 14 end el span
+add 18 17 end tx alert row row
+add 19 17 end tx offline row
+add 20 3 end el aside
+set 20 aria-live polite
+add 21 20 end tx one joined away
+add 22 20 end el span
+add 23 22 end tx update offline failed queued
+add 24 22 end el p
+add 25 24 end tx low
+add 26 3 end el section
+set 26 aria-live off
+add 27 26 end tx queued note
+add 28 3 end el div
+add 29 28 end tx item three next
+set 4 aria-relevant all
+set 10 aria-relevant removals
+set 20 aria-relevant bogus removals
+set 26 aria-relevant bogus removals
+add 30 24 end el p
+add 31 30 end tx next retry alert
+add 32 30 end tx mail note offline
+add 33 4 end el ul
+add 34 33 end tx added alert
+add 35 33 end tx next upload back
+add 36 33 end tx low
+add 37 33 end el ul
+add 38 37 end tx alert queued page
+add 39 26 end el div
+add 40 39 end tx item synced
+add 41 39 end tx high one
+add 42 39 end el li
+add 43 42 end tx three saved upload typing
+add 44 33 end el div
+add 45 44 end tx mail
+add 46 44 end tx eight passed row seven
+add 47 44 end tx high
+add 48 20 end el ul
+add 49 48 end tx passed
+set 30 aria-atomic true
+set 44 aria-atomic true
+set 48 aria-busy true
+@1
+set 4 aria-live assertive
+@2
+move 24 48 0
+@3
+move 18 14 end
+@5
+set 26 aria-live off
+@7
+text 9 four
+@8
+set 10 aria-live polite
+@9
+add 50 26 end tx online syncing
+@10
+text 50 page retry muted open
+@11
+set 20 aria-live assertive
+@14
+move 32 20 0
+@17
+move 15 44 end
+@18
+move 40 39 0
+@19
+unset 30 aria-atomic
+@20
+set 10 aria-relevant removals
+@22
+set 44 aria-busy true
+@24
+set 10 aria-atomic true
+@25
+move 7 8 end
+@27
+drop 34
+@28
+move 32 30 0
+@29
+text 45 items open cleared
+@34
+move 22 20 0
+@35
+set 39 aria-atomic true
+@38
+add 51 4 0 el li
+add 52 51 end tx new
+add 53 51 end tx ready loading
+@41
+set 10 aria-live off
+@43
+set 30 aria-busy true
+@45
+text 43 mail page high
+@46
+set 39 aria-busy true
+@50
+set 44 aria-atomic false
+@52
+set 20 aria-relevant removals text
+@54
+set 20 aria-atomic true
+@55
+text 40 two mail
+@56
+set 10 aria-live assertive
+@57
+text 12 items price playing
+@58
+drop 30
+@59
+text 18 joined
+@61
+add 54 48 1 tx paused update update syncing
+@63
+set 44 aria-atomic true
+@64
+unset 44 aria-busy
+@66
+add 55 24 0 tx download online sent typing
+@67
+drop 23
+@68
+unset 48 aria-atomic
+@69
+move 41 42 end
+@71
+unset 44 aria-atomic
+@72
+set 39 aria-atomic true

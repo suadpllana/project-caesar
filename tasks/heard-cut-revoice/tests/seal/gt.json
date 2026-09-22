@@ -1,0 +1,140 @@
+{
+ "absorb-carried": [
+  "1 polite uploading five large files now"
+ ],
+ "alert-waits": [
+  "1 assertive battery low now",
+  "4 assertive saving work"
+ ],
+ "anchor-stale-hold": [
+  "4 polite removed row"
+ ],
+ "assertive-first": [
+  "1 assertive power low",
+  "3 assertive retry now",
+  "5 polite saved"
+ ],
+ "atomic-false-stops": [
+  "1 polite b",
+  "4 polite top b"
+ ],
+ "atomic-inner": [
+  "1 polite score 3 to 2",
+  "8 polite other stuff"
+ ],
+ "busy-above-ignored": [
+  "1 polite b"
+ ],
+ "busy-false-releases": [
+  "1 polite x"
+ ],
+ "busy-inner": [
+  "2 polite status ok",
+  "5 polite first row"
+ ],
+ "cut-hands-back": [
+  "1 polite loading three new messages",
+  "2 cut",
+  "2 assertive connection lost",
+  "4 polite loading three new messages"
+ ],
+ "cut-keeps-age": [
+  "1 polite sync failed for four files",
+  "3 cut",
+  "3 assertive disk full",
+  "5 polite sync failed for four files",
+  "10 polite new mail"
+ ],
+ "edit-keeps-age": [
+  "1 polite long text of five words",
+  "6 polite gamma",
+  "7 polite beta"
+ ],
+ "empty-unit": [
+  "1 polite end"
+ ],
+ "finish-before-cut": [
+  "1 polite upload done",
+  "3 assertive low battery"
+ ],
+ "held-alert-no-cut": [
+  "1 polite reading a long line here",
+  "4 cut",
+  "4 assertive alert",
+  "5 polite reading a long line here"
+ ],
+ "hidden-any-value": [
+  "2 polite louder"
+ ],
+ "hidden-false-stays": [
+  "3 polite visible"
+ ],
+ "hide-removes": [
+  "1 polite removed promo",
+  "5 polite promo"
+ ],
+ "late-case": [
+  "1 polite upload 60 percent",
+  "2 cut",
+  "2 assertive network lost",
+  "4 polite upload 80 percent"
+ ],
+ "move-across": [
+  "1 polite removed draft one",
+  "4 polite draft one"
+ ],
+ "off-absorbs": [
+  "5 polite c"
+ ],
+ "off-stops": [
+  "3 polite shown"
+ ],
+ "plain-once": [
+  "1 polite saving draft",
+  "5 polite draft saved",
+  "10 polite all done"
+ ],
+ "region-hidden-silent": [
+  "4 polite b"
+ ],
+ "relevance-absorbs": [
+  "5 polite new"
+ ],
+ "relevant-bogus": [
+  "1 polite x"
+ ],
+ "relevant-region-only": [
+  "3 polite third"
+ ],
+ "removal-held-anchor": [
+  "3 polite other",
+  "5 polite removed row one"
+ ],
+ "removal-last-believed": [
+  "2 polite north"
+ ],
+ "stale-in-line": [
+  "1 polite five new messages in inbox",
+  "6 polite cart has two items"
+ ],
+ "tie-node-id": [
+  "1 polite last",
+  "2 polite first"
+ ],
+ "timing-words": [
+  "1 polite one two three",
+  "4 polite four"
+ ],
+ "tiny-example": [
+  "1 polite offline",
+  "4 polite offline",
+  "8 polite online"
+ ],
+ "undone-in-line": [
+  "1 polite five new messages in inbox"
+ ],
+ "unit-leaves-held": [
+  "2 polite goal 1",
+  "6 polite goal 1"
+ ]
+}

@@ -306,3 +306,25 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-22, `heard-cut-revoice`)
+
+- **A brief can promise something the pages break, and no test asserts a promise.** The brief
+  said `aria-live` "is only ever set during the load"; three hand pages and the hide and mix
+  families switch it later. Every gate was green, because nothing grades an input guarantee. The
+  cold read caught it. Check each guarantee the brief gives about the input against every page
+  mechanically (here 35 hand pages and 1,098 generated), then state the true one.
+- **A family shaped around a mechanism is not shaped around every wrong reading of it.** With
+  eleven shaped families, busy-above-region and hidden-false-shows moved 0 of 276 generated pages
+  and unit-carries-held moved 1: each was caught only by its hand page. The cheat report printing
+  "nonce right" per cheat is what showed it. Shape per reading and re-measure: 42%, 35% and 10% of
+  their families after.
+- **A harness's temp directory mode travels.** `cp -a /artifacts/. /app/` carried mkdtemp's 0700
+  onto `/app`, the sandbox uid could not read the submission, and all six probe rows came back
+  "0 report lines". The reward was 0 either way; only asserting the probe's own report line
+  exposed it as a harness bug, not a verdict.
+- **Plumbing written by copying scores as a copy.** simcheck put `reap.py` at 1.000, `test.sh` at
+  0.94 and both Dockerfiles at 0.99-1.00 against earlier bundles. Write them in the task's own
+  terms from the first draft; the tests Dockerfile still needs its own leading `RUN mkdir -p`.
+- **forgecheck recognises an answer key by slices of `gt.json`.** A forgery keyed by page hash
+  carried every answer and still read as "no carrier". Carry the file verbatim, keyed by name.

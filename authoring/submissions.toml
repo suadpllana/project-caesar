@@ -65,6 +65,15 @@ mechanism = "Produce the trace of a cooperative run: which guard opened and clos
 verdict = "ai-passed"
 
 [[submission]]
+slug = "heard-cut-revoice"
+category = "Software"
+label = "Frontend"
+tags = ["aria-live-regions", "screen-reader-speech", "accessibility-tree", "utterance-interruption", "net-change-detection"]
+substrate = "a headless screen reader for UI tests that replays timed mutations of a document tree carrying ARIA live, atomic, relevant, busy and hidden attributes"
+mechanism = "Decide which utterances start and which are cut as a page mutates, voicing the net difference between each live region and what the listener has finished hearing, and handing cut speech back with its place in line."
+verdict = "pending"
+
+[[submission]]
 slug = "note-carry-forward"
 category = "Software"
 label = "Algorithms"

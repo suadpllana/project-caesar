@@ -1,0 +1,59 @@
+# Originality record for heard-cut-revoice, written 2026-09-22 before any code existed.
+# The design it describes is restated in tasks/heard-cut-revoice/STATE.md.
+
+[task]
+slug = "heard-cut-revoice"
+category = "Software"
+label = "Frontend"
+tags = ["aria-live-regions", "screen-reader-speech", "accessibility-tree", "utterance-interruption", "net-change-detection"]
+status = "idea"
+
+[mechanism]
+sentence = "Decide what a screen reader says, and at which tick, as a page mutates: each utterance voices the net difference between a live region's exposed text and what the listener has fully heard there, grouped under the nearest explicit atomic container, held beneath busy elements, taken oldest first, and handed back with its place in line when an assertive change cuts it off."
+substrate = "a headless screen reader for UI tests that replays timed mutations of a document tree carrying ARIA live, atomic, relevant, busy and hidden attributes, and prints what it says"
+graded_output = "the speech log of every graded page script, one line per utterance started with its tick, politeness and spoken text and one line per cut, compared line for line"
+failure_mode = "the event-driven announcer every implementation starts from: turn each mutation record into an utterance string, queue the strings in arrival order, and count them heard the moment they are queued"
+interaction = "the listener learns a change only when the utterance carrying it finishes, and learns it per region, while an assertive change can cut a polite utterance off and hand every change it carried back to the line at the age it had; absorption of silent and irrelevant differences has to run against what the listener will believe once the playing utterance ends"
+
+[nearest.public]
+name = "WAI-ARIA 1.2 live region attributes, with the MDN ARIA Screen Reader Implementors Guide"
+url = "https://www.w3.org/TR/wai-aria-1.2/#aria-live"
+covers = "what aria-live, aria-atomic, aria-relevant and aria-busy mean, that the atomic container is found by walking up from the changed node to the first element that sets aria-atomic, and implementor advice to drop an earlier queued event for the same atomic region and to wait for busy to clear"
+plans_this = false
+separation = "the spec defines attributes and hints and leaves the announcement model to each screen reader, which is why NVDA's own tracker has an atomic region spoken with stale text (issue 8044) and busy-held updates never spoken (issue 20871). No page defines an utterance as the net difference against completed speech, keys the listener's belief by region, locates a removal where it was last heard, absorbs what cannot be voiced against the belief after the playing utterance, or hands a cut utterance's changes back at their original age"
+
+[nearest.submitted]
+name = "focus-return-point"
+source = "ledger"
+shares = "a Frontend state machine over a tree driven by a stream of events, graded as a per-event trace, where something recorded earlier is resolved against the tree as it stands later"
+same_mechanism = false
+separation = "focus-return-point decides a single focus holder after each event in a widget toolkit with a screen stack, modal dialogs and return points bound to widget instances. This task decides a timed speech log from DOM mutations under ARIA semantics: a listener-knowledge model that advances only on finished speech, per-region belief, busy holds, atomic grouping, oldest-first selection and cut hand-back. Nothing in either grades focus, dialogs or speech in the other, and the wrong plans they punish share no structure"
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "which widget holds focus after every event given dialogs, removals and deferred return points", ours = "which utterances start and when, from net differences against speech the listener has finished hearing" },
+  { axis = "substrate", theirs = "a terminal widget toolkit with a widget tree and a screen stack", ours = "a headless screen reader replaying timed DOM mutations carrying ARIA live attributes" },
+  { axis = "graded_output", theirs = "the focused widget after every event of a history", ours = "a speech log of utterance starts with tick, politeness and text, plus every cut" },
+  { axis = "failure_mode", theirs = "processing every event immediately, or deferring the whole render, with requests bound to ids", ours = "announcing mutation records as events and counting an utterance heard the moment it is queued" },
+  { axis = "interaction", theirs = "instance-bound focus requests against nested aborts that restore deletion history", ours = "completion-time learning keyed by region against assertive cuts that hand changes back at their age" },
+]
+
+[search]
+queries = [
+  "virtual screen reader aria-live announcements MutationObserver aria-atomic aria-busy implementation",
+  "aria-atomic nearest ancestor aria-atomic set changed element ancestors present entire contents spec",
+  "screen reader live region interrupted announcement re-announce pending changes speech queue polite assertive flush",
+  "ARIA notification API ariaNotify priority interrupt all pending none queue semantics",
+  "github virtual screen reader library live region spoken phrase log test tool aria-live polite assertive implementation",
+  "screen reader model what the user has heard live region net change accessibility tree diff announcement algorithm",
+  "NVDA live region handling source aria-atomic container text inserted event speech cancel assertive",
+]
+results = "The results are attribute definitions (WAI-ARIA, MDN), practitioner guides on polite versus assertive and on keeping regions mounted, the ariaNotify explainers with priority and interrupt modes, virtual screen readers for tests that log what an event-driven model speaks, and NVDA issues showing stale atomic text and busy updates that are never spoken. None defines speech as a net difference against what has finished being heard, none keys belief by region or hands cut speech back at its age, and none gives a selection order across regions."
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "virtual DOM reconciliation"
+on_list = true
+departure = "A reconciler diffs two virtual trees to emit DOM operations and has no listener, no clock and no notion of having been heard. Here the difference is taken against a belief that advances only when an utterance finishes, is keyed by live region, is absorbed where it cannot be voiced, and the graded output is a timed speech log with cuts - atomic lookup, busy holds, oldest-first selection and cut hand-back have no counterpart in any reconciliation write-up."
+substrate_used_before = false

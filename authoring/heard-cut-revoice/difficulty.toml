@@ -1,0 +1,103 @@
+# Difficulty record for heard-cut-revoice, written 2026-09-22 before any environment,
+# verifier or solution code existed. Every claim here is restated in
+# tasks/heard-cut-revoice/STATE.md; at Stage 7 the tree shape is measured instead of read.
+
+[task]
+slug = "heard-cut-revoice"
+status = "pending"
+sources = ["tasks/heard-cut-revoice/STATE.md", "authoring/heard-cut-revoice/originality.toml"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = "Treat live regions the way every screen reader integration is written: observe the mutation records of each tick, turn an insertion or a text edit inside a polite or assertive region into an utterance string (the whole region's text when the region says aria-atomic), queue polite strings behind whatever is speaking, let an assertive string flush the queue and speak at once, and consider a string heard the moment it is queued."
+first_plan_source = "prior"
+breaking_rule = "The reader says the net difference between each live region's exposed text and what the listener believes is there, and the listener believes a change only when the utterance carrying it has finished playing - keyed by region, so a node moving between two regions is a removal from one and an addition to the other with separate fates."
+second_discovery = "An assertive change cuts a polite utterance off and every change it carried goes back into line at the age it had, while a node edited during playback already holds a newer difference against the value being carried; and silent or irrelevant differences are absorbed against what the listener will believe after the playing utterance, which rewrites the carried value. A single announced-state snapshot cannot hold believed, carried and current values with two ages per key, and the whole-page diff the net rule suggests is correct and does not fit the stated limit on wide pages or under long busy holds."
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped pages and read the reader loop: it is record driven and marks speech heard at queue time.",
+  "Restate the model as three layers per region and text node: believed, carried by the playing utterance, and exposed now.",
+  "Fix the tick order - finish, observe and absorb, cut, select - and give every difference the tick it arose.",
+  "Compute holds from the node's parent, or for a removal from the parent it was last believed under, up to its region element.",
+  "Find the unit by walking up to the first explicit aria-atomic, read a unit's exposed text at start, and carry every pending difference in it.",
+  "Select oldest first with assertive ahead of polite, ties to the lower node id, and learn an empty unit at once.",
+  "Time the wide and held sample pages, then replace the whole-page diff with keys dirtied by records and subtree walks, and pool held differences under the busy element that holds them.",
+]
+
+[search]
+best_page = "WAI-ARIA 1.2 live region attributes together with the MDN ARIA Screen Reader Implementors Guide, which say what each attribute means and give queueing hints."
+helps_plan = false
+deviation = "Those pages describe per-event announcements with implementation-defined queueing; this reader voices net differences against finished speech, keys belief by region, hands cut speech back at its age, places a removal where it was last believed, and selects across regions oldest first - retrieval confirms the event-driven plan this task punishes."
+
+[tactics]
+A1 = "The shipped reader is the event-driven announcer every integration and every virtual screen reader for tests is written as, and it is coherent: a page whose updates are spaced out gets the same speech either way, so the prior survives casual runs."
+A2 = "The listener-knowledge model, the hand-back of cut speech and the oldest-first line are described as what the reader believes and says, never named as net-change detection, rollback or a priority queue with restored keys."
+B2 = "Ten stated rules hold at once - exposure, regions, region-keyed belief, absorption, busy holds, atomic units, selection age, timing, cuts and the tick order - and each changes what a correct implementation of another has to keep."
+C1 = "Both sides are graded: saying a change twice fails, losing a cut change fails, voicing a held or silent change fails, and never voicing a released hold fails; an ordinary page where nothing overlaps must still speak exactly once per change."
+C2 = "The natural check is to watch the page and listen, and real screen readers disagree with each other and with this reader; ordinary spaced-out updates cannot tell the event model from the net model, only overlapping speech, cuts and holds can."
+C3 = "A whole-page recompute each tick and a rescan of the waiting line at every selection are both exactly correct and do not fit the stated 60 second limit on the wide and held families at the stated page and script sizes: measured in the verifier container on one CPU, the whole graded set takes 483.7 s and 208.3 s that way against 2.4 s for the reference."
+C4 = "Every graded page prints a full speech log compared line for line: 35 enumerated pages aimed at each rule and 276 generated from a seed drawn after the agent has finished."
+guard = "Only the six reader modules under /app/sr/ are collected; the page model, script parser, log writer and runner are the verifier's own pristine copies, so the task cannot be reshaped into one where speech is computed some other way."
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "completion-time learning", b = "cut hand-back", why = "because belief moves only at finish, a cut has something to give back, and a key edited while carried then holds two ages of which the older must win" },
+  { a = "absorption", b = "carried value", why = "a silent or irrelevant difference on a key the playing utterance carries must rewrite what that utterance will teach, or finishing re-creates the difference" },
+  { a = "busy holds", b = "removal anchors", why = "a removed node is nowhere now, so whether its removal is held depends on the parent it was last believed under, which in-region moves never update" },
+  { a = "atomic units", b = "busy holds", why = "a unit utterance reads held text as it stands but does not carry the held difference, so the unit is voiced again when the hold is released" },
+  { a = "region-keyed belief", b = "moves between regions", why = "a move is a removal and an addition with separate relevance, holds, ages and cuts, and either can finish while the other is still waiting" },
+  { a = "oldest-first selection", b = "atomic carry", why = "an old difference pulls every pending difference of its unit along, so newer changes are spoken before older changes elsewhere" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = "A page whose polite and assertive updates are spaced further apart than their speech takes must produce one utterance per change, in order, with nothing repeated and nothing held back - the event model and the net model agree there and both must pass."
+late_case = "A polite atomic status is being read when an assertive alert arrives, the status text is edited during the alert, and a busy log releases a removal anchored under an element that has since moved: the event model has already lost the status and the removal, and a queue-time snapshot voices the stale status."
+oracle_denied = "The agent can run the shipped pages but no expected log ships beyond one worked example in the brief, and a real browser with a screen reader is neither available in the container nor faithful to this reader's stated rules."
+
+[leaks]
+candidates = [
+  { what = "sample pages under /app/pages", closed_by = "shipped without their expected logs; the brief quotes one short log for one small page whose correct output does not decide any cut, hold or removal rule" },
+  { what = "mutation records exposed by the frozen page model", closed_by = "they are the event stream the wrong plan consumes; they say what was touched, never what the listener believes, what is carried or how old a difference is" },
+  { what = "the shipped reader's queue and heard set", closed_by = "they hold strings and are updated at queue time, so no field reveals a carried value, an age or a hold" },
+  { what = "the log format", closed_by = "it prints only utterance starts and cuts, never a pending line, a belief entry or a hold, so a wrong layer shows only as a missing or extra line" },
+]
+derived_quantities = "The page ships primitives only - nodes, parents, attributes, text - and nothing stores exposure, region membership, belief, age or hold state; each is derived by the reader."
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = "recompute exposure, region and the difference of every text node against belief on every tick, and rescan every waiting difference for holds and age at every selection"
+invariant = "a key's exposed state changes only when a record touches the node or an ancestor's hidden, aria-hidden or aria-live, and a held difference becomes selectable only when an element on its hold path loses aria-busy or the key is touched"
+input_scale = "wide pages of about seventeen thousand text nodes over 2400 ticks, and held pages of 3000 ticks in which a busy container gathers over fifteen thousand differences before it is released; three of each, with 270 small pages and 35 hand pages, inside one 60 second call on one CPU"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "the listener learns a change when its utterance starts", hand_case = "cut-hands-back: a polite status cut by an alert is voiced again after the alert" },
+  { reading = "a queue of strings built when the reader goes idle", hand_case = "stale-in-line: a waiting change edited again is voiced with its newest text" },
+  { reading = "aria-atomic read from the region element only", hand_case = "atomic-inner: an inner container with aria-atomic true is read whole inside a non-atomic region" },
+  { reading = "aria-atomic false does not stop the walk", hand_case = "atomic-false-stops: a change under an explicit false inside an atomic region is voiced alone" },
+  { reading = "aria-relevant taken from the nearest ancestor that sets it", hand_case = "relevant-region-only: an inner aria-relevant removals inside a default region voices no removal" },
+  { reading = "a removal located where the node is now or at its region", hand_case = "removal-last-believed: a node moved inside its region and then dropped re-reads the atomic container it was last believed under" },
+  { reading = "busy honoured only on the region element", hand_case = "busy-inner: an inner busy container holds changes beneath it while siblings speak" },
+  { reading = "a cut change goes to the back of the line", hand_case = "cut-keeps-age: the cut change is voiced before a newer polite change" },
+  { reading = "an assertive change cuts assertive speech too", hand_case = "alert-waits: a second alert waits for the first to finish" },
+  { reading = "belief keyed by node rather than by region", hand_case = "move-across: a node moved between two polite regions is a removal in one and an addition in the other" },
+  { reading = "an off region lets the search continue outward", hand_case = "off-stops: text inside an off region nested in a polite region is silent" },
+  { reading = "absorption does not rewrite the carried value", hand_case = "absorb-carried: a region switched off and edited during playback says nothing further when switched back" },
+]
+correct_variants = [
+  "a single-module reader that keeps everything in voice.py, caches exposure and region per node and refreshes a subtree when a record touches it, with the other five files left as shipped",
+  "a region-partitioned reader written apart from the reference: one heap per region merged at selection, belief nested by node, and exposure memoised per tick",
+]
+
+[shape]
+environment_py_lines = 450
+editable_files = 6
+reference_lines = 561

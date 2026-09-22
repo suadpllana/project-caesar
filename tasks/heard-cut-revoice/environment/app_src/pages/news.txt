@@ -1,0 +1,151 @@
+page 83
+@0
+add 1 0 end el header
+add 2 1 end tx welcome
+add 3 0 end el main
+add 4 3 end el aside
+set 4 aria-live polite
+add 5 4 end tx two closed
+add 6 4 end tx away cleared syncing
+add 7 4 end tx retry
+add 8 4 end el p
+add 9 8 end tx warning page
+add 10 8 end el li
+add 11 10 end tx mail
+add 12 10 end tx busy
+add 13 10 end tx error busy away
+add 14 10 end el div
+add 15 14 end tx closed error next update
+add 16 14 end tx ten sent six one
+add 17 4 end el ul
+add 18 17 end tx alert list
+add 19 17 end tx nine open failed
+add 20 17 end tx passed six
+add 21 3 end el div
+set 21 aria-live assertive
+add 22 21 end tx low error mail total
+add 23 21 end el ul
+add 24 23 end tx low
+add 25 23 end tx seven new left
+add 26 23 end tx download loading list
+add 27 23 end el ul
+add 28 27 end tx three joined queued
+add 29 27 end tx five nine cart passed
+add 30 21 end el ul
+add 31 30 end tx sent offline price total
+add 32 30 end tx page
+add 33 30 end tx saving note
+add 34 3 end el aside
+set 34 aria-live polite
+add 35 34 end tx three back three five
+add 36 34 end tx retry
+add 37 34 end tx list
+set 4 aria-atomic true
+@4
+text 36 paused back low
+@5
+text 37 new high typing price
+@7
+text 25 passed typing
+@8
+text 37 list
+@9
+text 16 open alert error syncing
+@10
+text 24 open
+@11
+text 35 page mail download
+@12
+text 35 mail paused retry
+@13
+add 38 17 0 tx added items eight queued
+@14
+add 39 27 end el p
+add 40 39 end tx list
+@18
+text 6 seven done cleared
+@20
+text 22 new retry
+@21
+text 35 three back three five
+@22
+text 37 list back item one
+@23
+text 22 sent items
+@24
+text 31 price
+@27
+text 37 list
+@28
+text 5 items download
+@29
+add 41 14 1 tx added
+@31
+add 42 34 0 el span
+add 43 42 end tx two away warning
+@32
+text 37 list offline
+@33
+text 28 joined low
+@34
+text 33 three
+@36
+add 44 23 1 tx offline
+@37
+text 5 two closed
+@38
+text 25 seven new left
+@40
+text 44 error warning muted
+@43
+text 43 note typing
+@45
+add 45 39 0 tx list
+@46
+text 44 cleared low offline
+@49
+text 7 ready open four
+@51
+text 24 typing seven
+@52
+text 41 synced
+@53
+text 44 away item download
+@54
+add 46 27 end el span
+add 47 46 end tx upload three ready list
+add 48 46 end tx cleared
+@57
+add 49 17 end el li
+add 50 49 end tx queued
+@58
+add 51 34 end el li
+add 52 51 end tx item online
+@60
+text 35 playing one added added
+@61
+add 53 30 0 el li
+add 54 53 end tx items muted
+add 55 53 end tx cart saving nine
+@62
+text 35 offline back alert
+@65
+text 35 mail paused retry
+@69
+add 56 10 0 tx saving four synced
+@71
+text 43 two away warning
+@72
+text 20 saved four
+@74
+text 36 queued left
+@75
+text 18 online failed ten page
+@76
+text 38 loading busy back muted
+@78
+text 45 two muted busy
+@81
+text 52 passed paused queued low
+@83
+text 20 retry

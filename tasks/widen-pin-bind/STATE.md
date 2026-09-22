@@ -175,3 +175,56 @@ own copy.
 
 None outstanding. The remaining risk is that this was validated by host emulation rather than
 by the real two-container trial, which is recorded above rather than papered over.
+
+## Quality self-review (docs/QUALITY-REVIEW.md), walked criterion by criterion
+
+Instruction and verifier agree in both directions. Every graded assertion has its sentence:
+`authoring/widen-pin-bind/trace.md`, 55 rows, `tracecheck` clean. The converse was walked by
+hand: every rule sentence in the brief has an enumerated case (the map is the Readings and
+Graded assertions tables), and the sentences that have no case are the three input guarantees -
+the rise graph never cycles, everything is declared before the first `ask`, and every expression
+is a call - which promise something to the solver rather than grade it. The worked example is
+itself an enumerated case (`tally-ret` is `tiny.txt`). All six collected paths are named in the
+brief with their absolute paths, and every `/app` path in the brief exists in the tree, checked
+mechanically. Boundaries are settled in the text: both numberings start at 0 and say so, a
+single survivor wins, equal vectors are ambiguous, a call asked for nothing pays nothing for its
+result, and an argument that does not rise drops the entry. The counts in the brief were
+re-derived from the shipped files after the generator changed: `deep.txt` is one expression
+nesting 16 calls with 3 entries at each name, `wide.txt` is 300 expressions, the graded set is
+32 + 320 + 6 = 358.
+
+Verifier rigor: the tests read what the binder printed over the verifier's own pristine tree,
+never a claim the submission could write; `tests/test_outputs.py` opens with the frozen contract
+and is sectioned by what each part checks; the only clock is the stated execution limit.
+
+Environment hygiene: `environment/Dockerfile` copies `app_src/` and nothing else, the verifier
+toolchain is baked into `tests/Dockerfile` at the canonical pins, and `tools/extraneouscheck.py`
+reports every shipped file reachable and distinct.
+
+Solution quality: `solution/solve.sh` copies six modules that compute the answer; nothing is
+echoed. Anti-cheating: `leakscan.py` finds no answer line anywhere in the tree, and the nonce
+population is generated after the agent's container is gone.
+
+Metadata: `Software / Languages` is the skill the graded work exercises (`tools/catcheck.py`
+counts 43 environment hits for that vocabulary against 38 in the prose); the six tags name
+mechanisms rather than the taxonomy; `difficulty_explanation` names the concrete steps that
+break and says the terse naming is a deliberate register.
+
+Residual risks, stated rather than papered over:
+
+- `tools/textcheck.py` still reports fewer short sentences than the chattiest retained brief
+  (21% against 40%) and a narrower vocabulary (0.248 against 0.299). The brief is a contract in
+  which nearly every sentence carries a graded rule, and rules run 15 to 25 words; against
+  `focus-return-point` it reports nothing. I judged further shortening to be padding rather than
+  prose.
+- `tools/simcheck.py` reports `environment/Dockerfile` identical to the retained bundles' and
+  `tests/test.sh` near theirs. Those files are the shared harness shape and the retained bundles
+  are equally alike each other; its conceptual verdict is that this task grades nothing an
+  earlier one grades.
+- The cold self-probe was not run. I wrote the reference, the sealed model and the enumerated
+  cases, so a solve by me now would measure memory rather than difficulty, and a self-probe
+  reported as cold by a contaminated author is worse than none. Standing in its place: the
+  reading separations, the coverage of each reading over the generated population, the
+  one-liner check, and the measured gate.
+- Docker and harbor were unavailable, so every gate is host emulation rather than container
+  evidence.

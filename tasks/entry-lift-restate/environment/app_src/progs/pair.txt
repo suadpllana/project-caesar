@@ -1,0 +1,17 @@
+open
+sec 1
+lnk 0
+shut
+sec 0
+set 7 42
+set 9 1
+sec 1
+open
+cut 7
+shut
+once 9 1 add 7 5
+get 1 7
+get 1 9
+off 5
+get 1 7
+all

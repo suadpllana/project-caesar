@@ -49,7 +49,16 @@ def gt_slices(gt_text: str, n: int = 12) -> list[str]:
     without such evidence failing.
     """
     data = json.loads(gt_text)
-    flat = json.dumps(data, sort_keys=True).replace("{", " ").replace("}", " ").split()
+    # Draw the marks from the ANSWERS, never from the labels beside them. A ground truth
+    # kept as {case name: trace} can hold a case name longer than the 24-character bar,
+    # and then the single-token path returns that name and nothing else - so a forgery
+    # that carries every answer but keys them on the program rather than on its name is
+    # reported as absent. Measured 2026-09-22 on entry-lift-restate, whose longest single
+    # token is the case `later-entries-ignored`; the carrier was real and scored 0.
+    body = list(data.values()) if isinstance(data, dict) else data
+    flat = json.dumps(body, sort_keys=True).replace("{", " ").replace("}", " ").split()
+    if not flat:
+        flat = json.dumps(data, sort_keys=True).replace("{", " ").replace("}", " ").split()
     out = [chunk for chunk in flat if len(chunk) >= 24][:n]
     if out:
         return out

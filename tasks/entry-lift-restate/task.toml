@@ -1,0 +1,210 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/cf/book.py",
+  "/app/cf/sect.py",
+  "/app/cf/step.py",
+  "/app/cf/gate.py",
+  "/app/cf/wake.py",
+  "/app/cf/walk.py",
+  "/app/cf/tell.py",
+]
+
+[task]
+name = "afterquery/entry-lift-restate"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What the brief does not say is which of the structures those
+rules seem to ask for survive all of them together, and that is the work.
+
+Withdrawing a change has one memorised meaning, and the shipped resolver is it: keep the
+board, remember what each entry overwrote, and put those values back when the change goes.
+The brief defines the board instead as what a walk of the surviving entries over a clean
+board produces, and the two differ the first time two changes touch one name. A change whose
+write a later change wrote over must leave nothing behind when it goes; one carrying a
+section entry moves the target of every entry after it; one carrying a link entry takes a
+whole inheritance chain with it. None of that is an adjustment to an undo log, because an
+undo log records where a value came from and the question is where the walk would put it now.
+
+The rule after that takes the replacement apart in turn. A resolver that answers every
+question by walking the journal again is exactly correct and does not fit: a journal of
+fifteen thousand entries answering eleven thousand questions takes 70.1 seconds against 0.53
+for the reference, and one of twenty-two thousand entries whose every read climbs six
+sections takes 75.7 against 0.28. The limit for the whole graded set is 60 seconds, which
+the reference gets through in 3.1 inside the verifier under one CPU.
+What replaces the walk has to know which entries a withdrawal can have moved, and the answer
+is not the entries that read a value the withdrawal changed. A read climbs from the section
+the walk is in until a slot holds a number or a mask stops it, so an entry rests on every
+slot the climb looked at and passed over and on every link it followed. An entry that found
+nothing where a mask stood starts finding something the moment that mask is withdrawn, and
+an index built from the values entries read leaves exactly those entries asleep. The section
+an entry works in is produced by the entries ahead of it as well, so a withdrawal three
+thousand lines back can silently retarget a write.
+
+Around those sit the ordinary decisions, each a fence with two sides: a cleared slot lets
+the climb go on where a masked one stops it, a step over a name no section on the chain
+holds does nothing rather than writing the step, a refused condition leaves the journal's
+section where it was, every settle starts its conditional entries asleep however the last one
+ended, and they wake one per pass in number order so that waking the lower can keep the
+higher asleep for good. The only feedback a wrong structure gets is a number, a dash and a
+pass count, because nothing is printed while a settle runs.
+
+Identifiers are in a legacy register - `cf/`, `book`, `sect`, `step`, `gate`, `wake`, `walk`,
+`tell`, `cur`, `ent`, `chg` - short but never misleading, and no name misdescribes what it
+holds. That is a choice about the register of real configuration-path code rather than an
+obstacle: each is recoverable from what calls it.
+
+The programs are synthetic, in twelve families, with chains that come back round on
+themselves, masks withdrawn under sleeping conditions, section entries behind conditions that
+fail, names stepped through two links, changes that write over each other and are then taken
+away, and the two scale families. In a real estate these concentrations are rare, and they
+are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Seven files, settled in the order the rules force rather than one that is tidy.
+
+`sect.py` is where the first plan has to be given up. Because a pass is a fold along the
+journal, the board ahead of an entry cannot depend on anything behind it, so every slot and
+every link keeps the ordered list of the positions that wrote it: the board as of any
+position is one binary search into that list, the board at the end is its last element, and
+a withdrawal is the removal of one position rather than the restoration of a value. The climb
+sits here too, and it records the slots it looked at and the links it followed as it goes.
+
+`book.py` carries what belongs to the journal rather than to the board: which entries have
+appeared, which change owns each of them, which changes stand, and which conditional entries
+are awake in the settle running now. Waking is a fact about one settle and never a field on
+an entry, because the next settle starts them all asleep.
+
+`step.py` says what one entry does and `gate.py` whether it does it, both against the section
+the walk is in at that entry's place, which `sect.py` answers from the positions of the
+section entries that fired. A step reads through the climb and writes where the walk is, which
+is the pair of decisions a resolver that writes where it read gets wrong in one direction and
+one that treats nothing found as a zero gets wrong in the other.
+
+`walk.py` is the engine. Every entry keeps the trail its lookups walked, indexed the other way
+round, so changing what an entry writes reopens exactly the entries behind it whose lookup
+consulted that slot or that link - the ones that found nothing there included, which is the
+whole point. A section entry that starts or stops firing reopens everything up to the next
+section entry that fires instead, since those are the entries whose section moved. The
+reopened entries are worked through in journal order from a heap, so that when one is reached
+everything before it has already settled, which is what a fold needs.
+
+`wake.py` is the settle's outer loop: drain the reopened entries, then look down the sleeping
+ones in number order for the first whose reading finds its number, taken in the section that
+pass gave its place and over the board that pass left. Waking one reopens from its position
+and another pass runs. `tell.py` reports, and the board it prints is the last write of every
+slot.
+
+An expert works in that order because each file consumes the one before it: how a read is
+answered decides what an entry does, what an entry does decides what a withdrawal moves, what
+a withdrawal moves decides what has to be worked out again, and what is worked out again
+decides which sleeping entries the pass leaves eligible. The same contract is implemented two
+further ways in the authoring set - one keeping each slot's writes as a dictionary from
+position with the sorted key list rebuilt only when a lookup asks for it, and the entries
+that consulted a key as an ordered list searched by bisection; one remembering only the names
+a lookup asked for and the sections it passed through, which reopens a superset of what a
+slot-exact index would - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the seven files under `/app/cf/` are taken from the agent. The verifier lays them over
+its own pristine copy of the tree, so the driver, the program reader, the trace writer and the
+sample programs cannot change what a program prints, and a new file put beside the seven is
+never collected at all.
+
+Correct is defined twice over. Thirty-eight hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+sixty-six further programs are generated inside the verifier from a seed drawn after the
+agent's container is gone, across twelve families that concentrate withdrawn masks, chains
+that come back round, refused conditions on section and link entries, names stepped through
+links, changes written over before they are withdrawn, competing sleeping conditions, and the
+two scale families. A submission cannot have seen them, so fitting the shipped examples fails,
+and so does carrying an answer key.
+
+The fences run both ways. Restoring a withdrawn change's value fails `off-overwritten`;
+leaving the board alone when the withdrawn change held the only write fails `off-uncovers`.
+Climbing past a masked slot fails `cut-stops` while stopping at a cleared one fails
+`clr-goes-on`; treating nothing found as a zero fails `add-finds-none`, `add-after-clr` and
+`add-after-cut`, and writing the step where the value was found fails `add-writes-here`.
+Letting a refused condition move the journal fails `gate-blocks-sec` and `gate-blocks-lnk`,
+and refusing one that is met fails `gate-passes`. Waking every eligible entry at once fails
+`once-one-per-pass`; reading a sleeping condition in the section the pass ended in fails
+`once-sec-at-pos` and `once-sec-mirror`; testing a woken entry again fails `once-no-retest`;
+carrying the awake set into the next settle fails `once-resleeps`; waking a withdrawn entry
+fails `once-lifted`. A climb that does not stop where it has been fails `climb-loop` and
+`climb-self`, and one that stops too early fails `climb-up`. Counting masked slots among the
+held ones, or printing the runs in another order, fails `all-shape`. And `mask-lifted` is the
+late one: an entry that found nothing where a mask stood has to be worked out again once that
+mask goes, and the sleeping entry it decides wakes on the pass after.
+
+Forty-five cheats score 0. Thirty are wrong readings, each caught by the enumerated case named
+for it. Two are exactly correct and too slow: the whole journal walked again for every question,
+and one that reopens every entry behind a change rather than the ones whose lookup consulted it.
+Two are shortcut strategies - the commonest answer in the frozen set for every question, and the
+last plain write to that exact slot with the climb, the conditions and the withdrawals ignored.
+One is a forgery carrying the frozen answers for every enumerated program, which passes all
+thirty-eight and fails on the programs it could not have seen. The other ten are probes, each
+laid over a base that is certainly wrong so that it can only score 1 if its layer broke: the
+sealed answers read out of the verifier, the reward written directly, a reward written late by a
+double-forked survivor, a planted worker record, a record planted and the worker exited clean
+before it could be overwritten, a record spoiled on the way out, a rewritten generator, a
+rewritten grading file, a shrunk exam, and a resolver hidden in a file beside the seven that are
+collected. Two independently written correct resolvers score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid
+cannot read, so code running inside the verifier cannot compute its answers from them. The
+reward defaults to 0, is written last by the privileged stage into a root-owned directory
+locked before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Algorithms"
+
+tags = [
+  "incremental-recomputation",
+  "dependency-invalidation",
+  "inheritance-chain-lookup",
+  "ordered-change-journal",
+  "conditional-activation",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having built and carried the pager for the resolver of a settings service: the part that turns
+a journal of operator changes into the effective board, answers reads by section and name, and
+has to say what the board is after an operator withdraws a change they made an hour ago.
+Familiarity with the fact that withdrawing a change is not undoing it, that a section which
+inherits from another is not the same thing as a section holding the same value, and that a
+slot emptied and a slot masked look identical in a table of values and behave nothing alike.
+Comfort with the accounting a conditional change needs when whether it applies depends on the
+board its own neighbours produce, with keeping a derivation correct while it is worked out
+again only where the journal moved, and with the difference between a resolver that is correct
+and one that is affordable at the journal lengths a real estate runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

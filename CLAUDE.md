@@ -14,6 +14,49 @@ Before designing or hardening another task, read `docs/DIFFICULTY.md`,
 Historical task transcripts and retired project notes were deliberately removed. Do not restore
 them as examples; only the projects listed in `README.md` belong in this checkout.
 
+## Lessons, measured (2026-09-22, `entry-lift-restate`)
+
+- **A probe that only attempts its attack scores 1 for its own reasons.** The first ten
+  isolation probes were the reference plus a body that tried to read the seal, tried to write
+  the reward, tried to rewrite `/tests`. The attacks were all denied, as they should be - and
+  seven of the ten then resolved every program correctly and came back with reward 1 in the
+  container. The probe suite was proving nothing: it was the reference with a comment on top,
+  which is the same defect as a cheat whose substitution never fired. Each probe is now the
+  attack laid over a base that is certainly wrong - the frozen answers for the enumerated
+  programs and a dash for everything else - so a 1 means the layer broke and nothing else can
+  produce one. The answer-key probe was then checked to rebuild all 38 enumerated programs from
+  a parsed one, because a probe that could not use the seal even if it read it is the same
+  failure a second time.
+- **Three enumerated cases did not separate the reading they were named for, and only a script
+  said so.** `all-shape` had no pair of slots whose order differs between section-then-name and
+  name-then-section; `gate-reads-here` put the same number in both sections, so reading the
+  condition in section 0 gave the same answer; `off-unlinks` kept its section entry and its link
+  entry in one change, so lifting it hid the link. All three read as covering their rule. Per-rule
+  coverage on paper is not coverage, and `cheat_report.py` asserting *which* case fails is what
+  found it.
+- **A generated population that meets a condition by accident meets it almost never.** The
+  guard families drew their wanted numbers from 0 to 5 and their values from 0 to 999, so a
+  condition was met about one time in two hundred and the four `if` readings moved 0 per cent of
+  the sample. With values from the same small pool, a chain set up in front and writes spread
+  over three sections, they move 4 to 16 per cent. The hand cases caught them either way; the
+  population was decorative until it was shaped.
+- **`forgecheck` drew its marks from a case name.** A ground truth kept as `{case: trace}` can
+  hold one token longer than the 24-character bar, and if that token is a key the single-token
+  path returns it alone - so a forgery carrying every answer but keyed on the program rather than
+  on its name is reported as absent. It now draws its marks from the values. Checked to keep
+  reporting the carriers of all eight other bundles.
+- **`readingcheck` has no timeout, and two readings do not end.** One climbs a link cycle for
+  ever and one wakes and un-wakes the same entry for ever; the worker's wall clock is what scores
+  them. Left in the table they hang the checker with no output at all, which reads exactly like a
+  slow run. They are excluded by name, with the reason written next to them.
+- **`pkill -f` matches the shell that ran it.** Three commands in this session killed themselves
+  because the pattern was in their own command line. Kill by pid from `ps -eo pid,args`.
+- **A pristine copy that was synced before the samples were generated is missing them and
+  nothing fails.** `tests/pristine/` held 11 files where `environment/app_src/` held 15, because
+  the sync ran before `make_progs.py` did. The oracle stayed green throughout: the worker
+  generates its programs in memory and never reads `/app/progs`. `sync_pristine.py --check` is
+  the only thing that sees it.
+
 ## Lessons, measured (2026-09-06, `token-seam-emit`)
 
 Four defects found by local gates before submission, each with the number that found it:

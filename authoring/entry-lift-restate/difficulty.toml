@@ -1,0 +1,190 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/entry-lift-restate/STATE.md.
+
+[task]
+slug = "entry-lift-restate"
+status = "pending"
+sources = ["tasks/entry-lift-restate/STATE.md", "authoring/entry-lift-restate/trace.md", "authoring/entry-lift-restate/timing.py", "authoring/entry-lift-restate/cheat_report.py"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Read the journal into a list of changes and keep the settled slots in a dictionary. Apply
+each new entry as it arrives, recording the old value of whatever slot it wrote so the write
+can be undone. When a change is lifted, walk its entries backwards and put each slot back to
+the value recorded beside it; when it comes back, apply them again. Evaluate a condition once,
+at the moment the entry is applied, and cache the section an entry wrote into so the undo
+knows where to put the value back. Answer a read by looking the slot up and, if it is not
+there, following the section's link until something is found.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The settled slots are whatever a walk of the live entries over a clean board produces, so a
+lifted change whose writes a later entry overwrote must leave nothing behind at all, and a
+lifted change carrying a section or link entry moves the target of every entry after it rather
+than only its own. An undo record restores a value that no walk of the surviving entries would
+ever produce.
+"""
+second_discovery = """
+A read climbs the link chain, so an entry rests on every slot the climb looked at and passed
+over and on every link it followed, not only on the one slot it took its value from; and the
+section an entry works in is itself produced by the entries ahead of it, so a condition that
+found nothing can start finding something when a change far away is withdrawn. Remembering
+what each entry read and wrote is not enough to know when to work it out again.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped resolver on the small sample and find which module prints the line the brief says is wrong",
+  "Read the settle rule and replace the undo log with a walk of the live entries over a clean board",
+  "Separate the two removals: one empties a slot so the climb goes on, the other masks it so the climb stops",
+  "Make the section an entry works in a value the walk carries, so a refused guard leaves it where it was",
+  "Settle the sleeping entries one per pass, lowest number first, reading the condition in the section that pass gave the entry",
+  "Time the two large families and find that a walk over every entry for every question does not fit",
+  "Record for each entry the slots its climb consulted, the links it followed and the section it started in",
+  "Index those by slot and by link so a withdrawal reopens only the entries whose lookup can have moved, in journal order",
+  "Check the fences: an entry that found nothing where a mask stood must be reconsidered once the mask goes",
+]
+
+[search]
+best_page = """
+The documentation of layered configuration and overlay systems, together with the incremental
+and self-adjusting computation literature that shows how to memoise a computation against the
+values it read and invalidate it when one of them changes.
+"""
+helps_plan = false
+deviation = """
+Every layered system merges the layers that are present and none of them defines the result as
+a re-walk from a clean board, so nothing there says what withdrawing a layer in the middle
+does to the layers after it; and the memoisation recipe records the values a step read, which
+is precisely the dependency set that is wrong here, because what decides a re-run is the slots
+the climb looked at and did not find.
+"""
+
+[tactics]
+A1 = """
+The prior for withdrawing a change is to undo it, which is what the shipped resolver does and
+what every version-control and undo-stack idiom the model carries says; here the result is
+defined as a walk of what survives, so the better the recalled undo machinery the more
+confidently it restores a value nothing should produce.
+"""
+A2 = """
+The brief states the climb, the two removals, the section carried by the walk and the one wake
+per pass as what the resolver does, and never names the chain lookup, the tombstone, the
+monotone fixpoint or the dependency set, so their consequences have to be derived from the
+rules rather than recognised and looked up.
+"""
+B2 = """
+Twelve rules hold at once - where an entry writes, what a refused guard leaves alone, the two
+removals, the climb, the two times a sleeping condition is read, one wake per pass, what a
+lifted change takes with it - and each changes what a correct implementation of the others is.
+"""
+C1 = """
+Both sides are graded: a resolver that re-walks everything for every question is exactly right
+and too slow, and one that reopens only the entries whose read values moved is fast and wrong
+on the programs where a mask is withdrawn, so neither overshoot passes.
+"""
+C3 = """
+Two large families make a from-clean walk for every question infeasible inside the stated
+limit while leaving it exactly correct, so the fast path has to follow from the fold structure
+of a pass rather than from a remembered technique.
+"""
+C4 = """
+Every graded program is compared line for line, and the population is generated inside the
+verifier from a seed drawn after the agent's container is gone, in families shaped at each
+decision point rather than sampled evenly.
+"""
+guard = """
+Seven files under /app/cf are collected and nothing else; the driver, the program reader, the
+trace writer and the sample programs are the verifier's own copies laid underneath the
+submission, so neither the output format nor the program grammar can be reshaped.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "an entry writes in the section the walk is carrying", b = "a refused guard leaves the entry doing nothing at all", why = "whether a guarded section entry moved the walk decides where every entry after it writes, so a resolver that lets a refused guard still move the section puts later writes in the wrong section and the error is invisible until something reads them" },
+  { a = "a read climbs the link chain", b = "one removal empties a slot and the other masks it", why = "an emptied slot lets the climb go on to the section above while a masked one stops it, so the same later read returns a value or nothing depending on which removal ran, and the two are indistinguishable in the slot table itself" },
+  { a = "a sleeping entry wakes on the lowest number whose condition holds", b = "a woken entry is applied without its condition being tested again", why = "waking one entry can make another entry's condition false, and because the first is never retested the set that ends up awake depends on the order they were taken in, so taking every eligible entry at once settles on a different board" },
+  { a = "the condition of a sleeping entry is read in the section that pass gave it", b = "waking an entry can move the section later entries work in", why = "the section an entry starts in is produced by the pass that just finished, so waking one entry changes which slot another sleeping entry's condition is even asking about, and the wake test cannot be settled before the pass it belongs to" },
+  { a = "lifting a change removes its entries from every pass", b = "every settle starts with all sleeping entries asleep again", why = "an entry that was awake in one settle can be unreachable in the next, so the awake set is not something a resolver can carry forward and adjust; it has to be produced again from whatever survives" },
+  { a = "an entry rests on the slots its climb passed over", b = "a withdrawal can set a slot that was empty or clear one that was masked", why = "an entry that found nothing has to be worked out again when something appears anywhere on the path it walked, which is a slot it never read a value from, so an index built from values read leaves it asleep and wrong" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A change is lifted whose writes a later change already overwrote: every slot must stay exactly
+as it stands, so a resolver that puts the recorded earlier values back moves settings nothing
+touched, and one that refuses to reopen anything at all fails the program where the lifted
+change held the only write to a slot.
+"""
+late_case = """
+A program where a sleeping entry's condition asks for a name that is empty in its own section
+and masked two sections up, so the climb stops and it never wakes; a change carrying that mask
+is lifted much later, the climb now reaches a value in the section above, the entry wakes on a
+second pass, and waking it moves the section the entries after it write in.
+"""
+oracle_denied = """
+The natural check is to compare against a configuration loader or to satisfy oneself that the
+totals look coherent, but no loader re-walks from a clean board or carries a masked slot, and
+the shipped resolver prints a plausible trace for every sample program, so running it says
+only that it runs and never which of two readings of a withdrawal is meant.
+"""
+
+[leaks]
+candidates = [
+  { what = "a provenance field recording which entry last wrote a slot", closed_by = "the board holds a value, a mask or nothing and no writer, so the entry that produced a slot is recoverable only by walking the journal, which is the work itself" },
+  { what = "a shipped index from slot to the entries that touch it", closed_by = "the resolver ships a from-clean walk with no index of any kind, so the structure the limit demands has to be built rather than found and adapted" },
+  { what = "a resolved link chain cached on a section record", closed_by = "sections hold at most the section they link to, one hop, and every read walks the hops itself with no memo anywhere in the shipped tree" },
+  { what = "the sample programs shipped beside their correct output", closed_by = "the programs ship alone, and the brief quotes one line of one of them, a read that a withdrawal leaves alone rather than a decision the task turns on" },
+  { what = "an awake or asleep flag stored on an entry record", closed_by = "sleeping is a fact about one settle and lives in the run, never on the entry, so nothing in the journal says which entries a previous settle woke" },
+]
+derived_quantities = """
+The program carries entries, change brackets, guards and the withdrawal ops, which are
+primitives; the board, the link chain, the section an entry works in, the awake set, the pass
+count and every answered read are derived, and not one of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct resolvers that answer every question by walking every live entry over a clean
+board again, once per pass, with no memory of what the previous settle worked out.
+"""
+invariant = """
+A pass is a fold along the journal, so the board ahead of an entry cannot depend on anything
+behind it; a withdrawal leaves every prefix untouched and can only reopen an entry whose
+starting section, or one of the slots or links its climb consulted, actually moved.
+"""
+input_scale = "journals of fifteen thousand entries answering eleven thousand questions, and of twenty-two thousand answering fifteen thousand over sections linked six deep"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a withdrawal is undone rather than re-walked", hand_case = "a change whose write a later change overwrote is lifted" },
+  { reading = "a refused guard still moves the section", hand_case = "a guarded section entry whose condition fails, followed by a write" },
+  { reading = "an emptied slot stops the climb like a masked one", hand_case = "a name cleared in one section and holding a value in the section above" },
+  { reading = "a masked slot is climbed past like an empty one", hand_case = "a name masked in one section and holding a value in the section above" },
+  { reading = "a relative entry writes where it read", hand_case = "a name read through a link and stepped on in the lower section" },
+  { reading = "a relative entry treats nothing found as zero", hand_case = "a step on a name no section on the chain holds" },
+  { reading = "every eligible sleeping entry wakes in one pass", hand_case = "two sleeping entries where waking the lower makes the higher's condition false" },
+  { reading = "a woken entry is tested again on later passes", hand_case = "a woken entry whose own write falsifies its condition" },
+  { reading = "the sleeping condition is read in the section current at the end of the pass", hand_case = "a sleeping entry sitting between two section entries" },
+  { reading = "the awake set is carried from the previous settle", hand_case = "a question, then a lift that removes the reason an entry woke, then another question" },
+  { reading = "the climb does not stop when it returns to a section", hand_case = "two sections linked to each other and a name neither holds" },
+  { reading = "a lifted change's section entry still moves the walk", hand_case = "a lifted change holding only a section entry, with writes after it" },
+]
+correct_variants = [
+  "a resolver holding a per-slot and per-link index of the entries whose last lookup consulted them, driving a worklist ordered by journal position",
+  "a resolver holding the journal in blocks with a touched-name summary per block, skipping whole blocks whose summary does not meet the moved names",
+]
+
+[shape]
+environment_py_lines = 330
+editable_files = 7
+reference_lines = 320

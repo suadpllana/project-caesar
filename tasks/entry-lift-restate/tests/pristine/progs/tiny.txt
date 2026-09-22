@@ -1,0 +1,6 @@
+set 4 10
+set 4 20
+get 0 4
+off 0
+get 0 4
+all

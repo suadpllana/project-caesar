@@ -1,0 +1,16 @@
+now 26297
+src vw h 9600
+src act d 21600
+step bin h 48 vw
+step inv h 72 bin inv-1
+step ck h 96 bin~720 act-1
+step dsh d 19200 bin/d
+step ord d 19200 bin/d ord-1
+step cst d 19200 ck/d dsh~30
+step bid h 120 ck~168 inv
+step adj h 72 bin~720 act-1
+stand dsh bin
+pin inv 25795
+pin dsh 1088
+pin ord 1070
+fix vw 26067

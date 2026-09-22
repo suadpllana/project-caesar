@@ -1,0 +1,10 @@
+now 26287
+src act h 12000
+step bid h 24 act bid-1
+step bal h 72 bid~720
+step rol d 19200 bid/d rol-1
+step cap h 96 bal~96 rol-1
+step inv d 19200 bal/d rol~14
+pin bid 25096
+pin rol 1034
+fix act 26116

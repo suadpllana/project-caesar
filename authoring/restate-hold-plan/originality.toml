@@ -1,0 +1,121 @@
+# Originality record - written 2026-09-22, before any environment, verifier or solution code.
+# Restated in prose in tasks/restate-hold-plan/STATE.md.
+
+[task]
+slug = "restate-hold-plan"
+category = "Software"
+label = "Data engineering"
+tags = ["retroactive-corrections", "partition-lineage", "retention-expiry", "rollup-stand-ins", "published-partition-pinning", "transient-recompute"]
+status = "pending"
+
+[mechanism]
+sentence = """
+Decide, partition by partition, which recomputes a correction to one source partition needs,
+how each one reads its inputs and in what order they can run, when partitions expire after a
+keep, published partitions are never rewritten and are read as published, a daily roll-up may
+stand in for expired hours only while it agrees with the corrected source, and an expired
+partition that a recompute needs is computed for the plan and not kept.
+"""
+substrate = """
+A batch pipeline of hourly and daily datasets, each step declaring what it reads by grain,
+trailing window or previous period, with a keep per dataset and some partitions frozen after
+publication, planning the recompute after one source partition is corrected.
+"""
+graded_output = """
+The printed plan for each pipeline file, line for line: one run line per recomputed partition
+naming its mode, one line per partition computed only for the plan, then one hold line per
+affected partition that is left as it stands with its reason, in a stated execution order.
+"""
+failure_mode = """
+Take every partition downstream of the corrected one, sort the set topologically and rerun
+each one in full, which is the backfill every orchestrator documents and is wrong here at the
+first expired input, the first published partition and the first roll-up that stands in.
+"""
+interaction = """
+The stand-in rule decides whether a recompute can read a day of expired hours at all, and the
+publication rule decides whether the roll-up that would stand in still agrees; a published
+roll-up is read as published by its direct readers and refused as a stand-in by the readers of
+the hours, so two readers of the same day take different inputs and one pulls in the hours
+recomputed from the source.
+"""
+
+[nearest.public]
+name = "Dagster documentation: defining dependencies between partitioned assets, and backfilling data"
+url = "https://docs.dagster.io/guides/build/partitions-and-backfills/defining-dependencies-between-partitioned-assets"
+covers = """
+How a daily partition depends on the 24 hourly partitions of its day, how an hourly partition
+maps to a coarser upstream partition, custom partition mappings, and launching a backfill that
+materializes a range of downstream partitions after upstream partitions are rematerialized.
+"""
+plans_this = false
+separation = """
+It computes the downstream partitions of a range and materializes all of them. Nothing in it
+expires an intermediate partition, lets a roll-up stand in for missing hours, refuses a stand-in
+that no longer agrees, leaves a published partition as it stands while its readers read it as
+published, holds a partition whose inputs as read did not change, or computes an expired
+partition only because a recompute that is actually made reads it. Its plan is the failure mode.
+"""
+
+[nearest.submitted]
+name = "delta-view-retraction"
+source = "ledger"
+shares = """
+Both keep derived data in agreement with a source that changed underneath it, both are graded
+on doing no more work than the change requires, and both punish rebuilding everything that
+depends on the change.
+"""
+same_mechanism = false
+separation = """
+That task maintains one grouped-aggregate view by folding deltas into bounded per-group state
+and grades published values against fold and scan ceilings. This one never computes a value: it
+plans partition-granular recomputes across a multi-step pipeline of mixed grains, and grades
+which partitions run, which are computed only for the plan, how each reads its inputs, which are
+held and why, and the order they run in. Retention, publication and roll-up stand-ins have no
+counterpart there, and no aggregate algebra appears here.
+"""
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "incremental maintenance of grouped aggregates by delta folding and bounded candidate rebuilds", ours = "choosing which partitions of a multi-step pipeline are recomputed, computed only for the plan or held after one correction" },
+  { axis = "substrate", theirs = "one grouped-aggregate view over a keyed change stream behind a trailing watermark", ours = "a batch pipeline of hourly and daily datasets with a keep per dataset, published partitions and roll-up stand-ins" },
+  { axis = "graded_output", theirs = "published aggregate values checked against fold and scan work ceilings and a work journal", ours = "an ordered plan of run, compute-for-the-plan and hold lines with a mode or reason on each" },
+  { axis = "failure_mode", theirs = "invert sum and count and rebuild min, max and top cells on every retraction", ours = "take the downstream closure of the corrected partition, sort it and rerun every partition in full" },
+  { axis = "interaction", theirs = "a narrowed rebuild changes which rows the dependency set names, so the completeness test must move", ours = "whether a roll-up may stand in depends on whether it agrees, which publication and retention decide before its readers are reached" },
+]
+
+[search]
+queries = [
+  "backfill plan after retroactive correction of source partition downstream recompute retention pinned partitions",
+  "Dagster partition backfill downstream assets daily hourly partition mapping time window",
+  "minimal recomputation data pipeline restatement expired intermediate partitions rematerialize from raw",
+  "airflow clear downstream backfill trailing window rolling 7 day aggregate reprocess correction",
+  "impact analysis lineage which downstream partitions to recompute after upstream data fix published frozen snapshot",
+  "\"daily rollup\" instead of expired hourly partitions retention recompute downstream backfill",
+  "build systems a la carte minimal rebuild dynamic dependencies early cutoff",
+]
+results = """
+The partition-mapping and backfill pages of Dagster and Airflow describe the downstream closure
+of a date range and rerunning it; generic backfill guides recommend idempotent partition
+overwrite; lineage tools describe blast-radius impact analysis; issue threads describe retention
+ladders from raw to hourly to daily roll-ups without any recompute rule; the build-systems
+paper covers minimality and early cutoff over a static or dynamic task graph with no expiry,
+no publication freeze and no substitute inputs. None states when a roll-up may stand in for
+expired hours, what a published partition's readers read, or which expired partitions a plan
+must compute and not keep, and none produces a plan with modes or hold reasons.
+"""
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "DAG scheduler with retries and backfills"
+on_list = true
+departure = """
+The archetype schedules task runs over a range of dates and retries the ones that fail; the
+set to run is the downstream closure of the range and every run reads its inputs from storage.
+Here the set is not the closure: a partition reached only through a published or unrecoverable
+partition is held, a partition outside the closure is computed because a made recompute reads
+it after it expired, and a roll-up stands in for missing hours only while it agrees - so the
+scheduler's own formulation cannot produce the modes, the hold reasons or the computed-for-the-
+plan lines this task grades.
+"""
+substrate_used_before = false

@@ -1,0 +1,13 @@
+now 700
+src raw h 1440
+src fx d 1440
+step clk h 36 raw
+step ses h 96 clk~4 fx-1
+step tot d 480 clk/d
+step rev d 480 clk/d ses/d
+step bal d 240 rev bal-1
+step wk d 480 rev~7 tot~7
+stand tot clk
+pin tot 25
+pin bal 22
+fix raw 610

@@ -129,6 +129,15 @@ substrate = "the part of an inference server that decides what to put on the wir
 mechanism = "Release bytes from a streaming decode only when no stop sequence and no character boundary can still change what has already left."
 verdict = "pending"
 
+[[submission]]
+slug = "restate-hold-plan"
+category = "Software"
+label = "Data engineering"
+tags = ["retroactive-corrections", "partition-lineage", "retention-expiry", "rollup-stand-ins", "published-partition-pinning", "transient-recompute"]
+substrate = "a batch pipeline of hourly and daily datasets, each step declaring what it reads by grain, trailing window or previous period, with a keep per dataset and some partitions frozen after publication, planning the recompute after one source partition is corrected"
+mechanism = "Decide, partition by partition, which recomputes a correction to one source partition needs, how each one reads its inputs and in what order they can run, when partitions expire after a keep, published partitions are never rewritten and are read as published, a daily roll-up may stand in for expired hours only while it agrees with the corrected source, and an expired partition that a recompute needs is computed for the plan and not kept."
+verdict = "pending"
+
 # --- Submitted, bundle not in this checkout -----------------------------------------
 # README.md records these as passed. Their trees were removed, so their tags, substrate
 # and mechanism are not recoverable here and are deliberately left out rather than

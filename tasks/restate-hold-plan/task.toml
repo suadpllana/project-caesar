@@ -1,0 +1,198 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/plan/keep.py",
+  "/app/plan/reach.py",
+  "/app/plan/look.py",
+  "/app/plan/settle.py",
+  "/app/plan/order.py",
+]
+
+[task]
+name = "afterquery/restate-hold-plan"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is the shape of a plan that satisfies all of
+them at once, and the shipped planner has the shape every orchestrator uses.
+
+The first plan is the backfill: walk every partition downstream of the corrected one, sort by the
+hour each ends, rerun each in full. The shipped planner does exactly that, and it is what the
+documentation of every partitioned scheduler describes - clear the downstream range and rerun it.
+Here it is wrong in three ways that ordinary testing does not show. A published partition is never
+rewritten and its readers read it as published, so it passes no change on: a partition reached
+only through one is held rather than rerun, and in a step that reads its own previous partition a
+single publication stops every later partition from running at all. A partition that has expired
+is not skipped: when a rerun reads it, it is computed for the plan from its own reads - even when
+the correction never reached it - and it appears in the plan only if the rerun reading it is
+actually made. And a daily roll-up may stand in for a day of hours with one missing only while it
+agrees with the corrected source, which is not known until the roll-up itself has been settled; a
+published roll-up the correction reached is read as published by its own readers and refused by
+the readers of the hours, who then pull the missing hours back from the source.
+
+So which lines exist, and in what order they can run, are outputs of the settle rather than inputs
+to it. A closure computed first and sorted afterwards has nowhere to put a line that lies outside
+the closure, cannot withhold a computed partition whose reader turned out to be held, and runs a
+reader before the roll-up it read whenever the roll-up is declared after it. The planner has to be
+rebuilt as one evaluation of every partition it could need, flags first and lines after.
+
+Two scale families decide what a correct structure may cost. Walking every partition from hour 0,
+which is how the shipped planner builds its index of readers, is exactly correct and took 171.7
+seconds for the graded set when measured here, against the 60 second limit; the fast path follows
+from every read looking back in time, so nothing that ends before the corrected partition can be
+reached. Re-evaluating an expired partition for every read of it is also exactly correct and was
+still on its first scale pipeline after 430 seconds; the fast path follows from a partition's
+resolution depending on the partition alone, so each is settled once. The reference plans the
+whole set in 6.0 seconds.
+
+Around those sit the ordinary decisions, each fenced from both sides: the keep boundary is strict
+at its far end, a published partition outlives its keep, a read before hour 0 reads nothing, lost
+is decided before same, part outranks sub, a computed partition is printed once, and the holds come
+after everything else. All five editable files ship wrong, and the only feedback a wrong structure
+gets is one quoted line.
+
+The tree is compact on purpose - a parser, the time arithmetic and a driver that stay as they
+are, and the five planner files - so the difficulty is not in finding code but in the plan the
+rules force: the reference replaces those five files with about three hundred lines. Identifiers
+are in a legacy register - `pp`, `got`, `there`, `looks`, `takes`, `span` - short but never
+misleading, and the planner tree ships without comments by design; each name is recoverable from
+what calls it.
+
+The pipelines are synthetic, in twelve families concentrated where this kind of plan goes wrong:
+roll-ups published on the corrected day, days cut by a keep boundary, readers declared before
+their roll-ups, chains that carry their own previous partition past a publication, windows that
+reach expired partitions nobody corrected, sources that have expired under a window, and the two
+scale families. On a real platform these concentrations are rare, and they are exactly where a
+backfill quietly rewrites the wrong partitions.
+"""
+
+solution_explanation = """
+Five files, settled in the order the rules force.
+
+`keep.py` says which partitions exist: ended by now and still inside the keep after its end, or
+published, which outlives its keep.
+
+`reach.py` walks forward from the corrected partition, inverting each of the four read forms
+arithmetically - the same partition, the day an hour falls in, the partitions a window covers,
+the partition whose previous period this is - so it follows the correction through partitions
+that no longer exist and never visits one that ends before the correction.
+
+`look.py` resolves one computation's reads: stored if the partition exists, computed for the plan
+if it does not, gone if it is a missing source partition, and the roll-up's partition of the day
+in place of all 24 hours when an hour is missing and that partition exists and agrees. It also
+ranks the datasets for settling - each after what it reads, and each roll-up before every step
+that reads its hours - because a reader has to know whether the roll-up agrees before using it.
+
+`settle.py` is where the first plan is given up. It collects the reached partitions that exist and
+every missing partition their reads can lead to through other missing ones, and settles each
+exactly once, in order of end hour and rank: can it be computed, did anything it read change,
+does everything it read agree. Only then does it decide the lines - pinned, lost, same, or a rerun
+with its mode - and emit computed partitions by demand, starting from the reruns and following
+what each computed partition read, so nothing that only a held partition read is printed.
+
+`order.py` places each line after the lines of what it actually read, a roll-up that stood in for
+hours included, and takes the free line with the earliest end and then the earliest declaration
+from a heap; the holds follow.
+
+An expert works in this order because each file consumes the one before it: existence decides
+what can be read, reach decides what may have to change, resolution decides what each
+computation depends on, the settle decides what changed and what agrees, and only then is it
+known which lines exist and in which order they can run. The same contract is implemented two
+further ways in the authoring set - one recursive with a memo per partition and an order worked
+out end hour by end hour, one that scans forward from the correction instead of inverting reads
+and settles with an explicit stack - so the structure is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the five files under `/app/plan/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the pipeline parser, the time arithmetic and the
+sample pipelines cannot change what a plan prints, and a new file put beside the five is never
+collected.
+
+Correct is defined twice over. Thirty hand pipelines, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen from the sealed model
+after every one of those plans had been derived by hand and compared; the grader first asserts
+that the model still reproduces `gt.json`, so a drifted model cannot quietly redefine correct.
+Four hundred and eight further pipelines are generated inside the verifier from a seed drawn after
+the agent's container is gone, across ten small families shaped around the rules - publications,
+roll-ups published or declared after their readers, self-reading chains with published
+checkpoints, windows into expired partitions, expired sources, keep boundaries and hour 0 - and
+two scale families of three years of hourly history. Every plan must match line for line.
+
+The fences run both ways. Rerunning everything that was reached fails `pinned-hold`; following the
+correction only through partitions that still exist fails `reach-through-expired`; refusing to
+compute an expired partition fails `temp-window`; printing a computed partition for a held reader
+fails `temp-only-for-reruns` and `lost-temps-unprinted`, and printing it once per reader fails
+`temp-once`. Letting a published roll-up stand in fails `stand-refused-published`; waiting for
+every hour of a day to be missing fails `stand-any-hour`; never using a roll-up fails `stand-use`,
+and not using one inside a computed partition, or letting one used there make its reader `sub`,
+fails `stand-in-temp`. Letting sub outrank part fails `mode-part-over-sub`; deciding same before
+lost fails `lost-before-same`; treating a held partition as agreeing fails `same-disagrees` and
+`pinned-part`. Sorting by end and declaration without the roll-up's edge fails
+`order-after-roll-up`, and so does moving the roll-up in front of its reader after a sort;
+interleaving the holds fails `holds-last`. A published partition that expires fails
+`keep-published`, and an inclusive keep boundary fails `keep-edge`. On the other side,
+`plain-rerun` and `pinned-unreached` require an ordinary full rerun where nothing reached has
+expired or been published.
+
+Thirty-nine cheats score 0. Twenty-four are wrong readings, each caught by the enumerated case
+named for it. Two are exactly correct and too slow: the walk over every partition from hour 0 and
+the re-evaluation of expired partitions without a memo. Three are shortcut strategies - an empty
+plan, every reached partition held as same, and the quoted line replayed - and one forgery carries
+the frozen plan of every enumerated pipeline, passes all thirty and fails the generated ones. The
+other nine are probes: the answer key, the reward written directly, a reward written late by a
+double-forked survivor, a planted record, a planted record with a clean exit, a spoiled record, a
+rewritten generator, a rewritten grader, and a planner hidden in a file beside the five. Two
+independently written correct planners score 1.
+
+The submitted code runs unprivileged, in its own session, under the 60 second clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read. The reward defaults to 0, is written last by the privileged stage into a root-owned
+directory locked before any submitted code runs, and anything the run left behind is killed by uid
+first.
+"""
+
+category = "Software"
+
+subcategory = "Data engineering"
+
+tags = [
+  "retroactive-corrections",
+  "partition-lineage",
+  "retention-expiry",
+  "rollup-stand-ins",
+  "published-partition-pinning",
+  "transient-recompute",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Experience planning recomputes on partitioned batch pipelines after a source partition is
+restated: working out which hourly and daily partitions a correction reaches through roll-ups,
+trailing windows and steps that carry their own previous partition forward, which of them
+retention has already deleted and must be recomputed from what is left, which were published and
+must be read as published, and when a daily roll-up can stand in for hours that are gone.
+Familiarity with the gap between the backfill an orchestrator runs - clear everything downstream
+and rerun it - and a plan that is both minimal and runnable, and with ordering a plan so that a
+partition never runs before something it reads.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

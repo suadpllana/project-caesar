@@ -1,0 +1,198 @@
+# Difficulty record - written 2026-09-22, after the originality record scored 100 and before
+# any environment, verifier or solution code existed. Restated in prose in
+# tasks/restate-hold-plan/STATE.md.
+
+[task]
+slug = "restate-hold-plan"
+status = "pending"
+sources = ["tasks/restate-hold-plan/STATE.md", "authoring/restate-hold-plan/originality.toml", "authoring/restate-hold-plan/trace.md", "authoring/restate-hold-plan/cheat_report.py", "authoring/restate-hold-plan/timing.py"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Walk the readers of the corrected partition to get every partition downstream of it, drop the
+ones that no longer exist, mark the published ones as held, sort the rest topologically by
+their end hour and the order their steps are declared in, and print one full rerun per
+partition - the backfill an orchestrator runs when you clear everything downstream of a date.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A downstream partition is rerun only when something it reads, as it reads it, has changed: a
+published partition is never rewritten and its readers read it as published, and a partition
+that cannot be recomputed stays as it is, so a partition reached only through either of them is
+held instead of rerun, and in a step that reads its own previous partition one
+published partition stops every later partition of it from running at all.
+"""
+second_discovery = """
+An expired partition that a made recompute reads is computed for the plan and not kept, even
+when the correction never reached it, and only when the recompute reading it is actually made;
+and a daily roll-up may stand in for a day with a missing hour only if it agrees once it has
+itself been settled. So the lines of the plan and their order are outputs of the settle, not
+inputs to it: a closure-then-sort implementation has nowhere to put lines outside the closure,
+cannot withhold a computed partition whose reader turned out to be held, and runs a reader
+before the roll-up it reads whenever the roll-up is declared after it.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped planner on the sample pipelines and find which module owns the one line the brief quotes",
+  "Rebuild the affected set over every partition the read specs name, expired or not, from the corrected partition up to now",
+  "Write existence as ended by now and within the keep after its end, with published partitions kept whatever their age",
+  "Resolve each read of a computation: stored if it exists, the roll-up for a day with a missing hour if that roll-up exists and agrees, otherwise the missing partition computed for the plan, failing at a missing source partition",
+  "Settle every partition once, roll-ups before the readers of their hours: can it be computed, did anything it reads change, does everything it reads agree, and from those its run mode or hold reason",
+  "Emit by demand: every made run, then every computed-for-the-plan partition that a made run or an emitted one reads, and nothing a held partition read",
+  "Order the lines over the reads each line actually makes, earliest end first and then declaration order",
+  "Time the scale pipelines, start the walk at the corrected partition rather than hour zero, and settle each partition once so a long chain of expired partitions is walked once",
+]
+
+[search]
+best_page = """
+The Dagster documentation on dependencies between partitioned assets and on backfilling, which
+explains that a daily partition depends on the 24 hours of its day and that a backfill
+materializes every downstream partition of a range, together with Airflow's clear-downstream
+and backfill commands.
+"""
+helps_plan = false
+deviation = """
+Those pages rerun the whole downstream range from storage. Here expired partitions are computed
+only when a made recompute reads them, a roll-up stands in for missing hours only while it
+agrees, published partitions are read as published and never rewritten, and a partition whose
+inputs as read did not change is held, so the retrieved plan is wrong at every one of those
+points while looking complete.
+"""
+
+[tactics]
+A1 = """
+The memorised backfill - clear everything downstream of the corrected date and rerun it in
+dependency order - is what the shipped planner does faithfully, and it is wrong at the first
+expired input, the first published partition and the first roll-up that stands in for a day.
+"""
+A2 = """
+The brief states what the platform does with an expired input, a published partition and a
+roll-up, and never names demand-driven evaluation, a priority order over realized dependencies
+or the settle-then-emit split, so the structure those rules force has to be derived.
+"""
+B2 = """
+Existence, the affected set, stand-in use, computing expired partitions, the changed and
+agreeing flags, the run modes, the hold reasons and the execution order hold at once, and the
+stand-in, publication and minimality rules each change which lines the others produce.
+"""
+C1 = """
+Both sides are graded: a planner that holds or computes too eagerly fails the ordinary programs
+where nothing expired and everything reruns in full, and one that reruns the closure fails the
+programs where a published partition or an unchanged window holds its readers.
+"""
+C3 = """
+Two scale families - three years of hourly history read through thirty-day hourly windows with a
+correction eight to fifteen days back, and a chain of hourly partitions kept a day and read through a
+thirty-day window - make a planner that walks every partition from hour zero, or re-evaluates an
+expired partition for every read of it, infeasible within the stated limit while leaving it
+exactly correct; measured over the whole graded set at 171.7 seconds and over 430 seconds on the
+first scale pipeline alone, against 60 for the limit and 6.0 for the reference.
+"""
+C4 = """
+Every graded pipeline must print line for line what the sealed model prints, over a population
+generated inside the verifier from a seed drawn after the agent has finished, with families
+shaped at each decision rather than drawn uniformly.
+"""
+guard = """
+Only the planner modules under /app/plan that the brief names are collected; the driver, the
+pipeline parser, the line writer and the sample pipelines are the verifier's own pristine
+copies, so the file format, the output format and the program semantics cannot be reshaped.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a roll-up stands in for a day with a missing hour", b = "a published partition is never rewritten", why = "a published roll-up of an affected day no longer agrees, so the readers of the hours refuse it and pull the missing hours back from the source while its direct readers read it as published" },
+  { a = "an expired partition a recompute reads is computed for the plan", b = "a partition runs only if something it reads changed", why = "whether the recompute is made depends on whether the expired partitions it reads changed, so they must be evaluated first and emitted only after the recompute is known to be made" },
+  { a = "a published partition is read as published", b = "a step may read its own previous partition", why = "one published partition in a self-reading chain changes nothing it passes on, so every later partition of that chain is held instead of rerun, however far the correction reaches" },
+  { a = "the execution order puts each line after what it reads", b = "a roll-up may stand in for the hours it rolls up", why = "the stand-in edge is not a declared read, so a reader declared before its roll-up must still run after it, and the order depends on how each read was resolved" },
+  { a = "a missing source partition cannot be computed", b = "a partition whose reads did not change is held", why = "the reason a held partition reports depends on which is decided first, and a trailing window reaching past a source's keep turns a would-be unchanged partition into a lost one" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A pipeline where nothing affected has expired and nothing is published: every downstream
+partition reruns in full in time order, so a planner that holds, substitutes or computes for the
+plan by default prints lines that must not be there.
+"""
+late_case = """
+A corrected hour whose day's roll-up is published: one daily step reads the roll-up directly and
+reruns as part, a second reads the hours by the day where one hour has expired, refuses the
+published roll-up and pulls that hour back from the source, and a trailing window over both
+reaches past the keep of the second, so both arms that ordinarily agree now disagree.
+"""
+oracle_denied = """
+The natural self-check is to execute the plan on a toy value model and confirm every partition
+agrees afterwards, but a plan that reruns everything and computes every expired partition also
+agrees, so the check confirms none of the minimality, mode, hold or order decisions.
+"""
+
+[leaks]
+candidates = [
+  { what = "a plan executor or agreement checker in the tree", closed_by = "none ships; the driver only prints the plan and nothing in the tree evaluates one" },
+  { what = "sample pipelines with their correct plans", closed_by = "the samples ship without output and the brief quotes one line of one of them, a mode on an ordinary rerun" },
+  { what = "affected, changed or agreeing flags printed or stored per partition", closed_by = "the plan prints only runs, computed partitions and holds; the flags exist only inside a settle the agent writes" },
+  { what = "the stand-in stored as a read edge of the reader", closed_by = "a stand-in is a separate declaration on the roll-up, so the declared reads never order a reader after its roll-up" },
+  { what = "the keep boundary or publication exemption expressed as one helper", closed_by = "the shipped existence helper applies the keep to every partition, so the published exemption has to be found from the brief" },
+]
+derived_quantities = """
+The pipeline file carries grains, reads, keeps, publications, stand-in declarations, the current
+hour and the corrected partition, which are primitives; which partitions are affected, exist,
+changed or agree, how each read resolves and the order of the plan are all derived and none of
+them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct planners that walk every partition of every dataset from hour zero to find what
+the correction reached or to settle it, or that re-evaluate an expired partition afresh for every
+read of it instead of settling each partition once.
+"""
+invariant = """
+Every read looks back in time, so nothing that ends before the corrected partition can be reached
+and the walk starts there; and how a partition resolves - whether it can be computed, whether it
+changed, whether it agrees - depends on the partition alone and never on who reads it, so each
+partition is settled once and shared.
+"""
+input_scale = "three years of hourly history read through thirty-day hourly windows with a correction eight to fifteen days back, and a chain of hourly partitions kept a day and read through a thirty-day window"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "every affected partition that exists reruns in full", hand_case = "a published daily partition of the corrected day with one trailing reader" },
+  { reading = "the affected set stops at partitions that have expired", hand_case = "a correction behind an hourly layer that keeps a day, feeding a daily roll-up kept a month" },
+  { reading = "published partitions expire with their keep like any other", hand_case = "a published day older than its keep read by a trailing window" },
+  { reading = "a roll-up stands in whatever it holds", hand_case = "a published roll-up of the corrected day read through the hours by a second daily step" },
+  { reading = "a roll-up stands in only when every hour of the day is missing", hand_case = "a day split by the keep boundary of its hours" },
+  { reading = "an expired partition a recompute reads makes the recompute lost", hand_case = "a trailing window that reaches one expired day of a dataset whose inputs still exist" },
+  { reading = "partitions computed for the plan are printed even when their reader is held", hand_case = "a held unchanged partition whose window reaches an expired unaffected day" },
+  { reading = "a partition computed for the plan is printed once per reader", hand_case = "two daily steps reading the same expired day" },
+  { reading = "a reader reached only through a published partition reruns as part", hand_case = "source to published daily to trailing window, nothing else affected" },
+  { reading = "a roll-up standing in inside a partition computed for a rerun makes the rerun sub", hand_case = "a trailing window over expired days whose hours are rolled up, one of them the corrected day" },
+  { reading = "a stand-in outranks a disagreeing input in the mode", hand_case = "a run reading a roll-up in place of its hours and a published partition the correction reached" },
+  { reading = "an unchanged partition is decided before a lost one", hand_case = "a partition reached only through a published one that also reads an expired source hour" },
+  { reading = "the order is sorted by end and declaration alone", hand_case = "a daily reader of the hours declared before the roll-up that stands in for them" },
+  { reading = "the keep boundary is inclusive at its far end", hand_case = "a partition that ended exactly keep hours ago" },
+  { reading = "a read before hour zero is computed for the plan", hand_case = "a seven-day trailing window at day two" },
+  { reading = "a previous-period read across grains takes the containing day", hand_case = "an hourly step reading the previous day of a daily roll-up" },
+]
+correct_variants = [
+  "a planner that settles iteratively in end and declaration order after a pre-pass placing each roll-up before the readers of its hours, and emits by a reverse sweep from the made runs",
+  "a planner that resolves recursively with a memo on each partition's settle and orders the lines by grouping them by end and running a small priority sort inside each group",
+]
+
+[shape]
+# Planned 380 / 5 / 300 before the build. The built tree measured 234 / 5 / 296 on 2026-09-22:
+# the frozen parser, time arithmetic and driver came out compact and nothing was cut from the
+# planner; the graded patch is inside the retained band. Recorded in STATE.md.
+environment_py_lines = 234
+editable_files = 5
+reference_lines = 296

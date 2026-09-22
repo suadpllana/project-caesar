@@ -1,0 +1,195 @@
+# Difficulty record - written 2026-09-22 at Stage 1, before any environment or verifier code.
+# Restated in prose in tasks/partial-key-purge/STATE.md. The scale gate was measured on a
+# scratch prototype of the bare reference graph before this record was written (see [gate]).
+
+[task]
+slug = "partial-key-purge"
+status = "idea"
+sources = ["tasks/partial-key-purge/STATE.md"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep the store's recursive cascade and teach it the declared match rules: when a referenced
+row is deleted, walk the references that point at its table, find the child rows whose
+non-null columns agree with it, remove or clear the ones that no longer match anything still
+standing, refuse on RESTRICT or NO ACTION when such a child exists, and for the audit run a
+lone delete of every row on a copy of the store and count what it removed and cleared.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Matches are judged on the values the store held before the statement and a row goes only
+when every row it matched is in the removed set, which is the smallest set closed under that
+rule, so clearing must not feed back into later matching, rows that match one another keep
+each other, and a RESTRICT reference refuses even when the row it would orphan is removed by
+another path while NO ACTION refuses only if a violation survives to the end.
+"""
+second_discovery = """
+The audit has to report every row's lone-delete outcome on stores tens of thousands of rows
+deep, where replaying each delete costs the sum of all removal sets and runs for minutes;
+the per-row replay has to be replaced by one ownership structure in which a row is removed
+with r exactly when every chain of matches reaching it passes through r; that structure holds
+only outside loops of mutual matches, whose own deletes still need the replay, and rows of a
+table with two cascading references sit outside it as unions of two chains, so removal,
+clearing and refusal have to be read off the structure rather than replayed.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read the parser, the row store and the shipped referential pass, run the sample scripts and see partial references treated as simple ones",
+  "Rewrite matching per mode, with an index per pattern of non-null reference columns so a partial row finds every row it matches",
+  "Rewrite delete as a set computation: count each row's remaining matches, remove rows whose count reaches zero under cascade references, then clear and check",
+  "Move every refusal check to the end state except RESTRICT, and name the refusing reference and row by the stated declaration and row order",
+  "Check the end state after clearing: a full reference left half-null, a partial one that now matches nothing, a key column cleared to null",
+  "Write the audit first as a per-row replay, confirm it against statements on small stores, then time it on a deep store and see the quadratic cost",
+  "Build the ownership tree where it exists: each row's owner is the lowest common owner of the rows it matches, and removal counts are owner-tree sizes",
+  "Place clearing and refusal effects at the lowest common owner of each affected match set, subtract where the affected row goes itself, and sum up the tree",
+  "Count rows of tables with two cascading references as unions of two chains, keep the replay for rows inside loops of mutual matches, and check both paths agree on mixed stores",
+]
+
+[search]
+best_page = """
+The SQL standard's referential-constraint rules for MATCH SIMPLE, FULL and PARTIAL as
+summarised in Wikipedia's Foreign key article and PostgreSQL's constraint documentation,
+and, for the audit, Eclipse MAT's explanation of retained sets through a dominator tree.
+"""
+helps_plan = false
+deviation = """
+The standard defines partial-match actions one referenced row at a time and never says how
+several rows lost in one statement combine, and PostgreSQL does not implement PARTIAL at all;
+the heap analyzers compute retained sets by reachability from roots, so a loop that has lost
+its outside support is freed there and survives here, and neither covers clearing, refusal
+or computing every row's outcome of a lone delete together.
+"""
+
+[tactics]
+A1 = """
+Every production engine treats a reference with a null column as switched off and cascades
+row by row as each parent goes; here partial references match every row agreeing on their
+non-null columns and a row goes only when all of those go, so the engine every solver has
+used gives confident wrong answers on exactly the half-null rows the store exists to police.
+"""
+A2 = """
+The brief states what a delete removes, clears and refuses and what the audit prints, and
+never names the least fixed point, the ownership tree, lowest common ancestors or the
+retained-set analogy, so the structure that makes the audit feasible has to be recognised.
+"""
+A3 = """
+No single technique covers the audit: a retained-set computation is wrong on loops of mutual
+matches and has no place for rows of tables with two cascading references, and a per-row replay
+is right everywhere but too slow on the deep stores, so the solver must decide where each
+applies and join them.
+"""
+B2 = """
+Match rules, the least fixed point, pre-statement matching, column-list clearing, RESTRICT
+against NO ACTION timing, end-state checks and refusal naming all hold at once, and each
+changes what a correct audit row means, because the audit is defined as the delete itself.
+"""
+C1 = """
+Both sides are graded: a store that removes too little keeps rows whose every match is gone,
+and one that removes too much deletes rows a surviving or mutual match still holds, while
+ordinary simple references must keep cascading exactly as any engine does.
+"""
+C3 = """
+Deep stores with revision chains thousands long make the exactly correct per-row replay
+quadratic and far over the stated limit, while the ownership structure computes every row in
+near-linear time, so correctness alone does not pass and the fast path follows from a
+property of the stated removal rule rather than from a data structure.
+"""
+C4 = """
+Every graded script must match line for line on statement outcomes, dumps and audits, over
+hand scripts and a population generated inside the verifier after the agent has finished,
+shaped around half-null rows, shared matches, mutual matches and deep chains.
+"""
+guard = """
+Five files under /app/db are collected and nothing else; the parser, the row store, the
+output writer and the driver are the verifier's own pristine copies, so the script grammar
+and the output format cannot be reshaped and a new module beside the five is never read.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "partial references match every row agreeing on their non-null columns", b = "a row is removed only when every row it matched is removed", why = "a row's fate depends on a set of rows rather than one, so the removal set is a closure over sets and a walk that settles each parent separately settles the wrong question" },
+  { a = "matches are judged on values from before the statement", b = "SET NULL clears a listed subset of reference columns", why = "clearing must not change which rows the rest of the statement removes, yet it does change which references a remaining row satisfies at the end, so the two uses of the same values diverge" },
+  { a = "RESTRICT refuses on any row left without a match", b = "that row may be removed by another cascading reference", why = "RESTRICT must be checked against the loss of matches rather than the end state, while NO ACTION must be checked only at the end, so the two cannot share one check" },
+  { a = "the audit reports what a lone delete of each row would do", b = "the ownership structure exists only without loops or second cascading references", why = "the fast path has to reproduce the delete's exact semantics wherever it applies and hand over to the replay where it does not, so a boundary in the rules becomes a boundary in the algorithm" },
+  { a = "column-list clearing", b = "full references reject half-null rows", why = "clearing part of a full reference leaves a half-null row that fails at the end, so a delete that removes nothing can still be refused because of what it cleared" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A store of simple references where deleting a parent removes its children and grandchildren
+exactly as any engine does, with an audit whose counts are plain tree sizes: a solver that
+refuses or keeps too much here fails before any partial rule is involved.
+"""
+late_case = """
+A deep store where a half-null row matches two revisions reached through different chains,
+another pair of rows match only each other and one outside row, and a RESTRICT hold points
+at a row that a cascade also removes: the replay passes every small script and the audit
+runs out of time, while a retained-set audit gets the loop and the hold wrong.
+"""
+oracle_denied = """
+No database implements partial-match actions, PostgreSQL's simple and full references
+cascade row by row through triggers and differ on RESTRICT timing, and the shipped audit is
+a replay of the shipped delete, so every tool at hand confirms the wrong semantics or none.
+"""
+
+[leaks]
+candidates = [
+  { what = "a remaining-match count or owner field stored on rows", closed_by = "rows carry only an id and column values; nothing derived from references is stored" },
+  { what = "a partial-match index already maintained by the frozen row store", closed_by = "the frozen store keeps rows by id only; every index over column values has to be built in the editable modules" },
+  { what = "expected outputs for the sample scripts", closed_by = "no expected output ships; the brief quotes one line of one sample, a plain simple-reference result" },
+  { what = "helper names that name the ownership structure", closed_by = "the tree uses legacy names for storage and parsing only; no owner, dominator or ancestor helper exists anywhere" },
+  { what = "the shipped audit's per-row replay revealing the definition", closed_by = "the replay is the stated definition, not the method; it is slow and built on the wrong delete, so it confirms nothing" },
+]
+derived_quantities = """
+Scripts carry table declarations, keys, references with their mode and action, row values
+and statements; match sets, removal sets, clearing sets, refusals and audit counts are all
+derived and none of them ships anywhere in the tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+An exactly correct audit that replays a lone delete of every row with the correct least
+fixed point, whose cost is the sum of all removal sets and is quadratic on deep chains.
+"""
+invariant = """
+On a store with no loop of mutual matches and at most one cascading reference per table, a
+row is removed with r exactly when every chain of matches reaching it passes through r, so
+removal sets are the subtrees of one ownership tree built from lowest common owners.
+"""
+input_scale = "stores of up to forty thousand rows whose revision chains run thousands of rows deep"
+limit_seconds = 120
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "every reference matched as simple, so any null switches it off", hand_case = "a half-null partial row whose one matching revision is deleted" },
+  { reading = "each deleted parent settles its children against rows still standing at that moment, with clearing applied immediately", hand_case = "a row cleared under one reference whose remaining columns decide a second reference in the same delete" },
+  { reading = "rows that match only each other are removed when their outside support goes", hand_case = "two rows matching each other and one outside row, which is deleted" },
+  { reading = "RESTRICT behaves like NO ACTION and passes when the orphaned row is removed anyway", hand_case = "a hold row that belongs to the deleted document and references its revision under RESTRICT" },
+  { reading = "NO ACTION behaves like RESTRICT and refuses on any orphaned row", hand_case = "a NO ACTION link row that a cascade from its own document removes" },
+  { reading = "SET NULL clears every reference column rather than the listed ones", hand_case = "a clear list naming one column of a two-column partial reference" },
+  { reading = "a full reference accepts a half-null row left by column-list clearing", hand_case = "clearing one column of a two-column full reference" },
+  { reading = "clearing a key column is allowed, so a set-null reference over an identifying column never refuses", hand_case = "a set-null reference whose cleared column is part of its own table's key" },
+  { reading = "the audit adds up children's counts over every match", hand_case = "a row matching two revisions of the same document" },
+  { reading = "the audit uses reachability from unreferenced rows", hand_case = "a loop of two mutually matching rows hanging off one deleted row" },
+  { reading = "a row never matches itself", hand_case = "a self-referencing partial row whose null column makes it agree with its own key" },
+  { reading = "the refusal is named by the first failing row rather than the first failing reference", hand_case = "two references failing on rows with the opposite id order" },
+]
+correct_variants = [
+  "an audit that places owners top down by lowest common owner with binary lifting, with loop members hung from the top and replayed, and marks counted by inclusion and exclusion",
+  "an audit that runs an iterative dominance computation over reverse postorder with join nodes for shared match sets and marks effects with Euler-tour prefix sums",
+  "an audit on the same ownership tree that walks each affected chain explicitly instead of summing marks",
+]
+
+[shape]
+environment_py_lines = 372
+editable_files = 5
+reference_lines = 554

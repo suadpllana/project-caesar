@@ -1,0 +1,19 @@
+table doc d
+table rev d n bd bn
+table note k d n
+key doc_k doc d
+key rev_k rev d n
+key note_k note k
+ref rev_doc rev d -> doc_k simple noaction
+ref rev_base rev bd bn -> rev_k partial cascade
+ref note_on note d n -> rev_k partial cascade
+row doc 1 a
+row rev 1 a 1 - -
+row rev 2 a 2 a 1
+row rev 3 a 3 a 1
+row note 1 1 a 2
+row note 2 2 a -
+delete rev 2
+dump note
+delete rev 1
+audit

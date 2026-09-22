@@ -1,0 +1,59 @@
+# Originality record for partial-key-purge, written at Stage 1 before any code.
+# Scored by: python tools/originalitycheck.py partial-key-purge
+
+[task]
+slug = "partial-key-purge"
+category = "Software"
+label = "Databases"
+tags = ["referential-actions", "composite-foreign-keys", "partial-key-matching", "delete-impact-analysis", "dominator-trees"]
+status = "idea"
+
+[mechanism]
+sentence = "Decide what a delete does to rows that reference it through composite keys matched simply, fully or partially, where a row goes only after losing every row it matched, and give that answer for every row of a large database at once."
+substrate = "the referential-action pass and delete-impact audit of a relational database whose foreign references are composite and may carry null components"
+graded_output = "per statement the rows removed and cleared or the key and row refusing it, and per audit, for every row, the rows a lone delete of it would remove and clear and whether it would be refused"
+failure_mode = "matching every composite reference as if one null switched it off, cascading row by row as each referenced row goes, and auditing by replaying a delete per row, which is wrong for partial references and quadratic on deep chains of them"
+interaction = "the partial-match rule makes whether a row goes depend on a set of rows rather than on one row, and the audit has to agree with that rule at a scale where only the ownership structure the rule induces can be computed in time"
+
+[nearest.public]
+name = "the SQL standard's referential constraints (MATCH SIMPLE, FULL and PARTIAL, unique matching rows) as summarised in Wikipedia's Foreign key article, and Eclipse MAT's dominator-tree definition of retained sets"
+url = "https://en.wikipedia.org/wiki/Foreign_key"
+covers = "the validity rules of the three match types and what CASCADE, SET NULL, RESTRICT and NO ACTION mean for a single referenced row; separately, how a heap analyzer finds the objects a garbage collection would free together with one object"
+plans_this = false
+separation = "the standard settles partial-match actions one referenced row at a time and says nothing about several rows lost in one statement, rows that match one another, or column-list clearing; the heap analyzers define retained sets by reachability from roots, so a cycle that has lost its outside support dies there and survives here, and neither covers refusals, clearing, or computing every row's outcome of one delete together"
+
+[nearest.submitted]
+name = "reach-pair-sweep"
+source = "ledger"
+shares = "deciding which records go when other records go, by propagating the loss of support through references between them"
+same_mechanism = false
+separation = "reach-pair-sweep traces what one generational collection of a runtime heap reaches, frees and resurrects through remembered sets, weak pairs and finalizers; this task decides what a relational delete removes, clears or is refused by under composite partial references and reports it for every row at once. A collector frees whatever is unreachable from roots; this database removes only rows that have lost every row they matched, so rows that match one another keep each other, and the graded work is statement outcomes and a per-row audit rather than a collection trace"
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "tracing reachability from roots through a generational heap, once per collection", ours = "least-fixpoint loss of every partial match per delete, and every row's lone-delete outcome computed together" },
+  { axis = "substrate", theirs = "a runtime with a nursery, an old space, a handle stack, pins and a pair table", ours = "a relational database with composite foreign keys under three match rules and four delete actions" },
+  { axis = "graded_output", theirs = "a per-collection trace of what was reached, freed and resurrected", ours = "per-statement removal and clearing counts or the refusing key and row, and a per-row audit table" },
+  { axis = "failure_mode", theirs = "stale remembered-set entries and missed write barriers in a generational trace", ours = "treating partial references as simple ones, cascading row by row, and auditing by replaying one delete per row" },
+  { axis = "interaction", theirs = "weak key-value pairs re-opening each other while finalizers resurrect objects", ours = "set-valued partial matches against an audit that can only be computed from the ownership those matches induce" },
+]
+
+[search]
+queries = [
+  "SQL foreign key \"MATCH PARTIAL\" \"unique matching\" referential action semantics implementation",
+  "MATCH PARTIAL foreign key which database implements ON DELETE CASCADE partial match",
+  "cascade delete impact analysis dominator tree foreign key \"retained\" rows",
+  "\"exclusive dependents\" foreign key cascade delete preview every row algorithm",
+  "composite foreign key nullable column multi-tenant \"MATCH SIMPLE\" tenant_id not checked footgun",
+  "Eclipse MAT retained heap dominator tree retained set definition",
+  "django admin delete confirmation collector nested objects cascade preview implementation",
+]
+results = "MATCH PARTIAL is parsed but unimplemented in PostgreSQL and MySQL and is an open request in CockroachDB, so no engine implements its actions; the multi-tenant half-null composite key footgun is real and discussed (PostgreSQL's SET NULL column-list proposal, a data-share fix resolving half-null keys), which grounds the substrate; cascade-delete pages cover single-parent CASCADE and performance only; Django's admin collector previews one object's cascade at a time over simple keys; heap analyzers define retained sets by dominance under reachability. Nothing connects partial matches, least-fixpoint loss and a per-row impact audit, and nothing plans the task."
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "garbage-collector retained sets (Languages list); no entry on the Databases list fits"
+on_list = false
+departure = "the audit's fast path is structurally a retained-set computation, but loss here is a least fixpoint over partial matches rather than reachability from roots, so rows that match one another survive, and refusals and clearing have no analogue in a collector"
+substrate_used_before = false

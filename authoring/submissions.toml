@@ -129,6 +129,15 @@ substrate = "the part of an inference server that decides what to put on the wir
 mechanism = "Release bytes from a streaming decode only when no stop sequence and no character boundary can still change what has already left."
 verdict = "pending"
 
+[[submission]]
+slug = "partial-key-purge"
+category = "Software"
+label = "Databases"
+tags = ["referential-actions", "composite-foreign-keys", "partial-key-matching", "delete-impact-analysis", "dominator-trees"]
+substrate = "the referential-action pass and delete-impact audit of a relational database whose foreign references are composite and may carry null components"
+mechanism = "Decide what a delete does to rows that reference it through composite keys matched simply, fully or partially, where a row goes only after losing every row it matched, and give that answer for every row of a large database at once."
+verdict = "pending"
+
 # --- Submitted, bundle not in this checkout -----------------------------------------
 # README.md records these as passed. Their trees were removed, so their tags, substrate
 # and mechanism are not recoverable here and are deliberately left out rather than

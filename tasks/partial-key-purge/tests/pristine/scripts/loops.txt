@@ -1,0 +1,61 @@
+table doc d
+table rev d n bd bn
+table note k d n
+table hold k d n
+key rev_k rev d n
+ref hold_on hold d n -> rev_k partial restrict
+key hold_k hold k
+key note_k note k
+key doc_k doc d
+ref rev_base rev bd bn -> rev_k partial cascade
+ref rev_doc rev d -> doc_k simple noaction
+ref note_on note d n -> rev_k partial cascade
+row doc 1 d1
+row doc 2 d2
+row doc 3 d3
+row doc 4 d4
+row rev 1 d1 1 - -
+row rev 2 d1 2 d1 1
+row rev 3 d2 1 - -
+row rev 4 d2 2 d2 1
+row rev 5 d2 3 d2 2
+row rev 6 d3 1 - -
+row rev 7 d3 2 d3 1
+row rev 8 d3 3 d1 2
+row rev 9 d3 4 d3 3
+row rev 10 d3 5 d3 4
+row rev 11 d4 1 - -
+row rev 12 d4 2 - -
+row rev 13 d4 3 d4 -
+row rev 14 d4 4 d4 3
+row rev 15 d4 5 - -
+row rev 16 d4 6 d4 5
+row note 1 1 d1 -
+row note 2 2 d1 2
+row note 3 3 d4 2
+row note 4 4 d2 -
+row note 5 5 d4 3
+row note 6 6 d1 1
+row note 7 7 d2 1
+row note 8 8 d2 2
+row note 9 9 d1 -
+row note 10 10 d2 2
+row note 11 11 d2 3
+row note 12 12 d4 -
+row note 13 13 d4 -
+row note 14 14 d2 2
+row note 15 15 d4 2
+row note 16 16 d1 2
+row note 17 17 d4 6
+row note 18 18 d4 2
+row note 19 19 d4 5
+row note 20 20 d1 -
+row note 21 21 d2 1
+row note 22 22 d3 -
+row hold 1 1 d1 -
+row hold 2 2 d1 2
+row hold 3 3 d1 2
+delete hold 2
+dump hold
+audit
+delete note 22

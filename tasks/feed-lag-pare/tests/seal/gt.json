@@ -1,0 +1,189 @@
+{
+ "ack-at-head": [
+  "val f 0 3",
+  "pare 2 1",
+  "log 1",
+  "k 0 3s3"
+ ],
+ "ack-back-refused": [
+  "val f 0 3",
+  "pare 2 1",
+  "log 1",
+  "k 0 3s3"
+ ],
+ "ack-moves-up": [
+  "val f 0 2",
+  "pare 1 2",
+  "log 2",
+  "k 0 2s2 3a1"
+ ],
+ "ack-past-head-refused": [
+  "val f 0 1",
+  "pare 0 2",
+  "log 2",
+  "k 0 1s1 2a1"
+ ],
+ "feed-close-frees": [
+  "pare 0 3",
+  "pare 2 1",
+  "log 1",
+  "k 0 3s6"
+ ],
+ "feed-covers-range": [
+  "pare 1 3",
+  "log 3",
+  "k 0 1s1 3a4",
+  "k 1 4s5"
+ ],
+ "feed-keeps-above": [
+  "val f 0 1",
+  "pare 0 3",
+  "log 3",
+  "k 0 1s1 2a4 3a-2"
+ ],
+ "feed-lowest-wins": [
+  "pare 1 4",
+  "log 4",
+  "k 0 2s2 3a1 4a1 5a1"
+ ],
+ "feed-outside-collapses": [
+  "pare 2 1",
+  "log 1",
+  "k 3 3s3"
+ ],
+ "floor-only-is-right": [
+  "pare 3 4",
+  "log 4",
+  "k 0 3s6 6a1",
+  "k 1 5s5 7a1"
+ ],
+ "fold-add-absent": [
+  "val m 0 3",
+  "pare 0 1",
+  "log 1",
+  "k 0 1a3"
+ ],
+ "fold-add-after-del": [
+  "val m 0 3",
+  "pare 2 1",
+  "log 1",
+  "k 0 3s3"
+ ],
+ "fold-del-reads-absent": [
+  "val m 0 -",
+  "pare 2 0",
+  "log 0"
+ ],
+ "fold-set-wins": [
+  "val m 0 3",
+  "pare 2 1",
+  "log 1",
+  "k 0 3s3"
+ ],
+ "head-is-held": [
+  "pare 2 1",
+  "log 1",
+  "k 0 3s3"
+ ],
+ "head-moves-on": [
+  "pare 2 2",
+  "log 2",
+  "k 0 2s5 4s2"
+ ],
+ "nothing-may-go": [
+  "pare 0 4",
+  "log 4",
+  "k 0 1s1 3s3",
+  "k 1 2s2 4s4"
+ ],
+ "pare-most-first": [
+  "pare 2 3",
+  "log 3",
+  "k 0 4s1 5a1",
+  "k 1 3s3"
+ ],
+ "pare-nothing-to-take": [
+  "pare 0 3",
+  "log 3",
+  "k 0 1s1 2a1 3a1"
+ ],
+ "pare-stops-at-budget": [
+  "pare 0 4",
+  "pare 3 1",
+  "log 1",
+  "k 0 4s4"
+ ],
+ "pare-tie-lower-span": [
+  "pare 1 3",
+  "log 3",
+  "k 0 2s2 3a1 4a1"
+ ],
+ "pare-tie-smaller-key": [
+  "pare 1 3",
+  "log 3",
+  "k 0 4s2",
+  "k 1 1s1 2a1"
+ ],
+ "read-survives-pare": [
+  "val m 0 7",
+  "pare 2 3",
+  "val m 0 7",
+  "val n 0 11",
+  "log 3",
+  "k 0 2s7 4s11 5a2"
+ ],
+ "report-key-order": [
+  "pare 2 3",
+  "log 3",
+  "k 0 5s2",
+  "k 1 3s1",
+  "k 2 4s2"
+ ],
+ "span-absent-both-ends": [
+  "pare 3 0",
+  "log 0"
+ ],
+ "span-keeps-last": [
+  "pare 2 1",
+  "log 1",
+  "k 0 3s7"
+ ],
+ "span-kind-is-del": [
+  "pare 1 2",
+  "log 2",
+  "k 0 1s7 3d"
+ ],
+ "span-kind-is-set": [
+  "pare 1 1",
+  "log 1",
+  "k 0 2s5"
+ ],
+ "span-last-retained": [
+  "pare 4 2",
+  "pare 1 1",
+  "log 1",
+  "k 0 2s-10"
+ ],
+ "span-nil-keeps-none": [
+  "pare 2 1",
+  "log 1",
+  "k 0 1s1"
+ ],
+ "span-one-entry-stands": [
+  "pare 1 2",
+  "log 2",
+  "k 0 2s5 3a-2"
+ ],
+ "two-pins-one-point": [
+  "pare 1 2",
+  "pare 0 2",
+  "log 2",
+  "k 0 2s2 3a1"
+ ],
+ "unmark-merges": [
+  "pare 1 2",
+  "pare 1 1",
+  "log 1",
+  "k 0 3s7"
+ ]
+}

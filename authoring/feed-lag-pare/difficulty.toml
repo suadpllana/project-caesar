@@ -1,0 +1,187 @@
+# Difficulty record - feed-lag-pare. Written before any environment code exists.
+# Scored with: python tools/difficultycheck.py feed-lag-pare
+
+[task]
+slug = "feed-lag-pare"
+status = "idea"
+sources = [
+  "tasks/feed-lag-pare/STATE.md",
+]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Treat it as log compaction with snapshots. Build a sorted list of the live snapshot points,
+walk each key's entries newest to oldest, keep one version per snapshot interval and drop
+everything else, folding the deltas inside an interval into the version kept for it. Track a
+retention floor as the oldest live reader and discard everything below it that some later
+entry supersedes. Size the work by the number of entries and be done in one pass per pare.
+"""
+first_plan_source = "search"
+breaking_rule = """
+A feed covers a range of keys and every entry of a key it covers that sits above the feed's
+position is kept exactly as it stands, superseded or not, because the feed has still to read
+those changes one by one; the point set is therefore per key, not a single global list.
+"""
+second_discovery = """
+The entry that survives a span sits at the sequence number of the last entry the log still
+holds there, and a budgeted pare leaves keys half collapsed, so after a later close or unmark
+merges two spans the survivor's place comes from what was retained, not from what was written.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped driver on the small programs and find where its trace first departs from the line the brief gives.",
+  "Read the package until it is clear which file owns held points, which owns the span rule and which owns the pare loop.",
+  "Write the fold as a composable effect so a span's net change can be composed and applied to the value at the span's floor.",
+  "Split each key at its trailing point: above it entries are kept one by one, below it they collapse span by span.",
+  "Derive a key's held points from the marks, the feeds that cover that key and the head, and rebuild them when a feed acks or closes.",
+  "Implement the budgeted pare with both tie-breaks and its stop condition, reading the survivor's place off the entries the log still holds.",
+  "Time the wide and deep programs against the stated limit and replace the per-pare rescan with a pair table carried across commands.",
+]
+
+[search]
+best_page = """
+The RocksDB wiki pages on merge operands and on snapshots, which state that the right thing is
+to keep one version per snapshot interval and merge the operands on either side of a boundary.
+"""
+helps_plan = false
+deviation = """
+Here a feed covers a range of keys and everything above its position is kept entry by entry,
+superseded or not, so the published rule collapses precisely the entries this store must keep,
+and the held points differ from key to key instead of forming one global snapshot list.
+"""
+
+[tactics]
+A1 = """
+The model's prior is log compaction: discard superseded entries, keep the newest per reader.
+That prior is coherent and specifically wrong above a lagging feed, where a superseded entry is
+exactly what the feed has not read yet, and it is wrong again whenever a feed covers only part
+of the key space.
+"""
+A2 = """
+Nothing is called a snapshot, a consumer offset, compaction or retention. The brief gives marks,
+feeds with a covered key range, a position that moves, and a command that reduces the log to a
+size, stated operationally so the concept has to be recognised from behaviour rather than looked up.
+"""
+B2 = """
+Ten rules hold at once: the fold, the head as a held point, coverage, the trailing point, the
+kept region, survivor existence, survivor place, survivor kind, the greedy order with two
+tie-breaks, and the report order. Each is small; the structure that satisfies all of them at
+once is not any of the structures the rules separately suggest.
+"""
+C1 = """
+Both sides are graded. Programs with one mark and no feed must still collapse the way the floor
+reading says, and programs where every span carries a change must lose nothing, so a service that
+turns conservative and keeps everything fails as surely as one that collapses above a feed.
+"""
+C2 = """
+The natural self-check is that every read returns the same value before and after a pare. Almost
+every wrong reading preserves reads, because the mistakes move which entry survives and where it
+sits rather than what it folds to, so the check the agent can run confirms nothing.
+"""
+C3 = """
+A pare that recomputes every key's trailing point, held points and span table from the whole log
+is correct and dies on the two scale families; the fast path follows from the fact that entries
+land at the head and only the keys with entries in a merged span change when a pin goes.
+"""
+C4 = """
+Every graded program is compared token for token against a sealed model, hand programs against
+frozen answers and generated programs against a seed drawn after the container is gone, with one
+wrong line anywhere scoring zero.
+"""
+guard = """
+Six files under /app/lg are collected; the driver, the grammar, the trace writer and the sample
+programs are replaced by the verifier's own pristine copy before a program runs, and a new file
+placed beside the six is never collected, so the log format and the printed trace cannot move.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "the trailing point of a key", b = "the spans that key collapses over", why = "an ack lowers the region that is kept entry by entry and in the same move adds a held point below it, so the kept region and the span table change together and neither can be settled on its own" },
+  { a = "the survivor's sequence number", b = "the pare budget", why = "a budget leaves a key half collapsed, so the last entry the log holds in a span stops being the last entry the program wrote there and the next collapse reads the retained one" },
+  { a = "the rule that a span keeps no entry when its value does not change", b = "the order the greedy collapses pairs in", why = "how many entries a pair removes depends on whether a survivor is required, so a wrong existence rule reorders the collapses and changes what a budgeted pare leaves behind" },
+  { a = "a feed's covered key range", b = "the held points of a key", why = "two keys carrying identical entries retain differently because one is covered by a lagging feed and the other is not, so a single global list of points is wrong for both of them" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A program with one mark, no feed at all and several superseded entries below the mark, where the
+floor reading is exactly right: a service that has turned conservative and keeps everything fails
+on the kept count and on the listing while every read it prints is correct.
+"""
+late_case = """
+A pare that stops on its budget with a key half collapsed, then an unmark that merges two spans
+across a stretch whose entries cancel out, so the surviving entry has to move to the place of an
+entry the log no longer holds and a service that recomputes from the written log puts it elsewhere.
+"""
+oracle_denied = """
+The agent can run any program and read values back at every mark and feed, and nearly every wrong
+reading returns the same values, because the mistakes change which entry survives and where it
+sits, not what the entries fold to. Nothing shipped says what the log should hold afterwards.
+"""
+
+[leaks]
+candidates = [
+  { what = "a helper that returns a key's held points", closed_by = "the file that derives held points is one of the six collected files and ships wrong, so nothing in the tree is authoritative about them" },
+  { what = "sample programs with their expected traces", closed_by = "only input programs ship; the single worked line in the brief was searched for among candidates so that it decides none of the load-bearing readings" },
+  { what = "a stored collapsible count or trailing point on the store", closed_by = "the store holds entries and pin records only; every count, span and trailing point in the report is derived at the moment it is needed" },
+  { what = "the driver printing span boundaries or pair tables while a program runs", closed_by = "the trace writer is outside the collected set and prints only read values, the two pare numbers and the end report" },
+  { what = "the sealed model and the frozen answers inside the verifier", closed_by = "they sit in a directory the unprivileged uid that runs submitted code cannot read, locked before anything submitted runs" },
+]
+derived_quantities = """
+The log stores entries as sequence, kind, key and argument, and pins as name, point and covered
+range. No value at a point, no span, no survivor, no removal count and no trailing point is ever
+stored; every one of them is the derivation the task is about and is computed where it is used.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+A pare that recomputes every key's trailing point, held points, span table and pair list by
+folding the whole log again, and re-forms that pair list after each single collapse.
+"""
+invariant = """
+Entries only ever land at the head, so a write touches one span; removing a pin merges two spans
+and can only change the keys that hold entries in them; a collapse changes no pair but its own.
+"""
+input_scale = "one wide program of sixty-eight thousand entries over twelve hundred keys under eleven hundred pares, and one deep program of twenty-four thousand entries over twenty-four keys with a mark every hundred and thirty"
+limit_seconds = 60
+measured = true
+why_not = ""                         # measured 2026-09-22 over all 439 graded programs:
+                                     # reference 4.4 s, two correct variants 25.4 s and 28.7 s,
+                                     # span table rebuilt per key per pare 160.9 s, pair table
+                                     # re-formed per collapse 87.4 s on the deep family alone.
+
+[cheats]
+wrong_readings = [
+  { reading = "collapses above a feed's position", hand_case = "one feed lagging with a superseded entry above its position, which must survive untouched" },
+  { reading = "trailing point taken over every live feed regardless of coverage", hand_case = "a feed covering keys 0 to 1 lagging while key 5 is fully collapsible" },
+  { reading = "a key covered by no feed is treated as fully kept", hand_case = "two keys with identical entries, one covered by a lagging feed and one not" },
+  { reading = "survivor placed at the first entry of the span", hand_case = "a span holding two entries for one key, where the survivor must sit at the later one" },
+  { reading = "survivor placed at the last entry the program wrote rather than the last the log holds", hand_case = "a pare, then an unmark merging a span whose entries cancel out" },
+  { reading = "a span with entries always keeps one", hand_case = "a span holding add 1 then add -1, where the value at both ends is the same and nothing survives" },
+  { reading = "add on an absent key does nothing", hand_case = "del on a key and then add 3 to it inside one span" },
+  { reading = "ack accepted when it names a lower sequence", hand_case = "ack to 3 on a feed already standing at 7" },
+  { reading = "ack accepted past the head", hand_case = "ack to 99 on a log whose head is 10" },
+  { reading = "the head is not a held point", hand_case = "no marks and no feeds, one key set twice to different values" },
+  { reading = "two pins at one point counted twice, so removing one frees the point", hand_case = "two marks placed at the same head, one of them removed" },
+  { reading = "greedy ties broken by the higher span or the larger key", hand_case = "two pairs removing the same number of entries at different spans" },
+  { reading = "pare stops at fewer than n instead of at most n", hand_case = "a log standing at exactly n entries when the command arrives" },
+  { reading = "report listed in the order keys were first written", hand_case = "keys written 7, 2, 5 and reported in that order instead of ascending" },
+  { reading = "a span where the key is absent at both ends keeps a del", hand_case = "a key deleted below the span, written inside it and deleted again before the top" },
+  { reading = "a del survivor written as a set of zero", hand_case = "a key present at the span floor and absent at its top" },
+]
+correct_variants = [
+  "per-key entry lists with a dirty set over keys, span effects composed as a monoid, and the greedy driven by a heap with lazy deletion",
+  "a global sequence-to-entry dict with bisect-maintained per-key index lists, span summaries rebuilt per dirty key in one pass, and the greedy driven by bucketed removal counts",
+]
+
+[shape]
+environment_py_lines = 254
+editable_files = 6
+reference_lines = 310

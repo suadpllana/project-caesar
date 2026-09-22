@@ -1,0 +1,212 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/lg/store.py",
+  "/app/lg/pin.py",
+  "/app/lg/fold.py",
+  "/app/lg/span.py",
+  "/app/lg/pare.py",
+  "/app/lg/tell.py",
+]
+
+[task]
+name = "afterquery/feed-lag-pare"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is retrievable and coherent: keep one version of each key per pinned interval,
+fold the deltas inside an interval into the version kept for it, drop everything a later entry
+supersedes, and track a retention floor at the oldest live reader. That plan collapses exactly
+the entries this log is not allowed to touch. A feed is a reader that has still to see each
+change one at a time, so above a feed's position every entry of every key it covers survives
+as it stands, superseded or not - and a feed covers a range of keys, so the pinned points are
+per key rather than one global list, and two keys carrying identical entries retain
+differently. Below a feed's position the retrieved rule does apply, which is why ordinary
+testing agrees with the wrong plan and the sample programs look fine.
+
+The rule that takes the first repair apart is the one about where a surviving entry sits: at
+the sequence number of the last entry the log still holds in the span, not the last entry the
+program wrote there. Because `pare` stops on a size budget, a key can be left half collapsed,
+and when a later `unmark` or `close` merges two spans across a stretch whose entries cancel
+out, the survivor has to move to the place of an entry that is no longer in the log. An
+implementation that computes the retained log as a function of the written log and the current
+pins - which is what the first repair naturally produces, and what every batch compactor is -
+gets every count right and the place wrong, silently, and only after that three-step sequence.
+The state is the retained log, so the structure has to be a machine that carries it.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in
+each follows from an invariant rather than a technique: entries only ever land at the head, a
+feed reaches only the keys it covers, and collapsing a pair changes no pair but its own.
+Measured here against the 60 second limit for the whole graded set, the reference gets through
+all four hundred and thirty-nine programs in 4.4 seconds; the same contract with the span table
+rebuilt for every key on every pare takes 160.9 seconds, and with the pair table re-formed after
+every single collapse takes 87.4 seconds on the deep family alone. Two further implementations
+written apart from the reference, one caching the span table behind a dirty set and one
+composing each stretch into a single effect, come in at 25.4 and 28.7 seconds. All of them
+produce exactly the reference's traces on everything they finish; the limit is the only thing
+that separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: a span whose value does
+not change keeps nothing, a span holding one entry keeps it exactly as written, an
+acknowledgement below the position or above the head does not move a feed, two pins at one
+point are one point, and equal removals break two different ways. All six editable files ship
+wrong, and the only feedback a wrong structure gets while a program runs is the read values,
+which nearly every wrong reading preserves, and two numbers per pare.
+
+Identifiers are in a legacy register - `lg/`, `store`, `pin`, `fold`, `span`, `pare`, `tell`,
+`ent`, `idx`, `at`, `lo`, `hi` - short but never misleading, and no name misdescribes what it
+holds. That is a choice about the register of real storage code rather than an obstacle: each
+is recoverable from what calls it.
+
+The programs are synthetic, in twelve families, with feeds that never acknowledge, feeds over
+narrow key ranges beside keys no feed covers, stretches that cancel out, keys absent at both
+ends of a span, budgets that stop a pare part way, ties everywhere, acknowledgements at and
+past the head, and the two scale families. In a running store these concentrations are rare,
+and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`fold.py` applies one entry to a standing value and folds a run of them from absent, with an
+`add` onto an absent key making it present at that amount, and it carries the comparison that
+treats absent as equal to absent and to nothing else.
+
+`pin.py` holds the marks and the feeds. It answers two different questions that the shipped
+code had collapsed into one: which points a given key is held at, which is the head plus the
+marks plus the feeds whose range covers that key, and where that key's trailing point is,
+which is the lowest position among the feeds covering it and the head when none does. It also
+owns the acknowledgement rule, which moves a feed only upward and only as far as the head.
+
+`span.py` is where the first plan has to be given up. A key is cut at its held points only as
+far as its trailing point; everything above that is the kept region and is never touched. Each
+span carries what it needs to be judged without being walked again: how many entries of the
+key the log holds in it, which of them is last, and the key's value at its floor and at its
+top. Collapsing a pair then removes the rest and rewrites that last entry into a `set` or a
+`del`, and because collapsing one pair changes no other pair, the table is patched in place
+rather than rebuilt.
+
+`store.py` is the log and the index into it - entries by sequence number, a sorted run of
+sequence numbers per key, a live count, and the set of keys whose spans have gone out of date.
+Appending, dropping and rewriting keep that set honest, and a feed that acknowledges or closes
+soils only the keys in its range, which is what keeps the table from being rebuilt wholesale.
+
+`pare.py` is the budgeted loop. The pairs that stand to remove something are kept in a heap
+that outlives the command, keyed by the number removed, then the span's top, then the key;
+stale entries are discarded when they surface rather than searched for, which is sound because
+a key's version moves only when its table does.
+
+`tell.py` renders: a value, with absent shown as a dash, and the end-of-program report, which
+is the retained log read back key by key in ascending order with each entry in sequence order.
+
+An expert works in that order because each file consumes the one before it: the fold decides
+what a value is, the pins decide where a key is cut, the cut decides what a collapse is worth,
+what a collapse is worth decides which one goes first, and what is left decides what the report
+says. The same contract is implemented two further ways in the authoring set - one composing
+each stretch into a single effect and choosing the next collapse by sorting a table rebuilt
+once per pare, one keeping per-key tables behind a dirty set with the pair list rebuilt from
+them - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/lg/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the command grammar, the trace writer and the
+sample programs cannot change what a program prints, and a new file put beside the six is never
+collected at all.
+
+Correct is defined twice over. Thirty-three hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Four hundred and six
+further programs are generated inside the verifier from a seed drawn after the agent's
+container is gone, across twelve families that concentrate lagging feeds, feeds over part of
+the key space, stretches that cancel out, keys absent at both ends, budgets that stop part way,
+ties, acknowledgements at and past the head, and the two scale families. A submission cannot
+have seen them, so fitting the shipped programs fails, and so does carrying an answer key.
+
+The fences run both ways. Collapsing anything above a feed's position fails `feed-keeps-above`;
+treating a key no feed covers as if one did fails `feed-covers-range` and
+`feed-outside-collapses`; taking the highest feed instead of the lowest fails
+`feed-lowest-wins`. Leaving the head out of the held points fails `head-is-held`; counting two
+pins at one point twice fails `two-pins-one-point`. Keeping an entry in a span whose value does
+not change fails `span-nil-keeps-none` and `span-absent-both-ends`; putting the survivor at the
+first entry fails `span-keeps-last`; reading its place off the written log instead of the
+retained one fails `span-last-retained`; writing a `del` survivor as a `set` fails
+`span-kind-is-del`. An `add` onto an absent key that does nothing fails `fold-add-absent` and
+`fold-add-after-del`. An acknowledgement that goes backwards fails `ack-back-refused` and one
+that overshoots the head fails `ack-past-head-refused`. Collapsing in key order rather than by
+what is removed fails `pare-most-first`, and the two tie-breaks fail `pare-tie-lower-span` and
+`pare-tie-smaller-key`; stopping one entry early fails `pare-stops-at-budget`. Listing the
+report in first-touch order fails `report-key-order`. A service that turns conservative and
+keeps everything fails `floor-only-is-right`, where the retrieved plan is exactly right, and
+one that collapses where it must not fails `nothing-may-go`, where nothing may go at all.
+
+Thirty-eight cheats score 0, and the shipped tree left alone scores 0 as well. Twenty-four are
+wrong readings, each caught by the enumerated case named for it and each moving between four
+and ninety-seven per cent of the generated population. Two are exactly correct and too slow:
+the span table rebuilt for every key on every pare, and the pair table re-formed after every
+single collapse. Three are shortcut strategies - a pare that never removes anything, one fixed
+output for every program, and the worked example's line replayed. One is a forgery carrying the
+frozen answers themselves, keyed on the commands the six files can see, which reproduces all
+thirty-three enumerated programs and is wrong on every one it could not have seen. The other
+eight are probes: the answer key, the reward written at directly, a reward written late by a
+double-forked survivor, a planted worker record, a record planted and the process exited clean
+before it could be overwritten, a record spoiled on the way out, a rewritten generator, and the
+engine hidden in a file beside the six that are collected. Two independently written correct
+services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+execution limit in the brief. The model and the frozen answers sit in a directory that uid
+cannot read, so code running inside the verifier cannot compute its answers from them. The
+reward defaults to 0, is written last by the privileged stage into a root-owned directory
+locked before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "log-retention",
+  "delta-folding",
+  "snapshot-pinning",
+  "change-feed-backlog",
+  "budgeted-compaction",
+  "incremental-maintenance",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the retention half of a change log: the part that decides which entries a
+store may drop while point-in-time readers hold positions in it and replication followers are
+still working through their backlog. Familiarity with the fact that a reader which needs each
+change one at a time and a reader which needs only the value at its point put opposite demands
+on the same entries, that a follower's reach is a range of keys rather than the whole store, and
+that what a pass is allowed to fold depends on what an earlier pass already folded. Comfort
+with sequence arithmetic over a log that develops holes while it is running, with keeping
+per-key derived state honest across pins that come and go, and with the difference between a
+retention pass that is correct and one that is affordable at the entry counts a real log runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

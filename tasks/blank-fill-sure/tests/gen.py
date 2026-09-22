@@ -1,9 +1,10 @@
 """Programs generated from a seed drawn after the agent's container is gone.
 
 Each family concentrates one mechanism. An unshaped population barely exercises this task:
-measured on 1440 random small programs, the reading that decides freshness from the query's
-constants moved none of them and the per-rule union moved 0.1 percent, while each moves half or
-more of its own family below. The two scale families exist for the wall clock, not for a rule.
+measured on 1440 programs of the plain family, the reading that decides freshness from the
+query's constants moved none of them and the per-rule union moved 3, while on 200 programs of
+each family shaped for them the first moves 58% of meet and 28% of datacov, and the second 59%
+of union. The two scale families exist for the wall clock, not for a rule.
 
   plain    small mixed programs: every construct, nothing concentrated
   cover    a label with a few allowed values joining a table that holds each of them
@@ -16,7 +17,7 @@ more of its own family below. The two scale families exist for the wall clock, n
   heads    rows whose answer column is itself a label: one-valued, few-valued and wide
   order    heads mixing integers and symbols, repeated variables, wildcards
   wide     one long program: thousands of labels over ranges of a billion values
-  flags    rows each derived through dozens of independent pairs of two-valued labels
+  flags    rows each derived through dozens of like-shaped groups of two-valued labels
 """
 import random
 
@@ -306,8 +307,17 @@ def wide(rng, ncust=5000, nord=9000):
     return L
 
 
-def flags(rng, ncust=60, per=28):
-    L = ["table acct 0..%d 0..%d open|shut y|n" % (BIG, BIG), "table hold 0..%d" % BIG]
+def flags(rng, ncust=40, per=30):
+    """Every account has three two-valued unknowns and two policy rows of each kind, so every
+    group of conditions a customer's row collects has the same shape: four conditions, the
+    status in all four, each other unknown in two, each value twice. Only the constants
+    decide whether a group holds under every assignment (a covering account) or fails under
+    two of its eight (every other account). A search that does not split the groups apart
+    sees nothing to tell the covering one from the rest, and explores two cases per group it
+    meets first."""
+    L = ["table acct 0..%d 0..%d open|shut gold|base east|west" % (BIG, BIG),
+         "table pa 0..%d open|shut gold|base" % BIG,
+         "table pb 0..%d open|shut east|west" % BIG]
     lab = Namer("f")
     aid = 100
     for c in range(1, ncust + 1):
@@ -315,12 +325,22 @@ def flags(rng, ncust=60, per=28):
         pos = rng.randint(per // 2, per - 1)
         for k in range(per):
             aid += 1
-            L.append("row acct %d %d %s %s" % (aid, c, lab(), lab()))
+            L.append("row acct %d %d %s %s %s" % (aid, c, lab(), lab(), lab()))
             if good and k == pos:
-                L.append("row hold %d" % aid)
-    L.append("rule live C :- acct(_, C, open, y)")
-    L.append("rule live C :- acct(A, C, shut, _), hold(A)")
-    L.append("rule live C :- acct(A, C, open, n), hold(A)")
+                pa = [("open", "gold"), ("open", "base")]
+                pb = [("shut", "east"), ("shut", "west")]
+            else:
+                pa = [("open", "gold"), ("shut", "base")]
+                pb = [("open", "west"), ("shut", "east")]
+                if rng.random() < 0.5:
+                    pa = [("open", "base"), ("shut", "gold")]
+                    pb = [("open", "east"), ("shut", "west")]
+            for s, t in pa:
+                L.append("row pa %d %s %s" % (aid, s, t))
+            for s, t in pb:
+                L.append("row pb %d %s %s" % (aid, s, t))
+    L.append("rule live C :- acct(A, C, S, T, _), pa(A, S, T)")
+    L.append("rule live C :- acct(A, C, S, _, R), pb(A, S, R)")
     return L
 
 

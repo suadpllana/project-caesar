@@ -13,7 +13,7 @@ it pins, so a failure says which rule broke rather than "a generated program was
   union-cover      one rule asks for open, another for shut, and the status allows only those
   union-hold       the shut rule also needs a hold row: certain where it is held, not elsewhere
   pigeon-spare     two labels share one spare value, and equal or used, a rule fires either way
-  spare-enough     a billion-value label can take a value no row has, so the join is never certain
+  spare-enough     every used value has a stop, but a billion-value label can take one that has not
   ne-const         an inequality on constants keeps what differs and drops what does not
   ne-wide          `D != 0` on a billion-value label is not certain: a filling can make it 0
   ne-unallowed     `S != x` where the label cannot be x always holds
@@ -130,6 +130,7 @@ CASES = {
         "table leg %s %s" % (BIG, BIG),
         "table stop %s" % BIG,
         "row leg 1 ?d",
+        "row stop 1",
         "row stop 4",
         "row stop 9",
         "rule at L :- leg(L, D), stop(D)",

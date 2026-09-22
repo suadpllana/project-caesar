@@ -20,7 +20,7 @@ every filling:
   7  the report holds each row of constants the query returns under every filling, once;
      a row carrying a label never appears
   8  queries print in the order of their first rule, rows sorted with integers first
-  9  the whole graded set, with programs of about twenty thousand rows and thousands of
+  9  the whole graded set, with programs of about nineteen thousand rows and eight thousand
      labels, finishes inside the worker's wall clock, which test.sh enforces
 
 Implementation choice, not graded: how labels are classified, join order, how conditions are

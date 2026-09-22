@@ -1,6 +1,10 @@
 # Difficulty record for blank-fill-sure, written at Stage 1, before any code exists.
 # Every claim here is restated in tasks/blank-fill-sure/STATE.md and is what the build has
 # to deliver. Scored with `python tools/difficultycheck.py blank-fill-sure`.
+#
+# Corrected at Stage 7 (2026-09-22) to what was built and measured, never to the score: the gate
+# is measured and its limit is 300 s, not the planned 120; the wide and flags sizes, the hand-case
+# names, the late case, the variants and the shape are the built ones. Scored 100 before and after.
 
 [task]
 slug = "blank-fill-sure"
@@ -124,10 +128,12 @@ must be answered exactly as ordinary join-and-union queries, so a method that re
 nothing, or everything, when placeholders exist fails at once.
 """
 late_case = """
-A wide program whose thousands of placeholders are fresh except a handful of two-valued
-flags whose rows are forced by a union of rules: a method that switches to fresh-value
-evaluation above a size threshold passes every small check and the wide sample's timing,
-and misses exactly those rows.
+Each wide program has about 750 customers whose region is a placeholder over forty regions,
+every one of which the region table uses, so the two east rules together return each of them
+under every filling, and about 1300 shipments whose distance is a placeholder compared with
+D != 0. A method that switches to fresh-value evaluation above a size threshold passes every
+small check and the timing, and on each wide program drops about 740 east rows and reports
+about 1300 far rows it must not (measured on three wide programs).
 """
 oracle_denied = """
 An SQL database reproduces the shipped null logic and is wrong; a brute force over every
@@ -160,29 +166,30 @@ A placeholder with more unused allowed values than there are placeholders and no
 inequality behaves exactly like a value only it holds, and conditions over disjoint sets of
 placeholders hold under every assignment together only if one group already does.
 """
-input_scale = "wide: about 20000 rows and 4000 placeholders over ranges of 10^9; flags: rows derived through hundreds of independent two-valued placeholders"
-limit_seconds = 120
-measured = false
+input_scale = "wide: about 19000 rows and 7900 placeholders, most over ranges of 10^9; flags: 6000 rows and 3600 two-valued placeholders, each customer row derived through 30 like-shaped groups of four conditions"
+limit_seconds = 300
+measured = true
 why_not = ""
 
 [cheats]
 wrong_readings = [
   { reading = "SQL null logic, a placeholder matching nothing", hand_case = "self-same: two rows carrying ?w join on it, so every pair of their keys is reported" },
   { reading = "fresh-value evaluation for every placeholder", hand_case = "cover-join: a placeholder whose three allowed regions all map to one manager forces that manager" },
-  { reading = "allowed values from the first column a label appears in", hand_case = "meet-cols: the label sits in a 1..6 column and a 1..3 column, and only the meet is covered" },
+  { reading = "allowed values from the first column a label appears in", hand_case = "meet-cols: the label sits in a 1..5 column and a 1..3 column, and only the meet is covered" },
   { reading = "certainty decided per rule, then a union", hand_case = "union-cover: one rule wants open, another shut, and the status allows only those two" },
   { reading = "fresh whenever any allowed value is unused", hand_case = "pigeon-spare: two labels share one spare value, and equal or used, a rule fires either way" },
-  { reading = "an inequality on a fresh placeholder always holds", hand_case = "ne-loose: a billion-value distance with X != 0 is not certain, because a filling can give it 0" },
-  { reading = "taking the compared constant without re-deriving joins", hand_case = "ne-join-trade: making the distance 0 kills one rule and opens a join in the other" },
-  { reading = "fresh is decided by the query's constants only", hand_case = "cover-data: the region domain is covered by the region table, not by any constant in the query" },
+  { reading = "an inequality on a fresh placeholder always holds", hand_case = "ne-wide: a billion-value distance with D != 0 is not certain, because a filling can give it 0" },
+  { reading = "taking the compared constant without re-deriving joins", hand_case = "ne-trade: making the distance 0 kills one rule and opens a join in the other" },
+  { reading = "fresh is decided by the query's constants only", hand_case = "data-cover: the zone domain is covered by the zone table, not by any constant in the query" },
   { reading = "a report row may carry a label", hand_case = "head-label: a head bound to ?w prints nothing, though every filling returns a row for it" },
 ]
 correct_variants = [
-  "reference: classify placeholders once, carry conditions through hash joins, split each row's conditions into groups by shared placeholder and search each group for a falsifying assignment",
-  "variant: decide fresh placeholders by a matching over spare values, evaluate rules by nested backtracking over atoms, and test each group by enumerating assignments of its placeholders in a fixed order",
+  "reference: classify placeholders once, carry conditions as literals through an indexed backtracking join, split each row's conditions into groups by shared placeholder with union-find and search each group for a falsifying assignment",
+  "ok-a: options as lists with a marker for a value only its own placeholder holds, partial derivations as fix, ban and tie tables, atoms matched in a dynamic most-bound-first order, and each group tested by enumerating every combination with no pruning (34.7 s on the graded set)",
+  "ok-b: groups found by a depth-first walk over a placeholder-to-condition adjacency, each searched with the placeholder in most open conditions first, dropping a condition as soon as one literal is false (3.5 s)",
 ]
 
 [shape]
-environment_py_lines = 380
+environment_py_lines = 346
 editable_files = 3
-reference_lines = 350
+reference_lines = 484

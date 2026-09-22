@@ -9,7 +9,9 @@ Emulates the platform's separate-mode run as closely as a single machine allows:
      /tests, the artifacts are put back at their absolute paths, and tests/test.sh runs as root.
 
 What it does not emulate: the two stages share one kernel and one host, so this is not evidence
-about container isolation; the image build is skipped; the Python here is the host's. The
+about container isolation; the image build is skipped; the Python here is the host's (3.11, where
+the image has 3.12); memory is capped only with --mem, and then as an address-space limit, under
+which an allocation fails with MemoryError where the container's cgroup would kill the process. The
 privilege drop, the locked reward directory, the sealed 0700 model and the survivor reaping are
 all exercised for real, because test.sh does them itself.
 
@@ -21,6 +23,7 @@ Usage:
     python3 authoring/blank-fill-sure/host_trial.py nop
     python3 authoring/blank-fill-sure/host_trial.py <path/to/agent-script.sh>
     python3 authoring/blank-fill-sure/host_trial.py --parts <dir with cmp.py join.py keep.py>
+    add --mem 2048 to any of them to cap the verifier's memory as task.toml caps the container
 """
 import fcntl
 import os
@@ -65,7 +68,7 @@ def agent_stage(script, parts):
     return status, carried
 
 
-def verifier_stage(carried):
+def verifier_stage(carried, mem_mb=None):
     for p in ("/app", "/tests", "/work", "/logs/verifier"):
         wipe(p)
     shutil.copytree(os.path.join(TASK, "tests"), "/tests",
@@ -77,7 +80,13 @@ def verifier_stage(carried):
         with open(a, "wb") as fh:
             fh.write(data)
     t0 = time.time()
-    res = subprocess.run(["bash", "/tests/test.sh"], capture_output=True, text=True)
+    cmd = ["bash", "/tests/test.sh"]
+    if mem_mb:
+        # The container's memory_mb, as an address-space cap on the verifier and everything it
+        # starts: this host has 16 GB and no cgroup, so without it a reading that eats memory
+        # runs until the host kills something else.
+        cmd = ["prlimit", "--as=%d" % (mem_mb * 1024 * 1024)] + cmd
+    res = subprocess.run(cmd, capture_output=True, text=True)
     took = time.time() - t0
     try:
         with open("/logs/verifier/reward.txt", encoding="utf-8") as fh:
@@ -102,7 +111,8 @@ def main():
     with open(LOCK, "w") as lk:
         fcntl.flock(lk, fcntl.LOCK_EX)
         status, carried = agent_stage(script, parts)
-        reward, took, res = verifier_stage(carried)
+        mem = int(sys.argv[sys.argv.index("--mem") + 1]) if "--mem" in sys.argv else None
+        reward, took, res = verifier_stage(carried, mem)
     tail = [l for l in (res.stdout + res.stderr).splitlines() if l.strip()]
     worker = next((l for l in tail if l.startswith("worker exit status")), "worker exit status ?")
     summary = next((l for l in reversed(tail) if " passed" in l or " failed" in l or " error" in l),

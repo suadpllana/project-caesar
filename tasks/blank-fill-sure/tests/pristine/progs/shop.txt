@@ -1,0 +1,142 @@
+table cust 0..999999999 1..12 0..999999999
+table reg 1..12 ann|bob|cyd
+table acct 0..999999999 0..999999999 open|shut|held
+table hold 0..999999999
+table leg 0..999999999 0..999999999 0..999999999
+table stop 0..999999999
+table seen 1..8
+row cust 524 ?x1 ?x2
+row cust 865 8 3139
+row cust 864 ?x3 3926
+row cust 912 1 4704
+row cust 456 10 ?x4
+row cust 119 6 ?x5
+row cust 235 2 1301
+row cust 419 ?x6 2475
+row cust 546 12 2417
+row cust 952 ?x7 4874
+row cust 728 5 33
+row cust 500 ?x8 4955
+row cust 785 ?x9 4020
+row cust 414 ?x10 ?x11
+row cust 288 11 505
+row cust 631 9 ?x12
+row cust 623 ?x13 2524
+row cust 771 5 2205
+row cust 961 2 4730
+row cust 772 7 2740
+row cust 124 ?x14 ?x15
+row cust 788 ?x16 2125
+row cust 859 12 ?x17
+row cust 145 ?x18 878
+row reg 1 ann
+row reg 2 ann
+row reg 3 bob
+row reg 4 ann
+row reg 5 ann
+row reg 6 bob
+row reg 7 ann
+row reg 8 ann
+row reg 9 bob
+row reg 10 ann
+row reg 11 ann
+row reg 12 bob
+row reg 11 cyd
+row seen ?x14
+row seen ?x1
+row seen ?x16
+row acct 5001 524 ?x19
+row acct 5002 865 held
+row acct 5003 865 open
+row acct 5004 864 ?x20
+row acct 5005 912 held
+row acct 5006 456 shut
+row acct 5007 456 ?x21
+row hold 5007
+row acct 5008 119 shut
+row acct 5009 119 ?x22
+row acct 5010 119 shut
+row acct 5011 235 shut
+row acct 5012 235 shut
+row acct 5013 235 ?x23
+row hold 5013
+row acct 5014 419 shut
+row acct 5015 546 held
+row acct 5016 546 ?x24
+row hold 5016
+row acct 5017 952 held
+row acct 5018 728 open
+row acct 5019 500 open
+row acct 5020 500 ?x25
+row hold 5020
+row acct 5021 785 ?x26
+row acct 5022 785 ?x27
+row acct 5023 414 shut
+row acct 5024 414 open
+row acct 5025 288 ?x28
+row acct 5026 288 shut
+row acct 5027 288 ?x29
+row acct 5028 631 open
+row hold 5028
+row acct 5029 623 ?x30
+row acct 5030 623 held
+row acct 5031 623 open
+row hold 5031
+row acct 5032 771 held
+row acct 5033 771 shut
+row hold 5033
+row acct 5034 771 ?x31
+row hold 5034
+row acct 5035 961 open
+row acct 5036 961 shut
+row acct 5037 961 shut
+row acct 5038 772 held
+row hold 5038
+row acct 5039 124 open
+row hold 5039
+row acct 5040 124 ?x32
+row acct 5041 788 shut
+row acct 5042 859 held
+row acct 5043 145 open
+row leg 7000 728 1
+row leg 7001 119 ?x33
+row leg 7002 524 6
+row leg 7003 952 ?x34
+row leg 7004 524 29
+row leg 7005 788 25
+row leg 7006 456 26
+row leg 7007 771 ?x35
+row leg 7008 772 ?x36
+row leg 7009 772 20
+row leg 7010 623 4
+row leg 7011 865 ?x37
+row leg 7012 788 27
+row leg 7013 728 26
+row leg 7014 952 34
+row leg 7015 631 16
+row leg 7016 771 36
+row leg 7017 288 21
+row leg 7018 952 37
+row leg 7019 500 17
+row leg 7020 771 9
+row leg 7021 771 ?x38
+row leg 7022 631 19
+row leg 7023 865 ?x39
+row leg 7024 119 ?x40
+row leg 7025 524 32
+row leg 7026 524 12
+row leg 7027 235 ?x41
+row leg 7028 785 26
+row leg 7029 623 36
+row stop 0
+row stop 5
+row stop 10
+rule boss X M :- cust(X, R, _), reg(R, M)
+rule east X :- cust(X, R, _), reg(R, ann)
+rule east X :- cust(X, R, _), reg(R, bob)
+rule live C :- acct(_, C, open)
+rule live C :- acct(A, C, S), S != open, hold(A)
+rule gone A :- acct(A, _, shut)
+rule go L :- leg(L, _, D), D != 0
+rule go L :- leg(L, _, D), stop(D)
+rule pair X Y :- cust(X, _, S), cust(Y, _, S)

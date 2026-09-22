@@ -29,6 +29,15 @@ mechanism = "Settle which posted keys name the same item when tags assert samene
 verdict = "ai-passed"
 
 [[submission]]
+slug = "blank-fill-sure"
+category = "Software"
+label = "Databases"
+tags = ["certain-answers", "labeled-nulls", "incomplete-information", "finite-domains", "conjunctive-queries"]
+substrate = "the query side of a merged record store whose missing values are kept as labelled placeholders and whose columns each declare the values they may hold"
+mechanism = "Decide which answers a union of join queries with inequalities against constants returns under every filling of labelled placeholders, each drawn from the finite allowed values of its columns, including answers that hold only because every possible filling produces them some way."
+verdict = "pending"
+
+[[submission]]
 slug = "delta-view-retraction"
 category = "Software"
 label = "Databases"

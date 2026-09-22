@@ -306,3 +306,29 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-22, `blank-fill-sure`)
+
+- **A sentence about what the worked example decides is a measurement, and I wrote it first.**
+  The trace said every wrong reading prints the example's corrected line. Running all seventeen on
+  `tiny.txt` showed two print `ans pair 10` and three differ on another query. The example still
+  decides nothing about the method, but the sentence that said so was false until measured.
+- **A dead worker fails every test, so "the named case failed" proves nothing on its own.** A
+  reading that ate 5.6 GB was killed, the grader found no record, and the batch credited the hand
+  case named for the reading. The judge now requires a clean worker exit before it reads the case.
+- **A judge that searches a pytest log also searches the grader's source.** Tracebacks echo the
+  failing test's code, so looking for "missing" matched a line of `test_outputs.py` while the real
+  failure was "program altered". Read only the `E` lines and bare exception lines.
+- **The host has no memory cap, and the container does.** On the wide programs the exact
+  no-fresh reading and the semantic used-only reading each grew about 40 MB/s with nothing to stop
+  them; with two such processes running at once, a 16 GB host would have run out before the clock
+  did. `host_trial.py --mem` now applies the task's `memory_mb` as an address-space limit, and
+  under it the no-fresh reading dies of MemoryError in 38 s - the boundary the container enforces.
+- **`forgecheck` looks for the ground truth verbatim.** A forgery that re-encoded `gt.json` as
+  tuples scored 0 and was invisible to the check. The forgery now carries the file as written. The
+  `cheat_report.py` docstring had also promised a forgery check its code never ran.
+- **The ctrf report drops the parametrize id** (`nodeid.split('[')[0]`), so which hand case
+  failed comes from pytest's short summary, not from `ctrf.json`.
+- **preflight's unused-function warning misses `module.func(...)` calls.** All ten warnings here
+  were functions the tree calls that way, checked one at a time. The warning is right to exist,
+  but it has to be answered case by case, not deleted wholesale.

@@ -5,7 +5,8 @@ next session starts with no memory of this one.
 
 ## Current stage
 
-`Stage 2 - Verifier contract` (Stage 1 closed 2026-09-22; both design records in band)
+`Stage 7 - Final gates` (Stages 1-6 closed 2026-09-22; built, traced, cheats and variants run
+through the two-stage host trial; container gates not run - no image can be pulled here)
 
 ## Assistant's assigned role
 
@@ -52,17 +53,16 @@ the data already uses make rows certain by case analysis, which that method neve
 an inequality lets a filling pick the compared constant, which that method never tries.
 
 - Expert time estimate: 9 hours
-- Why a frontier agent cannot one-shot the plan (the strategic answer - required): because the
-  plan it retrieves is the naive-evaluation theorem for unions of conjunctive queries, which is
-  correct only over an infinite domain, and the plan it can write from the definition, trying
-  every filling, is exact and infeasible at the stated scale. The correct method is a hybrid
+- Why a frontier agent cannot one-shot the plan (the strategic answer - required): the plan it retrieves is the naive-evaluation theorem for unions of conjunctive queries, correct only over an infinite domain,
+  and the plan it can write from the definition, trying every filling, is exact and infeasible at
+  the stated scale. The correct method is a hybrid
   that no page describes: a placeholder is treated as a value only it holds exactly when it has
   more unused allowed values than there are placeholders and reaches no inequality; one that
   reaches `X != c` needs exactly two cases, c and a fresh value, and the case c can open a join;
   the rest are enumerated, and a candidate row is reported when its derivation conditions,
   split into groups that share no placeholder, hold under every assignment of some group.
-- Tactics making that true (prong A poison, prong B withholding, prong C late failure): A1, A2,
-  A3, B2, C1, C2, C3 and C4. A1 the retrievable theorem and SQL null logic are both the prior
+- Tactics making that true (prong A poison, prong B withholding, prong C late failure): A1, A2, A3, B2, C1, C2, C3 and C4, across all three prongs.
+  A1 the retrievable theorem and SQL null logic are both the prior
   and both wrong; A2 the brief never names certain answers, naive evaluation or case analysis;
   A3 no single technique fits, the method is chosen placeholder by placeholder; B2 label
   identity, the meet of column domains, unions across rules, inequalities, repeated variables
@@ -71,8 +71,8 @@ an inequality lets a filling pick the compared constant, which that method never
   C2 an SQL database reproduces the wrong engine and the agent's own brute force cannot reach
   the scale families; C3 two families, each fatal to a different exact method; C4 exact,
   all-or-nothing comparison over programs generated after the agent has finished.
-- Assistant's attack on the plan (its first plan, and where that plan is wrong): my own first
-  plan, before this design, was naive evaluation: placeholders as distinct unknown constants,
+- Assistant's attack on the plan (its first plan, and where that plan is wrong): my own first plan, before this design, was naive evaluation:
+  placeholders as distinct unknown constants,
   report the placeholder-free rows, because the theorem says that is exact for join-and-union
   queries. It is wrong twice at once. A status that allows only `open` and `shut`, read by one
   rule asking for open and one asking for shut, is certain and naive evaluation drops it; a
@@ -157,16 +157,46 @@ written before any contract, to test the design's claims rather than trust them.
   wrong value at once. Groups need several falsifying assignments each - two placeholders per
   account - and a group every assignment satisfies placed after them.
 
+## Build measurements (Stages 3-6, 2026-09-22)
+
+- Tree: 346 lines of Python in `environment/app_src` across 10 modules, 3 editable files that all
+  ship as SQL null logic, 4 shipped programs (tiny 11 lines, shop 142, wide 19046, flags 6005).
+  Reference 474 lines across `solution/cmp.py`, `join.py`, `keep.py`, 484 with `solve.sh`.
+- Agreement: the reference against the brute force on 1659 small programs, the model against the
+  brute force on 1657 and on 565 shrunk family programs; 40 of 40 small flags programs. Both
+  correct variants, the reference and the model agree on all 339 graded programs of a seed.
+- Timing of the whole graded set (339 programs, one process, this host): reference 2.3 s, ok-b
+  3.5 s, ok-a 34.7 s. In the host trial with grading: oracle 8.1 s, ok-b 8.9 s, ok-a 40.9 s.
+- Memory on the six big programs, under a 2048 MB address-space cap: reference 51 MB, model 50 MB,
+  ok-b 43 MB, ok-a 74 MB.
+- The exact readings the limits exist for: slow-no-split was killed by the 300 s clock in the host
+  trial (worker exit 124), and alone on one flags program ran 1800 s without finishing (killed there, peak 20 MB). slow-no-fresh
+  exhausts 2048 MB in 38 s on the first wide program (MemoryError; 90 s for the whole set under
+  the cap, every wide program failing); without a cap it was past 5.7 GB after two minutes and
+  still growing, and was killed to protect the host. used-only, a semantic reading, grows the same
+  way on wide programs and is also caught by its hand case.
+- Two design errors found by measurement during the build. The first flags family let the
+  reference's frequency-ordered search find the covering group first, so the unsplit search
+  finished in time; it was rebuilt from like-shaped groups (four conditions each, the status in
+  all four), where only the constants decide which group covers. And the first flags timing of
+  the unsplit reading had no per-program guard, so the authoring report hung; `cheat_report.py`
+  now runs each program under an alarm.
+- Checker defects found by checking the checker, all in authoring tools: `trial_all.py` matched
+  "missing" in grader source echoed by a traceback (the real failure was "program altered"), and
+  credited a reading's named case when a dead worker had failed every test; the forged-answer
+  cheat carried the answers re-encoded, so `forgecheck` could not see it; and `cheat_report.py`'s
+  docstring promised a forgery check its code never ran. Each is fixed and re-run.
+
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 
 Every graded assertion traces to a sentence in the instruction. The walk is
 `authoring/blank-fill-sure/trace.md`.
 
-- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): not yet written (Stage 5)
-- Identifiability (readings enumerated, which survived the published evidence, what separated them): not yet run (Stage 5)
-- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): not yet run (Stage 6)
-- Independent implementation behind every tolerance and limit (path, measured headroom): not yet measured (Stage 4)
-- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): not yet run (Stage 5)
+- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): authoring/blank-fill-sure/trace.md walks 4 test functions, 33 hand cases, 3 artifacts, the worker's tree building and entry point, the printer, the 300 s clock, the 2048 MB cap, the standard-library-only image and every rule of the sealed model (21 rows); no NOT STATED left; `python tools/tracecheck.py blank-fill-sure` clean on 2026-09-22.
+- Identifiability (readings enumerated, which survived the published evidence, what separated them): 15 semantic readings plus the shipped engine's null logic, each ruled out by a quoted sentence and failed by the hand case named for it (readingcheck: all 15 separated); none survives the published evidence. Two exact-but-slow readings are separated only by the clock and the memory cap. The worked example rules out the shipped engine, possible and smallest-fill, all misreadings of the stated definition, and none of the method's decisions (measured: fresh-all, ne-fresh and no-ban differ from the reference on tiny.txt only in the far query, whose output the brief does not give).
+- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): all score 0 (authoring/blank-fill-sure/shortcuts.py, 33 hand and 306 generated programs): nop 16/33 and 173/306; constant empty report 8/33 and 75/306; positional first-rule-only 25/33 and 198/306; replayed example 0 and 0; textbook evaluation 20/33 and 173/306; possible 23/33 and 109/306; forged hand answers 33/33 and fail the generated set.
+- Independent implementation behind every tolerance and limit (path, measured headroom): no numeric tolerance. The 300 s clock: variants ok-a (34.7 s on the whole graded set, 8.6x headroom) and ok-b (3.5 s), both written apart from the reference, and the sealed model; the 2048 MB cap: peaks of 74 MB (ok-a), 43 MB (ok-b), 50 MB (model), 51 MB (reference) on the six big programs, 27x headroom.
+- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): author-run, in the mechanical form of docs/INSTRUCTION-CONTRACT.md, by the author who wrote the model, so it is contaminated and recorded as such; no fresh-session reader was run. Every printed token (the ans line and its count, row values, row order, the empty-head row) was listed with the model branches behind it and the four clusters put to each. One gap was found by the pass and closed with a sentence: which values of a returned row are ints and which strs, which decides sort order. The rest were already settled by a sentence written for them in the first draft - ranges include both ends; a placeholder's value need not appear elsewhere; two placeholders may share one; a zero-head query prints its name alone; queries print in first-rule order even with no rows; the run is one Python 3.12 process, standard library only, one CPU, 2048 MB, 300 s - or by the grammar: a condition's constant is any integer or symbol, allowed by the column or not.
 
 ## Verifier contract - FROZEN after Stage 2
 
@@ -242,6 +272,18 @@ and checks both on every small program. Two further correct variants live under
 
 ## Decisions and their reasons
 
+- **300 s, not the planned 120.** The limit sits between the slowest correct implementation
+  measured (ok-a, 34.7 s, with no pruning at all) and the exact readings the scale families
+  exist for (the unsplit search runs past 300 s on one flags program alone). The 8.6x headroom
+  over ok-a is for slower graders, not for the reference, which needs 2.3 s.
+- **Memory is stated and was measured, not assumed.** `task.toml` gives 2048 MB and the brief says
+  so. Every correct implementation peaks under 75 MB; the no-fresh exact reading dies of it.
+- **The worked example is one line, and it was measured, not chosen by feel.** It rules out the
+  shipped engine and two misreadings of the stated definition, and no decision of the method.
+- **Readings that are exact are recorded against the clock, not as readings.** `readings.py`
+  keeps them in READINGS for readingcheck but out of EDITS, so the trace's Readings table holds
+  only readings a hand case can separate, as the retained trace does.
+
 - **Software / Databases.** The graded work is query evaluation over an incomplete relational
   store: label identity, column domains, joins, unions, inequalities, answer sets. The one
   visible Databases ledger entry maintains aggregates under a change stream.
@@ -259,18 +301,37 @@ and checks both on every small program. Two further correct variants live under
 
 ## Validation status
 
+Host emulation means `authoring/blank-fill-sure/host_trial.py`: the agent stage and the verifier
+stage run one after the other on this host, with `tests/test.sh` itself doing the privilege drop,
+the locked reward, the sealed model and the reaping. It is not container evidence: one kernel,
+the host's Python 3.11 where the image has 3.12, no image build, and memory capped with an
+address-space limit (`--mem 2048`) where the container's cgroup would kill instead.
+
 | Check | Status | Notes |
 |---|---|---|
-| Agent image builds | not run | Docker Hub blobs are denied by this session's egress policy (403 on production.cloudfront.docker.com); no base image can be pulled here |
-| No answer leaked into agent image | not run | |
-| `harbor run -a oracle` = 1 | not run | harbor is not installed; the kit's docker_trial needs images |
-| `harbor run -a nop` = 0 | not run | |
-| Cheats all score 0 | not run | |
-| `tracecheck.py` (every graded assertion traced) | not run | |
-| `preflight.py` | not run | |
-| `harbor check` rubric | not run | |
+| Agent image builds | not run | Docker Hub blobs are denied by this session's egress policy (403 on production.cloudfront.docker.com) and harbor is not installed. `tools/imagecheck.py` interprets the Dockerfile: 15 files, no caches, the reference runs all four shipped programs |
+| No answer leaked into agent image | checked by reading | the Dockerfile copies `app_src/` only; no report, allowed-set helper or mechanism name ships; `extraneouscheck` clean |
+| `harbor run -a oracle` = 1 | host emulation only | reward 1, 36 tests passed, 8.1 s with grading, under the 2048 MB cap, on the final `test.sh` |
+| `harbor run -a nop` = 0 | host emulation only | reward 0; decided by `test_hand_case[self-same]` |
+| Cheats all score 0 | host emulation only | 29 of 29 score 0 under the cap, each decided by the layer it was built for (`trial_all.py --mem 2048`: readings by their named hand case with a clean worker, the forgery by the generated programs, slow-no-split by the clock, slow-no-fresh by the memory cap, probes by denial, reaping, signature and rejection) |
+| Correct variants score 1 | host emulation only | ok-a 1 (40.9 s), ok-b 1 (8.9 s) |
+| `tracecheck.py` (every graded assertion traced) | clean | 2026-09-22 |
+| `preflight.py` | clean of errors | 10 warnings, all the unused-public-function check missing `module.func(...)` calls: every flagged function is called that way (checked one by one) |
+| Kit checks | clean | catcheck, hintcheck, structcheck, textcheck, deadfieldcheck, extraneouscheck, solvecheck, forgecheck, onelinecheck (no exact rule at depth 2 over 637 candidate rows), readingcheck (15 of 15 separated), imagecheck; simcheck: no NEAR, the environment Dockerfile HIGH at 0.71, conceptually distinct; originality 100; difficulty 100 |
+| `harbor check` rubric | not run | harbor not installed; the manual quality review (Decisions, and the fixes it drove: the `report` name in the brief, the register note, the failure-direction grouping in the metadata) stands in for it |
+| `package.py` + `zipcheck` | clean | 76 entries, no STATE.md, no caches; `tasks/blank-fill-sure.zip` |
 
 ## Open questions and next steps
 
-Stage 2: freeze the contract. Then build the environment, the sealed model, the generator, the
-reference and two correct variants.
+- **Container gates were never run.** No image can be pulled in this session, so `harbor run -a
+  oracle`, `-a nop` and every cheat in a real container are still owed, as is a real build of both
+  Dockerfiles (their `RUN test -f` lines assert the layout the harness needs). Run them with `-o`
+  outside the task folder before trusting the host-emulation rows above.
+- **The easiness probe has not run.** The estimate of 2 of 8 solves is a design estimate. If a probe
+  solves it, read `RAISE-DIFFICULTY.md` and feed the trajectories to `tools/leakcheck.py`.
+- **The cold reader was author-run.** A fresh session given only `instruction.md` and the agent tree,
+  asked which decisions the text leaves open, is the stronger test and is still owed.
+- **`relevant_experience` is written as a profile of the expertise the task needs**, not as a claim
+  about the contributor; the contributor may want to replace it with their own.
+- On the ledger: `authoring/submissions.toml` carries this task as `pending`; update the verdict
+  when the platform answers.

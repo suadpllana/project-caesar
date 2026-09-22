@@ -1,0 +1,165 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/rs/cmp.py",
+  "/app/rs/join.py",
+  "/app/rs/keep.py",
+]
+
+[task]
+name = "afterquery/blank-fill-sure"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief and the definition is one sentence: report the rows a query returns
+under every filling of the placeholders. What makes it hard is that neither plan a strong solver
+reaches for is right, and the one that is has to be derived placeholder by placeholder.
+
+The plan retrieved from the literature is to treat each placeholder as a value only it holds and
+report the rows free of placeholders. For joins and unions that is a theorem, and the theorem
+assumes an unbounded domain. Here every column allows a finite set and the data already uses
+much of it. A status that allows only `open` and `shut`, read by one rule asking for `open` and
+one asking for `shut`, returns the account under every filling, and the retrieved plan drops it.
+A distance compared with `D != 0` is reported by the retrieved plan and is not certain, because
+the distance can be 0. A region column whose forty allowed values all appear in the region table
+joins under every filling, and its size says nothing about that; its unused values say
+everything. The shipped engine is the other familiar prior, SQL null logic, which lets a
+placeholder match nothing and is wrong more often still.
+
+The plan written from the definition, trying every filling, is exact and cannot run: the wide
+programs carry about eight thousand placeholders, most of them allowing a billion values. The
+method that works is chosen per placeholder, and every choice is an argument rather than a
+lookup. A placeholder may stand for a value only it holds exactly when more of its allowed values
+are unused than there are placeholders and no `X != c` can reach it; the count is against every
+placeholder, because one spare value shared by two of them does not keep them apart. One that an
+inequality reaches needs the compared constants it allows as cases beside a fresh value, and the
+constant case can open a join that the fresh value never does. The rest range over their whole
+allowed set. A candidate row then carries the conditions of every derivation of it, across all
+the rules of its query, and is reported when their disjunction holds under every assignment.
+
+Two graded families each stop a different exact method that gets every rule right. Letting a
+placeholder with spare values range over every used value it allows, instead of one fresh one,
+exhausts the 2048 MB memory cap in 38 seconds on one wide program; without a cap it was past 5.7 GB
+after two minutes and still growing. Searching a row's conditions as one problem instead of
+splitting them into groups that share no placeholder ran for 1800 seconds on one flags program
+without finishing, six times the limit for all 339 programs. The reference settles the whole graded
+set of 339 programs in about 2.3 seconds, and a correct variant with no pruning at all in about 35.
+
+All three editable files ship wrong, and the frozen loader, index and printer carry nothing that
+names or computes an allowed set, a spare count or a case. The fifteen wrong readings measured
+against the reference are each failed by an enumerated case named for the rule, and each moves at
+least one program of a 201-program generated sample, from the single flags program there (a row
+certain only when every group of its conditions holds) to 66 percent (a row reported when some
+filling returns it). Over-reporting (the retrieved plan past an inequality, a row some filling
+returns, one filling taken for all) and under-reporting (null logic, a union decided rule by rule,
+allowed values read from one column, a placeholder called fresh with one spare value) are both
+graded.
+
+Identifiers are in a short legacy register - `rs/`, `cmp`, `join`, `keep`, `say`, `idx`, `lex`,
+`dom`, and `st`, `ix`, `rl` for a store, its indexes and a rule - and the tree carries no comments
+or docstrings. That is a deliberate choice about the register of a real query layer, not an
+obstacle: no name misdescribes what it holds, and each is recoverable from what calls it.
+
+The programs are synthetic, in twelve families that concentrate one mechanism each - covering
+joins, fully used columns, meets of allowed sets, unions over a status, shared spare values,
+inequalities beside joins, placeholders in the answer column - at rates far above a real merge,
+where they are rare and are exactly where reports go quietly wrong.
+"""
+
+solution_explanation = """
+Three modules, in the order the evaluation needs them.
+
+`cmp.py` decides once per program what each placeholder can usefully be. Its allowed set is the
+meet of every column it sits in. The values the program mentions, in rows, atoms and conditions,
+are collected and sorted, so the number of values a range leaves unused is two bisections. A
+placeholder with more unused values than there are placeholders is free when no inequality
+reaches a column it sits in, and otherwise has as its cases the compared constants it allows plus
+one value only it holds. Any other value is dominated by that fresh one: a positive rule only
+gains matches when values coincide, so the filling that derives least gives the placeholder a
+value nothing else holds, and only a compared constant can remove a derivation. With more spare
+values than placeholders, one such value per placeholder exists under every assignment of the
+others. Every remaining placeholder has its whole allowed set as its cases.
+
+`join.py` is an ordinary backtracking join that records instead of deciding. A free placeholder
+equals only itself. A placeholder with cases may meet a constant or another such placeholder,
+and the meeting is kept as a literal - equal to a constant, equal to each other, or, from a
+condition, not equal to a constant - and a derivation whose literals contradict is dropped at
+once. Candidate rows come from the most selective column bound to a constant; a column bound to
+a placeholder with cases reaches every row holding one of its cases, so it is only looked up when
+nothing better is bound.
+
+`keep.py` collects, for every candidate row of constants, the conditions of every derivation of
+it across all the rules of its query; a head placeholder with cases becomes one candidate per
+case, with the matching literal added. A row is reported when the disjunction of its conditions
+holds under every assignment of the placeholders with cases. The conditions are split with
+union-find into groups that share no placeholder: the disjunction holds everywhere exactly when
+it does within one group, because falsifying assignments of disjoint groups combine. Each group
+is searched depth-first for an assignment that falsifies all of its conditions, the placeholder
+in most conditions first, and a branch stops as soon as some condition is sure to hold.
+
+That is how an expert does it: the classical result is exact wherever its assumption holds, so
+the work is finding exactly where finite domains and inequalities break it and paying for case
+analysis only there, then using independence to keep the case analysis small.
+"""
+
+verification_explanation = """
+Two stages, trusted in one direction. A worker running as an unprivileged user lays the three
+submitted files over the verifier's own pristine copy of the tree, runs every graded program
+through `run_ask.run` in one process under the 300 second wall clock the brief states, and writes
+down what each program printed; it decides nothing. A root grader then compares, never running
+submitted code: 33 hand programs against `gt.json`, frozen before the grading file was written,
+and 306 generated programs - thirty in each of ten small families and three in each of the two
+scale families - from a seed drawn after the agent has finished, against a sealed model. The
+model is written apart from the reference, joining whole relations bottom-up where the reference
+backtracks top-down, and re-splitting its conditions at every branch of its own search. It must
+first reproduce `gt.json` exactly, so a model that drifted cannot redefine correct. Every line is
+compared as a string, and the reward is 1 only when the worker and the grader both exit cleanly.
+
+The hand cases pin one decision each and both sides of every fence: rows forced by exhausting a
+finite allowed set, by a meet of two columns, by a union of rules, by used values a placeholder
+cannot escape; and rows that must not be reported, past an inequality, with too few spare values,
+or carrying a placeholder. Seventeen readings were built as the reference with one decision taken
+the other way. Fifteen are semantic, and each fails the hand case named for it; the other two are
+exact and slow, and only the wall clock and the memory cap stop them. A brute force over every filling agreed with
+the reference on 1659 small programs and with the model on 1657.
+
+The verifier is isolated the house way: the reward directory is root's and 0700 before any
+submitted code runs and the reward starts at 0; `tests/seal`, holding the model and the frozen
+answers, is 0700, so code running inside the verifier cannot read them; the worker's record is
+parsed as hostile input and matched to the grader's own programs by signature; processes the
+sandbox user still owns are killed before grading; and only the three declared files are
+collected. Twenty-nine cheats - the readings, a constant report, the worked example replayed, the
+hand answers forged, and probes that plant or corrupt the record, write the reward late, reach for
+the sealed model, rewrite the generator or the grader, hide a correct engine in an uncollected file
+or move part of it into a frozen one - all score 0, each for the reason it was built to test. The
+reference and two correct variants written apart from it score 1.
+"""
+
+category = "Software"
+subcategory = "Databases"
+tags = ["certain-answers", "labeled-nulls", "incomplete-information", "finite-domains", "conjunctive-queries"]
+expert_time_estimate_hours = 9
+relevant_experience = """
+Having built or maintained the query side of a data-integration store: report engines over records
+merged from several sources, where a value no source supplied is kept as a labelled unknown and
+every column declares its allowed values. Familiarity with SQL null semantics, with certain answers
+and the naive-evaluation result for unions of conjunctive queries, and with where that result stops
+holding once domains are finite and queries compare against constants.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+gpus = 0

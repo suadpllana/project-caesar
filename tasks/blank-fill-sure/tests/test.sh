@@ -12,12 +12,13 @@ set -euo pipefail
 
 SANDBOX=1002
 VERDICT=/logs/verifier
+REWARD=/logs/verifier/reward.txt
 SCRATCH=/work
-LIMIT_SECONDS=90
+LIMIT_SECONDS=300
 PER_FAMILY=30
 
 install -d -m 700 "${VERDICT}"
-echo 0 > "${VERDICT}/reward.txt"
+echo 0 > "${REWARD}"
 chmod 700 /tests/seal
 
 # The programs are generated from a seed drawn now, after the agent's container is gone. The
@@ -42,7 +43,7 @@ python3 -m pytest /tests/test_outputs.py -p no:cacheprovider -q \
     --ctrf "${VERDICT}/ctrf.json" || grader=$?
 
 if [ "${worker}" -eq 0 ] && [ "${grader}" -eq 0 ]; then
-  echo 1 > "${VERDICT}/reward.txt"
+  echo 1 > "${REWARD}"
 else
-  echo 0 > "${VERDICT}/reward.txt"
+  echo 0 > "${REWARD}"
 fi

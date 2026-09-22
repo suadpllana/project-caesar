@@ -1,0 +1,6005 @@
+table acct 0..999999999 0..999999999 open|shut gold|base east|west
+table pa 0..999999999 open|shut gold|base
+table pb 0..999999999 open|shut east|west
+row acct 101 1 ?f1 ?f2 ?f3
+row pa 101 open base
+row pa 101 shut gold
+row pb 101 open east
+row pb 101 shut west
+row acct 102 1 ?f4 ?f5 ?f6
+row pa 102 open base
+row pa 102 shut gold
+row pb 102 open east
+row pb 102 shut west
+row acct 103 1 ?f7 ?f8 ?f9
+row pa 103 open gold
+row pa 103 shut base
+row pb 103 open west
+row pb 103 shut east
+row acct 104 1 ?f10 ?f11 ?f12
+row pa 104 open gold
+row pa 104 shut base
+row pb 104 open west
+row pb 104 shut east
+row acct 105 1 ?f13 ?f14 ?f15
+row pa 105 open gold
+row pa 105 shut base
+row pb 105 open west
+row pb 105 shut east
+row acct 106 1 ?f16 ?f17 ?f18
+row pa 106 open base
+row pa 106 shut gold
+row pb 106 open east
+row pb 106 shut west
+row acct 107 1 ?f19 ?f20 ?f21
+row pa 107 open base
+row pa 107 shut gold
+row pb 107 open east
+row pb 107 shut west
+row acct 108 1 ?f22 ?f23 ?f24
+row pa 108 open gold
+row pa 108 shut base
+row pb 108 open west
+row pb 108 shut east
+row acct 109 1 ?f25 ?f26 ?f27
+row pa 109 open gold
+row pa 109 shut base
+row pb 109 open west
+row pb 109 shut east
+row acct 110 1 ?f28 ?f29 ?f30
+row pa 110 open base
+row pa 110 shut gold
+row pb 110 open east
+row pb 110 shut west
+row acct 111 1 ?f31 ?f32 ?f33
+row pa 111 open base
+row pa 111 shut gold
+row pb 111 open east
+row pb 111 shut west
+row acct 112 1 ?f34 ?f35 ?f36
+row pa 112 open gold
+row pa 112 shut base
+row pb 112 open west
+row pb 112 shut east
+row acct 113 1 ?f37 ?f38 ?f39
+row pa 113 open gold
+row pa 113 shut base
+row pb 113 open west
+row pb 113 shut east
+row acct 114 1 ?f40 ?f41 ?f42
+row pa 114 open base
+row pa 114 shut gold
+row pb 114 open east
+row pb 114 shut west
+row acct 115 1 ?f43 ?f44 ?f45
+row pa 115 open base
+row pa 115 shut gold
+row pb 115 open east
+row pb 115 shut west
+row acct 116 1 ?f46 ?f47 ?f48
+row pa 116 open gold
+row pa 116 shut base
+row pb 116 open west
+row pb 116 shut east
+row acct 117 1 ?f49 ?f50 ?f51
+row pa 117 open gold
+row pa 117 shut base
+row pb 117 open west
+row pb 117 shut east
+row acct 118 1 ?f52 ?f53 ?f54
+row pa 118 open base
+row pa 118 shut gold
+row pb 118 open east
+row pb 118 shut west
+row acct 119 1 ?f55 ?f56 ?f57
+row pa 119 open gold
+row pa 119 shut base
+row pb 119 open west
+row pb 119 shut east
+row acct 120 1 ?f58 ?f59 ?f60
+row pa 120 open base
+row pa 120 shut gold
+row pb 120 open east
+row pb 120 shut west
+row acct 121 1 ?f61 ?f62 ?f63
+row pa 121 open gold
+row pa 121 shut base
+row pb 121 open west
+row pb 121 shut east
+row acct 122 1 ?f64 ?f65 ?f66
+row pa 122 open base
+row pa 122 shut gold
+row pb 122 open east
+row pb 122 shut west
+row acct 123 1 ?f67 ?f68 ?f69
+row pa 123 open base
+row pa 123 shut gold
+row pb 123 open east
+row pb 123 shut west
+row acct 124 1 ?f70 ?f71 ?f72
+row pa 124 open gold
+row pa 124 shut base
+row pb 124 open west
+row pb 124 shut east
+row acct 125 1 ?f73 ?f74 ?f75
+row pa 125 open base
+row pa 125 shut gold
+row pb 125 open east
+row pb 125 shut west
+row acct 126 1 ?f76 ?f77 ?f78
+row pa 126 open gold
+row pa 126 shut base
+row pb 126 open west
+row pb 126 shut east
+row acct 127 1 ?f79 ?f80 ?f81
+row pa 127 open gold
+row pa 127 open base
+row pb 127 shut east
+row pb 127 shut west
+row acct 128 1 ?f82 ?f83 ?f84
+row pa 128 open gold
+row pa 128 shut base
+row pb 128 open west
+row pb 128 shut east
+row acct 129 1 ?f85 ?f86 ?f87
+row pa 129 open base
+row pa 129 shut gold
+row pb 129 open east
+row pb 129 shut west
+row acct 130 1 ?f88 ?f89 ?f90
+row pa 130 open base
+row pa 130 shut gold
+row pb 130 open east
+row pb 130 shut west
+row acct 131 2 ?f91 ?f92 ?f93
+row pa 131 open base
+row pa 131 shut gold
+row pb 131 open east
+row pb 131 shut west
+row acct 132 2 ?f94 ?f95 ?f96
+row pa 132 open gold
+row pa 132 shut base
+row pb 132 open west
+row pb 132 shut east
+row acct 133 2 ?f97 ?f98 ?f99
+row pa 133 open gold
+row pa 133 shut base
+row pb 133 open west
+row pb 133 shut east
+row acct 134 2 ?f100 ?f101 ?f102
+row pa 134 open gold
+row pa 134 shut base
+row pb 134 open west
+row pb 134 shut east
+row acct 135 2 ?f103 ?f104 ?f105
+row pa 135 open gold
+row pa 135 shut base
+row pb 135 open west
+row pb 135 shut east
+row acct 136 2 ?f106 ?f107 ?f108
+row pa 136 open gold
+row pa 136 shut base
+row pb 136 open west
+row pb 136 shut east
+row acct 137 2 ?f109 ?f110 ?f111
+row pa 137 open base
+row pa 137 shut gold
+row pb 137 open east
+row pb 137 shut west
+row acct 138 2 ?f112 ?f113 ?f114
+row pa 138 open base
+row pa 138 shut gold
+row pb 138 open east
+row pb 138 shut west
+row acct 139 2 ?f115 ?f116 ?f117
+row pa 139 open gold
+row pa 139 shut base
+row pb 139 open west
+row pb 139 shut east
+row acct 140 2 ?f118 ?f119 ?f120
+row pa 140 open base
+row pa 140 shut gold
+row pb 140 open east
+row pb 140 shut west
+row acct 141 2 ?f121 ?f122 ?f123
+row pa 141 open base
+row pa 141 shut gold
+row pb 141 open east
+row pb 141 shut west
+row acct 142 2 ?f124 ?f125 ?f126
+row pa 142 open gold
+row pa 142 shut base
+row pb 142 open west
+row pb 142 shut east
+row acct 143 2 ?f127 ?f128 ?f129
+row pa 143 open gold
+row pa 143 shut base
+row pb 143 open west
+row pb 143 shut east
+row acct 144 2 ?f130 ?f131 ?f132
+row pa 144 open gold
+row pa 144 shut base
+row pb 144 open west
+row pb 144 shut east
+row acct 145 2 ?f133 ?f134 ?f135
+row pa 145 open base
+row pa 145 shut gold
+row pb 145 open east
+row pb 145 shut west
+row acct 146 2 ?f136 ?f137 ?f138
+row pa 146 open base
+row pa 146 shut gold
+row pb 146 open east
+row pb 146 shut west
+row acct 147 2 ?f139 ?f140 ?f141
+row pa 147 open base
+row pa 147 shut gold
+row pb 147 open east
+row pb 147 shut west
+row acct 148 2 ?f142 ?f143 ?f144
+row pa 148 open gold
+row pa 148 shut base
+row pb 148 open west
+row pb 148 shut east
+row acct 149 2 ?f145 ?f146 ?f147
+row pa 149 open base
+row pa 149 shut gold
+row pb 149 open east
+row pb 149 shut west
+row acct 150 2 ?f148 ?f149 ?f150
+row pa 150 open gold
+row pa 150 shut base
+row pb 150 open west
+row pb 150 shut east
+row acct 151 2 ?f151 ?f152 ?f153
+row pa 151 open base
+row pa 151 shut gold
+row pb 151 open east
+row pb 151 shut west
+row acct 152 2 ?f154 ?f155 ?f156
+row pa 152 open gold
+row pa 152 shut base
+row pb 152 open west
+row pb 152 shut east
+row acct 153 2 ?f157 ?f158 ?f159
+row pa 153 open gold
+row pa 153 shut base
+row pb 153 open west
+row pb 153 shut east
+row acct 154 2 ?f160 ?f161 ?f162
+row pa 154 open gold
+row pa 154 shut base
+row pb 154 open west
+row pb 154 shut east
+row acct 155 2 ?f163 ?f164 ?f165
+row pa 155 open gold
+row pa 155 shut base
+row pb 155 open west
+row pb 155 shut east
+row acct 156 2 ?f166 ?f167 ?f168
+row pa 156 open base
+row pa 156 shut gold
+row pb 156 open east
+row pb 156 shut west
+row acct 157 2 ?f169 ?f170 ?f171
+row pa 157 open gold
+row pa 157 shut base
+row pb 157 open west
+row pb 157 shut east
+row acct 158 2 ?f172 ?f173 ?f174
+row pa 158 open base
+row pa 158 shut gold
+row pb 158 open east
+row pb 158 shut west
+row acct 159 2 ?f175 ?f176 ?f177
+row pa 159 open gold
+row pa 159 shut base
+row pb 159 open west
+row pb 159 shut east
+row acct 160 2 ?f178 ?f179 ?f180
+row pa 160 open gold
+row pa 160 shut base
+row pb 160 open west
+row pb 160 shut east
+row acct 161 3 ?f181 ?f182 ?f183
+row pa 161 open gold
+row pa 161 shut base
+row pb 161 open west
+row pb 161 shut east
+row acct 162 3 ?f184 ?f185 ?f186
+row pa 162 open base
+row pa 162 shut gold
+row pb 162 open east
+row pb 162 shut west
+row acct 163 3 ?f187 ?f188 ?f189
+row pa 163 open gold
+row pa 163 shut base
+row pb 163 open west
+row pb 163 shut east
+row acct 164 3 ?f190 ?f191 ?f192
+row pa 164 open gold
+row pa 164 shut base
+row pb 164 open west
+row pb 164 shut east
+row acct 165 3 ?f193 ?f194 ?f195
+row pa 165 open base
+row pa 165 shut gold
+row pb 165 open east
+row pb 165 shut west
+row acct 166 3 ?f196 ?f197 ?f198
+row pa 166 open base
+row pa 166 shut gold
+row pb 166 open east
+row pb 166 shut west
+row acct 167 3 ?f199 ?f200 ?f201
+row pa 167 open gold
+row pa 167 shut base
+row pb 167 open west
+row pb 167 shut east
+row acct 168 3 ?f202 ?f203 ?f204
+row pa 168 open gold
+row pa 168 shut base
+row pb 168 open west
+row pb 168 shut east
+row acct 169 3 ?f205 ?f206 ?f207
+row pa 169 open base
+row pa 169 shut gold
+row pb 169 open east
+row pb 169 shut west
+row acct 170 3 ?f208 ?f209 ?f210
+row pa 170 open base
+row pa 170 shut gold
+row pb 170 open east
+row pb 170 shut west
+row acct 171 3 ?f211 ?f212 ?f213
+row pa 171 open gold
+row pa 171 shut base
+row pb 171 open west
+row pb 171 shut east
+row acct 172 3 ?f214 ?f215 ?f216
+row pa 172 open base
+row pa 172 shut gold
+row pb 172 open east
+row pb 172 shut west
+row acct 173 3 ?f217 ?f218 ?f219
+row pa 173 open gold
+row pa 173 shut base
+row pb 173 open west
+row pb 173 shut east
+row acct 174 3 ?f220 ?f221 ?f222
+row pa 174 open gold
+row pa 174 shut base
+row pb 174 open west
+row pb 174 shut east
+row acct 175 3 ?f223 ?f224 ?f225
+row pa 175 open base
+row pa 175 shut gold
+row pb 175 open east
+row pb 175 shut west
+row acct 176 3 ?f226 ?f227 ?f228
+row pa 176 open gold
+row pa 176 shut base
+row pb 176 open west
+row pb 176 shut east
+row acct 177 3 ?f229 ?f230 ?f231
+row pa 177 open gold
+row pa 177 shut base
+row pb 177 open west
+row pb 177 shut east
+row acct 178 3 ?f232 ?f233 ?f234
+row pa 178 open base
+row pa 178 shut gold
+row pb 178 open east
+row pb 178 shut west
+row acct 179 3 ?f235 ?f236 ?f237
+row pa 179 open base
+row pa 179 shut gold
+row pb 179 open east
+row pb 179 shut west
+row acct 180 3 ?f238 ?f239 ?f240
+row pa 180 open gold
+row pa 180 shut base
+row pb 180 open west
+row pb 180 shut east
+row acct 181 3 ?f241 ?f242 ?f243
+row pa 181 open gold
+row pa 181 shut base
+row pb 181 open west
+row pb 181 shut east
+row acct 182 3 ?f244 ?f245 ?f246
+row pa 182 open base
+row pa 182 shut gold
+row pb 182 open east
+row pb 182 shut west
+row acct 183 3 ?f247 ?f248 ?f249
+row pa 183 open base
+row pa 183 shut gold
+row pb 183 open east
+row pb 183 shut west
+row acct 184 3 ?f250 ?f251 ?f252
+row pa 184 open gold
+row pa 184 shut base
+row pb 184 open west
+row pb 184 shut east
+row acct 185 3 ?f253 ?f254 ?f255
+row pa 185 open base
+row pa 185 shut gold
+row pb 185 open east
+row pb 185 shut west
+row acct 186 3 ?f256 ?f257 ?f258
+row pa 186 open base
+row pa 186 shut gold
+row pb 186 open east
+row pb 186 shut west
+row acct 187 3 ?f259 ?f260 ?f261
+row pa 187 open base
+row pa 187 shut gold
+row pb 187 open east
+row pb 187 shut west
+row acct 188 3 ?f262 ?f263 ?f264
+row pa 188 open base
+row pa 188 shut gold
+row pb 188 open east
+row pb 188 shut west
+row acct 189 3 ?f265 ?f266 ?f267
+row pa 189 open base
+row pa 189 shut gold
+row pb 189 open east
+row pb 189 shut west
+row acct 190 3 ?f268 ?f269 ?f270
+row pa 190 open base
+row pa 190 shut gold
+row pb 190 open east
+row pb 190 shut west
+row acct 191 4 ?f271 ?f272 ?f273
+row pa 191 open gold
+row pa 191 shut base
+row pb 191 open west
+row pb 191 shut east
+row acct 192 4 ?f274 ?f275 ?f276
+row pa 192 open gold
+row pa 192 shut base
+row pb 192 open west
+row pb 192 shut east
+row acct 193 4 ?f277 ?f278 ?f279
+row pa 193 open gold
+row pa 193 shut base
+row pb 193 open west
+row pb 193 shut east
+row acct 194 4 ?f280 ?f281 ?f282
+row pa 194 open base
+row pa 194 shut gold
+row pb 194 open east
+row pb 194 shut west
+row acct 195 4 ?f283 ?f284 ?f285
+row pa 195 open base
+row pa 195 shut gold
+row pb 195 open east
+row pb 195 shut west
+row acct 196 4 ?f286 ?f287 ?f288
+row pa 196 open base
+row pa 196 shut gold
+row pb 196 open east
+row pb 196 shut west
+row acct 197 4 ?f289 ?f290 ?f291
+row pa 197 open gold
+row pa 197 shut base
+row pb 197 open west
+row pb 197 shut east
+row acct 198 4 ?f292 ?f293 ?f294
+row pa 198 open gold
+row pa 198 shut base
+row pb 198 open west
+row pb 198 shut east
+row acct 199 4 ?f295 ?f296 ?f297
+row pa 199 open base
+row pa 199 shut gold
+row pb 199 open east
+row pb 199 shut west
+row acct 200 4 ?f298 ?f299 ?f300
+row pa 200 open base
+row pa 200 shut gold
+row pb 200 open east
+row pb 200 shut west
+row acct 201 4 ?f301 ?f302 ?f303
+row pa 201 open base
+row pa 201 shut gold
+row pb 201 open east
+row pb 201 shut west
+row acct 202 4 ?f304 ?f305 ?f306
+row pa 202 open gold
+row pa 202 shut base
+row pb 202 open west
+row pb 202 shut east
+row acct 203 4 ?f307 ?f308 ?f309
+row pa 203 open gold
+row pa 203 shut base
+row pb 203 open west
+row pb 203 shut east
+row acct 204 4 ?f310 ?f311 ?f312
+row pa 204 open gold
+row pa 204 shut base
+row pb 204 open west
+row pb 204 shut east
+row acct 205 4 ?f313 ?f314 ?f315
+row pa 205 open base
+row pa 205 shut gold
+row pb 205 open east
+row pb 205 shut west
+row acct 206 4 ?f316 ?f317 ?f318
+row pa 206 open base
+row pa 206 shut gold
+row pb 206 open east
+row pb 206 shut west
+row acct 207 4 ?f319 ?f320 ?f321
+row pa 207 open gold
+row pa 207 shut base
+row pb 207 open west
+row pb 207 shut east
+row acct 208 4 ?f322 ?f323 ?f324
+row pa 208 open base
+row pa 208 shut gold
+row pb 208 open east
+row pb 208 shut west
+row acct 209 4 ?f325 ?f326 ?f327
+row pa 209 open gold
+row pa 209 shut base
+row pb 209 open west
+row pb 209 shut east
+row acct 210 4 ?f328 ?f329 ?f330
+row pa 210 open base
+row pa 210 shut gold
+row pb 210 open east
+row pb 210 shut west
+row acct 211 4 ?f331 ?f332 ?f333
+row pa 211 open base
+row pa 211 shut gold
+row pb 211 open east
+row pb 211 shut west
+row acct 212 4 ?f334 ?f335 ?f336
+row pa 212 open gold
+row pa 212 shut base
+row pb 212 open west
+row pb 212 shut east
+row acct 213 4 ?f337 ?f338 ?f339
+row pa 213 open gold
+row pa 213 shut base
+row pb 213 open west
+row pb 213 shut east
+row acct 214 4 ?f340 ?f341 ?f342
+row pa 214 open base
+row pa 214 shut gold
+row pb 214 open east
+row pb 214 shut west
+row acct 215 4 ?f343 ?f344 ?f345
+row pa 215 open gold
+row pa 215 shut base
+row pb 215 open west
+row pb 215 shut east
+row acct 216 4 ?f346 ?f347 ?f348
+row pa 216 open base
+row pa 216 shut gold
+row pb 216 open east
+row pb 216 shut west
+row acct 217 4 ?f349 ?f350 ?f351
+row pa 217 open base
+row pa 217 shut gold
+row pb 217 open east
+row pb 217 shut west
+row acct 218 4 ?f352 ?f353 ?f354
+row pa 218 open base
+row pa 218 shut gold
+row pb 218 open east
+row pb 218 shut west
+row acct 219 4 ?f355 ?f356 ?f357
+row pa 219 open gold
+row pa 219 shut base
+row pb 219 open west
+row pb 219 shut east
+row acct 220 4 ?f358 ?f359 ?f360
+row pa 220 open base
+row pa 220 shut gold
+row pb 220 open east
+row pb 220 shut west
+row acct 221 5 ?f361 ?f362 ?f363
+row pa 221 open gold
+row pa 221 shut base
+row pb 221 open west
+row pb 221 shut east
+row acct 222 5 ?f364 ?f365 ?f366
+row pa 222 open base
+row pa 222 shut gold
+row pb 222 open east
+row pb 222 shut west
+row acct 223 5 ?f367 ?f368 ?f369
+row pa 223 open gold
+row pa 223 shut base
+row pb 223 open west
+row pb 223 shut east
+row acct 224 5 ?f370 ?f371 ?f372
+row pa 224 open base
+row pa 224 shut gold
+row pb 224 open east
+row pb 224 shut west
+row acct 225 5 ?f373 ?f374 ?f375
+row pa 225 open base
+row pa 225 shut gold
+row pb 225 open east
+row pb 225 shut west
+row acct 226 5 ?f376 ?f377 ?f378
+row pa 226 open gold
+row pa 226 shut base
+row pb 226 open west
+row pb 226 shut east
+row acct 227 5 ?f379 ?f380 ?f381
+row pa 227 open gold
+row pa 227 shut base
+row pb 227 open west
+row pb 227 shut east
+row acct 228 5 ?f382 ?f383 ?f384
+row pa 228 open gold
+row pa 228 shut base
+row pb 228 open west
+row pb 228 shut east
+row acct 229 5 ?f385 ?f386 ?f387
+row pa 229 open base
+row pa 229 shut gold
+row pb 229 open east
+row pb 229 shut west
+row acct 230 5 ?f388 ?f389 ?f390
+row pa 230 open gold
+row pa 230 shut base
+row pb 230 open west
+row pb 230 shut east
+row acct 231 5 ?f391 ?f392 ?f393
+row pa 231 open base
+row pa 231 shut gold
+row pb 231 open east
+row pb 231 shut west
+row acct 232 5 ?f394 ?f395 ?f396
+row pa 232 open gold
+row pa 232 shut base
+row pb 232 open west
+row pb 232 shut east
+row acct 233 5 ?f397 ?f398 ?f399
+row pa 233 open gold
+row pa 233 shut base
+row pb 233 open west
+row pb 233 shut east
+row acct 234 5 ?f400 ?f401 ?f402
+row pa 234 open base
+row pa 234 shut gold
+row pb 234 open east
+row pb 234 shut west
+row acct 235 5 ?f403 ?f404 ?f405
+row pa 235 open gold
+row pa 235 shut base
+row pb 235 open west
+row pb 235 shut east
+row acct 236 5 ?f406 ?f407 ?f408
+row pa 236 open gold
+row pa 236 shut base
+row pb 236 open west
+row pb 236 shut east
+row acct 237 5 ?f409 ?f410 ?f411
+row pa 237 open gold
+row pa 237 shut base
+row pb 237 open west
+row pb 237 shut east
+row acct 238 5 ?f412 ?f413 ?f414
+row pa 238 open base
+row pa 238 shut gold
+row pb 238 open east
+row pb 238 shut west
+row acct 239 5 ?f415 ?f416 ?f417
+row pa 239 open base
+row pa 239 shut gold
+row pb 239 open east
+row pb 239 shut west
+row acct 240 5 ?f418 ?f419 ?f420
+row pa 240 open gold
+row pa 240 shut base
+row pb 240 open west
+row pb 240 shut east
+row acct 241 5 ?f421 ?f422 ?f423
+row pa 241 open base
+row pa 241 shut gold
+row pb 241 open east
+row pb 241 shut west
+row acct 242 5 ?f424 ?f425 ?f426
+row pa 242 open gold
+row pa 242 shut base
+row pb 242 open west
+row pb 242 shut east
+row acct 243 5 ?f427 ?f428 ?f429
+row pa 243 open base
+row pa 243 shut gold
+row pb 243 open east
+row pb 243 shut west
+row acct 244 5 ?f430 ?f431 ?f432
+row pa 244 open gold
+row pa 244 shut base
+row pb 244 open west
+row pb 244 shut east
+row acct 245 5 ?f433 ?f434 ?f435
+row pa 245 open base
+row pa 245 shut gold
+row pb 245 open east
+row pb 245 shut west
+row acct 246 5 ?f436 ?f437 ?f438
+row pa 246 open base
+row pa 246 shut gold
+row pb 246 open east
+row pb 246 shut west
+row acct 247 5 ?f439 ?f440 ?f441
+row pa 247 open gold
+row pa 247 shut base
+row pb 247 open west
+row pb 247 shut east
+row acct 248 5 ?f442 ?f443 ?f444
+row pa 248 open base
+row pa 248 shut gold
+row pb 248 open east
+row pb 248 shut west
+row acct 249 5 ?f445 ?f446 ?f447
+row pa 249 open base
+row pa 249 shut gold
+row pb 249 open east
+row pb 249 shut west
+row acct 250 5 ?f448 ?f449 ?f450
+row pa 250 open base
+row pa 250 shut gold
+row pb 250 open east
+row pb 250 shut west
+row acct 251 6 ?f451 ?f452 ?f453
+row pa 251 open gold
+row pa 251 shut base
+row pb 251 open west
+row pb 251 shut east
+row acct 252 6 ?f454 ?f455 ?f456
+row pa 252 open gold
+row pa 252 shut base
+row pb 252 open west
+row pb 252 shut east
+row acct 253 6 ?f457 ?f458 ?f459
+row pa 253 open gold
+row pa 253 shut base
+row pb 253 open west
+row pb 253 shut east
+row acct 254 6 ?f460 ?f461 ?f462
+row pa 254 open base
+row pa 254 shut gold
+row pb 254 open east
+row pb 254 shut west
+row acct 255 6 ?f463 ?f464 ?f465
+row pa 255 open base
+row pa 255 shut gold
+row pb 255 open east
+row pb 255 shut west
+row acct 256 6 ?f466 ?f467 ?f468
+row pa 256 open base
+row pa 256 shut gold
+row pb 256 open east
+row pb 256 shut west
+row acct 257 6 ?f469 ?f470 ?f471
+row pa 257 open gold
+row pa 257 shut base
+row pb 257 open west
+row pb 257 shut east
+row acct 258 6 ?f472 ?f473 ?f474
+row pa 258 open base
+row pa 258 shut gold
+row pb 258 open east
+row pb 258 shut west
+row acct 259 6 ?f475 ?f476 ?f477
+row pa 259 open gold
+row pa 259 shut base
+row pb 259 open west
+row pb 259 shut east
+row acct 260 6 ?f478 ?f479 ?f480
+row pa 260 open gold
+row pa 260 shut base
+row pb 260 open west
+row pb 260 shut east
+row acct 261 6 ?f481 ?f482 ?f483
+row pa 261 open gold
+row pa 261 shut base
+row pb 261 open west
+row pb 261 shut east
+row acct 262 6 ?f484 ?f485 ?f486
+row pa 262 open gold
+row pa 262 shut base
+row pb 262 open west
+row pb 262 shut east
+row acct 263 6 ?f487 ?f488 ?f489
+row pa 263 open base
+row pa 263 shut gold
+row pb 263 open east
+row pb 263 shut west
+row acct 264 6 ?f490 ?f491 ?f492
+row pa 264 open base
+row pa 264 shut gold
+row pb 264 open east
+row pb 264 shut west
+row acct 265 6 ?f493 ?f494 ?f495
+row pa 265 open gold
+row pa 265 shut base
+row pb 265 open west
+row pb 265 shut east
+row acct 266 6 ?f496 ?f497 ?f498
+row pa 266 open base
+row pa 266 shut gold
+row pb 266 open east
+row pb 266 shut west
+row acct 267 6 ?f499 ?f500 ?f501
+row pa 267 open gold
+row pa 267 shut base
+row pb 267 open west
+row pb 267 shut east
+row acct 268 6 ?f502 ?f503 ?f504
+row pa 268 open base
+row pa 268 shut gold
+row pb 268 open east
+row pb 268 shut west
+row acct 269 6 ?f505 ?f506 ?f507
+row pa 269 open gold
+row pa 269 shut base
+row pb 269 open west
+row pb 269 shut east
+row acct 270 6 ?f508 ?f509 ?f510
+row pa 270 open base
+row pa 270 shut gold
+row pb 270 open east
+row pb 270 shut west
+row acct 271 6 ?f511 ?f512 ?f513
+row pa 271 open base
+row pa 271 shut gold
+row pb 271 open east
+row pb 271 shut west
+row acct 272 6 ?f514 ?f515 ?f516
+row pa 272 open base
+row pa 272 shut gold
+row pb 272 open east
+row pb 272 shut west
+row acct 273 6 ?f517 ?f518 ?f519
+row pa 273 open base
+row pa 273 shut gold
+row pb 273 open east
+row pb 273 shut west
+row acct 274 6 ?f520 ?f521 ?f522
+row pa 274 open gold
+row pa 274 shut base
+row pb 274 open west
+row pb 274 shut east
+row acct 275 6 ?f523 ?f524 ?f525
+row pa 275 open base
+row pa 275 shut gold
+row pb 275 open east
+row pb 275 shut west
+row acct 276 6 ?f526 ?f527 ?f528
+row pa 276 open gold
+row pa 276 shut base
+row pb 276 open west
+row pb 276 shut east
+row acct 277 6 ?f529 ?f530 ?f531
+row pa 277 open gold
+row pa 277 shut base
+row pb 277 open west
+row pb 277 shut east
+row acct 278 6 ?f532 ?f533 ?f534
+row pa 278 open base
+row pa 278 shut gold
+row pb 278 open east
+row pb 278 shut west
+row acct 279 6 ?f535 ?f536 ?f537
+row pa 279 open base
+row pa 279 shut gold
+row pb 279 open east
+row pb 279 shut west
+row acct 280 6 ?f538 ?f539 ?f540
+row pa 280 open base
+row pa 280 shut gold
+row pb 280 open east
+row pb 280 shut west
+row acct 281 7 ?f541 ?f542 ?f543
+row pa 281 open base
+row pa 281 shut gold
+row pb 281 open east
+row pb 281 shut west
+row acct 282 7 ?f544 ?f545 ?f546
+row pa 282 open base
+row pa 282 shut gold
+row pb 282 open east
+row pb 282 shut west
+row acct 283 7 ?f547 ?f548 ?f549
+row pa 283 open gold
+row pa 283 shut base
+row pb 283 open west
+row pb 283 shut east
+row acct 284 7 ?f550 ?f551 ?f552
+row pa 284 open gold
+row pa 284 shut base
+row pb 284 open west
+row pb 284 shut east
+row acct 285 7 ?f553 ?f554 ?f555
+row pa 285 open gold
+row pa 285 shut base
+row pb 285 open west
+row pb 285 shut east
+row acct 286 7 ?f556 ?f557 ?f558
+row pa 286 open base
+row pa 286 shut gold
+row pb 286 open east
+row pb 286 shut west
+row acct 287 7 ?f559 ?f560 ?f561
+row pa 287 open gold
+row pa 287 shut base
+row pb 287 open west
+row pb 287 shut east
+row acct 288 7 ?f562 ?f563 ?f564
+row pa 288 open base
+row pa 288 shut gold
+row pb 288 open east
+row pb 288 shut west
+row acct 289 7 ?f565 ?f566 ?f567
+row pa 289 open base
+row pa 289 shut gold
+row pb 289 open east
+row pb 289 shut west
+row acct 290 7 ?f568 ?f569 ?f570
+row pa 290 open gold
+row pa 290 shut base
+row pb 290 open west
+row pb 290 shut east
+row acct 291 7 ?f571 ?f572 ?f573
+row pa 291 open base
+row pa 291 shut gold
+row pb 291 open east
+row pb 291 shut west
+row acct 292 7 ?f574 ?f575 ?f576
+row pa 292 open gold
+row pa 292 shut base
+row pb 292 open west
+row pb 292 shut east
+row acct 293 7 ?f577 ?f578 ?f579
+row pa 293 open gold
+row pa 293 shut base
+row pb 293 open west
+row pb 293 shut east
+row acct 294 7 ?f580 ?f581 ?f582
+row pa 294 open gold
+row pa 294 shut base
+row pb 294 open west
+row pb 294 shut east
+row acct 295 7 ?f583 ?f584 ?f585
+row pa 295 open gold
+row pa 295 shut base
+row pb 295 open west
+row pb 295 shut east
+row acct 296 7 ?f586 ?f587 ?f588
+row pa 296 open base
+row pa 296 shut gold
+row pb 296 open east
+row pb 296 shut west
+row acct 297 7 ?f589 ?f590 ?f591
+row pa 297 open base
+row pa 297 shut gold
+row pb 297 open east
+row pb 297 shut west
+row acct 298 7 ?f592 ?f593 ?f594
+row pa 298 open base
+row pa 298 shut gold
+row pb 298 open east
+row pb 298 shut west
+row acct 299 7 ?f595 ?f596 ?f597
+row pa 299 open base
+row pa 299 shut gold
+row pb 299 open east
+row pb 299 shut west
+row acct 300 7 ?f598 ?f599 ?f600
+row pa 300 open gold
+row pa 300 shut base
+row pb 300 open west
+row pb 300 shut east
+row acct 301 7 ?f601 ?f602 ?f603
+row pa 301 open gold
+row pa 301 shut base
+row pb 301 open west
+row pb 301 shut east
+row acct 302 7 ?f604 ?f605 ?f606
+row pa 302 open gold
+row pa 302 shut base
+row pb 302 open west
+row pb 302 shut east
+row acct 303 7 ?f607 ?f608 ?f609
+row pa 303 open base
+row pa 303 shut gold
+row pb 303 open east
+row pb 303 shut west
+row acct 304 7 ?f610 ?f611 ?f612
+row pa 304 open gold
+row pa 304 shut base
+row pb 304 open west
+row pb 304 shut east
+row acct 305 7 ?f613 ?f614 ?f615
+row pa 305 open gold
+row pa 305 shut base
+row pb 305 open west
+row pb 305 shut east
+row acct 306 7 ?f616 ?f617 ?f618
+row pa 306 open gold
+row pa 306 shut base
+row pb 306 open west
+row pb 306 shut east
+row acct 307 7 ?f619 ?f620 ?f621
+row pa 307 open base
+row pa 307 shut gold
+row pb 307 open east
+row pb 307 shut west
+row acct 308 7 ?f622 ?f623 ?f624
+row pa 308 open gold
+row pa 308 shut base
+row pb 308 open west
+row pb 308 shut east
+row acct 309 7 ?f625 ?f626 ?f627
+row pa 309 open gold
+row pa 309 shut base
+row pb 309 open west
+row pb 309 shut east
+row acct 310 7 ?f628 ?f629 ?f630
+row pa 310 open base
+row pa 310 shut gold
+row pb 310 open east
+row pb 310 shut west
+row acct 311 8 ?f631 ?f632 ?f633
+row pa 311 open base
+row pa 311 shut gold
+row pb 311 open east
+row pb 311 shut west
+row acct 312 8 ?f634 ?f635 ?f636
+row pa 312 open base
+row pa 312 shut gold
+row pb 312 open east
+row pb 312 shut west
+row acct 313 8 ?f637 ?f638 ?f639
+row pa 313 open gold
+row pa 313 shut base
+row pb 313 open west
+row pb 313 shut east
+row acct 314 8 ?f640 ?f641 ?f642
+row pa 314 open base
+row pa 314 shut gold
+row pb 314 open east
+row pb 314 shut west
+row acct 315 8 ?f643 ?f644 ?f645
+row pa 315 open base
+row pa 315 shut gold
+row pb 315 open east
+row pb 315 shut west
+row acct 316 8 ?f646 ?f647 ?f648
+row pa 316 open base
+row pa 316 shut gold
+row pb 316 open east
+row pb 316 shut west
+row acct 317 8 ?f649 ?f650 ?f651
+row pa 317 open base
+row pa 317 shut gold
+row pb 317 open east
+row pb 317 shut west
+row acct 318 8 ?f652 ?f653 ?f654
+row pa 318 open gold
+row pa 318 shut base
+row pb 318 open west
+row pb 318 shut east
+row acct 319 8 ?f655 ?f656 ?f657
+row pa 319 open base
+row pa 319 shut gold
+row pb 319 open east
+row pb 319 shut west
+row acct 320 8 ?f658 ?f659 ?f660
+row pa 320 open gold
+row pa 320 shut base
+row pb 320 open west
+row pb 320 shut east
+row acct 321 8 ?f661 ?f662 ?f663
+row pa 321 open base
+row pa 321 shut gold
+row pb 321 open east
+row pb 321 shut west
+row acct 322 8 ?f664 ?f665 ?f666
+row pa 322 open gold
+row pa 322 shut base
+row pb 322 open west
+row pb 322 shut east
+row acct 323 8 ?f667 ?f668 ?f669
+row pa 323 open gold
+row pa 323 shut base
+row pb 323 open west
+row pb 323 shut east
+row acct 324 8 ?f670 ?f671 ?f672
+row pa 324 open base
+row pa 324 shut gold
+row pb 324 open east
+row pb 324 shut west
+row acct 325 8 ?f673 ?f674 ?f675
+row pa 325 open base
+row pa 325 shut gold
+row pb 325 open east
+row pb 325 shut west
+row acct 326 8 ?f676 ?f677 ?f678
+row pa 326 open gold
+row pa 326 shut base
+row pb 326 open west
+row pb 326 shut east
+row acct 327 8 ?f679 ?f680 ?f681
+row pa 327 open base
+row pa 327 shut gold
+row pb 327 open east
+row pb 327 shut west
+row acct 328 8 ?f682 ?f683 ?f684
+row pa 328 open gold
+row pa 328 shut base
+row pb 328 open west
+row pb 328 shut east
+row acct 329 8 ?f685 ?f686 ?f687
+row pa 329 open gold
+row pa 329 shut base
+row pb 329 open west
+row pb 329 shut east
+row acct 330 8 ?f688 ?f689 ?f690
+row pa 330 open base
+row pa 330 shut gold
+row pb 330 open east
+row pb 330 shut west
+row acct 331 8 ?f691 ?f692 ?f693
+row pa 331 open gold
+row pa 331 shut base
+row pb 331 open west
+row pb 331 shut east
+row acct 332 8 ?f694 ?f695 ?f696
+row pa 332 open base
+row pa 332 shut gold
+row pb 332 open east
+row pb 332 shut west
+row acct 333 8 ?f697 ?f698 ?f699
+row pa 333 open gold
+row pa 333 open base
+row pb 333 shut east
+row pb 333 shut west
+row acct 334 8 ?f700 ?f701 ?f702
+row pa 334 open base
+row pa 334 shut gold
+row pb 334 open east
+row pb 334 shut west
+row acct 335 8 ?f703 ?f704 ?f705
+row pa 335 open base
+row pa 335 shut gold
+row pb 335 open east
+row pb 335 shut west
+row acct 336 8 ?f706 ?f707 ?f708
+row pa 336 open gold
+row pa 336 shut base
+row pb 336 open west
+row pb 336 shut east
+row acct 337 8 ?f709 ?f710 ?f711
+row pa 337 open base
+row pa 337 shut gold
+row pb 337 open east
+row pb 337 shut west
+row acct 338 8 ?f712 ?f713 ?f714
+row pa 338 open base
+row pa 338 shut gold
+row pb 338 open east
+row pb 338 shut west
+row acct 339 8 ?f715 ?f716 ?f717
+row pa 339 open gold
+row pa 339 shut base
+row pb 339 open west
+row pb 339 shut east
+row acct 340 8 ?f718 ?f719 ?f720
+row pa 340 open gold
+row pa 340 shut base
+row pb 340 open west
+row pb 340 shut east
+row acct 341 9 ?f721 ?f722 ?f723
+row pa 341 open gold
+row pa 341 shut base
+row pb 341 open west
+row pb 341 shut east
+row acct 342 9 ?f724 ?f725 ?f726
+row pa 342 open gold
+row pa 342 shut base
+row pb 342 open west
+row pb 342 shut east
+row acct 343 9 ?f727 ?f728 ?f729
+row pa 343 open base
+row pa 343 shut gold
+row pb 343 open east
+row pb 343 shut west
+row acct 344 9 ?f730 ?f731 ?f732
+row pa 344 open gold
+row pa 344 shut base
+row pb 344 open west
+row pb 344 shut east
+row acct 345 9 ?f733 ?f734 ?f735
+row pa 345 open gold
+row pa 345 shut base
+row pb 345 open west
+row pb 345 shut east
+row acct 346 9 ?f736 ?f737 ?f738
+row pa 346 open base
+row pa 346 shut gold
+row pb 346 open east
+row pb 346 shut west
+row acct 347 9 ?f739 ?f740 ?f741
+row pa 347 open base
+row pa 347 shut gold
+row pb 347 open east
+row pb 347 shut west
+row acct 348 9 ?f742 ?f743 ?f744
+row pa 348 open base
+row pa 348 shut gold
+row pb 348 open east
+row pb 348 shut west
+row acct 349 9 ?f745 ?f746 ?f747
+row pa 349 open gold
+row pa 349 shut base
+row pb 349 open west
+row pb 349 shut east
+row acct 350 9 ?f748 ?f749 ?f750
+row pa 350 open base
+row pa 350 shut gold
+row pb 350 open east
+row pb 350 shut west
+row acct 351 9 ?f751 ?f752 ?f753
+row pa 351 open base
+row pa 351 shut gold
+row pb 351 open east
+row pb 351 shut west
+row acct 352 9 ?f754 ?f755 ?f756
+row pa 352 open base
+row pa 352 shut gold
+row pb 352 open east
+row pb 352 shut west
+row acct 353 9 ?f757 ?f758 ?f759
+row pa 353 open base
+row pa 353 shut gold
+row pb 353 open east
+row pb 353 shut west
+row acct 354 9 ?f760 ?f761 ?f762
+row pa 354 open gold
+row pa 354 shut base
+row pb 354 open west
+row pb 354 shut east
+row acct 355 9 ?f763 ?f764 ?f765
+row pa 355 open base
+row pa 355 shut gold
+row pb 355 open east
+row pb 355 shut west
+row acct 356 9 ?f766 ?f767 ?f768
+row pa 356 open gold
+row pa 356 shut base
+row pb 356 open west
+row pb 356 shut east
+row acct 357 9 ?f769 ?f770 ?f771
+row pa 357 open base
+row pa 357 shut gold
+row pb 357 open east
+row pb 357 shut west
+row acct 358 9 ?f772 ?f773 ?f774
+row pa 358 open gold
+row pa 358 shut base
+row pb 358 open west
+row pb 358 shut east
+row acct 359 9 ?f775 ?f776 ?f777
+row pa 359 open gold
+row pa 359 shut base
+row pb 359 open west
+row pb 359 shut east
+row acct 360 9 ?f778 ?f779 ?f780
+row pa 360 open gold
+row pa 360 shut base
+row pb 360 open west
+row pb 360 shut east
+row acct 361 9 ?f781 ?f782 ?f783
+row pa 361 open base
+row pa 361 shut gold
+row pb 361 open east
+row pb 361 shut west
+row acct 362 9 ?f784 ?f785 ?f786
+row pa 362 open gold
+row pa 362 shut base
+row pb 362 open west
+row pb 362 shut east
+row acct 363 9 ?f787 ?f788 ?f789
+row pa 363 open gold
+row pa 363 shut base
+row pb 363 open west
+row pb 363 shut east
+row acct 364 9 ?f790 ?f791 ?f792
+row pa 364 open base
+row pa 364 shut gold
+row pb 364 open east
+row pb 364 shut west
+row acct 365 9 ?f793 ?f794 ?f795
+row pa 365 open gold
+row pa 365 shut base
+row pb 365 open west
+row pb 365 shut east
+row acct 366 9 ?f796 ?f797 ?f798
+row pa 366 open gold
+row pa 366 shut base
+row pb 366 open west
+row pb 366 shut east
+row acct 367 9 ?f799 ?f800 ?f801
+row pa 367 open base
+row pa 367 shut gold
+row pb 367 open east
+row pb 367 shut west
+row acct 368 9 ?f802 ?f803 ?f804
+row pa 368 open gold
+row pa 368 shut base
+row pb 368 open west
+row pb 368 shut east
+row acct 369 9 ?f805 ?f806 ?f807
+row pa 369 open base
+row pa 369 shut gold
+row pb 369 open east
+row pb 369 shut west
+row acct 370 9 ?f808 ?f809 ?f810
+row pa 370 open base
+row pa 370 shut gold
+row pb 370 open east
+row pb 370 shut west
+row acct 371 10 ?f811 ?f812 ?f813
+row pa 371 open gold
+row pa 371 shut base
+row pb 371 open west
+row pb 371 shut east
+row acct 372 10 ?f814 ?f815 ?f816
+row pa 372 open base
+row pa 372 shut gold
+row pb 372 open east
+row pb 372 shut west
+row acct 373 10 ?f817 ?f818 ?f819
+row pa 373 open base
+row pa 373 shut gold
+row pb 373 open east
+row pb 373 shut west
+row acct 374 10 ?f820 ?f821 ?f822
+row pa 374 open base
+row pa 374 shut gold
+row pb 374 open east
+row pb 374 shut west
+row acct 375 10 ?f823 ?f824 ?f825
+row pa 375 open gold
+row pa 375 shut base
+row pb 375 open west
+row pb 375 shut east
+row acct 376 10 ?f826 ?f827 ?f828
+row pa 376 open gold
+row pa 376 shut base
+row pb 376 open west
+row pb 376 shut east
+row acct 377 10 ?f829 ?f830 ?f831
+row pa 377 open base
+row pa 377 shut gold
+row pb 377 open east
+row pb 377 shut west
+row acct 378 10 ?f832 ?f833 ?f834
+row pa 378 open gold
+row pa 378 shut base
+row pb 378 open west
+row pb 378 shut east
+row acct 379 10 ?f835 ?f836 ?f837
+row pa 379 open gold
+row pa 379 shut base
+row pb 379 open west
+row pb 379 shut east
+row acct 380 10 ?f838 ?f839 ?f840
+row pa 380 open base
+row pa 380 shut gold
+row pb 380 open east
+row pb 380 shut west
+row acct 381 10 ?f841 ?f842 ?f843
+row pa 381 open base
+row pa 381 shut gold
+row pb 381 open east
+row pb 381 shut west
+row acct 382 10 ?f844 ?f845 ?f846
+row pa 382 open gold
+row pa 382 shut base
+row pb 382 open west
+row pb 382 shut east
+row acct 383 10 ?f847 ?f848 ?f849
+row pa 383 open base
+row pa 383 shut gold
+row pb 383 open east
+row pb 383 shut west
+row acct 384 10 ?f850 ?f851 ?f852
+row pa 384 open base
+row pa 384 shut gold
+row pb 384 open east
+row pb 384 shut west
+row acct 385 10 ?f853 ?f854 ?f855
+row pa 385 open base
+row pa 385 shut gold
+row pb 385 open east
+row pb 385 shut west
+row acct 386 10 ?f856 ?f857 ?f858
+row pa 386 open base
+row pa 386 shut gold
+row pb 386 open east
+row pb 386 shut west
+row acct 387 10 ?f859 ?f860 ?f861
+row pa 387 open base
+row pa 387 shut gold
+row pb 387 open east
+row pb 387 shut west
+row acct 388 10 ?f862 ?f863 ?f864
+row pa 388 open base
+row pa 388 shut gold
+row pb 388 open east
+row pb 388 shut west
+row acct 389 10 ?f865 ?f866 ?f867
+row pa 389 open base
+row pa 389 shut gold
+row pb 389 open east
+row pb 389 shut west
+row acct 390 10 ?f868 ?f869 ?f870
+row pa 390 open gold
+row pa 390 shut base
+row pb 390 open west
+row pb 390 shut east
+row acct 391 10 ?f871 ?f872 ?f873
+row pa 391 open base
+row pa 391 shut gold
+row pb 391 open east
+row pb 391 shut west
+row acct 392 10 ?f874 ?f875 ?f876
+row pa 392 open base
+row pa 392 shut gold
+row pb 392 open east
+row pb 392 shut west
+row acct 393 10 ?f877 ?f878 ?f879
+row pa 393 open gold
+row pa 393 shut base
+row pb 393 open west
+row pb 393 shut east
+row acct 394 10 ?f880 ?f881 ?f882
+row pa 394 open gold
+row pa 394 shut base
+row pb 394 open west
+row pb 394 shut east
+row acct 395 10 ?f883 ?f884 ?f885
+row pa 395 open base
+row pa 395 shut gold
+row pb 395 open east
+row pb 395 shut west
+row acct 396 10 ?f886 ?f887 ?f888
+row pa 396 open base
+row pa 396 shut gold
+row pb 396 open east
+row pb 396 shut west
+row acct 397 10 ?f889 ?f890 ?f891
+row pa 397 open base
+row pa 397 shut gold
+row pb 397 open east
+row pb 397 shut west
+row acct 398 10 ?f892 ?f893 ?f894
+row pa 398 open gold
+row pa 398 shut base
+row pb 398 open west
+row pb 398 shut east
+row acct 399 10 ?f895 ?f896 ?f897
+row pa 399 open gold
+row pa 399 shut base
+row pb 399 open west
+row pb 399 shut east
+row acct 400 10 ?f898 ?f899 ?f900
+row pa 400 open gold
+row pa 400 shut base
+row pb 400 open west
+row pb 400 shut east
+row acct 401 11 ?f901 ?f902 ?f903
+row pa 401 open base
+row pa 401 shut gold
+row pb 401 open east
+row pb 401 shut west
+row acct 402 11 ?f904 ?f905 ?f906
+row pa 402 open base
+row pa 402 shut gold
+row pb 402 open east
+row pb 402 shut west
+row acct 403 11 ?f907 ?f908 ?f909
+row pa 403 open gold
+row pa 403 shut base
+row pb 403 open west
+row pb 403 shut east
+row acct 404 11 ?f910 ?f911 ?f912
+row pa 404 open gold
+row pa 404 shut base
+row pb 404 open west
+row pb 404 shut east
+row acct 405 11 ?f913 ?f914 ?f915
+row pa 405 open base
+row pa 405 shut gold
+row pb 405 open east
+row pb 405 shut west
+row acct 406 11 ?f916 ?f917 ?f918
+row pa 406 open gold
+row pa 406 shut base
+row pb 406 open west
+row pb 406 shut east
+row acct 407 11 ?f919 ?f920 ?f921
+row pa 407 open gold
+row pa 407 shut base
+row pb 407 open west
+row pb 407 shut east
+row acct 408 11 ?f922 ?f923 ?f924
+row pa 408 open gold
+row pa 408 shut base
+row pb 408 open west
+row pb 408 shut east
+row acct 409 11 ?f925 ?f926 ?f927
+row pa 409 open gold
+row pa 409 shut base
+row pb 409 open west
+row pb 409 shut east
+row acct 410 11 ?f928 ?f929 ?f930
+row pa 410 open base
+row pa 410 shut gold
+row pb 410 open east
+row pb 410 shut west
+row acct 411 11 ?f931 ?f932 ?f933
+row pa 411 open gold
+row pa 411 shut base
+row pb 411 open west
+row pb 411 shut east
+row acct 412 11 ?f934 ?f935 ?f936
+row pa 412 open base
+row pa 412 shut gold
+row pb 412 open east
+row pb 412 shut west
+row acct 413 11 ?f937 ?f938 ?f939
+row pa 413 open base
+row pa 413 shut gold
+row pb 413 open east
+row pb 413 shut west
+row acct 414 11 ?f940 ?f941 ?f942
+row pa 414 open base
+row pa 414 shut gold
+row pb 414 open east
+row pb 414 shut west
+row acct 415 11 ?f943 ?f944 ?f945
+row pa 415 open base
+row pa 415 shut gold
+row pb 415 open east
+row pb 415 shut west
+row acct 416 11 ?f946 ?f947 ?f948
+row pa 416 open gold
+row pa 416 shut base
+row pb 416 open west
+row pb 416 shut east
+row acct 417 11 ?f949 ?f950 ?f951
+row pa 417 open gold
+row pa 417 shut base
+row pb 417 open west
+row pb 417 shut east
+row acct 418 11 ?f952 ?f953 ?f954
+row pa 418 open gold
+row pa 418 shut base
+row pb 418 open west
+row pb 418 shut east
+row acct 419 11 ?f955 ?f956 ?f957
+row pa 419 open gold
+row pa 419 shut base
+row pb 419 open west
+row pb 419 shut east
+row acct 420 11 ?f958 ?f959 ?f960
+row pa 420 open base
+row pa 420 shut gold
+row pb 420 open east
+row pb 420 shut west
+row acct 421 11 ?f961 ?f962 ?f963
+row pa 421 open gold
+row pa 421 open base
+row pb 421 shut east
+row pb 421 shut west
+row acct 422 11 ?f964 ?f965 ?f966
+row pa 422 open gold
+row pa 422 shut base
+row pb 422 open west
+row pb 422 shut east
+row acct 423 11 ?f967 ?f968 ?f969
+row pa 423 open base
+row pa 423 shut gold
+row pb 423 open east
+row pb 423 shut west
+row acct 424 11 ?f970 ?f971 ?f972
+row pa 424 open gold
+row pa 424 shut base
+row pb 424 open west
+row pb 424 shut east
+row acct 425 11 ?f973 ?f974 ?f975
+row pa 425 open gold
+row pa 425 shut base
+row pb 425 open west
+row pb 425 shut east
+row acct 426 11 ?f976 ?f977 ?f978
+row pa 426 open base
+row pa 426 shut gold
+row pb 426 open east
+row pb 426 shut west
+row acct 427 11 ?f979 ?f980 ?f981
+row pa 427 open base
+row pa 427 shut gold
+row pb 427 open east
+row pb 427 shut west
+row acct 428 11 ?f982 ?f983 ?f984
+row pa 428 open gold
+row pa 428 shut base
+row pb 428 open west
+row pb 428 shut east
+row acct 429 11 ?f985 ?f986 ?f987
+row pa 429 open base
+row pa 429 shut gold
+row pb 429 open east
+row pb 429 shut west
+row acct 430 11 ?f988 ?f989 ?f990
+row pa 430 open base
+row pa 430 shut gold
+row pb 430 open east
+row pb 430 shut west
+row acct 431 12 ?f991 ?f992 ?f993
+row pa 431 open gold
+row pa 431 shut base
+row pb 431 open west
+row pb 431 shut east
+row acct 432 12 ?f994 ?f995 ?f996
+row pa 432 open gold
+row pa 432 shut base
+row pb 432 open west
+row pb 432 shut east
+row acct 433 12 ?f997 ?f998 ?f999
+row pa 433 open base
+row pa 433 shut gold
+row pb 433 open east
+row pb 433 shut west
+row acct 434 12 ?f1000 ?f1001 ?f1002
+row pa 434 open gold
+row pa 434 shut base
+row pb 434 open west
+row pb 434 shut east
+row acct 435 12 ?f1003 ?f1004 ?f1005
+row pa 435 open base
+row pa 435 shut gold
+row pb 435 open east
+row pb 435 shut west
+row acct 436 12 ?f1006 ?f1007 ?f1008
+row pa 436 open gold
+row pa 436 shut base
+row pb 436 open west
+row pb 436 shut east
+row acct 437 12 ?f1009 ?f1010 ?f1011
+row pa 437 open base
+row pa 437 shut gold
+row pb 437 open east
+row pb 437 shut west
+row acct 438 12 ?f1012 ?f1013 ?f1014
+row pa 438 open gold
+row pa 438 shut base
+row pb 438 open west
+row pb 438 shut east
+row acct 439 12 ?f1015 ?f1016 ?f1017
+row pa 439 open base
+row pa 439 shut gold
+row pb 439 open east
+row pb 439 shut west
+row acct 440 12 ?f1018 ?f1019 ?f1020
+row pa 440 open base
+row pa 440 shut gold
+row pb 440 open east
+row pb 440 shut west
+row acct 441 12 ?f1021 ?f1022 ?f1023
+row pa 441 open base
+row pa 441 shut gold
+row pb 441 open east
+row pb 441 shut west
+row acct 442 12 ?f1024 ?f1025 ?f1026
+row pa 442 open base
+row pa 442 shut gold
+row pb 442 open east
+row pb 442 shut west
+row acct 443 12 ?f1027 ?f1028 ?f1029
+row pa 443 open base
+row pa 443 shut gold
+row pb 443 open east
+row pb 443 shut west
+row acct 444 12 ?f1030 ?f1031 ?f1032
+row pa 444 open base
+row pa 444 shut gold
+row pb 444 open east
+row pb 444 shut west
+row acct 445 12 ?f1033 ?f1034 ?f1035
+row pa 445 open gold
+row pa 445 shut base
+row pb 445 open west
+row pb 445 shut east
+row acct 446 12 ?f1036 ?f1037 ?f1038
+row pa 446 open base
+row pa 446 shut gold
+row pb 446 open east
+row pb 446 shut west
+row acct 447 12 ?f1039 ?f1040 ?f1041
+row pa 447 open gold
+row pa 447 shut base
+row pb 447 open west
+row pb 447 shut east
+row acct 448 12 ?f1042 ?f1043 ?f1044
+row pa 448 open gold
+row pa 448 shut base
+row pb 448 open west
+row pb 448 shut east
+row acct 449 12 ?f1045 ?f1046 ?f1047
+row pa 449 open base
+row pa 449 shut gold
+row pb 449 open east
+row pb 449 shut west
+row acct 450 12 ?f1048 ?f1049 ?f1050
+row pa 450 open gold
+row pa 450 open base
+row pb 450 shut east
+row pb 450 shut west
+row acct 451 12 ?f1051 ?f1052 ?f1053
+row pa 451 open gold
+row pa 451 shut base
+row pb 451 open west
+row pb 451 shut east
+row acct 452 12 ?f1054 ?f1055 ?f1056
+row pa 452 open gold
+row pa 452 shut base
+row pb 452 open west
+row pb 452 shut east
+row acct 453 12 ?f1057 ?f1058 ?f1059
+row pa 453 open base
+row pa 453 shut gold
+row pb 453 open east
+row pb 453 shut west
+row acct 454 12 ?f1060 ?f1061 ?f1062
+row pa 454 open base
+row pa 454 shut gold
+row pb 454 open east
+row pb 454 shut west
+row acct 455 12 ?f1063 ?f1064 ?f1065
+row pa 455 open base
+row pa 455 shut gold
+row pb 455 open east
+row pb 455 shut west
+row acct 456 12 ?f1066 ?f1067 ?f1068
+row pa 456 open base
+row pa 456 shut gold
+row pb 456 open east
+row pb 456 shut west
+row acct 457 12 ?f1069 ?f1070 ?f1071
+row pa 457 open gold
+row pa 457 shut base
+row pb 457 open west
+row pb 457 shut east
+row acct 458 12 ?f1072 ?f1073 ?f1074
+row pa 458 open gold
+row pa 458 shut base
+row pb 458 open west
+row pb 458 shut east
+row acct 459 12 ?f1075 ?f1076 ?f1077
+row pa 459 open base
+row pa 459 shut gold
+row pb 459 open east
+row pb 459 shut west
+row acct 460 12 ?f1078 ?f1079 ?f1080
+row pa 460 open base
+row pa 460 shut gold
+row pb 460 open east
+row pb 460 shut west
+row acct 461 13 ?f1081 ?f1082 ?f1083
+row pa 461 open base
+row pa 461 shut gold
+row pb 461 open east
+row pb 461 shut west
+row acct 462 13 ?f1084 ?f1085 ?f1086
+row pa 462 open gold
+row pa 462 shut base
+row pb 462 open west
+row pb 462 shut east
+row acct 463 13 ?f1087 ?f1088 ?f1089
+row pa 463 open base
+row pa 463 shut gold
+row pb 463 open east
+row pb 463 shut west
+row acct 464 13 ?f1090 ?f1091 ?f1092
+row pa 464 open base
+row pa 464 shut gold
+row pb 464 open east
+row pb 464 shut west
+row acct 465 13 ?f1093 ?f1094 ?f1095
+row pa 465 open base
+row pa 465 shut gold
+row pb 465 open east
+row pb 465 shut west
+row acct 466 13 ?f1096 ?f1097 ?f1098
+row pa 466 open base
+row pa 466 shut gold
+row pb 466 open east
+row pb 466 shut west
+row acct 467 13 ?f1099 ?f1100 ?f1101
+row pa 467 open gold
+row pa 467 shut base
+row pb 467 open west
+row pb 467 shut east
+row acct 468 13 ?f1102 ?f1103 ?f1104
+row pa 468 open base
+row pa 468 shut gold
+row pb 468 open east
+row pb 468 shut west
+row acct 469 13 ?f1105 ?f1106 ?f1107
+row pa 469 open base
+row pa 469 shut gold
+row pb 469 open east
+row pb 469 shut west
+row acct 470 13 ?f1108 ?f1109 ?f1110
+row pa 470 open gold
+row pa 470 shut base
+row pb 470 open west
+row pb 470 shut east
+row acct 471 13 ?f1111 ?f1112 ?f1113
+row pa 471 open base
+row pa 471 shut gold
+row pb 471 open east
+row pb 471 shut west
+row acct 472 13 ?f1114 ?f1115 ?f1116
+row pa 472 open gold
+row pa 472 shut base
+row pb 472 open west
+row pb 472 shut east
+row acct 473 13 ?f1117 ?f1118 ?f1119
+row pa 473 open gold
+row pa 473 shut base
+row pb 473 open west
+row pb 473 shut east
+row acct 474 13 ?f1120 ?f1121 ?f1122
+row pa 474 open gold
+row pa 474 shut base
+row pb 474 open west
+row pb 474 shut east
+row acct 475 13 ?f1123 ?f1124 ?f1125
+row pa 475 open gold
+row pa 475 shut base
+row pb 475 open west
+row pb 475 shut east
+row acct 476 13 ?f1126 ?f1127 ?f1128
+row pa 476 open base
+row pa 476 shut gold
+row pb 476 open east
+row pb 476 shut west
+row acct 477 13 ?f1129 ?f1130 ?f1131
+row pa 477 open base
+row pa 477 shut gold
+row pb 477 open east
+row pb 477 shut west
+row acct 478 13 ?f1132 ?f1133 ?f1134
+row pa 478 open gold
+row pa 478 shut base
+row pb 478 open west
+row pb 478 shut east
+row acct 479 13 ?f1135 ?f1136 ?f1137
+row pa 479 open gold
+row pa 479 shut base
+row pb 479 open west
+row pb 479 shut east
+row acct 480 13 ?f1138 ?f1139 ?f1140
+row pa 480 open gold
+row pa 480 shut base
+row pb 480 open west
+row pb 480 shut east
+row acct 481 13 ?f1141 ?f1142 ?f1143
+row pa 481 open gold
+row pa 481 shut base
+row pb 481 open west
+row pb 481 shut east
+row acct 482 13 ?f1144 ?f1145 ?f1146
+row pa 482 open gold
+row pa 482 shut base
+row pb 482 open west
+row pb 482 shut east
+row acct 483 13 ?f1147 ?f1148 ?f1149
+row pa 483 open gold
+row pa 483 shut base
+row pb 483 open west
+row pb 483 shut east
+row acct 484 13 ?f1150 ?f1151 ?f1152
+row pa 484 open gold
+row pa 484 shut base
+row pb 484 open west
+row pb 484 shut east
+row acct 485 13 ?f1153 ?f1154 ?f1155
+row pa 485 open gold
+row pa 485 shut base
+row pb 485 open west
+row pb 485 shut east
+row acct 486 13 ?f1156 ?f1157 ?f1158
+row pa 486 open base
+row pa 486 shut gold
+row pb 486 open east
+row pb 486 shut west
+row acct 487 13 ?f1159 ?f1160 ?f1161
+row pa 487 open base
+row pa 487 shut gold
+row pb 487 open east
+row pb 487 shut west
+row acct 488 13 ?f1162 ?f1163 ?f1164
+row pa 488 open gold
+row pa 488 shut base
+row pb 488 open west
+row pb 488 shut east
+row acct 489 13 ?f1165 ?f1166 ?f1167
+row pa 489 open base
+row pa 489 shut gold
+row pb 489 open east
+row pb 489 shut west
+row acct 490 13 ?f1168 ?f1169 ?f1170
+row pa 490 open gold
+row pa 490 shut base
+row pb 490 open west
+row pb 490 shut east
+row acct 491 14 ?f1171 ?f1172 ?f1173
+row pa 491 open gold
+row pa 491 shut base
+row pb 491 open west
+row pb 491 shut east
+row acct 492 14 ?f1174 ?f1175 ?f1176
+row pa 492 open gold
+row pa 492 shut base
+row pb 492 open west
+row pb 492 shut east
+row acct 493 14 ?f1177 ?f1178 ?f1179
+row pa 493 open gold
+row pa 493 shut base
+row pb 493 open west
+row pb 493 shut east
+row acct 494 14 ?f1180 ?f1181 ?f1182
+row pa 494 open base
+row pa 494 shut gold
+row pb 494 open east
+row pb 494 shut west
+row acct 495 14 ?f1183 ?f1184 ?f1185
+row pa 495 open base
+row pa 495 shut gold
+row pb 495 open east
+row pb 495 shut west
+row acct 496 14 ?f1186 ?f1187 ?f1188
+row pa 496 open gold
+row pa 496 shut base
+row pb 496 open west
+row pb 496 shut east
+row acct 497 14 ?f1189 ?f1190 ?f1191
+row pa 497 open base
+row pa 497 shut gold
+row pb 497 open east
+row pb 497 shut west
+row acct 498 14 ?f1192 ?f1193 ?f1194
+row pa 498 open gold
+row pa 498 shut base
+row pb 498 open west
+row pb 498 shut east
+row acct 499 14 ?f1195 ?f1196 ?f1197
+row pa 499 open base
+row pa 499 shut gold
+row pb 499 open east
+row pb 499 shut west
+row acct 500 14 ?f1198 ?f1199 ?f1200
+row pa 500 open gold
+row pa 500 shut base
+row pb 500 open west
+row pb 500 shut east
+row acct 501 14 ?f1201 ?f1202 ?f1203
+row pa 501 open gold
+row pa 501 shut base
+row pb 501 open west
+row pb 501 shut east
+row acct 502 14 ?f1204 ?f1205 ?f1206
+row pa 502 open base
+row pa 502 shut gold
+row pb 502 open east
+row pb 502 shut west
+row acct 503 14 ?f1207 ?f1208 ?f1209
+row pa 503 open gold
+row pa 503 shut base
+row pb 503 open west
+row pb 503 shut east
+row acct 504 14 ?f1210 ?f1211 ?f1212
+row pa 504 open base
+row pa 504 shut gold
+row pb 504 open east
+row pb 504 shut west
+row acct 505 14 ?f1213 ?f1214 ?f1215
+row pa 505 open base
+row pa 505 shut gold
+row pb 505 open east
+row pb 505 shut west
+row acct 506 14 ?f1216 ?f1217 ?f1218
+row pa 506 open gold
+row pa 506 shut base
+row pb 506 open west
+row pb 506 shut east
+row acct 507 14 ?f1219 ?f1220 ?f1221
+row pa 507 open gold
+row pa 507 shut base
+row pb 507 open west
+row pb 507 shut east
+row acct 508 14 ?f1222 ?f1223 ?f1224
+row pa 508 open base
+row pa 508 shut gold
+row pb 508 open east
+row pb 508 shut west
+row acct 509 14 ?f1225 ?f1226 ?f1227
+row pa 509 open base
+row pa 509 shut gold
+row pb 509 open east
+row pb 509 shut west
+row acct 510 14 ?f1228 ?f1229 ?f1230
+row pa 510 open gold
+row pa 510 shut base
+row pb 510 open west
+row pb 510 shut east
+row acct 511 14 ?f1231 ?f1232 ?f1233
+row pa 511 open base
+row pa 511 shut gold
+row pb 511 open east
+row pb 511 shut west
+row acct 512 14 ?f1234 ?f1235 ?f1236
+row pa 512 open base
+row pa 512 shut gold
+row pb 512 open east
+row pb 512 shut west
+row acct 513 14 ?f1237 ?f1238 ?f1239
+row pa 513 open gold
+row pa 513 shut base
+row pb 513 open west
+row pb 513 shut east
+row acct 514 14 ?f1240 ?f1241 ?f1242
+row pa 514 open gold
+row pa 514 shut base
+row pb 514 open west
+row pb 514 shut east
+row acct 515 14 ?f1243 ?f1244 ?f1245
+row pa 515 open base
+row pa 515 shut gold
+row pb 515 open east
+row pb 515 shut west
+row acct 516 14 ?f1246 ?f1247 ?f1248
+row pa 516 open base
+row pa 516 shut gold
+row pb 516 open east
+row pb 516 shut west
+row acct 517 14 ?f1249 ?f1250 ?f1251
+row pa 517 open gold
+row pa 517 shut base
+row pb 517 open west
+row pb 517 shut east
+row acct 518 14 ?f1252 ?f1253 ?f1254
+row pa 518 open gold
+row pa 518 shut base
+row pb 518 open west
+row pb 518 shut east
+row acct 519 14 ?f1255 ?f1256 ?f1257
+row pa 519 open gold
+row pa 519 shut base
+row pb 519 open west
+row pb 519 shut east
+row acct 520 14 ?f1258 ?f1259 ?f1260
+row pa 520 open gold
+row pa 520 shut base
+row pb 520 open west
+row pb 520 shut east
+row acct 521 15 ?f1261 ?f1262 ?f1263
+row pa 521 open base
+row pa 521 shut gold
+row pb 521 open east
+row pb 521 shut west
+row acct 522 15 ?f1264 ?f1265 ?f1266
+row pa 522 open gold
+row pa 522 shut base
+row pb 522 open west
+row pb 522 shut east
+row acct 523 15 ?f1267 ?f1268 ?f1269
+row pa 523 open gold
+row pa 523 shut base
+row pb 523 open west
+row pb 523 shut east
+row acct 524 15 ?f1270 ?f1271 ?f1272
+row pa 524 open gold
+row pa 524 shut base
+row pb 524 open west
+row pb 524 shut east
+row acct 525 15 ?f1273 ?f1274 ?f1275
+row pa 525 open gold
+row pa 525 shut base
+row pb 525 open west
+row pb 525 shut east
+row acct 526 15 ?f1276 ?f1277 ?f1278
+row pa 526 open gold
+row pa 526 shut base
+row pb 526 open west
+row pb 526 shut east
+row acct 527 15 ?f1279 ?f1280 ?f1281
+row pa 527 open base
+row pa 527 shut gold
+row pb 527 open east
+row pb 527 shut west
+row acct 528 15 ?f1282 ?f1283 ?f1284
+row pa 528 open base
+row pa 528 shut gold
+row pb 528 open east
+row pb 528 shut west
+row acct 529 15 ?f1285 ?f1286 ?f1287
+row pa 529 open base
+row pa 529 shut gold
+row pb 529 open east
+row pb 529 shut west
+row acct 530 15 ?f1288 ?f1289 ?f1290
+row pa 530 open gold
+row pa 530 shut base
+row pb 530 open west
+row pb 530 shut east
+row acct 531 15 ?f1291 ?f1292 ?f1293
+row pa 531 open gold
+row pa 531 shut base
+row pb 531 open west
+row pb 531 shut east
+row acct 532 15 ?f1294 ?f1295 ?f1296
+row pa 532 open gold
+row pa 532 shut base
+row pb 532 open west
+row pb 532 shut east
+row acct 533 15 ?f1297 ?f1298 ?f1299
+row pa 533 open base
+row pa 533 shut gold
+row pb 533 open east
+row pb 533 shut west
+row acct 534 15 ?f1300 ?f1301 ?f1302
+row pa 534 open gold
+row pa 534 shut base
+row pb 534 open west
+row pb 534 shut east
+row acct 535 15 ?f1303 ?f1304 ?f1305
+row pa 535 open gold
+row pa 535 shut base
+row pb 535 open west
+row pb 535 shut east
+row acct 536 15 ?f1306 ?f1307 ?f1308
+row pa 536 open base
+row pa 536 shut gold
+row pb 536 open east
+row pb 536 shut west
+row acct 537 15 ?f1309 ?f1310 ?f1311
+row pa 537 open base
+row pa 537 shut gold
+row pb 537 open east
+row pb 537 shut west
+row acct 538 15 ?f1312 ?f1313 ?f1314
+row pa 538 open gold
+row pa 538 shut base
+row pb 538 open west
+row pb 538 shut east
+row acct 539 15 ?f1315 ?f1316 ?f1317
+row pa 539 open gold
+row pa 539 shut base
+row pb 539 open west
+row pb 539 shut east
+row acct 540 15 ?f1318 ?f1319 ?f1320
+row pa 540 open gold
+row pa 540 shut base
+row pb 540 open west
+row pb 540 shut east
+row acct 541 15 ?f1321 ?f1322 ?f1323
+row pa 541 open base
+row pa 541 shut gold
+row pb 541 open east
+row pb 541 shut west
+row acct 542 15 ?f1324 ?f1325 ?f1326
+row pa 542 open base
+row pa 542 shut gold
+row pb 542 open east
+row pb 542 shut west
+row acct 543 15 ?f1327 ?f1328 ?f1329
+row pa 543 open gold
+row pa 543 shut base
+row pb 543 open west
+row pb 543 shut east
+row acct 544 15 ?f1330 ?f1331 ?f1332
+row pa 544 open base
+row pa 544 shut gold
+row pb 544 open east
+row pb 544 shut west
+row acct 545 15 ?f1333 ?f1334 ?f1335
+row pa 545 open gold
+row pa 545 shut base
+row pb 545 open west
+row pb 545 shut east
+row acct 546 15 ?f1336 ?f1337 ?f1338
+row pa 546 open base
+row pa 546 shut gold
+row pb 546 open east
+row pb 546 shut west
+row acct 547 15 ?f1339 ?f1340 ?f1341
+row pa 547 open base
+row pa 547 shut gold
+row pb 547 open east
+row pb 547 shut west
+row acct 548 15 ?f1342 ?f1343 ?f1344
+row pa 548 open base
+row pa 548 shut gold
+row pb 548 open east
+row pb 548 shut west
+row acct 549 15 ?f1345 ?f1346 ?f1347
+row pa 549 open gold
+row pa 549 shut base
+row pb 549 open west
+row pb 549 shut east
+row acct 550 15 ?f1348 ?f1349 ?f1350
+row pa 550 open base
+row pa 550 shut gold
+row pb 550 open east
+row pb 550 shut west
+row acct 551 16 ?f1351 ?f1352 ?f1353
+row pa 551 open gold
+row pa 551 shut base
+row pb 551 open west
+row pb 551 shut east
+row acct 552 16 ?f1354 ?f1355 ?f1356
+row pa 552 open base
+row pa 552 shut gold
+row pb 552 open east
+row pb 552 shut west
+row acct 553 16 ?f1357 ?f1358 ?f1359
+row pa 553 open base
+row pa 553 shut gold
+row pb 553 open east
+row pb 553 shut west
+row acct 554 16 ?f1360 ?f1361 ?f1362
+row pa 554 open base
+row pa 554 shut gold
+row pb 554 open east
+row pb 554 shut west
+row acct 555 16 ?f1363 ?f1364 ?f1365
+row pa 555 open gold
+row pa 555 shut base
+row pb 555 open west
+row pb 555 shut east
+row acct 556 16 ?f1366 ?f1367 ?f1368
+row pa 556 open gold
+row pa 556 shut base
+row pb 556 open west
+row pb 556 shut east
+row acct 557 16 ?f1369 ?f1370 ?f1371
+row pa 557 open base
+row pa 557 shut gold
+row pb 557 open east
+row pb 557 shut west
+row acct 558 16 ?f1372 ?f1373 ?f1374
+row pa 558 open base
+row pa 558 shut gold
+row pb 558 open east
+row pb 558 shut west
+row acct 559 16 ?f1375 ?f1376 ?f1377
+row pa 559 open base
+row pa 559 shut gold
+row pb 559 open east
+row pb 559 shut west
+row acct 560 16 ?f1378 ?f1379 ?f1380
+row pa 560 open base
+row pa 560 shut gold
+row pb 560 open east
+row pb 560 shut west
+row acct 561 16 ?f1381 ?f1382 ?f1383
+row pa 561 open gold
+row pa 561 shut base
+row pb 561 open west
+row pb 561 shut east
+row acct 562 16 ?f1384 ?f1385 ?f1386
+row pa 562 open base
+row pa 562 shut gold
+row pb 562 open east
+row pb 562 shut west
+row acct 563 16 ?f1387 ?f1388 ?f1389
+row pa 563 open gold
+row pa 563 shut base
+row pb 563 open west
+row pb 563 shut east
+row acct 564 16 ?f1390 ?f1391 ?f1392
+row pa 564 open base
+row pa 564 shut gold
+row pb 564 open east
+row pb 564 shut west
+row acct 565 16 ?f1393 ?f1394 ?f1395
+row pa 565 open base
+row pa 565 shut gold
+row pb 565 open east
+row pb 565 shut west
+row acct 566 16 ?f1396 ?f1397 ?f1398
+row pa 566 open base
+row pa 566 shut gold
+row pb 566 open east
+row pb 566 shut west
+row acct 567 16 ?f1399 ?f1400 ?f1401
+row pa 567 open base
+row pa 567 shut gold
+row pb 567 open east
+row pb 567 shut west
+row acct 568 16 ?f1402 ?f1403 ?f1404
+row pa 568 open base
+row pa 568 shut gold
+row pb 568 open east
+row pb 568 shut west
+row acct 569 16 ?f1405 ?f1406 ?f1407
+row pa 569 open gold
+row pa 569 shut base
+row pb 569 open west
+row pb 569 shut east
+row acct 570 16 ?f1408 ?f1409 ?f1410
+row pa 570 open base
+row pa 570 shut gold
+row pb 570 open east
+row pb 570 shut west
+row acct 571 16 ?f1411 ?f1412 ?f1413
+row pa 571 open base
+row pa 571 shut gold
+row pb 571 open east
+row pb 571 shut west
+row acct 572 16 ?f1414 ?f1415 ?f1416
+row pa 572 open base
+row pa 572 shut gold
+row pb 572 open east
+row pb 572 shut west
+row acct 573 16 ?f1417 ?f1418 ?f1419
+row pa 573 open gold
+row pa 573 shut base
+row pb 573 open west
+row pb 573 shut east
+row acct 574 16 ?f1420 ?f1421 ?f1422
+row pa 574 open gold
+row pa 574 shut base
+row pb 574 open west
+row pb 574 shut east
+row acct 575 16 ?f1423 ?f1424 ?f1425
+row pa 575 open gold
+row pa 575 shut base
+row pb 575 open west
+row pb 575 shut east
+row acct 576 16 ?f1426 ?f1427 ?f1428
+row pa 576 open gold
+row pa 576 shut base
+row pb 576 open west
+row pb 576 shut east
+row acct 577 16 ?f1429 ?f1430 ?f1431
+row pa 577 open base
+row pa 577 shut gold
+row pb 577 open east
+row pb 577 shut west
+row acct 578 16 ?f1432 ?f1433 ?f1434
+row pa 578 open gold
+row pa 578 shut base
+row pb 578 open west
+row pb 578 shut east
+row acct 579 16 ?f1435 ?f1436 ?f1437
+row pa 579 open base
+row pa 579 shut gold
+row pb 579 open east
+row pb 579 shut west
+row acct 580 16 ?f1438 ?f1439 ?f1440
+row pa 580 open base
+row pa 580 shut gold
+row pb 580 open east
+row pb 580 shut west
+row acct 581 17 ?f1441 ?f1442 ?f1443
+row pa 581 open gold
+row pa 581 shut base
+row pb 581 open west
+row pb 581 shut east
+row acct 582 17 ?f1444 ?f1445 ?f1446
+row pa 582 open base
+row pa 582 shut gold
+row pb 582 open east
+row pb 582 shut west
+row acct 583 17 ?f1447 ?f1448 ?f1449
+row pa 583 open base
+row pa 583 shut gold
+row pb 583 open east
+row pb 583 shut west
+row acct 584 17 ?f1450 ?f1451 ?f1452
+row pa 584 open gold
+row pa 584 shut base
+row pb 584 open west
+row pb 584 shut east
+row acct 585 17 ?f1453 ?f1454 ?f1455
+row pa 585 open base
+row pa 585 shut gold
+row pb 585 open east
+row pb 585 shut west
+row acct 586 17 ?f1456 ?f1457 ?f1458
+row pa 586 open base
+row pa 586 shut gold
+row pb 586 open east
+row pb 586 shut west
+row acct 587 17 ?f1459 ?f1460 ?f1461
+row pa 587 open base
+row pa 587 shut gold
+row pb 587 open east
+row pb 587 shut west
+row acct 588 17 ?f1462 ?f1463 ?f1464
+row pa 588 open gold
+row pa 588 shut base
+row pb 588 open west
+row pb 588 shut east
+row acct 589 17 ?f1465 ?f1466 ?f1467
+row pa 589 open base
+row pa 589 shut gold
+row pb 589 open east
+row pb 589 shut west
+row acct 590 17 ?f1468 ?f1469 ?f1470
+row pa 590 open base
+row pa 590 shut gold
+row pb 590 open east
+row pb 590 shut west
+row acct 591 17 ?f1471 ?f1472 ?f1473
+row pa 591 open base
+row pa 591 shut gold
+row pb 591 open east
+row pb 591 shut west
+row acct 592 17 ?f1474 ?f1475 ?f1476
+row pa 592 open gold
+row pa 592 shut base
+row pb 592 open west
+row pb 592 shut east
+row acct 593 17 ?f1477 ?f1478 ?f1479
+row pa 593 open gold
+row pa 593 shut base
+row pb 593 open west
+row pb 593 shut east
+row acct 594 17 ?f1480 ?f1481 ?f1482
+row pa 594 open base
+row pa 594 shut gold
+row pb 594 open east
+row pb 594 shut west
+row acct 595 17 ?f1483 ?f1484 ?f1485
+row pa 595 open base
+row pa 595 shut gold
+row pb 595 open east
+row pb 595 shut west
+row acct 596 17 ?f1486 ?f1487 ?f1488
+row pa 596 open base
+row pa 596 shut gold
+row pb 596 open east
+row pb 596 shut west
+row acct 597 17 ?f1489 ?f1490 ?f1491
+row pa 597 open base
+row pa 597 shut gold
+row pb 597 open east
+row pb 597 shut west
+row acct 598 17 ?f1492 ?f1493 ?f1494
+row pa 598 open base
+row pa 598 shut gold
+row pb 598 open east
+row pb 598 shut west
+row acct 599 17 ?f1495 ?f1496 ?f1497
+row pa 599 open gold
+row pa 599 shut base
+row pb 599 open west
+row pb 599 shut east
+row acct 600 17 ?f1498 ?f1499 ?f1500
+row pa 600 open base
+row pa 600 shut gold
+row pb 600 open east
+row pb 600 shut west
+row acct 601 17 ?f1501 ?f1502 ?f1503
+row pa 601 open gold
+row pa 601 shut base
+row pb 601 open west
+row pb 601 shut east
+row acct 602 17 ?f1504 ?f1505 ?f1506
+row pa 602 open base
+row pa 602 shut gold
+row pb 602 open east
+row pb 602 shut west
+row acct 603 17 ?f1507 ?f1508 ?f1509
+row pa 603 open gold
+row pa 603 shut base
+row pb 603 open west
+row pb 603 shut east
+row acct 604 17 ?f1510 ?f1511 ?f1512
+row pa 604 open gold
+row pa 604 shut base
+row pb 604 open west
+row pb 604 shut east
+row acct 605 17 ?f1513 ?f1514 ?f1515
+row pa 605 open gold
+row pa 605 shut base
+row pb 605 open west
+row pb 605 shut east
+row acct 606 17 ?f1516 ?f1517 ?f1518
+row pa 606 open base
+row pa 606 shut gold
+row pb 606 open east
+row pb 606 shut west
+row acct 607 17 ?f1519 ?f1520 ?f1521
+row pa 607 open base
+row pa 607 shut gold
+row pb 607 open east
+row pb 607 shut west
+row acct 608 17 ?f1522 ?f1523 ?f1524
+row pa 608 open gold
+row pa 608 shut base
+row pb 608 open west
+row pb 608 shut east
+row acct 609 17 ?f1525 ?f1526 ?f1527
+row pa 609 open gold
+row pa 609 shut base
+row pb 609 open west
+row pb 609 shut east
+row acct 610 17 ?f1528 ?f1529 ?f1530
+row pa 610 open gold
+row pa 610 shut base
+row pb 610 open west
+row pb 610 shut east
+row acct 611 18 ?f1531 ?f1532 ?f1533
+row pa 611 open gold
+row pa 611 shut base
+row pb 611 open west
+row pb 611 shut east
+row acct 612 18 ?f1534 ?f1535 ?f1536
+row pa 612 open gold
+row pa 612 shut base
+row pb 612 open west
+row pb 612 shut east
+row acct 613 18 ?f1537 ?f1538 ?f1539
+row pa 613 open gold
+row pa 613 shut base
+row pb 613 open west
+row pb 613 shut east
+row acct 614 18 ?f1540 ?f1541 ?f1542
+row pa 614 open gold
+row pa 614 shut base
+row pb 614 open west
+row pb 614 shut east
+row acct 615 18 ?f1543 ?f1544 ?f1545
+row pa 615 open base
+row pa 615 shut gold
+row pb 615 open east
+row pb 615 shut west
+row acct 616 18 ?f1546 ?f1547 ?f1548
+row pa 616 open base
+row pa 616 shut gold
+row pb 616 open east
+row pb 616 shut west
+row acct 617 18 ?f1549 ?f1550 ?f1551
+row pa 617 open gold
+row pa 617 shut base
+row pb 617 open west
+row pb 617 shut east
+row acct 618 18 ?f1552 ?f1553 ?f1554
+row pa 618 open gold
+row pa 618 shut base
+row pb 618 open west
+row pb 618 shut east
+row acct 619 18 ?f1555 ?f1556 ?f1557
+row pa 619 open gold
+row pa 619 shut base
+row pb 619 open west
+row pb 619 shut east
+row acct 620 18 ?f1558 ?f1559 ?f1560
+row pa 620 open base
+row pa 620 shut gold
+row pb 620 open east
+row pb 620 shut west
+row acct 621 18 ?f1561 ?f1562 ?f1563
+row pa 621 open gold
+row pa 621 shut base
+row pb 621 open west
+row pb 621 shut east
+row acct 622 18 ?f1564 ?f1565 ?f1566
+row pa 622 open gold
+row pa 622 shut base
+row pb 622 open west
+row pb 622 shut east
+row acct 623 18 ?f1567 ?f1568 ?f1569
+row pa 623 open gold
+row pa 623 shut base
+row pb 623 open west
+row pb 623 shut east
+row acct 624 18 ?f1570 ?f1571 ?f1572
+row pa 624 open gold
+row pa 624 shut base
+row pb 624 open west
+row pb 624 shut east
+row acct 625 18 ?f1573 ?f1574 ?f1575
+row pa 625 open base
+row pa 625 shut gold
+row pb 625 open east
+row pb 625 shut west
+row acct 626 18 ?f1576 ?f1577 ?f1578
+row pa 626 open base
+row pa 626 shut gold
+row pb 626 open east
+row pb 626 shut west
+row acct 627 18 ?f1579 ?f1580 ?f1581
+row pa 627 open base
+row pa 627 shut gold
+row pb 627 open east
+row pb 627 shut west
+row acct 628 18 ?f1582 ?f1583 ?f1584
+row pa 628 open gold
+row pa 628 shut base
+row pb 628 open west
+row pb 628 shut east
+row acct 629 18 ?f1585 ?f1586 ?f1587
+row pa 629 open gold
+row pa 629 shut base
+row pb 629 open west
+row pb 629 shut east
+row acct 630 18 ?f1588 ?f1589 ?f1590
+row pa 630 open base
+row pa 630 shut gold
+row pb 630 open east
+row pb 630 shut west
+row acct 631 18 ?f1591 ?f1592 ?f1593
+row pa 631 open gold
+row pa 631 shut base
+row pb 631 open west
+row pb 631 shut east
+row acct 632 18 ?f1594 ?f1595 ?f1596
+row pa 632 open gold
+row pa 632 shut base
+row pb 632 open west
+row pb 632 shut east
+row acct 633 18 ?f1597 ?f1598 ?f1599
+row pa 633 open gold
+row pa 633 shut base
+row pb 633 open west
+row pb 633 shut east
+row acct 634 18 ?f1600 ?f1601 ?f1602
+row pa 634 open base
+row pa 634 shut gold
+row pb 634 open east
+row pb 634 shut west
+row acct 635 18 ?f1603 ?f1604 ?f1605
+row pa 635 open base
+row pa 635 shut gold
+row pb 635 open east
+row pb 635 shut west
+row acct 636 18 ?f1606 ?f1607 ?f1608
+row pa 636 open gold
+row pa 636 shut base
+row pb 636 open west
+row pb 636 shut east
+row acct 637 18 ?f1609 ?f1610 ?f1611
+row pa 637 open gold
+row pa 637 shut base
+row pb 637 open west
+row pb 637 shut east
+row acct 638 18 ?f1612 ?f1613 ?f1614
+row pa 638 open gold
+row pa 638 shut base
+row pb 638 open west
+row pb 638 shut east
+row acct 639 18 ?f1615 ?f1616 ?f1617
+row pa 639 open base
+row pa 639 shut gold
+row pb 639 open east
+row pb 639 shut west
+row acct 640 18 ?f1618 ?f1619 ?f1620
+row pa 640 open gold
+row pa 640 shut base
+row pb 640 open west
+row pb 640 shut east
+row acct 641 19 ?f1621 ?f1622 ?f1623
+row pa 641 open base
+row pa 641 shut gold
+row pb 641 open east
+row pb 641 shut west
+row acct 642 19 ?f1624 ?f1625 ?f1626
+row pa 642 open base
+row pa 642 shut gold
+row pb 642 open east
+row pb 642 shut west
+row acct 643 19 ?f1627 ?f1628 ?f1629
+row pa 643 open gold
+row pa 643 shut base
+row pb 643 open west
+row pb 643 shut east
+row acct 644 19 ?f1630 ?f1631 ?f1632
+row pa 644 open base
+row pa 644 shut gold
+row pb 644 open east
+row pb 644 shut west
+row acct 645 19 ?f1633 ?f1634 ?f1635
+row pa 645 open base
+row pa 645 shut gold
+row pb 645 open east
+row pb 645 shut west
+row acct 646 19 ?f1636 ?f1637 ?f1638
+row pa 646 open gold
+row pa 646 shut base
+row pb 646 open west
+row pb 646 shut east
+row acct 647 19 ?f1639 ?f1640 ?f1641
+row pa 647 open gold
+row pa 647 shut base
+row pb 647 open west
+row pb 647 shut east
+row acct 648 19 ?f1642 ?f1643 ?f1644
+row pa 648 open gold
+row pa 648 shut base
+row pb 648 open west
+row pb 648 shut east
+row acct 649 19 ?f1645 ?f1646 ?f1647
+row pa 649 open base
+row pa 649 shut gold
+row pb 649 open east
+row pb 649 shut west
+row acct 650 19 ?f1648 ?f1649 ?f1650
+row pa 650 open base
+row pa 650 shut gold
+row pb 650 open east
+row pb 650 shut west
+row acct 651 19 ?f1651 ?f1652 ?f1653
+row pa 651 open gold
+row pa 651 shut base
+row pb 651 open west
+row pb 651 shut east
+row acct 652 19 ?f1654 ?f1655 ?f1656
+row pa 652 open base
+row pa 652 shut gold
+row pb 652 open east
+row pb 652 shut west
+row acct 653 19 ?f1657 ?f1658 ?f1659
+row pa 653 open gold
+row pa 653 shut base
+row pb 653 open west
+row pb 653 shut east
+row acct 654 19 ?f1660 ?f1661 ?f1662
+row pa 654 open base
+row pa 654 shut gold
+row pb 654 open east
+row pb 654 shut west
+row acct 655 19 ?f1663 ?f1664 ?f1665
+row pa 655 open base
+row pa 655 shut gold
+row pb 655 open east
+row pb 655 shut west
+row acct 656 19 ?f1666 ?f1667 ?f1668
+row pa 656 open base
+row pa 656 shut gold
+row pb 656 open east
+row pb 656 shut west
+row acct 657 19 ?f1669 ?f1670 ?f1671
+row pa 657 open base
+row pa 657 shut gold
+row pb 657 open east
+row pb 657 shut west
+row acct 658 19 ?f1672 ?f1673 ?f1674
+row pa 658 open gold
+row pa 658 shut base
+row pb 658 open west
+row pb 658 shut east
+row acct 659 19 ?f1675 ?f1676 ?f1677
+row pa 659 open gold
+row pa 659 shut base
+row pb 659 open west
+row pb 659 shut east
+row acct 660 19 ?f1678 ?f1679 ?f1680
+row pa 660 open gold
+row pa 660 shut base
+row pb 660 open west
+row pb 660 shut east
+row acct 661 19 ?f1681 ?f1682 ?f1683
+row pa 661 open gold
+row pa 661 shut base
+row pb 661 open west
+row pb 661 shut east
+row acct 662 19 ?f1684 ?f1685 ?f1686
+row pa 662 open gold
+row pa 662 shut base
+row pb 662 open west
+row pb 662 shut east
+row acct 663 19 ?f1687 ?f1688 ?f1689
+row pa 663 open base
+row pa 663 shut gold
+row pb 663 open east
+row pb 663 shut west
+row acct 664 19 ?f1690 ?f1691 ?f1692
+row pa 664 open base
+row pa 664 shut gold
+row pb 664 open east
+row pb 664 shut west
+row acct 665 19 ?f1693 ?f1694 ?f1695
+row pa 665 open base
+row pa 665 shut gold
+row pb 665 open east
+row pb 665 shut west
+row acct 666 19 ?f1696 ?f1697 ?f1698
+row pa 666 open gold
+row pa 666 shut base
+row pb 666 open west
+row pb 666 shut east
+row acct 667 19 ?f1699 ?f1700 ?f1701
+row pa 667 open gold
+row pa 667 shut base
+row pb 667 open west
+row pb 667 shut east
+row acct 668 19 ?f1702 ?f1703 ?f1704
+row pa 668 open base
+row pa 668 shut gold
+row pb 668 open east
+row pb 668 shut west
+row acct 669 19 ?f1705 ?f1706 ?f1707
+row pa 669 open base
+row pa 669 shut gold
+row pb 669 open east
+row pb 669 shut west
+row acct 670 19 ?f1708 ?f1709 ?f1710
+row pa 670 open gold
+row pa 670 shut base
+row pb 670 open west
+row pb 670 shut east
+row acct 671 20 ?f1711 ?f1712 ?f1713
+row pa 671 open gold
+row pa 671 shut base
+row pb 671 open west
+row pb 671 shut east
+row acct 672 20 ?f1714 ?f1715 ?f1716
+row pa 672 open gold
+row pa 672 shut base
+row pb 672 open west
+row pb 672 shut east
+row acct 673 20 ?f1717 ?f1718 ?f1719
+row pa 673 open gold
+row pa 673 shut base
+row pb 673 open west
+row pb 673 shut east
+row acct 674 20 ?f1720 ?f1721 ?f1722
+row pa 674 open base
+row pa 674 shut gold
+row pb 674 open east
+row pb 674 shut west
+row acct 675 20 ?f1723 ?f1724 ?f1725
+row pa 675 open base
+row pa 675 shut gold
+row pb 675 open east
+row pb 675 shut west
+row acct 676 20 ?f1726 ?f1727 ?f1728
+row pa 676 open gold
+row pa 676 shut base
+row pb 676 open west
+row pb 676 shut east
+row acct 677 20 ?f1729 ?f1730 ?f1731
+row pa 677 open gold
+row pa 677 shut base
+row pb 677 open west
+row pb 677 shut east
+row acct 678 20 ?f1732 ?f1733 ?f1734
+row pa 678 open base
+row pa 678 shut gold
+row pb 678 open east
+row pb 678 shut west
+row acct 679 20 ?f1735 ?f1736 ?f1737
+row pa 679 open gold
+row pa 679 shut base
+row pb 679 open west
+row pb 679 shut east
+row acct 680 20 ?f1738 ?f1739 ?f1740
+row pa 680 open gold
+row pa 680 shut base
+row pb 680 open west
+row pb 680 shut east
+row acct 681 20 ?f1741 ?f1742 ?f1743
+row pa 681 open base
+row pa 681 shut gold
+row pb 681 open east
+row pb 681 shut west
+row acct 682 20 ?f1744 ?f1745 ?f1746
+row pa 682 open gold
+row pa 682 shut base
+row pb 682 open west
+row pb 682 shut east
+row acct 683 20 ?f1747 ?f1748 ?f1749
+row pa 683 open gold
+row pa 683 shut base
+row pb 683 open west
+row pb 683 shut east
+row acct 684 20 ?f1750 ?f1751 ?f1752
+row pa 684 open base
+row pa 684 shut gold
+row pb 684 open east
+row pb 684 shut west
+row acct 685 20 ?f1753 ?f1754 ?f1755
+row pa 685 open base
+row pa 685 shut gold
+row pb 685 open east
+row pb 685 shut west
+row acct 686 20 ?f1756 ?f1757 ?f1758
+row pa 686 open gold
+row pa 686 shut base
+row pb 686 open west
+row pb 686 shut east
+row acct 687 20 ?f1759 ?f1760 ?f1761
+row pa 687 open gold
+row pa 687 shut base
+row pb 687 open west
+row pb 687 shut east
+row acct 688 20 ?f1762 ?f1763 ?f1764
+row pa 688 open base
+row pa 688 shut gold
+row pb 688 open east
+row pb 688 shut west
+row acct 689 20 ?f1765 ?f1766 ?f1767
+row pa 689 open gold
+row pa 689 shut base
+row pb 689 open west
+row pb 689 shut east
+row acct 690 20 ?f1768 ?f1769 ?f1770
+row pa 690 open base
+row pa 690 shut gold
+row pb 690 open east
+row pb 690 shut west
+row acct 691 20 ?f1771 ?f1772 ?f1773
+row pa 691 open gold
+row pa 691 shut base
+row pb 691 open west
+row pb 691 shut east
+row acct 692 20 ?f1774 ?f1775 ?f1776
+row pa 692 open base
+row pa 692 shut gold
+row pb 692 open east
+row pb 692 shut west
+row acct 693 20 ?f1777 ?f1778 ?f1779
+row pa 693 open gold
+row pa 693 shut base
+row pb 693 open west
+row pb 693 shut east
+row acct 694 20 ?f1780 ?f1781 ?f1782
+row pa 694 open base
+row pa 694 shut gold
+row pb 694 open east
+row pb 694 shut west
+row acct 695 20 ?f1783 ?f1784 ?f1785
+row pa 695 open base
+row pa 695 shut gold
+row pb 695 open east
+row pb 695 shut west
+row acct 696 20 ?f1786 ?f1787 ?f1788
+row pa 696 open gold
+row pa 696 shut base
+row pb 696 open west
+row pb 696 shut east
+row acct 697 20 ?f1789 ?f1790 ?f1791
+row pa 697 open gold
+row pa 697 shut base
+row pb 697 open west
+row pb 697 shut east
+row acct 698 20 ?f1792 ?f1793 ?f1794
+row pa 698 open base
+row pa 698 shut gold
+row pb 698 open east
+row pb 698 shut west
+row acct 699 20 ?f1795 ?f1796 ?f1797
+row pa 699 open gold
+row pa 699 shut base
+row pb 699 open west
+row pb 699 shut east
+row acct 700 20 ?f1798 ?f1799 ?f1800
+row pa 700 open gold
+row pa 700 shut base
+row pb 700 open west
+row pb 700 shut east
+row acct 701 21 ?f1801 ?f1802 ?f1803
+row pa 701 open base
+row pa 701 shut gold
+row pb 701 open east
+row pb 701 shut west
+row acct 702 21 ?f1804 ?f1805 ?f1806
+row pa 702 open gold
+row pa 702 shut base
+row pb 702 open west
+row pb 702 shut east
+row acct 703 21 ?f1807 ?f1808 ?f1809
+row pa 703 open gold
+row pa 703 shut base
+row pb 703 open west
+row pb 703 shut east
+row acct 704 21 ?f1810 ?f1811 ?f1812
+row pa 704 open gold
+row pa 704 shut base
+row pb 704 open west
+row pb 704 shut east
+row acct 705 21 ?f1813 ?f1814 ?f1815
+row pa 705 open gold
+row pa 705 shut base
+row pb 705 open west
+row pb 705 shut east
+row acct 706 21 ?f1816 ?f1817 ?f1818
+row pa 706 open gold
+row pa 706 shut base
+row pb 706 open west
+row pb 706 shut east
+row acct 707 21 ?f1819 ?f1820 ?f1821
+row pa 707 open base
+row pa 707 shut gold
+row pb 707 open east
+row pb 707 shut west
+row acct 708 21 ?f1822 ?f1823 ?f1824
+row pa 708 open base
+row pa 708 shut gold
+row pb 708 open east
+row pb 708 shut west
+row acct 709 21 ?f1825 ?f1826 ?f1827
+row pa 709 open base
+row pa 709 shut gold
+row pb 709 open east
+row pb 709 shut west
+row acct 710 21 ?f1828 ?f1829 ?f1830
+row pa 710 open gold
+row pa 710 shut base
+row pb 710 open west
+row pb 710 shut east
+row acct 711 21 ?f1831 ?f1832 ?f1833
+row pa 711 open gold
+row pa 711 shut base
+row pb 711 open west
+row pb 711 shut east
+row acct 712 21 ?f1834 ?f1835 ?f1836
+row pa 712 open gold
+row pa 712 shut base
+row pb 712 open west
+row pb 712 shut east
+row acct 713 21 ?f1837 ?f1838 ?f1839
+row pa 713 open base
+row pa 713 shut gold
+row pb 713 open east
+row pb 713 shut west
+row acct 714 21 ?f1840 ?f1841 ?f1842
+row pa 714 open gold
+row pa 714 shut base
+row pb 714 open west
+row pb 714 shut east
+row acct 715 21 ?f1843 ?f1844 ?f1845
+row pa 715 open gold
+row pa 715 shut base
+row pb 715 open west
+row pb 715 shut east
+row acct 716 21 ?f1846 ?f1847 ?f1848
+row pa 716 open gold
+row pa 716 shut base
+row pb 716 open west
+row pb 716 shut east
+row acct 717 21 ?f1849 ?f1850 ?f1851
+row pa 717 open base
+row pa 717 shut gold
+row pb 717 open east
+row pb 717 shut west
+row acct 718 21 ?f1852 ?f1853 ?f1854
+row pa 718 open base
+row pa 718 shut gold
+row pb 718 open east
+row pb 718 shut west
+row acct 719 21 ?f1855 ?f1856 ?f1857
+row pa 719 open gold
+row pa 719 shut base
+row pb 719 open west
+row pb 719 shut east
+row acct 720 21 ?f1858 ?f1859 ?f1860
+row pa 720 open gold
+row pa 720 shut base
+row pb 720 open west
+row pb 720 shut east
+row acct 721 21 ?f1861 ?f1862 ?f1863
+row pa 721 open gold
+row pa 721 shut base
+row pb 721 open west
+row pb 721 shut east
+row acct 722 21 ?f1864 ?f1865 ?f1866
+row pa 722 open base
+row pa 722 shut gold
+row pb 722 open east
+row pb 722 shut west
+row acct 723 21 ?f1867 ?f1868 ?f1869
+row pa 723 open base
+row pa 723 shut gold
+row pb 723 open east
+row pb 723 shut west
+row acct 724 21 ?f1870 ?f1871 ?f1872
+row pa 724 open base
+row pa 724 shut gold
+row pb 724 open east
+row pb 724 shut west
+row acct 725 21 ?f1873 ?f1874 ?f1875
+row pa 725 open gold
+row pa 725 shut base
+row pb 725 open west
+row pb 725 shut east
+row acct 726 21 ?f1876 ?f1877 ?f1878
+row pa 726 open gold
+row pa 726 shut base
+row pb 726 open west
+row pb 726 shut east
+row acct 727 21 ?f1879 ?f1880 ?f1881
+row pa 727 open base
+row pa 727 shut gold
+row pb 727 open east
+row pb 727 shut west
+row acct 728 21 ?f1882 ?f1883 ?f1884
+row pa 728 open gold
+row pa 728 shut base
+row pb 728 open west
+row pb 728 shut east
+row acct 729 21 ?f1885 ?f1886 ?f1887
+row pa 729 open gold
+row pa 729 shut base
+row pb 729 open west
+row pb 729 shut east
+row acct 730 21 ?f1888 ?f1889 ?f1890
+row pa 730 open gold
+row pa 730 shut base
+row pb 730 open west
+row pb 730 shut east
+row acct 731 22 ?f1891 ?f1892 ?f1893
+row pa 731 open base
+row pa 731 shut gold
+row pb 731 open east
+row pb 731 shut west
+row acct 732 22 ?f1894 ?f1895 ?f1896
+row pa 732 open base
+row pa 732 shut gold
+row pb 732 open east
+row pb 732 shut west
+row acct 733 22 ?f1897 ?f1898 ?f1899
+row pa 733 open base
+row pa 733 shut gold
+row pb 733 open east
+row pb 733 shut west
+row acct 734 22 ?f1900 ?f1901 ?f1902
+row pa 734 open base
+row pa 734 shut gold
+row pb 734 open east
+row pb 734 shut west
+row acct 735 22 ?f1903 ?f1904 ?f1905
+row pa 735 open base
+row pa 735 shut gold
+row pb 735 open east
+row pb 735 shut west
+row acct 736 22 ?f1906 ?f1907 ?f1908
+row pa 736 open base
+row pa 736 shut gold
+row pb 736 open east
+row pb 736 shut west
+row acct 737 22 ?f1909 ?f1910 ?f1911
+row pa 737 open gold
+row pa 737 shut base
+row pb 737 open west
+row pb 737 shut east
+row acct 738 22 ?f1912 ?f1913 ?f1914
+row pa 738 open base
+row pa 738 shut gold
+row pb 738 open east
+row pb 738 shut west
+row acct 739 22 ?f1915 ?f1916 ?f1917
+row pa 739 open gold
+row pa 739 shut base
+row pb 739 open west
+row pb 739 shut east
+row acct 740 22 ?f1918 ?f1919 ?f1920
+row pa 740 open base
+row pa 740 shut gold
+row pb 740 open east
+row pb 740 shut west
+row acct 741 22 ?f1921 ?f1922 ?f1923
+row pa 741 open gold
+row pa 741 shut base
+row pb 741 open west
+row pb 741 shut east
+row acct 742 22 ?f1924 ?f1925 ?f1926
+row pa 742 open base
+row pa 742 shut gold
+row pb 742 open east
+row pb 742 shut west
+row acct 743 22 ?f1927 ?f1928 ?f1929
+row pa 743 open gold
+row pa 743 shut base
+row pb 743 open west
+row pb 743 shut east
+row acct 744 22 ?f1930 ?f1931 ?f1932
+row pa 744 open base
+row pa 744 shut gold
+row pb 744 open east
+row pb 744 shut west
+row acct 745 22 ?f1933 ?f1934 ?f1935
+row pa 745 open base
+row pa 745 shut gold
+row pb 745 open east
+row pb 745 shut west
+row acct 746 22 ?f1936 ?f1937 ?f1938
+row pa 746 open base
+row pa 746 shut gold
+row pb 746 open east
+row pb 746 shut west
+row acct 747 22 ?f1939 ?f1940 ?f1941
+row pa 747 open base
+row pa 747 shut gold
+row pb 747 open east
+row pb 747 shut west
+row acct 748 22 ?f1942 ?f1943 ?f1944
+row pa 748 open base
+row pa 748 shut gold
+row pb 748 open east
+row pb 748 shut west
+row acct 749 22 ?f1945 ?f1946 ?f1947
+row pa 749 open gold
+row pa 749 shut base
+row pb 749 open west
+row pb 749 shut east
+row acct 750 22 ?f1948 ?f1949 ?f1950
+row pa 750 open base
+row pa 750 shut gold
+row pb 750 open east
+row pb 750 shut west
+row acct 751 22 ?f1951 ?f1952 ?f1953
+row pa 751 open gold
+row pa 751 shut base
+row pb 751 open west
+row pb 751 shut east
+row acct 752 22 ?f1954 ?f1955 ?f1956
+row pa 752 open base
+row pa 752 shut gold
+row pb 752 open east
+row pb 752 shut west
+row acct 753 22 ?f1957 ?f1958 ?f1959
+row pa 753 open base
+row pa 753 shut gold
+row pb 753 open east
+row pb 753 shut west
+row acct 754 22 ?f1960 ?f1961 ?f1962
+row pa 754 open gold
+row pa 754 shut base
+row pb 754 open west
+row pb 754 shut east
+row acct 755 22 ?f1963 ?f1964 ?f1965
+row pa 755 open gold
+row pa 755 shut base
+row pb 755 open west
+row pb 755 shut east
+row acct 756 22 ?f1966 ?f1967 ?f1968
+row pa 756 open base
+row pa 756 shut gold
+row pb 756 open east
+row pb 756 shut west
+row acct 757 22 ?f1969 ?f1970 ?f1971
+row pa 757 open gold
+row pa 757 shut base
+row pb 757 open west
+row pb 757 shut east
+row acct 758 22 ?f1972 ?f1973 ?f1974
+row pa 758 open gold
+row pa 758 shut base
+row pb 758 open west
+row pb 758 shut east
+row acct 759 22 ?f1975 ?f1976 ?f1977
+row pa 759 open gold
+row pa 759 shut base
+row pb 759 open west
+row pb 759 shut east
+row acct 760 22 ?f1978 ?f1979 ?f1980
+row pa 760 open base
+row pa 760 shut gold
+row pb 760 open east
+row pb 760 shut west
+row acct 761 23 ?f1981 ?f1982 ?f1983
+row pa 761 open base
+row pa 761 shut gold
+row pb 761 open east
+row pb 761 shut west
+row acct 762 23 ?f1984 ?f1985 ?f1986
+row pa 762 open gold
+row pa 762 shut base
+row pb 762 open west
+row pb 762 shut east
+row acct 763 23 ?f1987 ?f1988 ?f1989
+row pa 763 open base
+row pa 763 shut gold
+row pb 763 open east
+row pb 763 shut west
+row acct 764 23 ?f1990 ?f1991 ?f1992
+row pa 764 open base
+row pa 764 shut gold
+row pb 764 open east
+row pb 764 shut west
+row acct 765 23 ?f1993 ?f1994 ?f1995
+row pa 765 open gold
+row pa 765 shut base
+row pb 765 open west
+row pb 765 shut east
+row acct 766 23 ?f1996 ?f1997 ?f1998
+row pa 766 open base
+row pa 766 shut gold
+row pb 766 open east
+row pb 766 shut west
+row acct 767 23 ?f1999 ?f2000 ?f2001
+row pa 767 open base
+row pa 767 shut gold
+row pb 767 open east
+row pb 767 shut west
+row acct 768 23 ?f2002 ?f2003 ?f2004
+row pa 768 open base
+row pa 768 shut gold
+row pb 768 open east
+row pb 768 shut west
+row acct 769 23 ?f2005 ?f2006 ?f2007
+row pa 769 open gold
+row pa 769 shut base
+row pb 769 open west
+row pb 769 shut east
+row acct 770 23 ?f2008 ?f2009 ?f2010
+row pa 770 open base
+row pa 770 shut gold
+row pb 770 open east
+row pb 770 shut west
+row acct 771 23 ?f2011 ?f2012 ?f2013
+row pa 771 open base
+row pa 771 shut gold
+row pb 771 open east
+row pb 771 shut west
+row acct 772 23 ?f2014 ?f2015 ?f2016
+row pa 772 open base
+row pa 772 shut gold
+row pb 772 open east
+row pb 772 shut west
+row acct 773 23 ?f2017 ?f2018 ?f2019
+row pa 773 open gold
+row pa 773 shut base
+row pb 773 open west
+row pb 773 shut east
+row acct 774 23 ?f2020 ?f2021 ?f2022
+row pa 774 open gold
+row pa 774 shut base
+row pb 774 open west
+row pb 774 shut east
+row acct 775 23 ?f2023 ?f2024 ?f2025
+row pa 775 open gold
+row pa 775 shut base
+row pb 775 open west
+row pb 775 shut east
+row acct 776 23 ?f2026 ?f2027 ?f2028
+row pa 776 open base
+row pa 776 shut gold
+row pb 776 open east
+row pb 776 shut west
+row acct 777 23 ?f2029 ?f2030 ?f2031
+row pa 777 open gold
+row pa 777 shut base
+row pb 777 open west
+row pb 777 shut east
+row acct 778 23 ?f2032 ?f2033 ?f2034
+row pa 778 open base
+row pa 778 shut gold
+row pb 778 open east
+row pb 778 shut west
+row acct 779 23 ?f2035 ?f2036 ?f2037
+row pa 779 open base
+row pa 779 shut gold
+row pb 779 open east
+row pb 779 shut west
+row acct 780 23 ?f2038 ?f2039 ?f2040
+row pa 780 open gold
+row pa 780 shut base
+row pb 780 open west
+row pb 780 shut east
+row acct 781 23 ?f2041 ?f2042 ?f2043
+row pa 781 open gold
+row pa 781 shut base
+row pb 781 open west
+row pb 781 shut east
+row acct 782 23 ?f2044 ?f2045 ?f2046
+row pa 782 open base
+row pa 782 shut gold
+row pb 782 open east
+row pb 782 shut west
+row acct 783 23 ?f2047 ?f2048 ?f2049
+row pa 783 open gold
+row pa 783 shut base
+row pb 783 open west
+row pb 783 shut east
+row acct 784 23 ?f2050 ?f2051 ?f2052
+row pa 784 open base
+row pa 784 shut gold
+row pb 784 open east
+row pb 784 shut west
+row acct 785 23 ?f2053 ?f2054 ?f2055
+row pa 785 open gold
+row pa 785 shut base
+row pb 785 open west
+row pb 785 shut east
+row acct 786 23 ?f2056 ?f2057 ?f2058
+row pa 786 open base
+row pa 786 shut gold
+row pb 786 open east
+row pb 786 shut west
+row acct 787 23 ?f2059 ?f2060 ?f2061
+row pa 787 open base
+row pa 787 shut gold
+row pb 787 open east
+row pb 787 shut west
+row acct 788 23 ?f2062 ?f2063 ?f2064
+row pa 788 open base
+row pa 788 shut gold
+row pb 788 open east
+row pb 788 shut west
+row acct 789 23 ?f2065 ?f2066 ?f2067
+row pa 789 open gold
+row pa 789 shut base
+row pb 789 open west
+row pb 789 shut east
+row acct 790 23 ?f2068 ?f2069 ?f2070
+row pa 790 open gold
+row pa 790 shut base
+row pb 790 open west
+row pb 790 shut east
+row acct 791 24 ?f2071 ?f2072 ?f2073
+row pa 791 open gold
+row pa 791 shut base
+row pb 791 open west
+row pb 791 shut east
+row acct 792 24 ?f2074 ?f2075 ?f2076
+row pa 792 open base
+row pa 792 shut gold
+row pb 792 open east
+row pb 792 shut west
+row acct 793 24 ?f2077 ?f2078 ?f2079
+row pa 793 open base
+row pa 793 shut gold
+row pb 793 open east
+row pb 793 shut west
+row acct 794 24 ?f2080 ?f2081 ?f2082
+row pa 794 open gold
+row pa 794 shut base
+row pb 794 open west
+row pb 794 shut east
+row acct 795 24 ?f2083 ?f2084 ?f2085
+row pa 795 open base
+row pa 795 shut gold
+row pb 795 open east
+row pb 795 shut west
+row acct 796 24 ?f2086 ?f2087 ?f2088
+row pa 796 open base
+row pa 796 shut gold
+row pb 796 open east
+row pb 796 shut west
+row acct 797 24 ?f2089 ?f2090 ?f2091
+row pa 797 open base
+row pa 797 shut gold
+row pb 797 open east
+row pb 797 shut west
+row acct 798 24 ?f2092 ?f2093 ?f2094
+row pa 798 open gold
+row pa 798 shut base
+row pb 798 open west
+row pb 798 shut east
+row acct 799 24 ?f2095 ?f2096 ?f2097
+row pa 799 open gold
+row pa 799 shut base
+row pb 799 open west
+row pb 799 shut east
+row acct 800 24 ?f2098 ?f2099 ?f2100
+row pa 800 open gold
+row pa 800 shut base
+row pb 800 open west
+row pb 800 shut east
+row acct 801 24 ?f2101 ?f2102 ?f2103
+row pa 801 open gold
+row pa 801 shut base
+row pb 801 open west
+row pb 801 shut east
+row acct 802 24 ?f2104 ?f2105 ?f2106
+row pa 802 open base
+row pa 802 shut gold
+row pb 802 open east
+row pb 802 shut west
+row acct 803 24 ?f2107 ?f2108 ?f2109
+row pa 803 open base
+row pa 803 shut gold
+row pb 803 open east
+row pb 803 shut west
+row acct 804 24 ?f2110 ?f2111 ?f2112
+row pa 804 open gold
+row pa 804 shut base
+row pb 804 open west
+row pb 804 shut east
+row acct 805 24 ?f2113 ?f2114 ?f2115
+row pa 805 open gold
+row pa 805 shut base
+row pb 805 open west
+row pb 805 shut east
+row acct 806 24 ?f2116 ?f2117 ?f2118
+row pa 806 open base
+row pa 806 shut gold
+row pb 806 open east
+row pb 806 shut west
+row acct 807 24 ?f2119 ?f2120 ?f2121
+row pa 807 open base
+row pa 807 shut gold
+row pb 807 open east
+row pb 807 shut west
+row acct 808 24 ?f2122 ?f2123 ?f2124
+row pa 808 open base
+row pa 808 shut gold
+row pb 808 open east
+row pb 808 shut west
+row acct 809 24 ?f2125 ?f2126 ?f2127
+row pa 809 open gold
+row pa 809 shut base
+row pb 809 open west
+row pb 809 shut east
+row acct 810 24 ?f2128 ?f2129 ?f2130
+row pa 810 open gold
+row pa 810 shut base
+row pb 810 open west
+row pb 810 shut east
+row acct 811 24 ?f2131 ?f2132 ?f2133
+row pa 811 open base
+row pa 811 shut gold
+row pb 811 open east
+row pb 811 shut west
+row acct 812 24 ?f2134 ?f2135 ?f2136
+row pa 812 open base
+row pa 812 shut gold
+row pb 812 open east
+row pb 812 shut west
+row acct 813 24 ?f2137 ?f2138 ?f2139
+row pa 813 open gold
+row pa 813 shut base
+row pb 813 open west
+row pb 813 shut east
+row acct 814 24 ?f2140 ?f2141 ?f2142
+row pa 814 open base
+row pa 814 shut gold
+row pb 814 open east
+row pb 814 shut west
+row acct 815 24 ?f2143 ?f2144 ?f2145
+row pa 815 open base
+row pa 815 shut gold
+row pb 815 open east
+row pb 815 shut west
+row acct 816 24 ?f2146 ?f2147 ?f2148
+row pa 816 open base
+row pa 816 shut gold
+row pb 816 open east
+row pb 816 shut west
+row acct 817 24 ?f2149 ?f2150 ?f2151
+row pa 817 open gold
+row pa 817 shut base
+row pb 817 open west
+row pb 817 shut east
+row acct 818 24 ?f2152 ?f2153 ?f2154
+row pa 818 open gold
+row pa 818 shut base
+row pb 818 open west
+row pb 818 shut east
+row acct 819 24 ?f2155 ?f2156 ?f2157
+row pa 819 open gold
+row pa 819 shut base
+row pb 819 open west
+row pb 819 shut east
+row acct 820 24 ?f2158 ?f2159 ?f2160
+row pa 820 open gold
+row pa 820 shut base
+row pb 820 open west
+row pb 820 shut east
+row acct 821 25 ?f2161 ?f2162 ?f2163
+row pa 821 open base
+row pa 821 shut gold
+row pb 821 open east
+row pb 821 shut west
+row acct 822 25 ?f2164 ?f2165 ?f2166
+row pa 822 open gold
+row pa 822 shut base
+row pb 822 open west
+row pb 822 shut east
+row acct 823 25 ?f2167 ?f2168 ?f2169
+row pa 823 open gold
+row pa 823 shut base
+row pb 823 open west
+row pb 823 shut east
+row acct 824 25 ?f2170 ?f2171 ?f2172
+row pa 824 open gold
+row pa 824 shut base
+row pb 824 open west
+row pb 824 shut east
+row acct 825 25 ?f2173 ?f2174 ?f2175
+row pa 825 open base
+row pa 825 shut gold
+row pb 825 open east
+row pb 825 shut west
+row acct 826 25 ?f2176 ?f2177 ?f2178
+row pa 826 open gold
+row pa 826 shut base
+row pb 826 open west
+row pb 826 shut east
+row acct 827 25 ?f2179 ?f2180 ?f2181
+row pa 827 open gold
+row pa 827 shut base
+row pb 827 open west
+row pb 827 shut east
+row acct 828 25 ?f2182 ?f2183 ?f2184
+row pa 828 open base
+row pa 828 shut gold
+row pb 828 open east
+row pb 828 shut west
+row acct 829 25 ?f2185 ?f2186 ?f2187
+row pa 829 open gold
+row pa 829 shut base
+row pb 829 open west
+row pb 829 shut east
+row acct 830 25 ?f2188 ?f2189 ?f2190
+row pa 830 open gold
+row pa 830 shut base
+row pb 830 open west
+row pb 830 shut east
+row acct 831 25 ?f2191 ?f2192 ?f2193
+row pa 831 open gold
+row pa 831 shut base
+row pb 831 open west
+row pb 831 shut east
+row acct 832 25 ?f2194 ?f2195 ?f2196
+row pa 832 open base
+row pa 832 shut gold
+row pb 832 open east
+row pb 832 shut west
+row acct 833 25 ?f2197 ?f2198 ?f2199
+row pa 833 open gold
+row pa 833 shut base
+row pb 833 open west
+row pb 833 shut east
+row acct 834 25 ?f2200 ?f2201 ?f2202
+row pa 834 open gold
+row pa 834 shut base
+row pb 834 open west
+row pb 834 shut east
+row acct 835 25 ?f2203 ?f2204 ?f2205
+row pa 835 open gold
+row pa 835 shut base
+row pb 835 open west
+row pb 835 shut east
+row acct 836 25 ?f2206 ?f2207 ?f2208
+row pa 836 open gold
+row pa 836 shut base
+row pb 836 open west
+row pb 836 shut east
+row acct 837 25 ?f2209 ?f2210 ?f2211
+row pa 837 open base
+row pa 837 shut gold
+row pb 837 open east
+row pb 837 shut west
+row acct 838 25 ?f2212 ?f2213 ?f2214
+row pa 838 open gold
+row pa 838 shut base
+row pb 838 open west
+row pb 838 shut east
+row acct 839 25 ?f2215 ?f2216 ?f2217
+row pa 839 open gold
+row pa 839 shut base
+row pb 839 open west
+row pb 839 shut east
+row acct 840 25 ?f2218 ?f2219 ?f2220
+row pa 840 open base
+row pa 840 shut gold
+row pb 840 open east
+row pb 840 shut west
+row acct 841 25 ?f2221 ?f2222 ?f2223
+row pa 841 open base
+row pa 841 shut gold
+row pb 841 open east
+row pb 841 shut west
+row acct 842 25 ?f2224 ?f2225 ?f2226
+row pa 842 open base
+row pa 842 shut gold
+row pb 842 open east
+row pb 842 shut west
+row acct 843 25 ?f2227 ?f2228 ?f2229
+row pa 843 open gold
+row pa 843 shut base
+row pb 843 open west
+row pb 843 shut east
+row acct 844 25 ?f2230 ?f2231 ?f2232
+row pa 844 open base
+row pa 844 shut gold
+row pb 844 open east
+row pb 844 shut west
+row acct 845 25 ?f2233 ?f2234 ?f2235
+row pa 845 open base
+row pa 845 shut gold
+row pb 845 open east
+row pb 845 shut west
+row acct 846 25 ?f2236 ?f2237 ?f2238
+row pa 846 open base
+row pa 846 shut gold
+row pb 846 open east
+row pb 846 shut west
+row acct 847 25 ?f2239 ?f2240 ?f2241
+row pa 847 open gold
+row pa 847 shut base
+row pb 847 open west
+row pb 847 shut east
+row acct 848 25 ?f2242 ?f2243 ?f2244
+row pa 848 open base
+row pa 848 shut gold
+row pb 848 open east
+row pb 848 shut west
+row acct 849 25 ?f2245 ?f2246 ?f2247
+row pa 849 open gold
+row pa 849 shut base
+row pb 849 open west
+row pb 849 shut east
+row acct 850 25 ?f2248 ?f2249 ?f2250
+row pa 850 open base
+row pa 850 shut gold
+row pb 850 open east
+row pb 850 shut west
+row acct 851 26 ?f2251 ?f2252 ?f2253
+row pa 851 open base
+row pa 851 shut gold
+row pb 851 open east
+row pb 851 shut west
+row acct 852 26 ?f2254 ?f2255 ?f2256
+row pa 852 open gold
+row pa 852 shut base
+row pb 852 open west
+row pb 852 shut east
+row acct 853 26 ?f2257 ?f2258 ?f2259
+row pa 853 open gold
+row pa 853 shut base
+row pb 853 open west
+row pb 853 shut east
+row acct 854 26 ?f2260 ?f2261 ?f2262
+row pa 854 open gold
+row pa 854 shut base
+row pb 854 open west
+row pb 854 shut east
+row acct 855 26 ?f2263 ?f2264 ?f2265
+row pa 855 open base
+row pa 855 shut gold
+row pb 855 open east
+row pb 855 shut west
+row acct 856 26 ?f2266 ?f2267 ?f2268
+row pa 856 open gold
+row pa 856 shut base
+row pb 856 open west
+row pb 856 shut east
+row acct 857 26 ?f2269 ?f2270 ?f2271
+row pa 857 open gold
+row pa 857 shut base
+row pb 857 open west
+row pb 857 shut east
+row acct 858 26 ?f2272 ?f2273 ?f2274
+row pa 858 open base
+row pa 858 shut gold
+row pb 858 open east
+row pb 858 shut west
+row acct 859 26 ?f2275 ?f2276 ?f2277
+row pa 859 open gold
+row pa 859 shut base
+row pb 859 open west
+row pb 859 shut east
+row acct 860 26 ?f2278 ?f2279 ?f2280
+row pa 860 open base
+row pa 860 shut gold
+row pb 860 open east
+row pb 860 shut west
+row acct 861 26 ?f2281 ?f2282 ?f2283
+row pa 861 open base
+row pa 861 shut gold
+row pb 861 open east
+row pb 861 shut west
+row acct 862 26 ?f2284 ?f2285 ?f2286
+row pa 862 open base
+row pa 862 shut gold
+row pb 862 open east
+row pb 862 shut west
+row acct 863 26 ?f2287 ?f2288 ?f2289
+row pa 863 open base
+row pa 863 shut gold
+row pb 863 open east
+row pb 863 shut west
+row acct 864 26 ?f2290 ?f2291 ?f2292
+row pa 864 open base
+row pa 864 shut gold
+row pb 864 open east
+row pb 864 shut west
+row acct 865 26 ?f2293 ?f2294 ?f2295
+row pa 865 open gold
+row pa 865 shut base
+row pb 865 open west
+row pb 865 shut east
+row acct 866 26 ?f2296 ?f2297 ?f2298
+row pa 866 open base
+row pa 866 shut gold
+row pb 866 open east
+row pb 866 shut west
+row acct 867 26 ?f2299 ?f2300 ?f2301
+row pa 867 open base
+row pa 867 shut gold
+row pb 867 open east
+row pb 867 shut west
+row acct 868 26 ?f2302 ?f2303 ?f2304
+row pa 868 open gold
+row pa 868 shut base
+row pb 868 open west
+row pb 868 shut east
+row acct 869 26 ?f2305 ?f2306 ?f2307
+row pa 869 open gold
+row pa 869 open base
+row pb 869 shut east
+row pb 869 shut west
+row acct 870 26 ?f2308 ?f2309 ?f2310
+row pa 870 open base
+row pa 870 shut gold
+row pb 870 open east
+row pb 870 shut west
+row acct 871 26 ?f2311 ?f2312 ?f2313
+row pa 871 open gold
+row pa 871 shut base
+row pb 871 open west
+row pb 871 shut east
+row acct 872 26 ?f2314 ?f2315 ?f2316
+row pa 872 open base
+row pa 872 shut gold
+row pb 872 open east
+row pb 872 shut west
+row acct 873 26 ?f2317 ?f2318 ?f2319
+row pa 873 open gold
+row pa 873 shut base
+row pb 873 open west
+row pb 873 shut east
+row acct 874 26 ?f2320 ?f2321 ?f2322
+row pa 874 open gold
+row pa 874 shut base
+row pb 874 open west
+row pb 874 shut east
+row acct 875 26 ?f2323 ?f2324 ?f2325
+row pa 875 open gold
+row pa 875 shut base
+row pb 875 open west
+row pb 875 shut east
+row acct 876 26 ?f2326 ?f2327 ?f2328
+row pa 876 open gold
+row pa 876 shut base
+row pb 876 open west
+row pb 876 shut east
+row acct 877 26 ?f2329 ?f2330 ?f2331
+row pa 877 open base
+row pa 877 shut gold
+row pb 877 open east
+row pb 877 shut west
+row acct 878 26 ?f2332 ?f2333 ?f2334
+row pa 878 open gold
+row pa 878 shut base
+row pb 878 open west
+row pb 878 shut east
+row acct 879 26 ?f2335 ?f2336 ?f2337
+row pa 879 open base
+row pa 879 shut gold
+row pb 879 open east
+row pb 879 shut west
+row acct 880 26 ?f2338 ?f2339 ?f2340
+row pa 880 open gold
+row pa 880 shut base
+row pb 880 open west
+row pb 880 shut east
+row acct 881 27 ?f2341 ?f2342 ?f2343
+row pa 881 open base
+row pa 881 shut gold
+row pb 881 open east
+row pb 881 shut west
+row acct 882 27 ?f2344 ?f2345 ?f2346
+row pa 882 open base
+row pa 882 shut gold
+row pb 882 open east
+row pb 882 shut west
+row acct 883 27 ?f2347 ?f2348 ?f2349
+row pa 883 open gold
+row pa 883 shut base
+row pb 883 open west
+row pb 883 shut east
+row acct 884 27 ?f2350 ?f2351 ?f2352
+row pa 884 open base
+row pa 884 shut gold
+row pb 884 open east
+row pb 884 shut west
+row acct 885 27 ?f2353 ?f2354 ?f2355
+row pa 885 open base
+row pa 885 shut gold
+row pb 885 open east
+row pb 885 shut west
+row acct 886 27 ?f2356 ?f2357 ?f2358
+row pa 886 open base
+row pa 886 shut gold
+row pb 886 open east
+row pb 886 shut west
+row acct 887 27 ?f2359 ?f2360 ?f2361
+row pa 887 open gold
+row pa 887 shut base
+row pb 887 open west
+row pb 887 shut east
+row acct 888 27 ?f2362 ?f2363 ?f2364
+row pa 888 open base
+row pa 888 shut gold
+row pb 888 open east
+row pb 888 shut west
+row acct 889 27 ?f2365 ?f2366 ?f2367
+row pa 889 open base
+row pa 889 shut gold
+row pb 889 open east
+row pb 889 shut west
+row acct 890 27 ?f2368 ?f2369 ?f2370
+row pa 890 open base
+row pa 890 shut gold
+row pb 890 open east
+row pb 890 shut west
+row acct 891 27 ?f2371 ?f2372 ?f2373
+row pa 891 open base
+row pa 891 shut gold
+row pb 891 open east
+row pb 891 shut west
+row acct 892 27 ?f2374 ?f2375 ?f2376
+row pa 892 open base
+row pa 892 shut gold
+row pb 892 open east
+row pb 892 shut west
+row acct 893 27 ?f2377 ?f2378 ?f2379
+row pa 893 open base
+row pa 893 shut gold
+row pb 893 open east
+row pb 893 shut west
+row acct 894 27 ?f2380 ?f2381 ?f2382
+row pa 894 open base
+row pa 894 shut gold
+row pb 894 open east
+row pb 894 shut west
+row acct 895 27 ?f2383 ?f2384 ?f2385
+row pa 895 open gold
+row pa 895 shut base
+row pb 895 open west
+row pb 895 shut east
+row acct 896 27 ?f2386 ?f2387 ?f2388
+row pa 896 open gold
+row pa 896 shut base
+row pb 896 open west
+row pb 896 shut east
+row acct 897 27 ?f2389 ?f2390 ?f2391
+row pa 897 open base
+row pa 897 shut gold
+row pb 897 open east
+row pb 897 shut west
+row acct 898 27 ?f2392 ?f2393 ?f2394
+row pa 898 open gold
+row pa 898 shut base
+row pb 898 open west
+row pb 898 shut east
+row acct 899 27 ?f2395 ?f2396 ?f2397
+row pa 899 open gold
+row pa 899 open base
+row pb 899 shut east
+row pb 899 shut west
+row acct 900 27 ?f2398 ?f2399 ?f2400
+row pa 900 open base
+row pa 900 shut gold
+row pb 900 open east
+row pb 900 shut west
+row acct 901 27 ?f2401 ?f2402 ?f2403
+row pa 901 open gold
+row pa 901 shut base
+row pb 901 open west
+row pb 901 shut east
+row acct 902 27 ?f2404 ?f2405 ?f2406
+row pa 902 open gold
+row pa 902 shut base
+row pb 902 open west
+row pb 902 shut east
+row acct 903 27 ?f2407 ?f2408 ?f2409
+row pa 903 open gold
+row pa 903 shut base
+row pb 903 open west
+row pb 903 shut east
+row acct 904 27 ?f2410 ?f2411 ?f2412
+row pa 904 open base
+row pa 904 shut gold
+row pb 904 open east
+row pb 904 shut west
+row acct 905 27 ?f2413 ?f2414 ?f2415
+row pa 905 open base
+row pa 905 shut gold
+row pb 905 open east
+row pb 905 shut west
+row acct 906 27 ?f2416 ?f2417 ?f2418
+row pa 906 open base
+row pa 906 shut gold
+row pb 906 open east
+row pb 906 shut west
+row acct 907 27 ?f2419 ?f2420 ?f2421
+row pa 907 open gold
+row pa 907 shut base
+row pb 907 open west
+row pb 907 shut east
+row acct 908 27 ?f2422 ?f2423 ?f2424
+row pa 908 open base
+row pa 908 shut gold
+row pb 908 open east
+row pb 908 shut west
+row acct 909 27 ?f2425 ?f2426 ?f2427
+row pa 909 open gold
+row pa 909 shut base
+row pb 909 open west
+row pb 909 shut east
+row acct 910 27 ?f2428 ?f2429 ?f2430
+row pa 910 open base
+row pa 910 shut gold
+row pb 910 open east
+row pb 910 shut west
+row acct 911 28 ?f2431 ?f2432 ?f2433
+row pa 911 open gold
+row pa 911 shut base
+row pb 911 open west
+row pb 911 shut east
+row acct 912 28 ?f2434 ?f2435 ?f2436
+row pa 912 open gold
+row pa 912 shut base
+row pb 912 open west
+row pb 912 shut east
+row acct 913 28 ?f2437 ?f2438 ?f2439
+row pa 913 open gold
+row pa 913 shut base
+row pb 913 open west
+row pb 913 shut east
+row acct 914 28 ?f2440 ?f2441 ?f2442
+row pa 914 open gold
+row pa 914 shut base
+row pb 914 open west
+row pb 914 shut east
+row acct 915 28 ?f2443 ?f2444 ?f2445
+row pa 915 open base
+row pa 915 shut gold
+row pb 915 open east
+row pb 915 shut west
+row acct 916 28 ?f2446 ?f2447 ?f2448
+row pa 916 open base
+row pa 916 shut gold
+row pb 916 open east
+row pb 916 shut west
+row acct 917 28 ?f2449 ?f2450 ?f2451
+row pa 917 open base
+row pa 917 shut gold
+row pb 917 open east
+row pb 917 shut west
+row acct 918 28 ?f2452 ?f2453 ?f2454
+row pa 918 open base
+row pa 918 shut gold
+row pb 918 open east
+row pb 918 shut west
+row acct 919 28 ?f2455 ?f2456 ?f2457
+row pa 919 open gold
+row pa 919 shut base
+row pb 919 open west
+row pb 919 shut east
+row acct 920 28 ?f2458 ?f2459 ?f2460
+row pa 920 open base
+row pa 920 shut gold
+row pb 920 open east
+row pb 920 shut west
+row acct 921 28 ?f2461 ?f2462 ?f2463
+row pa 921 open gold
+row pa 921 shut base
+row pb 921 open west
+row pb 921 shut east
+row acct 922 28 ?f2464 ?f2465 ?f2466
+row pa 922 open base
+row pa 922 shut gold
+row pb 922 open east
+row pb 922 shut west
+row acct 923 28 ?f2467 ?f2468 ?f2469
+row pa 923 open base
+row pa 923 shut gold
+row pb 923 open east
+row pb 923 shut west
+row acct 924 28 ?f2470 ?f2471 ?f2472
+row pa 924 open gold
+row pa 924 shut base
+row pb 924 open west
+row pb 924 shut east
+row acct 925 28 ?f2473 ?f2474 ?f2475
+row pa 925 open base
+row pa 925 shut gold
+row pb 925 open east
+row pb 925 shut west
+row acct 926 28 ?f2476 ?f2477 ?f2478
+row pa 926 open gold
+row pa 926 shut base
+row pb 926 open west
+row pb 926 shut east
+row acct 927 28 ?f2479 ?f2480 ?f2481
+row pa 927 open base
+row pa 927 shut gold
+row pb 927 open east
+row pb 927 shut west
+row acct 928 28 ?f2482 ?f2483 ?f2484
+row pa 928 open gold
+row pa 928 shut base
+row pb 928 open west
+row pb 928 shut east
+row acct 929 28 ?f2485 ?f2486 ?f2487
+row pa 929 open base
+row pa 929 shut gold
+row pb 929 open east
+row pb 929 shut west
+row acct 930 28 ?f2488 ?f2489 ?f2490
+row pa 930 open gold
+row pa 930 shut base
+row pb 930 open west
+row pb 930 shut east
+row acct 931 28 ?f2491 ?f2492 ?f2493
+row pa 931 open base
+row pa 931 shut gold
+row pb 931 open east
+row pb 931 shut west
+row acct 932 28 ?f2494 ?f2495 ?f2496
+row pa 932 open gold
+row pa 932 shut base
+row pb 932 open west
+row pb 932 shut east
+row acct 933 28 ?f2497 ?f2498 ?f2499
+row pa 933 open gold
+row pa 933 shut base
+row pb 933 open west
+row pb 933 shut east
+row acct 934 28 ?f2500 ?f2501 ?f2502
+row pa 934 open base
+row pa 934 shut gold
+row pb 934 open east
+row pb 934 shut west
+row acct 935 28 ?f2503 ?f2504 ?f2505
+row pa 935 open gold
+row pa 935 shut base
+row pb 935 open west
+row pb 935 shut east
+row acct 936 28 ?f2506 ?f2507 ?f2508
+row pa 936 open gold
+row pa 936 shut base
+row pb 936 open west
+row pb 936 shut east
+row acct 937 28 ?f2509 ?f2510 ?f2511
+row pa 937 open base
+row pa 937 shut gold
+row pb 937 open east
+row pb 937 shut west
+row acct 938 28 ?f2512 ?f2513 ?f2514
+row pa 938 open gold
+row pa 938 shut base
+row pb 938 open west
+row pb 938 shut east
+row acct 939 28 ?f2515 ?f2516 ?f2517
+row pa 939 open gold
+row pa 939 shut base
+row pb 939 open west
+row pb 939 shut east
+row acct 940 28 ?f2518 ?f2519 ?f2520
+row pa 940 open base
+row pa 940 shut gold
+row pb 940 open east
+row pb 940 shut west
+row acct 941 29 ?f2521 ?f2522 ?f2523
+row pa 941 open base
+row pa 941 shut gold
+row pb 941 open east
+row pb 941 shut west
+row acct 942 29 ?f2524 ?f2525 ?f2526
+row pa 942 open base
+row pa 942 shut gold
+row pb 942 open east
+row pb 942 shut west
+row acct 943 29 ?f2527 ?f2528 ?f2529
+row pa 943 open base
+row pa 943 shut gold
+row pb 943 open east
+row pb 943 shut west
+row acct 944 29 ?f2530 ?f2531 ?f2532
+row pa 944 open gold
+row pa 944 shut base
+row pb 944 open west
+row pb 944 shut east
+row acct 945 29 ?f2533 ?f2534 ?f2535
+row pa 945 open base
+row pa 945 shut gold
+row pb 945 open east
+row pb 945 shut west
+row acct 946 29 ?f2536 ?f2537 ?f2538
+row pa 946 open gold
+row pa 946 shut base
+row pb 946 open west
+row pb 946 shut east
+row acct 947 29 ?f2539 ?f2540 ?f2541
+row pa 947 open base
+row pa 947 shut gold
+row pb 947 open east
+row pb 947 shut west
+row acct 948 29 ?f2542 ?f2543 ?f2544
+row pa 948 open base
+row pa 948 shut gold
+row pb 948 open east
+row pb 948 shut west
+row acct 949 29 ?f2545 ?f2546 ?f2547
+row pa 949 open gold
+row pa 949 shut base
+row pb 949 open west
+row pb 949 shut east
+row acct 950 29 ?f2548 ?f2549 ?f2550
+row pa 950 open gold
+row pa 950 shut base
+row pb 950 open west
+row pb 950 shut east
+row acct 951 29 ?f2551 ?f2552 ?f2553
+row pa 951 open gold
+row pa 951 shut base
+row pb 951 open west
+row pb 951 shut east
+row acct 952 29 ?f2554 ?f2555 ?f2556
+row pa 952 open base
+row pa 952 shut gold
+row pb 952 open east
+row pb 952 shut west
+row acct 953 29 ?f2557 ?f2558 ?f2559
+row pa 953 open gold
+row pa 953 shut base
+row pb 953 open west
+row pb 953 shut east
+row acct 954 29 ?f2560 ?f2561 ?f2562
+row pa 954 open base
+row pa 954 shut gold
+row pb 954 open east
+row pb 954 shut west
+row acct 955 29 ?f2563 ?f2564 ?f2565
+row pa 955 open gold
+row pa 955 shut base
+row pb 955 open west
+row pb 955 shut east
+row acct 956 29 ?f2566 ?f2567 ?f2568
+row pa 956 open base
+row pa 956 shut gold
+row pb 956 open east
+row pb 956 shut west
+row acct 957 29 ?f2569 ?f2570 ?f2571
+row pa 957 open base
+row pa 957 shut gold
+row pb 957 open east
+row pb 957 shut west
+row acct 958 29 ?f2572 ?f2573 ?f2574
+row pa 958 open base
+row pa 958 shut gold
+row pb 958 open east
+row pb 958 shut west
+row acct 959 29 ?f2575 ?f2576 ?f2577
+row pa 959 open base
+row pa 959 shut gold
+row pb 959 open east
+row pb 959 shut west
+row acct 960 29 ?f2578 ?f2579 ?f2580
+row pa 960 open base
+row pa 960 shut gold
+row pb 960 open east
+row pb 960 shut west
+row acct 961 29 ?f2581 ?f2582 ?f2583
+row pa 961 open base
+row pa 961 shut gold
+row pb 961 open east
+row pb 961 shut west
+row acct 962 29 ?f2584 ?f2585 ?f2586
+row pa 962 open base
+row pa 962 shut gold
+row pb 962 open east
+row pb 962 shut west
+row acct 963 29 ?f2587 ?f2588 ?f2589
+row pa 963 open gold
+row pa 963 shut base
+row pb 963 open west
+row pb 963 shut east
+row acct 964 29 ?f2590 ?f2591 ?f2592
+row pa 964 open gold
+row pa 964 shut base
+row pb 964 open west
+row pb 964 shut east
+row acct 965 29 ?f2593 ?f2594 ?f2595
+row pa 965 open base
+row pa 965 shut gold
+row pb 965 open east
+row pb 965 shut west
+row acct 966 29 ?f2596 ?f2597 ?f2598
+row pa 966 open gold
+row pa 966 shut base
+row pb 966 open west
+row pb 966 shut east
+row acct 967 29 ?f2599 ?f2600 ?f2601
+row pa 967 open base
+row pa 967 shut gold
+row pb 967 open east
+row pb 967 shut west
+row acct 968 29 ?f2602 ?f2603 ?f2604
+row pa 968 open gold
+row pa 968 shut base
+row pb 968 open west
+row pb 968 shut east
+row acct 969 29 ?f2605 ?f2606 ?f2607
+row pa 969 open gold
+row pa 969 shut base
+row pb 969 open west
+row pb 969 shut east
+row acct 970 29 ?f2608 ?f2609 ?f2610
+row pa 970 open base
+row pa 970 shut gold
+row pb 970 open east
+row pb 970 shut west
+row acct 971 30 ?f2611 ?f2612 ?f2613
+row pa 971 open gold
+row pa 971 shut base
+row pb 971 open west
+row pb 971 shut east
+row acct 972 30 ?f2614 ?f2615 ?f2616
+row pa 972 open gold
+row pa 972 shut base
+row pb 972 open west
+row pb 972 shut east
+row acct 973 30 ?f2617 ?f2618 ?f2619
+row pa 973 open gold
+row pa 973 shut base
+row pb 973 open west
+row pb 973 shut east
+row acct 974 30 ?f2620 ?f2621 ?f2622
+row pa 974 open base
+row pa 974 shut gold
+row pb 974 open east
+row pb 974 shut west
+row acct 975 30 ?f2623 ?f2624 ?f2625
+row pa 975 open gold
+row pa 975 shut base
+row pb 975 open west
+row pb 975 shut east
+row acct 976 30 ?f2626 ?f2627 ?f2628
+row pa 976 open gold
+row pa 976 shut base
+row pb 976 open west
+row pb 976 shut east
+row acct 977 30 ?f2629 ?f2630 ?f2631
+row pa 977 open base
+row pa 977 shut gold
+row pb 977 open east
+row pb 977 shut west
+row acct 978 30 ?f2632 ?f2633 ?f2634
+row pa 978 open gold
+row pa 978 shut base
+row pb 978 open west
+row pb 978 shut east
+row acct 979 30 ?f2635 ?f2636 ?f2637
+row pa 979 open gold
+row pa 979 shut base
+row pb 979 open west
+row pb 979 shut east
+row acct 980 30 ?f2638 ?f2639 ?f2640
+row pa 980 open base
+row pa 980 shut gold
+row pb 980 open east
+row pb 980 shut west
+row acct 981 30 ?f2641 ?f2642 ?f2643
+row pa 981 open gold
+row pa 981 shut base
+row pb 981 open west
+row pb 981 shut east
+row acct 982 30 ?f2644 ?f2645 ?f2646
+row pa 982 open base
+row pa 982 shut gold
+row pb 982 open east
+row pb 982 shut west
+row acct 983 30 ?f2647 ?f2648 ?f2649
+row pa 983 open gold
+row pa 983 shut base
+row pb 983 open west
+row pb 983 shut east
+row acct 984 30 ?f2650 ?f2651 ?f2652
+row pa 984 open gold
+row pa 984 shut base
+row pb 984 open west
+row pb 984 shut east
+row acct 985 30 ?f2653 ?f2654 ?f2655
+row pa 985 open base
+row pa 985 shut gold
+row pb 985 open east
+row pb 985 shut west
+row acct 986 30 ?f2656 ?f2657 ?f2658
+row pa 986 open base
+row pa 986 shut gold
+row pb 986 open east
+row pb 986 shut west
+row acct 987 30 ?f2659 ?f2660 ?f2661
+row pa 987 open gold
+row pa 987 shut base
+row pb 987 open west
+row pb 987 shut east
+row acct 988 30 ?f2662 ?f2663 ?f2664
+row pa 988 open gold
+row pa 988 shut base
+row pb 988 open west
+row pb 988 shut east
+row acct 989 30 ?f2665 ?f2666 ?f2667
+row pa 989 open base
+row pa 989 shut gold
+row pb 989 open east
+row pb 989 shut west
+row acct 990 30 ?f2668 ?f2669 ?f2670
+row pa 990 open gold
+row pa 990 shut base
+row pb 990 open west
+row pb 990 shut east
+row acct 991 30 ?f2671 ?f2672 ?f2673
+row pa 991 open gold
+row pa 991 shut base
+row pb 991 open west
+row pb 991 shut east
+row acct 992 30 ?f2674 ?f2675 ?f2676
+row pa 992 open gold
+row pa 992 shut base
+row pb 992 open west
+row pb 992 shut east
+row acct 993 30 ?f2677 ?f2678 ?f2679
+row pa 993 open base
+row pa 993 shut gold
+row pb 993 open east
+row pb 993 shut west
+row acct 994 30 ?f2680 ?f2681 ?f2682
+row pa 994 open base
+row pa 994 shut gold
+row pb 994 open east
+row pb 994 shut west
+row acct 995 30 ?f2683 ?f2684 ?f2685
+row pa 995 open gold
+row pa 995 shut base
+row pb 995 open west
+row pb 995 shut east
+row acct 996 30 ?f2686 ?f2687 ?f2688
+row pa 996 open base
+row pa 996 shut gold
+row pb 996 open east
+row pb 996 shut west
+row acct 997 30 ?f2689 ?f2690 ?f2691
+row pa 997 open gold
+row pa 997 shut base
+row pb 997 open west
+row pb 997 shut east
+row acct 998 30 ?f2692 ?f2693 ?f2694
+row pa 998 open base
+row pa 998 shut gold
+row pb 998 open east
+row pb 998 shut west
+row acct 999 30 ?f2695 ?f2696 ?f2697
+row pa 999 open gold
+row pa 999 shut base
+row pb 999 open west
+row pb 999 shut east
+row acct 1000 30 ?f2698 ?f2699 ?f2700
+row pa 1000 open gold
+row pa 1000 shut base
+row pb 1000 open west
+row pb 1000 shut east
+row acct 1001 31 ?f2701 ?f2702 ?f2703
+row pa 1001 open base
+row pa 1001 shut gold
+row pb 1001 open east
+row pb 1001 shut west
+row acct 1002 31 ?f2704 ?f2705 ?f2706
+row pa 1002 open base
+row pa 1002 shut gold
+row pb 1002 open east
+row pb 1002 shut west
+row acct 1003 31 ?f2707 ?f2708 ?f2709
+row pa 1003 open base
+row pa 1003 shut gold
+row pb 1003 open east
+row pb 1003 shut west
+row acct 1004 31 ?f2710 ?f2711 ?f2712
+row pa 1004 open base
+row pa 1004 shut gold
+row pb 1004 open east
+row pb 1004 shut west
+row acct 1005 31 ?f2713 ?f2714 ?f2715
+row pa 1005 open gold
+row pa 1005 shut base
+row pb 1005 open west
+row pb 1005 shut east
+row acct 1006 31 ?f2716 ?f2717 ?f2718
+row pa 1006 open gold
+row pa 1006 shut base
+row pb 1006 open west
+row pb 1006 shut east
+row acct 1007 31 ?f2719 ?f2720 ?f2721
+row pa 1007 open gold
+row pa 1007 shut base
+row pb 1007 open west
+row pb 1007 shut east
+row acct 1008 31 ?f2722 ?f2723 ?f2724
+row pa 1008 open base
+row pa 1008 shut gold
+row pb 1008 open east
+row pb 1008 shut west
+row acct 1009 31 ?f2725 ?f2726 ?f2727
+row pa 1009 open gold
+row pa 1009 shut base
+row pb 1009 open west
+row pb 1009 shut east
+row acct 1010 31 ?f2728 ?f2729 ?f2730
+row pa 1010 open gold
+row pa 1010 shut base
+row pb 1010 open west
+row pb 1010 shut east
+row acct 1011 31 ?f2731 ?f2732 ?f2733
+row pa 1011 open base
+row pa 1011 shut gold
+row pb 1011 open east
+row pb 1011 shut west
+row acct 1012 31 ?f2734 ?f2735 ?f2736
+row pa 1012 open gold
+row pa 1012 shut base
+row pb 1012 open west
+row pb 1012 shut east
+row acct 1013 31 ?f2737 ?f2738 ?f2739
+row pa 1013 open base
+row pa 1013 shut gold
+row pb 1013 open east
+row pb 1013 shut west
+row acct 1014 31 ?f2740 ?f2741 ?f2742
+row pa 1014 open base
+row pa 1014 shut gold
+row pb 1014 open east
+row pb 1014 shut west
+row acct 1015 31 ?f2743 ?f2744 ?f2745
+row pa 1015 open base
+row pa 1015 shut gold
+row pb 1015 open east
+row pb 1015 shut west
+row acct 1016 31 ?f2746 ?f2747 ?f2748
+row pa 1016 open gold
+row pa 1016 shut base
+row pb 1016 open west
+row pb 1016 shut east
+row acct 1017 31 ?f2749 ?f2750 ?f2751
+row pa 1017 open gold
+row pa 1017 shut base
+row pb 1017 open west
+row pb 1017 shut east
+row acct 1018 31 ?f2752 ?f2753 ?f2754
+row pa 1018 open gold
+row pa 1018 shut base
+row pb 1018 open west
+row pb 1018 shut east
+row acct 1019 31 ?f2755 ?f2756 ?f2757
+row pa 1019 open base
+row pa 1019 shut gold
+row pb 1019 open east
+row pb 1019 shut west
+row acct 1020 31 ?f2758 ?f2759 ?f2760
+row pa 1020 open gold
+row pa 1020 shut base
+row pb 1020 open west
+row pb 1020 shut east
+row acct 1021 31 ?f2761 ?f2762 ?f2763
+row pa 1021 open base
+row pa 1021 shut gold
+row pb 1021 open east
+row pb 1021 shut west
+row acct 1022 31 ?f2764 ?f2765 ?f2766
+row pa 1022 open base
+row pa 1022 shut gold
+row pb 1022 open east
+row pb 1022 shut west
+row acct 1023 31 ?f2767 ?f2768 ?f2769
+row pa 1023 open base
+row pa 1023 shut gold
+row pb 1023 open east
+row pb 1023 shut west
+row acct 1024 31 ?f2770 ?f2771 ?f2772
+row pa 1024 open base
+row pa 1024 shut gold
+row pb 1024 open east
+row pb 1024 shut west
+row acct 1025 31 ?f2773 ?f2774 ?f2775
+row pa 1025 open base
+row pa 1025 shut gold
+row pb 1025 open east
+row pb 1025 shut west
+row acct 1026 31 ?f2776 ?f2777 ?f2778
+row pa 1026 open base
+row pa 1026 shut gold
+row pb 1026 open east
+row pb 1026 shut west
+row acct 1027 31 ?f2779 ?f2780 ?f2781
+row pa 1027 open gold
+row pa 1027 shut base
+row pb 1027 open west
+row pb 1027 shut east
+row acct 1028 31 ?f2782 ?f2783 ?f2784
+row pa 1028 open gold
+row pa 1028 shut base
+row pb 1028 open west
+row pb 1028 shut east
+row acct 1029 31 ?f2785 ?f2786 ?f2787
+row pa 1029 open base
+row pa 1029 shut gold
+row pb 1029 open east
+row pb 1029 shut west
+row acct 1030 31 ?f2788 ?f2789 ?f2790
+row pa 1030 open base
+row pa 1030 shut gold
+row pb 1030 open east
+row pb 1030 shut west
+row acct 1031 32 ?f2791 ?f2792 ?f2793
+row pa 1031 open gold
+row pa 1031 shut base
+row pb 1031 open west
+row pb 1031 shut east
+row acct 1032 32 ?f2794 ?f2795 ?f2796
+row pa 1032 open gold
+row pa 1032 shut base
+row pb 1032 open west
+row pb 1032 shut east
+row acct 1033 32 ?f2797 ?f2798 ?f2799
+row pa 1033 open gold
+row pa 1033 shut base
+row pb 1033 open west
+row pb 1033 shut east
+row acct 1034 32 ?f2800 ?f2801 ?f2802
+row pa 1034 open gold
+row pa 1034 shut base
+row pb 1034 open west
+row pb 1034 shut east
+row acct 1035 32 ?f2803 ?f2804 ?f2805
+row pa 1035 open gold
+row pa 1035 shut base
+row pb 1035 open west
+row pb 1035 shut east
+row acct 1036 32 ?f2806 ?f2807 ?f2808
+row pa 1036 open base
+row pa 1036 shut gold
+row pb 1036 open east
+row pb 1036 shut west
+row acct 1037 32 ?f2809 ?f2810 ?f2811
+row pa 1037 open gold
+row pa 1037 shut base
+row pb 1037 open west
+row pb 1037 shut east
+row acct 1038 32 ?f2812 ?f2813 ?f2814
+row pa 1038 open gold
+row pa 1038 shut base
+row pb 1038 open west
+row pb 1038 shut east
+row acct 1039 32 ?f2815 ?f2816 ?f2817
+row pa 1039 open base
+row pa 1039 shut gold
+row pb 1039 open east
+row pb 1039 shut west
+row acct 1040 32 ?f2818 ?f2819 ?f2820
+row pa 1040 open gold
+row pa 1040 shut base
+row pb 1040 open west
+row pb 1040 shut east
+row acct 1041 32 ?f2821 ?f2822 ?f2823
+row pa 1041 open gold
+row pa 1041 shut base
+row pb 1041 open west
+row pb 1041 shut east
+row acct 1042 32 ?f2824 ?f2825 ?f2826
+row pa 1042 open gold
+row pa 1042 shut base
+row pb 1042 open west
+row pb 1042 shut east
+row acct 1043 32 ?f2827 ?f2828 ?f2829
+row pa 1043 open gold
+row pa 1043 shut base
+row pb 1043 open west
+row pb 1043 shut east
+row acct 1044 32 ?f2830 ?f2831 ?f2832
+row pa 1044 open gold
+row pa 1044 shut base
+row pb 1044 open west
+row pb 1044 shut east
+row acct 1045 32 ?f2833 ?f2834 ?f2835
+row pa 1045 open gold
+row pa 1045 shut base
+row pb 1045 open west
+row pb 1045 shut east
+row acct 1046 32 ?f2836 ?f2837 ?f2838
+row pa 1046 open base
+row pa 1046 shut gold
+row pb 1046 open east
+row pb 1046 shut west
+row acct 1047 32 ?f2839 ?f2840 ?f2841
+row pa 1047 open base
+row pa 1047 shut gold
+row pb 1047 open east
+row pb 1047 shut west
+row acct 1048 32 ?f2842 ?f2843 ?f2844
+row pa 1048 open base
+row pa 1048 shut gold
+row pb 1048 open east
+row pb 1048 shut west
+row acct 1049 32 ?f2845 ?f2846 ?f2847
+row pa 1049 open base
+row pa 1049 shut gold
+row pb 1049 open east
+row pb 1049 shut west
+row acct 1050 32 ?f2848 ?f2849 ?f2850
+row pa 1050 open gold
+row pa 1050 shut base
+row pb 1050 open west
+row pb 1050 shut east
+row acct 1051 32 ?f2851 ?f2852 ?f2853
+row pa 1051 open gold
+row pa 1051 shut base
+row pb 1051 open west
+row pb 1051 shut east
+row acct 1052 32 ?f2854 ?f2855 ?f2856
+row pa 1052 open base
+row pa 1052 shut gold
+row pb 1052 open east
+row pb 1052 shut west
+row acct 1053 32 ?f2857 ?f2858 ?f2859
+row pa 1053 open gold
+row pa 1053 shut base
+row pb 1053 open west
+row pb 1053 shut east
+row acct 1054 32 ?f2860 ?f2861 ?f2862
+row pa 1054 open gold
+row pa 1054 shut base
+row pb 1054 open west
+row pb 1054 shut east
+row acct 1055 32 ?f2863 ?f2864 ?f2865
+row pa 1055 open gold
+row pa 1055 shut base
+row pb 1055 open west
+row pb 1055 shut east
+row acct 1056 32 ?f2866 ?f2867 ?f2868
+row pa 1056 open gold
+row pa 1056 shut base
+row pb 1056 open west
+row pb 1056 shut east
+row acct 1057 32 ?f2869 ?f2870 ?f2871
+row pa 1057 open base
+row pa 1057 shut gold
+row pb 1057 open east
+row pb 1057 shut west
+row acct 1058 32 ?f2872 ?f2873 ?f2874
+row pa 1058 open base
+row pa 1058 shut gold
+row pb 1058 open east
+row pb 1058 shut west
+row acct 1059 32 ?f2875 ?f2876 ?f2877
+row pa 1059 open base
+row pa 1059 shut gold
+row pb 1059 open east
+row pb 1059 shut west
+row acct 1060 32 ?f2878 ?f2879 ?f2880
+row pa 1060 open gold
+row pa 1060 shut base
+row pb 1060 open west
+row pb 1060 shut east
+row acct 1061 33 ?f2881 ?f2882 ?f2883
+row pa 1061 open base
+row pa 1061 shut gold
+row pb 1061 open east
+row pb 1061 shut west
+row acct 1062 33 ?f2884 ?f2885 ?f2886
+row pa 1062 open gold
+row pa 1062 shut base
+row pb 1062 open west
+row pb 1062 shut east
+row acct 1063 33 ?f2887 ?f2888 ?f2889
+row pa 1063 open gold
+row pa 1063 shut base
+row pb 1063 open west
+row pb 1063 shut east
+row acct 1064 33 ?f2890 ?f2891 ?f2892
+row pa 1064 open gold
+row pa 1064 shut base
+row pb 1064 open west
+row pb 1064 shut east
+row acct 1065 33 ?f2893 ?f2894 ?f2895
+row pa 1065 open gold
+row pa 1065 shut base
+row pb 1065 open west
+row pb 1065 shut east
+row acct 1066 33 ?f2896 ?f2897 ?f2898
+row pa 1066 open gold
+row pa 1066 shut base
+row pb 1066 open west
+row pb 1066 shut east
+row acct 1067 33 ?f2899 ?f2900 ?f2901
+row pa 1067 open base
+row pa 1067 shut gold
+row pb 1067 open east
+row pb 1067 shut west
+row acct 1068 33 ?f2902 ?f2903 ?f2904
+row pa 1068 open gold
+row pa 1068 shut base
+row pb 1068 open west
+row pb 1068 shut east
+row acct 1069 33 ?f2905 ?f2906 ?f2907
+row pa 1069 open gold
+row pa 1069 shut base
+row pb 1069 open west
+row pb 1069 shut east
+row acct 1070 33 ?f2908 ?f2909 ?f2910
+row pa 1070 open base
+row pa 1070 shut gold
+row pb 1070 open east
+row pb 1070 shut west
+row acct 1071 33 ?f2911 ?f2912 ?f2913
+row pa 1071 open gold
+row pa 1071 shut base
+row pb 1071 open west
+row pb 1071 shut east
+row acct 1072 33 ?f2914 ?f2915 ?f2916
+row pa 1072 open base
+row pa 1072 shut gold
+row pb 1072 open east
+row pb 1072 shut west
+row acct 1073 33 ?f2917 ?f2918 ?f2919
+row pa 1073 open base
+row pa 1073 shut gold
+row pb 1073 open east
+row pb 1073 shut west
+row acct 1074 33 ?f2920 ?f2921 ?f2922
+row pa 1074 open gold
+row pa 1074 shut base
+row pb 1074 open west
+row pb 1074 shut east
+row acct 1075 33 ?f2923 ?f2924 ?f2925
+row pa 1075 open base
+row pa 1075 shut gold
+row pb 1075 open east
+row pb 1075 shut west
+row acct 1076 33 ?f2926 ?f2927 ?f2928
+row pa 1076 open base
+row pa 1076 shut gold
+row pb 1076 open east
+row pb 1076 shut west
+row acct 1077 33 ?f2929 ?f2930 ?f2931
+row pa 1077 open base
+row pa 1077 shut gold
+row pb 1077 open east
+row pb 1077 shut west
+row acct 1078 33 ?f2932 ?f2933 ?f2934
+row pa 1078 open gold
+row pa 1078 shut base
+row pb 1078 open west
+row pb 1078 shut east
+row acct 1079 33 ?f2935 ?f2936 ?f2937
+row pa 1079 open base
+row pa 1079 shut gold
+row pb 1079 open east
+row pb 1079 shut west
+row acct 1080 33 ?f2938 ?f2939 ?f2940
+row pa 1080 open gold
+row pa 1080 shut base
+row pb 1080 open west
+row pb 1080 shut east
+row acct 1081 33 ?f2941 ?f2942 ?f2943
+row pa 1081 open base
+row pa 1081 shut gold
+row pb 1081 open east
+row pb 1081 shut west
+row acct 1082 33 ?f2944 ?f2945 ?f2946
+row pa 1082 open gold
+row pa 1082 shut base
+row pb 1082 open west
+row pb 1082 shut east
+row acct 1083 33 ?f2947 ?f2948 ?f2949
+row pa 1083 open gold
+row pa 1083 shut base
+row pb 1083 open west
+row pb 1083 shut east
+row acct 1084 33 ?f2950 ?f2951 ?f2952
+row pa 1084 open gold
+row pa 1084 shut base
+row pb 1084 open west
+row pb 1084 shut east
+row acct 1085 33 ?f2953 ?f2954 ?f2955
+row pa 1085 open gold
+row pa 1085 shut base
+row pb 1085 open west
+row pb 1085 shut east
+row acct 1086 33 ?f2956 ?f2957 ?f2958
+row pa 1086 open gold
+row pa 1086 open base
+row pb 1086 shut east
+row pb 1086 shut west
+row acct 1087 33 ?f2959 ?f2960 ?f2961
+row pa 1087 open base
+row pa 1087 shut gold
+row pb 1087 open east
+row pb 1087 shut west
+row acct 1088 33 ?f2962 ?f2963 ?f2964
+row pa 1088 open base
+row pa 1088 shut gold
+row pb 1088 open east
+row pb 1088 shut west
+row acct 1089 33 ?f2965 ?f2966 ?f2967
+row pa 1089 open gold
+row pa 1089 shut base
+row pb 1089 open west
+row pb 1089 shut east
+row acct 1090 33 ?f2968 ?f2969 ?f2970
+row pa 1090 open gold
+row pa 1090 shut base
+row pb 1090 open west
+row pb 1090 shut east
+row acct 1091 34 ?f2971 ?f2972 ?f2973
+row pa 1091 open gold
+row pa 1091 shut base
+row pb 1091 open west
+row pb 1091 shut east
+row acct 1092 34 ?f2974 ?f2975 ?f2976
+row pa 1092 open base
+row pa 1092 shut gold
+row pb 1092 open east
+row pb 1092 shut west
+row acct 1093 34 ?f2977 ?f2978 ?f2979
+row pa 1093 open gold
+row pa 1093 shut base
+row pb 1093 open west
+row pb 1093 shut east
+row acct 1094 34 ?f2980 ?f2981 ?f2982
+row pa 1094 open base
+row pa 1094 shut gold
+row pb 1094 open east
+row pb 1094 shut west
+row acct 1095 34 ?f2983 ?f2984 ?f2985
+row pa 1095 open gold
+row pa 1095 shut base
+row pb 1095 open west
+row pb 1095 shut east
+row acct 1096 34 ?f2986 ?f2987 ?f2988
+row pa 1096 open base
+row pa 1096 shut gold
+row pb 1096 open east
+row pb 1096 shut west
+row acct 1097 34 ?f2989 ?f2990 ?f2991
+row pa 1097 open gold
+row pa 1097 shut base
+row pb 1097 open west
+row pb 1097 shut east
+row acct 1098 34 ?f2992 ?f2993 ?f2994
+row pa 1098 open gold
+row pa 1098 shut base
+row pb 1098 open west
+row pb 1098 shut east
+row acct 1099 34 ?f2995 ?f2996 ?f2997
+row pa 1099 open base
+row pa 1099 shut gold
+row pb 1099 open east
+row pb 1099 shut west
+row acct 1100 34 ?f2998 ?f2999 ?f3000
+row pa 1100 open base
+row pa 1100 shut gold
+row pb 1100 open east
+row pb 1100 shut west
+row acct 1101 34 ?f3001 ?f3002 ?f3003
+row pa 1101 open gold
+row pa 1101 shut base
+row pb 1101 open west
+row pb 1101 shut east
+row acct 1102 34 ?f3004 ?f3005 ?f3006
+row pa 1102 open gold
+row pa 1102 shut base
+row pb 1102 open west
+row pb 1102 shut east
+row acct 1103 34 ?f3007 ?f3008 ?f3009
+row pa 1103 open base
+row pa 1103 shut gold
+row pb 1103 open east
+row pb 1103 shut west
+row acct 1104 34 ?f3010 ?f3011 ?f3012
+row pa 1104 open base
+row pa 1104 shut gold
+row pb 1104 open east
+row pb 1104 shut west
+row acct 1105 34 ?f3013 ?f3014 ?f3015
+row pa 1105 open gold
+row pa 1105 shut base
+row pb 1105 open west
+row pb 1105 shut east
+row acct 1106 34 ?f3016 ?f3017 ?f3018
+row pa 1106 open gold
+row pa 1106 shut base
+row pb 1106 open west
+row pb 1106 shut east
+row acct 1107 34 ?f3019 ?f3020 ?f3021
+row pa 1107 open base
+row pa 1107 shut gold
+row pb 1107 open east
+row pb 1107 shut west
+row acct 1108 34 ?f3022 ?f3023 ?f3024
+row pa 1108 open base
+row pa 1108 shut gold
+row pb 1108 open east
+row pb 1108 shut west
+row acct 1109 34 ?f3025 ?f3026 ?f3027
+row pa 1109 open base
+row pa 1109 shut gold
+row pb 1109 open east
+row pb 1109 shut west
+row acct 1110 34 ?f3028 ?f3029 ?f3030
+row pa 1110 open base
+row pa 1110 shut gold
+row pb 1110 open east
+row pb 1110 shut west
+row acct 1111 34 ?f3031 ?f3032 ?f3033
+row pa 1111 open gold
+row pa 1111 shut base
+row pb 1111 open west
+row pb 1111 shut east
+row acct 1112 34 ?f3034 ?f3035 ?f3036
+row pa 1112 open base
+row pa 1112 shut gold
+row pb 1112 open east
+row pb 1112 shut west
+row acct 1113 34 ?f3037 ?f3038 ?f3039
+row pa 1113 open gold
+row pa 1113 shut base
+row pb 1113 open west
+row pb 1113 shut east
+row acct 1114 34 ?f3040 ?f3041 ?f3042
+row pa 1114 open base
+row pa 1114 shut gold
+row pb 1114 open east
+row pb 1114 shut west
+row acct 1115 34 ?f3043 ?f3044 ?f3045
+row pa 1115 open base
+row pa 1115 shut gold
+row pb 1115 open east
+row pb 1115 shut west
+row acct 1116 34 ?f3046 ?f3047 ?f3048
+row pa 1116 open gold
+row pa 1116 shut base
+row pb 1116 open west
+row pb 1116 shut east
+row acct 1117 34 ?f3049 ?f3050 ?f3051
+row pa 1117 open gold
+row pa 1117 shut base
+row pb 1117 open west
+row pb 1117 shut east
+row acct 1118 34 ?f3052 ?f3053 ?f3054
+row pa 1118 open base
+row pa 1118 shut gold
+row pb 1118 open east
+row pb 1118 shut west
+row acct 1119 34 ?f3055 ?f3056 ?f3057
+row pa 1119 open base
+row pa 1119 shut gold
+row pb 1119 open east
+row pb 1119 shut west
+row acct 1120 34 ?f3058 ?f3059 ?f3060
+row pa 1120 open gold
+row pa 1120 shut base
+row pb 1120 open west
+row pb 1120 shut east
+row acct 1121 35 ?f3061 ?f3062 ?f3063
+row pa 1121 open base
+row pa 1121 shut gold
+row pb 1121 open east
+row pb 1121 shut west
+row acct 1122 35 ?f3064 ?f3065 ?f3066
+row pa 1122 open base
+row pa 1122 shut gold
+row pb 1122 open east
+row pb 1122 shut west
+row acct 1123 35 ?f3067 ?f3068 ?f3069
+row pa 1123 open base
+row pa 1123 shut gold
+row pb 1123 open east
+row pb 1123 shut west
+row acct 1124 35 ?f3070 ?f3071 ?f3072
+row pa 1124 open gold
+row pa 1124 shut base
+row pb 1124 open west
+row pb 1124 shut east
+row acct 1125 35 ?f3073 ?f3074 ?f3075
+row pa 1125 open gold
+row pa 1125 shut base
+row pb 1125 open west
+row pb 1125 shut east
+row acct 1126 35 ?f3076 ?f3077 ?f3078
+row pa 1126 open gold
+row pa 1126 shut base
+row pb 1126 open west
+row pb 1126 shut east
+row acct 1127 35 ?f3079 ?f3080 ?f3081
+row pa 1127 open gold
+row pa 1127 shut base
+row pb 1127 open west
+row pb 1127 shut east
+row acct 1128 35 ?f3082 ?f3083 ?f3084
+row pa 1128 open gold
+row pa 1128 shut base
+row pb 1128 open west
+row pb 1128 shut east
+row acct 1129 35 ?f3085 ?f3086 ?f3087
+row pa 1129 open base
+row pa 1129 shut gold
+row pb 1129 open east
+row pb 1129 shut west
+row acct 1130 35 ?f3088 ?f3089 ?f3090
+row pa 1130 open base
+row pa 1130 shut gold
+row pb 1130 open east
+row pb 1130 shut west
+row acct 1131 35 ?f3091 ?f3092 ?f3093
+row pa 1131 open gold
+row pa 1131 shut base
+row pb 1131 open west
+row pb 1131 shut east
+row acct 1132 35 ?f3094 ?f3095 ?f3096
+row pa 1132 open base
+row pa 1132 shut gold
+row pb 1132 open east
+row pb 1132 shut west
+row acct 1133 35 ?f3097 ?f3098 ?f3099
+row pa 1133 open gold
+row pa 1133 shut base
+row pb 1133 open west
+row pb 1133 shut east
+row acct 1134 35 ?f3100 ?f3101 ?f3102
+row pa 1134 open base
+row pa 1134 shut gold
+row pb 1134 open east
+row pb 1134 shut west
+row acct 1135 35 ?f3103 ?f3104 ?f3105
+row pa 1135 open gold
+row pa 1135 shut base
+row pb 1135 open west
+row pb 1135 shut east
+row acct 1136 35 ?f3106 ?f3107 ?f3108
+row pa 1136 open gold
+row pa 1136 shut base
+row pb 1136 open west
+row pb 1136 shut east
+row acct 1137 35 ?f3109 ?f3110 ?f3111
+row pa 1137 open base
+row pa 1137 shut gold
+row pb 1137 open east
+row pb 1137 shut west
+row acct 1138 35 ?f3112 ?f3113 ?f3114
+row pa 1138 open base
+row pa 1138 shut gold
+row pb 1138 open east
+row pb 1138 shut west
+row acct 1139 35 ?f3115 ?f3116 ?f3117
+row pa 1139 open base
+row pa 1139 shut gold
+row pb 1139 open east
+row pb 1139 shut west
+row acct 1140 35 ?f3118 ?f3119 ?f3120
+row pa 1140 open base
+row pa 1140 shut gold
+row pb 1140 open east
+row pb 1140 shut west
+row acct 1141 35 ?f3121 ?f3122 ?f3123
+row pa 1141 open gold
+row pa 1141 open base
+row pb 1141 shut east
+row pb 1141 shut west
+row acct 1142 35 ?f3124 ?f3125 ?f3126
+row pa 1142 open base
+row pa 1142 shut gold
+row pb 1142 open east
+row pb 1142 shut west
+row acct 1143 35 ?f3127 ?f3128 ?f3129
+row pa 1143 open gold
+row pa 1143 shut base
+row pb 1143 open west
+row pb 1143 shut east
+row acct 1144 35 ?f3130 ?f3131 ?f3132
+row pa 1144 open base
+row pa 1144 shut gold
+row pb 1144 open east
+row pb 1144 shut west
+row acct 1145 35 ?f3133 ?f3134 ?f3135
+row pa 1145 open base
+row pa 1145 shut gold
+row pb 1145 open east
+row pb 1145 shut west
+row acct 1146 35 ?f3136 ?f3137 ?f3138
+row pa 1146 open base
+row pa 1146 shut gold
+row pb 1146 open east
+row pb 1146 shut west
+row acct 1147 35 ?f3139 ?f3140 ?f3141
+row pa 1147 open gold
+row pa 1147 shut base
+row pb 1147 open west
+row pb 1147 shut east
+row acct 1148 35 ?f3142 ?f3143 ?f3144
+row pa 1148 open gold
+row pa 1148 shut base
+row pb 1148 open west
+row pb 1148 shut east
+row acct 1149 35 ?f3145 ?f3146 ?f3147
+row pa 1149 open gold
+row pa 1149 shut base
+row pb 1149 open west
+row pb 1149 shut east
+row acct 1150 35 ?f3148 ?f3149 ?f3150
+row pa 1150 open gold
+row pa 1150 shut base
+row pb 1150 open west
+row pb 1150 shut east
+row acct 1151 36 ?f3151 ?f3152 ?f3153
+row pa 1151 open gold
+row pa 1151 shut base
+row pb 1151 open west
+row pb 1151 shut east
+row acct 1152 36 ?f3154 ?f3155 ?f3156
+row pa 1152 open base
+row pa 1152 shut gold
+row pb 1152 open east
+row pb 1152 shut west
+row acct 1153 36 ?f3157 ?f3158 ?f3159
+row pa 1153 open base
+row pa 1153 shut gold
+row pb 1153 open east
+row pb 1153 shut west
+row acct 1154 36 ?f3160 ?f3161 ?f3162
+row pa 1154 open gold
+row pa 1154 shut base
+row pb 1154 open west
+row pb 1154 shut east
+row acct 1155 36 ?f3163 ?f3164 ?f3165
+row pa 1155 open gold
+row pa 1155 shut base
+row pb 1155 open west
+row pb 1155 shut east
+row acct 1156 36 ?f3166 ?f3167 ?f3168
+row pa 1156 open gold
+row pa 1156 shut base
+row pb 1156 open west
+row pb 1156 shut east
+row acct 1157 36 ?f3169 ?f3170 ?f3171
+row pa 1157 open base
+row pa 1157 shut gold
+row pb 1157 open east
+row pb 1157 shut west
+row acct 1158 36 ?f3172 ?f3173 ?f3174
+row pa 1158 open base
+row pa 1158 shut gold
+row pb 1158 open east
+row pb 1158 shut west
+row acct 1159 36 ?f3175 ?f3176 ?f3177
+row pa 1159 open gold
+row pa 1159 shut base
+row pb 1159 open west
+row pb 1159 shut east
+row acct 1160 36 ?f3178 ?f3179 ?f3180
+row pa 1160 open gold
+row pa 1160 shut base
+row pb 1160 open west
+row pb 1160 shut east
+row acct 1161 36 ?f3181 ?f3182 ?f3183
+row pa 1161 open base
+row pa 1161 shut gold
+row pb 1161 open east
+row pb 1161 shut west
+row acct 1162 36 ?f3184 ?f3185 ?f3186
+row pa 1162 open base
+row pa 1162 shut gold
+row pb 1162 open east
+row pb 1162 shut west
+row acct 1163 36 ?f3187 ?f3188 ?f3189
+row pa 1163 open gold
+row pa 1163 shut base
+row pb 1163 open west
+row pb 1163 shut east
+row acct 1164 36 ?f3190 ?f3191 ?f3192
+row pa 1164 open gold
+row pa 1164 shut base
+row pb 1164 open west
+row pb 1164 shut east
+row acct 1165 36 ?f3193 ?f3194 ?f3195
+row pa 1165 open gold
+row pa 1165 shut base
+row pb 1165 open west
+row pb 1165 shut east
+row acct 1166 36 ?f3196 ?f3197 ?f3198
+row pa 1166 open base
+row pa 1166 shut gold
+row pb 1166 open east
+row pb 1166 shut west
+row acct 1167 36 ?f3199 ?f3200 ?f3201
+row pa 1167 open base
+row pa 1167 shut gold
+row pb 1167 open east
+row pb 1167 shut west
+row acct 1168 36 ?f3202 ?f3203 ?f3204
+row pa 1168 open gold
+row pa 1168 shut base
+row pb 1168 open west
+row pb 1168 shut east
+row acct 1169 36 ?f3205 ?f3206 ?f3207
+row pa 1169 open gold
+row pa 1169 shut base
+row pb 1169 open west
+row pb 1169 shut east
+row acct 1170 36 ?f3208 ?f3209 ?f3210
+row pa 1170 open base
+row pa 1170 shut gold
+row pb 1170 open east
+row pb 1170 shut west
+row acct 1171 36 ?f3211 ?f3212 ?f3213
+row pa 1171 open gold
+row pa 1171 shut base
+row pb 1171 open west
+row pb 1171 shut east
+row acct 1172 36 ?f3214 ?f3215 ?f3216
+row pa 1172 open gold
+row pa 1172 shut base
+row pb 1172 open west
+row pb 1172 shut east
+row acct 1173 36 ?f3217 ?f3218 ?f3219
+row pa 1173 open base
+row pa 1173 shut gold
+row pb 1173 open east
+row pb 1173 shut west
+row acct 1174 36 ?f3220 ?f3221 ?f3222
+row pa 1174 open base
+row pa 1174 shut gold
+row pb 1174 open east
+row pb 1174 shut west
+row acct 1175 36 ?f3223 ?f3224 ?f3225
+row pa 1175 open gold
+row pa 1175 shut base
+row pb 1175 open west
+row pb 1175 shut east
+row acct 1176 36 ?f3226 ?f3227 ?f3228
+row pa 1176 open gold
+row pa 1176 open base
+row pb 1176 shut east
+row pb 1176 shut west
+row acct 1177 36 ?f3229 ?f3230 ?f3231
+row pa 1177 open gold
+row pa 1177 shut base
+row pb 1177 open west
+row pb 1177 shut east
+row acct 1178 36 ?f3232 ?f3233 ?f3234
+row pa 1178 open base
+row pa 1178 shut gold
+row pb 1178 open east
+row pb 1178 shut west
+row acct 1179 36 ?f3235 ?f3236 ?f3237
+row pa 1179 open gold
+row pa 1179 shut base
+row pb 1179 open west
+row pb 1179 shut east
+row acct 1180 36 ?f3238 ?f3239 ?f3240
+row pa 1180 open gold
+row pa 1180 shut base
+row pb 1180 open west
+row pb 1180 shut east
+row acct 1181 37 ?f3241 ?f3242 ?f3243
+row pa 1181 open gold
+row pa 1181 shut base
+row pb 1181 open west
+row pb 1181 shut east
+row acct 1182 37 ?f3244 ?f3245 ?f3246
+row pa 1182 open gold
+row pa 1182 shut base
+row pb 1182 open west
+row pb 1182 shut east
+row acct 1183 37 ?f3247 ?f3248 ?f3249
+row pa 1183 open gold
+row pa 1183 shut base
+row pb 1183 open west
+row pb 1183 shut east
+row acct 1184 37 ?f3250 ?f3251 ?f3252
+row pa 1184 open base
+row pa 1184 shut gold
+row pb 1184 open east
+row pb 1184 shut west
+row acct 1185 37 ?f3253 ?f3254 ?f3255
+row pa 1185 open gold
+row pa 1185 shut base
+row pb 1185 open west
+row pb 1185 shut east
+row acct 1186 37 ?f3256 ?f3257 ?f3258
+row pa 1186 open gold
+row pa 1186 shut base
+row pb 1186 open west
+row pb 1186 shut east
+row acct 1187 37 ?f3259 ?f3260 ?f3261
+row pa 1187 open base
+row pa 1187 shut gold
+row pb 1187 open east
+row pb 1187 shut west
+row acct 1188 37 ?f3262 ?f3263 ?f3264
+row pa 1188 open base
+row pa 1188 shut gold
+row pb 1188 open east
+row pb 1188 shut west
+row acct 1189 37 ?f3265 ?f3266 ?f3267
+row pa 1189 open gold
+row pa 1189 shut base
+row pb 1189 open west
+row pb 1189 shut east
+row acct 1190 37 ?f3268 ?f3269 ?f3270
+row pa 1190 open gold
+row pa 1190 shut base
+row pb 1190 open west
+row pb 1190 shut east
+row acct 1191 37 ?f3271 ?f3272 ?f3273
+row pa 1191 open base
+row pa 1191 shut gold
+row pb 1191 open east
+row pb 1191 shut west
+row acct 1192 37 ?f3274 ?f3275 ?f3276
+row pa 1192 open gold
+row pa 1192 shut base
+row pb 1192 open west
+row pb 1192 shut east
+row acct 1193 37 ?f3277 ?f3278 ?f3279
+row pa 1193 open gold
+row pa 1193 shut base
+row pb 1193 open west
+row pb 1193 shut east
+row acct 1194 37 ?f3280 ?f3281 ?f3282
+row pa 1194 open gold
+row pa 1194 shut base
+row pb 1194 open west
+row pb 1194 shut east
+row acct 1195 37 ?f3283 ?f3284 ?f3285
+row pa 1195 open base
+row pa 1195 shut gold
+row pb 1195 open east
+row pb 1195 shut west
+row acct 1196 37 ?f3286 ?f3287 ?f3288
+row pa 1196 open gold
+row pa 1196 shut base
+row pb 1196 open west
+row pb 1196 shut east
+row acct 1197 37 ?f3289 ?f3290 ?f3291
+row pa 1197 open gold
+row pa 1197 shut base
+row pb 1197 open west
+row pb 1197 shut east
+row acct 1198 37 ?f3292 ?f3293 ?f3294
+row pa 1198 open gold
+row pa 1198 shut base
+row pb 1198 open west
+row pb 1198 shut east
+row acct 1199 37 ?f3295 ?f3296 ?f3297
+row pa 1199 open base
+row pa 1199 shut gold
+row pb 1199 open east
+row pb 1199 shut west
+row acct 1200 37 ?f3298 ?f3299 ?f3300
+row pa 1200 open gold
+row pa 1200 shut base
+row pb 1200 open west
+row pb 1200 shut east
+row acct 1201 37 ?f3301 ?f3302 ?f3303
+row pa 1201 open gold
+row pa 1201 shut base
+row pb 1201 open west
+row pb 1201 shut east
+row acct 1202 37 ?f3304 ?f3305 ?f3306
+row pa 1202 open base
+row pa 1202 shut gold
+row pb 1202 open east
+row pb 1202 shut west
+row acct 1203 37 ?f3307 ?f3308 ?f3309
+row pa 1203 open gold
+row pa 1203 shut base
+row pb 1203 open west
+row pb 1203 shut east
+row acct 1204 37 ?f3310 ?f3311 ?f3312
+row pa 1204 open base
+row pa 1204 shut gold
+row pb 1204 open east
+row pb 1204 shut west
+row acct 1205 37 ?f3313 ?f3314 ?f3315
+row pa 1205 open gold
+row pa 1205 shut base
+row pb 1205 open west
+row pb 1205 shut east
+row acct 1206 37 ?f3316 ?f3317 ?f3318
+row pa 1206 open gold
+row pa 1206 shut base
+row pb 1206 open west
+row pb 1206 shut east
+row acct 1207 37 ?f3319 ?f3320 ?f3321
+row pa 1207 open base
+row pa 1207 shut gold
+row pb 1207 open east
+row pb 1207 shut west
+row acct 1208 37 ?f3322 ?f3323 ?f3324
+row pa 1208 open gold
+row pa 1208 shut base
+row pb 1208 open west
+row pb 1208 shut east
+row acct 1209 37 ?f3325 ?f3326 ?f3327
+row pa 1209 open base
+row pa 1209 shut gold
+row pb 1209 open east
+row pb 1209 shut west
+row acct 1210 37 ?f3328 ?f3329 ?f3330
+row pa 1210 open base
+row pa 1210 shut gold
+row pb 1210 open east
+row pb 1210 shut west
+row acct 1211 38 ?f3331 ?f3332 ?f3333
+row pa 1211 open gold
+row pa 1211 shut base
+row pb 1211 open west
+row pb 1211 shut east
+row acct 1212 38 ?f3334 ?f3335 ?f3336
+row pa 1212 open base
+row pa 1212 shut gold
+row pb 1212 open east
+row pb 1212 shut west
+row acct 1213 38 ?f3337 ?f3338 ?f3339
+row pa 1213 open gold
+row pa 1213 shut base
+row pb 1213 open west
+row pb 1213 shut east
+row acct 1214 38 ?f3340 ?f3341 ?f3342
+row pa 1214 open base
+row pa 1214 shut gold
+row pb 1214 open east
+row pb 1214 shut west
+row acct 1215 38 ?f3343 ?f3344 ?f3345
+row pa 1215 open base
+row pa 1215 shut gold
+row pb 1215 open east
+row pb 1215 shut west
+row acct 1216 38 ?f3346 ?f3347 ?f3348
+row pa 1216 open base
+row pa 1216 shut gold
+row pb 1216 open east
+row pb 1216 shut west
+row acct 1217 38 ?f3349 ?f3350 ?f3351
+row pa 1217 open gold
+row pa 1217 shut base
+row pb 1217 open west
+row pb 1217 shut east
+row acct 1218 38 ?f3352 ?f3353 ?f3354
+row pa 1218 open gold
+row pa 1218 shut base
+row pb 1218 open west
+row pb 1218 shut east
+row acct 1219 38 ?f3355 ?f3356 ?f3357
+row pa 1219 open gold
+row pa 1219 shut base
+row pb 1219 open west
+row pb 1219 shut east
+row acct 1220 38 ?f3358 ?f3359 ?f3360
+row pa 1220 open gold
+row pa 1220 shut base
+row pb 1220 open west
+row pb 1220 shut east
+row acct 1221 38 ?f3361 ?f3362 ?f3363
+row pa 1221 open base
+row pa 1221 shut gold
+row pb 1221 open east
+row pb 1221 shut west
+row acct 1222 38 ?f3364 ?f3365 ?f3366
+row pa 1222 open base
+row pa 1222 shut gold
+row pb 1222 open east
+row pb 1222 shut west
+row acct 1223 38 ?f3367 ?f3368 ?f3369
+row pa 1223 open gold
+row pa 1223 shut base
+row pb 1223 open west
+row pb 1223 shut east
+row acct 1224 38 ?f3370 ?f3371 ?f3372
+row pa 1224 open gold
+row pa 1224 shut base
+row pb 1224 open west
+row pb 1224 shut east
+row acct 1225 38 ?f3373 ?f3374 ?f3375
+row pa 1225 open base
+row pa 1225 shut gold
+row pb 1225 open east
+row pb 1225 shut west
+row acct 1226 38 ?f3376 ?f3377 ?f3378
+row pa 1226 open base
+row pa 1226 shut gold
+row pb 1226 open east
+row pb 1226 shut west
+row acct 1227 38 ?f3379 ?f3380 ?f3381
+row pa 1227 open base
+row pa 1227 shut gold
+row pb 1227 open east
+row pb 1227 shut west
+row acct 1228 38 ?f3382 ?f3383 ?f3384
+row pa 1228 open gold
+row pa 1228 shut base
+row pb 1228 open west
+row pb 1228 shut east
+row acct 1229 38 ?f3385 ?f3386 ?f3387
+row pa 1229 open base
+row pa 1229 shut gold
+row pb 1229 open east
+row pb 1229 shut west
+row acct 1230 38 ?f3388 ?f3389 ?f3390
+row pa 1230 open base
+row pa 1230 shut gold
+row pb 1230 open east
+row pb 1230 shut west
+row acct 1231 38 ?f3391 ?f3392 ?f3393
+row pa 1231 open base
+row pa 1231 shut gold
+row pb 1231 open east
+row pb 1231 shut west
+row acct 1232 38 ?f3394 ?f3395 ?f3396
+row pa 1232 open gold
+row pa 1232 shut base
+row pb 1232 open west
+row pb 1232 shut east
+row acct 1233 38 ?f3397 ?f3398 ?f3399
+row pa 1233 open gold
+row pa 1233 shut base
+row pb 1233 open west
+row pb 1233 shut east
+row acct 1234 38 ?f3400 ?f3401 ?f3402
+row pa 1234 open gold
+row pa 1234 shut base
+row pb 1234 open west
+row pb 1234 shut east
+row acct 1235 38 ?f3403 ?f3404 ?f3405
+row pa 1235 open base
+row pa 1235 shut gold
+row pb 1235 open east
+row pb 1235 shut west
+row acct 1236 38 ?f3406 ?f3407 ?f3408
+row pa 1236 open base
+row pa 1236 shut gold
+row pb 1236 open east
+row pb 1236 shut west
+row acct 1237 38 ?f3409 ?f3410 ?f3411
+row pa 1237 open base
+row pa 1237 shut gold
+row pb 1237 open east
+row pb 1237 shut west
+row acct 1238 38 ?f3412 ?f3413 ?f3414
+row pa 1238 open gold
+row pa 1238 shut base
+row pb 1238 open west
+row pb 1238 shut east
+row acct 1239 38 ?f3415 ?f3416 ?f3417
+row pa 1239 open gold
+row pa 1239 shut base
+row pb 1239 open west
+row pb 1239 shut east
+row acct 1240 38 ?f3418 ?f3419 ?f3420
+row pa 1240 open base
+row pa 1240 shut gold
+row pb 1240 open east
+row pb 1240 shut west
+row acct 1241 39 ?f3421 ?f3422 ?f3423
+row pa 1241 open base
+row pa 1241 shut gold
+row pb 1241 open east
+row pb 1241 shut west
+row acct 1242 39 ?f3424 ?f3425 ?f3426
+row pa 1242 open gold
+row pa 1242 shut base
+row pb 1242 open west
+row pb 1242 shut east
+row acct 1243 39 ?f3427 ?f3428 ?f3429
+row pa 1243 open gold
+row pa 1243 shut base
+row pb 1243 open west
+row pb 1243 shut east
+row acct 1244 39 ?f3430 ?f3431 ?f3432
+row pa 1244 open base
+row pa 1244 shut gold
+row pb 1244 open east
+row pb 1244 shut west
+row acct 1245 39 ?f3433 ?f3434 ?f3435
+row pa 1245 open gold
+row pa 1245 shut base
+row pb 1245 open west
+row pb 1245 shut east
+row acct 1246 39 ?f3436 ?f3437 ?f3438
+row pa 1246 open base
+row pa 1246 shut gold
+row pb 1246 open east
+row pb 1246 shut west
+row acct 1247 39 ?f3439 ?f3440 ?f3441
+row pa 1247 open gold
+row pa 1247 shut base
+row pb 1247 open west
+row pb 1247 shut east
+row acct 1248 39 ?f3442 ?f3443 ?f3444
+row pa 1248 open gold
+row pa 1248 shut base
+row pb 1248 open west
+row pb 1248 shut east
+row acct 1249 39 ?f3445 ?f3446 ?f3447
+row pa 1249 open base
+row pa 1249 shut gold
+row pb 1249 open east
+row pb 1249 shut west
+row acct 1250 39 ?f3448 ?f3449 ?f3450
+row pa 1250 open base
+row pa 1250 shut gold
+row pb 1250 open east
+row pb 1250 shut west
+row acct 1251 39 ?f3451 ?f3452 ?f3453
+row pa 1251 open base
+row pa 1251 shut gold
+row pb 1251 open east
+row pb 1251 shut west
+row acct 1252 39 ?f3454 ?f3455 ?f3456
+row pa 1252 open base
+row pa 1252 shut gold
+row pb 1252 open east
+row pb 1252 shut west
+row acct 1253 39 ?f3457 ?f3458 ?f3459
+row pa 1253 open gold
+row pa 1253 shut base
+row pb 1253 open west
+row pb 1253 shut east
+row acct 1254 39 ?f3460 ?f3461 ?f3462
+row pa 1254 open gold
+row pa 1254 shut base
+row pb 1254 open west
+row pb 1254 shut east
+row acct 1255 39 ?f3463 ?f3464 ?f3465
+row pa 1255 open gold
+row pa 1255 shut base
+row pb 1255 open west
+row pb 1255 shut east
+row acct 1256 39 ?f3466 ?f3467 ?f3468
+row pa 1256 open gold
+row pa 1256 shut base
+row pb 1256 open west
+row pb 1256 shut east
+row acct 1257 39 ?f3469 ?f3470 ?f3471
+row pa 1257 open base
+row pa 1257 shut gold
+row pb 1257 open east
+row pb 1257 shut west
+row acct 1258 39 ?f3472 ?f3473 ?f3474
+row pa 1258 open gold
+row pa 1258 shut base
+row pb 1258 open west
+row pb 1258 shut east
+row acct 1259 39 ?f3475 ?f3476 ?f3477
+row pa 1259 open gold
+row pa 1259 shut base
+row pb 1259 open west
+row pb 1259 shut east
+row acct 1260 39 ?f3478 ?f3479 ?f3480
+row pa 1260 open gold
+row pa 1260 shut base
+row pb 1260 open west
+row pb 1260 shut east
+row acct 1261 39 ?f3481 ?f3482 ?f3483
+row pa 1261 open base
+row pa 1261 shut gold
+row pb 1261 open east
+row pb 1261 shut west
+row acct 1262 39 ?f3484 ?f3485 ?f3486
+row pa 1262 open base
+row pa 1262 shut gold
+row pb 1262 open east
+row pb 1262 shut west
+row acct 1263 39 ?f3487 ?f3488 ?f3489
+row pa 1263 open gold
+row pa 1263 shut base
+row pb 1263 open west
+row pb 1263 shut east
+row acct 1264 39 ?f3490 ?f3491 ?f3492
+row pa 1264 open base
+row pa 1264 shut gold
+row pb 1264 open east
+row pb 1264 shut west
+row acct 1265 39 ?f3493 ?f3494 ?f3495
+row pa 1265 open base
+row pa 1265 shut gold
+row pb 1265 open east
+row pb 1265 shut west
+row acct 1266 39 ?f3496 ?f3497 ?f3498
+row pa 1266 open base
+row pa 1266 shut gold
+row pb 1266 open east
+row pb 1266 shut west
+row acct 1267 39 ?f3499 ?f3500 ?f3501
+row pa 1267 open base
+row pa 1267 shut gold
+row pb 1267 open east
+row pb 1267 shut west
+row acct 1268 39 ?f3502 ?f3503 ?f3504
+row pa 1268 open gold
+row pa 1268 open base
+row pb 1268 shut east
+row pb 1268 shut west
+row acct 1269 39 ?f3505 ?f3506 ?f3507
+row pa 1269 open gold
+row pa 1269 shut base
+row pb 1269 open west
+row pb 1269 shut east
+row acct 1270 39 ?f3508 ?f3509 ?f3510
+row pa 1270 open base
+row pa 1270 shut gold
+row pb 1270 open east
+row pb 1270 shut west
+row acct 1271 40 ?f3511 ?f3512 ?f3513
+row pa 1271 open gold
+row pa 1271 shut base
+row pb 1271 open west
+row pb 1271 shut east
+row acct 1272 40 ?f3514 ?f3515 ?f3516
+row pa 1272 open base
+row pa 1272 shut gold
+row pb 1272 open east
+row pb 1272 shut west
+row acct 1273 40 ?f3517 ?f3518 ?f3519
+row pa 1273 open gold
+row pa 1273 shut base
+row pb 1273 open west
+row pb 1273 shut east
+row acct 1274 40 ?f3520 ?f3521 ?f3522
+row pa 1274 open base
+row pa 1274 shut gold
+row pb 1274 open east
+row pb 1274 shut west
+row acct 1275 40 ?f3523 ?f3524 ?f3525
+row pa 1275 open gold
+row pa 1275 shut base
+row pb 1275 open west
+row pb 1275 shut east
+row acct 1276 40 ?f3526 ?f3527 ?f3528
+row pa 1276 open gold
+row pa 1276 shut base
+row pb 1276 open west
+row pb 1276 shut east
+row acct 1277 40 ?f3529 ?f3530 ?f3531
+row pa 1277 open base
+row pa 1277 shut gold
+row pb 1277 open east
+row pb 1277 shut west
+row acct 1278 40 ?f3532 ?f3533 ?f3534
+row pa 1278 open base
+row pa 1278 shut gold
+row pb 1278 open east
+row pb 1278 shut west
+row acct 1279 40 ?f3535 ?f3536 ?f3537
+row pa 1279 open gold
+row pa 1279 shut base
+row pb 1279 open west
+row pb 1279 shut east
+row acct 1280 40 ?f3538 ?f3539 ?f3540
+row pa 1280 open gold
+row pa 1280 shut base
+row pb 1280 open west
+row pb 1280 shut east
+row acct 1281 40 ?f3541 ?f3542 ?f3543
+row pa 1281 open gold
+row pa 1281 shut base
+row pb 1281 open west
+row pb 1281 shut east
+row acct 1282 40 ?f3544 ?f3545 ?f3546
+row pa 1282 open base
+row pa 1282 shut gold
+row pb 1282 open east
+row pb 1282 shut west
+row acct 1283 40 ?f3547 ?f3548 ?f3549
+row pa 1283 open gold
+row pa 1283 shut base
+row pb 1283 open west
+row pb 1283 shut east
+row acct 1284 40 ?f3550 ?f3551 ?f3552
+row pa 1284 open base
+row pa 1284 shut gold
+row pb 1284 open east
+row pb 1284 shut west
+row acct 1285 40 ?f3553 ?f3554 ?f3555
+row pa 1285 open gold
+row pa 1285 shut base
+row pb 1285 open west
+row pb 1285 shut east
+row acct 1286 40 ?f3556 ?f3557 ?f3558
+row pa 1286 open gold
+row pa 1286 shut base
+row pb 1286 open west
+row pb 1286 shut east
+row acct 1287 40 ?f3559 ?f3560 ?f3561
+row pa 1287 open base
+row pa 1287 shut gold
+row pb 1287 open east
+row pb 1287 shut west
+row acct 1288 40 ?f3562 ?f3563 ?f3564
+row pa 1288 open base
+row pa 1288 shut gold
+row pb 1288 open east
+row pb 1288 shut west
+row acct 1289 40 ?f3565 ?f3566 ?f3567
+row pa 1289 open base
+row pa 1289 shut gold
+row pb 1289 open east
+row pb 1289 shut west
+row acct 1290 40 ?f3568 ?f3569 ?f3570
+row pa 1290 open gold
+row pa 1290 shut base
+row pb 1290 open west
+row pb 1290 shut east
+row acct 1291 40 ?f3571 ?f3572 ?f3573
+row pa 1291 open gold
+row pa 1291 shut base
+row pb 1291 open west
+row pb 1291 shut east
+row acct 1292 40 ?f3574 ?f3575 ?f3576
+row pa 1292 open gold
+row pa 1292 shut base
+row pb 1292 open west
+row pb 1292 shut east
+row acct 1293 40 ?f3577 ?f3578 ?f3579
+row pa 1293 open gold
+row pa 1293 shut base
+row pb 1293 open west
+row pb 1293 shut east
+row acct 1294 40 ?f3580 ?f3581 ?f3582
+row pa 1294 open gold
+row pa 1294 open base
+row pb 1294 shut east
+row pb 1294 shut west
+row acct 1295 40 ?f3583 ?f3584 ?f3585
+row pa 1295 open gold
+row pa 1295 shut base
+row pb 1295 open west
+row pb 1295 shut east
+row acct 1296 40 ?f3586 ?f3587 ?f3588
+row pa 1296 open gold
+row pa 1296 shut base
+row pb 1296 open west
+row pb 1296 shut east
+row acct 1297 40 ?f3589 ?f3590 ?f3591
+row pa 1297 open base
+row pa 1297 shut gold
+row pb 1297 open east
+row pb 1297 shut west
+row acct 1298 40 ?f3592 ?f3593 ?f3594
+row pa 1298 open base
+row pa 1298 shut gold
+row pb 1298 open east
+row pb 1298 shut west
+row acct 1299 40 ?f3595 ?f3596 ?f3597
+row pa 1299 open gold
+row pa 1299 shut base
+row pb 1299 open west
+row pb 1299 shut east
+row acct 1300 40 ?f3598 ?f3599 ?f3600
+row pa 1300 open base
+row pa 1300 shut gold
+row pb 1300 open east
+row pb 1300 shut west
+rule live C :- acct(A, C, S, T, _), pa(A, S, T)
+rule live C :- acct(A, C, S, _, R), pb(A, S, R)

@@ -1,0 +1,236 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/lst/seq.py",
+  "/app/lst/scr.py",
+  "/app/lst/owe.py",
+  "/app/lst/pg.py",
+  "/app/lst/edt.py",
+  "/app/lst/rep.py",
+]
+
+[task]
+name = "afterquery/page-pass-owe"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the published one, and the shipped service already is it: hold a cursor at
+the last row handed out, take the rows after it in order while the page has room and weight
+left, end the page at the first row too heavy to fit, and keep the leftovers in a list that
+edits append to. Every account of paging a changing table ends a page at the row it cannot
+fit and calls the cursor the last row delivered. Both are wrong here, and neither is wrong in
+a way that ordinary testing shows.
+
+A row the scan has no weight for is stepped over rather than ending the page: the mark moves
+past it and the row stands owed to that scroll until a later page hands it out. The mark is
+therefore the last row the scan looked at rather than the last it handed out, and what a page
+hands out is not a run of the view. That much is a structure to rebuild. The rule after it is
+the one that takes the plan apart. Which rows stand owed is a consequence of where the mark
+is, what tag the row carries and what the scroll has been handed, and never a record written
+when something happened: an edit that carries a row past the mark retires its entry and a
+later edit carrying it back puts a fresh one at the end, behind whatever came to be owed while
+it was away, and the same scan that drains the ledger appends to it behind the entries it
+could not drain. A pass that classified rows as the edits arrived has nowhere to put any of
+that.
+
+Then the pages stop being independent. The service holds at most a stated weight of owed rows
+across every scroll at once, and that hold governs what a scan may step over, so whether one
+scroll's page can leave a row behind depends on what the others are owed at that instant and
+on the order the pages were asked for - draining one scroll's ledger is what gives another
+scroll's scan room. The hold does not govern edits, so the weight standing can pass it through
+that door and a scan then finds no room at all.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in
+each follows from an invariant rather than a technique: only the scan moves the mark and only
+forwards, so a scan resumes by searching the view's order instead of walking it from the
+front; and a view is the global order cut down to one tag, so an edit touches the one or two
+tag orders its row belongs to rather than the table. Measured here against the 60 second limit
+for the whole graded set, the six scale files take 1.9 seconds with the view kept per tag and
+searched at the mark; 153.9 seconds with it filtered and sorted out of the table on every page
+and walked from the front, 66.1 of that on the three wide files and 87.8 on the three deep
+ones; and 126.7 seconds with one order per tag that is re-sorted on every edit rather than
+inserted into. All three readings produce exactly the reference's traces on everything they
+finish; the limit is the only thing that separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: a page that has handed
+out nothing takes the row it would otherwise leave behind and spends its whole weight doing
+it, a row weighing exactly what is left fits, a step-over weighing exactly what a page carries
+stops the scan, a hold reached exactly is room enough, and a row that leaves a scroll's view
+and comes back has still been handed to it. All six editable files ship wrong, and the only
+feedback a wrong structure gets is a list of ids, because a page prints what it handed out and
+nothing about what it left behind.
+
+Identifiers are in a legacy register - `lst/`, `seq`, `scr`, `owe`, `pg`, `edt`, `rep`, `mk`,
+`led`, `got` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real read-path code rather than an obstacle: each is recoverable
+from what calls it.
+
+The list files are synthetic, in eleven families, with rows heavier than a whole page, weights
+clustered just above half a page, holds only a few rows wide, scrolls sharing one tag, retags
+that carry rows out of a view and back, and the two scale families. In a live service these
+concentrations are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`seq.py` is the order and the view. A place is the key and then the id, and because the order
+inside a tag is the global order cut down to that tag, the view is one ordered list of places
+per tag: a scroll never has to have its view derived, and an edit touches only the tag lists
+its row belongs to. The same file answers where a scan resumes, by searching that list for the
+first place after the mark, which is sound because the mark only ever moves forward.
+
+`scr.py` carries what belongs to a scroll rather than to a row: its tag, its two limits, its
+mark, its ledger and the ids it has been handed. The mark is set by the scan for every row it
+looks at, whether the row went out, was passed by or was stepped over. The delivery memory is
+per scroll and permanent, so a row can be owed to one scroll and settled for another, and a
+row that leaves a view and comes back is not handed out twice. A tag-to-scrolls index sits
+here too, because an edit can only matter to the scrolls reading the tag its row is leaving or
+arriving at.
+
+`owe.py` is the ledger, and it is where the first plan has to be given up. Membership is not
+logged, it is asked: a row is owed when it carries the scroll's tag, sits at or before the
+mark, and has not been handed out, and everything that can change one of those three asks the
+question again. Order is the one thing membership does not decide, so the ledger keeps it - a
+dict from row to weight in insertion order, which gives the front, removal from the middle and
+re-entry at the end for nothing. The weight standing across every scroll is carried as a
+running total, which the step-over test reads on every scan step; a sum over per-scroll totals
+is equally affordable and both authoring variants do it that way.
+
+`pg.py` serves the page against one pair of limits shared by both halves: the ledger drained
+strictly from the front, then the scan from the mark, with the rule for a page that has handed
+out nothing sitting across both. The scan is where stepping over happens, and it is bounded
+three ways - the page fills, its weight is spent, or the rows it has left behind weigh as much
+as a page carries - with the hold as a fourth that stops it without moving the mark.
+
+`edt.py` applies the edits. Each one puts the ordered view right and then asks the membership
+question again for the row it touched, on the scrolls reading the tag it left and the tag it
+joined. A retag is the only edit that touches two tags, and it takes the row out of the old
+view outright while leaving the delivery memory alone.
+
+`rep.py` reads the closing report off the state as it finally stands: rows handed out from the
+delivery memory, rows owed from the ledger, and rows of the view not handed out by walking the
+view against that memory - which is a different number from the ledger's length, because it
+also counts the rows ahead of the mark and the ones a full hold stopped a scan from stepping
+over.
+
+An expert works in that order because each file consumes the one before it: the order decides
+what a view is, the view decides where a scan resumes, where the scan stops decides what comes
+to be owed, what is owed decides what the next page starts from, and the hold decides which
+scroll may leave a row behind at all. The same contract is implemented two further ways in the
+authoring set - one holding each view as a sorted key list with an id list under each key and
+each ledger as entries stamped against a live map, one holding the ledger as a doubly linked
+list with a row-to-node map and the weight standing as a sum over per-scroll totals - so the
+shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/lst/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the list-file grammar, the trace writer and the
+sample lists cannot change what a list file prints, and a new file put beside the six is never
+collected at all.
+
+Correct is defined twice over. Thirty-four hand list files, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+sixty-six further list files are generated inside the verifier from a seed drawn after the
+agent's container is gone, across eleven families that concentrate rows heavier than a page,
+weights just above half a page, narrow holds, scrolls sharing a tag, retags out of a view and
+back, moves across marks in both directions, and the two scale families. A submission cannot
+have seen them, so fitting the shipped samples fails, and so does carrying an answer key.
+
+The fences run both ways. Ending a page at the row it cannot fit fails `step-over` and
+`hold-block`; stepping over a row on a page that has handed out nothing fails `empty-scan` and
+`empty-head`; leaving the rest of the weight after that rule fires fails `empty-head`. Taking
+the ledger by first fit rather than from the front fails `led-front`, and draining it in place
+order or newest first fails `led-order` and `empty-head`. A mark left at the last row handed
+out fails `mark-look`, and a mark moved by draining fails it too. Counting the hold per scroll
+fails `hold-block`, testing it strictly fails `hold-exact`, and holding an edit back with it
+fails `hold-edit`. A ledger that is never retired fails `owe-retire`, one where a row owed
+again keeps its old place fails `owe-return`, and one that ignores the delivery memory fails
+`owe-taken`. A scan with no allowance on what it steps over fails `empty-not`, and one that
+stops at exactly the allowance rather than on reaching it fails `over-exact`. A delivery
+memory shared between scrolls fails `hold-block`, and one cleared when a row leaves a view
+fails `tag-back`. Reading the closing counts off the ledger fails `empty-not` and `rep-u`, and
+counting only rows still in the view fails `rep-d`.
+
+The everyday cases reject the other direction, which is the one an overcautious rewrite takes.
+A page that hands out one row past its limit fails `plain-run`, where every page is a plain run
+of the view. A scan that walks the whole table rather than one tag fails `view-tag`. Ordering
+by the id alone fails `order-key`. An edit that never brings a row to be owed fails `owe-add`,
+and a retag that joins a row to its new view without owing it fails `tag-join`. Thirty-four
+wrong readings were driven against the enumerated set; every one is separated by the case named
+for it, and every enumerated case separates at least one.
+
+Fifty cheats score 0. Thirty-four are wrong readings, each caught by the enumerated case
+named for it. Two are exactly correct and too slow: the view filtered and sorted out of
+the table on every page and walked from the front, and one order per tag re-sorted on every
+edit. Three are shortcut strategies - every page empty, the worked example's output replayed
+for every list, and every page the first rows of the table in arrival order. One is a forgery
+carrying the frozen answers for every enumerated list, which passes all thirty-four and fails
+on the files it could not have seen. The other ten are probes, and nine of them carry the
+shipped service rather than a working one, so the only route to a 1 is the attack landing:
+the sealed model loaded and answered from, the reward written directly, a reward written late
+by a double-forked survivor, a planted worker record, a record planted and the worker exited
+clean before it could be overwritten, a record spoiled on the way out, a rewritten generator,
+a rewritten grader, and a privilege check that tries to become root and append to the sealed
+directory, the nonce and the worker. The tenth carries a working service hidden in a seventh
+file beside the six that are collected, so it fails on the collection boundary alone. Two independently written
+correct services score 1, at 2.5 and 3.4 seconds against the same limit.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid
+cannot read, so code running inside the verifier cannot compute its answers from them. The
+reward defaults to 0, is written last by the privileged stage into a root-owned directory
+locked before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "cursor-pagination",
+  "ordered-index",
+  "scan-resumption",
+  "live-view-maintenance",
+  "page-packing",
+  "shared-buffer-budget",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the read path of a list API: the part that turns a table and a client's
+position into a page, keeps that position meaningful while rows are being written underneath
+it, and holds what a page could not fit. Familiarity with the fact that a page is packed
+rather than sliced once rows have a size, that a position which only advances is what makes a
+secondary order worth keeping, and that a service-wide buffer budget makes clients that look
+independent stop being so. Comfort with ordered secondary indexes over a table that is edited
+between reads, with the difference between a row a client has been sent and a row it merely
+has not reached, and with the difference between a structure that is correct and one that is
+affordable at the row counts and page rates a live list runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

@@ -1,0 +1,200 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/page-pass-owe/STATE.md.
+
+[task]
+slug = "page-pass-owe"
+status = "pending"
+sources = ["tasks/page-pass-owe/STATE.md", "authoring/page-pass-owe/trace.md", "authoring/page-pass-owe/timing.py", "authoring/page-pass-owe/diff.py", "authoring/page-pass-owe/emit.py"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep a cursor per scroll holding the place of the last row it handed out, and a set of the
+ids it has already handed out. For a page, take rows of the table whose tag matches and
+whose place is after the cursor, in place order, adding each one while the page still has
+room and weight left, stopping at the first row too heavy for what is left, and set the
+cursor to the last row taken. Hold the leftovers in a per-scroll pending list, appending to
+it whenever an edit moves a row to a place the cursor has already gone past, and drain that
+list from the front at the start of the next page.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A row the page has no weight for is not the end of the page: the scan steps over it, the
+mark moves past it, and the row is owed to that scroll from then on. The mark is therefore
+the place of the last row the scan looked at rather than the place of the last row it handed
+out, and the rows a page hands out are not a run of the view.
+"""
+second_discovery = """
+Which rows stand owed is a consequence of where the mark is and what the scroll has taken,
+never a record written when something happened: an edit that carries a row past the mark
+retires it from the ledger and a later edit that carries it back puts it in at the end, and
+the same scan that drains the ledger appends to it behind the entries it could not drain.
+The one hold on owed weight is counted over every scroll at once, so whether one scroll's
+scan may step over a row depends on what the others are owed at that instant and on the
+order the pages were asked for, which leaves the per-scroll pass the first implementation is
+built around with nothing to stand on.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped service on the sample list and read the line the brief says is wrong, to find which module owns the order",
+  "Settle that a place is the key and then the id, and that the view is the global order cut down to one tag",
+  "Rebuild the view as one ordered index per tag, because a scan has to resume at the mark rather than at the front of the table",
+  "Derive that the mark never goes backwards - only the scan moves it, and only forwards - and use that to resume a scan by search instead of by walking",
+  "Make the ledger an ordered structure whose membership is recomputed from the mark, the tag and what the scroll has taken, with retirement and re-entry at the end",
+  "Carry the owed weight standing across every scroll, as one total or as a sum over per-scroll totals, since the step-over test reads it on every scan step",
+  "Settle the two phases of a page and the rule for a page that has handed out nothing, which spends the whole weight on one row",
+  "Write the closing report from the view and the delivery memory as they finally stand, not from counters kept during the run",
+  "Time the wide and deep lists and replace the per-page re-derivation of the view and the per-edit re-sort of it",
+]
+
+[search]
+best_page = """
+The engineering write-ups on keyset or seek-method pagination and the cursor-stability
+problem, which explain that a cursor over a changing table duplicates and skips rows and
+answer it with a snapshot, a stable sort key or an accepted loss, and the reference pages
+for the cursor connection conventions the public list APIs follow.
+"""
+helps_plan = false
+deviation = """
+Every one of those ends a page at the boundary it reaches and defines the cursor as the last
+row delivered; here a row that does not fit is stepped over and owed, the mark is the last
+row looked at, the ledger is drained ahead of the scan and counts against the same page, and
+a single hold on owed weight is shared by every open scroll, so a plan built on the retrieved
+convention is wrong at the point the page is assembled and again at the point the cursor is set.
+"""
+
+[tactics]
+A1 = """
+The memorised answer to a row that does not fit a page is to end the page there and resume
+from it, and that is what the shipped service does; here the scan steps over it and owes it,
+so the stronger the recalled pagination idiom the more confidently wrong the first cursor.
+"""
+A2 = """
+The brief states the stepping over, the owing and the hold as what the service does and never
+names the ledger as a queue, the mark as monotone or the hold as a shared budget, so the
+consequences that decide the structures have to be derived from the rules rather than looked up.
+"""
+B2 = """
+Ten rules hold at once - place order, the view, the two phases of a page, the empty-page
+rule, the stop conditions, the mark, derived owed membership, the shared hold, permanent
+delivery memory and the closing report - and each changes what a correct implementation of
+the others has to look like.
+"""
+C1 = """
+Both sides are graded: a service that never steps over a row fails the lists where a heavy
+row must be owed and served next, and one that steps over whenever a row is heavy fails the
+lists where the page has handed out nothing and must take that row regardless.
+"""
+C3 = """
+Two scale families make re-deriving the ordered view per page and re-sorting a view on every
+edit infeasible inside the stated limit while leaving both exactly correct, so the fast path
+has to follow from the mark never going backwards and from a view being the global order cut
+down to one tag.
+"""
+C4 = """
+Every graded list must match line for line, and the population is generated inside the
+verifier from a seed drawn after the agent's container is gone, in families shaped at each
+decision point rather than sampled uniformly.
+"""
+guard = """
+Six files under /app/lst are collected and nothing else; the driver, the list-file parser,
+the trace writer and the sample lists are the verifier's own pristine copies laid under the
+submission, so neither the output format nor the meaning of a list file can be reshaped.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a row the scan cannot fit is stepped over and owed", b = "the mark is the place of the last row the scan looked at", why = "stepping over a row moves the mark past a row that was never handed out, so the owed set is produced by the same pass that drains it and cannot be written when an edit happens" },
+  { a = "a page that has handed out nothing takes the row it is looking at whatever its weight", b = "the page stops when its weight is spent", why = "the exception spends the whole weight on that one row, so a page whose first owed row is heavy hands out exactly one row however large the row limit is and the mark does not move at all" },
+  { a = "the service holds at most H weight owed across every scroll", b = "a scan steps over a row only while the hold has room", why = "what one scroll may step over depends on what every other scroll is owed at that instant, so pages are not independent and the order they were asked for changes the answer" },
+  { a = "owed membership is derived from the mark, the tag and the delivery memory", b = "the ledger lists owed rows in the order they came to be owed", why = "an edit that carries a row past the mark retires its entry and a later edit that carries it back appends a new one, so position in the ledger is history while membership is a recomputation, and neither an append-only log nor a rebuilt set is enough" },
+  { a = "delivery memory is permanent and per scroll", b = "the view is the rows carrying the scroll's tag at the moment it looks", why = "a row that leaves the view and comes back is not handed out again, so the closing count of rows in the view the scroll never took cannot be read off the ledger or off the mark" },
+  { a = "the ledger is drained strictly from the front", b = "an edit can retire the entry at the front", why = "the row a page would have started from can be gone before the page is asked for, and the entry behind it is then subject to the empty-page rule instead" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A list where every row fits the weight a page carries and no edit moves anything: each page
+must be a plain run of the view in place order, so a service that owes rows whenever a page
+fills up, or that leaves the mark behind the last row it handed out, prints short pages and
+repeats rows it has already handed out.
+"""
+late_case = """
+A list where several pages run clean, then one scroll is owed a heavy row while a second
+scroll's scan reaches a row it cannot fit: the hold is full because of the first scroll, so
+the second scroll's page stops without owing anything and its mark stays behind that row;
+the first scroll is then served, its heavy row leaves the ledger under the empty-page rule,
+and the second scroll's next scan steps over the same row and owes it.
+"""
+oracle_denied = """
+The natural check is to page through a list by hand or to compare against a cursor library,
+but no library steps over a row or shares a hold, and the shipped service prints a coherent
+page for every list it is given, so running it tells the agent only that it runs; the one
+line the brief quotes settles the order of equal keys and nothing else.
+"""
+
+[leaks]
+candidates = [
+  { what = "the mark printed with each page", closed_by = "only the ids handed out are printed, so the mark is recoverable only by reproducing the scan that set it" },
+  { what = "an owed count or an owed flag printed as a page is served", closed_by = "owed numbers appear once, in the closing report, so no page gives per-decision feedback while the run is still going" },
+  { what = "a shipped helper that answers whether a row is owed or has been handed out", closed_by = "no such helper exists; membership is computed where it is used and the delivery memory is a per-scroll structure the agent has to build" },
+  { what = "the owed weight standing, kept as a field on the shipped service", closed_by = "the shipped code sums the ledgers where it needs the number, which is both the leak-free form and the slow one the gate kills" },
+  { what = "the sample lists shipped with their correct output beside them", closed_by = "one line of one sample is quoted in the brief and it fixes the order of equal keys, which is a convention rather than a decision the task turns on" },
+  { what = "a handed-out flag stored on the row record", closed_by = "a row carries an id, a key, a tag and a weight and nothing else; delivery is remembered per scroll and never on the row" },
+]
+derived_quantities = """
+A list file carries row ids, keys, tags and weights, the scroll limits and the hold, which
+are primitives; the places, the per-tag order, the marks, the ledgers, the owed weight, the
+delivery memory and every number in the closing report are derived and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct services that rebuild the ordered view by filtering and sorting the table on
+every page and walk it from the front skipping rows the mark has passed (measured 153.9 s over
+the six scale files), and services that keep one order per tag but re-sort it on every edit
+instead of inserting in place (126.7 s). The reference is 2.1 s over the whole generated set
+and the two independent correct variants are 2.5 s and 3.4 s, against a stated limit of 60.
+"""
+invariant = """
+Only the scan moves the mark and only forwards, so a scan resumes by searching the view's
+order rather than by walking it from the front; and a view is the global order cut down to one
+tag, so an edit touches the one or two tag orders its row belongs to rather than the table.
+"""
+input_scale = "wide lists of a hundred and twenty thousand rows over eighty tags with forty scrolls and four thousand pages, and deep lists of forty thousand rows over two tags with three thousand pages and fifteen thousand edits"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a row that does not fit ends the page", hand_case = "a page whose second row is too heavy and whose third row fits" },
+  { reading = "the mark is the place of the last row handed out", hand_case = "a page that steps over its last two rows before running out of room" },
+  { reading = "draining the ledger moves the mark", hand_case = "a page made up of owed rows only, followed by a page that must resume where the scan left off" },
+  { reading = "places are ordered by key alone, ties left in insertion order", hand_case = "two rows sharing a key whose ids arrive in the other order" },
+  { reading = "the empty-page exception leaves the rest of the weight to spend", hand_case = "a page whose first owed row is heavier than the whole weight and whose next rows are light" },
+  { reading = "the ledger is drained by first fit rather than strictly from the front", hand_case = "a ledger whose head is too heavy and whose second entry would fit" },
+  { reading = "an edit that carries an owed row past the mark leaves its ledger entry standing", hand_case = "an owed row moved to a later key and then handed out by the scan" },
+  { reading = "a row that comes to be owed a second time keeps its old place in the ledger", hand_case = "an owed row carried past the mark and then carried back while two other rows come to be owed between" },
+  { reading = "the hold is counted per scroll", hand_case = "two scrolls each owed less than the hold whose owed weights together stand above it" },
+  { reading = "the hold blocks an edit from owing a row as well as a scan from stepping over one", hand_case = "a full hold and an edit that carries an undelivered row back past a mark" },
+  { reading = "a row that leaves the view and comes back is handed out again", hand_case = "a delivered row retagged away and retagged back before the scroll's last page" },
+  { reading = "the scan stops at the first row it steps over", hand_case = "a page with room left whose next two rows are both too heavy and whose fourth fits" },
+  { reading = "the scan keeps stepping over rows with no bound on what it leaves behind", hand_case = "a run of heavy rows longer than the weight a page carries" },
+  { reading = "the closing count of rows the scroll never took is read off the ledger", hand_case = "a scroll whose mark is short of the end of its view with nothing owed" },
+]
+correct_variants = [
+  "a service keeping each view as a sorted list of places searched with bisect, each ledger as a dict from id to weight in insertion order, and the owed weight as one running integer",
+  "a service keeping each view as a sorted key list with a per-key id list, each ledger as a doubly linked list with an id-to-node map, and the owed weight as a per-scroll total summed over a small set of scrolls indexed by tag",
+]
+
+[shape]
+environment_py_lines = 340
+editable_files = 6
+reference_lines = 300

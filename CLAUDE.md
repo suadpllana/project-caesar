@@ -306,3 +306,45 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-22, `page-pass-owe`)
+
+- **Per-rule coverage was measured the wrong way round.** Twenty-eight wrong readings were each
+  separated by an enumerated case, which reads like a complete fence set. Turning the
+  measurement around - for each *case*, which readings does it catch - showed five cases
+  catching nothing, and they were exactly the must-still-work side: `plain-run`, `view-tag`,
+  `order-key`, `owe-add`, `tag-join`. C1 is a claim about both directions and the reading set
+  only had one. Six overshoot readings later - one row past the limit, a scan over the whole
+  table, order by id alone, an add that never owes, a retag that never joins - every case
+  rejects something. `readingcheck` cannot see this: it reports the first case in sorted order,
+  so six readings were credited to `hold-free` and `hold-block` because those sort early.
+- **Two of the three naive families named in the difficulty record cost two seconds.** Summing
+  every ledger on each step-over test and sweeping every scroll on each edit were both written
+  down as infeasible and both measured at about 2 s: the rule that fills a ledger also bounds
+  it, and forty scrolls is not a sweep. Only re-deriving the view per page bit, at 153.9 s. The
+  record was rewritten to the measured truth, and a second family was found by measuring rather
+  than by naming - the view re-sorted on every edit - which first came out at 63.6 s against a
+  60 s limit. A cheat that misses the limit by six per cent is a cheat that scores 1 on a
+  faster machine, so the deep family grew until it failed by a factor of two.
+- **An answer-key forgery keyed by a prefix collided with itself.** Page lookups and report
+  lookups shared one key space, so a program whose last operation was a page read the report of
+  a different case. It still scored 0, which is the trap: the layer report named a case that had
+  nothing to do with the forgery. Different questions need different key spaces. The same
+  forgery hashing `repr(the whole log)` on every page was quadratic and died on the wall clock
+  instead of on the population, so it proved the clock rather than the nonce set; a running hash
+  fixed both.
+- **A probe that crashes the worker crashes whatever measures it.** `os._exit` inside a staged
+  cheat took the layer report down with it, and the report exited 0 having graded 23 of 44.
+  Everything expected to be caught by the container is measured in a child process now, and a
+  lost child is reported as the container catching it rather than as a clean trace.
+- **The AI-text screen counts possessives as contractions.** Seven `'s` forms in 941 words
+  scored 7.5 per thousand against 0.0 for a brief that passed, and five of them sat inside spans
+  `trace.md` cites word for word. Rewriting them meant re-citing the trace: an instruction and
+  its trace are one document kept in two files, and `tracecheck` is what keeps them one.
+- **`onelinecheck` wants dict rows, not tuples.** It does `sorted(rows[0])` and then indexes by
+  the result, so a tuple row sorts its own values and indexes by them. The tool reports
+  `IndexError`, not "wrong shape".
+- **Docker on this sandbox cannot pull from docker.io.** The daemon goes direct, and the proxy
+  answers 403 for the CloudFront blob host. `mirror.gcr.io/library/python:3.12-slim` pulls, and
+  tagging it `python:3.12-slim` locally lets the shipped Dockerfiles build unchanged. This is a
+  local accommodation; nothing in the bundle changes.

@@ -1,0 +1,17 @@
+cfg 4
+beg 6
+beg 1
+beg 9
+beg 3
+req 6 2 IX
+req 6 2.0 X
+req 1 2 IS
+req 1 2.1 S
+req 9 2 S
+req 3 2.0 S
+req 1 2.2 S
+req 1 2.3 S
+req 1 2.4 S
+com 6
+req 3 5.0 X
+req 9 5.0 S

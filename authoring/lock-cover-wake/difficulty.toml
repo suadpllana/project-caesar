@@ -1,0 +1,187 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/lock-cover-wake/STATE.md.
+
+[task]
+slug = "lock-cover-wake"
+status = "pending"
+sources = ["tasks/lock-cover-wake/STATE.md", "authoring/lock-cover-wake/trace.md", "authoring/lock-cover-wake/timing.py", "authoring/lock-cover-wake/cheat_report.py"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Build the lock table as one entry per resource holding a granted map and a first-in wait
+queue, with the published conflict matrix and the upgrade rules on top of it. A request tests
+the requested mode against the granted group, takes the lock or joins the queue, and a release
+walks that resource's queue from the front granting everything that now fits. Take the
+intention lock on the table before the row lock, count the rows a transaction holds on each
+table, and when the count passes the threshold swap them all for one table lock.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A lock a transaction already covers is never taken: a row request under a table lock strong
+enough for it takes nothing at all and is merely counted, and a table grant strips the rows
+of that table the new mode covers out of the holder's hand where it stands. Granting is
+therefore a releasing operation on other resources, the row tally the escalation threshold
+reads moves underneath every table grant, and a covered request is invisible in the trace.
+"""
+second_discovery = """
+The engine's wake order is one global pass by begin position rather than a walk of the queue
+belonging to whichever entry was just freed, and any grant, any wound and any release restarts
+that pass from the top. The moment one event frees several entries at once, which a commit, a
+felled transaction and a subsumption all do, the order the heads are taken in decides the
+outcome, so a per-entry wake loop and any recursion that finishes one entry before looking at
+another produce a different run and have to be taken apart.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped scripts and locate the module that owns the line the brief says is wrong",
+  "Separate the four ways a request ends - covered, granted, queued, felled - and give each its own path through the request module",
+  "Derive that a table grant must release the rows it covers, and rebuild the holder record as a per-table bucket of row modes rather than a flat set",
+  "Replace the per-entry wake walk with a single frontier re-picked by begin position after every grant, wound and release",
+  "Carry the row request of a blocked intention request as a continuation on the transaction, and drop it when the transaction is felled",
+  "Settle the raise as a conversion that neither queues nor fells, retried on each row grant that leaves the tally at the threshold",
+  "Work out the standing of a holder from the other entries it holds, so a young holder shielded by an old waiter is not felled",
+  "Time the wide and deep scripts, then make the frontier a heap over touched entries and the standing an aggregate per transaction",
+]
+
+[search]
+best_page = """
+The vendor documentation on multiple-granularity locking and lock escalation - the five-mode
+conflict matrix, intention locks taken top down, and the escalation threshold - together with
+the public university lock-manager assignment whose solutions are on the open web.
+"""
+helps_plan = false
+deviation = """
+That documentation says escalation releases every sub-table lock and that every sub-table lock
+counts toward the threshold; here only the locks the coarser mode covers are released, covered
+requests take no lock and so never count, waiters are woken in one global pass by begin
+position rather than per entry, and a holder is shielded from felling by an older waiter on a
+different entry, so the retrieved implementation is wrong at four decision points.
+"""
+
+[tactics]
+A1 = """
+The published behaviour of escalation - all sub-table locks released, all of them counted -
+is specifically wrong here, and so is the first-in wake of the entry that was freed, so the
+better the recalled lock manager the more confidently wrong the first three decisions are.
+"""
+A2 = """
+The brief states covering, subsumption, standing and the wake pass as what the engine does and
+never names subsumption, priority inheritance or the frontier, so the structural consequences
+have to be derived from the rules rather than retrieved under a term of art.
+"""
+B2 = """
+Eleven rules hold at once - covering, the intention continuation, conversion class, no-bypass,
+standing, queue order, wake order, subsumption, the raise, passed-over commands and the report
+orders - and each changes what a correct implementation of the others looks like.
+"""
+C1 = """
+Both sides are graded: an engine that never fells anybody fails the scripts where an old
+requester must fell a young holder, and one that fells whenever it is older fails the scripts
+where an older waiter elsewhere shields the holder and the requester must queue instead.
+"""
+C3 = """
+A wide script makes the literal wake pass over every waiting entry infeasible and a deep script
+makes the per-grant scan of a holder's locks infeasible, both while staying exactly correct, so
+the fast path has to follow from which entries a change can touch.
+"""
+C4 = """
+Every graded script must match line for line, and the population is generated inside the
+verifier from a seed drawn after the agent's container is gone, with families shaped at each
+decision point rather than sampled uniformly.
+"""
+guard = """
+Seven files under /app/lk are collected and nothing else; the driver, the script parser, the
+trace writer and the sample scripts are the verifier's own pristine copies laid under the
+submission, so neither the output format nor the script grammar can be reshaped.
+"""
+
+[decisions]
+graded = 11
+interactions = [
+  { a = "a table grant releases the rows it covers", b = "the raise fires when the row tally reaches the threshold", why = "subsumption empties the tally the threshold is read from, so a raise granted once stops the transaction ever raising again while an abandoned one leaves the tally standing and retries on the next row grant" },
+  { a = "a covered request takes no lock", b = "the report counts covered requests", why = "the only trace of a covered request is the final count, so an engine that takes the lock anyway is wrong twice over - a lock appears in the dump and the count is short" },
+  { a = "waiting heads are taken in begin order across the whole table", b = "a grant can release locks on other entries", why = "granting the older head first frees rows that change what the younger head can have, so the order the frontier is drained in decides the run rather than merely its trace order" },
+  { a = "a holder's standing comes from waiters on its other entries", b = "a felled transaction's queued request disappears", why = "felling one holder can lower the standing of another and so open it to being felled by the same request, which makes the order the conflicting holders are tested in part of the contract" },
+  { a = "an intention request that queues carries the row request behind it", b = "felling drops everything the victim was waiting for", why = "the continuation exists only on the transaction record, so a victim felled while its intention request waits must lose a row request that was never queued anywhere" },
+  { a = "a conversion is tested against the other holders only", b = "a new request may not pass a queued request", why = "the same entry answers two requests by opposite rules at the same instant, so one group mode cannot serve both and the queue needs two classes" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A script where three transactions share one table under compatible intention modes and take
+rows nobody else wants: every request must be granted at once with no felling, no queueing and
+no raise, so an engine that turns a full entry conservative or fells whenever it is older
+prints extra lines and the wrong dump.
+"""
+late_case = """
+A script whose last commit frees two entries at once: the older head is an intention conversion
+whose grant subsumes four row locks, and the rows it frees carry the younger head's request, so
+an engine that drains the freed entry it was working on first grants the younger request
+against a lock that should already have gone and every later line differs.
+"""
+oracle_denied = """
+The natural check is to compare against a known lock manager or to argue the counts add up, but
+no public engine covers, subsumes, shields or wakes this way, the shipped engine prints a
+coherent trace for every script, and nothing in the tree records what a correct run looks like.
+"""
+
+[leaks]
+candidates = [
+  { what = "a release line in the trace", closed_by = "releases print nothing, so subsumption is visible only in the final dump and the covered count, both of which need the whole run" },
+  { what = "a covered flag or a per-table row tally stored on the transaction record", closed_by = "the shipped record holds the granted modes only; the tally is computed where it is read and never cached" },
+  { what = "a standing field on the transaction or an oldest-waiter field on the entry", closed_by = "neither is stored; the shipped engine tests age directly and the shielding rule has to be built from the entries a holder holds" },
+  { what = "the correct output of the sample scripts shipped beside them", closed_by = "one line of one script is quoted in the brief and it is a report line whose value no graded reading disagrees about except the one it is there to fix" },
+  { what = "a helper that answers whether one mode covers another", closed_by = "the mode module is editable and ships a covering table that is wrong in two entries, so the relation has to be settled rather than called" },
+]
+derived_quantities = """
+The script carries begin order, the requested modes and the threshold, which are primitives;
+the group modes, the covering relation, the standings, the tallies, the wake order, the final
+holdings and the covered count are all derived and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct engines that take the wake pass literally and look over every waiting entry
+after every change, and that find the rows a table grant covers by walking everything the
+holder holds, and that work out a standing by walking it too.
+"""
+invariant = """
+A waiting head can only change status when its own entry's holders or queue change, and the
+rows a table grant covers all sit under that one table, so both sets are known at the moment
+they are touched and neither has to be searched for.
+"""
+input_scale = "wide scripts of twenty thousand commands leaving thousands of entries with a waiting head, and deep scripts giving one transaction seventy thousand row locks on one table"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a table grant releases every row lock of that table, not only the covered ones", hand_case = "a holder with two row S locks and one row X raised to SIX" },
+  { reading = "a covered request takes the row lock anyway", hand_case = "a transaction holding a table in X asking for one of its rows in S" },
+  { reading = "covered requests count toward the escalation threshold", hand_case = "a raise followed by three more requests on rows of the same table" },
+  { reading = "the raise queues or fells when the table is held against it", hand_case = "a transaction at the threshold whose table is held in S by an older one" },
+  { reading = "waiting heads are woken entry by entry in the order the entries were freed", hand_case = "a commit freeing two entries whose heads belong to transactions in the opposite order" },
+  { reading = "a requester fells every younger holder", hand_case = "a young holder with an older transaction waiting on another entry it holds" },
+  { reading = "the queue is first-in throughout, conversions included", hand_case = "a conversion made after two new requests on the same entry" },
+  { reading = "a conversion is tested against the group including its own lock", hand_case = "a transaction raising its own S to X with nobody else on the entry" },
+  { reading = "the intention request and the row request are made together", hand_case = "an intention request that queues behind an older holder and a row taken meanwhile" },
+  { reading = "begin order is read off the transaction numbers", hand_case = "a script that begins transaction 7 before transaction 3" },
+  { reading = "commands for a waiting transaction are run when it unblocks", hand_case = "a request for a transaction whose earlier request is still queued" },
+  { reading = "the dump lists a transaction's locks in resource order", hand_case = "a transaction that takes a row before the table it sits under" },
+]
+correct_variants = [
+  "an engine holding the frontier as a heap over touched entries and each transaction's rows as per-table dictionaries keyed by row",
+  "an engine holding the frontier as a dirty set drained by a sorted scan, entries' holders as lists of pairs, and a transaction's standing as a counter multiset over its entries",
+]
+
+[shape]
+environment_py_lines = 412
+editable_files = 7
+reference_lines = 435

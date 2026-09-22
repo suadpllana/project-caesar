@@ -1,0 +1,13 @@
+cfg 3
+beg 15
+beg 41
+beg 24
+req 24 0.0 X
+req 15 0.0 X
+req 24 0 SIX
+req 24 0 IS
+req 24 0.2 X
+req 41 0 X
+com 24
+req 15 0.3 X
+req 15 0.3 X

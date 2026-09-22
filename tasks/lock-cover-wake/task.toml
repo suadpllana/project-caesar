@@ -1,0 +1,220 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/lk/mode.py",
+  "/app/lk/ent.py",
+  "/app/lk/txn.py",
+  "/app/lk/ask.py",
+  "/app/lk/wake.py",
+  "/app/lk/lift.py",
+  "/app/lk/tell.py",
+]
+
+[task]
+name = "afterquery/lock-cover-wake"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which structures survive all of them at
+once, and that is the work.
+
+The first plan is the published one, and the shipped engine already is it: an entry per resource
+with its granted modes and a first-in queue, the five-mode conflict matrix over the top, take the
+intention lock before the row lock, walk the freed entry's queue when something is released, and
+swap a transaction's row locks for a table lock once it holds enough of them. Every lock manager
+written that way is append-only on the granted side: a grant adds a holder and nothing else. Two
+rules here make that false, and neither is false in a way a one-entry test shows.
+
+A lock a transaction already covers is never taken. A row request under a table lock strong
+enough for it takes nothing at all, prints nothing, and is only counted - so it never reaches the
+row tally the threshold is read from. And a table grant strips the rows of that table the new
+mode covers out of the holder's hand where it stands, which makes granting a releasing operation
+on other entries, moves the tally underneath every table grant, and leaves rows free that a
+first plan still believes are held. Vendor documentation says the opposite of both: that
+escalation releases every sub-table lock, and that every sub-table lock counts toward the
+threshold. Here only the covered ones go, so a holder can come out of a grant with a row in X
+still in its hand and its tally standing at one.
+
+The rule after that is the one that takes the plan apart. The engine has one wake pass, not one
+per entry: after any change it goes back over every waiting head and takes the earliest-begun
+transaction's first, and a grant or a felling restarts the pass. As soon as one event frees more
+than one entry, which a commit, a felled transaction and a subsumption all do, the order the
+heads are taken in decides the run and not merely the order of the lines. A per-entry wake loop,
+or any recursion that finishes one entry before it looks at another, is a different engine: on
+the shaped population it moves one script in eight, and one of those has a transaction surviving
+in one order and felled in the other.
+
+Around those sit rules that interact rather than stack. Felling is by age, but a holder is
+shielded by any older transaction waiting on another entry it holds, so a requester older than a
+holder must still work out what else that holder is standing under - and the entry being asked
+for shields nobody. A blocked intention request carries the row request behind it and makes it
+when the intention is granted, against the lock table as it stands then, so a transaction felled
+while it waits loses a request that was never queued anywhere. A conversion passes queued new
+requests but not queued conversions, and is tested against what the other transactions hold and
+not its own lock, which one group mode per entry cannot answer.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in each
+follows from an invariant rather than a technique: a waiting head can only change status when its
+own entry changes, and the rows a table grant covers all sit under that one table. The limit is
+60 seconds for the whole graded set, which the reference gets through in 3 seconds. One wide
+script of twenty thousand commands takes 0.19 seconds against over 300 seconds with the wake pass
+taken literally. One deep script takes 0.86 seconds against over 300 seconds with the row count
+found by walking what the holder holds, and 45 seconds with the standing found the same way -
+136 seconds over the three deep scripts alone. All three readings print exactly the reference's
+trace on everything they finish.
+
+All seven editable files ship wrong, and the only feedback a wrong structure gets is one line of
+one sample script, because nothing in the tree records what a correct run looks like.
+
+Identifiers are in a legacy register - `lk/`, `ent`, `txn`, `ask`, `wake`, `lift`, `tell`, `cq`,
+`nq`, `pend`, `esc` - short but never misleading, and no name misdescribes what it holds. That is
+a choice about the register of real lock-manager code rather than an obstacle: each is
+recoverable from what calls it.
+
+The scripts are synthetic, in twelve families, with transactions under their own coarser locks,
+thresholds run with and without a rival on the table, conversions queued behind conversions,
+holders shielded from one entry by a waiter on another, commits that free two entries at once,
+intention requests carrying row requests, commands aimed at transactions that are already gone,
+and the two scale families. In a running engine these concentrations are rare, and they are
+exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Seven files, settled in the order the rules force rather than one that is tidy.
+
+`mode.py` is the two tables the rest reads: which modes conflict, and which covers which. The
+covering relation does three jobs - a request the transaction already covers, the intention a row
+mode needs, and the rows a table grant takes away - so getting it right once settles all three.
+
+`ent.py` is one entry of the lock table: the modes the transactions hold on it, and two queues
+rather than one, because a conversion is ahead of every new request and behind the conversions
+already there. Conflict is asked of the entry as "anyone but me", since a conversion tested
+against its own lock never gets out of its own way.
+
+`txn.py` is what a transaction holds: the locks in the order it first took each, its rows
+indexed per table so that the tally and the subsumption are both answers rather than searches,
+and the earliest begin waiting on each entry it holds, kept in a heap read lazily. That last one
+is the shield, and it has to be able to leave one entry out, which is why it is an aggregate and
+not a single minimum.
+
+`ask.py` is the request path, and it has four ends rather than two: covered, granted, queued,
+felled. It takes the intention first and carries the row request as a continuation when the
+intention has to wait; it fells in begin order against each holder's standing as it stands after
+the fellings before it; and it hands every grant to the same place.
+
+`lift.py` is what a grant does beyond adding a holder: a table grant releases the rows the new
+mode covers, and a row grant that leaves the transaction at the limit tries the raise once,
+without queueing and without felling, silently abandoning it when the table is held against it.
+
+`wake.py` is the pass. It keeps the entries whose heads could have changed and takes the
+earliest-begun head among them, which is the same run as going over every waiting entry after
+every change because a head's status depends on its own entry alone - and it is what makes the
+wide script finish. Granting from it can release locks, fell a transaction and issue a new
+request, so the frontier grows while it is being drained.
+
+`tell.py` reports: every transaction in begin order with its state and its locks in acquisition
+order, then the queues in resource order, then the requests that took no lock.
+
+An expert works in that order because each file consumes the one before it: what covers what
+decides which requests exist, the entry decides whether one can be granted, what a transaction
+holds decides who can be felled, the grant decides what is released, and the pass decides who
+gets it next. The same contract is implemented two further ways in the authoring set - one with
+the entry's holders as a flat list, the rows as a set per table and the shield as an exact sorted
+list, the frontier kept in begin order with bisect; one with deques, a generation stamp on each
+entry, a lazily cleaned shield heap and the continuation drained from a stack - so the shape is
+visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the seven files under `/app/lk/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the script grammar, the line builders and the
+sample scripts cannot change what a script prints, and a new file put beside the seven is never
+collected at all.
+
+Correct is defined twice over. Forty hand scripts - one per graded decision, the must-still-work side of each fence, and
+the two sample scripts exactly as they ship - are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Three hundred and six further
+scripts are generated inside the verifier from a seed drawn after the agent's container is gone,
+across twelve families that concentrate covering, conversions, no-bypass, felling, shielding,
+carried row requests, commits that free two entries at once, passed-over commands and the two
+scale families. A submission cannot have seen them, so fitting the four shipped samples fails,
+and so does carrying an answer key.
+
+The fences run both ways. Taking a lock the transaction already covers fails `cov-table` and
+`cov-six`; reading a table in IX as covering a row fails `cov-not`. Releasing every row on a
+table grant fails `sub-covered`, releasing none fails it too, and leaving the tally behind fails
+`sub-tally`. Felling every younger holder fails `fell-shield`; felling none fails `fell-young`;
+letting the entry being asked for shield its own holder fails `fell-skip`; felling from a waiting
+head fails `wake-nofell`. Waking entry by entry fails `wake-oldest`, and so does waking the
+latest-begun head first. Making the row request without waiting for its intention fails
+`int-wait`, and keeping it after the transaction is felled fails `int-drop`. A conversion tested
+against its own lock fails `conv-self`, one that cannot pass queued new requests fails
+`conv-jump`, and a new request that passes them fails `new-behind`. A raise that queues fails
+`esc-drop`, one that fells fails `esc-nofell`, one that always goes to S fails `esc-mode`, and
+one that counts covered requests fails `esc-nocount`. Running commands for a waiting transaction
+fails `pass-wait`, and reporting locks in resource order fails `rep-order`.
+
+Forty-six cheats score 0. Thirty-two are wrong readings, each caught by the enumerated case named
+for it, and one of those thirty-two doubles as the positional shortcut: granting every request the
+moment it is made. Three are exactly correct and too slow: the wake pass taken literally, the row
+count walked out of everything the holder holds, and the standing walked the same way. One is a
+fixed output for every script. One is a forgery carrying the frozen answers for every enumerated
+script, which passes all forty and fails on the scripts it could not have seen. The other nine are probes: the
+answer key, a reward written by a double-forked survivor, a planted worker record, a record
+planted and the worker exited clean before it could be overwritten, a record spoiled on the way
+out, a rewritten grader, a rewritten seed, a privilege check, and an engine hidden in a file
+beside the seven that are collected. Two independently written correct engines score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "multi-granularity-locking",
+  "intention-locks",
+  "lock-conversion",
+  "lock-escalation",
+  "wound-wait",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the lock table of a transactional storage engine: the part that turns requests
+into grants, decides which blocked session runs next, and keeps the accounting that lock
+escalation is driven from. Familiarity with the fact that a coarser lock standing for finer ones
+is a policy rather than a law, that what a grant releases matters as much as what it takes, and
+that the order waiters are woken in is part of the engine's semantics rather than an
+implementation detail. Comfort with mode lattices and intention hierarchies, with conversion
+queues and the deadlocks they create, with age-based preemption and the priority inversions it
+runs into, and with the difference between a structure that is correct and one that is affordable
+at the lock counts a real workload reaches.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

@@ -1,0 +1,1867 @@
+lim 6
+open g0
+open g1
+take g0 s0.b0 X
+take g1 s0.b1 X
+take g0 s0.b2 X
+take g1 s0.b3 X
+open t0
+open t1
+open t2
+open t3
+open t4
+open t5
+open t6
+open t7
+open t8
+open t9
+open t10
+open t11
+open t12
+open t13
+open t14
+open t15
+open t16
+open t17
+open t18
+open t19
+open t20
+open t21
+open t22
+open t23
+open t24
+open t25
+open t26
+open t27
+open t28
+open t29
+open t30
+open t31
+open t32
+open t33
+open t34
+open t35
+open t36
+open t37
+open t38
+open t39
+open t40
+open t41
+open t42
+open t43
+open t44
+open t45
+open t46
+open t47
+open t48
+open t49
+open t50
+open t51
+open t52
+open t53
+open t54
+open t55
+open t56
+open t57
+open t58
+open t59
+take t0 s0.b32.k28 IS
+take t0 s0.b2.k16 X
+take t0 s0.b0.k24 S
+take t0 s0.b0.k12 X
+take t0 s0.b0.k19 S
+take t1 s0.b18.k8 IS
+take t1 s0.b2.k15 X
+take t1 s0.b0.k2 S
+take t1 s0.b1.k39 X
+take t1 s0.b3.k23 X
+take t2 s0.b17.k6 IS
+take t2 s0.b0.k2 X
+take t2 s0.b2.k7 S
+take t2 s0.b1.k39 S
+take t2 s0.b3.k28 S
+take t3 s0.b27.k3 IS
+take t3 s0.b2.k3 X
+take t3 s0.b3.k4 X
+take t3 s0.b0.k12 S
+take t3 s0.b3.k29 S
+take t4 s0.b6.k23 IS
+take t4 s0.b1.k25 X
+take t4 s0.b1.k18 X
+take t4 s0.b0.k27 S
+take t4 s0.b2.k8 S
+take t5 s0.b23.k3 IS
+take t5 s0.b3.k15 S
+take t5 s0.b0.k26 S
+take t5 s0.b3.k18 X
+take t5 s0.b0.k37 X
+take t6 s0.b6.k14 IS
+take t6 s0.b2.k37 S
+take t6 s0.b3.k30 S
+take t6 s0.b0.k39 X
+take t6 s0.b2.k27 S
+take t7 s0.b18.k30 IS
+take t7 s0.b2.k11 X
+take t7 s0.b2.k37 S
+take t7 s0.b3.k19 S
+take t7 s0.b3.k29 S
+take t8 s0.b39.k35 IS
+take t8 s0.b2.k26 S
+take t8 s0.b3.k23 X
+take t8 s0.b3.k23 X
+take t8 s0.b3.k25 S
+take t9 s0.b13.k31 IS
+take t9 s0.b0.k28 X
+take t9 s0.b1.k11 X
+take t9 s0.b3.k38 S
+take t9 s0.b0.k15 X
+take t10 s0.b6.k17 IS
+take t10 s0.b2.k28 X
+take t10 s0.b3.k39 S
+take t10 s0.b0.k24 S
+take t10 s0.b2.k22 X
+take t11 s0.b17.k12 IS
+take t11 s0.b0.k1 S
+take t11 s0.b3.k21 X
+take t11 s0.b1.k35 X
+take t11 s0.b3.k36 S
+take t12 s0.b28.k17 IS
+take t12 s0.b3.k17 X
+take t12 s0.b1.k3 X
+take t12 s0.b2.k4 X
+take t12 s0.b3.k7 S
+take t13 s0.b22.k6 IS
+take t13 s0.b3.k14 X
+take t13 s0.b3.k37 X
+take t13 s0.b1.k27 X
+take t13 s0.b2.k5 S
+take t14 s0.b22.k23 IS
+take t14 s0.b0.k6 X
+take t14 s0.b3.k26 S
+take t14 s0.b3.k38 X
+take t14 s0.b0.k33 X
+take t15 s0.b36.k14 IS
+take t15 s0.b1.k1 S
+take t15 s0.b3.k39 X
+take t15 s0.b0.k4 X
+take t15 s0.b2.k37 X
+take t16 s0.b22.k19 IS
+take t16 s0.b0.k37 X
+take t16 s0.b2.k23 X
+take t16 s0.b2.k5 X
+take t16 s0.b2.k34 S
+take t17 s0.b21.k8 IS
+take t17 s0.b0.k10 X
+take t17 s0.b2.k32 S
+take t17 s0.b3.k27 X
+take t17 s0.b2.k26 X
+take t18 s0.b23.k0 IS
+take t18 s0.b3.k32 X
+take t18 s0.b1.k35 X
+take t18 s0.b0.k18 X
+take t18 s0.b0.k8 X
+take t19 s0.b4.k16 IS
+take t19 s0.b1.k20 X
+take t19 s0.b0.k28 S
+take t19 s0.b3.k17 S
+take t19 s0.b3.k36 S
+take t20 s0.b39.k5 IS
+take t20 s0.b1.k11 S
+take t20 s0.b2.k35 S
+take t20 s0.b3.k2 X
+take t20 s0.b3.k4 X
+take t21 s0.b8.k0 IS
+take t21 s0.b0.k29 S
+take t21 s0.b1.k9 X
+take t21 s0.b3.k20 X
+take t21 s0.b0.k29 S
+take t22 s0.b37.k4 IS
+take t22 s0.b2.k25 S
+take t22 s0.b0.k13 X
+take t22 s0.b1.k36 X
+take t22 s0.b0.k5 X
+take t23 s0.b13.k0 IS
+take t23 s0.b1.k19 X
+take t23 s0.b1.k30 S
+take t23 s0.b2.k11 S
+take t23 s0.b2.k15 S
+take t24 s0.b31.k39 IS
+take t24 s0.b2.k37 S
+take t24 s0.b3.k19 X
+take t24 s0.b2.k28 S
+take t24 s0.b2.k16 X
+take t25 s0.b38.k39 IS
+take t25 s0.b2.k23 S
+take t25 s0.b3.k39 S
+take t25 s0.b1.k23 S
+take t25 s0.b1.k12 S
+take t26 s0.b8.k23 IS
+take t26 s0.b0.k33 S
+take t26 s0.b3.k30 X
+take t26 s0.b1.k27 X
+take t26 s0.b2.k7 X
+take t27 s0.b18.k11 IS
+take t27 s0.b2.k13 S
+take t27 s0.b0.k9 S
+take t27 s0.b2.k12 X
+take t27 s0.b2.k8 X
+take t28 s0.b30.k37 IS
+take t28 s0.b0.k25 X
+take t28 s0.b0.k13 X
+take t28 s0.b1.k31 S
+take t28 s0.b3.k37 S
+take t29 s0.b4.k35 IS
+take t29 s0.b0.k35 X
+take t29 s0.b2.k10 S
+take t29 s0.b2.k3 S
+take t29 s0.b2.k3 X
+take t30 s0.b20.k24 IS
+take t30 s0.b2.k34 X
+take t30 s0.b0.k14 X
+take t30 s0.b1.k33 X
+take t30 s0.b1.k9 X
+take t31 s0.b35.k9 IS
+take t31 s0.b3.k24 S
+take t31 s0.b0.k14 X
+take t31 s0.b3.k36 X
+take t31 s0.b0.k8 X
+take t32 s0.b26.k1 IS
+take t32 s0.b2.k17 X
+take t32 s0.b1.k12 X
+take t32 s0.b0.k28 S
+take t32 s0.b0.k14 X
+take t33 s0.b11.k10 IS
+take t33 s0.b1.k19 X
+take t33 s0.b0.k10 S
+take t33 s0.b1.k32 S
+take t33 s0.b3.k6 S
+take t34 s0.b25.k20 IS
+take t34 s0.b2.k10 S
+take t34 s0.b1.k4 S
+take t34 s0.b1.k13 X
+take t34 s0.b3.k11 S
+take t35 s0.b26.k19 IS
+take t35 s0.b1.k21 X
+take t35 s0.b2.k29 X
+take t35 s0.b3.k28 X
+take t35 s0.b2.k17 X
+take t36 s0.b14.k0 IS
+take t36 s0.b1.k36 S
+take t36 s0.b0.k27 X
+take t36 s0.b2.k26 S
+take t36 s0.b3.k20 S
+take t37 s0.b7.k26 IS
+take t37 s0.b1.k38 S
+take t37 s0.b3.k7 X
+take t37 s0.b1.k35 S
+take t37 s0.b3.k35 X
+take t38 s0.b37.k29 IS
+take t38 s0.b3.k11 S
+take t38 s0.b0.k28 S
+take t38 s0.b0.k17 X
+take t38 s0.b2.k19 S
+take t39 s0.b39.k35 IS
+take t39 s0.b0.k8 S
+take t39 s0.b2.k21 S
+take t39 s0.b0.k16 X
+take t39 s0.b2.k22 S
+take t40 s0.b21.k14 IS
+take t40 s0.b3.k31 S
+take t40 s0.b0.k27 S
+take t40 s0.b3.k9 X
+take t40 s0.b0.k28 S
+take t41 s0.b33.k5 IS
+take t41 s0.b1.k14 X
+take t41 s0.b2.k6 X
+take t41 s0.b2.k30 S
+take t41 s0.b1.k27 S
+take t42 s0.b26.k23 IS
+take t42 s0.b3.k21 S
+take t42 s0.b2.k38 S
+take t42 s0.b0.k8 S
+take t42 s0.b3.k36 S
+take t43 s0.b10.k15 IS
+take t43 s0.b3.k9 S
+take t43 s0.b0.k28 X
+take t43 s0.b2.k30 S
+take t43 s0.b3.k22 S
+take t44 s0.b41.k7 IS
+take t44 s0.b1.k17 S
+take t44 s0.b2.k16 S
+take t44 s0.b1.k23 X
+take t44 s0.b2.k26 X
+take t45 s0.b30.k26 IS
+take t45 s0.b0.k38 S
+take t45 s0.b3.k27 X
+take t45 s0.b3.k16 S
+take t45 s0.b3.k8 X
+take t46 s0.b19.k13 IS
+take t46 s0.b1.k17 X
+take t46 s0.b2.k4 X
+take t46 s0.b2.k20 S
+take t46 s0.b3.k33 X
+take t47 s0.b24.k5 IS
+take t47 s0.b0.k32 X
+take t47 s0.b0.k25 S
+take t47 s0.b3.k3 X
+take t47 s0.b1.k4 S
+take t48 s0.b26.k19 IS
+take t48 s0.b3.k15 S
+take t48 s0.b1.k29 S
+take t48 s0.b2.k1 X
+take t48 s0.b2.k28 S
+take t49 s0.b17.k26 IS
+take t49 s0.b2.k8 S
+take t49 s0.b2.k36 S
+take t49 s0.b2.k1 X
+take t49 s0.b3.k17 S
+take t50 s0.b15.k22 IS
+take t50 s0.b3.k3 X
+take t50 s0.b3.k19 X
+take t50 s0.b0.k10 X
+take t50 s0.b0.k11 X
+take t51 s0.b15.k22 IS
+take t51 s0.b0.k37 S
+take t51 s0.b3.k1 S
+take t51 s0.b2.k24 X
+take t51 s0.b1.k38 X
+take t52 s0.b41.k12 IS
+take t52 s0.b0.k19 S
+take t52 s0.b3.k22 S
+take t52 s0.b1.k19 X
+take t52 s0.b1.k24 X
+take t53 s0.b34.k27 IS
+take t53 s0.b0.k28 X
+take t53 s0.b3.k18 S
+take t53 s0.b3.k10 S
+take t53 s0.b3.k38 X
+take t54 s0.b40.k26 IS
+take t54 s0.b0.k31 X
+take t54 s0.b3.k0 X
+take t54 s0.b0.k3 X
+take t54 s0.b0.k25 S
+take t55 s0.b5.k14 IS
+take t55 s0.b0.k11 S
+take t55 s0.b1.k24 S
+take t55 s0.b2.k37 S
+take t55 s0.b1.k32 X
+take t56 s0.b22.k35 IS
+take t56 s0.b3.k25 X
+take t56 s0.b3.k1 S
+take t56 s0.b2.k0 S
+take t56 s0.b1.k21 X
+take t57 s0.b16.k15 IS
+take t57 s0.b2.k0 X
+take t57 s0.b2.k20 X
+take t57 s0.b3.k4 X
+take t57 s0.b0.k30 S
+take t58 s0.b30.k0 IS
+take t58 s0.b2.k1 S
+take t58 s0.b3.k37 X
+take t58 s0.b2.k13 S
+take t58 s0.b1.k36 S
+take t59 s0.b20.k9 IS
+take t59 s0.b0.k36 S
+take t59 s0.b3.k35 X
+take t59 s0.b0.k25 X
+take t59 s0.b2.k26 S
+take t51 s0.b16.k19 IS
+drop t50 s0.b6
+take t52 s0.b27.k19 IS
+take t5 s0.b27.k2 IS
+take t49 s0.b10.k38 IX
+drop t41 s0.b11
+take t59 s0.b18.k20 S
+take t58 s0.b41.k8 IS
+take t49 s0.b39.k4 IS
+take t55 s0.b14.k11 IX
+drop t52 s0.b33
+take t58 s0.b35.k35 IS
+drop t53 s0.b30
+take t21 s0.b11 S
+take t18 s0.b40.k1 X
+take t12 s0.b24.k0 X
+take t35 s0.b8.k23 X
+drop t12 s0.b27
+take t12 s0.b5.k0 X
+take t29 s0.b8.k32 S
+take t19 s0.b11 IX
+take t37 s0.b9.k7 S
+take t51 s0.b11.k1 S
+take t16 s0.b6.k17 S
+take t16 s0.b10 IS
+take t16 s0.b8.k38 S
+take t39 s0.b10.k31 IX
+take t37 s0.b7.k0 X
+take t52 s0.b6.k27 IS
+take t11 s0.b23.k6 IS
+take t57 s0.b20.k8 S
+take t6 s0.b27 IX
+take t6 s0.b9 S
+take t36 s0.b42.k38 X
+take t50 s0.b21.k11 IX
+take t5 s0.b11.k20 IS
+drop t40 s0.b25
+drop t19 s0.b32
+take t28 s0.b5.k0 IX
+take t54 s0.b8.k25 IS
+take t33 s0.b28.k27 IS
+take t9 s0.b8.k37 IX
+take t29 s0.b14.k20 IS
+take t50 s0.b27.k27 IX
+take t4 s0.b37.k7 IS
+take t40 s0.b23 S
+take t49 s0.b21.k37 S
+take t24 s0.b35.k16 IX
+take t42 s0.b28.k9 S
+take t31 s0.b10 IS
+take t52 s0.b14.k38 S
+take t35 s0.b16.k32 IS
+take t24 s0.b43.k22 IS
+take t4 s0.b21 IS
+take t4 s0.b37.k14 IS
+drop t56 s0.b21
+take t12 s0.b6.k26 IS
+drop t25 s0.b5
+take t40 s0.b27.k36 IX
+take t17 s0.b43 IS
+take t5 s0.b5.k28 S
+take t26 s0.b34.k0 S
+take t49 s0.b42.k28 IS
+take t43 s0.b17.k2 IS
+take t44 s0.b40.k32 IS
+take t20 s0.b35 S
+take t46 s0.b28.k30 IS
+drop t5 s0.b16
+drop t35 s0.b40
+take t36 s0.b21.k1 IS
+take t14 s0.b18.k30 S
+drop t5 s0.b6
+take t29 s0.b27.k35 IS
+take t5 s0.b41.k1 IX
+take t6 s0.b13.k11 X
+take t11 s0.b31.k18 X
+take t45 s0.b42 S
+take t36 s0.b31 S
+drop t34 s0.b21
+take t3 s0.b30.k30 X
+take t28 s0.b14.k5 S
+take t3 s0.b34.k23 IS
+take t53 s0.b23.k0 IS
+take t6 s0.b38.k11 S
+take t28 s0.b42.k21 S
+take t40 s0.b39.k10 S
+take t3 s0.b35.k26 X
+take t55 s0.b31.k29 X
+take t53 s0.b31.k22 S
+take t58 s0.b15.k4 IX
+take t57 s0.b35.k9 IX
+take t38 s0.b17.k24 IX
+take t16 s0.b23.k24 X
+drop t12 s0.b30
+take t58 s0.b28.k5 IS
+drop t13 s0.b17
+take t10 s0.b16.k18 S
+take t30 s0.b14.k32 IS
+take t7 s0.b15.k18 IX
+take t34 s0.b22.k34 IS
+drop t33 s0.b27
+take t53 s0.b40.k36 X
+take t28 s0.b43.k38 IX
+take t47 s0.b25.k3 IX
+take t34 s0.b15.k3 IS
+take t49 s0.b13.k5 X
+take t24 s0.b32.k38 IS
+take t20 s0.b30.k20 S
+take t15 s0.b40.k34 IX
+take t33 s0.b14.k32 S
+take t35 s0.b23.k9 IS
+take t32 s0.b6.k26 IS
+take t5 s0.b15.k15 X
+take t39 s0.b10.k10 S
+take t18 s0.b26 IS
+take t41 s0.b7.k18 S
+drop t10 s0.b40
+take t53 s0.b28.k30 S
+take t48 s0.b27.k28 IS
+take t17 s0.b28.k33 X
+take t4 s0.b8.k20 X
+take t3 s0.b39.k7 IX
+drop t49 s0.b8
+take t43 s0.b6.k2 X
+take t9 s0.b38.k31 IX
+take t56 s0.b16.k22 IS
+take t20 s0.b16.k36 X
+drop t55 s0.b37
+take t1 s0.b26.k32 IS
+take t25 s0.b29.k16 IS
+take t13 s0.b29.k17 S
+take t2 s0.b41.k37 IS
+take t16 s0.b35.k28 IX
+take t21 s0.b16.k24 S
+drop t15 s0.b39
+take t51 s0.b40 S
+take t44 s0.b32.k28 S
+take t57 s0.b18 IX
+take t0 s0.b22.k4 S
+take t10 s0.b10.k38 S
+take t5 s0.b24.k6 IX
+take t14 s0.b35.k8 IS
+take t8 s0.b14.k24 IS
+take t10 s0.b11 S
+take t20 s0.b14.k25 X
+take t42 s0.b43.k16 IS
+take t1 s0.b15.k36 S
+take t28 s0.b11.k7 X
+take t8 s0.b31 IX
+take t3 s0.b7 IS
+take t49 s0.b28.k29 IS
+take t45 s0.b24.k25 X
+drop t36 s0.b9
+take t56 s0.b39.k21 IS
+take t57 s0.b21.k25 IX
+drop t28 s0.b19
+take t24 s0.b15 IX
+take t7 s0.b15.k33 IS
+drop t27 s0.b16
+take t29 s0.b30.k25 IX
+take t35 s0.b38.k6 X
+take t31 s0.b29.k38 IS
+take t3 s0.b41.k29 IS
+take t42 s0.b30.k30 IS
+take t36 s0.b10.k5 IS
+take t25 s0.b29.k35 IS
+take t15 s0.b7 IX
+take t49 s0.b23.k3 X
+take t51 s0.b16.k4 X
+take t30 s0.b20.k21 IS
+take t13 s0.b25.k8 IS
+drop t28 s0.b21
+take t5 s0.b42.k18 X
+take t24 s0.b25.k30 IS
+take t5 s0.b39.k25 IS
+take t28 s0.b9.k13 IS
+take t9 s0.b10.k18 IS
+take t22 s0.b9.k30 IS
+take t50 s0.b22.k3 IS
+take t16 s0.b6.k31 IX
+drop t38 s0.b26
+take t35 s0.b32 IX
+take t15 s0.b39.k2 IS
+take t29 s0.b31.k38 X
+take t4 s0.b6.k15 IS
+take t55 s0.b35.k18 S
+drop t59 s0.b22
+take t14 s0.b8.k3 S
+take t15 s0.b17.k18 S
+take t3 s0.b15.k38 X
+take t21 s0.b26.k36 IS
+drop t14 s0.b36
+drop t0 s0.b34
+take t47 s0.b43.k33 IS
+take t14 s0.b7.k3 IS
+take t2 s0.b23.k32 S
+take t38 s0.b20.k14 S
+drop t44 s0.b11
+drop t5 s0.b4
+drop t25 s0.b23
+take t4 s0.b28.k30 IS
+take t26 s0.b22.k33 IS
+take t35 s0.b38.k26 IS
+take t31 s0.b34.k6 S
+take t11 s0.b36.k37 X
+drop t45 s0.b41
+take t47 s0.b32.k10 S
+take t55 s0.b36.k29 IS
+take t32 s0.b19 IX
+drop t17 s0.b16
+drop t58 s0.b36
+take t40 s0.b9.k2 X
+take t15 s0.b42.k5 IS
+take t19 s0.b40.k5 IS
+drop t24 s0.b34
+drop t52 s0.b41
+take t44 s0.b41.k36 IS
+take t58 s0.b8.k0 S
+take t21 s0.b37.k7 S
+take t29 s0.b17 S
+take t0 s0.b42.k31 S
+take t31 s0.b26.k9 IX
+take t46 s0.b23 IS
+take t6 s0.b40.k0 IX
+take t11 s0.b42.k34 IS
+take t41 s0.b30 S
+take t49 s0.b7.k5 IX
+drop t40 s0.b23
+take t4 s0.b8.k20 IS
+take t32 s0.b18 IX
+take t9 s0.b29.k13 IX
+take t39 s0.b7.k33 X
+take t15 s0.b38.k8 IS
+drop t32 s0.b24
+take t36 s0.b7.k5 X
+take t41 s0.b22.k23 IS
+take t34 s0.b37.k23 IX
+take t19 s0.b41.k34 IS
+take t28 s0.b39.k35 IS
+take t22 s0.b20.k5 IX
+take t34 s0.b8.k31 IS
+drop t17 s0.b6
+drop t55 s0.b31
+take t50 s0.b16.k7 IX
+take t7 s0.b5.k17 IX
+drop t54 s0.b21
+take t19 s0.b15.k9 IS
+take t58 s0.b32.k25 S
+take t6 s0.b37.k39 S
+drop t55 s0.b16
+take t50 s0.b40.k34 IS
+take t53 s0.b40.k38 IS
+take t58 s0.b43.k17 IS
+take t53 s0.b40.k7 IS
+drop t6 s0.b19
+take t32 s0.b41.k25 IX
+drop t30 s0.b6
+take t36 s0.b24.k38 X
+take t3 s0.b6.k26 S
+take t4 s0.b33.k6 IS
+take t38 s0.b26 IS
+take t45 s0.b31.k24 X
+take t37 s0.b27 S
+take t56 s0.b23 IS
+take t57 s0.b35 IS
+take t16 s0.b25.k37 X
+take t57 s0.b6.k7 IX
+take t50 s0.b6.k11 X
+take t14 s0.b42.k33 IS
+take t19 s0.b28.k39 X
+take t1 s0.b39.k26 IS
+take t1 s0.b10.k23 IS
+take t36 s0.b36.k20 IX
+take t49 s0.b11.k16 X
+take t41 s0.b10.k3 X
+take t24 s0.b20.k17 IX
+drop t35 s0.b15
+take t38 s0.b11.k34 IX
+take t51 s0.b19.k6 X
+take t36 s0.b5.k23 S
+take t37 s0.b38.k21 X
+take t10 s0.b9.k9 X
+take t14 s0.b36.k11 X
+take t31 s0.b24.k30 IX
+take t48 s0.b22 S
+drop t15 s0.b40
+drop t50 s0.b6
+take t32 s0.b8.k12 IX
+take t35 s0.b36.k4 IS
+take t42 s0.b29.k4 IX
+take t37 s0.b28.k14 IX
+take t14 s0.b43.k6 X
+drop t40 s0.b25
+take t19 s0.b39.k2 X
+take t26 s0.b32.k0 IX
+take t19 s0.b8.k13 IS
+take t37 s0.b32.k26 IS
+take t7 s0.b40.k12 X
+take t18 s0.b36.k17 X
+take t33 s0.b41.k12 S
+take t1 s0.b31.k28 X
+take t44 s0.b21.k32 IX
+take t36 s0.b11.k27 IX
+take t50 s0.b32.k34 S
+take t41 s0.b42.k24 IS
+take t53 s0.b6.k38 S
+take t49 s0.b6.k26 S
+take t36 s0.b27.k21 IS
+drop t23 s0.b23
+take t15 s0.b27.k0 S
+drop t25 s0.b38
+take t22 s0.b25.k10 X
+take t11 s0.b14.k34 IS
+take t31 s0.b13.k8 IX
+take t46 s0.b15.k39 X
+take t35 s0.b7.k39 IS
+take t39 s0.b8.k34 X
+take t0 s0.b10.k14 IS
+take t42 s0.b23.k11 IS
+take t25 s0.b43.k7 IS
+take t7 s0.b12.k0 S
+take t29 s0.b34.k9 X
+take t24 s0.b31.k38 S
+take t38 s0.b21.k4 IX
+drop t51 s0.b37
+take t7 s0.b13.k5 IX
+take t39 s0.b36.k2 IS
+take t4 s0.b27.k20 IS
+take t49 s0.b9.k20 S
+take t6 s0.b23.k28 S
+take t22 s0.b21.k39 S
+take t58 s0.b6.k19 IS
+take t12 s0.b33.k27 S
+take t19 s0.b36.k19 X
+take t32 s0.b15.k2 IS
+take t46 s0.b17.k3 X
+take t2 s0.b42 S
+take t0 s0.b34.k28 IS
+take t50 s0.b34.k4 S
+take t56 s0.b33.k22 IS
+take t48 s0.b12.k5 IX
+take t25 s0.b26.k31 IX
+take t53 s0.b11.k18 S
+take t42 s0.b22.k14 IX
+take t52 s0.b39.k29 X
+take t9 s0.b28.k18 X
+take t13 s0.b26 S
+take t53 s0.b10.k8 IS
+take t30 s0.b37.k2 IS
+take t0 s0.b13.k34 IS
+drop t4 s0.b16
+take t0 s0.b30.k36 X
+take t15 s0.b17.k26 IS
+take t5 s0.b41.k9 IX
+take t51 s0.b9.k39 S
+take t37 s0.b21.k37 IS
+take t57 s0.b38.k6 IS
+take t48 s0.b9.k10 IS
+take t5 s0.b6.k22 IX
+take t7 s0.b12 IS
+take t21 s0.b6.k10 X
+drop t49 s0.b15
+take t56 s0.b40.k26 X
+drop t40 s0.b18
+take t25 s0.b36.k36 X
+take t20 s0.b6 S
+take t42 s0.b33.k16 IX
+take t54 s0.b13.k10 X
+take t54 s0.b5 IX
+take t57 s0.b25.k32 IS
+drop t21 s0.b13
+drop t22 s0.b16
+take t48 s0.b14.k25 IX
+take t17 s0.b12.k9 IS
+drop t49 s0.b23
+take t21 s0.b9.k19 X
+take t44 s0.b23.k12 IS
+drop t54 s0.b29
+take t47 s0.b42.k33 S
+take t19 s0.b19.k7 IS
+drop t19 s0.b5
+take t52 s0.b6.k31 X
+take t2 s0.b22.k13 IX
+take t32 s0.b16.k31 S
+drop t42 s0.b39
+take t46 s0.b34.k32 IX
+take t33 s0.b30.k38 IS
+drop t15 s0.b18
+take t24 s0.b19 IX
+take t16 s0.b35.k25 IS
+take t4 s0.b34.k29 IS
+take t22 s0.b19.k16 X
+take t31 s0.b8.k2 IX
+drop t17 s0.b10
+take t29 s0.b19 S
+take t15 s0.b34.k12 IS
+take t41 s0.b29.k13 IS
+take t23 s0.b20.k38 IX
+drop t9 s0.b7
+take t25 s0.b6.k21 IS
+take t43 s0.b26.k23 IS
+take t37 s0.b33.k19 IS
+drop t43 s0.b29
+take t16 s0.b32.k38 IX
+take t53 s0.b7.k5 IS
+take t8 s0.b29.k26 IX
+take t4 s0.b33.k24 S
+take t30 s0.b16.k12 IS
+take t35 s0.b43 S
+take t12 s0.b29.k30 IS
+take t29 s0.b28.k1 S
+take t45 s0.b7.k14 IX
+take t46 s0.b22.k22 IX
+take t32 s0.b39.k16 IS
+take t11 s0.b38.k2 S
+take t33 s0.b12.k33 S
+take t18 s0.b40.k35 X
+take t16 s0.b31.k20 X
+take t1 s0.b22.k22 IS
+drop t11 s0.b31
+drop t19 s0.b28
+take t50 s0.b36.k8 IX
+take t29 s0.b24 S
+take t15 s0.b12.k30 IS
+take t41 s0.b23.k34 IS
+take t0 s0.b12 S
+take t39 s0.b5.k6 IS
+take t20 s0.b25.k0 X
+take t13 s0.b31.k31 S
+take t14 s0.b10.k20 S
+take t3 s0.b25.k36 IS
+take t1 s0.b15.k30 IX
+take t59 s0.b43.k29 IS
+take t10 s0.b18.k7 IX
+drop t15 s0.b12
+take t46 s0.b43.k30 IS
+take t39 s0.b14.k14 IS
+drop t22 s0.b36
+take t22 s0.b17.k6 IS
+take t20 s0.b32.k22 S
+drop t49 s0.b17
+take t52 s0.b40.k14 IX
+take t33 s0.b5.k25 X
+take t32 s0.b33.k9 IX
+take t9 s0.b36.k12 IS
+drop t36 s0.b19
+take t24 s0.b17.k22 IX
+take t48 s0.b24.k26 IS
+take t32 s0.b32.k10 IS
+take t10 s0.b33.k3 S
+take t3 s0.b39.k18 X
+take t41 s0.b40.k35 X
+take t47 s0.b20.k20 IS
+take t13 s0.b28.k2 IS
+take t30 s0.b8.k4 S
+take t8 s0.b27 IS
+take t37 s0.b16.k13 IX
+take t18 s0.b33.k30 X
+take t7 s0.b16.k15 IS
+take t3 s0.b33.k27 IS
+take t35 s0.b15.k0 X
+take t25 s0.b5 IS
+take t23 s0.b13.k14 IX
+take t50 s0.b26.k24 S
+take t20 s0.b21.k27 IS
+take t5 s0.b31.k27 X
+drop t25 s0.b19
+take t42 s0.b16.k24 IS
+take t34 s0.b24.k2 IS
+take t13 s0.b7.k23 X
+take t16 s0.b14.k14 IS
+take t53 s0.b18.k6 IS
+take t4 s0.b13.k32 IX
+take t5 s0.b18.k7 S
+take t56 s0.b17.k9 X
+take t56 s0.b25.k22 X
+take t12 s0.b24.k31 IS
+take t30 s0.b25.k6 IS
+take t54 s0.b20.k21 X
+drop t49 s0.b5
+take t10 s0.b21.k32 S
+take t33 s0.b27.k20 IX
+take t25 s0.b34.k0 IS
+drop t56 s0.b34
+take t23 s0.b40.k21 X
+take t54 s0.b21.k10 IX
+drop t56 s0.b35
+take t9 s0.b30.k11 IS
+take t54 s0.b10.k18 IS
+take t35 s0.b34.k24 S
+take t36 s0.b28.k7 IS
+take t18 s0.b11.k36 X
+take t6 s0.b36.k4 S
+take t40 s0.b33 S
+take t30 s0.b33.k21 IX
+take t18 s0.b41.k22 IS
+take t58 s0.b23.k27 X
+take t1 s0.b30.k4 X
+take t40 s0.b41.k24 IX
+take t10 s0.b29.k24 IS
+take t9 s0.b36.k4 IX
+take t32 s0.b26.k33 IX
+drop t52 s0.b23
+drop t13 s0.b5
+take t1 s0.b39.k24 IS
+take t54 s0.b38.k10 IS
+take t2 s0.b15.k31 IS
+drop t32 s0.b5
+take t3 s0.b23.k31 X
+take t27 s0.b21.k11 S
+take t8 s0.b24.k32 IS
+drop t33 s0.b28
+take t12 s0.b23.k2 IS
+take t53 s0.b4.k26 IX
+take t58 s0.b15.k31 IS
+take t42 s0.b23.k3 IS
+take t8 s0.b28.k26 X
+take t28 s0.b23.k21 IX
+take t46 s0.b13.k6 IS
+take t58 s0.b15.k8 IX
+take t14 s0.b26.k35 IS
+take t23 s0.b16 S
+take t3 s0.b20.k9 IS
+take t11 s0.b24.k34 IX
+take t53 s0.b34.k3 IS
+take t18 s0.b8.k3 IS
+take t27 s0.b39.k36 IS
+take t9 s0.b8.k16 IX
+take t41 s0.b16.k14 IS
+take t52 s0.b30.k34 X
+take t58 s0.b42.k32 X
+take t11 s0.b7.k24 X
+take t24 s0.b8.k27 S
+take t57 s0.b36.k3 S
+take t24 s0.b30.k39 X
+take t25 s0.b28.k3 X
+take t33 s0.b11.k34 IX
+take t43 s0.b9.k27 IX
+take t38 s0.b37.k15 S
+take t36 s0.b9 IX
+take t13 s0.b10.k11 IS
+take t20 s0.b40.k6 IX
+take t31 s0.b39.k25 X
+take t16 s0.b6.k7 IS
+take t20 s0.b33.k10 IS
+drop t23 s0.b22
+take t15 s0.b19.k35 IX
+take t58 s0.b17.k18 X
+take t7 s0.b42 IS
+take t44 s0.b40 IS
+drop t54 s0.b5
+take t56 s0.b9.k19 X
+take t43 s0.b42 IX
+take t31 s0.b17.k31 X
+take t12 s0.b9.k19 IS
+take t5 s0.b9.k15 IX
+take t59 s0.b37.k11 IX
+drop t22 s0.b32
+take t10 s0.b31.k3 IS
+take t4 s0.b13.k15 X
+take t40 s0.b6.k29 IX
+take t19 s0.b42.k23 X
+take t17 s0.b6.k12 IS
+take t28 s0.b16.k6 IX
+take t36 s0.b35.k6 IS
+take t32 s0.b32.k3 IS
+take t29 s0.b40.k13 IS
+take t53 s0.b16.k33 X
+take t3 s0.b12.k26 IX
+take t19 s0.b22 S
+take t8 s0.b4.k27 IS
+drop t6 s0.b4
+drop t36 s0.b23
+take t35 s0.b33.k21 X
+take t50 s0.b37.k1 IS
+take t46 s0.b7.k11 S
+take t52 s0.b30.k12 IX
+take t46 s0.b38.k20 IS
+take t41 s0.b10.k37 IS
+take t53 s0.b11.k11 S
+take t24 s0.b42.k4 IS
+take t43 s0.b15.k9 IS
+take t45 s0.b5.k15 IS
+take t54 s0.b23.k1 IS
+drop t24 s0.b16
+take t26 s0.b8.k32 IS
+take t41 s0.b21.k20 IS
+take t14 s0.b40.k38 IS
+take t5 s0.b11 IS
+take t14 s0.b27.k37 IS
+take t33 s0.b19.k30 IS
+take t4 s0.b8.k9 IX
+take t0 s0.b28.k30 IS
+take t31 s0.b24.k36 IS
+take t12 s0.b19.k12 IX
+drop t29 s0.b15
+take t20 s0.b4.k30 IS
+drop t42 s0.b26
+take t44 s0.b32.k3 IX
+take t26 s0.b30.k11 S
+take t51 s0.b37.k8 IX
+take t20 s0.b23.k18 S
+take t7 s0.b43.k32 IS
+take t1 s0.b8 IX
+take t20 s0.b6 IS
+take t14 s0.b42.k1 IS
+drop t36 s0.b13
+drop t6 s0.b29
+take t47 s0.b35.k39 IS
+take t12 s0.b34.k1 S
+take t42 s0.b43.k14 IS
+take t44 s0.b41.k26 S
+take t36 s0.b37.k11 S
+drop t55 s0.b24
+take t17 s0.b30.k4 IX
+take t3 s0.b28.k2 X
+take t56 s0.b6.k34 IS
+take t38 s0.b21.k23 IS
+take t50 s0.b31.k2 X
+take t49 s0.b10.k24 IS
+drop t18 s0.b39
+take t30 s0.b39.k11 X
+take t49 s0.b30.k37 IS
+take t22 s0.b15.k36 X
+drop t4 s0.b34
+take t27 s0.b21.k32 IS
+take t45 s0.b12.k37 IX
+take t6 s0.b31 IX
+take t27 s0.b25.k23 IX
+take t43 s0.b12.k14 S
+take t2 s0.b30.k10 IX
+drop t29 s0.b22
+take t9 s0.b13.k5 X
+take t8 s0.b38.k26 S
+drop t37 s0.b30
+take t56 s0.b36.k35 IS
+drop t26 s0.b6
+take t28 s0.b36.k16 X
+take t11 s0.b34.k29 IX
+take t6 s0.b39.k17 IS
+take t36 s0.b39.k36 X
+take t34 s0.b24.k13 IS
+take t27 s0.b21.k36 X
+drop t2 s0.b30
+take t0 s0.b43.k28 IS
+take t10 s0.b27.k23 IX
+take t35 s0.b10.k10 IS
+take t34 s0.b25.k20 IX
+take t17 s0.b11.k36 S
+take t21 s0.b21.k5 S
+take t15 s0.b23.k13 IX
+take t2 s0.b18.k36 X
+take t40 s0.b31.k24 IS
+take t7 s0.b22.k15 IS
+take t44 s0.b42 IX
+drop t54 s0.b33
+take t13 s0.b16.k12 IS
+take t17 s0.b24.k22 IS
+drop t5 s0.b39
+take t27 s0.b15.k0 IX
+take t43 s0.b6.k35 IX
+take t30 s0.b14.k38 IX
+take t54 s0.b37.k36 X
+take t40 s0.b23.k9 S
+take t24 s0.b17.k1 IS
+take t40 s0.b38.k38 IS
+drop t21 s0.b33
+drop t16 s0.b39
+take t52 s0.b19.k30 S
+take t16 s0.b8.k34 IX
+take t44 s0.b33.k19 X
+take t21 s0.b37.k13 S
+drop t7 s0.b38
+take t31 s0.b25.k12 IS
+take t30 s0.b26.k36 S
+take t8 s0.b15.k25 X
+take t15 s0.b31.k13 X
+take t18 s0.b25.k37 IS
+take t44 s0.b24.k37 IX
+take t29 s0.b23.k39 X
+take t2 s0.b11.k29 IS
+take t39 s0.b21.k12 IS
+take t42 s0.b25.k24 X
+take t22 s0.b33.k7 S
+take t57 s0.b9 S
+take t0 s0.b41 S
+take t46 s0.b30.k28 IS
+take t42 s0.b13.k9 S
+take t14 s0.b25.k3 X
+take t17 s0.b12.k4 IS
+drop t17 s0.b26
+drop t24 s0.b28
+take t45 s0.b42.k38 IS
+take t37 s0.b32.k39 IS
+take t56 s0.b32.k22 IX
+take t16 s0.b13.k12 IS
+take t42 s0.b14.k31 S
+take t32 s0.b31.k34 X
+take t43 s0.b43.k27 IS
+drop t31 s0.b8
+take t31 s0.b21.k29 X
+take t10 s0.b16.k21 IS
+take t39 s0.b28.k21 IX
+take t28 s0.b26.k5 IS
+take t5 s0.b33 IX
+take t47 s0.b31 IS
+take t15 s0.b10.k39 IS
+take t40 s0.b36.k13 X
+take t49 s0.b4.k28 IX
+take t50 s0.b11.k13 X
+take t54 s0.b29.k23 IX
+take t57 s0.b10.k24 X
+take t17 s0.b24.k37 IS
+take t41 s0.b19.k38 IS
+take t25 s0.b16.k14 IS
+take t47 s0.b29.k36 IS
+take t41 s0.b35 IX
+take t54 s0.b21 IS
+take t58 s0.b31.k35 S
+take t45 s0.b41.k38 IS
+take t15 s0.b37.k7 IS
+take t23 s0.b11.k0 S
+take t45 s0.b35 IX
+take t11 s0.b30.k32 S
+take t5 s0.b11.k13 IX
+take t36 s0.b14.k11 X
+drop t26 s0.b9
+take t38 s0.b10.k36 IS
+take t45 s0.b43.k8 IS
+take t15 s0.b25.k1 IS
+take t12 s0.b25.k29 IS
+drop t5 s0.b39
+take t43 s0.b25.k18 IX
+take t4 s0.b11.k24 IS
+take t8 s0.b31.k0 IS
+take t4 s0.b7.k12 S
+take t1 s0.b10.k14 S
+take t43 s0.b21.k35 IS
+drop t16 s0.b43
+drop t39 s0.b39
+take t42 s0.b43.k34 IS
+take t18 s0.b27.k10 X
+take t53 s0.b25.k37 IS
+take t46 s0.b11.k5 S
+take t50 s0.b9.k7 IS
+drop t54 s0.b18
+take t28 s0.b24 IX
+drop t23 s0.b24
+take t58 s0.b39.k14 IS
+take t59 s0.b21.k24 IS
+take t13 s0.b17.k27 S
+take t30 s0.b17.k32 X
+take t29 s0.b10.k33 S
+take t0 s0.b24.k17 S
+take t44 s0.b27 IS
+take t35 s0.b12.k9 IS
+take t6 s0.b35.k9 IS
+take t31 s0.b27.k21 S
+take t34 s0.b27.k14 IS
+take t46 s0.b31.k25 IS
+take t32 s0.b4.k22 IS
+take t58 s0.b7.k8 S
+take t10 s0.b7 IX
+take t36 s0.b17.k25 S
+take t30 s0.b23.k20 X
+take t43 s0.b21 S
+take t28 s0.b34.k14 IS
+take t59 s0.b34.k8 S
+take t38 s0.b29.k5 IX
+take t52 s0.b38.k6 IS
+take t34 s0.b25.k11 IX
+take t18 s0.b17.k37 IS
+take t14 s0.b25.k7 X
+take t6 s0.b6.k22 IX
+take t42 s0.b18.k5 X
+take t0 s0.b40.k2 X
+take t13 s0.b33 S
+drop t31 s0.b38
+take t37 s0.b22.k12 S
+drop t45 s0.b17
+take t44 s0.b23.k27 S
+take t3 s0.b23.k7 IS
+take t14 s0.b13.k34 S
+take t48 s0.b19.k33 IS
+drop t42 s0.b19
+take t47 s0.b13.k1 IS
+drop t43 s0.b27
+take t13 s0.b15.k8 IX
+take t52 s0.b16.k11 IX
+take t34 s0.b30.k1 IS
+take t21 s0.b33.k18 IX
+take t27 s0.b25.k21 IS
+take t23 s0.b20.k13 X
+take t44 s0.b15.k23 X
+take t1 s0.b17 S
+take t41 s0.b21.k39 S
+take t43 s0.b38.k14 IS
+take t57 s0.b14.k13 IS
+drop t46 s0.b24
+drop t30 s0.b7
+take t7 s0.b7.k36 IX
+take t56 s0.b21.k5 IX
+take t38 s0.b7.k30 X
+take t53 s0.b4.k38 IX
+take t6 s0.b29.k33 IX
+take t3 s0.b40.k14 IS
+take t42 s0.b32.k14 IS
+take t7 s0.b17.k20 IS
+take t21 s0.b31.k10 IX
+take t44 s0.b27.k11 IS
+take t43 s0.b17.k1 X
+take t5 s0.b26.k37 IS
+take t12 s0.b23.k4 IX
+drop t6 s0.b17
+take t21 s0.b38.k6 S
+take t19 s0.b22.k33 IS
+take t43 s0.b36.k28 IS
+take t13 s0.b28.k19 IS
+drop t44 s0.b40
+take t29 s0.b7.k22 IX
+take t39 s0.b43.k1 IS
+drop t21 s0.b35
+drop t25 s0.b35
+take t27 s0.b38.k33 X
+take t17 s0.b16.k37 IX
+take t50 s0.b21.k21 IS
+take t11 s0.b41.k19 IX
+drop t21 s0.b36
+take t9 s0.b26.k34 IS
+take t10 s0.b41.k12 IS
+drop t20 s0.b12
+take t25 s0.b19.k6 IS
+take t34 s0.b32.k13 IS
+drop t57 s0.b32
+take t39 s0.b14.k39 S
+take t1 s0.b15.k30 S
+take t2 s0.b24 S
+drop t24 s0.b40
+take t38 s0.b16 IX
+take t4 s0.b21.k32 X
+drop t37 s0.b20
+take t33 s0.b21.k19 IS
+drop t12 s0.b40
+take t13 s0.b33.k0 IS
+take t21 s0.b38.k18 X
+take t46 s0.b16.k25 X
+drop t30 s0.b8
+take t43 s0.b7.k4 IS
+take t15 s0.b27.k9 X
+take t18 s0.b29.k37 IS
+take t45 s0.b42.k11 IX
+take t32 s0.b23 IS
+drop t37 s0.b7
+take t4 s0.b4.k34 S
+take t18 s0.b5.k36 X
+take t55 s0.b17.k17 S
+take t10 s0.b38.k23 IX
+take t49 s0.b39.k15 S
+take t8 s0.b23.k3 X
+take t44 s0.b9.k21 IS
+take t12 s0.b22.k14 IX
+take t30 s0.b23 IS
+take t2 s0.b7.k8 IS
+take t22 s0.b37.k10 IS
+take t0 s0.b10.k22 S
+take t42 s0.b13.k35 IS
+take t54 s0.b13.k8 IS
+take t47 s0.b11.k12 X
+drop t59 s0.b43
+take t1 s0.b15.k13 X
+drop t21 s0.b28
+drop t5 s0.b22
+take t57 s0.b15.k32 X
+take t33 s0.b7.k32 IX
+take t10 s0.b8.k36 S
+drop t17 s0.b15
+take t0 s0.b32.k21 S
+take t52 s0.b21 IX
+take t18 s0.b43.k3 S
+take t8 s0.b20.k6 X
+take t12 s0.b11.k4 X
+take t58 s0.b36.k14 IX
+take t18 s0.b12.k10 X
+take t10 s0.b42 IX
+take t8 s0.b43.k8 S
+take t36 s0.b20.k18 IS
+take t22 s0.b27.k15 IS
+take t59 s0.b16.k18 IX
+take t46 s0.b15.k27 IS
+take t44 s0.b32.k26 IX
+take t40 s0.b23.k20 IS
+take t15 s0.b9.k12 IS
+drop t0 s0.b29
+drop t37 s0.b10
+take t57 s0.b29.k1 IS
+take t43 s0.b29.k13 X
+take t10 s0.b37.k16 X
+take t17 s0.b25.k9 X
+take t1 s0.b7 IX
+take t58 s0.b39.k33 S
+take t54 s0.b13.k35 IS
+drop t27 s0.b25
+take t31 s0.b11.k21 X
+take t6 s0.b25.k30 IS
+drop t42 s0.b23
+take t24 s0.b35.k2 S
+take t20 s0.b8 S
+take t34 s0.b33.k14 X
+take t34 s0.b14.k37 IX
+drop t21 s0.b29
+take t12 s0.b9.k14 IS
+take t44 s0.b6.k11 IX
+take t7 s0.b16.k9 X
+take t4 s0.b13 IS
+take t25 s0.b33.k37 X
+drop t52 s0.b9
+drop t16 s0.b22
+take t40 s0.b7.k24 IS
+drop t2 s0.b31
+take t43 s0.b13.k30 IX
+take t41 s0.b43.k37 X
+take t39 s0.b7.k10 IX
+take t48 s0.b29.k19 IS
+take t40 s0.b31.k3 IS
+take t27 s0.b34.k37 IX
+take t5 s0.b19.k12 S
+take t36 s0.b17.k14 X
+take t49 s0.b13.k7 IS
+drop t56 s0.b39
+drop t36 s0.b30
+drop t3 s0.b35
+take t13 s0.b7.k15 IX
+take t18 s0.b29.k10 IS
+take t19 s0.b31.k16 X
+take t40 s0.b17.k39 IS
+take t16 s0.b28.k12 X
+take t59 s0.b26.k33 IS
+take t12 s0.b29.k26 X
+take t28 s0.b14.k22 IX
+take t13 s0.b32.k38 IX
+drop t15 s0.b31
+take t51 s0.b11.k7 S
+take t20 s0.b17.k36 IS
+take t5 s0.b22 S
+take t41 s0.b12.k39 S
+take t52 s0.b34 IS
+take t10 s0.b8.k22 IX
+take t16 s0.b19.k5 IX
+take t39 s0.b29.k10 S
+take t47 s0.b22.k27 S
+take t9 s0.b30.k1 IX
+take t11 s0.b17.k18 X
+take t49 s0.b6.k11 IS
+take t44 s0.b25.k15 IX
+take t10 s0.b9.k0 IS
+take t19 s0.b23.k20 IS
+take t33 s0.b34.k26 IS
+take t10 s0.b11.k3 S
+take t30 s0.b14.k10 IX
+drop t56 s0.b8
+drop t39 s0.b17
+take t42 s0.b11.k39 IS
+take t59 s0.b29.k16 X
+take t46 s0.b29 IX
+take t5 s0.b24.k11 X
+take t15 s0.b34.k38 IS
+take t1 s0.b40.k21 IX
+take t43 s0.b8.k30 IX
+take t24 s0.b10.k30 X
+take t32 s0.b27.k34 X
+take t15 s0.b20.k32 IX
+take t43 s0.b12.k21 IX
+take t18 s0.b34 S
+take t16 s0.b24 IS
+drop t23 s0.b28
+take t51 s0.b38.k30 IS
+take t19 s0.b30.k4 X
+take t32 s0.b28.k18 IX
+take t35 s0.b20.k12 X
+take t37 s0.b14.k33 IS
+take t54 s0.b32.k22 S
+take t39 s0.b8.k38 IX
+take t33 s0.b41.k6 S
+take t55 s0.b28.k38 S
+take t37 s0.b39.k23 IS
+take t28 s0.b38.k13 IX
+drop t9 s0.b32
+take t40 s0.b18.k18 X
+take t25 s0.b4.k8 S
+take t4 s0.b13.k28 IS
+take t14 s0.b14.k27 X
+take t8 s0.b36.k19 IX
+take t20 s0.b37.k36 S
+drop t5 s0.b21
+drop t56 s0.b22
+take t30 s0.b6.k22 S
+drop t44 s0.b20
+take t9 s0.b38 IX
+take t22 s0.b12 IX
+take t59 s0.b38.k24 IX
+take t46 s0.b15 IS
+take t43 s0.b25.k17 S
+take t32 s0.b8.k8 X
+take t23 s0.b17.k11 IX
+take t39 s0.b17.k11 S
+take t53 s0.b33 S
+take t43 s0.b4 IX
+drop t16 s0.b4
+drop t8 s0.b33
+take t15 s0.b24.k24 IX
+take t6 s0.b6.k18 IS
+take t39 s0.b20.k0 S
+take t47 s0.b18.k10 IS
+take t31 s0.b37.k2 IX
+take t24 s0.b32.k30 IS
+take t2 s0.b36.k23 IS
+take t26 s0.b38.k30 S
+take t1 s0.b9.k29 IX
+drop t18 s0.b20
+take t44 s0.b37.k31 IS
+take t8 s0.b28 IX
+take t3 s0.b20 IS
+take t56 s0.b13.k37 IX
+take t10 s0.b7.k34 X
+take t28 s0.b5.k3 IS
+take t23 s0.b29.k5 IS
+take t11 s0.b12.k2 X
+take t13 s0.b43.k16 IS
+take t51 s0.b24.k7 X
+take t6 s0.b18.k15 X
+take t21 s0.b19 IS
+take t7 s0.b20.k15 IS
+take t38 s0.b7.k27 S
+take t38 s0.b36.k9 IS
+take t43 s0.b18.k39 IX
+take t3 s0.b36.k25 S
+take t30 s0.b15.k31 X
+drop t12 s0.b21
+take t44 s0.b19 IS
+take t16 s0.b15.k30 IS
+drop t9 s0.b37
+take t57 s0.b30.k23 IS
+take t2 s0.b22.k7 X
+drop t52 s0.b39
+take t39 s0.b43.k24 S
+take t41 s0.b4.k28 IS
+take t50 s0.b29.k23 X
+drop t36 s0.b36
+take t8 s0.b17.k5 S
+take t21 s0.b32.k14 IS
+take t13 s0.b28 IS
+take t49 s0.b30.k28 IS
+take t21 s0.b6.k0 IX
+take t7 s0.b5.k10 IS
+take t47 s0.b29.k36 X
+take t25 s0.b5.k17 IX
+take t43 s0.b39.k10 X
+drop t53 s0.b25
+take t35 s0.b8.k29 IX
+take t35 s0.b23.k6 IS
+take t17 s0.b11.k24 IX
+take t33 s0.b26.k13 IX
+take t32 s0.b14.k24 X
+take t9 s0.b10.k7 IS
+take t19 s0.b27.k37 S
+take t6 s0.b9.k8 X
+drop t23 s0.b37
+drop t57 s0.b27
+take t28 s0.b36.k21 IS
+take t23 s0.b29 IX
+take t46 s0.b19.k10 IX
+take t25 s0.b7.k29 IX
+take t31 s0.b19.k3 IS
+take t21 s0.b16.k10 IS
+take t53 s0.b40.k23 IX
+take t27 s0.b19.k29 IS
+take t58 s0.b30.k3 S
+drop t30 s0.b29
+take t18 s0.b5.k1 X
+take t31 s0.b28.k3 IS
+take t49 s0.b29.k33 IX
+take t18 s0.b8.k18 IS
+take t22 s0.b43.k5 IS
+take t49 s0.b40.k26 IS
+take t44 s0.b33.k23 X
+drop t59 s0.b9
+take t24 s0.b21.k35 IS
+take t32 s0.b17.k16 IX
+take t27 s0.b25.k19 IS
+take t15 s0.b21.k27 IS
+take t42 s0.b27.k12 IS
+take t36 s0.b18.k19 IS
+take t40 s0.b5.k5 IS
+take t42 s0.b43.k17 S
+take t39 s0.b43 IS
+take t18 s0.b27 IS
+take t45 s0.b12.k0 X
+take t7 s0.b16.k11 IX
+take t31 s0.b25.k31 IS
+drop t43 s0.b41
+take t9 s0.b38.k27 IX
+take t21 s0.b38.k26 X
+take t56 s0.b30.k21 IX
+drop t44 s0.b34
+take t31 s0.b42.k16 IX
+take t1 s0.b33.k12 IS
+take t44 s0.b14 IS
+drop t20 s0.b6
+take t27 s0.b15.k33 IS
+take t27 s0.b13.k12 IX
+take t13 s0.b22.k11 IX
+take t23 s0.b25.k27 IS
+take t5 s0.b29.k31 IS
+take t27 s0.b16.k5 IS
+take t23 s0.b19.k9 IS
+take t21 s0.b21.k7 S
+take t13 s0.b19.k16 IS
+take t23 s0.b14.k8 IX
+take t54 s0.b8.k20 X
+take t7 s0.b13.k22 IS
+take t1 s0.b23 S
+take t2 s0.b42.k34 IS
+take t11 s0.b27.k10 IS
+drop t47 s0.b12
+drop t18 s0.b43
+take t53 s0.b26.k24 S
+take t8 s0.b14.k16 IS
+take t56 s0.b20 IX
+drop t26 s0.b11
+drop t13 s0.b15
+drop t6 s0.b21
+take t21 s0.b39.k9 IX
+take t16 s0.b39.k10 IX
+take t18 s0.b10 IS
+take t50 s0.b27.k37 IS
+drop t59 s0.b37
+drop t39 s0.b8
+drop t29 s0.b13
+drop t19 s0.b37
+take t50 s0.b18 IX
+drop t17 s0.b14
+take t46 s0.b7.k34 S
+take t54 s0.b28 IX
+take t14 s0.b11.k7 IS
+take t51 s0.b24.k12 S
+take t17 s0.b41.k16 S
+take t18 s0.b9.k0 IS
+drop t42 s0.b23
+take t50 s0.b34.k32 S
+take t50 s0.b28.k30 X
+take t48 s0.b32.k22 IS
+take t19 s0.b29.k19 X
+take t12 s0.b10.k32 IS
+drop t36 s0.b36
+drop t7 s0.b22
+take t43 s0.b29.k15 IS
+take t36 s0.b37.k33 IS
+take t55 s0.b8.k31 IS
+take t31 s0.b10.k28 IS
+take t38 s0.b43.k30 X
+take t49 s0.b31.k31 IX
+take t49 s0.b36.k29 IS
+take t31 s0.b25.k22 IS
+take t21 s0.b12.k33 S
+take t21 s0.b7.k35 X
+take t56 s0.b32.k29 IX
+take t31 s0.b26.k3 S
+take t47 s0.b28.k8 S
+take t4 s0.b31.k9 S
+take t19 s0.b26.k39 IS
+take t31 s0.b8.k2 IS
+take t48 s0.b24.k24 IS
+take t3 s0.b11.k28 IX
+drop t37 s0.b29
+take t38 s0.b25.k2 IS
+drop t26 s0.b8
+take t35 s0.b15.k35 X
+take t56 s0.b13.k5 X
+take t38 s0.b17.k34 X
+take t31 s0.b28.k38 X
+drop t19 s0.b14
+take t56 s0.b12.k2 IS
+take t1 s0.b4.k16 X
+take t30 s0.b41 IS
+take t59 s0.b4.k21 S
+take t23 s0.b31.k38 IS
+take t32 s0.b34.k2 S
+drop t6 s0.b11
+take t24 s0.b38.k25 S
+take t2 s0.b35.k9 X
+take t29 s0.b11.k22 IX
+drop t53 s0.b5
+drop t39 s0.b23
+take t15 s0.b35.k6 IS
+take t27 s0.b16.k18 IX
+take t53 s0.b7.k14 X
+drop t5 s0.b20
+take t48 s0.b42.k22 S
+take t1 s0.b32 S
+take t55 s0.b34.k3 IX
+drop t4 s0.b6
+take t19 s0.b39.k3 IS
+take t30 s0.b20.k5 X
+take t21 s0.b17.k10 IX
+take t20 s0.b16.k27 IX
+take t17 s0.b41.k14 S
+take t46 s0.b18.k6 X
+take t37 s0.b37.k37 IS
+take t37 s0.b23 S
+take t38 s0.b35.k9 X
+take t58 s0.b40 IX
+take t19 s0.b28.k22 X
+take t57 s0.b20.k24 IS
+drop t53 s0.b23
+take t3 s0.b30.k10 IS
+take t25 s0.b13 IS
+take t49 s0.b41.k3 IS
+take t55 s0.b16.k30 X
+take t20 s0.b22.k34 IS
+take t28 s0.b30.k17 IX
+take t19 s0.b13.k24 IS
+take t4 s0.b18.k12 S
+take t4 s0.b26.k23 IX
+drop t3 s0.b10
+take t19 s0.b10 IX
+take t39 s0.b37.k17 IS
+take t17 s0.b31.k25 IX
+take t10 s0.b5.k12 IS
+take t30 s0.b41.k0 IX
+drop t34 s0.b17
+drop t0 s0.b42
+take t31 s0.b18.k21 IS
+take t37 s0.b11.k1 S
+drop t46 s0.b14
+take t58 s0.b42.k5 S
+take t48 s0.b20.k1 S
+take t19 s0.b16.k18 IX
+take t23 s0.b35.k23 X
+take t11 s0.b10.k35 IS
+take t45 s0.b32.k2 IX
+drop t29 s0.b12
+take t55 s0.b34.k12 IS
+take t10 s0.b11.k21 S
+take t23 s0.b30.k14 IS
+take t57 s0.b36.k10 X
+take t17 s0.b28.k14 IX
+take t40 s0.b37.k8 S
+take t26 s0.b10 IX
+drop t12 s0.b22
+take t29 s0.b30.k17 IX
+drop t53 s0.b13
+drop t5 s0.b5
+take t50 s0.b41.k1 S
+take t28 s0.b17.k29 IS
+take t15 s0.b10.k29 S
+take t17 s0.b35.k3 IS
+drop t22 s0.b6
+take t4 s0.b9 S
+take t50 s0.b27 S
+take t10 s0.b11.k2 S
+take t7 s0.b23.k22 IS
+take t9 s0.b37.k10 S
+take t42 s0.b5.k38 IX
+take t26 s0.b18.k34 X
+take t8 s0.b20.k36 IX
+take t32 s0.b34 IX
+take t18 s0.b8.k9 IS
+take t55 s0.b39.k15 IS
+take t12 s0.b5.k37 S
+take t14 s0.b5.k13 IS
+drop t0 s0.b28
+drop t2 s0.b23
+take t25 s0.b14.k3 S
+take t38 s0.b30.k12 IX
+take t20 s0.b34.k3 X
+take t30 s0.b26.k27 IX
+take t53 s0.b33.k20 X
+take t36 s0.b33.k4 X
+take t21 s0.b24.k35 S
+take t50 s0.b37.k24 IX
+take t26 s0.b7.k17 S
+take t23 s0.b28.k32 X
+take t15 s0.b30.k31 IS
+take t20 s0.b4.k8 IS
+take t26 s0.b43.k12 X
+take t11 s0.b37.k8 IS
+drop t59 s0.b42
+take t17 s0.b22.k14 IX
+take t5 s0.b27.k19 IS
+take t6 s0.b4.k26 S
+drop t57 s0.b35
+take t37 s0.b12 S
+take t21 s0.b9.k0 IS
+take t41 s0.b37.k24 IS
+take t13 s0.b6 IX
+take t22 s0.b11.k38 X
+take t11 s0.b9.k13 IX
+take t39 s0.b39.k34 X
+take t18 s0.b32.k0 IS
+take t1 s0.b22.k8 IX
+take t4 s0.b21.k31 IS
+take t31 s0.b40.k33 IX
+take t0 s0.b39.k9 S
+take t9 s0.b34.k11 IS
+take t21 s0.b19 S
+take t26 s0.b13 S
+take t24 s0.b39 IS
+take t47 s0.b29.k11 X
+take t37 s0.b20.k1 IS
+take t28 s0.b25.k28 S
+take t8 s0.b38 S
+take t19 s0.b36 IS
+take t13 s0.b22.k19 IS
+take t41 s0.b15.k0 IS
+take t10 s0.b7.k36 S
+take t31 s0.b17.k15 IS
+take t5 s0.b43.k6 IX
+take t20 s0.b11.k11 IS
+take t3 s0.b40.k4 S
+take t21 s0.b19.k15 IS
+take t32 s0.b41.k30 S
+take t28 s0.b26.k13 IS
+take t36 s0.b35 IS
+take t35 s0.b32.k23 S
+take t3 s0.b5.k7 S
+take t18 s0.b12 IX
+take t44 s0.b23.k39 S
+take t35 s0.b9.k17 IS
+take t36 s0.b32.k38 X
+take t19 s0.b18.k32 IS
+take t33 s0.b12.k31 IS
+take t16 s0.b32.k17 IS
+take t35 s0.b29.k1 IS
+take t43 s0.b4.k4 IS
+take t33 s0.b39.k6 IX
+take t41 s0.b29 S
+take t6 s0.b20.k31 IX
+take t36 s0.b41.k4 IS
+take t12 s0.b29.k24 IS
+drop t11 s0.b23
+take t20 s0.b23.k35 IX
+take t38 s0.b33.k4 X
+take t30 s0.b9.k22 S
+drop t14 s0.b20
+take t43 s0.b37.k14 S
+take t12 s0.b32.k9 X
+take t56 s0.b18.k19 S
+take t43 s0.b34.k19 IS
+take t9 s0.b28.k30 X
+take t23 s0.b40.k26 S
+take t19 s0.b41.k17 IX
+take t39 s0.b5.k32 IS
+take t54 s0.b33 S
+drop t20 s0.b25
+take t34 s0.b11.k15 IS
+take t11 s0.b18 IX
+take t54 s0.b43.k36 S
+take t55 s0.b8.k15 IX
+take t33 s0.b37.k33 X
+take t36 s0.b4.k12 S
+take t25 s0.b15.k20 IX
+take t55 s0.b37 IX
+take t27 s0.b34.k3 IS
+take t19 s0.b36.k20 IX
+take t59 s0.b32.k5 X
+take t59 s0.b20.k21 IS
+drop t22 s0.b22
+drop t42 s0.b34
+take t19 s0.b6.k20 IS
+take t29 s0.b13.k16 X
+take t8 s0.b33.k26 IX
+take t4 s0.b20.k12 IS
+take t38 s0.b31.k17 S
+take t56 s0.b23.k33 X
+take t45 s0.b30.k35 S
+take t46 s0.b37.k12 X
+take t10 s0.b41.k0 X
+take t7 s0.b24.k26 X
+take t37 s0.b10.k36 X
+drop t27 s0.b14
+take t38 s0.b22.k34 IS
+drop t24 s0.b18
+take t16 s0.b39.k30 IS
+take t36 s0.b12.k36 IS
+take t40 s0.b10.k0 S
+take t16 s0.b16.k3 IS
+take t51 s0.b42.k7 S
+take t31 s0.b31.k0 IS
+take t54 s0.b42.k22 IX
+take t42 s0.b17.k5 X
+take t10 s0.b36 S
+drop t32 s0.b24
+take t26 s0.b31.k2 IX
+take t41 s0.b17.k11 IS
+take t35 s0.b30.k19 IS
+take t51 s0.b22.k16 IS
+drop t47 s0.b25
+take t18 s0.b14.k39 IX
+take t10 s0.b25.k24 IX
+drop t0 s0.b21
+take t11 s0.b22.k11 IS
+take t51 s0.b37.k36 X
+take t54 s0.b39 IX
+drop t12 s0.b29
+take t10 s0.b19.k11 S
+take t19 s0.b42.k0 IX
+take t51 s0.b25.k30 X
+drop t18 s0.b27
+drop t22 s0.b18
+drop t47 s0.b18
+take t51 s0.b24.k4 IX
+take t15 s0.b20 S
+take t24 s0.b8.k28 X
+take t23 s0.b36 S
+take t53 s0.b19.k1 S
+drop t5 s0.b16
+take t18 s0.b27.k39 IX
+take t55 s0.b42.k21 X
+take t28 s0.b26.k39 S
+drop t15 s0.b20
+take t24 s0.b35 IX
+take t53 s0.b18.k11 IS
+take t52 s0.b23.k23 X
+drop t27 s0.b19
+drop t13 s0.b8
+drop t20 s0.b13
+drop t17 s0.b33
+take t57 s0.b26 S
+take t2 s0.b12.k26 IS
+take t47 s0.b36.k30 IS
+take t47 s0.b20.k32 IX
+take t43 s0.b38.k4 S
+take t17 s0.b16.k21 IS
+drop t6 s0.b33
+drop t41 s0.b13
+drop t25 s0.b15
+take t21 s0.b10.k38 IX
+take t59 s0.b14.k2 S
+drop t34 s0.b39
+take t56 s0.b22.k25 S
+take t17 s0.b16.k27 X
+take t20 s0.b26.k10 IS
+take t1 s0.b26.k26 IS
+drop t7 s0.b24
+take t43 s0.b20.k7 IX
+take t47 s0.b25.k8 IS
+take t49 s0.b28.k10 S
+drop t7 s0.b19
+take t26 s0.b12 IX
+take t32 s0.b32.k24 X
+take t39 s0.b24 IS
+take t19 s0.b17 IX
+take t49 s0.b40.k16 IS
+take t59 s0.b26.k7 IX
+take t8 s0.b35.k7 S
+take t6 s0.b9.k31 IX
+take t14 s0.b9.k30 X
+take t57 s0.b42.k13 S
+take t29 s0.b6.k13 IS
+take t7 s0.b35.k26 IS
+take t7 s0.b43.k7 S
+take t5 s0.b8.k19 IS
+take t28 s0.b35.k24 IS
+take t54 s0.b38.k29 S
+take t38 s0.b36.k36 IS
+take t2 s0.b21.k34 S
+take t22 s0.b8.k30 IX
+take t24 s0.b35.k4 IS
+take t54 s0.b10.k37 IX
+take t21 s0.b31.k19 X
+take t16 s0.b19.k32 IS
+take t42 s0.b11.k37 X
+take t57 s0.b5.k8 IS
+take t33 s0.b35.k16 IX
+take t27 s0.b43.k19 S
+take t30 s0.b40.k4 X
+take t43 s0.b4.k0 X
+take t7 s0.b22.k25 IX
+take t31 s0.b42.k6 X
+take t36 s0.b38.k39 S
+take t2 s0.b5 S
+drop t35 s0.b26
+take t59 s0.b36.k3 IX
+take t13 s0.b19.k2 IX
+take t11 s0.b30.k5 S
+drop t50 s0.b8
+take t30 s0.b4.k32 IX
+take t52 s0.b32.k14 IS
+take t39 s0.b14.k36 X
+drop t2 s0.b38
+take t1 s0.b15.k12 IX
+take t51 s0.b20.k34 S
+take t51 s0.b8.k36 IS
+take t9 s0.b27.k25 IS
+drop t30 s0.b29
+take t11 s0.b34.k39 IX
+take t33 s0.b40.k27 IS
+take t46 s0.b14.k12 X
+take t54 s0.b6.k5 S
+take t36 s0.b19 IX

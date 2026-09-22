@@ -1,0 +1,233 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/lk/mode.py",
+  "/app/lk/hold.py",
+  "/app/lk/give.py",
+  "/app/lk/keep.py",
+  "/app/lk/wide.py",
+  "/app/lk/step.py",
+]
+
+[task]
+name = "afterquery/grant-widen-yield"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the published one, and the shipped service already is it: a table of who
+holds what at each resource, intention locks acquired on the way down from the store and held
+until release, a queue of requests that could not be granted, and an escalation that fires when
+a transaction's count of child locks crosses a threshold. Every textbook, every vendor page and
+every engine works that way. Three of those four are wrong here, and none of them is wrong in a
+way that ordinary testing shows.
+
+There is no queue. A conflicting holder younger than the requester gives its grant up on the
+spot and, because the cover it held above is the permission for everything it held below, the
+whole subtree goes with it. What the loser keeps is a claim, which is not ordered against
+arrival at all: claims are tried oldest transaction first and outermost resource first,
+whenever the level that refused them moves. That much is a structure to rebuild. The rule after
+it is the one that takes the plan apart: a transaction's mode at a store or a block is not a
+lock it took. It is the supremum of the mode the program asked for there and the cover its own
+live grants below currently require, so it falls when they go and rises when they come back,
+and a fall can make the resource compatible for a transaction that was refused it two hundred
+lines earlier. A table holding one mode per transaction and resource cannot represent that at
+all, and the claim set is not a snapshot of what was lost either: only a resource the program
+asked for leaves one, so a retake re-derives the covers from the grants that actually came back
+and comes back under a narrower cover whenever part of the subtree is still blocked.
+
+Around that sits the widen rule, which reads its threshold against a count that moves in both
+directions - giving way takes grants off a transaction and a retake puts them back - so the
+decision cannot be settled when the grants are first taken, and a transaction can cross the
+line on a line that took nothing of its own. And acquisition does not look ahead: a take
+refused by an older holder deep in the chain has already made younger holders give way at the
+levels above, and those give-ups stand while nothing the requester asked for is granted.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in
+each follows from an invariant rather than a technique: the cover above a resource can only
+change when a child of that resource changes, and a claim that failed at one level can only
+stop failing there when something moves at that level. Measured here against the 60 second
+limit for the whole graded set, one wide program of twenty thousand lines takes 14.97 seconds
+with the cover recomputed by rescanning the children and 26.27 seconds with the widen threshold
+tested for every transaction and resource, and one crowded program of twenty-five thousand
+lines takes 20.96 seconds with every standing claim looked at on every line and over 200
+seconds with the widen threshold tested everywhere, against 0.22 and 1.45 seconds for the
+reference, which settles all 414 graded programs in 7.89 seconds. All of those readings produce
+exactly the reference's traces on everything they finish; the limit is the only thing that
+separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: the supremum of an
+intent-exclusive and a shared hold is shared-intent-exclusive rather than exclusive, a
+shared-intent-exclusive grant needs an exclusive intention above it and not a shared one, a
+take that raises only what a transaction has asked for prints nothing at all, and a widen that
+would tread on another transaction simply does not happen. All six editable files ship wrong,
+and the only feedback a wrong structure gets is a line of trace, because the service prints
+nothing about its own state until the closing report.
+
+Identifiers are in a legacy register - `lk/`, `mode`, `hold`, `give`, `keep`, `wide`, `step`,
+`ask`, `kn`, `ksub`, `who` - short but never misleading, and no name misdescribes what it
+holds. That is a choice about the register of real lock-manager code rather than an obstacle:
+each is recoverable from what calls it.
+
+The programs are synthetic, in eleven families, with two transactions fighting over two keys,
+holders that own a subtree when they are struck, claims parked behind one level while the rest
+of their chain keeps moving, thresholds low enough to fire at both levels, modes drawn from the
+pairs where the lattice is not the obvious one, and the two scale families. In a running
+database these concentrations are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`mode.py` is the lattice: the compatibility table, the supremum, the cover a mode requires
+above it, and the compatibility table read the other way round as the modes that stand in the
+way of a given one. The last of those is there because the store at the head of every chain is
+covered by every open transaction, so asking each holder in turn whether it is compatible is
+quadratic in the number of open transactions while counting holders by mode is not.
+
+`hold.py` is where the first plan has to be given up. A grant is two quantities: the mode the
+program asked for at that resource, which only rises and which only a take or the widen rule
+writes, and the cover its own live grants below require, which moves both ways. The effective
+mode is their supremum and the only one printed. The cover is kept as two counts per
+transaction and resource - how many children require a shared intention and how many an
+exclusive one - so a child appearing or leaving is one increment and the supremum is read
+without touching the subtree, which is what the wide programs are there to force. The same
+child relation is kept as a set so the give-up and release walks can find a subtree without
+scanning the table.
+
+`give.py` is the cascade. A holder that gives way loses the resource and everything below it,
+deepest first, and only a resource with an asked mode leaves a claim, at that asked mode rather
+than at the effective mode that was printed, because the effective mode will be derived again
+from whatever actually comes back.
+
+`keep.py` is the claims. A claim parks on the one level that refused it and is woken by nothing
+else, which is sound because the levels above it passed and the mode it needs there can only
+fall when the effective mode it holds there falls - a move on that level too. Parking a claim on
+its whole chain instead looks equally safe and is not affordable, because the store moves on
+nearly every line. A sweep takes the claims due when it starts, oldest transaction first then
+outermost resource, and tries each once; what it disturbs falls due for the next line.
+
+`wide.py` is the widen rule, driven from the pairs whose child count moved and the pairs sitting
+on a resource whose holder set moved, because every other pair would decide exactly as it
+decided last time. It fires only where the mode it needs is already compatible with every other
+holder, keys before blocks, in age order, until a pass changes nothing.
+
+`step.py` is the take and the line procedure. The chain of modes a take needs is computed from
+the transaction's own state innermost first, because a cover is what the thing below it
+requires; it is then walked outermost first, making younger holders give way level by level,
+and applied in one piece only when the last level passes, printed outermost first. A release and
+a finish take a subtree away and let the levels above fall.
+
+An expert works in that order because each file consumes the one before it: the lattice decides
+what a cover is, the cover decides what a give-up leaves behind, what it leaves behind decides
+what a retake rebuilds, what a retake rebuilds decides the count the widen rule reads, and the
+widen rule decides what is left to narrow. The same contract is implemented twice more in the
+authoring set - one deciding compatibility by walking the holders of a resource rather than
+counting them by mode, and one holding the lattice as two coordinates with the supremum taken
+component by component, the cover as a map of the children's own modes, and claims as single
+records carrying their parked level - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/lk/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the program grammar, the namespace helpers, the
+trace writer and the sample programs cannot change what a program prints, and a new file put
+beside the six is never collected at all.
+
+Correct is defined twice over. Forty-four hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and seventy
+further programs are generated inside the verifier from a seed drawn after the agent's
+container is gone, across eleven families that concentrate two-way contention, subtree
+cascades, parked claims, low thresholds, the sharp corners of the lattice, the no-look-ahead
+shape and the two scale families. A submission cannot have seen them, so fitting the shipped
+samples fails, and so does carrying an answer key.
+
+The fences run both ways. Queueing the requester instead of making the younger holder give way
+fails `give-younger`; giving way on any conflict fails `plain-share` and `plain-intent`.
+Leaving the grants below a given-up resource standing fails `give-cascade`; leaving a claim for
+a cover nobody asked for fails `give-asked-only`. Keeping an ancestor at the mode it was first
+covered at fails `cover-thins` and `mode-sup-mixed`, and letting it fall while the program had
+asked for it fails `cover-asked-stays`. Checking the whole chain before taking anything fails
+`take-no-lookahead`; giving back what a refused take already took fails it too. Retaking claims
+in creation order fails `sweep-age-first`; retaking one whose level has not moved fails
+`sweep-parked`; running the sweep to a fixed point inside one line fails `sweep-next-line`.
+Counting claims toward the threshold fails `wide-grants-only`; making a holder give way to
+widen fails `wide-passive`; applying the rule once rather than to a fixed point fails
+`wide-chain`; firing it below the threshold fails `wide-under-limit`. Reading the supremum of
+an intent-exclusive and a shared hold as exclusive fails `mode-sup-mixed`, and covering a
+shared-intent-exclusive grant with a shared intention fails `mode-cover-six`.
+
+Forty-seven cheats score 0. Twenty-nine are wrong readings, and a report beside the bundle
+asserts that each one fails the enumerated case named for it rather than merely scoring 0,
+because a cheat can score 0 for reasons that have nothing to do with the rule it breaks. Three
+are exactly correct and only too slow: the cover recomputed by rescanning the children, every
+standing claim looked at on every line, and the widen threshold tested for every transaction
+and resource. Four are shortcut strategies - the shipped tree, one fixed output for every
+program, every take granted at the resource it names, and the worked example replayed. One is a
+forgery carrying the frozen answers for every enumerated program, which passes them and fails
+on the programs it could not have seen, and one hides a working service in a seventh file
+beside the six that are collected. The other nine are probes on the verifier rather than on the
+problem, and each is built on a service that cannot pass on its own, so a reward of 1 could
+only mean the attack worked: the sealed model read and answered from, the reward written
+directly, a reward written late by a double-forked survivor, a planted worker record, a record
+planted and the worker exited clean before it could be overwritten, a record spoiled on the way
+out, the generator and the grading file rewritten, the seed and the family size rewritten to
+shrink the exam, and a privilege probe. Two independently written correct services score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "multi-granularity-locking",
+  "intention-locks",
+  "lock-escalation",
+  "age-ordered-preemption",
+  "mode-lattice",
+  "claim-reacquisition",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the lock manager of a storage engine: the part that turns a request for a row
+into grants on the row, the page it sits on and the table above that, decides what happens when
+two transactions want the same thing, and keeps a request costing the same when four hundred
+transactions are open as when four are. Familiarity with the fact that an intention lock is
+bookkeeping about what a transaction holds below rather than a lock it wanted, that what a
+service does to the loser of a conflict is a policy rather than a law, and that escalating a
+transaction to a coarser grain widens what it conflicts with and can cost it far more than it
+saves. Comfort with mode lattices, with the difference between the mode a transaction asked for
+and the mode it currently has, and with the difference between a structure that is correct and
+one that is affordable at the transaction counts a real workload runs at.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

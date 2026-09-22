@@ -1,0 +1,9 @@
+lim 4
+open t0
+open t1
+take t0 s0.b0.k1 X
+take t1 s0.b0.k2 S
+take t1 s0.b0.k1 S
+take t0 s0.b1 IS
+drop t0 s0.b0.k1
+shut t1

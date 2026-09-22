@@ -1,0 +1,84 @@
+lim 5
+open t0
+open t1
+open t2
+open t3
+open t4
+open t5
+take t1 s0.b3.k3 IX
+take t0 s0.b3.k4 S
+take t0 s0.b2.k2 IX
+take t0 s0.b0.k6 S
+take t2 s0.b2.k2 S
+drop t0 s0.b2
+take t5 s0.b1.k1 IX
+take t3 s0.b2.k0 S
+take t4 s0.b2 S
+take t1 s0.b2.k3 SIX
+take t1 s0.b2.k6 IS
+take t0 s0.b2.k4 X
+take t5 s0.b2.k1 IX
+take t0 s0.b1.k5 SIX
+take t2 s0.b3.k5 X
+take t2 s0.b1 IX
+drop t0 s0.b1
+drop t2 s0.b1
+take t0 s0.b1.k2 SIX
+take t0 s0.b0.k2 S
+take t0 s0.b2.k1 SIX
+take t4 s0.b0 IX
+take t4 s0.b3.k2 IX
+take t2 s0.b1.k2 X
+take t0 s0.b3.k1 S
+shut t2
+open t2
+shut t3
+open t3
+take t1 s0.b0.k0 IX
+take t4 s0.b1 S
+take t0 s0.b1.k2 IS
+drop t0 s0.b2
+take t3 s0.b1 IX
+take t1 s0.b3.k3 IS
+take t1 s0.b1.k5 SIX
+take t1 s0.b0.k0 S
+take t2 s0.b1.k6 IX
+drop t3 s0.b1
+take t2 s0.b2.k4 IS
+take t4 s0.b0.k3 SIX
+take t0 s0.b1.k2 S
+take t5 s0.b2.k6 SIX
+take t4 s0.b2.k2 SIX
+take t3 s0.b2.k5 IX
+take t0 s0.b1.k6 S
+drop t5 s0.b1
+take t5 s0.b3 S
+shut t3
+open t3
+take t0 s0.b1.k0 X
+take t2 s0.b3.k1 X
+drop t0 s0.b1
+take t1 s0.b2 S
+shut t3
+open t3
+take t0 s0.b0.k3 X
+take t2 s0.b1.k0 S
+drop t0 s0.b0
+drop t2 s0.b0
+shut t0
+open t0
+take t3 s0.b2.k3 IX
+drop t3 s0.b3
+take t0 s0.b2.k4 SIX
+drop t3 s0.b3
+take t0 s0.b1 S
+shut t2
+open t2
+take t3 s0.b1.k2 IX
+take t1 s0.b2 IX
+take t2 s0.b0.k5 IX
+take t0 s0.b0 S
+take t0 s0.b3.k4 IS
+take t4 s0.b2.k2 IX
+shut t1
+open t1

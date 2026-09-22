@@ -1,0 +1,216 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/grant-widen-yield/STATE.md.
+
+[task]
+slug = "grant-widen-yield"
+status = "pending"
+sources = ["tasks/grant-widen-yield/STATE.md", "authoring/grant-widen-yield/trace.md", "authoring/grant-widen-yield/timing.py", "authoring/grant-widen-yield/cheat_report.py"]
+expert_hours = 9
+estimated_solves = 3
+
+[plan]
+first_plan = """
+Build a lock table: one entry per resource holding a map from transaction to granted mode
+and a FIFO queue of blocked requests. To take a lock on a key, walk its ancestors from the
+store down, acquiring the matching intention lock at each level, then the key itself; at
+every level compare the requested mode against the granted group using the standard
+compatibility matrix and, when it conflicts, put the request on that resource's queue and
+sweep the queue front to back whenever a holder releases. Escalate a transaction to the
+parent when its child-lock count crosses the threshold, replacing the children with one
+parent lock of the covering mode. Keep one mode per transaction and resource throughout.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A conflicting holder younger than the requester does not block it: that holder gives its
+grant up on the spot, together with every grant it holds below that resource, and what it
+leaves behind is a claim rather than a queue entry - claims are retried ahead of any later
+request and are never ordered by arrival. A request that meets an older holder is refused
+rather than queued, and the levels it already took on the way down stay taken, so a refused
+request has still changed the world. There is no queue anywhere in the design.
+"""
+second_discovery = """
+A transaction's mode on a store or a block is not a lock it took. It is the supremum of the
+mode the program asked for there, if any, and the cover its own live grants below currently
+require, so it falls when they go and rises when they come back, and a fall can make the
+resource compatible for a third transaction that was refused earlier. A claim is therefore
+left only where an asked mode existed, and a retake re-derives the covers from what actually
+came back rather than restoring what was lost - which is narrower whenever part of the
+subtree is still blocked. Holding one mode per transaction and resource, and treating a claim
+as a snapshot of the lost grants, both have to be taken apart rather than corrected.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped service on the sample programs and find which module prints each line of the trace",
+  "Derive the cover rule from the brief: an ancestor's mode is a supremum over the asked mode and the live grants below it",
+  "Rebuild the hold table as an asked mode plus per-mode counts of the covers the children require, so a fall is detected without rescanning the subtree",
+  "Separate the two reasons a grant exists, because only an asked mode leaves a claim when the grant is given up",
+  "Write the give-up cascade deepest first and then narrow the ancestors outward, printing what actually changed at each",
+  "Make the settle a snapshot of the claims ordered by transaction age then depth, so the claims a cascade creates wait for the next line",
+  "Settle the widen rule against grants only, to a fixpoint, deepest level first, and keep it from forcing anyone to give anything up",
+  "Time the wide programs and replace the subtree rescan, the global claim sweep and the per-line widen scan with indexes keyed on what the line touched",
+]
+
+[search]
+best_page = """
+The multi-granularity locking chapter every database course uses, and the vendor pages on
+lock escalation and intent locks that a query about IS, IX and SIX returns first, together
+with the published lock-yield and reclaim patents from shared-disk lock managers.
+"""
+helps_plan = false
+deviation = """
+Every one of those blocks the conflicting request and leaves the holder undisturbed, orders
+blocked requests by arrival in a queue, treats an intention lock as a lock the transaction
+took and keeps until it releases, and escalates on a count that only rises. Here the younger
+holder gives way, the loser leaves a claim that outranks arrival order, an ancestor's mode is
+derived and falls on its own, and the count the widen rule presses against moves both ways
+because giving up and retaking both change it, so the retrieved structure is wrong at the
+three points that decide every line of the trace.
+"""
+
+[tactics]
+A1 = """
+The memorised answer to a lock conflict is to queue the requester and leave the holder alone;
+here the younger holder gives way and there is no queue at all, so the better the recalled
+lock manager the more confidently wrong the first structure, and the intention lock the same
+prior treats as owned is a derived quantity that falls without anyone asking.
+"""
+A2 = """
+The brief states the cover, give-up, claim, retake and widen rules operationally as what the
+service does to a program, and never names escalation, de-escalation, preemption or the
+supremum, so the consequences that decide the structure have to be derived rather than looked
+up under a term that would retrieve a ready-made plan.
+"""
+B2 = """
+Nine rules hold at once - the derived cover, level-by-level acquisition with no look-ahead,
+age-ordered give-up, the downward cascade, claims only where an asked mode existed, the
+snapshot settle in age then depth order, the passive widen to a fixpoint, narrowing on every
+change and release by subtree - and each changes what a correct implementation of the others
+looks like.
+"""
+C1 = """
+Both sides are graded: a service that never makes a holder give way fails the ordinary
+programs where a younger holder must, and one that gives way or narrows without the age test
+and the supremum fails the programs where the holder must keep what it has and the cover must
+stay where it is.
+"""
+C2 = """
+The natural check is to compare against a real lock manager or to reason that the intention
+locks add up, but no engine gives way, claims or narrows, and the shipped service prints a
+coherent trace for every sample program, so running it confirms only that it runs. A take
+that raises the asked mode without changing the effective mode prints nothing at all, so the
+wrong reading of that pair is invisible until a descendant is dropped much later.
+"""
+C3 = """
+Two wide families leave the subtree rescan for the cover mode, the global claim sweep and the
+per-line widen scan exactly correct and make all three infeasible inside the stated limit, so
+semantic correctness alone does not pass and each fast path has to follow from an invariant
+about what a line can touch rather than from a technique.
+"""
+C4 = """
+Every graded program must match line for line, and the population is generated inside the
+verifier from a seed drawn after the agent's container is gone, with families shaped at each
+decision point rather than sampled uniformly.
+"""
+guard = """
+Six files under /app/lk are collected and nothing else; the driver, the program parser, the
+namespace helpers, the trace writer and the sample programs are the verifier's own pristine
+copies laid under the submission, so the output format and the program grammar cannot be
+reshaped and a seventh file put beside the six is never read.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "an ancestor's mode is the supremum of the asked mode and the covers its live grants below require", b = "giving up a grant cascades to every grant below it", why = "a cascade at one level changes the derived mode two levels up, so a give-up in one subtree can narrow a store and make it compatible for a transaction that was refused there earlier in the same program" },
+  { a = "a claim is left only where an asked mode existed", b = "a retake is an ordinary take that may be refused part way down", why = "the covers a retake rebuilds are derived from the grants that actually came back, so a partly blocked subtree comes back under a narrower cover than the one that was lost, and a claim set that recorded every lost grant restores the wider one and blocks a third transaction" },
+  { a = "the widen rule fires on grants above the threshold under one parent", b = "giving up and retaking both change how many grants a transaction holds there", why = "the count the threshold is read against moves in both directions while the program runs, so it cannot be settled when the grants are first taken and a transaction can cross the threshold on a line that took nothing" },
+  { a = "the widen rule replaces the children with an asked mode at the parent", b = "narrowing removes a derived cover when its children go", why = "widening writes the same field that narrowing must not touch, so a service that stores one mode per transaction and resource either loses the widened grant on the next release or keeps a cover that should have fallen" },
+  { a = "acquisition walks the chain outermost first and does not look ahead", b = "a request refused by an older holder keeps what it already took", why = "the levels above the refusal stay granted and the give-ups they forced stand, so a refusal is not a no-op and the same program run with a look-ahead check produces a different trace from its first conflicting line onward" },
+  { a = "the settle works from the claims as they stood when it began", b = "a retake can make a younger holder give way, which creates new claims", why = "the claims a settle creates are not eligible in that settle, so the order and the membership of the sweep are both fixed before the cascade starts and a worklist drained to a fixpoint grants claims a line too early" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A program where two transactions take different keys under the same block in compatible
+modes: nobody gives way, the block's cover rises once to IX and stays, and no claim is
+created, so a service that gives way on any conflict at the block, or that re-derives the
+cover on every line and prints a change, fails on the ordinary traffic.
+"""
+late_case = """
+A program where an older transaction takes a key, the younger holder gives it up and, because
+that key was the only one requiring an exclusive cover, the younger transaction's block falls
+from SIX to IS two lines later when a second key is dropped; a third transaction that was
+refused S on that block at the top of the program then retakes it from its claim, and the
+retake succeeds only under the narrowed cover.
+"""
+oracle_denied = """
+The natural check is to run a real lock manager beside it or to assert that a transaction's
+intention locks match the locks it holds below, but no engine implements give-up, claims or
+derived covers, and the second check is exactly the invariant the wrong reading also
+satisfies, so it confirms nothing about the asked mode it is missing.
+"""
+
+[leaks]
+candidates = [
+  { what = "a cover or intent flag stored on the grant record saying whether it was asked for", closed_by = "the shipped hold table stores one mode per transaction and resource and nothing else, so the distinction has to be derived from the program rather than read off a field" },
+  { what = "a claim count or a per-transaction grant count exposed in the trace", closed_by = "the trace prints only events on one transaction and one resource at a time; every count is recoverable only by folding the whole trace, which is the work itself" },
+  { what = "a helper on the namespace module that returns a transaction's grants under a node", closed_by = "the namespace module is frozen and holds parent, depth and ordering only; nothing shipped indexes grants by subtree" },
+  { what = "the sample programs' correct traces shipped beside them", closed_by = "one short program's trace is quoted in the brief and it is chosen so that it decides none of the readings the task turns on, which is checked by scoring every reading against it" },
+  { what = "the widen threshold recorded per transaction and parent after a failed attempt", closed_by = "nothing caches the widen decision; the rule is stated as a condition on the current grants and the shipped module reads it fresh" },
+  { what = "the effective mode and the asked mode both printed, which would separate them for free", closed_by = "only the effective mode is ever printed, so a take that raises the asked mode alone is silent and the pair has to be inferred from a later release" },
+]
+derived_quantities = """
+The program carries the transaction order, the resource names, the requested modes and the
+threshold, which are primitives; the cover modes, the effective modes, the claim set, the
+give-up cascades, the widen decisions and the final holdings are all derived and none of them
+ships as a field, a helper or a sample output.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct services that recompute an ancestor's cover by scanning the transaction's
+grants below it after every change, that sweep every outstanding claim on every line, and
+that test the widen threshold for every transaction and parent on every line.
+"""
+invariant = """
+A line can only change compatibility on the resources it touched and the ancestors of those
+resources, and a transaction can only cross the widen threshold at a parent whose grant count
+that line changed, so the cover is maintained as per-mode counts of the children that require
+it, the claim sweep is keyed on the touched resources and the widen test is keyed on the
+changed pairs.
+"""
+input_scale = "wide programs of twenty thousand lines holding nine thousand keys under one block, and crowded programs of twenty-five thousand lines over three hundred and eighty transactions with eleven thousand standing claims"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a conflicting request is queued behind the holder instead of the holder giving way", hand_case = "an older transaction takes X on a key a younger one holds S on" },
+  { reading = "giving up a grant leaves the grants below it standing", hand_case = "a transaction holding a key under a block gives the block up to an older S request" },
+  { reading = "a claim is left for every grant given up, covers included", hand_case = "a give-up at a block where one of two keys below is still blocked when the claim is retaken" },
+  { reading = "an ancestor keeps the mode it was first covered at when its children go", hand_case = "a block covered at IX for one exclusive key, which is then dropped while a shared key stays" },
+  { reading = "a request refused by an older holder gives back the levels it already took", hand_case = "a take whose store cover made a younger transaction give way and whose key is held by an older one" },
+  { reading = "the chain is checked for an older blocker before anything is taken", hand_case = "the same program as above, where the look-ahead leaves the younger holder undisturbed" },
+  { reading = "the widen threshold counts claims as well as grants", hand_case = "a transaction with three grants and two claims under one block at a threshold of four" },
+  { reading = "the widen rule is applied once per line rather than to a fixpoint", hand_case = "a transaction whose keys widen to a fifth block grant, taking it over the threshold at the store" },
+  { reading = "widening makes a conflicting younger holder give way", hand_case = "a block held S by a younger transaction while an older one crosses the threshold below it" },
+  { reading = "the settle drains a worklist to a fixpoint instead of a snapshot", hand_case = "a retake that makes a younger holder give way, whose new claim is grantable on the same line" },
+  { reading = "claims are retaken in the order they were created", hand_case = "two claims on one key where the younger transaction lost it first" },
+  { reading = "give-ups are emitted outermost first rather than deepest first", hand_case = "a transaction giving up a block under which it holds two keys" },
+  { reading = "the cover required by an exclusive key is IS rather than IX", hand_case = "a take of X on a key while another transaction holds S on the block" },
+  { reading = "the supremum of an intent-exclusive and a shared hold is exclusive rather than shared-intent-exclusive", hand_case = "a transaction holding S on a block that then takes X on a key below it" },
+]
+correct_variants = [
+  "a service holding the cover requirement as a multiset of child modes per transaction and node, recomputing the supremum from the multiset, with claims in a list scanned in order",
+  "a service holding grants in one dictionary keyed by resource with a per-resource holder map, claims in a heap keyed by age and depth, and the widen test driven from a dirty set of changed pairs",
+]
+
+[shape]
+environment_py_lines = 300
+editable_files = 6
+reference_lines = 611

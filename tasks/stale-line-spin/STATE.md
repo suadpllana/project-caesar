@@ -5,8 +5,9 @@ memory of this one; anything not written here is lost.
 
 ## Current stage
 
-`Stage 7 - Gates and delivery` (Stage 1 gates passed 2026-09-22: originality 100, difficulty 100;
-built tree re-measured 2026-09-22: difficulty 100)
+`Delivered - submission pending` (2026-09-22: every gate green on the final bundle, packaged as
+tasks/stale-line-spin.zip, ledger entry pending; Stage 1 gates originality 100, difficulty 100;
+built tree re-measured: difficulty 100)
 
 ## Assistant's assigned role
 
@@ -187,7 +188,7 @@ is busy, and no attempt at or after t succeeds.
 | Oracle = 1 | 1 | tools/docker_trial.py two-container run, 33 passed (harbor not used: see notes) |
 | Nop = 0 | 0 | two-container run, 18 of 33 tests failed |
 | Correct variants = 1 | 1, 1 | ok-heap and ok-list, two-container run |
-| Cheats all score 0 | pending | final two-container sweep of all 40 on the final bundle in progress; the previous full sweep (old plumbing) was 42/42 |
+| Cheats all score 0 | 0 | tools/docker_trial.py --all on the final bundle: 43/43 trials behaved as required - oracle 1 (33 passed), nop 0, all 41 cheats 0, each failing at its expected layer |
 | Probe potency | yes | potency.py, both runs started from /work: answer-key, privilege, late-reward, disarm-grader and cwd-plant score 1 against a defence-free verifier copy; all seven score 0 against the real one |
 | Host cheat report | caught | every semantic cheat fails a named hand case; slow-step and rotate-from-zero stall; probe-uncollected-file dies on import |
 | `readingcheck.py` | clean | 27 separated |
@@ -224,5 +225,8 @@ is busy, and no attempt at or after t succeeds.
 
 ## Open questions and next steps
 
-Stage 7: finish the container cheat run, run every gate, package, add the ledger entry, commit
-and push.
+None open for delivery. When the platform answers, update `verdict` in authoring/submissions.toml
+and record the verdict here. Not run in this session: `harbor run` (the two-container runs used
+tools/docker_trial.py) and any external probe; the self-probe was not run because the author wrote
+the model first (CLAUDE.md, reach-pair-sweep), with the reading separations, the no-oracle
+property and the cold attack on the verifier standing in its place.

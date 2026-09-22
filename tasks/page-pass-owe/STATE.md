@@ -5,7 +5,7 @@ session starts with no memory of this one - anything not written here is lost.
 
 ## Current stage
 
-`Stage 7 - Pre-flight and packaging` (contract frozen below; oracle, nop and the cheat suite run in the containers)
+`Stage 7 - complete` (every local gate run; oracle 1, nop 0, 50 cheats 0 and both correct variants 1 in the two-container trial; packaged and pushed)
 
 ## Assistant's assigned role
 
@@ -402,14 +402,14 @@ in both directions.
 | `textcheck.py` | pass | against `expert-defer-shed`: no finding on any axis after the instruction was reworked for possessives, short sentences, paragraph variance and one oxford triad |
 | `imagecheck.py` | pass | the image would hold 14 files; the reference dropped in runs all four shipped list files |
 | Reference against the sealed model | pass | 0 disagreements over 366 generated list files and 34 hand cases |
-| Two independent correct variants | pass | 0 disagreements each; 2.5 s and 3.4 s against the 60 s limit |
+| Two independent correct variants | pass | 0 disagreements each against the sealed model; 2.5 s and 3.4 s against the 60 s limit; both score 1 in the two-container trial |
 | Resource gate measured | pass | reference 1.9 s over the six scale files; view re-derived per page 153.9 s; view re-sorted per edit 126.7 s |
 | Agent image builds | pass | `tools/docker_trial.py --build` |
 | No answer leaked into agent image | pass | `environment/Dockerfile` copies `app_src/` only; `imagecheck` lists what the image holds |
 | `docker_trial.py` oracle = 1 | pass | 37 tests passed, reward 1 |
 | `docker_trial.py` nop = 0 | pass | 1 passed, 36 errors, reward 0 |
 | Cheat layer report | pass | 50 of 50 caught by the layer written for them |
-| Cheats all score 0 in the container | pending | the full two-container sweep is running on the final set of 50 |
+| Cheats all score 0 in the container | pass | 52/52 trials behaved as required: oracle 1, nop 0, and every one of the 50 cheats 0 |
 | `harbor check` rubric | not run | harbor is not installed in this environment; every other gate was run instead |
 
 ## Open questions and next steps

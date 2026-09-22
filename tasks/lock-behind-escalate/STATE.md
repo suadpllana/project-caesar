@@ -236,8 +236,8 @@ written with every rule right - fell over the clock.
 |---|---|---|
 | Agent image builds | pass | `tools/docker_trial.py --build` with `DOCKER_TRIAL_NETWORK=host`; harbor is not installed here |
 | No answer leaked into agent image | pass | `tools/imagecheck.py`: 14 files, no `tests/` or `solution/` content; `extraneouscheck` and `deadfieldcheck` clean; `forgecheck` finds the forgery probe and no ground truth in the agent tree |
-| `harbor run -a oracle` = 1 | pass | `docker_trial.py lock-behind-escalate oracle`: reward 1, 40 tests in 44 s |
-| `harbor run -a nop` = 0 | pass | `docker_trial.py lock-behind-escalate nop`: reward 0, 26 of 40 failing |
+| `harbor run -a oracle` = 1 | pass | `docker_trial.py lock-behind-escalate oracle` on the final image: reward 1, 40 tests in 40 s |
+| `harbor run -a nop` = 0 | pass | `docker_trial.py lock-behind-escalate nop` on the final image: reward 0, 26 of 40 failing; the nine isolation probes re-run on the final image all scored 0 |
 | Cheats all score 0 | pass | `docker_trial.py --all`: 34 of 34 trials behaved as required - oracle 1, nop 0, all 32 cheats 0. `cheat-slow-search` was killed by the 600 s clock and graded as no record; `probe-crash-worker`, `probe-malformed` and `probe-uncollected-file` left the grader with a planted, spoiled or missing record and scored 0 in under two seconds of grading |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
 | `preflight.py` | pass | 0 errors; the 21 warnings are the method-call false positive on `put`, `rows`, `holders`, `on`, `add`, `remove`, `targets` (every one is called as a method) and the package-call notes every retained bundle trips |

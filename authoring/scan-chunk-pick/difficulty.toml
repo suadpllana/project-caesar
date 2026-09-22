@@ -1,0 +1,194 @@
+# Difficulty record for scan-chunk-pick, written before any environment code existed.
+# Sources at this point are the design only; task.toml, STATE.md and the built tree
+# restate every claim once they exist.
+
+[task]
+slug = "scan-chunk-pick"
+status = "pending"
+sources = ["authoring/scan-chunk-pick/difficulty.toml", "tasks/scan-chunk-pick/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Parse the segment, and for every predicate read each chunk's min, max and null count from the
+header; drop the chunks the bounds rule out, use the dictionary of a dictionary-encoded chunk
+to rule out more, decode what is left, evaluate the predicate over the decoded values, and
+intersect the surviving row sets. Order the predicates once at the start, most selective
+first, from the header statistics, then run each one over its whole column before moving to
+the next, and finally decode the projected columns and report.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The engine chooses again after every single chunk, not once per query: the next thing decided
+is the lowest undecided chunk still holding a survivor of whichever pending predicate now has
+the smallest estimate, so a predicate is interleaved with the others rather than run over its
+column, and the estimate is capped chunk by chunk by the survivors that chunk still holds.
+"""
+second_discovery = """
+A chunk that has been decoded is no longer estimated from its header: every predicate over
+that column is answered on it by the exact number of its rows that satisfy that predicate, so
+decoding for one predicate has to evaluate all of that column's predicates and keep their
+counts, or every later estimate over that column is wrong and the engine picks a different
+chunk to decode next, which the trace records.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped engine on the sample segments and diff its printed events against the rules in the brief, noticing that the surviving row digest agrees while the decode events do not",
+  "Recognise that the unit of work is one chunk of one predicate, so the outer loop is a re-choice loop rather than a pass per predicate, and rebuild the driver of the scan around it",
+  "Build a per-column map from row id to chunk and keep a survivor count per chunk, updated as rows die, because every step estimates every pending predicate",
+  "Make a decode evaluate every predicate that names that column and store the exact hit count of each, because a decoded chunk is estimated exactly and a header chunk is not",
+  "Settle the header rules on both sides: the widened bounds when the exactness flag says the recorded pair is not exact, and the null count in the test that lets a chunk pass without being read",
+  "Settle the dictionary rules: only a chunk whose dictionary covers all of its rows may be decided from it, a chunk's dictionary is charged once however many predicates consult it, and a consult that decides nothing still costs that charge",
+  "Make the projection pass decode only the chunks that still hold a survivor and were not decoded during the predicate phase, in the column order the query lists",
+  "Time the wide and deep segments against the stated limit and replace the rescans of the survivor set and of the decoded values with counts maintained as they change",
+]
+
+[search]
+best_page = """
+The Parquet and DataFusion write-ups on predicate pushdown and zone maps, plus the papers on
+late materialization in column stores, which describe skipping a row group whose min and max
+rule the predicate out and decoding the filter column before the payload columns.
+"""
+helps_plan = false
+deviation = """
+Those sources order predicates once from statistics and run each over its column; here the
+choice is remade after every chunk, decoded chunks are estimated by exact counts rather than
+statistics, recorded bounds round inward rather than outward, and a dictionary decides only
+when it covers every row of its chunk.
+"""
+
+[tactics]
+A1 = """
+The memorised plan is pushdown with a fixed predicate order, and the shipped engine is exactly
+that plan, working and coherent, so retrieval confirms an ordering policy the spec replaces.
+"""
+A2 = """
+No sentence names late materialization, zone maps, adaptive predicate reordering or dictionary
+pruning; the brief states what the engine does to a chunk and never what the technique is called.
+"""
+A3 = """
+An exact decode trace and a wall-clock limit together forbid both the decode-everything plan
+and the recompute-the-estimates plan, so no single retrieved implementation satisfies the pair.
+"""
+B2 = """
+Header widening, the null count in the all-satisfy test, dictionary completeness, one charge
+per chunk, the per-chunk re-choice, the survivor cap, exact counts after a decode and the
+projection's reuse of decoded chunks must all hold at once, and each changes what the others see.
+"""
+C1 = """
+Cases fence both sides: chunks that must be skipped unread, chunks that must pass unread, and
+ordinary queries where nothing can be pruned and every chunk is decoded in a particular order.
+"""
+C2 = """
+Running the engine shows a surviving row digest that a decode-everything implementation also
+produces, so the natural self-check confirms a plan whose decode events are already wrong.
+"""
+C3 = """
+Two segment shapes make a recomputing implementation infeasible while it stays exactly correct:
+one where survivor counts are re-derived from the live set at every step, one where a decoded
+chunk's hit counts are re-derived from its values, against a stated limit both must fit inside.
+"""
+C4 = """
+Every printed event and digest of every query must match, over hand-written segments aimed at
+each rule and a large generated population drawn from a seed the submission never saw.
+"""
+guard = """
+Six files under /app/scn are collected; the parser, the chunk reader, the driver and the trace
+writer are replaced from a pristine copy before any segment runs, and a seventh file placed
+beside them is never collected, so the engine cannot be restructured around the driver.
+"""
+
+[decisions]
+graded = 17
+interactions = [
+  { a = "the predicate chosen next", b = "the exact hit counts of decoded chunks", why = "the choice reads the counts, and which chunks are decoded is decided by the choice, so the two determine each other step by step" },
+  { a = "the survivor cap in an estimate", b = "the rows a chunk decision kills", why = "each decision changes the survivor counts that every later estimate is capped by, so the order after a chunk depends on what that chunk removed" },
+  { a = "a decode evaluating every predicate of its column", b = "the estimate of the other predicates on that column", why = "if a decode records only the predicate it was called for, the others keep header estimates and the engine picks a different chunk next" },
+  { a = "dictionary completeness", b = "the single charge per chunk dictionary", why = "an incomplete dictionary is never consulted, so whether a later predicate finds the dictionary already charged depends on which predicate reached the chunk first" },
+  { a = "chunks decoded during the predicate phase", b = "the projection pass", why = "the projection decodes only what is left undecoded, so its events are a function of the order the predicate phase happened to take" },
+  { a = "the widened bounds of an inexact header", b = "whether a dictionary is consulted at all", why = "widening stops the header from deciding a chunk, which sends that chunk to the dictionary and changes the event trace" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A query whose predicates rule nothing out over a segment with exact headers and no dictionaries,
+where every chunk must be decoded and only the interleaving of the columns distinguishes plans.
+"""
+late_case = """
+A segment whose first chunks are decided by their headers so an early prefix of the trace agrees,
+and whose later chunks carry inexact bounds and incomplete dictionaries that a wrong reading
+skips, so the divergence appears only after many correct events and changes every event after it.
+"""
+oracle_denied = """
+The only thing an implementation can check against itself is the surviving row digest, and a
+plan that decodes every chunk and filters produces exactly that digest while its decode events,
+which are the graded part, are wrong from the first step.
+"""
+
+[leaks]
+candidates = [
+  { what = "the recorded min, max and null count in every chunk header", closed_by = "these are primitives of the stored format and the values themselves ship in the payload, while the derivation the task grades, which chunk is decided next and whether it is read, appears nowhere in the tree" },
+  { what = "an expected trace shipped beside the sample segments", closed_by = "no expected output, checksum or per-chunk annotation ships anywhere in the agent tree; the sample segments are inputs only" },
+  { what = "a helper that widens a header bound or tests dictionary completeness, sitting unused", closed_by = "the shipped engine calls every function it defines and defines no function the wrong policy does not need, so no affordance points at a rule the agent has to infer" },
+  { what = "the exact hit counts the estimate needs, stored in the file as a per-chunk per-value count", closed_by = "the file stores values and a header, never counts against a predicate, so an estimate can only come from reading a header or from having decoded the chunk" },
+  { what = "a shipped validator that reports which chunks a query should have read", closed_by = "the driver prints the trace and nothing judges it; there is no checker, no verbose mode and no counter beyond the printed events" },
+]
+derived_quantities = """
+The stored primitives are values, null counts, recorded bounds, an exactness flag and dictionary
+entries; no decode order, hit count, estimate or survivor count is stored anywhere in the tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+The survivors held as a collection of row ids, so that a chunk's count of them is found by
+walking that collection every time one of the scores at every step asks for it. Measured: 398.26
+seconds on the wide segment against 0.50 for the reference, printing the identical trace.
+"""
+invariant = """
+Survivors only ever leave and every row belongs to one chunk of each column, so a chunk's count
+can be set once and lowered as rows die, or read off a flag per row without walking anything.
+"""
+input_scale = """
+One wide segment of forty thousand rows in chunks of about two hundred over five columns, and one
+deep segment of forty thousand rows in chunks of about two thousand with seven conditions to a
+query; both shapes are named in the brief with the limit.
+"""
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "recorded bounds treated as exact when the flag says otherwise", hand_case = "a chunk whose recorded max is below the predicate value but whose widened high bound is above it, holding one matching row" },
+  { reading = "a chunk passed unread on bounds alone while it holds nulls", hand_case = "a chunk whose whole range satisfies the predicate and that carries two nulls, which must be decoded and lose them" },
+  { reading = "an incomplete dictionary used to decide a chunk", hand_case = "a chunk whose dictionary misses the only matching value, which is carried as a literal token on one row" },
+  { reading = "a dictionary charged once per consult rather than once per chunk", hand_case = "two predicates on one column both reaching the same dictionary chunk, the second finding it already charged" },
+  { reading = "the predicate order settled once at the start of the query", hand_case = "two predicates whose header estimates rank one way until the first chunk of the leader kills most of its rows" },
+  { reading = "a predicate run over its whole column before the next is considered", hand_case = "a segment where the second chunk of the first predicate should be preceded by a chunk of another column" },
+  { reading = "an estimate summed without the per-chunk survivor cap", hand_case = "a chunk whose header bound is the whole chunk while two survivors remain in it, which flips the choice" },
+  { reading = "a decoded chunk estimated from its header instead of its exact hit count", hand_case = "a decoded chunk whose header allows every row and whose true hits are one, which flips the next choice" },
+  { reading = "a decode recording hits only for the predicate it was called for", hand_case = "two predicates on one column where the first decode must settle the second predicate's count on that chunk" },
+  { reading = "the highest rather than the lowest undecided chunk taken first", hand_case = "a column of three chunks where the first and third both hold survivors" },
+  { reading = "a tie between two estimates broken by column index rather than query position", hand_case = "two predicates with equal estimates whose columns are numbered against their order in the query" },
+  { reading = "the projection decoding every chunk of a projected column", hand_case = "a projected column with a chunk that lost all its rows to an earlier predicate" },
+  { reading = "the projection decoding a chunk the predicate phase already decoded", hand_case = "a query that projects the column one of its predicates ran over" },
+  { reading = "the projection worked in column index order rather than the order listed", hand_case = "a query projecting two columns with the higher index named first" },
+  { reading = "state carried from one query into the next", hand_case = "two queries in one file where the second must decode a chunk the first already read" },
+  { reading = "nulls counted in the projected non-null count or added into the sum", hand_case = "a projected chunk whose surviving rows include one null" },
+  { reading = "a chunk ruled out for is-null when its null count is not zero", hand_case = "a chunk with some nulls, which must be decoded rather than skipped or passed" },
+  { reading = "equality decided from inexact bounds that happen to coincide", hand_case = "a chunk whose recorded low and high are equal but whose flag says the pair is not exact" },
+]
+correct_variants = [
+  "survivors as a bytearray bitmap with per-chunk counts in lists and chunk lookup by binary search over chunk starts",
+  "survivors as a per-chunk list of row ids with a precomputed row-to-chunk array per column and estimates kept in a dict",
+]
+
+[shape]
+environment_py_lines = 320
+editable_files = 6
+reference_lines = 260

@@ -1,0 +1,227 @@
+{
+ "dec-hits-whole-chunk": [
+  "qry 0",
+  "dc 0 0",
+  "dc 2 0",
+  "sel 0 0",
+  "prj 2 0 0"
+ ],
+ "dic-charge-once": [
+  "qry 0",
+  "rd 0 0",
+  "dc 0 0",
+  "sel 6 2299716151806507690",
+  "dc 1 0",
+  "prj 1 6 10"
+ ],
+ "dic-drop-with-nulls": [
+  "qry 0",
+  "rd 0 0",
+  "sel 0 0",
+  "prj 1 0 0"
+ ],
+ "dic-not-for-null": [
+  "qry 0",
+  "dc 0 0",
+  "sel 7 440016862020804994",
+  "dc 1 0",
+  "prj 1 7 10"
+ ],
+ "dic-nulls-read": [
+  "qry 0",
+  "rd 0 0",
+  "dc 0 0",
+  "sel 7 440016862020804994",
+  "dc 1 0",
+  "prj 1 7 10"
+ ],
+ "dic-overflow-read": [
+  "qry 0",
+  "dc 0 0",
+  "sel 1 2",
+  "dc 1 0",
+  "prj 1 1 2"
+ ],
+ "dic-whole-drop": [
+  "qry 0",
+  "rd 0 0",
+  "sel 0 0",
+  "prj 1 0 0"
+ ],
+ "dic-whole-keep": [
+  "qry 0",
+  "rd 0 0",
+  "sel 8 1769081309199363475",
+  "dc 1 0",
+  "prj 1 8 12"
+ ],
+ "dic-whole-read": [
+  "qry 0",
+  "rd 0 0",
+  "dc 0 0",
+  "sel 6 2299716151806507690",
+  "dc 1 0",
+  "prj 1 6 10"
+ ],
+ "hdr-all-pass": [
+  "qry 0",
+  "sel 8 1769081309199363475",
+  "dc 1 0",
+  "prj 1 8 12"
+ ],
+ "hdr-miss-skip": [
+  "qry 0",
+  "dc 0 1",
+  "sel 3 6000043000083",
+  "dc 1 0",
+  "prj 1 3 5"
+ ],
+ "hdr-ne-exact-miss": [
+  "qry 0",
+  "sel 4 388364981750612316",
+  "dc 1 0",
+  "prj 1 4 6"
+ ],
+ "hdr-nu-no-nulls": [
+  "qry 0",
+  "dc 0 1",
+  "sel 2 6000026",
+  "prj 0 0 0"
+ ],
+ "hdr-null-chunk-null": [
+  "qry 0",
+  "sel 4 1000011000042000058",
+  "dc 1 0",
+  "prj 1 4 6",
+  "qry 1",
+  "sel 4 388364981750612316",
+  "dc 1 0",
+  "prj 1 4 6"
+ ],
+ "hdr-nulls-block-pass": [
+  "qry 0",
+  "dc 0 0",
+  "sel 6 1512800716811726698",
+  "dc 1 0",
+  "prj 1 6 8"
+ ],
+ "hdr-widen-eq": [
+  "qry 0",
+  "dc 0 0",
+  "sel 2 2000010",
+  "prj 0 2 60"
+ ],
+ "hdr-widen-high": [
+  "qry 0",
+  "dc 0 0",
+  "sel 1 3",
+  "prj 0 1 48"
+ ],
+ "hdr-widen-low": [
+  "qry 0",
+  "dc 0 0",
+  "sel 1 1",
+  "prj 0 1 21"
+ ],
+ "hdr-widen-ne": [
+  "qry 0",
+  "dc 0 0",
+  "sel 2 1000006",
+  "prj 0 2 61"
+ ],
+ "ord-exact-after-read": [
+  "qry 0",
+  "dc 0 0",
+  "sel 0 0",
+  "prj 1 0 0"
+ ],
+ "ord-keeps-all": [
+  "qry 0",
+  "sel 8 1769081309199363475",
+  "dc 0 0",
+  "dc 0 1",
+  "prj 0 8 282",
+  "dc 1 0",
+  "prj 1 8 12"
+ ],
+ "ord-nothing-prunes": [
+  "qry 0",
+  "dc 1 0",
+  "dc 1 1",
+  "dc 1 2",
+  "dc 0 1",
+  "dc 0 0",
+  "sel 6 2130956001775341003",
+  "prj 0 6 96",
+  "prj 1 6 205"
+ ],
+ "ord-spread-rounds-up": [
+  "qry 0",
+  "dc 1 0",
+  "dc 1 1",
+  "dc 0 0",
+  "sel 1 2",
+  "prj 0 1 5"
+ ],
+ "ord-spread-takes-edge": [
+  "qry 0",
+  "dc 1 0",
+  "dc 1 1",
+  "dc 0 0",
+  "sel 1 4",
+  "prj 0 1 9"
+ ],
+ "prj-dead-chunk": [
+  "qry 0",
+  "sel 4 388364981750612316",
+  "dc 1 1",
+  "prj 1 4 14"
+ ],
+ "prj-listed-order": [
+  "qry 0",
+  "sel 4 1000011000042000058",
+  "dc 2 0",
+  "prj 2 4 30",
+  "dc 1 0",
+  "prj 1 4 6"
+ ],
+ "prj-nulls-out": [
+  "qry 0",
+  "sel 4 1000011000042000058",
+  "dc 1 0",
+  "prj 1 2 3"
+ ],
+ "prj-reuse-read": [
+  "qry 0",
+  "dc 0 0",
+  "sel 2 3000013",
+  "prj 0 2 57"
+ ],
+ "prj-same-twice": [
+  "qry 0",
+  "sel 4 1000011000042000058",
+  "dc 1 0",
+  "prj 1 4 6",
+  "prj 1 4 6"
+ ],
+ "qry-starts-over": [
+  "qry 0",
+  "rd 0 0",
+  "dc 0 0",
+  "sel 6 2299716151806507690",
+  "dc 1 0",
+  "prj 1 6 10",
+  "qry 1",
+  "rd 0 0",
+  "dc 0 0",
+  "sel 6 2299716151806507690",
+  "dc 1 0",
+  "prj 1 6 10"
+ ],
+ "sel-empty": [
+  "qry 0",
+  "sel 0 0",
+  "prj 0 0 0",
+  "prj 1 0 0"
+ ]
+}

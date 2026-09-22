@@ -1,0 +1,7 @@
+seg 10 6 2
+ch 0 6 0 3 9 e d 3 3 6 9 0 1 2 0 1 2
+ch 1 6 0 1 6 e p 1 2 3 4 5 6
+qry
+prd ge 0 5
+prj 1 0
+end

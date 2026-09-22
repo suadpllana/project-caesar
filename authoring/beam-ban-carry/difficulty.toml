@@ -1,0 +1,186 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/beam-ban-carry/STATE.md.
+
+[task]
+slug = "beam-ban-carry"
+status = "idea"
+sources = ["tasks/beam-ban-carry/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep W hypotheses, each an object holding its token list and its running score. At every step
+expand each one over the scoring table, drop a continuation whose last N tokens already appear
+in that hypothesis's own token list, put a continuation on the stop token into a finished pool
+ranked by the length-penalised score, sort the rest by score and keep the best W. Stop at the
+step ceiling or when the pool can no longer be improved, then print the pool best first.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A hypothesis that reaches the pool bans its own spans for every live beam from that moment,
+including the remaining candidates of the step it closed on, so whether a continuation is
+refused is not a property of the beam's own token list at all and cannot be answered from it.
+"""
+second_discovery = """
+A hypothesis dropped from the full pool takes its bans back with it, and two members can hold
+the same span, so the shared part of the refusal state has to be reconstructible per member
+rather than folded into one set; the eviction order that decides it is settled by the penalised
+score, which is not the order the beams were pruned by.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped searches and read the quoted line against what the brief says it should be",
+  "Separate the refusal state into the part a beam owns and the part the pool lends it",
+  "Make the closing pass run before the ranking pass so a closure binds the same step's candidates",
+  "Give each pooled hypothesis its own span record so eviction can take exactly its bans back",
+  "Rewrite selection as a walk down the ranking that keeps one candidate per final token",
+  "Derive the reach bound from the penalty and the largest table score, not from the raw score alone",
+  "Carry the span record on the beam instead of rebuilding it from the token list each step",
+  "Recompute the pool's lent bans by combining member records instead of counting spans one by one",
+  "Time the long search and the churning pool against the stated limit before calling it done",
+]
+
+[search]
+best_page = """
+The beam search and n-gram blocking code of the public generation libraries, together with the
+diverse-beam and n-best-list write-ups that a query about repeated spans in decoding returns.
+"""
+helps_plan = false
+deviation = """
+In every one of those the repeat block is a property of one hypothesis and finished sequences
+never constrain the beams still running; here the returned set lends its spans to the search and
+takes them back when a member is dropped, so the retrieved structure is wrong at the point that
+decides most of the output.
+"""
+
+[tactics]
+A1 = """
+The memorised decoding idiom keeps the repeat block inside a single hypothesis and treats the
+finished list as an inert sink; both are specifically wrong here, so a confidently recalled
+implementation fails at its first decision point.
+"""
+A2 = """
+The brief states what happens to spans when a hypothesis is kept and when it is dropped, and
+never says that the state is shared, reference counted or carried; the consequence that a
+refusal depends on the pool's current membership has to be derived.
+"""
+B2 = """
+Ten rules hold at once - candidate source, closing order, penalised score, pool eviction,
+lent bans, own bans, ranking, one beam per final token, the reach bound and the halt order -
+and settling any one of them changes what a correct implementation of the next looks like.
+"""
+C1 = """
+Both sides are graded: a search that never lends the pool's spans fails the programs where a
+closure must refuse a live candidate, and one that lends them permanently fails the programs
+where an eviction must let the same candidate through.
+"""
+C2 = """
+The public libraries compute a different quantity, so running one beside the shipped stage
+confirms nothing, and the stage prints a coherent trace for every program whatever it decided.
+"""
+C3 = """
+A long search and a churning pool leave the history-walking implementation exactly correct and
+outside the stated limit, so the refusal state has to be carried on the beam and on each pooled
+member rather than recomputed, which follows from an invariant of the rules themselves.
+"""
+C4 = """
+Every printed line of every program must match, and the graded population is generated inside
+the verifier from a seed drawn after the agent's container is gone, in families shaped at each
+decision point.
+"""
+guard = """
+Six files under /app/bm are collected and nothing else; the driver, the program grammar and the
+trace writer are the verifier's own copies laid under the submission, so neither the output
+format nor the program semantics can be reshaped.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a closed hypothesis lends its spans to the search", b = "closures are settled before the step's candidates are ranked", why = "a closure refuses candidates of the very step it happened on, so the order of the two passes changes which beams survive that step" },
+  { a = "the pool drops its worst member when it overflows", b = "the lent bans come back when a member leaves", why = "the eviction rule decides the refusal state of every later step, so a wrong tie-break is not a wrong line but a different search from that point on" },
+  { a = "two pooled members can hold the same span", b = "an evicted member takes its bans back", why = "the shared part cannot be a set folded into the beams; it has to stay reconstructible per member or an eviction un-bans a span another member still holds" },
+  { a = "at most one surviving beam ends on any one token", b = "candidates are refused before they are ranked", why = "a refused candidate never takes the token it would have claimed, so refusal decides which lower-scoring candidate reaches a slot" },
+  { a = "the reach bound is read against the pool's worst member", b = "closures and evictions move that member", why = "how many steps the search runs is decided by the pool it is filling, so a wrong penalty term in the bound changes the number of closures rather than one number" },
+  { a = "the penalised score orders the pool", b = "the raw score orders the beams", why = "the beam that is pruned last can still be the one that would have produced the best kept hypothesis, so neither order can stand in for the other" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A search where nothing ever closes until the last step: every beam must still be ranked, refused
+and selected exactly, so a stage that leans on the pool to make progress prints the wrong set.
+"""
+late_case = """
+A program where the pool fills, an early member is evicted by a better one, and a beam three
+steps later takes a token whose span only the evicted member had banned; every line before that
+point is right and the two searches diverge from there to the end.
+"""
+oracle_denied = """
+The natural check is to run a library beam search or to reason that the kept set is the best few
+paths, but the lent bans make the kept set depend on the order the pool filled, and the shipped
+stage prints a well formed trace for every program, so running it says only that it ran.
+"""
+
+[leaks]
+candidates = [
+  { what = "a refused or banned marker in the printed trace", closed_by = "the trace prints closures, drops, the halt and the kept set only, so a refusal is visible only as a path that was never taken" },
+  { what = "a span table or refusal set exposed as a field of the shipped state", closed_by = "the shipped stage holds token lists and scores; the span state is built where it is used and nothing stores it" },
+  { what = "the pool's lent bans reachable through a callable helper", closed_by = "no helper answers whether a span is banned; the two sources are combined at the point of the test inside an editable file" },
+  { what = "the correct output of a shipped program left beside it", closed_by = "one line of one program is quoted in the brief, and it is a kept-set line rather than a decision the task turns on" },
+  { what = "the number of steps a search runs, printed before it runs", closed_by = "the halt line comes last and carries the step it happened on, so the count is a result rather than an input" },
+]
+derived_quantities = """
+A program carries the configuration numbers, the scoring rows and the prompt tokens, which are
+primitives; the spans, the refusals, the penalised scores, the pool membership and the reach
+bound are all derived and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct stages that answer a refusal by walking the beam's token list for the span, that
+rebuild a beam's span record from its tokens at every step, and that rebuild the pool's lent bans
+from its members' tokens whenever the pool changes.
+"""
+invariant = """
+A beam's spans are its parent's spans and one more, and a pooled member's spans are the spans the
+beam already held when it closed, so every span record in the system is produced once and carried,
+and the pool's lent set is the union of at most H records that already exist.
+"""
+# Measured 2026-09-22 over the whole generated population at PER_FAMILY 40, on one core:
+# reference 4.2 s, var-b 10.6 s, var-a 26.3 s against the 60 s limit; the naive-but-correct
+# stages at 111.6 s (lent rebuilt from members' tokens), 97.3 s (beam spans rebuilt each step)
+# and 356.5 s (the refusal answered by walking the tokens).
+input_scale = "five searches of two thousand eight hundred steps over eight beams, and five of nine hundred whose kept set of thirty turns over on nearly every step"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a closed hypothesis bans nothing", hand_case = "a two beam search where the first beam closes and the second would repeat its span" },
+  { reading = "an evicted hypothesis keeps its bans", hand_case = "a pool of one where a better hypothesis replaces the first and the banned span becomes free" },
+  { reading = "the pool's bans are one set, so an eviction frees a span another member holds", hand_case = "two members sharing a span, the worse of them evicted" },
+  { reading = "closures are settled after the step's candidates are ranked", hand_case = "a beam closing at a step where another beam's best candidate repeats its span" },
+  { reading = "the stop token's score is not counted", hand_case = "two hypotheses whose order reverses once the stop edge is counted" },
+  { reading = "the stop token counts toward the length penalty", hand_case = "two hypotheses one token apart with a penalty large enough to reverse them" },
+  { reading = "the pool keeps the first H hypotheses and refuses later ones", hand_case = "a weak hypothesis closing early and a strong one closing after the pool is full" },
+  { reading = "the beams are the top W by score with no rule about the final token", hand_case = "a step whose two best candidates end on the same token" },
+  { reading = "the reach bound ignores the penalty on the steps still to come", hand_case = "a search with a penalty above the largest table score" },
+  { reading = "the reach bound is tested before the pool is full", hand_case = "a search whose pool holds one fewer than its capacity for its whole length" },
+  { reading = "a span is refused only when it repeats within the tokens the beam emitted", hand_case = "a prompt carrying the span the first candidate would repeat" },
+  { reading = "ties among candidates are broken by token before parent", hand_case = "two equal candidates from different beams on different tokens" },
+]
+correct_variants = [
+  "a stage holding each span record as an integer bit set and the pool's lent bans as the combination of its members' records",
+  "a stage holding each span record as a dictionary chained to its parent and the pool's lent bans as a count per span maintained on entry and exit",
+]
+
+[shape]
+environment_py_lines = 330
+editable_files = 6
+reference_lines = 300

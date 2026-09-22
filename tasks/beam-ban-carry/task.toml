@@ -1,0 +1,207 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/bm/sc.py",
+  "/app/bm/rep.py",
+  "/app/bm/keep.py",
+  "/app/bm/pick.py",
+  "/app/bm/walk.py",
+  "/app/bm/halt.py",
+]
+
+[task]
+name = "afterquery/beam-ban-carry"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the published one. Keep W hypotheses, each with its tokens and its score;
+block a continuation that would repeat a span of its own tokens; drop a finished sequence into
+a list ranked by the length-penalised score; take the best W of what is left; stop at the
+ceiling. Every library that does this keeps the repeat block inside one hypothesis and treats
+the finished list as an inert sink, and both are wrong here.
+
+A hypothesis that reaches the kept set lends its spans to the search. While it is a member no
+live beam may take a continuation whose span it holds, the candidates of the step it closed on
+included, so whether a continuation is refused cannot be answered from the beam at all. That
+much is a structure to rebuild. The rule after it takes the plan apart: a member the set gives
+up takes its bans back with it, and two members can hold the same span. The obvious repair -
+fold a closing hypothesis's spans into every live beam - is wrong in a way that appears only
+after an eviction, and one shared set of banned spans is wrong in a way that appears only when
+two members overlap. Refusal is a function of the kept set's membership, and that membership is
+settled by the penalised score, which is not the order the beams were pruned by.
+
+Around those sit the ordinary decisions, each a fence with two sides: the stop row's score
+counts toward a hypothesis while the stop token does not count toward its length, a closure
+leaves its beam standing, selection keeps one beam per final token so the top W is not the
+answer, the kept set is read from one end and the ranking from the other, and equal numbers
+break three different ways in three different places. The reach that ends a search charges the
+penalty on the steps still to come and is read only once the kept set is full; either half
+wrong changes how many steps a request runs rather than one number inside it.
+
+Two scale families decide what a correct structure may cost, and the fast path in each follows
+from an invariant rather than a technique: a beam's spans are its parent's and one more, and a
+member's spans are the ones its beam already held, so every span record in the system is
+produced once and carried. Measured against the 60 second limit for the whole graded set, the
+reference takes 4.2 seconds and two further correct stages 10.6 and 26.3, while three stages
+that are exactly correct and recompute instead of carrying take 97.3 seconds with each beam's
+spans rebuilt from its tokens every step, 111.6 with the lent spans rebuilt from the members'
+tokens on every change, and 356.5 with a refusal answered by searching the tokens. All three
+produce the reference's traces on everything they finish.
+
+The only feedback a wrong structure gets is a closure line, a drop line, the step the search
+stopped on, and the kept set at the end. Nothing is printed while a search is running, so no
+rule can be confirmed on its own.
+
+Identifiers are in a legacy register - `bm/`, `sc`, `rep`, `keep`, `pick`, `walk`, `halt` -
+short but never misleading, and no name misdescribes what it holds. That is a choice about the
+register of real decode-path code rather than an obstacle: each is recoverable from what calls
+it.
+
+The programs are synthetic, in eleven families, with closures on nearly every step, kept sets of
+one and two that turn over, members sharing a span, prompts that already carry the span a
+candidate would add, penalties on both sides of the largest score in the table, equal scores
+everywhere, graphs that run out, and the two scale families. In a real request these
+concentrations are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`sc.py` indexes the scoring table by context once, keeps the stop rows apart from the
+continuations, and remembers the largest score in the table, which the reach needs.
+
+`rep.py` is where the first plan has to be given up. A beam's sequence is a link back to its
+parent and the token it took, so extending it costs nothing and the tokens are walked out only
+when a hypothesis is printed. Its spans are an integer bit set over a numbering that hands a
+span its bit the first time one is recorded, so a child's record is its parent's with one more
+bit and a lookup is a shift. What the kept set lends is the same kind of record, the members'
+bit sets combined, and that is what makes an eviction honest: the lent set is rebuilt from the
+members that remain, so a span two of them hold survives one of them leaving and nothing has to
+be counted.
+
+`keep.py` holds the kept set under a single order - higher final score, then shorter, then
+earlier - so the member given up on overflow and the order the report prints are one comparison
+read from opposite ends.
+
+`pick.py` ranks the candidates and walks down them keeping one per final token, which is the
+part a sort and a slice cannot do.
+
+`walk.py` runs a request. Every beam that can close does so first, in the order the beams stand,
+and the lent set is rebuilt before any candidate of that step is looked at, so a closure binds
+the step it happened on.
+
+`halt.py` reads the three endings in their order and computes the reach: the score, less the
+penalty on the steps already run, plus the steps still available times the largest table score
+less the penalty, floored at zero.
+
+An expert works in that order because each file consumes the one before it: the table decides
+what a beam may take, the span records decide what it may keep, the kept set decides what is
+lent, what is lent decides which candidates stand, and which candidates stand decides whether
+there is anything left to rank. The same contract is implemented two further ways in the
+authoring set - one holding a beam's spans as a frozen set and the lent spans as a count per
+span maintained as members enter and leave, one holding them as a dictionary copied on each
+extension with the lent spans asked of the members' dictionaries in turn - so the shape is
+visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/bm/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the program grammar, the trace writer and the
+shipped programs cannot change what a program prints, and a new file put beside the six is
+never collected at all.
+
+Correct is defined twice over. Forty-two hand programs - one for each wrong reading of the
+contract, plus the ordinary side of each fence - are checked against `gt.json`, frozen before
+the grading file was written; the grader first asserts that the sealed model still reproduces
+`gt.json` exactly, so a model that had drifted could not quietly redefine correct. Three
+hundred and sixty-six further programs are generated inside the verifier from a seed drawn
+after the agent's container is gone, across eleven families that concentrate closures,
+evictions, shared spans, colliding tokens, prompts that already carry a span, both sides of the
+reach, equal scores, exhausted graphs and the two scale families. A submission cannot have seen
+them, so fitting the shipped examples fails, and so does carrying an answer key.
+
+Each hand program was searched for rather than chosen: for every wrong reading, the reference
+was run against a stage carrying that reading until a program separated the two, and the
+program was then shrunk while it still did. All thirty-two readings are separated by the
+enumerated set.
+
+The fences run both ways. A stage that lends nothing fails `lend-none`, one that lends
+permanently fails `lend-keeps`, and one that keeps the lent spans in a single set fails
+`lend-flat`, where two members hold the same span and only one leaves. Settling closures after
+the candidates fails `close-after`. Dropping the stop row's score fails `stop-noscore` and
+counting the stop token in the length fails `stop-len`. Taking the top W fails `rank-topw`, one
+too many fails `rank-wplus`, and the two tie-breaks fail `rank-toktie` and `rank-slotdesc`. A
+kept set that refuses new members fails `pool-first`, one that gives up its oldest fails
+`pool-oldest`, and either tie broken the other way fails `pool-tielen` and `pool-tieorder`. A
+reach without the penalty on the steps to come fails `bound-nopen`, without the penalty already
+run fails `bound-raw`, without the floor at zero fails `bound-negative`, and read before the
+set is full fails `bound-nofull`. On the other side, a stage that refuses or gives up where it
+should not fails `easy-run`, `never-close` and `close-goes-on`, where there is room for
+everything.
+
+Forty-nine cheats score 0. Thirty-two are wrong readings, each caught by the case named for
+it. Three are exactly correct and too slow. Four are shortcut strategies: one fixed trace for
+every request, one beam always taking the lowest-numbered continuation, the brief's own example
+replayed, and an answer key for all forty-two enumerated programs laid over a stage that did
+no work, which passes all forty-two and fails on the programs it could not have seen. The
+other ten are probes: the sealed answers read from inside the verifier, the reward written
+directly, a reward written late by a double-forked survivor, a planted worker record, a record
+planted and the worker exited clean before it could be overwritten, a record spoiled on the way
+out, a rewritten generator, a rewritten grader, a uid check, and a working stage hidden in a
+file beside the six that are collected. Two independently written correct stages score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them, and the probes
+record a permission error on that directory and on the reward file alike. The reward defaults
+to 0, is written last by the privileged stage into a root-owned directory locked before any
+agent code runs, and whatever the run left behind is reaped by owner first.
+"""
+
+category = "ML"
+
+subcategory = "Inference"
+
+tags = [
+  "beam-search",
+  "repeat-blocking",
+  "length-penalty",
+  "constrained-decoding",
+  "hypothesis-pruning",
+  "search-bounds",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the search stage of a decoding server: the part that turns a scorer into the
+handful of sequences a request gets back, bounds what it keeps, and decides when to stop.
+Familiarity with the fact that repeat suppression is a policy rather than a law, that what a
+server has already decided to return can constrain what it is still searching for, and that a
+returned set which changes under you is not the same object as a list you append to. Comfort
+with the bookkeeping a beam tree needs when state belongs to a path rather than to a slot, with
+pruning bounds that have to stay optimistic to be sound, and with the difference between a
+structure that is correct and one that is affordable at the step counts a real request runs to.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

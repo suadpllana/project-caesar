@@ -1,0 +1,198 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/page-bound-cut/STATE.md.
+
+[task]
+slug = "page-bound-cut"
+status = "idea"
+sources = ["tasks/page-bound-cut/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Implement an ordered index over fixed-capacity pages the way every B+tree is written: keep a
+used-bytes counter on each page, add the new entry's bytes to it on insert, and when the
+counter passes capacity split the page at its middle entry, hand the first key of the right
+half up to the parent as the separator, and insert that separator into the parent, splitting
+the parent the same way if it in turn overflows. On delete, subtract the entry's bytes, and
+when a page falls under the fill floor merge it with a sibling if the two counters add up to
+no more than capacity.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A page's stored bytes are not a running total. The page holds the common prefix of its
+current entries once and only each entry's remaining bytes, so the number is recomputed from
+the key set every time it changes: an insert that shortens the common prefix enlarges every
+other entry on the page, a delete that removes the entry holding the prefix down shrinks them
+all, and two half-empty pages whose keys share nothing can be larger merged than apart.
+Capacity, the fill floor and merge feasibility are all decided against that recomputed number.
+"""
+second_discovery = """
+The string between two neighbouring pages is a derived value and not a copy taken when a page
+was cut, and working out when it can move is the discovery. A put can never move one: any key
+that routes into a page is already at or above the string above that page, so the string stays
+shortest. A delete can, whenever it takes a page's least or greatest key, and so can the
+removal of an emptied page; and the string that has to be rewritten is often not in the parent
+but in an ancestor reached by climbing while the page is an extreme child. The rewrite shrinks
+that ancestor, which can drop it under the floor and join two pages the operation never
+touched, so it has to run before the floor test and again after a page is removed. A delete
+path written as remove-then-rebalance-upward has nowhere to put any of that.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs and read which module prints each kind of event line",
+  "Replace the used-bytes counter with a size computed from the key set and its common prefix",
+  "Notice that the common prefix of a sorted run is the common prefix of its two end keys",
+  "Derive the separator rule and write the boundary repair that runs when a page's end key moves",
+  "Order the per-operation work so boundary repair happens before the page is tested for capacity",
+  "Rewrite the cut so every position is scored, including what its separator costs the page above",
+  "Rewrite the merge test over the union of the two key sets rather than the sum of two sizes",
+  "Carry the cascade upward for both directions: a grown page splits, a shrunk page merges or folds",
+  "Time the deep programs and replace the tree-wide separator sweep with repair along the path",
+]
+
+[search]
+best_page = """
+Bayer and Unterauer's prefix B-tree paper and the engine documentation that follows it, which
+a query about prefix compression and shortest separators returns first; the storage-engine
+notes on suffix truncation and on choosing a split position that yields a short separator sit
+beside it.
+"""
+helps_plan = false
+deviation = """
+Every one of those fixes a separator at the moment of a split and never revisits it, so the
+model it hands over has boundaries that only change when a page splits; here the separator is
+a function of the two keys around it and is rewritten by an ordinary delete, which is
+what lets an insert split a page it never touched. None of them tests capacity against a size
+recomputed under the page's current prefix, and none scores a split position by the bytes the
+separator adds to the page above.
+"""
+
+[tactics]
+A1 = """
+The shipped index is the model's own prior written out: running byte counters, a middle cut, a
+separator copied at split time. Every retrieved page confirms it, and it is wrong at the first
+decision of every operation.
+"""
+A2 = """
+The brief states that the page stores its common prefix once and that every dividing string is
+at all times the shortest one, and never says that sizes are therefore non-additive, that only
+a delete can move a string, or that the one to rewrite may be several levels up. All three
+consequences must be derived from the two rules.
+"""
+B2 = """
+Ten graded decisions hold at once: size, capacity, floor, cut position, cut ties, separator
+derivation, boundary repair and its order, merge choice, internal merge, and the cascade.
+Getting the size rule right changes what the merge test and the cut score mean.
+"""
+C1 = """
+Both sides are graded. A page that still fits once its prefix is credited must not be cut, and
+a pair that no longer fits once merged under a shorter prefix must not be joined, so a
+pessimistic implementation that cuts early or refuses to join fails as surely as a lax one.
+"""
+C2 = """
+No library implements these rules, and on keys that share no prefixes the shipped index and
+the specified one agree line for line, so an agent testing with the obvious alphabet sees a
+passing trace and learns nothing about the decisions that are graded.
+"""
+C3 = """
+Rederiving every separator in the tree after each operation is exactly correct and is what a
+careful first implementation does once boundaries are known to move; the deep programs put it
+far over the stated limit while repair along the descent path has wide headroom.
+"""
+C4 = """
+Every program is compared line for line against a population generated after the agent is
+gone, with enumerated programs aimed at each boundary: the prefix-shortening put, the merge
+that does not fit, the cut whose separator collapses the parent prefix.
+"""
+guard = """
+Five files under /app/pg are collected and nothing else; the page store, the descent, the id
+pool, the event writer and the driver are the verifier's own copy, so the trace format, the
+page records and the allocation order cannot be reshaped around a different plan.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "stored size recomputed under the page prefix", b = "merge feasibility", why = "the merged page takes the common prefix of both key sets, which is shorter than either, so every entry grows and the sum of the two sizes is not the merged size" },
+  { a = "cut position", b = "separator derivation", why = "the separator is fixed by the two keys the cut falls between, so choosing where to cut chooses the separator, and the separator is part of what the cut is scored on" },
+  { a = "boundary rewriting", b = "the floor of the page that holds the string", why = "a rewritten string is shorter, which shrinks the page holding it under its own recomputed size and can drop that page under the floor, joining two pages on an operation that emptied nothing and cut nothing" },
+  { a = "boundary rewriting", b = "removal of an emptied page", why = "removing a page drops one of the two strings beside it and leaves the other dividing a different pair, so which string goes decides which one has to be rewritten, and at an extreme child the one to rewrite is in an ancestor rather than in the parent" },
+  { a = "merge of a child", b = "floor of the page above", why = "a merge removes a separator from the parent, shrinking it under its own recomputed size, which can drop the parent below the floor and cascade a second merge one level up" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A page whose keys share a long prefix holds far more entries than a byte count without the
+prefix credit allows; an implementation that cuts as soon as the uncompressed bytes pass
+capacity emits cut events the run does not have, so over-caution fails on ordinary data.
+"""
+late_case = """
+A delete of the least key of a leaf that is the first child of its parent and of its
+grandparent: the string to rewrite is three levels up, it gets shorter, the page holding it
+drops under the floor and joins its sibling, and the leaf the key came from is left untouched.
+"""
+oracle_denied = """
+The agent can run the shipped index and its own, but neither prints a size, a prefix or a
+fill level, and the sample programs ship without their correct traces; a self-written
+reference reproduces its own reading of the rules rather than the runtime's.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored or printed page size, fill level or byte count", closed_by = "no event carries a number other than page ids and a cut position, so the size rule cannot be confirmed against anything the runtime prints" },
+  { what = "the common prefix held as a field on the page record", closed_by = "the frozen store keeps only the sorted key list and the child list, so the prefix is derived wherever it is needed and never read off" },
+  { what = "a helper in the frozen core that returns the shortest separating string", closed_by = "the frozen core has no such function; derivation lives in an editable file and ships wrong, returning the whole key" },
+  { what = "sample programs shipped with their expected traces, or a checker that scores a trace", closed_by = "the programs ship alone and the graded population is generated after the run, so nothing scores an intermediate state" },
+  { what = "the count of pages or the tree depth printed at the end of a run", closed_by = "the run prints only per-operation events, so the structural result is visible only as the events the agent's own rules produced" },
+]
+derived_quantities = """
+The stored primitives are the sorted key list, the child list and the page ids; the sizes, the
+common prefixes and the separators are derivations the task is about and none of them is a
+field, a printed value or a helper in the frozen tree.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Rederiving every dividing string in the tree after each operation, which is exactly correct
+because only one of them can have moved, and is the natural first implementation of an
+invariant stated over the whole tree. Measured at 358.6 seconds against the reference's 1.72
+on the identical graded population, a factor of 208.
+"""
+invariant = """
+The keys on a page are sorted, so the common prefix of any contiguous run is the common prefix
+of its two end keys, and a boundary string can only change when the first or last key of one
+of the two pages it divides changes, which happens only along the descent path.
+"""
+input_scale = "two programs of about 93000 and 60000 operations over keys from a six letter alphabet"
+limit_seconds = 120
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "size as the sum of entry bytes with no prefix credit", hand_case = "a page of six keys sharing seven characters that fits when credited and is cut when not" },
+  { reading = "cut at the middle entry", hand_case = "a page whose keys fall into one small and one large prefix cluster, where the scored position is the first entry" },
+  { reading = "separator is the whole first key of the right page", hand_case = "two neighbouring keys sharing two characters, where the separator is three characters and not eight" },
+  { reading = "dividing string fixed at cut time and never rewritten", hand_case = "a delete of the least key of the right page, where the string above it has to move on" },
+  { reading = "rewriting the string after the floor test instead of before", hand_case = "a delete whose shortened string drops the page above under the floor, which only joins when the order is right" },
+  { reading = "rewriting only a string held by the parent, never one further up", hand_case = "a delete of the least key of a leaf that is the first child of its parent" },
+  { reading = "merge when the two sizes sum to no more than capacity", hand_case = "two pages under the floor whose keys share nothing, whose merged page is over capacity and must stay apart" },
+  { reading = "cut scored on separator length alone", hand_case = "two positions with a short and a long separator, where the short one collapses the parent common prefix and costs more" },
+  { reading = "merge with the left sibling first", hand_case = "an under-floor page whose right and left siblings both fit, where the right one is taken" },
+  { reading = "internal merge that drops the separator between the two children", hand_case = "two internal pages joined, where the boundary between their subtrees has to come down into the merged page" },
+  { reading = "a half that is still over capacity left uncut", hand_case = "a page whose scored cut leaves one entry on the left and an over-capacity right half that is cut again" },
+]
+correct_variants = [
+  "a rebuild-the-page implementation that recomputes each touched page from its key list with no incremental state, fast enough because only pages on the path are touched",
+  "an implementation carrying running key-length sums and counts per page, deriving the prefix from the two end keys, with an explicit worklist for the upward cascade instead of recursion",
+]
+
+[shape]
+environment_py_lines = 360
+editable_files = 5
+reference_lines = 330

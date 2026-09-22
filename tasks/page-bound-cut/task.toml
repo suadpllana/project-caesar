@@ -1,0 +1,131 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pg/fit.py",
+  "/app/pg/bound.py",
+  "/app/pg/cut.py",
+  "/app/pg/join.py",
+  "/app/pg/step.py",
+]
+
+[task]
+name = "afterquery/page-bound-cut"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+The shipped page layer is the one a model writes from memory: a used-bytes counter per page,
+a cut at the middle entry, and a dividing string copied whole out of the right half when a
+page is cut and never looked at again. Every one of those is wrong here, and the first is
+wrong at the first decision of every operation, because a page holds the common prefix of its
+entries once and only the remaining characters of each. Its size is therefore a function of
+the key set it holds: a put that shortens the prefix enlarges every other entry on the page,
+a delete can shrink them all, and two pages that are each half empty can be larger joined
+than apart, so a running total cannot stand in for it anywhere - not in the capacity test,
+not in the floor test, not in the score a cut position is given.
+
+The step a frontier agent gets wrong is the upkeep of the dividing strings. The brief says
+what one is and that it is always that, and leaves the consequences to be worked out. A put
+can never move one, because any key that routes into a page is already at or above the string
+above that page. A delete can, whenever it takes a page's least or greatest key, and so can
+the removal of a page that has been emptied - and the string to rewrite is often not in the
+parent but in an ancestor reached by climbing while the page is still an extreme child.
+Rewriting it shortens it, which shrinks the page that holds it, which can drop that page
+under the floor and join two pages the operation never reached. So the rewrite has to happen
+before anything is measured, and again after a page is removed, and only after the last
+removal of a run. A delete path written as remove-then-rebalance-upward has nowhere to put
+any of that, and the natural repair - restore the invariant over the whole tree after every
+operation - is exactly correct and was measured at 358.6 seconds against the reference's 1.72
+on the same set, against a limit of 120.
+
+The identifiers in the tree are short in the register of real storage-engine code (`fit`,
+`cut`, `bound`, `join`, `seps`, `kids`), and the tree carries no comments. That is deliberate:
+what a value is has to be read off what writes it and what it flows into, not off its name.
+No name misdescribes what it holds.
+"""
+
+solution_explanation = """
+The reference replaces all five policy files. `fit.py` computes a page's stored size from its
+entry count, the sum of its entry lengths and the common prefix of its two end keys - the keys
+on a page are sorted, so the common prefix of any contiguous run is the common prefix of its
+first and last entry, which is what makes the size cheap enough to ask for on every candidate
+cut position. `bound.py` derives the dividing string as the right key truncated one character
+past where the two keys first differ, and finds the string a page's changed extreme affects by
+climbing the descent path while the page is still a first or last child. `cut.py` scores every
+position that leaves an entry on each side, taking the larger of the two resulting pages plus
+what the promoted string would add to the page above, which it computes from the page above's
+own entry count, length sum and end keys rather than by building the list. `join.py` measures
+the joined page over the union of the two key sets, removes a page that holds nothing, and
+folds the root. `step.py` orders one operation: insert or remove, put the affected string
+right, then walk from the leaf to the root once, cutting what is over capacity on a put and
+joining or removing on a delete.
+
+That is the order a storage engineer works in, because the size rule decides what the other
+four mean: until the fit test is right, no cut position, floor test or join test can be. The
+last step is the one the limit forces - locating the one string an operation can have moved
+rather than restoring the invariant over the tree - and it follows from the same sortedness
+that makes the size cheap.
+"""
+
+verification_explanation = """
+The verifier lays the five submitted files over its own copy of the tree and compares the
+printed trace of every graded program line for line. Thirty-one enumerated programs are
+checked against answers frozen before the grading file was written; twenty-two of them were
+found rather than chosen, by searching the generated space for the shortest program on which
+a particular wrong reading disagrees with the reference, so the set is known to separate those
+readings rather than assumed to, and a failure names the rule that broke. The rest are
+generated from a seed drawn after the agent's container is gone, across fifteen families
+shaped around the mechanism - keys that share nothing, keys that share four or five
+characters, runs that only grow, runs that delete most of what they put - and checked against
+a sealed model written apart from the reference, which must still reproduce the frozen answers
+before it judges anything.
+
+Passing means the work was done because nothing else passes. The trace carries no size, no
+fill level and no common prefix, so the fit rule cannot be fitted to a printed number; the
+graded programs do not exist until after the run, so they cannot be answered from a table; and
+two of them are large enough that restoring the boundary invariant over the whole tree, which
+is exactly correct, runs 208 times longer than locating the one string that moved. The stage
+that runs submitted code is unprivileged, time-bounded and in its own session; the reward
+starts at 0 in a root-owned directory closed before that stage begins, the frozen answers and
+the model sit in a directory that stage cannot read, and the trusted stage never executes a
+line of the submission.
+"""
+
+category = "Software"
+subcategory = "Databases"
+
+tags = [
+  "prefix-compression",
+  "page-split",
+  "separator-keys",
+  "underflow-merge",
+  "storage-engine",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+I work on the index layer of an embedded key-value store: page layout, the fit accounting that
+decides when a page is full, split position selection, and the strings that divide neighbouring
+pages. Prefix-compressed pages and shortest separators are the two parts of that work where the
+textbook answer and a real store's answer come apart, and where the size of a page stops being a
+number you can keep in a counter.
+"""
+
+[verifier]
+timeout_sec = 600.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

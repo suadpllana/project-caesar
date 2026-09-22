@@ -1,0 +1,231 @@
+{
+ "bar-back": [
+  "fire 0",
+  "ep a 0 1 3",
+  "run 1 0 0 1"
+ ],
+ "bar-err-invisible": [
+  "ep a 0 1 2",
+  "run 1 0 0 1"
+ ],
+ "bar-gain": [
+  "fire 0",
+  "ep a 0 1 3",
+  "run 1 0 0 1"
+ ],
+ "bar-lost": [
+  "fire 0",
+  "ep a 0 1 4",
+  "run 1 0 0 1"
+ ],
+ "bar-prev-obs": [
+  "ep a 0 1 3",
+  "run 1 0 0 1"
+ ],
+ "bud-counts-failed": [
+  "ep a 0 1 3",
+  "run 1 0 0 1"
+ ],
+ "bud-cut-step": [
+  "mark 0",
+  "ep a 1 1 2",
+  "run 1 1 1 1"
+ ],
+ "bud-exact-end": [
+  "mark 0",
+  "ep a 1 1 2",
+  "mark 0",
+  "ep b 1 1 1",
+  "run 2 2 2 2"
+ ],
+ "bud-per-action": [
+  "ep a 0 1 3",
+  "run 1 0 0 1"
+ ],
+ "carry-normal": [
+  "mark 0",
+  "ep a 1 1 2",
+  "mark 0",
+  "mark 1",
+  "ep b 2 2 1",
+  "run 2 2 3 3"
+ ],
+ "close-next-baseline": [
+  "mark 0",
+  "ep a 1 1 2",
+  "mark 0",
+  "ep b 1 2 1",
+  "run 2 1 2 3"
+ ],
+ "close-undo-keeps-credit": [
+  "mark 0",
+  "ep a 5 5 2",
+  "run 1 1 5 5"
+ ],
+ "obs-base-no-fire": [
+  "ep a 0 1 1",
+  "run 1 0 0 1"
+ ],
+ "obs-base-silent": [
+  "mark 0",
+  "fire 0",
+  "void 0",
+  "ep a 0 5 4",
+  "run 1 0 0 5"
+ ],
+ "obs-ok-only": [
+  "ep a 0 1 2",
+  "run 1 0 0 1"
+ ],
+ "obs-step-end": [
+  "ep a 0 1 3",
+  "run 1 0 0 1"
+ ],
+ "plain-all": [
+  "mark 0",
+  "mark 1",
+  "mark 2",
+  "ep a 6 6 3",
+  "run 1 1 6 6"
+ ],
+ "pre-chain-layers": [
+  "mark 0",
+  "mark 1",
+  "mark 2",
+  "ep a 3 3 5",
+  "run 1 1 3 3"
+ ],
+ "pre-many-parents": [
+  "mark 0",
+  "mark 1",
+  "mark 2",
+  "ep a 5 5 4",
+  "run 1 1 5 5"
+ ],
+ "pre-open-waits": [
+  "mark 0",
+  "mark 1",
+  "ep a 3 3 4",
+  "run 1 1 3 3"
+ ],
+ "pre-strict-later": [
+  "mark 0",
+  "mark 1",
+  "ep a 3 3 3",
+  "run 1 1 3 3"
+ ],
+ "pred-off-zero": [
+  "mark 1",
+  "mark 0",
+  "ep a 3 3 2",
+  "run 1 1 3 3"
+ ],
+ "pred-up-equal": [
+  "mark 0",
+  "ep a 2 2 1",
+  "run 1 1 2 2"
+ ],
+ "rep-full": [
+  "mark 0",
+  "ep a 1 2 1",
+  "mark 0",
+  "ep b 1 1 1",
+  "run 2 1 2 3"
+ ],
+ "rep-weights": [
+  "mark 0",
+  "mark 1",
+  "ep a 11 11 2",
+  "run 1 1 11 11"
+ ],
+ "settle-keeps": [
+  "mark 0",
+  "ep a 3 3 2",
+  "run 1 1 3 3"
+ ],
+ "settle-no-recredit": [
+  "mark 0",
+  "ep a 1 1 3",
+  "run 1 1 1 1"
+ ],
+ "step-err-undo": [
+  "mark 0",
+  "ep a 1 1 3",
+  "run 1 1 1 1"
+ ],
+ "step-ok-keeps": [
+  "mark 0",
+  "ep a 1 1 2",
+  "run 1 1 1 1"
+ ],
+ "void-ascending": [
+  "mark 0",
+  "mark 1",
+  "mark 3",
+  "mark 2",
+  "fire 0",
+  "void 0",
+  "void 1",
+  "void 2",
+  "void 3",
+  "ep a 0 4 5",
+  "run 1 0 0 4"
+ ],
+ "void-cone": [
+  "mark 0",
+  "mark 1",
+  "mark 2",
+  "fire 0",
+  "void 0",
+  "void 1",
+  "void 2",
+  "ep a 0 7 4",
+  "run 1 0 0 7"
+ ],
+ "void-order": [
+  "mark 0",
+  "fire 0",
+  "void 0",
+  "ep a 0 3 1",
+  "run 1 0 0 3"
+ ],
+ "void-rearm-false": [
+  "mark 0",
+  "fire 0",
+  "void 0",
+  "mark 0",
+  "ep a 2 2 4",
+  "run 1 1 2 2"
+ ],
+ "void-rearm-holds": [
+  "mark 0",
+  "fire 0",
+  "void 0",
+  "mark 0",
+  "ep a 2 2 6",
+  "run 1 1 2 2"
+ ],
+ "void-shut-named": [
+  "mark 0",
+  "mark 1",
+  "fire 0",
+  "void 0",
+  "void 1",
+  "mark 0",
+  "mark 1",
+  "ep a 3 3 6",
+  "run 1 1 3 3"
+ ],
+ "void-uncredited": [
+  "fire 0",
+  "ep a 0 1 3",
+  "run 1 0 0 1"
+ ],
+ "worked-tiny": [
+  "mark 0",
+  "fire 0",
+  "void 0",
+  "ep a1 0 5 6",
+  "run 1 0 0 5"
+ ]
+}

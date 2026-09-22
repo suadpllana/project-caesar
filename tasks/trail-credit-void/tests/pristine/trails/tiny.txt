@@ -1,0 +1,21 @@
+cfg 100
+rec 0 0
+rec 1 5
+rec 2 3
+ep a1
+goal 0 1 0 off 1
+goal 1 2 0 at 1 4
+goal 2 2 1 1 off 1
+bar 0 0 back 2
+step
+cut 2
+put 2 3
+ok
+step
+cut 1
+put 0 2
+ok
+step
+put 2 0
+cut 1
+ok

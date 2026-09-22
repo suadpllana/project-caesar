@@ -27,6 +27,10 @@ Human passed:
 - `heap-file-replacement` (reference only; bundle not present in this checkout)
 - `late-dimension-updates` (reference only; bundle not present in this checkout)
 
+Built here, not yet through the pipeline:
+
+- `trail-credit-void`
+
 The evidence-based comparison and the reusable easiness/quality checklist are in
 [`docs/PASSING-TASK-RESEARCH.md`](docs/PASSING-TASK-RESEARCH.md).
 

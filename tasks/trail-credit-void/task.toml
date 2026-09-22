@@ -1,0 +1,221 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/crd/store.py",
+  "/app/crd/pred.py",
+  "/app/crd/obs.py",
+  "/app/crd/book.py",
+  "/app/crd/void.py",
+  "/app/crd/ep.py",
+  "/app/crd/tally.py",
+]
+
+[task]
+name = "afterquery/trail-credit-void"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules seem
+to ask for survive all of them at once, and that is the work.
+
+The first plan is the published one, and the shipped grader already is it: replay the run against
+a dictionary of records, copy the dictionary at each step so a failed step can be put back, and at
+each step evaluate the rubric against the records, crediting whatever holds and whose
+prerequisites are in the credited set until nothing more can be credited, then test the violations
+and drop what a firing names. Every checkpoint-scored benchmark that exists credits a milestone
+the moment its condition is seen and never takes credit back, so credit is a function of the state
+the grader can see. Both halves of that are wrong here, and neither is wrong in a way that running
+the shipped examples shows.
+
+Credit here settles, so it survives its own predicate going false and cannot be recomputed from
+the records; and a prerequisite counts only when it was credited at a strictly earlier
+observation, so a chain satisfied in one step is credited one link per observation and a step that
+ended err, having no observation, costs the episode a whole layer. That much is a structure to
+rebuild. The rule after it takes the plan apart: a violation shuts the goal it names until that
+goal is observed unsatisfied again, while the goals standing on it are only opened, so credit is
+neither monotone nor a set - a goal is open, held or shut, and a shut goal whose predicate already
+fails re-arms at the next observation whatever that observation touched. An implementation that
+drives its work off the records a step wrote misses exactly that case, and it is the case that
+takes the longest to see because the goal looks reachable and never comes back.
+
+Around those sit the decisions that have two sides each: an observation as the episode opens that
+credits nothing and fires nothing, a violation read as a change between two observations rather
+than as a state, a budget charged per action including the actions of a step that failed, and an
+episode cut short by that budget whose records go back to where it opened while its credit stands
+- which decides what the next episode's opening observation compares against. Six of the seven
+editable files ship semantically wrong and the seventh ships exactly correct and far too slow.
+The only feedback a wrong structure gets is a trace of marks and fires, because nothing in the
+tree says what the trace should have been.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in each
+follows from a fact about the domain rather than from a technique: a step can only change the
+records it wrote, and a goal reads only the records its predicate names and becomes reachable only
+when one of its prerequisites is credited. Measured here against the 60 second limit for the whole
+graded set, one trail of fifty thousand records over sixteen thousand steps takes 32.4 seconds
+with the records copied per step and per observation, against 0.19 for the reference, and one of
+four thousand six hundred goals over forty-two thousand steps takes 22.1 seconds with the rubric
+gone over at every observation, against 0.69. Both of those readings print exactly the reference's
+trace on everything they finish; the limit is the only thing that separates them.
+
+Identifiers are in a legacy register - `crd/`, `put`, `cut`, `obs`, `book`, `void`, `tally`, `bar`,
+`gid` - short but never misleading, and no name misdescribes what it holds. Each is recoverable
+from what calls it.
+
+The trail files are synthetic, in eleven families, with violations firing on goals other goals
+stand on, goals shut while their predicate already fails and while it still holds, chains
+satisfied all at once, steps that fail next to steps that do not, budgets that run out inside a
+step, episodes that close short beside episodes that do not, and values sitting exactly on a
+threshold. In a real benchmark run these concentrations are rare, and they are exactly where this
+class of bug lives.
+"""
+
+solution_explanation = """
+Seven files, settled in the order the rules force rather than one that is tidy.
+
+`store.py` stops copying the records. It keeps one map and a log of what each write displaced, so
+a step is undone by walking its own span of that log backwards and an episode by walking back to
+where it opened, and it keeps the set of records written since the last observation, which is the
+only thing an observation has to look at.
+
+`pred.py` is the three predicates, with the two boundaries the brief states: `up` is at least and
+not more than, and a record standing at zero is a record with a value, so `off` does not hold for
+it.
+
+`obs.py` carries the previous observation's value for the records some violation watches - only
+those, because no other record can make one hold - and tests `lost`, `gain` and `back` against the
+pair. It is refreshed once per observation, which is what makes a value that dips and returns
+inside one step invisible.
+
+`book.py` is where the first plan has to be given up. A goal is open, held or shut; the count of
+prerequisites it still owes is kept beside it and moved when a prerequisite gains or loses credit,
+so "credited at a strictly earlier observation" is read off a counter that was settled at the end
+of the observation before. The goals looked at during an observation are those a written record
+names, those whose last prerequisite was credited at the previous observation, and those shut
+during the previous one - that third set is what makes a goal shut on an already-failing predicate
+re-arm, and leaving it out is a correct-looking implementation that loses a goal for the rest of
+its episode.
+
+`void.py` is what a firing takes: the goal named and its dependants, transitively, collected and
+emitted in ascending order rather than in the order a walk reaches them; the named goal is shut
+and the rest are only opened, which is the difference between a chain that can come back one
+observation per link and one that cannot come back at all.
+
+`ep.py` drives the episode: the opening observation that records values and does nothing else,
+steps whose failures are undone and unobserved, credit before violations at every observation, the
+budget charged per action, and the close that puts the records back while the credit stays.
+
+`tally.py` reports the weights an episode holds, not the number of goals, and counts an episode as
+full only when it holds all of them.
+
+An expert works in that order because each file consumes the one before it: what a step left
+behind decides what an observation looks at, what an observation credits decides what a violation
+can take, what a violation takes decides what can be earned again, and what is held at the close
+decides the report. The same contract is implemented two further ways in the authoring set - one
+holding goal states in two sets and reading how much earlier off the observation index each
+credit was granted at, walking dependants breadth first from a deque; one holding the records
+under a sentinel-marked undo log unwound by a reversed slice, the watched values as two parallel
+lists, and the budget as the room a step has left rather than a count to compare - so the shape
+is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the seven files under `/app/crd/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the parser, the driver, the output writer and the shipped trails
+cannot change what a trail prints, and a new file put beside the seven is never collected at all.
+
+Correct is defined twice over. Thirty-seven hand trails, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and sixty-six further
+trails are generated inside the verifier from a seed drawn after the agent's container is gone,
+across eleven families that concentrate firings on goals with dependants, goals shut on failing
+and on holding predicates, chains satisfied in one step, failed steps, budgets spent inside a
+step, episodes closed short, threshold values and the two scale families. A submission cannot have
+seen them, so fitting the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Observing after every action fails `obs-step-end`; observing a step that
+ended err fails `bar-err-invisible`, and keeping its records fails `step-err-undo`, while
+`step-ok-keeps` fails anything that throws away a step that succeeded. Crediting a chain in one
+pass fails `pre-strict-later` and `pre-chain-layers`; waiting for every prerequisite of a goal
+rather than the last one fails `pre-many-parents`; never crediting a goal whose predicate held
+before its prerequisite did fails `pre-open-waits`. Recomputing credit from the records fails
+`settle-keeps`, and granting it twice fails `settle-no-recredit`. Reading a violation as a state
+rather than a change fails `bar-back`; firing on a dip inside one step fails `bar-prev-obs`;
+firing as the episode opens fails `obs-base-no-fire`. Taking only the goal named fails
+`void-cone`; shutting its dependants as well fails `void-shut-named`; leaving a shut goal
+creditable fails `void-rearm-holds`; re-arming it only when a record it reads changes fails
+`void-rearm-false`; emitting voids in walk order fails `void-ascending`; firing on an uncredited
+goal without shutting it fails `void-uncredited`; firing before crediting fails `obs-base-silent` and `void-order`.
+Charging the budget per step fails `bud-per-action`, sparing a failed step's actions fails
+`bud-counts-failed`, letting the crossing action through fails `bud-cut-step`, and closing an
+episode whose budget ended exactly with it fails `bud-exact-end`. Keeping a closed episode's
+records fails `close-next-baseline` and dropping its credit fails `close-undo-keeps-credit`, while
+`carry-normal` fails anything that discards the records of an episode that ran to the end.
+Counting goals instead of weights fails `rep-weights`, and calling any credit a full episode fails
+`rep-full`. `pred-up-equal` and `pred-off-zero` fail the two predicate boundaries, and `plain-all`
+fails an engine that has turned conservative, where there is no violation and room for everyone.
+
+Thirty-seven cheats score 0, and each was measured to be caught by the layer it should be rather
+than only to come out 0. Twenty-two are wrong readings, each caught by the enumerated case named
+for it. Two are exactly correct and too slow: the records copied per step and per observation, and
+the rubric gone over at every observation. Three are shortcut strategies - nothing credited for
+every trail, everything credited for every trail, and the worked example's own output replayed.
+One carries `gt.json` itself and slices it, which passes all thirty-seven hand trails and fails on
+the trails it could not have seen. The other nine are probes: the answer key, the reward written directly, a reward written late by a
+double-forked survivor, a planted worker record, a record planted and the worker exited clean
+before it could be overwritten, a record spoiled on the way out, a rewritten generator, and an
+engine hidden in a file beside the seven that are collected. Two independently written correct
+graders score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Algorithms"
+
+tags = [
+  "milestone-rubrics",
+  "trajectory-replay",
+  "ordered-prerequisites",
+  "dependency-cones",
+  "credit-revocation",
+  "undo-logging",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having built and repaired the grading half of an agentic benchmark: the part that replays a
+recorded run against a model of the workspace, decides at which points the run may be looked at,
+and turns a rubric of milestones into a number. Familiarity with the fact that when a milestone
+counts is a policy rather than a law, that a violation which takes credit back is not the same
+thing as a milestone that was never reached, and that a rubric with ordering in it cannot be
+scored from the final state. Comfort with per-step rollback and the difference between undoing
+what a span wrote and restoring a copy of everything, with budgets that are charged for work that
+was thrown away, and with the difference between a grader that is correct and one that is
+affordable over the trail lengths a long-horizon run actually produces.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

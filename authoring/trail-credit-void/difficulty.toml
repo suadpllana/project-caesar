@@ -1,0 +1,182 @@
+# Difficulty record for trail-credit-void, written before any code exists.
+
+[task]
+slug = "trail-credit-void"
+status = "idea"
+sources = ["authoring/trail-credit-void/STATE-notes.md", "tasks/trail-credit-void/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Replay the recorded trail against a dictionary of records, copying the dictionary at the start of
+each step so a failed step can be restored, and after each step evaluate every goal predicate
+against the current records: credit the ones that hold whose prerequisites are already credited,
+iterating until nothing more can be credited, then test the violation predicates against the same
+records and drop the credit of whatever a firing names. Sum the weights of the credited goals at
+the end of the episode, and process each episode from a clean slate.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A goal is credited only at an observation, an observation happens only at the end of a step that
+ended ok, and a prerequisite counts only when it was credited at a strictly earlier observation of
+the same episode, so no chain of goals can be credited in one pass and a step that failed advances
+nothing at all.
+"""
+second_discovery = """
+A firing shuts the goal it names until that goal is observed unsatisfied again, while merely
+opening the dependants it also strips, so the record of what is credited has to distinguish three
+states per goal and stop being a set; and because a shut goal re-arms only on a later observation
+where its predicate fails, credit is no longer the first observation at which a predicate held.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read run_crd.py and crd/spec.py to learn the grammar, which files are replaced, and what the shipped engine already does; run the two sample trails and line the output up against the worked case in the brief.",
+  "Rebuild the record store so a step is undone from a log of what it wrote rather than from a copy of the store, and so the keys written since the last observation are available without a diff.",
+  "Move observation to the end of ok steps only, and give each episode a baseline observation that credits nothing and fires nothing but supplies the values the first real observation is compared against.",
+  "Rewrite the credit book as three states per goal, crediting in one ascending pass per observation against prerequisites credited at a strictly earlier observation.",
+  "Implement firing: shut the named goal, open its transitive dependants, and re-arm a shut goal at the first later observation where its predicate fails.",
+  "Charge the budget per action including the actions of failed steps, cut the step that would cross it, roll that step back and close the episode, undoing the episode's records while its credit stands.",
+  "Drive goals and bars from the keys a step wrote and from the prerequisites credited at the previous observation instead of sweeping the whole rubric, then time the two wide trails against the stated limit.",
+]
+
+[search]
+best_page = """
+The write-ups of checkpoint-scored agentic benchmarks - OSWorld-style partial progress, the
+long-horizon terminal benchmarks with dense milestone grading, and the CTF partial-credit papers -
+which all describe ordered binary checkpoints with weights and partial credit for progress.
+"""
+helps_plan = false
+deviation = """
+Those benchmarks credit a checkpoint the moment its condition is seen and never take credit back;
+here credit is granted only at a step boundary, a prerequisite must have been credited at a
+strictly earlier observation, a violation takes credit away and shuts the milestone until it is
+observed unsatisfied, and an episode cut short by its budget keeps its credit while its records
+are undone.
+"""
+
+[tactics]
+A1 = """
+Every published checkpoint grader treats credit as monotone and derives it from the state it can
+see; here credit is revocable, re-armable, and granted one layer per observation, so the more
+faithfully the agent follows the published shape the more graded lines it gets wrong.
+"""
+A2 = """
+The brief states the rules as a grading policy for recorded runs and never names re-arming,
+transitive revocation, undo logging or write-set driven evaluation, so the search query that would
+retrieve a matching implementation cannot be formed from the text.
+"""
+B2 = """
+Observation timing, the strictly-earlier prerequisite rule, settling, shutting, the dependant cone,
+per-action budgeting and the two different rollbacks all have to hold at once, and each one changes
+what another one means rather than sitting beside it.
+"""
+C1 = """
+Both sides are graded: a run with no violation and enough budget must still credit every goal at
+the right observation, so an engine that turns conservative and withholds credit fails the ordinary
+trails as surely as a permissive one fails the adversarial ones.
+"""
+C3 = """
+Copying the store per step and per observation, and sweeping the whole rubric at every observation,
+stay exactly correct and are killed by the two stated wide trails, so a semantically perfect first
+implementation still scores zero.
+"""
+C4 = """
+Every graded trail must match line for line, the enumerated trails aim one at each decision and at
+the must-still-work side of each fence, and the generated population is drawn from a seed taken
+after the agent's container is gone.
+"""
+guard = """
+Seven files under /app/crd are collected and nothing else; the parser, the driver and the output
+writer are replaced by the verifier's pristine copy before any trail runs, so the grammar, the
+trail files and the printing cannot be redefined and a new file put beside the seven is never read.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a prerequisite must be credited at a strictly earlier observation", b = "an err step produces no observation", why = "a retried step costs the episode a whole layer of the rubric, so how the trail is cut into steps decides how much of a chain can ever be credited" },
+  { a = "credit settles and survives the predicate going false", b = "a firing shuts the goal it names until it is observed unsatisfied", why = "settling makes credit accumulated state and shutting makes that state non-monotone, so neither a recomputation from the store nor a plain credited set can express what is graded" },
+  { a = "credit is applied before bars fire within one observation", b = "a fired bar strips the transitive dependants of the goal it names", why = "a goal can be credited and stripped at the same observation, and reversing the two halves changes which dependants had credit to lose" },
+  { a = "an episode cut short by its budget has its records undone", b = "bars compare against the previous observation of the same episode", why = "the undo decides the records the next episode's baseline records, and the baseline decides which transitions the next episode can see at all" },
+  { a = "the budget charges the actions of a step that ended err", b = "the action that would cross the budget is not performed and its step is rolled back", why = "a retry can spend the budget without changing a record, so the episode can close on a step that left nothing behind" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A trail with no violation, room in the budget and one goal satisfied per step must credit the whole
+rubric in order and report the full weight, so an engine that withholds credit to stay safe, or that
+waits for a chain to be complete before crediting any of it, fails on the everyday run.
+"""
+late_case = """
+A goal is credited, a later step trips a violation that names its prerequisite, the dependant is
+opened and the prerequisite shut, and only after the prerequisite is observed unsatisfied and then
+satisfied again at a still later observation can the dependant be credited one observation after it.
+"""
+oracle_denied = """
+The engine prints only what it decided, never what was expected, and the sample trails in the tree
+are short enough to agree under several readings; a solver that runs its rebuild and reads a
+plausible trace has confirmed nothing, because the readings separate only on shapes the verifier
+constructs.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored per-goal credited flag or score in the trail file", closed_by = "trail files carry only the rubric, the seeds and the recorded actions, and no field anywhere states whether a goal was reached or what an episode scored" },
+  { what = "the shipped engine's own bookkeeping naming the three goal states", closed_by = "the shipped engine keeps a plain credited set and recomputes from the store, so nothing in the tree names shutting, re-arming or the dependant cone" },
+  { what = "a helper that returns the transitive dependants of a goal, or the keys a predicate reads", closed_by = "neither exists in the shipped tree; the prerequisite lists are parsed into plain fields and every consumer of them is a file the agent rewrites" },
+  { what = "the sample trails printing a trace that decides the load-bearing readings", closed_by = "the two shipped trails are searched for the smallest pair that exercises the grammar while leaving the ordering, the shutting and the budget readings undecided" },
+  { what = "the previous-observation values kept as a full copy, which would name the diff the fast path needs", closed_by = "the shipped engine reads the current store directly for its violation test, so nothing in the tree says an observation has a previous at all" },
+]
+derived_quantities = """
+The trail stores primitives only: seeded record values, the rubric with weights and prerequisite
+ids, the violation predicates and the recorded actions. Nothing stores an observation count, a
+credited set, a cone, a write set or an episode score, all of which the task is about deriving.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Two of them, each exactly correct and each measured: copying the whole record store at the start of
+every step and again at every observation so a failed step can be restored and violations compared
+against the previous observation, at 32.4 seconds against the reference's 0.19 on the wide trail;
+and sweeping every goal of the rubric at every observation, taking a copy of the credit state to
+read prerequisites from, at 22.9 seconds against 0.69 on the deep trail.
+"""
+invariant = """
+A step can only change the records it wrote, and a goal reads only the keys its predicate names and
+becomes eligible only when one of its prerequisites is credited, so an observation has to look at
+the keys the step wrote and at the goals whose prerequisite moved, and at nothing else.
+"""
+input_scale = "one trail of fifty thousand records over sixteen thousand steps, and one of four thousand six hundred goals over forty-two thousand steps"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "observation after every action rather than at the end of an ok step", hand_case = "a step that sets a key and then clears it again inside the same step, so the goal is satisfied only in the middle" },
+  { reading = "a prerequisite credited at the same observation counts, so a chain is credited in one pass", hand_case = "a step that satisfies a goal and its prerequisite together, where only the prerequisite may be credited there" },
+  { reading = "credit recomputed from the store at each observation, so it regresses", hand_case = "a goal credited at one step and its key cleared at the next, with no violation anywhere in the episode" },
+  { reading = "a fired bar strips only the goal it names and leaves its dependants credited", hand_case = "a two-link chain both credited, then a violation naming the first link" },
+  { reading = "a fired bar shuts the dependants as well as the goal it names", hand_case = "a dependant whose predicate never fails again, which must be creditable once its prerequisite is back" },
+  { reading = "a shut goal is creditable again as soon as its predicate holds", hand_case = "a violation firing at an observation where the barred goal's predicate still holds, and holds at every later observation" },
+  { reading = "bars tested before credit within one observation", hand_case = "a step that both satisfies a goal and trips the violation naming it, where the goal is credited and then stripped" },
+  { reading = "violations read as predicates over the current records rather than transitions", hand_case = "an episode whose baseline already has the key absent, so no loss ever happens" },
+  { reading = "a step that ended err keeps its records", hand_case = "a step that clears a key and ends err, with a violation that would fire on the loss" },
+  { reading = "the budget charges steps rather than actions, or spares the actions of a failed step", hand_case = "an episode whose only failed step spends the last of the budget without changing a record" },
+  { reading = "an episode closed on budget keeps its records, or loses its credit", hand_case = "a two-episode trail where the second episode's baseline depends on whether the first was undone" },
+  { reading = "the transitive dependants stripped in discovery order rather than ascending id order", hand_case = "a goal with two dependants whose ids are not in the order a walk from the root reaches them" },
+]
+correct_variants = [
+  "an implementation holding the store as one dict with an undo log of (key, old value) pairs, goal states in an array, and dependants as an adjacency list walked with an explicit stack",
+  "an implementation holding the store as a dict of values with a per-step overlay dict merged on ok, goal states in three sets, dependants resolved by a reverse index built once and walked breadth-first from a deque",
+]
+
+[shape]
+environment_py_lines = 300
+editable_files = 7
+reference_lines = 300

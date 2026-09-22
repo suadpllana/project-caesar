@@ -172,7 +172,8 @@ Once agreed, this does not change without the contributor's explicit approval.
 | `harbor run -a oracle` = 1 | pass | harbor is not installable here (PyPI ships it for Python >= 3.12, this box is 3.11); `tools/docker_trial.py scan-chunk-pick oracle` is the two-container stand-in and scored 1 with 34 grader tests passing |
 | `harbor run -a nop` = 0 | pass | `tools/docker_trial.py scan-chunk-pick nop` scored 0, 19 of 34 tests failing |
 | Cheats all score 0 | pass | 39 of 39 scored 0 in `--all`; `authoring/scan-chunk-pick/cheat_report.py` names the enumerated case that catches each semantic one |
-| Correct variants score 1 | pass | ok-slice and ok-bisect through `--dir` |
+| Correct variants score 1 | pass | ok-slice and ok-bisect through `--dir`, 34 grader tests each |
+| The wall clock fires in the container | pass | `cheat-slow-rowid-set` is exactly correct on every enumerated file and scores 0 in the two-container trial, so the limit is enforced where it is claimed rather than only on the host |
 | `tracecheck.py` (every graded assertion traced) | pass | clean, 75 graded rows |
 | `readingcheck.py` | pass | 23 readings, all separated by the enumerated set |
 | `forgecheck.py` / `onelinecheck.py` | pass | forgery carries gt.json verbatim and scores 0; two of three graded decisions have no exact rule at depth 2 |

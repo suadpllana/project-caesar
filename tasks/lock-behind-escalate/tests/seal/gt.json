@@ -1,0 +1,391 @@
+{
+ "behind-conflict": [
+  "grant T1 t.1 s",
+  "wait T2 t.1 x",
+  "wait T3 t s",
+  "grant T4 t.2 s",
+  "grant T1 t.2 s",
+  "end T4 1",
+  "grant T1 t.3 s",
+  "end T1 3",
+  "grant T2 t.1 x",
+  "end T2 1",
+  "grant T3 t s",
+  "end T3 1"
+ ],
+ "behind-writer": [
+  "grant T1 t.1 s",
+  "wait T2 t.1 x",
+  "wait T3 t.1 s",
+  "grant T1 t.2 s",
+  "end T1 2",
+  "grant T2 t.1 x",
+  "end T2 1",
+  "grant T3 t.1 s",
+  "end T3 1"
+ ],
+ "conf-mode": [
+  "grant T1 t.1 s",
+  "grant T2 t.1 s",
+  "wait T3 t.1 x",
+  "end T1 1",
+  "end T2 1",
+  "grant T3 t.1 x",
+  "end T3 1"
+ ],
+ "conf-overlap": [
+  "grant T1 t x",
+  "wait T2 t.1 s",
+  "grant T3 u s",
+  "wait T4 u x",
+  "wait T1 u.1 s",
+  "end T3 1",
+  "grant T4 u x",
+  "end T4 1",
+  "grant T1 u.1 s",
+  "end T1 2",
+  "grant T2 t.1 s",
+  "end T2 1"
+ ],
+ "cover-same": [
+  "grant T1 t.1 x",
+  "grant T2 t.2 s",
+  "grant T1 t.1 s",
+  "grant T2 t.2 s",
+  "grant T1 t.1 x",
+  "end T2 1",
+  "end T1 1"
+ ],
+ "cover-table": [
+  "grant T1 t x",
+  "grant T2 u s",
+  "grant T1 t.1 s",
+  "grant T2 u.1 s",
+  "grant T1 t.2 x",
+  "end T2 1",
+  "end T1 1"
+ ],
+ "cross-behind": [
+  "grant T1 t.1 s",
+  "wait T2 t x",
+  "wait T3 t.2 s",
+  "grant T1 t.3 s",
+  "end T1 2",
+  "grant T2 t x",
+  "end T2 1",
+  "grant T3 t.2 s",
+  "end T3 1"
+ ],
+ "dead-fewest": [
+  "grant T1 t.1 x",
+  "grant T2 t.2 x",
+  "grant T1 t.3 s",
+  "grant T2 t.4 s",
+  "wait T2 t.1 s",
+  "wait T1 t.2 s",
+  "dead T1 1",
+  "grant T2 t.1 s",
+  "end T2 3"
+ ],
+ "dead-then-grant": [
+  "grant T1 t.1 x",
+  "grant T2 t.2 x",
+  "wait T3 t.1 s",
+  "wait T1 t.2 s",
+  "wait T2 t.1 s",
+  "dead T2 1",
+  "grant T1 t.2 s",
+  "end T1 2",
+  "grant T3 t.1 s",
+  "end T3 1"
+ ],
+ "dead-tie-recent": [
+  "grant T1 t.1 x",
+  "grant T2 t.2 x",
+  "grant T1 t.3 s",
+  "wait T2 t.1 s",
+  "wait T1 t.2 s",
+  "dead T1 1",
+  "grant T2 t.1 s",
+  "end T2 2"
+ ],
+ "drop-none": [
+  "grant T1 t.1 s",
+  "end T1 1"
+ ],
+ "drop-table": [
+  "grant T1 t.1 x",
+  "wait T2 t.1 s",
+  "grant T3 v.1 s",
+  "grant T1 t x",
+  "grant T3 v.2 s",
+  "grant T3 v.3 s",
+  "grant T2 t.1 s",
+  "end T2 1",
+  "grant T3 v.4 s",
+  "grant T1 u.1 s",
+  "end T3 4",
+  "end T1 1"
+ ],
+ "esc-abandon": [
+  "grant T1 t.5 s",
+  "grant T2 t.1 x",
+  "grant T1 u.1 s",
+  "grant T2 t.2 x",
+  "grant T1 u.2 s",
+  "esc T1 u s",
+  "grant T2 t.3 x",
+  "end T1 2",
+  "end T2 3"
+ ],
+ "esc-count-cover": [
+  "grant T1 t x",
+  "grant T1 t.1 s",
+  "grant T1 t.2 s",
+  "grant T1 t.3 x",
+  "end T1 1"
+ ],
+ "esc-count-drop": [
+  "grant T1 t.1 s",
+  "grant T1 t.2 s",
+  "grant T1 t.3 s",
+  "esc T1 t s",
+  "end T1 1"
+ ],
+ "esc-holder-blocks": [
+  "grant T1 t.5 s",
+  "grant T2 t.1 x",
+  "grant T1 u.1 s",
+  "grant T2 t.2 x",
+  "end T1 2",
+  "end T2 2"
+ ],
+ "esc-holder-shared": [
+  "grant T1 t.5 s",
+  "grant T2 t.1 s",
+  "grant T1 u.1 s",
+  "grant T2 t.2 s",
+  "esc T2 t s",
+  "end T1 2",
+  "end T2 1"
+ ],
+ "esc-mode": [
+  "grant T1 t.1 s",
+  "grant T2 u.3 s",
+  "grant T1 t.2 x",
+  "esc T1 t x",
+  "end T2 1",
+  "end T1 1"
+ ],
+ "esc-retry": [
+  "grant T1 t.5 x",
+  "grant T2 t.1 s",
+  "grant T1 u.9 s",
+  "grant T2 t.2 s",
+  "end T1 2",
+  "grant T2 u.1 s",
+  "grant T2 t.3 s",
+  "esc T2 t s",
+  "end T2 2"
+ ],
+ "esc-trigger": [
+  "grant T1 t.1 s",
+  "grant T2 u.3 x",
+  "grant T1 t.2 s",
+  "esc T1 t s",
+  "end T2 1",
+  "end T1 1"
+ ],
+ "esc-under-shared": [
+  "grant T1 t s",
+  "grant T2 t.3 s",
+  "grant T1 t.1 x",
+  "end T2 1",
+  "grant T1 t.2 x",
+  "esc T1 t x",
+  "end T1 1"
+ ],
+ "esc-waiter-blocks": [
+  "grant T1 t.5 s",
+  "wait T2 t.5 x",
+  "grant T3 t.1 s",
+  "grant T1 u.1 s",
+  "grant T3 t.2 s",
+  "grant T1 v.1 s",
+  "end T3 2",
+  "end T1 3",
+  "grant T2 t.5 x",
+  "end T2 1"
+ ],
+ "esc-waiter-depends": [
+  "grant T1 t.5 s",
+  "wait T2 t.5 x",
+  "grant T1 u.1 s",
+  "grant T1 t.1 s",
+  "esc T1 t s",
+  "end T1 2",
+  "grant T2 t.5 x",
+  "end T2 1"
+ ],
+ "order-first-line": [
+  "grant T2 t.1 x",
+  "wait T1 t.1 x",
+  "end T2 1",
+  "grant T1 t.1 x",
+  "end T1 1"
+ ],
+ "ordinary": [
+  "grant T1 t.1 s",
+  "grant T2 t.1 s",
+  "grant T3 v.1 x",
+  "grant T1 t.2 x",
+  "grant T2 t.3 x",
+  "grant T3 v.2 x",
+  "grant T1 u s",
+  "end T2 2",
+  "end T3 2",
+  "end T1 3"
+ ],
+ "plain-pass": [
+  "grant T1 t.1 x",
+  "wait T2 t.1 s",
+  "grant T3 t.2 s",
+  "grant T1 t.3 s",
+  "grant T3 t.3 s",
+  "end T1 2",
+  "grant T2 t.1 s",
+  "end T2 1",
+  "end T3 2"
+ ],
+ "settle-earliest": [
+  "grant T1 t.1 x",
+  "grant T2 u.2 s",
+  "grant T3 u.3 s",
+  "grant T1 t.2 x",
+  "wait T2 t.2 s",
+  "wait T3 t.1 s",
+  "grant T1 u.1 s",
+  "end T1 3",
+  "grant T2 t.2 s",
+  "grant T3 t.1 s",
+  "end T2 2",
+  "end T3 2"
+ ],
+ "settle-order": [
+  "grant T1 t.1 x",
+  "wait T2 t.1 s",
+  "wait T3 t.1 x",
+  "wait T4 t.1 s",
+  "grant T1 t.2 s",
+  "end T1 2",
+  "grant T2 t.1 s",
+  "end T2 1",
+  "grant T3 t.1 x",
+  "end T3 1",
+  "grant T4 t.1 s",
+  "end T4 1"
+ ],
+ "skip-chain": [
+  "grant T1 t.1 s",
+  "grant T2 t.2 s",
+  "wait T3 t.1 x",
+  "wait T4 t.2 x",
+  "grant T1 t.4 s",
+  "end T2 1",
+  "grant T4 t.2 x",
+  "wait T4 t.1 s",
+  "wait T1 t.2 s",
+  "grant T4 t.1 s",
+  "end T4 2",
+  "grant T1 t.2 s",
+  "end T1 3",
+  "grant T3 t.1 x",
+  "end T3 1"
+ ],
+ "skip-late": [
+  "grant T1 t.1 s",
+  "wait T2 t.1 x",
+  "grant T3 t.2 x",
+  "grant T1 t.3 s",
+  "wait T3 t.1 s",
+  "wait T1 t.2 s",
+  "grant T3 t.1 s",
+  "end T3 2",
+  "grant T1 t.2 s",
+  "end T1 3",
+  "grant T2 t.1 x",
+  "end T2 1"
+ ],
+ "skip-soft-path": [
+  "grant T1 t.1 s",
+  "wait T2 t.1 x",
+  "wait T3 t.1 s",
+  "grant T1 t.2 s",
+  "grant T1 t.1 x",
+  "end T1 2",
+  "grant T2 t.1 x",
+  "end T2 1",
+  "grant T3 t.1 s",
+  "end T3 1"
+ ],
+ "skip-two": [
+  "grant T1 t.1 s",
+  "wait T2 t.1 x",
+  "wait T3 t.1 x",
+  "grant T1 t.2 s",
+  "grant T1 t.1 x",
+  "end T1 2",
+  "grant T2 t.1 x",
+  "end T2 1",
+  "grant T3 t.1 x",
+  "end T3 1"
+ ],
+ "skip-upgrade": [
+  "grant T1 t.1 s",
+  "wait T2 t.1 x",
+  "grant T1 t.2 s",
+  "grant T1 t.1 x",
+  "end T1 2",
+  "grant T2 t.1 x",
+  "end T2 1"
+ ],
+ "soft-not-dead": [
+  "grant T3 t.1 s",
+  "grant T1 t.1 s",
+  "wait T2 t.1 x",
+  "grant T3 t.3 s",
+  "grant T1 t.2 s",
+  "grant T3 t.4 s",
+  "wait T1 t.1 x",
+  "end T3 3",
+  "grant T1 t.1 x",
+  "end T1 2",
+  "grant T2 t.1 x",
+  "end T2 1"
+ ],
+ "subsume-s": [
+  "grant T1 t.1 s",
+  "grant T2 t.2 s",
+  "wait T1 t.2 x",
+  "end T2 1",
+  "grant T1 t.2 x",
+  "grant T1 t s",
+  "end T1 2"
+ ],
+ "subsume-x": [
+  "grant T1 t.1 s",
+  "grant T2 t.1 s",
+  "grant T1 t.2 x",
+  "end T2 1",
+  "grant T1 t x",
+  "end T1 1"
+ ],
+ "upgrade-place": [
+  "grant T1 t.1 s",
+  "grant T2 t.1 s",
+  "grant T1 t.2 s",
+  "end T2 1",
+  "grant T1 t.1 x",
+  "end T1 2"
+ ]
+}

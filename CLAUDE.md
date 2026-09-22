@@ -286,6 +286,41 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   The shapes had to change, not the claims. The metadata I had already drafted would have stated
   two boundaries that did not exist - write the number after measuring it, never before.
 
+## Lessons, measured (2026-09-22, `lock-behind-escalate`)
+
+- **A reading the enumerated set cannot separate may be a theorem, not a gap.** The reading
+  "a request waits behind later conflicting waiters too" moved 0 of 37 hand scripts and 0 of
+  96 generated ones. It is not under-covered: a later conflicting waiter is itself behind the
+  request, so it always depends on the requester and the exception always applies. The reading
+  is a correct variant, the word "earlier" in the brief is redundant (kept, because the same
+  numbers order the settle), and `cheat_report.py` reported it in one line where a reward of 0
+  would have hidden it for good.
+- **Two engines can print the same lines one round apart.** `drop-covered-table` released the
+  table record on a covered drop; the survivor was granted in the settle of the wrong op, and
+  since the next op was the same transaction's, the trace was identical. A third transaction
+  whose lines mark the rounds made the timing visible. When a wrong reading changes *when*
+  something happens, the hand case needs a clock, and other transactions' lines are the clock.
+- **A scale family is a shape, not a size.** Six hundred transactions over twenty tables took
+  the search-per-pair manager 71 s and the reference 14 s: a factor a clock cannot fairly cut,
+  and the reference itself was over any honest limit. The fan of readers soft-blocked behind one
+  writer at the head of a long chain, with unrelated ops keeping the manager settling, costs a
+  fresh search the fan times the chain at every pass - over 300 s against 4.5 s - and it is
+  where the gate lives. Write the wrong implementation down, derive the shape that makes its
+  cost explode, and generate that shape; a big random script measures nothing.
+- **Both implementations can be too slow to be a model of anything.** The first sealed model
+  rebuilt the whole wait relation for every question and took 149 s on one script; the grader
+  would have spent eight minutes of its budget checking three of them. A sealed model has to run
+  the graded population inside the verifier's clock, so its structure is allowed to differ from
+  the reference and is not allowed to be naive.
+- **`pkill -f` matches the shell that ran it.** Two shells died with exit 144 because the
+  pattern they killed was in their own command line. Kill by pid from a script file, or match
+  a pattern the shell cannot contain.
+- **No registry could be pulled from here, and the base image did not need one.** Every image
+  CDN was refused by the egress policy while the Ubuntu archive was open, so a minimal
+  `debootstrap` rootfs with `python3.12` and `pip`, imported as `python:3.12-slim`, stood in
+  for the real base; the shipped Dockerfiles stayed verbatim and `tools/docker_trial.py`
+  learned to build and run on the host network when told to.
+
 ## Lessons, measured (2026-09-09, the difficulty checker)
 
 - **The passing shape was already written down; nobody had scored against it.** The ten intake

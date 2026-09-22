@@ -1,0 +1,3023 @@
+cfg 5
+T1 lock t.1 s
+T1 lock t.2 x
+T1 commit
+T2 lock t.2 x
+T2 lock t.3 x
+T2 commit
+T3 lock t.3 x
+T3 lock t.4 x
+T3 commit
+T4 lock t.4 x
+T4 lock t.5 x
+T4 commit
+T5 lock t.5 x
+T5 lock t.6 x
+T5 commit
+T6 lock t.6 x
+T6 lock t.7 x
+T6 commit
+T7 lock t.7 x
+T7 lock t.8 x
+T7 commit
+T8 lock t.8 x
+T8 lock t.9 x
+T8 commit
+T9 lock t.9 x
+T9 lock t.10 x
+T9 commit
+T10 lock t.10 x
+T10 lock t.11 x
+T10 commit
+T11 lock t.11 x
+T11 lock t.12 x
+T11 commit
+T12 lock t.12 x
+T12 lock t.13 x
+T12 commit
+T13 lock t.13 x
+T13 lock t.14 x
+T13 commit
+T14 lock t.14 x
+T14 lock t.15 x
+T14 commit
+T15 lock t.15 x
+T15 lock t.16 x
+T15 commit
+T16 lock t.16 x
+T16 lock t.17 x
+T16 commit
+T17 lock t.17 x
+T17 lock t.18 x
+T17 commit
+T18 lock t.18 x
+T18 lock t.19 x
+T18 commit
+T19 lock t.19 x
+T19 lock t.20 x
+T19 commit
+T20 lock t.20 x
+T20 lock t.21 x
+T20 commit
+T21 lock t.21 x
+T21 lock t.22 x
+T21 commit
+T22 lock t.22 x
+T22 lock t.23 x
+T22 commit
+T23 lock t.23 x
+T23 lock t.24 x
+T23 commit
+T24 lock t.24 x
+T24 lock t.25 x
+T24 commit
+T25 lock t.25 x
+T25 lock t.26 x
+T25 commit
+T26 lock t.26 x
+T26 lock t.27 x
+T26 commit
+T27 lock t.27 x
+T27 lock t.28 x
+T27 commit
+T28 lock t.28 x
+T28 lock t.29 x
+T28 commit
+T29 lock t.29 x
+T29 lock t.30 x
+T29 commit
+T30 lock t.30 x
+T30 lock t.31 x
+T30 commit
+T31 lock t.31 x
+T31 lock t.32 x
+T31 commit
+T32 lock t.32 x
+T32 lock t.33 x
+T32 commit
+T33 lock t.33 x
+T33 lock t.34 x
+T33 commit
+T34 lock t.34 x
+T34 lock t.35 x
+T34 commit
+T35 lock t.35 x
+T35 lock t.36 x
+T35 commit
+T36 lock t.36 x
+T36 lock t.37 x
+T36 commit
+T37 lock t.37 x
+T37 lock t.38 x
+T37 commit
+T38 lock t.38 x
+T38 lock t.39 x
+T38 commit
+T39 lock t.39 x
+T39 lock t.40 x
+T39 commit
+T40 lock t.40 x
+T40 lock t.41 x
+T40 commit
+T41 lock t.41 x
+T41 lock t.42 x
+T41 commit
+T42 lock t.42 x
+T42 lock t.43 x
+T42 commit
+T43 lock t.43 x
+T43 lock t.44 x
+T43 commit
+T44 lock t.44 x
+T44 lock t.45 x
+T44 commit
+T45 lock t.45 x
+T45 lock t.46 x
+T45 commit
+T46 lock t.46 x
+T46 lock t.47 x
+T46 commit
+T47 lock t.47 x
+T47 lock t.48 x
+T47 commit
+T48 lock t.48 x
+T48 lock t.49 x
+T48 commit
+T49 lock t.49 x
+T49 lock t.50 x
+T49 commit
+T50 lock t.50 x
+T50 lock t.51 x
+T50 commit
+T51 lock t.51 x
+T51 lock t.52 x
+T51 commit
+T52 lock t.52 x
+T52 lock t.53 x
+T52 commit
+T53 lock t.53 x
+T53 lock t.54 x
+T53 commit
+T54 lock t.54 x
+T54 lock t.55 x
+T54 commit
+T55 lock t.55 x
+T55 lock t.56 x
+T55 commit
+T56 lock t.56 x
+T56 lock t.57 x
+T56 commit
+T57 lock t.57 x
+T57 lock t.58 x
+T57 commit
+T58 lock t.58 x
+T58 lock t.59 x
+T58 commit
+T59 lock t.59 x
+T59 lock t.60 x
+T59 commit
+T60 lock t.60 x
+T60 lock t.61 x
+T60 commit
+T61 lock t.61 x
+T61 lock t.62 x
+T61 commit
+T62 lock t.62 x
+T62 lock t.63 x
+T62 commit
+T63 lock t.63 x
+T63 lock t.64 x
+T63 commit
+T64 lock t.64 x
+T64 lock t.65 x
+T64 commit
+T65 lock t.65 x
+T65 lock t.66 x
+T65 commit
+T66 lock t.66 x
+T66 lock t.67 x
+T66 commit
+T67 lock t.67 x
+T67 lock t.68 x
+T67 commit
+T68 lock t.68 x
+T68 lock t.69 x
+T68 commit
+T69 lock t.69 x
+T69 lock t.70 x
+T69 commit
+T70 lock t.70 x
+T70 lock t.71 x
+T70 commit
+T71 lock t.71 x
+T71 lock t.72 x
+T71 commit
+T72 lock t.72 x
+T72 lock t.73 x
+T72 commit
+T73 lock t.73 x
+T73 lock t.74 x
+T73 commit
+T74 lock t.74 x
+T74 lock t.75 x
+T74 commit
+T75 lock t.75 x
+T75 lock t.76 x
+T75 commit
+T76 lock t.76 x
+T76 lock t.77 x
+T76 commit
+T77 lock t.77 x
+T77 lock t.78 x
+T77 commit
+T78 lock t.78 x
+T78 lock t.79 x
+T78 commit
+T79 lock t.79 x
+T79 lock t.80 x
+T79 commit
+T80 lock t.80 x
+T80 lock t.81 x
+T80 commit
+T81 lock t.81 x
+T81 lock t.82 x
+T81 commit
+T82 lock t.82 x
+T82 lock t.83 x
+T82 commit
+T83 lock t.83 x
+T83 lock t.84 x
+T83 commit
+T84 lock t.84 x
+T84 lock t.85 x
+T84 commit
+T85 lock t.85 x
+T85 lock t.86 x
+T85 commit
+T86 lock t.86 x
+T86 lock t.87 x
+T86 commit
+T87 lock t.87 x
+T87 lock t.88 x
+T87 commit
+T88 lock t.88 x
+T88 lock t.89 x
+T88 commit
+T89 lock t.89 x
+T89 lock t.90 x
+T89 commit
+T90 lock t.90 x
+T90 lock t.91 x
+T90 commit
+T91 lock t.91 x
+T91 lock t.92 x
+T91 commit
+T92 lock t.92 x
+T92 lock t.93 x
+T92 commit
+T93 lock t.93 x
+T93 lock t.94 x
+T93 commit
+T94 lock t.94 x
+T94 lock t.95 x
+T94 commit
+T95 lock t.95 x
+T95 lock t.96 x
+T95 commit
+T96 lock t.96 x
+T96 lock t.97 x
+T96 commit
+T97 lock t.97 x
+T97 lock t.98 x
+T97 commit
+T98 lock t.98 x
+T98 lock t.99 x
+T98 commit
+T99 lock t.99 x
+T99 lock t.100 x
+T99 commit
+T100 lock t.100 x
+T100 lock t.101 x
+T100 commit
+T101 lock t.101 x
+T101 lock t.102 x
+T101 commit
+T102 lock t.102 x
+T102 lock t.103 x
+T102 commit
+T103 lock t.103 x
+T103 lock t.104 x
+T103 commit
+T104 lock t.104 x
+T104 lock t.105 x
+T104 commit
+T105 lock t.105 x
+T105 lock t.106 x
+T105 commit
+T106 lock t.106 x
+T106 lock u.12 x
+T106 lock u.9 s
+T106 lock u.19 s
+T106 lock u.18 s
+T106 lock u.24 s
+T106 lock u.32 s
+T106 lock u.25 x
+T106 lock u.39 s
+T106 lock u.5 x
+T106 lock u.33 x
+T106 lock u.7 x
+T106 lock u.39 x
+T106 lock u.27 s
+T106 lock u.27 s
+T106 commit
+T107 lock t.1 x
+T107 commit
+T108 lock t.1 s
+T108 commit
+T109 lock t.1 s
+T109 commit
+T110 lock t.1 s
+T110 commit
+T111 lock t.1 s
+T111 commit
+T112 lock t.1 s
+T112 commit
+T113 lock t.1 s
+T113 commit
+T114 lock t.1 s
+T114 commit
+T115 lock t.1 s
+T115 commit
+T116 lock t.1 s
+T116 commit
+T117 lock t.1 s
+T117 commit
+T118 lock t.1 s
+T118 commit
+T119 lock t.1 s
+T119 commit
+T120 lock t.1 s
+T120 commit
+T121 lock t.1 s
+T121 commit
+T122 lock t.1 s
+T122 commit
+T123 lock t.1 s
+T123 commit
+T124 lock t.1 s
+T124 commit
+T125 lock t.1 s
+T125 commit
+T126 lock t.1 s
+T126 commit
+T127 lock t.1 s
+T127 commit
+T128 lock t.1 s
+T128 commit
+T129 lock t.1 s
+T129 commit
+T130 lock t.1 s
+T130 commit
+T131 lock t.1 s
+T131 commit
+T132 lock t.1 s
+T132 commit
+T133 lock t.1 s
+T133 commit
+T134 lock t.1 s
+T134 commit
+T135 lock t.1 s
+T135 commit
+T136 lock t.1 s
+T136 commit
+T137 lock t.1 s
+T137 commit
+T138 lock t.1 s
+T138 commit
+T139 lock t.1 s
+T139 commit
+T140 lock t.1 s
+T140 commit
+T141 lock t.1 s
+T141 commit
+T142 lock t.1 s
+T142 commit
+T143 lock t.1 s
+T143 commit
+T144 lock t.1 s
+T144 commit
+T145 lock t.1 s
+T145 commit
+T146 lock t.1 s
+T146 commit
+T147 lock t.1 s
+T147 commit
+T148 lock t.1 s
+T148 commit
+T149 lock t.1 s
+T149 commit
+T150 lock t.1 s
+T150 commit
+T151 lock t.1 s
+T151 commit
+T152 lock t.1 s
+T152 commit
+T153 lock t.1 s
+T153 commit
+T154 lock t.1 s
+T154 commit
+T155 lock t.1 s
+T155 commit
+T156 lock t.1 s
+T156 commit
+T157 lock t.1 s
+T157 commit
+T158 lock t.1 s
+T158 commit
+T159 lock t.1 s
+T159 commit
+T160 lock t.1 s
+T160 commit
+T161 lock t.1 s
+T161 commit
+T162 lock t.1 s
+T162 commit
+T163 lock t.1 s
+T163 commit
+T164 lock t.1 s
+T164 commit
+T165 lock t.1 s
+T165 commit
+T166 lock t.1 s
+T166 commit
+T167 lock t.1 s
+T167 commit
+T168 lock t.1 s
+T168 commit
+T169 lock t.1 s
+T169 commit
+T170 lock t.1 s
+T170 commit
+T171 lock t.1 s
+T171 commit
+T172 lock t.1 s
+T172 commit
+T173 lock t.1 s
+T173 commit
+T174 lock t.1 s
+T174 commit
+T175 lock t.1 s
+T175 commit
+T176 lock t.1 s
+T176 commit
+T177 lock t.1 s
+T177 commit
+T178 lock t.1 s
+T178 commit
+T179 lock t.1 s
+T179 commit
+T180 lock t.1 s
+T180 commit
+T181 lock t.1 s
+T181 commit
+T182 lock t.1 s
+T182 commit
+T183 lock t.1 s
+T183 commit
+T184 lock t.1 s
+T184 commit
+T185 lock t.1 s
+T185 commit
+T186 lock t.1 s
+T186 commit
+T187 lock t.1 s
+T187 commit
+T188 lock t.1 s
+T188 commit
+T189 lock t.1 s
+T189 commit
+T190 lock t.1 s
+T190 commit
+T191 lock t.1 s
+T191 commit
+T192 lock t.1 s
+T192 commit
+T193 lock t.1 s
+T193 commit
+T194 lock t.1 s
+T194 commit
+T195 lock t.1 s
+T195 commit
+T196 lock t.1 s
+T196 commit
+T197 lock t.1 s
+T197 commit
+T198 lock t.1 s
+T198 commit
+T199 lock t.1 s
+T199 commit
+T200 lock t.1 s
+T200 commit
+T201 lock t.1 s
+T201 commit
+T202 lock t.1 s
+T202 commit
+T203 lock t.1 s
+T203 commit
+T204 lock t.1 s
+T204 commit
+T205 lock t.1 s
+T205 commit
+T206 lock t.1 s
+T206 commit
+T207 lock t.1 s
+T207 commit
+T208 lock t.1 s
+T208 commit
+T209 lock t.1 s
+T209 commit
+T210 lock t.1 s
+T210 commit
+T211 lock t.1 s
+T211 commit
+T212 lock t.1 s
+T212 commit
+T213 lock t.1 s
+T213 commit
+T214 lock t.1 s
+T214 commit
+T215 lock t.1 s
+T215 commit
+T216 lock t.1 s
+T216 commit
+T217 lock t.1 s
+T217 commit
+T218 lock t.1 s
+T218 commit
+T219 lock t.1 s
+T219 commit
+T220 lock t.1 s
+T220 commit
+T221 lock t.1 s
+T221 commit
+T222 lock t.1 s
+T222 commit
+T223 lock t.1 s
+T223 commit
+T224 lock t.1 s
+T224 commit
+T225 lock t.1 s
+T225 commit
+T226 lock t.1 s
+T226 commit
+T227 lock t.1 s
+T227 commit
+T228 lock t.1 s
+T228 commit
+T229 lock t.1 s
+T229 commit
+T230 lock t.1 s
+T230 commit
+T231 lock t.1 s
+T231 commit
+T232 lock t.1 s
+T232 commit
+T233 lock t.1 s
+T233 commit
+T234 lock t.1 s
+T234 commit
+T235 lock t.1 s
+T235 commit
+T236 lock t.1 s
+T236 commit
+T237 lock t.1 s
+T237 commit
+T238 lock t.1 s
+T238 commit
+T239 lock t.1 s
+T239 commit
+T240 lock t.1 s
+T240 commit
+T241 lock t.1 s
+T241 commit
+T242 lock t.1 s
+T242 commit
+T243 lock t.1 s
+T243 commit
+T244 lock t.1 s
+T244 commit
+T245 lock t.1 s
+T245 commit
+T246 lock v1.24 s
+T246 lock v1.17 s
+T246 lock v5.21 x
+T246 lock v5.1 s
+T246 lock v4.15 s
+T246 lock v2.6 s
+T246 lock v6.4 s
+T246 lock v6.7 s
+T246 commit
+T247 lock v4.14 s
+T247 lock v6.16 x
+T247 lock v1.21 x
+T247 lock v2.6 s
+T247 lock v5.1 x
+T247 lock v3.6 x
+T247 lock v6.24 s
+T247 lock v5.12 s
+T247 lock v2.19 s
+T247 lock v2.11 x
+T247 commit
+T248 lock v1.1 s
+T248 lock v1.3 s
+T248 lock v5.24 s
+T248 lock v5.7 x
+T248 lock v2.7 x
+T248 lock v5.18 s
+T248 lock v4.25 s
+T248 lock v1.22 s
+T248 lock v2.10 s
+T248 lock v2.20 s
+T248 lock v3.20 s
+T248 commit
+T249 lock v1.3 s
+T249 lock v1.20 x
+T249 lock v1.11 s
+T249 lock v6.15 s
+T249 lock v5.21 s
+T249 lock v2.3 s
+T249 lock v3.10 s
+T249 lock v2.19 s
+T249 lock v4.23 s
+T249 lock v5.15 x
+T249 lock v2.10 s
+T249 commit
+T250 lock v2.6 s
+T250 lock v1.20 x
+T250 lock v3.2 x
+T250 lock v6.17 s
+T250 lock v1.10 s
+T250 lock v4.8 x
+T250 lock v1.25 s
+T250 lock v2.1 s
+T250 lock v2.22 s
+T250 lock v6.13 x
+T250 lock v5.21 x
+T250 commit
+T251 lock v5.6 s
+T251 lock v1.14 s
+T251 lock v1.16 s
+T251 lock v4.5 s
+T251 lock v6.24 s
+T251 lock v5.22 s
+T251 lock v1.13 x
+T251 lock v3.25 s
+T251 commit
+T252 lock v5.5 s
+T252 lock v2.16 s
+T252 lock v4.7 x
+T252 lock v6.4 s
+T252 lock v1.10 s
+T252 lock v6.14 s
+T252 lock v6.25 s
+T252 lock v3.16 x
+T252 lock v2.11 x
+T252 lock v1.4 s
+T252 lock v6.13 s
+T252 commit
+T253 lock v1.14 x
+T253 lock v4.24 x
+T253 lock v2.3 s
+T253 lock v6.23 x
+T253 lock v4.19 s
+T253 lock v2.5 s
+T253 lock v4.11 s
+T253 lock v5.18 s
+T253 lock v3.25 s
+T253 lock v1.17 x
+T253 commit
+T254 lock v2.21 s
+T254 lock v5.19 s
+T254 lock v2.12 x
+T254 lock v2.16 s
+T254 lock v1.19 x
+T254 lock v4.9 x
+T254 lock v5.8 s
+T254 lock v1.11 s
+T254 lock v1.15 s
+T254 lock v4.10 s
+T254 lock v1.17 s
+T254 lock v2.17 s
+T254 commit
+T255 lock v6.3 s
+T255 lock v6.22 s
+T255 lock v6.3 s
+T255 lock v5.21 x
+T255 lock v1.6 s
+T255 lock v5.6 s
+T255 lock v4.15 x
+T255 lock v1.18 x
+T255 lock v1.7 s
+T255 lock v4.18 s
+T255 commit
+T256 lock v3.16 s
+T256 lock v4.18 x
+T256 lock v6.25 s
+T256 lock v6.10 s
+T256 lock v3.2 s
+T256 lock v4.21 s
+T256 lock v6.16 s
+T256 lock v2.25 s
+T256 commit
+T257 lock v2.4 s
+T257 lock v1.16 x
+T257 lock v3.3 s
+T257 lock v5.11 x
+T257 lock v1.2 s
+T257 lock v4.6 s
+T257 lock v4.6 s
+T257 lock v6.22 s
+T257 lock v2.23 s
+T257 lock v2.7 s
+T257 lock v2.9 x
+T257 lock v3.3 s
+T257 commit
+T258 lock v2.11 s
+T258 lock v4.18 s
+T258 lock v5.24 s
+T258 lock v2.20 s
+T258 lock v1.16 s
+T258 lock v2.17 x
+T258 lock v1.5 s
+T258 lock v2.23 s
+T258 lock v3.23 s
+T258 lock v5.16 s
+T258 lock v3.21 s
+T258 lock v4.19 s
+T258 commit
+T259 lock v1.7 s
+T259 lock v5.24 s
+T259 lock v3.22 s
+T259 lock v4.12 s
+T259 lock v4.2 s
+T259 lock v1.13 s
+T259 lock v1.23 x
+T259 lock v4.15 s
+T259 lock v5.13 s
+T259 commit
+T260 lock v2.4 s
+T260 lock v6.6 s
+T260 lock v3.7 s
+T260 lock v5.22 s
+T260 lock v1.10 s
+T260 lock v1.13 s
+T260 lock v5.20 s
+T260 lock v4.18 s
+T260 lock v3.2 x
+T260 lock v3.11 s
+T260 commit
+T261 lock v2.23 s
+T261 lock v1.18 s
+T261 lock v4.8 s
+T261 lock v2.13 s
+T261 lock v4.22 x
+T261 lock v5.9 s
+T261 lock v2.23 x
+T261 lock v1.18 s
+T261 lock v1.8 s
+T261 lock v5.8 s
+T261 lock v3.12 s
+T261 commit
+T262 lock v1.21 x
+T262 lock v4.6 s
+T262 lock v1.15 x
+T262 lock v6.15 s
+T262 lock v2.3 x
+T262 lock v4.4 s
+T262 lock v6.8 x
+T262 lock v3.15 s
+T262 lock v6.3 x
+T262 lock v5.4 s
+T262 lock v3.12 x
+T262 commit
+T263 lock v5.4 s
+T263 lock v5.5 x
+T263 lock v3.8 s
+T263 lock v4.7 s
+T263 lock v1.14 s
+T263 lock v5.20 s
+T263 lock v6.24 s
+T263 lock v3.7 s
+T263 lock v2.7 s
+T263 commit
+T264 lock v1.23 s
+T264 lock v3.3 x
+T264 lock v6.7 x
+T264 lock v2.13 s
+T264 lock v2.3 s
+T264 lock v1.11 s
+T264 lock v2.19 x
+T264 lock v1.4 s
+T264 lock v5.5 s
+T264 lock v5.18 s
+T264 lock v2.20 s
+T264 commit
+T265 lock v1.8 x
+T265 lock v4.17 x
+T265 lock v6.25 x
+T265 lock v5.23 s
+T265 lock v6.9 s
+T265 lock v5.15 s
+T265 lock v5.25 x
+T265 lock v2.14 s
+T265 lock v6.16 x
+T265 lock v5.6 s
+T265 lock v2.19 s
+T265 commit
+T266 lock v2.3 x
+T266 lock v1.8 x
+T266 lock v6.22 x
+T266 lock v4.23 s
+T266 lock v3.11 s
+T266 lock v6.15 s
+T266 lock v6.9 s
+T266 lock v1.17 x
+T266 lock v4.16 s
+T266 commit
+T267 lock v2.24 s
+T267 lock v6.8 x
+T267 lock v3.12 s
+T267 lock v3.20 s
+T267 lock v1.17 s
+T267 lock v4.5 x
+T267 lock v2.2 s
+T267 lock v2.20 x
+T267 lock v1.9 s
+T267 commit
+T268 lock v3.4 s
+T268 lock v6.7 s
+T268 lock v3.13 s
+T268 lock v3.23 s
+T268 lock v1.17 s
+T268 lock v2.4 s
+T268 lock v6.21 s
+T268 lock v2.4 x
+T268 lock v5.17 s
+T268 lock v2.2 x
+T268 lock v5.15 s
+T268 lock v4.23 s
+T268 commit
+T269 lock v5.2 s
+T269 lock v2.20 s
+T269 lock v6.19 x
+T269 lock v4.1 s
+T269 lock v6.16 x
+T269 lock v3.3 s
+T269 lock v6.15 s
+T269 lock v4.3 s
+T269 lock v1.19 x
+T269 lock v2.14 s
+T269 lock v3.11 s
+T269 lock v3.10 s
+T269 commit
+T270 lock v3.13 s
+T270 lock v1.17 x
+T270 lock v1.1 x
+T270 lock v4.3 s
+T270 lock v5.13 s
+T270 lock v3.3 s
+T270 lock v2.18 s
+T270 lock v2.2 s
+T270 lock v1.1 s
+T270 lock v5.16 x
+T270 lock v5.21 s
+T270 lock v4.24 x
+T270 commit
+T271 lock v3.18 s
+T271 lock v1.5 x
+T271 lock v1.8 s
+T271 lock v6.4 s
+T271 lock v4.15 x
+T271 lock v2.19 s
+T271 lock v4.14 s
+T271 lock v6.12 s
+T271 lock v4.1 s
+T271 lock v2.19 s
+T271 commit
+T272 lock v5.3 x
+T272 lock v5.16 s
+T272 lock v6.10 s
+T272 lock v3.20 s
+T272 lock v6.6 s
+T272 lock v4.7 s
+T272 lock v4.18 x
+T272 lock v1.9 s
+T272 lock v4.18 s
+T272 lock v2.5 s
+T272 lock v1.23 x
+T272 commit
+T273 lock v4.10 s
+T273 lock v6.8 s
+T273 lock v5.6 s
+T273 lock v4.18 s
+T273 lock v1.16 s
+T273 lock v5.17 x
+T273 lock v1.25 x
+T273 lock v4.4 x
+T273 lock v5.16 s
+T273 lock v2.15 s
+T273 commit
+T274 lock v2.13 x
+T274 lock v4.15 x
+T274 lock v3.14 x
+T274 lock v2.11 s
+T274 lock v4.17 s
+T274 lock v6.23 x
+T274 lock v5.16 s
+T274 lock v4.11 x
+T274 lock v1.19 s
+T274 lock v4.7 s
+T274 lock v4.17 s
+T274 commit
+T275 lock v6.16 x
+T275 lock v4.22 x
+T275 lock v3.10 x
+T275 lock v4.4 s
+T275 lock v5.20 s
+T275 lock v5.11 x
+T275 lock v4.11 s
+T275 lock v4.22 s
+T275 lock v3.5 s
+T275 lock v2.12 s
+T275 lock v6.20 x
+T275 lock v2.11 x
+T275 commit
+T276 lock v6.2 s
+T276 lock v5.19 s
+T276 lock v6.8 s
+T276 lock v3.24 s
+T276 lock v4.23 s
+T276 lock v3.14 s
+T276 lock v2.2 x
+T276 lock v4.7 x
+T276 lock v6.20 s
+T276 lock v5.23 s
+T276 lock v1.13 s
+T276 lock v4.4 s
+T276 commit
+T277 lock v1.16 x
+T277 lock v1.20 x
+T277 lock v4.20 x
+T277 lock v6.16 s
+T277 lock v4.8 s
+T277 lock v2.25 s
+T277 lock v1.8 s
+T277 lock v1.25 s
+T277 commit
+T278 lock v1.5 x
+T278 lock v6.10 s
+T278 lock v2.4 s
+T278 lock v6.6 x
+T278 lock v1.6 s
+T278 lock v6.15 s
+T278 lock v1.18 s
+T278 lock v1.11 s
+T278 commit
+T279 lock v1.8 x
+T279 lock v1.6 s
+T279 lock v4.10 s
+T279 lock v6.4 s
+T279 lock v1.17 s
+T279 lock v2.1 s
+T279 lock v1.17 s
+T279 lock v4.14 s
+T279 commit
+T280 lock v3.6 x
+T280 lock v5.18 s
+T280 lock v3.15 s
+T280 lock v3.19 s
+T280 lock v6.1 s
+T280 lock v1.16 s
+T280 lock v4.3 s
+T280 lock v4.18 x
+T280 lock v3.12 s
+T280 lock v5.22 x
+T280 lock v3.19 s
+T280 lock v5.15 s
+T280 commit
+T281 lock v6.19 s
+T281 lock v4.5 s
+T281 lock v1.1 s
+T281 lock v3.4 x
+T281 lock v2.22 x
+T281 lock v5.21 s
+T281 lock v6.14 s
+T281 lock v6.8 s
+T281 lock v5.1 x
+T281 commit
+T282 lock v2.10 s
+T282 lock v1.9 s
+T282 lock v2.24 s
+T282 lock v1.8 s
+T282 lock v4.21 x
+T282 lock v3.14 s
+T282 lock v1.21 s
+T282 lock v6.16 x
+T282 lock v2.16 s
+T282 lock v3.15 s
+T282 commit
+T283 lock v6.11 s
+T283 lock v3.16 s
+T283 lock v2.20 x
+T283 lock v4.22 s
+T283 lock v1.8 s
+T283 lock v5.14 s
+T283 lock v2.13 s
+T283 lock v1.15 s
+T283 lock v2.17 s
+T283 lock v3.12 x
+T283 lock v5.7 s
+T283 lock v6.3 x
+T283 commit
+T284 lock v5.9 x
+T284 lock v4.8 s
+T284 lock v1.3 x
+T284 lock v5.24 x
+T284 lock v5.2 s
+T284 lock v4.8 x
+T284 lock v3.6 s
+T284 lock v6.6 s
+T284 lock v3.21 s
+T284 commit
+T285 lock v2.23 s
+T285 lock v2.10 s
+T285 lock v4.11 s
+T285 lock v6.8 s
+T285 lock v2.14 x
+T285 lock v2.25 x
+T285 lock v5.12 s
+T285 lock v6.1 s
+T285 lock v6.18 x
+T285 lock v6.21 x
+T285 commit
+T286 lock v2.22 x
+T286 lock v3.19 s
+T286 lock v6.8 x
+T286 lock v1.19 s
+T286 lock v3.10 s
+T286 lock v5.14 x
+T286 lock v1.3 s
+T286 lock v4.23 s
+T286 lock v5.12 s
+T286 commit
+T287 lock v6.15 s
+T287 lock v4.3 x
+T287 lock v2.11 s
+T287 lock v1.21 s
+T287 lock v4.22 s
+T287 lock v2.10 x
+T287 lock v4.14 x
+T287 lock v4.20 x
+T287 lock v3.11 s
+T287 commit
+T288 lock v5.1 x
+T288 lock v4.1 s
+T288 lock v1.10 s
+T288 lock v2.15 x
+T288 lock v5.21 s
+T288 lock v4.22 x
+T288 lock v5.24 x
+T288 lock v6.2 x
+T288 lock v6.14 x
+T288 lock v3.20 s
+T288 lock v6.11 s
+T288 lock v4.20 s
+T288 commit
+T289 lock v5.25 s
+T289 lock v3.14 x
+T289 lock v6.25 x
+T289 lock v4.12 s
+T289 lock v4.14 s
+T289 lock v2.11 s
+T289 lock v5.19 s
+T289 lock v6.17 s
+T289 commit
+T290 lock v6.23 s
+T290 lock v6.13 s
+T290 lock v5.5 s
+T290 lock v3.15 s
+T290 lock v4.3 x
+T290 lock v5.24 s
+T290 lock v1.15 s
+T290 lock v5.9 s
+T290 commit
+T291 lock v4.6 s
+T291 lock v6.17 s
+T291 lock v2.14 x
+T291 lock v1.9 x
+T291 lock v2.9 s
+T291 lock v2.16 x
+T291 lock v2.17 s
+T291 lock v6.13 s
+T291 lock v3.10 s
+T291 lock v2.17 s
+T291 lock v6.24 s
+T291 commit
+T292 lock v2.8 s
+T292 lock v4.11 s
+T292 lock v3.15 s
+T292 lock v4.4 x
+T292 lock v6.23 s
+T292 lock v5.5 x
+T292 lock v3.24 s
+T292 lock v3.9 x
+T292 lock v1.10 s
+T292 lock v3.21 s
+T292 lock v6.15 s
+T292 lock v3.23 s
+T292 commit
+T293 lock v2.4 s
+T293 lock v4.9 s
+T293 lock v6.25 x
+T293 lock v1.15 s
+T293 lock v5.24 s
+T293 lock v4.6 s
+T293 lock v3.24 s
+T293 lock v1.6 x
+T293 lock v6.24 x
+T293 lock v3.20 s
+T293 lock v5.5 s
+T293 commit
+T294 lock v5.7 s
+T294 lock v6.25 s
+T294 lock v6.20 s
+T294 lock v4.6 s
+T294 lock v4.3 s
+T294 lock v2.21 s
+T294 lock v6.9 x
+T294 lock v6.25 x
+T294 lock v3.2 x
+T294 lock v6.25 s
+T294 lock v5.21 s
+T294 commit
+T295 lock v1.24 x
+T295 lock v5.17 s
+T295 lock v3.22 s
+T295 lock v3.11 s
+T295 lock v4.5 s
+T295 lock v4.1 s
+T295 lock v3.20 x
+T295 lock v1.1 s
+T295 lock v6.1 s
+T295 lock v5.21 s
+T295 lock v6.19 s
+T295 commit
+T296 lock v6.12 x
+T296 lock v2.14 s
+T296 lock v2.6 s
+T296 lock v1.5 s
+T296 lock v3.19 x
+T296 lock v2.1 x
+T296 lock v1.8 s
+T296 lock v3.22 s
+T296 lock v5.4 x
+T296 commit
+T297 lock v5.13 x
+T297 lock v1.15 x
+T297 lock v6.21 x
+T297 lock v1.20 s
+T297 lock v5.19 s
+T297 lock v4.13 s
+T297 lock v2.8 s
+T297 lock v1.5 x
+T297 lock v6.18 s
+T297 lock v6.24 x
+T297 lock v6.2 s
+T297 lock v1.20 x
+T297 commit
+T298 lock v1.25 s
+T298 lock v4.22 s
+T298 lock v4.15 x
+T298 lock v2.24 s
+T298 lock v4.2 s
+T298 lock v1.20 s
+T298 lock v3.15 x
+T298 lock v5.10 s
+T298 commit
+T299 lock v4.2 s
+T299 lock v6.18 x
+T299 lock v3.8 s
+T299 lock v5.11 s
+T299 lock v2.16 x
+T299 lock v6.4 s
+T299 lock v1.22 x
+T299 lock v1.8 s
+T299 lock v5.20 x
+T299 commit
+T300 lock v2.18 s
+T300 lock v4.14 s
+T300 lock v6.3 s
+T300 lock v1.25 s
+T300 lock v6.2 x
+T300 lock v4.25 s
+T300 lock v3.6 x
+T300 lock v4.22 s
+T300 lock v2.17 s
+T300 commit
+T301 lock v5.7 s
+T301 lock v1.14 s
+T301 lock v6.18 s
+T301 lock v6.11 s
+T301 lock v1.21 s
+T301 lock v1.17 s
+T301 lock v1.7 s
+T301 lock v3.7 s
+T301 lock v6.7 s
+T301 lock v5.6 s
+T301 commit
+T302 lock v4.21 s
+T302 lock v4.12 s
+T302 lock v4.22 s
+T302 lock v4.21 s
+T302 lock v3.10 s
+T302 lock v6.7 s
+T302 lock v5.21 s
+T302 lock v2.10 s
+T302 commit
+T303 lock v5.10 s
+T303 lock v5.9 s
+T303 lock v3.6 s
+T303 lock v2.8 x
+T303 lock v5.10 s
+T303 lock v6.23 s
+T303 lock v3.7 s
+T303 lock v6.15 s
+T303 lock v2.19 s
+T303 lock v6.2 x
+T303 commit
+T304 lock v2.25 s
+T304 lock v3.16 s
+T304 lock v2.12 s
+T304 lock v1.14 s
+T304 lock v2.25 x
+T304 lock v3.11 s
+T304 lock v4.3 x
+T304 lock v5.5 s
+T304 lock v2.3 s
+T304 lock v3.16 s
+T304 lock v5.8 s
+T304 lock v5.8 x
+T304 commit
+T305 lock v3.24 x
+T305 lock v2.22 s
+T305 lock v2.23 s
+T305 lock v2.17 x
+T305 lock v2.23 s
+T305 lock v5.16 s
+T305 lock v6.16 x
+T305 lock v3.15 s
+T305 lock v4.4 s
+T305 lock v5.11 s
+T305 lock v5.21 s
+T305 lock v6.18 s
+T305 commit
+T306 lock v6.1 s
+T306 lock v6.9 s
+T306 lock v2.2 x
+T306 lock v3.11 x
+T306 lock v1.21 s
+T306 lock v4.3 s
+T306 lock v1.13 s
+T306 lock v6.15 x
+T306 lock v2.1 s
+T306 lock v3.6 x
+T306 commit
+T307 lock v4.16 x
+T307 lock v2.9 s
+T307 lock v2.17 s
+T307 lock v6.18 x
+T307 lock v5.23 s
+T307 lock v1.19 s
+T307 lock v2.21 s
+T307 lock v6.8 s
+T307 lock v1.12 s
+T307 commit
+T308 lock v4.19 s
+T308 lock v3.11 s
+T308 lock v3.8 s
+T308 lock v3.21 s
+T308 lock v1.18 s
+T308 lock v6.24 s
+T308 lock v1.4 x
+T308 lock v3.23 s
+T308 lock v5.13 s
+T308 lock v2.15 x
+T308 commit
+T309 lock v5.16 s
+T309 lock v2.2 x
+T309 lock v1.18 x
+T309 lock v6.15 s
+T309 lock v4.6 s
+T309 lock v2.8 x
+T309 lock v5.5 s
+T309 lock v5.25 x
+T309 lock v1.22 s
+T309 lock v1.8 s
+T309 commit
+T310 lock v3.10 s
+T310 lock v3.22 s
+T310 lock v3.12 s
+T310 lock v1.18 x
+T310 lock v5.11 s
+T310 lock v4.23 s
+T310 lock v3.9 x
+T310 lock v1.18 s
+T310 lock v5.1 s
+T310 lock v1.2 s
+T310 lock v1.6 s
+T310 lock v2.7 s
+T310 commit
+T311 lock v1.22 s
+T311 lock v3.8 x
+T311 lock v3.18 x
+T311 lock v5.24 s
+T311 lock v4.8 s
+T311 lock v6.22 s
+T311 lock v6.12 x
+T311 lock v6.11 s
+T311 lock v1.2 s
+T311 lock v6.24 x
+T311 lock v6.11 s
+T311 commit
+T312 lock v6.1 s
+T312 lock v1.4 s
+T312 lock v1.18 x
+T312 lock v4.21 x
+T312 lock v6.11 s
+T312 lock v3.23 s
+T312 lock v1.14 s
+T312 lock v6.3 x
+T312 lock v2.25 s
+T312 lock v1.25 x
+T312 lock v1.18 s
+T312 commit
+T313 lock v3.21 x
+T313 lock v5.23 s
+T313 lock v6.23 x
+T313 lock v4.11 x
+T313 lock v4.14 s
+T313 lock v3.14 s
+T313 lock v2.1 x
+T313 lock v4.14 s
+T313 commit
+T314 lock v1.20 x
+T314 lock v1.20 x
+T314 lock v2.6 x
+T314 lock v1.10 s
+T314 lock v6.4 s
+T314 lock v1.8 s
+T314 lock v2.3 x
+T314 lock v3.11 s
+T314 commit
+T315 lock v1.14 s
+T315 lock v5.11 s
+T315 lock v5.21 s
+T315 lock v5.19 x
+T315 lock v3.13 x
+T315 lock v6.25 s
+T315 lock v2.2 x
+T315 lock v6.10 s
+T315 lock v5.3 x
+T315 lock v1.11 s
+T315 lock v6.23 s
+T315 commit
+T316 lock v4.17 s
+T316 lock v2.5 s
+T316 lock v5.17 s
+T316 lock v3.3 s
+T316 lock v1.3 s
+T316 lock v5.17 s
+T316 lock v5.2 s
+T316 lock v6.9 s
+T316 commit
+T317 lock v6.7 s
+T317 lock v4.22 x
+T317 lock v5.17 s
+T317 lock v1.14 s
+T317 lock v1.10 s
+T317 lock v2.19 s
+T317 lock v3.15 s
+T317 lock v1.5 s
+T317 lock v3.9 s
+T317 lock v2.6 s
+T317 commit
+T318 lock v1.11 s
+T318 lock v1.12 s
+T318 lock v1.6 s
+T318 lock v3.25 x
+T318 lock v6.6 s
+T318 lock v1.6 s
+T318 lock v3.7 s
+T318 lock v3.16 s
+T318 commit
+T319 lock v6.13 s
+T319 lock v2.12 s
+T319 lock v3.15 s
+T319 lock v3.5 x
+T319 lock v5.12 s
+T319 lock v1.9 s
+T319 lock v2.19 s
+T319 lock v3.18 s
+T319 lock v4.24 s
+T319 lock v2.6 s
+T319 lock v2.12 s
+T319 lock v6.20 s
+T319 commit
+T320 lock v3.12 s
+T320 lock v1.13 s
+T320 lock v4.16 s
+T320 lock v3.3 s
+T320 lock v6.19 s
+T320 lock v6.17 s
+T320 lock v3.4 s
+T320 lock v2.7 s
+T320 lock v6.4 s
+T320 lock v6.22 s
+T320 lock v4.16 s
+T320 lock v3.5 x
+T320 commit
+T321 lock v6.6 s
+T321 lock v5.10 s
+T321 lock v4.20 x
+T321 lock v2.19 s
+T321 lock v3.8 s
+T321 lock v1.17 s
+T321 lock v4.2 s
+T321 lock v5.8 s
+T321 lock v6.13 s
+T321 lock v1.24 s
+T321 lock v5.22 s
+T321 commit
+T322 lock v5.10 s
+T322 lock v3.3 s
+T322 lock v6.3 s
+T322 lock v4.24 x
+T322 lock v3.14 s
+T322 lock v1.11 x
+T322 lock v5.10 s
+T322 lock v5.14 s
+T322 commit
+T323 lock v6.19 s
+T323 lock v5.22 s
+T323 lock v1.11 s
+T323 lock v2.1 x
+T323 lock v6.16 s
+T323 lock v2.23 s
+T323 lock v1.9 x
+T323 lock v2.20 x
+T323 lock v1.15 s
+T323 lock v4.17 x
+T323 lock v4.24 x
+T323 commit
+T324 lock v2.3 s
+T324 lock v6.21 s
+T324 lock v4.8 s
+T324 lock v3.14 s
+T324 lock v6.24 s
+T324 lock v2.23 s
+T324 lock v4.12 s
+T324 lock v6.16 s
+T324 lock v2.4 s
+T324 lock v4.5 s
+T324 lock v6.19 s
+T324 lock v1.16 x
+T324 commit
+T325 lock v5.21 s
+T325 lock v5.14 s
+T325 lock v2.13 s
+T325 lock v6.5 s
+T325 lock v1.4 s
+T325 lock v6.9 x
+T325 lock v6.7 s
+T325 lock v2.2 s
+T325 lock v3.18 s
+T325 commit
+T326 lock v2.12 s
+T326 lock v5.20 x
+T326 lock v4.17 s
+T326 lock v2.10 s
+T326 lock v1.9 s
+T326 lock v6.2 s
+T326 lock v1.13 x
+T326 lock v5.25 s
+T326 lock v1.9 s
+T326 lock v3.7 s
+T326 commit
+T327 lock v2.11 s
+T327 lock v6.21 s
+T327 lock v2.23 s
+T327 lock v1.13 x
+T327 lock v3.13 x
+T327 lock v4.17 s
+T327 lock v3.11 s
+T327 lock v2.6 s
+T327 lock v1.5 s
+T327 commit
+T328 lock v4.6 x
+T328 lock v2.15 s
+T328 lock v1.23 s
+T328 lock v1.3 s
+T328 lock v5.5 s
+T328 lock v1.21 s
+T328 lock v2.17 s
+T328 lock v2.17 x
+T328 lock v5.25 s
+T328 lock v3.7 s
+T328 commit
+T329 lock v1.7 x
+T329 lock v1.19 s
+T329 lock v5.12 s
+T329 lock v2.19 s
+T329 lock v3.11 s
+T329 lock v6.12 s
+T329 lock v1.11 s
+T329 lock v5.8 s
+T329 lock v6.17 x
+T329 lock v3.10 s
+T329 lock v1.15 s
+T329 lock v4.8 s
+T329 commit
+T330 lock v3.19 s
+T330 lock v6.25 s
+T330 lock v2.3 s
+T330 lock v4.19 x
+T330 lock v6.11 x
+T330 lock v1.13 x
+T330 lock v1.1 x
+T330 lock v3.16 s
+T330 lock v3.15 s
+T330 lock v4.13 x
+T330 commit
+T331 lock v2.12 s
+T331 lock v2.13 x
+T331 lock v1.8 s
+T331 lock v5.6 s
+T331 lock v4.14 x
+T331 lock v4.7 s
+T331 lock v3.24 s
+T331 lock v4.15 s
+T331 lock v1.3 s
+T331 commit
+T332 lock v4.7 s
+T332 lock v3.13 s
+T332 lock v3.25 s
+T332 lock v2.16 x
+T332 lock v4.18 s
+T332 lock v5.6 s
+T332 lock v2.5 s
+T332 lock v1.25 x
+T332 lock v4.25 x
+T332 commit
+T333 lock v6.13 s
+T333 lock v4.18 s
+T333 lock v5.12 s
+T333 lock v6.9 x
+T333 lock v3.23 s
+T333 lock v6.23 s
+T333 lock v4.4 x
+T333 lock v5.18 s
+T333 lock v4.4 x
+T333 lock v6.1 s
+T333 commit
+T334 lock v1.19 x
+T334 lock v3.9 x
+T334 lock v2.17 s
+T334 lock v2.23 s
+T334 lock v2.4 s
+T334 lock v2.25 s
+T334 lock v1.3 s
+T334 lock v5.9 x
+T334 commit
+T335 lock v2.23 s
+T335 lock v2.8 x
+T335 lock v3.14 s
+T335 lock v5.1 x
+T335 lock v2.23 s
+T335 lock v4.25 x
+T335 lock v5.11 s
+T335 lock v1.19 s
+T335 lock v3.24 x
+T335 lock v3.9 s
+T335 lock v2.9 s
+T335 lock v3.16 s
+T335 commit
+T336 lock v3.19 s
+T336 lock v2.9 s
+T336 lock v3.22 s
+T336 lock v1.7 s
+T336 lock v1.18 x
+T336 lock v5.9 s
+T336 lock v6.7 s
+T336 lock v2.25 s
+T336 commit
+T337 lock v6.10 s
+T337 lock v4.20 s
+T337 lock v3.19 s
+T337 lock v1.9 s
+T337 lock v4.25 x
+T337 lock v3.6 s
+T337 lock v6.22 s
+T337 lock v2.6 x
+T337 commit
+T338 lock v5.13 s
+T338 lock v4.5 s
+T338 lock v1.19 s
+T338 lock v3.8 s
+T338 lock v2.21 x
+T338 lock v2.16 s
+T338 lock v5.14 s
+T338 lock v3.15 s
+T338 lock v2.6 x
+T338 lock v1.21 s
+T338 lock v2.23 s
+T338 lock v6.11 x
+T338 commit
+T339 lock v4.16 x
+T339 lock v5.16 s
+T339 lock v4.10 x
+T339 lock v4.12 s
+T339 lock v4.20 s
+T339 lock v1.13 s
+T339 lock v4.6 x
+T339 lock v4.9 s
+T339 lock v1.25 s
+T339 lock v6.16 s
+T339 lock v1.18 s
+T339 lock v5.22 s
+T339 commit
+T340 lock v1.24 s
+T340 lock v3.21 x
+T340 lock v1.10 s
+T340 lock v2.19 s
+T340 lock v5.4 x
+T340 lock v3.1 x
+T340 lock v4.4 s
+T340 lock v3.4 s
+T340 lock v6.20 s
+T340 lock v4.19 s
+T340 commit
+T341 lock v1.17 s
+T341 lock v6.13 s
+T341 lock v2.10 s
+T341 lock v1.19 s
+T341 lock v5.19 x
+T341 lock v4.17 s
+T341 lock v3.7 s
+T341 lock v4.5 s
+T341 lock v3.3 s
+T341 commit
+T342 lock v6.20 s
+T342 lock v6.20 x
+T342 lock v4.12 x
+T342 lock v5.8 s
+T342 lock v6.1 s
+T342 lock v3.7 s
+T342 lock v5.13 s
+T342 lock v3.19 x
+T342 lock v2.10 s
+T342 lock v4.2 s
+T342 lock v2.14 x
+T342 lock v4.1 s
+T342 commit
+T343 lock v3.14 s
+T343 lock v1.13 s
+T343 lock v6.2 x
+T343 lock v1.9 s
+T343 lock v2.12 s
+T343 lock v5.14 x
+T343 lock v3.24 s
+T343 lock v5.3 s
+T343 lock v4.5 x
+T343 lock v5.19 x
+T343 commit
+T344 lock v1.2 s
+T344 lock v3.25 s
+T344 lock v4.8 x
+T344 lock v2.12 s
+T344 lock v1.22 s
+T344 lock v5.11 s
+T344 lock v4.23 s
+T344 lock v1.8 s
+T344 lock v1.22 s
+T344 lock v6.18 s
+T344 commit
+T345 lock v2.16 s
+T345 lock v2.6 s
+T345 lock v3.4 s
+T345 lock v5.14 s
+T345 lock v5.19 s
+T345 lock v6.2 x
+T345 lock v4.8 s
+T345 lock v5.15 s
+T345 lock v6.14 s
+T345 commit
+T346 lock v5.2 x
+T346 lock v1.22 s
+T346 lock v2.18 x
+T346 lock v2.24 s
+T346 lock v4.15 s
+T346 lock v3.13 s
+T346 lock v2.20 x
+T346 lock v3.11 s
+T346 lock v1.15 s
+T346 lock v4.25 s
+T346 lock v5.21 x
+T346 lock v5.1 s
+T346 commit
+T347 lock v5.13 s
+T347 lock v4.17 s
+T347 lock v3.12 s
+T347 lock v5.24 x
+T347 lock v4.23 s
+T347 lock v4.24 s
+T347 lock v6.1 s
+T347 lock v2.6 x
+T347 lock v6.8 s
+T347 commit
+T348 lock v4.20 s
+T348 lock v2.22 s
+T348 lock v3.24 x
+T348 lock v5.15 x
+T348 lock v3.13 s
+T348 lock v6.16 x
+T348 lock v4.13 s
+T348 lock v6.13 s
+T348 lock v2.19 x
+T348 lock v1.10 x
+T348 commit
+T349 lock v5.6 s
+T349 lock v1.12 s
+T349 lock v5.17 x
+T349 lock v5.9 s
+T349 lock v1.5 s
+T349 lock v4.19 x
+T349 lock v4.6 s
+T349 lock v3.19 s
+T349 lock v2.10 x
+T349 lock v5.20 s
+T349 lock v1.4 s
+T349 lock v3.16 s
+T349 commit
+T350 lock v1.3 s
+T350 lock v2.2 s
+T350 lock v4.21 s
+T350 lock v6.3 s
+T350 lock v4.5 s
+T350 lock v5.9 s
+T350 lock v1.23 s
+T350 lock v2.16 s
+T350 commit
+T351 lock v2.3 s
+T351 lock v6.3 s
+T351 lock v6.12 s
+T351 lock v5.11 s
+T351 lock v4.19 s
+T351 lock v2.23 x
+T351 lock v6.5 s
+T351 lock v5.4 x
+T351 lock v2.9 s
+T351 lock v1.10 s
+T351 lock v3.2 s
+T351 commit
+T352 lock v4.4 s
+T352 lock v3.11 s
+T352 lock v5.6 s
+T352 lock v4.14 s
+T352 lock v4.16 s
+T352 lock v3.15 s
+T352 lock v4.4 x
+T352 lock v1.15 s
+T352 lock v3.2 s
+T352 lock v5.19 s
+T352 lock v1.12 s
+T352 commit
+T353 lock v5.6 s
+T353 lock v5.8 s
+T353 lock v4.12 x
+T353 lock v6.17 s
+T353 lock v4.13 x
+T353 lock v3.2 s
+T353 lock v3.16 s
+T353 lock v5.11 s
+T353 lock v6.15 s
+T353 lock v3.18 x
+T353 lock v1.4 s
+T353 lock v2.14 s
+T353 commit
+T354 lock v5.4 x
+T354 lock v3.10 s
+T354 lock v2.6 s
+T354 lock v5.22 s
+T354 lock v6.9 s
+T354 lock v6.10 x
+T354 lock v5.7 s
+T354 lock v4.12 x
+T354 lock v5.4 s
+T354 lock v4.3 s
+T354 lock v5.15 x
+T354 commit
+T355 lock v3.24 s
+T355 lock v4.24 s
+T355 lock v6.25 s
+T355 lock v5.16 x
+T355 lock v2.1 x
+T355 lock v2.19 s
+T355 lock v6.12 s
+T355 lock v6.18 s
+T355 lock v4.22 s
+T355 lock v1.19 x
+T355 commit
+T356 lock v4.9 s
+T356 lock v5.20 s
+T356 lock v5.8 x
+T356 lock v3.21 x
+T356 lock v1.21 s
+T356 lock v2.22 s
+T356 lock v4.18 s
+T356 lock v2.9 s
+T356 lock v4.13 s
+T356 lock v6.14 s
+T356 commit
+T357 lock v6.23 s
+T357 lock v6.6 s
+T357 lock v5.18 s
+T357 lock v4.20 s
+T357 lock v4.12 s
+T357 lock v6.25 s
+T357 lock v5.25 x
+T357 lock v1.11 x
+T357 lock v4.17 s
+T357 lock v5.15 s
+T357 commit
+T358 lock v4.11 x
+T358 lock v2.21 s
+T358 lock v2.22 s
+T358 lock v6.24 x
+T358 lock v6.22 s
+T358 lock v6.12 s
+T358 lock v1.7 s
+T358 lock v4.18 s
+T358 lock v3.23 s
+T358 lock v2.10 s
+T358 lock v5.25 s
+T358 commit
+T359 lock v1.14 x
+T359 lock v6.10 s
+T359 lock v6.9 x
+T359 lock v3.15 s
+T359 lock v6.10 x
+T359 lock v4.18 s
+T359 lock v2.15 x
+T359 lock v2.21 s
+T359 lock v2.7 x
+T359 lock v5.22 s
+T359 lock v1.16 x
+T359 lock v3.2 s
+T359 commit
+T360 lock v3.12 s
+T360 lock v4.11 s
+T360 lock v6.20 x
+T360 lock v6.25 s
+T360 lock v3.16 x
+T360 lock v4.20 s
+T360 lock v6.11 s
+T360 lock v3.11 s
+T360 lock v1.16 s
+T360 lock v6.9 s
+T360 lock v2.25 s
+T360 lock v1.11 s
+T360 commit
+T361 lock v1.16 x
+T361 lock v4.16 s
+T361 lock v4.3 s
+T361 lock v2.11 s
+T361 lock v5.15 s
+T361 lock v5.1 s
+T361 lock v3.8 x
+T361 lock v3.16 s
+T361 lock v2.24 s
+T361 lock v6.2 s
+T361 lock v3.3 s
+T361 lock v6.10 s
+T361 commit
+T362 lock v5.19 x
+T362 lock v1.17 s
+T362 lock v1.22 s
+T362 lock v5.25 s
+T362 lock v1.4 x
+T362 lock v4.1 x
+T362 lock v6.14 s
+T362 lock v6.25 x
+T362 lock v1.2 s
+T362 commit
+T363 lock v2.3 s
+T363 lock v2.24 s
+T363 lock v5.1 s
+T363 lock v2.6 s
+T363 lock v4.13 s
+T363 lock v4.20 x
+T363 lock v3.25 s
+T363 lock v6.11 x
+T363 lock v3.18 s
+T363 lock v6.19 s
+T363 lock v1.21 s
+T363 lock v1.16 s
+T363 commit
+T364 lock v4.5 s
+T364 lock v6.6 s
+T364 lock v5.23 s
+T364 lock v4.14 s
+T364 lock v6.17 s
+T364 lock v4.18 s
+T364 lock v6.14 s
+T364 lock v1.24 s
+T364 lock v3.18 s
+T364 lock v4.14 s
+T364 lock v6.11 s
+T364 commit
+T365 lock v4.21 s
+T365 lock v1.9 s
+T365 lock v6.20 s
+T365 lock v4.24 x
+T365 lock v5.14 s
+T365 lock v1.4 x
+T365 lock v6.25 s
+T365 lock v4.17 s
+T365 lock v3.24 s
+T365 commit
+T366 lock v6.18 x
+T366 lock v3.14 x
+T366 lock v5.10 s
+T366 lock v6.13 x
+T366 lock v5.22 s
+T366 lock v2.24 x
+T366 lock v3.15 s
+T366 lock v1.10 s
+T366 commit
+T367 lock v2.21 s
+T367 lock v3.1 s
+T367 lock v5.5 s
+T367 lock v4.15 s
+T367 lock v3.18 x
+T367 lock v5.6 s
+T367 lock v5.12 s
+T367 lock v6.2 x
+T367 lock v5.17 s
+T367 commit
+T368 lock v2.6 s
+T368 lock v2.8 s
+T368 lock v4.10 s
+T368 lock v6.4 x
+T368 lock v5.9 s
+T368 lock v3.12 x
+T368 lock v6.14 x
+T368 lock v4.18 x
+T368 lock v2.5 s
+T368 lock v5.12 x
+T368 lock v6.20 s
+T368 lock v3.12 s
+T368 commit
+T369 lock v1.21 x
+T369 lock v3.25 s
+T369 lock v5.17 s
+T369 lock v5.22 s
+T369 lock v3.5 x
+T369 lock v2.18 s
+T369 lock v2.5 s
+T369 lock v1.8 s
+T369 lock v1.23 s
+T369 lock v3.16 s
+T369 commit
+T370 lock v4.2 x
+T370 lock v2.18 s
+T370 lock v4.11 x
+T370 lock v5.8 x
+T370 lock v1.11 x
+T370 lock v4.3 x
+T370 lock v3.16 s
+T370 lock v6.7 s
+T370 lock v1.25 s
+T370 lock v4.20 x
+T370 commit
+T371 lock v1.3 s
+T371 lock v5.1 s
+T371 lock v6.19 x
+T371 lock v6.12 s
+T371 lock v4.5 x
+T371 lock v1.20 s
+T371 lock v3.19 s
+T371 lock v3.1 x
+T371 lock v6.17 s
+T371 lock v5.16 s
+T371 commit
+T372 lock v2.23 x
+T372 lock v5.10 x
+T372 lock v3.3 s
+T372 lock v5.12 x
+T372 lock v5.11 s
+T372 lock v3.14 s
+T372 lock v1.4 s
+T372 lock v3.3 s
+T372 lock v1.13 s
+T372 lock v2.19 s
+T372 commit
+T373 lock v1.14 s
+T373 lock v5.23 x
+T373 lock v3.8 x
+T373 lock v1.6 s
+T373 lock v5.4 s
+T373 lock v3.24 x
+T373 lock v5.12 s
+T373 lock v2.5 x
+T373 lock v1.20 x
+T373 lock v4.25 x
+T373 commit
+T374 lock v1.8 s
+T374 lock v6.12 s
+T374 lock v5.16 s
+T374 lock v6.4 s
+T374 lock v4.2 s
+T374 lock v2.25 s
+T374 lock v3.17 x
+T374 lock v2.12 s
+T374 lock v6.22 s
+T374 commit
+T375 lock v5.16 x
+T375 lock v5.15 s
+T375 lock v5.20 s
+T375 lock v6.14 s
+T375 lock v4.12 x
+T375 lock v5.21 x
+T375 lock v6.13 x
+T375 lock v4.25 s
+T375 lock v1.6 s
+T375 lock v1.7 s
+T375 commit
+T376 lock v5.4 x
+T376 lock v6.22 s
+T376 lock v4.11 s
+T376 lock v1.11 s
+T376 lock v4.4 x
+T376 lock v3.24 s
+T376 lock v2.2 s
+T376 lock v6.15 x
+T376 lock v4.4 s
+T376 commit
+T377 lock v6.3 x
+T377 lock v4.9 x
+T377 lock v2.17 s
+T377 lock v5.19 x
+T377 lock v3.7 s
+T377 lock v3.18 s
+T377 lock v6.22 s
+T377 lock v5.24 x
+T377 lock v3.3 s
+T377 commit
+T378 lock v6.19 s
+T378 lock v5.18 s
+T378 lock v6.4 s
+T378 lock v5.20 s
+T378 lock v2.20 s
+T378 lock v4.24 s
+T378 lock v5.4 x
+T378 lock v4.3 s
+T378 lock v3.7 s
+T378 lock v3.6 s
+T378 lock v4.21 x
+T378 commit
+T379 lock v3.6 x
+T379 lock v5.12 s
+T379 lock v6.25 s
+T379 lock v5.21 s
+T379 lock v3.15 s
+T379 lock v6.22 s
+T379 lock v6.3 x
+T379 lock v4.20 s
+T379 lock v4.4 s
+T379 lock v4.3 s
+T379 lock v4.2 x
+T379 commit
+T380 lock v5.21 s
+T380 lock v3.22 x
+T380 lock v2.11 s
+T380 lock v5.7 x
+T380 lock v6.20 s
+T380 lock v2.24 s
+T380 lock v3.22 s
+T380 lock v5.5 s
+T380 lock v4.8 s
+T380 lock v6.6 s
+T380 lock v6.22 s
+T380 commit
+T381 lock v6.19 x
+T381 lock v2.23 s
+T381 lock v6.10 s
+T381 lock v5.8 s
+T381 lock v1.3 s
+T381 lock v4.15 s
+T381 lock v1.2 x
+T381 lock v5.13 s
+T381 lock v1.20 x
+T381 lock v3.2 s
+T381 lock v3.24 s
+T381 lock v3.12 s
+T381 commit
+T382 lock v2.22 s
+T382 lock v4.1 s
+T382 lock v1.10 s
+T382 lock v4.20 s
+T382 lock v3.11 s
+T382 lock v5.1 s
+T382 lock v3.10 s
+T382 lock v2.19 x
+T382 commit
+T383 lock v3.11 s
+T383 lock v3.17 x
+T383 lock v4.24 s
+T383 lock v5.15 s
+T383 lock v3.10 s
+T383 lock v1.22 s
+T383 lock v3.1 s
+T383 lock v2.16 s
+T383 lock v3.25 s
+T383 lock v1.7 s
+T383 commit
+T384 lock v1.21 x
+T384 lock v2.2 s
+T384 lock v6.6 s
+T384 lock v6.21 s
+T384 lock v1.11 s
+T384 lock v6.14 x
+T384 lock v4.17 s
+T384 lock v3.2 s
+T384 lock v4.3 x
+T384 lock v2.23 s
+T384 lock v4.8 s
+T384 commit
+T385 lock v3.16 s
+T385 lock v2.20 s
+T385 lock v3.8 s
+T385 lock v5.5 s
+T385 lock v1.9 s
+T385 lock v6.20 s
+T385 lock v3.19 x
+T385 lock v4.18 x
+T385 lock v4.14 s
+T385 lock v4.2 x
+T385 lock v4.10 x
+T385 lock v2.23 s
+T385 commit
+T386 lock v1.23 s
+T386 lock v5.17 s
+T386 lock v5.20 s
+T386 lock v3.25 s
+T386 lock v6.15 s
+T386 lock v6.11 x
+T386 lock v4.24 s
+T386 lock v2.2 x
+T386 lock v6.17 x
+T386 lock v6.6 s
+T386 commit
+T387 lock v5.15 s
+T387 lock v2.12 s
+T387 lock v1.16 s
+T387 lock v6.3 x
+T387 lock v6.20 s
+T387 lock v4.12 x
+T387 lock v3.18 s
+T387 lock v4.16 s
+T387 lock v1.4 x
+T387 lock v5.9 x
+T387 lock v5.14 s
+T387 lock v5.16 x
+T387 commit
+T388 lock v4.6 s
+T388 lock v1.15 s
+T388 lock v4.11 s
+T388 lock v5.16 s
+T388 lock v2.17 s
+T388 lock v3.21 s
+T388 lock v6.20 x
+T388 lock v2.8 s
+T388 lock v1.8 x
+T388 commit
+T389 lock v4.20 s
+T389 lock v4.18 s
+T389 lock v1.5 x
+T389 lock v2.1 s
+T389 lock v1.6 x
+T389 lock v5.18 s
+T389 lock v5.14 s
+T389 lock v3.13 s
+T389 commit
+T390 lock v2.6 s
+T390 lock v5.3 s
+T390 lock v6.13 x
+T390 lock v3.15 x
+T390 lock v5.4 s
+T390 lock v5.12 x
+T390 lock v3.6 x
+T390 lock v6.8 s
+T390 lock v5.9 s
+T390 lock v2.5 s
+T390 commit
+T391 lock v6.16 s
+T391 lock v4.7 s
+T391 lock v6.14 s
+T391 lock v3.16 s
+T391 lock v2.6 s
+T391 lock v4.5 s
+T391 lock v3.19 s
+T391 lock v2.24 x
+T391 commit
+T392 lock v3.11 s
+T392 lock v5.6 s
+T392 lock v3.19 s
+T392 lock v2.20 s
+T392 lock v6.25 x
+T392 lock v5.6 s
+T392 lock v3.13 s
+T392 lock v6.17 s
+T392 lock v2.23 s
+T392 lock v4.15 x
+T392 commit
+T393 lock v1.15 x
+T393 lock v4.11 s
+T393 lock v2.14 s
+T393 lock v6.12 s
+T393 lock v5.2 x
+T393 lock v5.10 x
+T393 lock v4.21 s
+T393 lock v5.24 s
+T393 lock v1.22 s
+T393 lock v6.12 s
+T393 lock v5.20 x
+T393 commit
+T394 lock v6.11 x
+T394 lock v4.24 x
+T394 lock v6.1 s
+T394 lock v4.19 s
+T394 lock v5.11 s
+T394 lock v1.16 s
+T394 lock v2.9 x
+T394 lock v5.5 s
+T394 lock v2.23 x
+T394 commit
+T395 lock v2.2 s
+T395 lock v6.20 s
+T395 lock v4.6 x
+T395 lock v4.9 s
+T395 lock v2.8 s
+T395 lock v4.7 x
+T395 lock v1.10 s
+T395 lock v6.20 s
+T395 commit
+T396 lock v2.17 s
+T396 lock v3.25 s
+T396 lock v1.14 x
+T396 lock v5.8 x
+T396 lock v5.9 s
+T396 lock v1.2 s
+T396 lock v4.9 s
+T396 lock v6.17 s
+T396 lock v3.12 s
+T396 commit
+T397 lock v5.7 s
+T397 lock v6.2 s
+T397 lock v6.23 s
+T397 lock v5.3 s
+T397 lock v2.4 x
+T397 lock v5.5 s
+T397 lock v6.13 x
+T397 lock v4.12 s
+T397 lock v6.8 s
+T397 lock v2.5 s
+T397 commit
+T398 lock v3.25 s
+T398 lock v2.15 s
+T398 lock v6.10 s
+T398 lock v2.20 s
+T398 lock v6.8 s
+T398 lock v3.6 x
+T398 lock v1.16 s
+T398 lock v4.6 x
+T398 lock v6.22 x
+T398 lock v4.11 s
+T398 commit
+T399 lock v5.10 s
+T399 lock v1.16 s
+T399 lock v1.19 s
+T399 lock v6.25 s
+T399 lock v4.8 s
+T399 lock v1.8 x
+T399 lock v1.21 s
+T399 lock v4.20 s
+T399 lock v6.6 x
+T399 lock v3.8 s
+T399 commit
+T400 lock v5.22 s
+T400 lock v6.25 s
+T400 lock v3.9 s
+T400 lock v6.16 s
+T400 lock v5.18 s
+T400 lock v5.25 s
+T400 lock v4.5 s
+T400 lock v2.9 s
+T400 lock v1.6 s
+T400 lock v1.10 s
+T400 lock v6.24 s
+T400 commit
+T401 lock v1.15 s
+T401 lock v1.12 x
+T401 lock v5.22 s
+T401 lock v1.8 s
+T401 lock v1.3 s
+T401 lock v6.1 s
+T401 lock v6.23 s
+T401 lock v2.12 s
+T401 commit
+T402 lock v3.11 x
+T402 lock v3.25 s
+T402 lock v1.22 s
+T402 lock v6.19 s
+T402 lock v5.18 s
+T402 lock v1.22 s
+T402 lock v5.3 s
+T402 lock v5.25 s
+T402 lock v3.18 s
+T402 lock v6.10 x
+T402 lock v5.20 s
+T402 lock v2.21 s
+T402 commit
+T403 lock v6.9 s
+T403 lock v4.21 x
+T403 lock v4.3 x
+T403 lock v4.2 s
+T403 lock v3.25 s
+T403 lock v3.23 x
+T403 lock v2.7 s
+T403 lock v5.13 s
+T403 lock v5.12 x
+T403 lock v2.9 s
+T403 lock v1.23 s
+T403 lock v2.11 x
+T403 commit
+T404 lock v6.25 s
+T404 lock v6.6 s
+T404 lock v3.20 s
+T404 lock v4.23 s
+T404 lock v2.13 s
+T404 lock v4.10 x
+T404 lock v1.15 s
+T404 lock v4.17 s
+T404 lock v6.24 s
+T404 commit
+T405 lock v5.23 s
+T405 lock v6.17 s
+T405 lock v3.5 s
+T405 lock v4.23 s
+T405 lock v1.10 s
+T405 lock v5.14 s
+T405 lock v6.9 s
+T405 lock v6.23 s
+T405 lock v2.25 s
+T405 lock v2.10 s
+T405 commit
+T406 lock v6.1 s
+T406 lock v6.6 s
+T406 lock v3.11 s
+T406 lock v4.25 s
+T406 lock v1.10 x
+T406 lock v4.3 x
+T406 lock v2.13 x
+T406 lock v5.2 x
+T406 commit
+T407 lock v2.17 s
+T407 lock v3.17 s
+T407 lock v1.20 x
+T407 lock v2.5 x
+T407 lock v5.13 x
+T407 lock v3.11 x
+T407 lock v6.6 s
+T407 lock v3.20 x
+T407 lock v1.13 s
+T407 lock v1.17 s
+T407 lock v5.23 s
+T407 commit
+T408 lock v4.6 x
+T408 lock v4.1 s
+T408 lock v3.16 s
+T408 lock v1.17 x
+T408 lock v3.6 x
+T408 lock v2.22 s
+T408 lock v1.7 s
+T408 lock v3.13 s
+T408 lock v3.18 s
+T408 commit
+T409 lock v3.5 s
+T409 lock v5.19 s
+T409 lock v1.8 s
+T409 lock v6.22 x
+T409 lock v6.15 x
+T409 lock v1.3 s
+T409 lock v5.16 s
+T409 lock v3.13 x
+T409 lock v3.25 s
+T409 lock v1.20 s
+T409 commit
+T410 lock v2.13 s
+T410 lock v3.20 s
+T410 lock v2.18 s
+T410 lock v1.6 x
+T410 lock v5.3 s
+T410 lock v4.3 s
+T410 lock v2.14 s
+T410 lock v6.3 s
+T410 lock v1.22 s
+T410 lock v2.20 s
+T410 lock v4.25 x
+T410 commit
+T411 lock v6.9 x
+T411 lock v1.24 s
+T411 lock v6.16 s
+T411 lock v1.13 s
+T411 lock v2.10 s
+T411 lock v2.6 s
+T411 lock v5.23 s
+T411 lock v1.6 s
+T411 lock v3.3 s
+T411 lock v2.22 x
+T411 commit
+T412 lock v5.25 s
+T412 lock v4.22 s
+T412 lock v1.22 x
+T412 lock v1.10 s
+T412 lock v3.9 s
+T412 lock v1.9 s
+T412 lock v4.4 x
+T412 lock v3.24 s
+T412 lock v6.23 s
+T412 lock v3.18 s
+T412 lock v6.14 s
+T412 lock v1.12 s
+T412 commit
+T413 lock v6.1 s
+T413 lock v1.22 s
+T413 lock v3.3 s
+T413 lock v1.5 s
+T413 lock v6.13 x
+T413 lock v1.1 x
+T413 lock v3.5 s
+T413 lock v4.3 x
+T413 lock v1.2 s
+T413 lock v6.14 x
+T413 lock v1.6 x
+T413 lock v5.7 x
+T413 commit
+T414 lock v1.17 x
+T414 lock v1.22 s
+T414 lock v4.20 s
+T414 lock v3.12 s
+T414 lock v5.14 x
+T414 lock v5.12 s
+T414 lock v2.7 x
+T414 lock v5.8 s
+T414 lock v4.13 s
+T414 lock v3.12 s
+T414 lock v2.5 s
+T414 lock v1.21 s
+T414 commit
+T415 lock v2.23 s
+T415 lock v4.23 s
+T415 lock v4.4 s
+T415 lock v1.21 s
+T415 lock v6.20 s
+T415 lock v3.20 s
+T415 lock v2.5 s
+T415 lock v6.17 s
+T415 lock v3.11 s
+T415 commit
+T416 lock v6.17 x
+T416 lock v6.21 s
+T416 lock v1.19 x
+T416 lock v1.10 s
+T416 lock v6.11 s
+T416 lock v2.25 x
+T416 lock v5.10 s
+T416 lock v2.13 s
+T416 lock v5.8 s
+T416 lock v2.11 s
+T416 lock v3.12 s
+T416 lock v6.8 s
+T416 commit
+T417 lock v3.6 s
+T417 lock v1.17 s
+T417 lock v3.19 s
+T417 lock v5.5 s
+T417 lock v1.13 s
+T417 lock v4.4 s
+T417 lock v4.1 x
+T417 lock v1.4 s
+T417 lock v1.15 x
+T417 lock v6.9 s
+T417 commit
+T418 lock v5.6 s
+T418 lock v5.15 s
+T418 lock v3.15 s
+T418 lock v4.22 s
+T418 lock v1.10 s
+T418 lock v3.16 s
+T418 lock v4.1 s
+T418 lock v1.22 x
+T418 lock v4.18 s
+T418 lock v4.9 s
+T418 commit
+T419 lock v2.2 s
+T419 lock v2.24 s
+T419 lock v3.15 s
+T419 lock v3.18 s
+T419 lock v6.20 s
+T419 lock v1.7 x
+T419 lock v6.21 s
+T419 lock v4.11 s
+T419 lock v5.9 s
+T419 lock v6.8 x
+T419 lock v2.23 s
+T419 commit
+T420 lock v3.7 x
+T420 lock v5.1 s
+T420 lock v1.20 s
+T420 lock v5.14 s
+T420 lock v5.20 s
+T420 lock v3.22 x
+T420 lock v2.19 s
+T420 lock v2.23 s
+T420 lock v5.13 s
+T420 commit
+T421 lock v3.15 s
+T421 lock v4.11 s
+T421 lock v4.10 x
+T421 lock v5.23 s
+T421 lock v1.20 s
+T421 lock v1.10 s
+T421 lock v6.22 s
+T421 lock v6.13 s
+T421 commit
+T422 lock v4.23 x
+T422 lock v2.5 s
+T422 lock v4.23 s
+T422 lock v5.3 s
+T422 lock v2.16 x
+T422 lock v3.24 s
+T422 lock v2.24 x
+T422 lock v2.7 s
+T422 lock v1.18 s
+T422 lock v2.17 s
+T422 lock v4.17 s
+T422 lock v6.19 s
+T422 commit
+T423 lock v5.12 s
+T423 lock v1.11 s
+T423 lock v6.16 s
+T423 lock v5.21 s
+T423 lock v3.23 s
+T423 lock v1.23 s
+T423 lock v1.23 s
+T423 lock v6.15 x
+T423 commit
+T424 lock v5.10 s
+T424 lock v6.19 s
+T424 lock v1.12 x
+T424 lock v3.16 s
+T424 lock v2.20 s
+T424 lock v1.19 s
+T424 lock v4.25 s
+T424 lock v3.6 x
+T424 lock v2.16 s
+T424 commit
+T425 lock v6.7 s
+T425 lock v5.16 x
+T425 lock v1.22 s
+T425 lock v1.24 s
+T425 lock v4.3 x
+T425 lock v1.20 x
+T425 lock v4.14 s
+T425 lock v6.11 s
+T425 lock v3.7 s
+T425 lock v6.25 x
+T425 commit
+T426 lock v6.5 s
+T426 lock v3.9 s
+T426 lock v1.7 s
+T426 lock v6.25 s
+T426 lock v2.15 s
+T426 lock v4.18 x
+T426 lock v2.5 s
+T426 lock v5.12 x
+T426 commit
+T427 lock v5.19 x
+T427 lock v2.23 s
+T427 lock v4.4 s
+T427 lock v5.16 s
+T427 lock v4.14 s
+T427 lock v5.6 x
+T427 lock v4.1 s
+T427 lock v6.13 s
+T427 lock v1.5 s
+T427 lock v5.18 s
+T427 commit
+T428 lock v2.11 s
+T428 lock v1.17 s
+T428 lock v2.3 x
+T428 lock v5.25 x
+T428 lock v4.9 s
+T428 lock v3.11 s
+T428 lock v6.1 s
+T428 lock v5.23 s
+T428 lock v1.23 s
+T428 lock v2.10 s
+T428 commit
+T429 lock v3.10 s
+T429 lock v2.8 x
+T429 lock v6.19 s
+T429 lock v3.2 x
+T429 lock v4.24 s
+T429 lock v2.9 s
+T429 lock v1.2 s
+T429 lock v2.22 x
+T429 lock v3.20 s
+T429 lock v4.20 s
+T429 commit
+T430 lock v5.20 s
+T430 lock v5.25 s
+T430 lock v1.14 s
+T430 lock v5.17 s
+T430 lock v4.21 s
+T430 lock v2.21 x
+T430 lock v5.19 x
+T430 lock v1.10 s
+T430 lock v5.21 s
+T430 commit
+T431 lock v2.1 s
+T431 lock v5.13 s
+T431 lock v4.15 s
+T431 lock v4.9 s
+T431 lock v5.14 s
+T431 lock v1.24 s
+T431 lock v6.23 x
+T431 lock v4.19 s
+T431 commit
+T432 lock v3.5 s
+T432 lock v3.13 s
+T432 lock v1.9 s
+T432 lock v1.16 s
+T432 lock v5.6 s
+T432 lock v6.17 s
+T432 lock v6.20 x
+T432 lock v4.19 x
+T432 commit
+T433 lock v5.10 s
+T433 lock v5.10 x
+T433 lock v2.7 s
+T433 lock v6.9 x
+T433 lock v6.12 s
+T433 lock v2.23 s
+T433 lock v4.25 s
+T433 lock v3.4 x
+T433 lock v3.21 s
+T433 lock v6.3 s
+T433 lock v1.2 x
+T433 commit
+T434 lock v3.6 s
+T434 lock v5.14 s
+T434 lock v1.17 x
+T434 lock v6.19 s
+T434 lock v2.24 s
+T434 lock v5.16 x
+T434 lock v3.24 s
+T434 lock v5.7 s
+T434 lock v6.3 s
+T434 lock v2.5 s
+T434 lock v6.7 s
+T434 commit
+T435 lock v1.17 s
+T435 lock v3.20 s
+T435 lock v5.2 x
+T435 lock v6.17 x
+T435 lock v3.16 x
+T435 lock v1.21 x
+T435 lock v6.17 x
+T435 lock v4.10 s
+T435 lock v5.20 s
+T435 lock v1.23 s
+T435 lock v1.1 x
+T435 lock v5.25 s
+T435 commit
+T436 lock v1.2 s
+T436 lock v6.15 s
+T436 lock v5.22 s
+T436 lock v1.6 x
+T436 lock v1.25 s
+T436 lock v3.21 s
+T436 lock v1.18 x
+T436 lock v4.25 s
+T436 lock v5.4 s
+T436 lock v4.3 s
+T436 commit
+T437 lock v6.18 s
+T437 lock v6.8 s
+T437 lock v5.1 s
+T437 lock v6.13 s
+T437 lock v2.3 x
+T437 lock v5.18 s
+T437 lock v3.25 s
+T437 lock v1.6 s
+T437 lock v3.24 s
+T437 lock v5.21 x
+T437 lock v4.15 s
+T437 commit
+T438 lock v5.15 s
+T438 lock v3.8 s
+T438 lock v5.22 s
+T438 lock v3.22 s
+T438 lock v3.20 x
+T438 lock v1.10 s
+T438 lock v6.1 s
+T438 lock v3.7 s
+T438 lock v5.22 x
+T438 commit
+T439 lock v5.11 s
+T439 lock v4.14 x
+T439 lock v6.25 s
+T439 lock v2.4 x
+T439 lock v3.3 x
+T439 lock v3.2 s
+T439 lock v1.22 s
+T439 lock v5.16 s
+T439 lock v5.6 x
+T439 lock v3.17 s
+T439 lock v1.2 x
+T439 lock v5.24 s
+T439 commit
+T440 lock v1.11 x
+T440 lock v4.12 s
+T440 lock v3.15 s
+T440 lock v1.10 s
+T440 lock v2.10 s
+T440 lock v1.10 s
+T440 lock v6.24 x
+T440 lock v6.3 s
+T440 lock v2.18 s
+T440 lock v2.24 s
+T440 commit
+T441 lock v4.8 s
+T441 lock v5.25 x
+T441 lock v1.21 x
+T441 lock v3.20 s
+T441 lock v2.13 s
+T441 lock v5.1 s
+T441 lock v6.15 s
+T441 lock v1.21 x
+T441 lock v4.3 s
+T441 lock v2.20 s
+T441 lock v4.11 s
+T441 commit
+T442 lock v4.13 s
+T442 lock v3.21 s
+T442 lock v3.11 x
+T442 lock v2.10 x
+T442 lock v5.7 s
+T442 lock v6.21 s
+T442 lock v3.12 s
+T442 lock v6.12 s
+T442 lock v2.24 s
+T442 commit
+T443 lock v2.19 s
+T443 lock v2.25 s
+T443 lock v3.22 s
+T443 lock v3.16 s
+T443 lock v4.8 s
+T443 lock v4.4 x
+T443 lock v6.16 x
+T443 lock v6.6 s
+T443 lock v6.23 s
+T443 lock v4.21 s
+T443 lock v5.17 s
+T443 lock v6.8 s
+T443 commit
+T444 lock v5.23 x
+T444 lock v2.8 s
+T444 lock v3.25 s
+T444 lock v6.14 x
+T444 lock v2.7 x
+T444 lock v3.4 s
+T444 lock v5.18 s
+T444 lock v2.14 s
+T444 lock v1.23 s
+T444 lock v2.8 s
+T444 commit
+T445 lock v2.20 s
+T445 lock v4.12 s
+T445 lock v2.16 s
+T445 lock v2.17 s
+T445 lock v1.6 s
+T445 lock v6.24 s
+T445 lock v1.9 s
+T445 lock v6.5 s
+T445 lock v5.6 s
+T445 lock v6.2 s
+T445 lock v3.6 s
+T445 lock v6.19 s
+T445 commit
+T446 lock v2.1 x
+T446 lock v3.14 s
+T446 lock v2.6 s
+T446 lock v1.16 s
+T446 lock v3.21 x
+T446 lock v1.25 s
+T446 lock v2.5 x
+T446 lock v5.12 s
+T446 lock v5.4 s
+T446 commit
+T447 lock v1.9 s
+T447 lock v2.24 s
+T447 lock v4.19 s
+T447 lock v2.24 s
+T447 lock v5.23 s
+T447 lock v4.5 x
+T447 lock v4.20 x
+T447 lock v5.6 s
+T447 lock v1.18 x
+T447 lock v2.9 s
+T447 lock v5.5 s
+T447 commit
+T448 lock v6.8 x
+T448 lock v5.19 x
+T448 lock v5.11 s
+T448 lock v6.14 s
+T448 lock v2.3 x
+T448 lock v2.18 s
+T448 lock v2.23 x
+T448 lock v4.22 s
+T448 lock v3.6 x
+T448 lock v5.16 s
+T448 lock v2.16 x
+T448 commit
+T449 lock v6.9 s
+T449 lock v4.14 s
+T449 lock v6.5 s
+T449 lock v3.11 s
+T449 lock v3.1 s
+T449 lock v3.18 s
+T449 lock v2.11 s
+T449 lock v1.11 x
+T449 lock v5.9 x
+T449 lock v2.24 s
+T449 commit
+T450 lock v5.13 s
+T450 lock v2.23 x
+T450 lock v3.18 s
+T450 lock v1.15 s
+T450 lock v6.1 x
+T450 lock v2.19 s
+T450 lock v1.4 s
+T450 lock v5.3 s
+T450 lock v5.6 x
+T450 lock v6.1 s
+T450 lock v6.10 s
+T450 lock v5.12 s
+T450 commit
+T451 lock v4.13 x
+T451 lock v5.4 s
+T451 lock v3.17 s
+T451 lock v4.4 x
+T451 lock v3.13 x
+T451 lock v2.21 s
+T451 lock v5.5 x
+T451 lock v3.10 x
+T451 lock v1.22 s
+T451 lock v1.19 s
+T451 lock v6.8 x
+T451 lock v1.11 x
+T451 commit
+T452 lock v3.8 x
+T452 lock v6.24 s
+T452 lock v5.4 s
+T452 lock v4.8 s
+T452 lock v2.25 x
+T452 lock v5.3 s
+T452 lock v2.21 s
+T452 lock v4.16 x
+T452 lock v6.17 x
+T452 commit
+T453 lock v4.10 s
+T453 lock v6.10 s
+T453 lock v6.15 s
+T453 lock v1.23 s
+T453 lock v1.8 x
+T453 lock v2.3 s
+T453 lock v2.14 x
+T453 lock v2.15 x
+T453 lock v3.14 s
+T453 commit
+T454 lock v1.3 x
+T454 lock v1.10 s
+T454 lock v2.25 s
+T454 lock v3.15 s
+T454 lock v2.1 s
+T454 lock v6.2 s
+T454 lock v6.7 s
+T454 lock v6.24 s
+T454 lock v1.22 s
+T454 commit
+T455 lock v2.13 x
+T455 lock v4.18 s
+T455 lock v4.25 s
+T455 lock v1.15 s
+T455 lock v3.4 s
+T455 lock v3.19 s
+T455 lock v4.6 s
+T455 lock v4.8 s
+T455 lock v4.3 s
+T455 lock v2.19 s
+T455 commit
+T456 lock v2.16 x
+T456 lock v5.12 x
+T456 lock v1.8 x
+T456 lock v3.21 s
+T456 lock v4.14 x
+T456 lock v4.10 s
+T456 lock v1.12 s
+T456 lock v1.15 x
+T456 lock v1.2 s
+T456 lock v6.12 s
+T456 commit
+T457 lock v2.4 s
+T457 lock v3.20 s
+T457 lock v2.24 x
+T457 lock v1.11 s
+T457 lock v1.23 x
+T457 lock v3.9 x
+T457 lock v5.14 s
+T457 lock v4.17 s
+T457 lock v3.10 s
+T457 commit
+T458 lock v6.12 s
+T458 lock v2.23 s
+T458 lock v2.21 x
+T458 lock v5.14 s
+T458 lock v3.1 s
+T458 lock v5.16 s
+T458 lock v2.10 x
+T458 lock v2.15 s
+T458 lock v6.6 x
+T458 lock v6.10 s
+T458 commit
+T459 lock v2.4 s
+T459 lock v5.17 s
+T459 lock v4.13 s
+T459 lock v5.18 s
+T459 lock v3.14 s
+T459 lock v4.22 s
+T459 lock v3.4 s
+T459 lock v4.22 x
+T459 commit
+T460 lock v5.13 s
+T460 lock v5.24 s
+T460 lock v3.20 s
+T460 lock v5.3 x
+T460 lock v1.12 x
+T460 lock v4.22 x
+T460 lock v1.11 s
+T460 lock v6.1 s
+T460 commit
+T461 lock v4.6 s
+T461 lock v4.12 s
+T461 lock v4.23 s
+T461 lock v3.17 s
+T461 lock v5.16 s
+T461 lock v2.23 s
+T461 lock v4.1 s
+T461 lock v5.14 s
+T461 lock v5.9 s
+T461 commit
+T462 lock v3.6 s
+T462 lock v1.21 x
+T462 lock v4.18 s
+T462 lock v4.18 x
+T462 lock v6.18 s
+T462 lock v2.12 x
+T462 lock v1.13 s
+T462 lock v1.22 s
+T462 lock v3.20 s
+T462 commit

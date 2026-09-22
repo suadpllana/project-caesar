@@ -1,0 +1,190 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/lock-behind-escalate/STATE.md.
+
+[task]
+slug = "lock-behind-escalate"
+status = "pending"
+sources = ["tasks/lock-behind-escalate/STATE.md", "authoring/lock-behind-escalate/trace.md", "authoring/lock-behind-escalate/timing.py", "authoring/lock-behind-escalate/cheat_report.py"]
+expert_hours = 8
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep a lock table keyed by target with the holders and a FIFO queue of waiters per target,
+grant a request when its mode is compatible with every holder of that target, wake the
+queue of a target when a lock on it is released, build a wait-for graph from waiters to
+holders when someone has to wait and abort the youngest transaction on a cycle, and when a
+transaction holds too many row locks on a table request the table lock in its place and
+queue for it like any other request. That is the textbook two-phase lock manager and it is
+what the shipped tree already is.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A request is granted only when nothing held conflicts with it and it is not behind any
+earlier waiting request it conflicts with, where a table overlaps every row of it, and it is
+behind such a waiter unless that waiter is itself waiting, directly or through other waits,
+on a lock the requester holds. So the queue is one order over every waiting request in the
+manager, conflicts cross the row and table level, and whether a request is behind another is
+a property of the whole wait relation at that moment rather than of the request.
+"""
+second_discovery = """
+Escalation is not a request that can wait: when a row grant leaves a transaction holding K
+or more row records on a table it tries, once, for the table lock in the mode those records
+need, evaluated as if it were the latest request in the manager, and either takes it at once
+or gives up until its next row grant there. Taking it collapses the row records into one
+table record, so later rows of that table are granted without a record, every waiter on
+those rows now conflicts with a table holder, the count the victim rule reads drops to one,
+and the trigger count is not the number of grants because drops and covered grants move it.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped scripts and read the quoted line to find which module decides that a request waits",
+  "Rebuild holdings as records with a mode, an upgrade in place, coverage by a table record, and release of the rows a table grant subsumes",
+  "Replace the per-target queues with one sequence of waiting requests and an overlap test between a row and its table",
+  "Write the grant rule as a reachability question over the wait relation, evaluated fresh from the current holders and waiters",
+  "Write settling as a fixed point after every op: earliest grantable request first, escalation after each row grant, then the hard cycle and its victim",
+  "Write escalation as a request evaluated behind every waiter, granted now or abandoned, never queued",
+  "Choose the victim by records held and then by the most recent request, and print the record count it releases",
+  "Time the wide scripts and index records and waiters by table so the settle does not rescan the whole manager",
+]
+
+[search]
+best_page = """
+The PostgreSQL lock manager README on soft and hard wait-queue edges with queue
+rearrangement on deadlock detection, and the SQL Server documentation on lock escalation
+thresholds, which are what a query about lock queues, deadlocks and escalation returns.
+"""
+helps_plan = false
+deviation = """
+That README reorders the queue only when a deadlock check runs, while here whether a
+request is behind another is settled after every op from the current wait relation and a
+wait added anywhere can grant a request elsewhere; SQL Server escalates at a fixed count and
+never asks the queue, while here escalation is refused by any waiter that does not depend
+on the escalating transaction; and neither counts records the way the victim rule and the
+end line do, so the retrieved plan is wrong at each of the three points that decide a trace.
+"""
+
+[tactics]
+A1 = """
+The shipped tree is the textbook manager: holder-only conflicts, a queue per target woken on
+release, escalation queued like a request, the youngest transaction as the victim. Each of
+those is the memorised default and each is a wrong answer here at the first decision point.
+"""
+A2 = """
+The brief states behaviour only: what a request waits behind, what escalation tries and
+gives up, what a victim releases. It never names a wait-for graph, a soft edge, queue
+rearrangement, opportunistic escalation or multi-granularity locking, so the structure that
+survives all the rules has to be derived from their consequences rather than looked up.
+"""
+B2 = """
+Six rules hold at once - overlap across levels, behind-unless-depending, settling after
+every op, coverage and subsumption of records, escalation as an abandoned request, and the
+victim by record count - and each changes what a correct implementation of the others is.
+"""
+C1 = """
+Both sides are graded: a manager that grants whatever is compatible with the holders fails
+where a request must wait behind an earlier writer, and one that queues behind every earlier
+waiter fails the ordinary scripts where readers must pass a queued reader.
+"""
+C4 = """
+Every script must match line for line, and the population is generated inside the verifier
+from a seed drawn after the agent's container is gone, in families shaped around each
+decision rather than sampled from the input space.
+"""
+guard = """
+Six files under /app/lm are collected and nothing else; the driver, the round scheduler, the
+script parser, the trace writer and the sample scripts are the verifier's own pristine copies
+laid under the submission, so the event format and the interleaving cannot be reshaped.
+"""
+
+[decisions]
+graded = 11
+interactions = [
+  { a = "a request is behind an earlier conflicting waiter unless that waiter depends on it", b = "the manager settles to a fixed point after every op", why = "dependence is a property of the wait relation as it stands, so a wait added on one table can make an existing waiter on another grantable, and a design that decides behind-or-not when a request arrives or only when a lock is released is wrong on scripts it passes elsewhere" },
+  { a = "a table lock overlaps every row of its table", b = "escalation collapses row records into one table record", why = "after an escalation every waiter on a row of that table conflicts with a holder it never asked about, and a queue kept per target cannot see that its blocker moved to another target" },
+  { a = "escalation is granted now or abandoned, evaluated behind every waiting request", b = "a request is behind a waiter unless that waiter depends on the requester", why = "an escalation to shared can be refused by a writer waiting on someone else's row lock, so whether a transaction ever escalates depends on the same reachability the grant rule uses, and the row-count trigger alone decides nothing" },
+  { a = "rows covered by a table record are granted without a record and a table grant releases the rows it subsumes", b = "the victim is the transaction on a hard cycle holding the fewest records", why = "an escalated transaction holding one record for forty rows is the victim ahead of one holding two rows, so the victim rule cannot be read off the locks a transaction asked for" },
+  { a = "escalation is attempted at every row grant once the count reaches K", b = "a drop releases one record and a covered grant adds none", why = "the trigger count moves in both directions and is not the number of row grants, so an implementation counting grants escalates at the wrong moment" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Two readers and a queued writer on one row: the third reader must wait behind the writer,
+while a reader on another row of the same table with no writer queued must be granted at
+once, so blanket queueing and holder-only granting both print the wrong line.
+"""
+late_case = """
+A reader is queued behind a writer that is blocked by a third transaction's shared lock;
+several rounds later that third transaction asks for a row the queued reader holds, which
+makes the writer depend on the reader, and the reader must be granted in the settle of that
+request with no lock released anywhere - an implementation that re-evaluates only on release
+or only at arrival has passed every earlier script and fails here.
+"""
+oracle_denied = """
+The natural check is to compare against a known database's lock manager or to reason that
+no incompatible locks are ever held at once; no public manager has these rules, the shipped
+tree prints a coherent trace for every script, and every wrong reading here also never
+grants two incompatible locks, so running it confirms only that it runs.
+"""
+
+[leaks]
+candidates = [
+  { what = "a wait-for graph or dependency helper in the frozen tree", closed_by = "the frozen half is the parser, the round scheduler and the writer; nothing in it computes conflicts, edges or reachability" },
+  { what = "sequence numbers or queue positions printed in the trace", closed_by = "the trace carries grant, wait, esc, end and dead lines only; position is recoverable only by holding the whole relation" },
+  { what = "the sample scripts' correct output beside them", closed_by = "the scripts ship without output and the brief quotes one line of one script, the wait line the fairness rule forces" },
+  { what = "a record count or held-lock field the shipped tree keeps that already means what the victim rule needs", closed_by = "the shipped holdings are a set of targets per transaction with no mode and no coverage; the record store has to be built" },
+  { what = "an escalation counter that already resets on drop", closed_by = "the shipped escalation counts grants and never decrements; the count the rule needs is derived from records" },
+]
+derived_quantities = """
+A script carries the threshold and each transaction's ops, which are primitives; the sequence
+order, the conflicts, the wait relation, the record counts, which rows a table grant subsumes
+and the victim are all derived and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct managers that answer every dependence question by a fresh search of the wait
+relation, one walk per candidate per earlier conflicting waiter at every settle pass, and
+that look for a cycle at every pass whether or not a wait was added.
+"""
+invariant = """
+Between two grants nothing in the wait relation changes, so one closure of it answers every
+question a settle pass asks; and only a request that comes to wait can close a cycle, since a
+grant or a release only removes edges.
+"""
+input_scale = "deep scripts of about five hundred transactions: a fan of readers queued behind a writer at the head of a chain more than a hundred transactions long, with hundreds of unrelated ops keeping the manager settling"
+limit_seconds = 600
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a request waits only for holders, never behind an earlier waiter", hand_case = "a reader arriving while a writer is queued on the row it wants" },
+  { reading = "a request waits behind every earlier waiter, conflicting or not", hand_case = "a reader arriving while another reader is queued behind a writer on a different row" },
+  { reading = "no exception for a waiter that depends on the requester", hand_case = "a shared holder upgrading to exclusive while an exclusive request is queued on the same row" },
+  { reading = "behind-or-not is decided when the request arrives and never again", hand_case = "a queued reader whose blocker later comes to depend on it through a third transaction" },
+  { reading = "earlier waiters are looked for on the same target only", hand_case = "a row request arriving while a table request in exclusive mode is queued" },
+  { reading = "escalation queues for the table lock when it cannot be granted", hand_case = "a transaction reaching K rows while another holds one row of that table" },
+  { reading = "escalation ignores waiting requests", hand_case = "a transaction reaching K shared rows while a writer waits on a row held by a third transaction" },
+  { reading = "escalation always takes shared mode", hand_case = "a transaction reaching K rows of which one is exclusive" },
+  { reading = "escalation counts row grants rather than row records held", hand_case = "a transaction that drops a row and is granted another, one short of K in records" },
+  { reading = "a row granted under a table record is recorded", hand_case = "an escalated transaction granted a further row, then committing" },
+  { reading = "a table grant leaves the row records it covers in place", hand_case = "a transaction holding two rows granted the table, then committing" },
+  { reading = "the victim is the youngest transaction on the cycle", hand_case = "a cycle between an older transaction with one record and a younger with three" },
+  { reading = "the victim tie goes to the earlier request", hand_case = "two transactions with one record each in a cycle" },
+  { reading = "a cycle through a queued request counts as a deadlock", hand_case = "a shared holder upgrading behind a queued writer" },
+  { reading = "settling grants the most recent grantable request first", hand_case = "two waiting readers freed by one commit with a writer between them" },
+]
+correct_variants = [
+  "a manager keeping records and waiters in per-table dictionaries, answering dependence by a depth-first search from each candidate over edges built on demand",
+  "a manager keeping one list of records and one list of waiting requests, rebuilding the whole wait relation as an adjacency map at every settle iteration and answering dependence by breadth-first search",
+]
+
+[shape]
+environment_py_lines = 360
+editable_files = 6
+reference_lines = 300

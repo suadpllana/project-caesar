@@ -1,0 +1,214 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/lm/held.py",
+  "/app/lm/wait.py",
+  "/app/lm/grant.py",
+  "/app/lm/esc.py",
+  "/app/lm/dead.py",
+  "/app/lm/settle.py",
+]
+
+[task]
+name = "afterquery/lock-behind-escalate"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the textbook manager, and the shipped tree already is it: a queue of waiters
+per target, a request granted when its mode is compatible with the holders of that target, the
+queue woken when a lock on it is released, a wait-for graph from waiters to holders when
+someone has to wait, the youngest transaction on a cycle killed, and a pile of row locks traded
+for a table lock by queueing for the table like any other request. Every one of those is the
+memorised default, and every one is wrong here at the first decision point, in a way that
+ordinary testing does not show.
+
+A request here waits behind every earlier waiting request it conflicts with, across the row and
+table level, unless that waiter is itself waiting, directly or through other waits, on the
+requester. So there is one order over the whole manager rather than a queue per target, a row
+request can be held back by a queued table request and a table request by a queued row, and
+whether a request is behind another is a fact about the wait relation as it stands rather than
+about the request: a wait added on one table can make a request on another grantable, with
+nothing released anywhere. A manager that decides behind-or-not when the request arrives, or
+re-examines a queue only when a lock on its target is released, passes every simple script and
+fails the one where a blocker's blocker comes to need the waiter.
+
+The rule after that takes the plan apart rather than correcting it. Escalation is never queued:
+when a row grant leaves a transaction holding K or more row records on a table it tries once
+for the table, judged behind every request that is waiting, and either takes it now or gives
+up until its next row grant there. Taking it collapses the row records into one table record,
+so later rows of that table are granted without a record, every waiter on those rows now
+conflicts with a holder it never asked about, and the number the victim rule reads drops to
+one. A queued writer that does not depend on the escalating transaction refuses a shared
+escalation, so whether a transaction ever escalates turns on the same reachability the grant
+rule uses. Holdings are records with coverage and subsumption, not the set of locks a
+transaction asked for, and the trigger count moves both ways through drops and covered grants.
+
+The victim is the transaction on a hard cycle holding the fewest records, ties to the most
+recent request, and the count it reads is the collapsed one. The only feedback a wrong
+structure gets is the order of grant lines and the number on an end line.
+
+One scale shape decides what a correct structure may cost, and the fast path follows from an
+invariant rather than a technique: between two grants nothing in the wait relation changes, so
+every dependence question a settle asks can be answered from one closure, and only a request
+that comes to wait can close a cycle. Measured here on one deep script - a fan of readers
+queued behind a writer at the head of a chain more than a hundred transactions long - an
+exactly correct manager that searches the relation afresh for every pair takes over 300
+seconds against 4.5 seconds for the reference, and three such scripts sit inside the 600
+second limit for the whole set.
+
+Around those sit the ordinary decisions, each a fence with two sides: a reader must pass a
+queued reader it does not conflict with, a shared holder with a queued writer must not be
+killed for the soft cycle that closes through it, a covered request records nothing, a dropped
+row stops counting, and a refused escalation is retried at the next row grant and not when a
+lock is released. All six editable files ship wrong.
+
+Identifiers are in a legacy register - `lm/`, `held`, `wait`, `grant`, `esc`, `dead`,
+`settle`, `seq`, `tgt` - short but never misleading, and no name misdescribes what it holds.
+That is a choice about the register of real lock-manager code rather than an obstacle: each is
+recoverable from what calls it.
+
+The scripts are synthetic, in ten families, with many transactions on one or two rows, shared
+holders upgrading with writers queued, a reader queued behind a blocked writer whose blocker
+later needs the reader, table locks mixed with row locks, thresholds of two to four, drops and
+retakes, crossing lock orders with unequal record counts, and the two scale shapes. In a
+production workload these concentrations are rare, and they are exactly where this class of
+bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`held.py` keeps the records: one per target per transaction, indexed by target and, for rows,
+by table with a count of shared and exclusive rows per transaction, so the other transactions
+whose records conflict with a lock are read off the target and its table rather than searched
+for. It answers coverage - the same target, or the row's table, held in the requested mode or
+stronger - and subsumes the rows a table grant covers.
+
+`wait.py` keeps the waiting requests in sequence order, indexed by target and mode and, for
+rows, by table and mode, so the earlier requests a lock conflicts with are the exclusive ones
+on its target and its table plus, for a table, the row requests under it.
+
+`grant.py` is where the first plan has to be given up. A request is grantable when no other
+transaction holds a conflicting record and every earlier conflicting waiter depends on the
+requester. Dependence is answered from a view of the wait relation built once per settle pass:
+the transactions each waiting transaction waits on, holders and earlier waiters alike, closed
+by strongly connected components into one bitset per transaction. The view is valid because
+nothing in the relation changes between two grants, which is the invariant the fast path
+rests on.
+
+`esc.py` is the escalation: K or more row records on the table, the mode from those records,
+no try when the table is already held that strongly, and a try judged with a sequence number
+later than every waiting request, applied as a table grant or dropped.
+
+`dead.py` finds the hard cycles - holders only - by a component pass and picks the victim by
+records held, then by the most recent request.
+
+`settle.py` runs an op and settles after it: covered requests grant at once and record
+nothing, an escalation check follows every row grant, the settle loop grants the earliest
+grantable request and rebuilds the view after each change, and it looks for a cycle only after
+an op has added a wait, because a grant or a release can only remove edges.
+
+An expert works in that order because each file consumes the one before it: what a record is
+decides what conflicts, what conflicts decides who waits, who waits decides who depends on
+whom, and that decides both what is granted and what an escalation may take. The same contract
+is implemented two further ways in the authoring set - one holding records in per-table
+objects with per-target dictionaries and closing the relation into sets by the same component
+pass, one keeping requests in per-key sets and closing the relation by iterating bitsets to a
+fixed point in depth-first postorder - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/lm/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the script parser, the round scheduler, the
+trace writer and the sample scripts cannot change what a script prints, and a new file put
+beside the six is never collected at all.
+
+Correct is defined twice over. Thirty-seven hand scripts, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading
+file was written; the grader first asserts that the sealed model still reproduces `gt.json`
+exactly, so a model that had drifted could not quietly redefine correct. Three hundred and
+twenty-six further scripts are generated inside the verifier from a seed drawn after the
+agent's container is gone, across ten families that concentrate queues on one row, upgrades
+behind queued writers, the late dependence, cross-level locks, escalation thresholds, drops,
+crossing lock orders, and the two scale shapes. A submission cannot have seen them, so fitting
+the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Granting whatever the holders allow fails `behind-writer`; queueing
+behind every earlier waiter fails `plain-pass` and `behind-conflict`; looking for earlier
+waiters on the same target only fails `cross-behind`. Holding a request back behind a waiter
+that depends on it fails `skip-upgrade`; following held records only fails `skip-soft-path`;
+deciding at arrival fails `skip-late`. Granting the latest first fails `settle-earliest`.
+Recording a covered row fails `cover-table`; keeping subsumed rows fails `subsume-x`;
+releasing the table on a covered drop fails `drop-table`. Queueing a refused escalation fails
+`esc-abandon`; ignoring waiters fails `esc-waiter-blocks`; always shared fails `esc-mode`;
+counting grants fails `esc-count-drop`; counting rows on every table fails
+`esc-holder-blocks`; never escalating fails `esc-trigger`; retrying on release fails
+`esc-retry`. The youngest victim fails `dead-fewest`, the earlier request on a tie fails
+`dead-tie-recent`, and a deadlock read through a queued request fails `soft-not-dead`.
+
+Thirty-two cheats score 0. Twenty are wrong readings, each caught by the enumerated case named
+for it. One is exactly correct and too slow: dependence searched afresh for every pair at every
+settle pass. One is the shortcut of granting every request as it is made. One is a forgery
+carrying the frozen answers for every hand script, keyed by the script text read off the
+driver's frame, which passes all thirty-seven and fails on the scripts it could not have seen.
+The other nine are probes: the answer key, the reward written directly, a reward written late
+by a double-forked survivor, a planted worker record, a record planted and the worker exited
+clean before it could be overwritten, a record spoiled on the way out, a rewritten generator, a
+rewritten grader, and an engine hidden in files beside the six that are collected. Two
+independently written correct managers score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also
+the task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked
+before any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "lock-manager",
+  "multi-granularity-locking",
+  "lock-escalation",
+  "wait-queues",
+  "deadlock-detection",
+  "differential-testing",
+]
+
+expert_time_estimate_hours = 8
+
+relevant_experience = """
+Having worked on the lock manager of an embedded transactional store: the part that decides
+which transaction holds which lock, who waits behind whom when readers and writers pile up on
+a hot row, when a pile of row locks is traded for one table lock, and who dies when a wait
+cycle closes. Familiarity with the fact that fairness between a waiter and a newcomer is a
+policy rather than a law, that a lock on a table is a lock on every row of it whether or not a
+row record says so, and that escalation is opportunistic in some stores and blocking in others.
+Comfort with wait relations that have to be re-read after every event, with record accounting
+that a table lock collapses, and with the difference between a manager that is correct and one
+that is affordable at the queue depths a real workload reaches.
+"""
+
+[verifier]
+timeout_sec = 1800.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

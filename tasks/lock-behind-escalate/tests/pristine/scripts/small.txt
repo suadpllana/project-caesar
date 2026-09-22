@@ -1,0 +1,10 @@
+cfg 3
+T1 lock t.1 s
+T1 lock t.2 s
+T1 lock t.1 x
+T1 commit
+T2 lock t.1 x
+T2 commit
+T3 lock t.1 s
+T3 lock t.3 x
+T3 commit

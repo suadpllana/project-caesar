@@ -20,6 +20,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -29,6 +30,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CA = Path("/root/.ccr/ca-bundle.crt")
+# Local accommodation only: a sandbox whose docker daemon has no bridge network (no iptables)
+# can still build and run with the host's network. Set DOCKER_TRIAL_NETWORK=host there. The
+# platform needs none of this and the shipped Dockerfiles are used verbatim either way.
+NETWORK = ["--network", os.environ["DOCKER_TRIAL_NETWORK"]] \
+    if os.environ.get("DOCKER_TRIAL_NETWORK") else []
 
 
 def sh(cmd: list[str], **kw) -> subprocess.CompletedProcess:
@@ -83,7 +89,8 @@ class Trial:
             for tag, ctx in ((self.env_img, self.task / "environment"),
                              (self.test_img, self.task / "tests")):
                 print("building", tag)
-                proc = sh(["docker", "build", "-q", "-t", tag, str(local_context(ctx, tmp))])
+                proc = sh(["docker", "build", "-q"] + NETWORK + ["-t", tag,
+                           str(local_context(ctx, tmp))])
                 if proc.returncode != 0:
                     print(proc.stdout[-3000:], proc.stderr[-3000:])
                     return 1
@@ -108,8 +115,8 @@ class Trial:
         collect = " ; ".join(
             "if [ -f /app/%s ]; then mkdir -p /out/$(dirname %s); cp /app/%s /out/%s; fi"
             % (a, a, a, a) for a in self.arts)
-        proc = sh(["docker", "run", "--rm", "-v", "%s:/out" % outdir.resolve()] + mounts
-                  + [self.env_img, "bash", "-c", "%s ; %s" % (inner, collect)])
+        proc = sh(["docker", "run", "--rm"] + NETWORK + ["-v", "%s:/out" % outdir.resolve()]
+                  + mounts + [self.env_img, "bash", "-c", "%s ; %s" % (inner, collect)])
         if proc.returncode != 0:
             print("    agent container exited", proc.returncode, proc.stderr[-400:])
 
@@ -123,8 +130,8 @@ class Trial:
             "echo REWARD=$(cat /logs/verifier/reward.txt 2>/dev/null) ; "
             "tail -5 /tmp/v.log"
         ) % " ".join(parents)
-        proc = sh(["docker", "run", "--rm", "-v", "%s:/artifacts:ro" % artdir.resolve(),
-                   self.test_img, "bash", "-c", cmd])
+        proc = sh(["docker", "run", "--rm"] + NETWORK
+                  + ["-v", "%s:/artifacts:ro" % artdir.resolve(), self.test_img, "bash", "-c", cmd])
         reward = 0
         for line in proc.stdout.splitlines():
             if line.startswith("REWARD="):

@@ -1,0 +1,49 @@
+# Negative control, written for this checkout - not a design that was ever submitted.
+# Nothing in this record admits a collision: it is caught by measurement alone, because
+# its tags are the tags of a task already in the ledger.
+
+[task]
+slug = "old-space-barrier"
+category = "Software"
+label = "Languages"
+tags = ["generational-collection", "write-barriers", "finalizer-resurrection"]
+status = "idea"
+
+[mechanism]
+sentence = "Decide what a two-space collector reaches and frees when a remembered set records cross-space stores and finalizers may resurrect an object."
+substrate = "a small runtime with a nursery and an old space, exercised by programs of allocation ops"
+graded_output = "the set of objects freed and finalized at each collection, in order"
+failure_mode = "trusting the remembered set instead of re-reading the field it names"
+interaction = "the barrier decides what the remembered set holds, and resurrection decides what survives"
+
+[nearest.public]
+name = "the Garbage Collection Handbook chapter on generational collection"
+url = "https://gchandbook.org/"
+covers = "nurseries, remembered sets, write barriers, weak references and finalization, with worked algorithms"
+plans_this = false
+separation = "the handbook stops at the single-collector case and does not settle what a stale remembered entry means for a pair table"
+
+[nearest.submitted]
+name = "a runtime task from another contributor"
+source = "search"
+shares = "the collector setting and the barrier rules"
+same_mechanism = false
+separation = "the op language differs and the graded output is a free list rather than a reachability report per object"
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "sweeps the whole heap each collection", ours = "sweeps the nursery and consults a remembered set" },
+  { axis = "graded_output", theirs = "prints the surviving set", ours = "prints what was freed and finalized in order" },
+  { axis = "failure_mode", theirs = "misses a cross-space reference", ours = "trusts a stale remembered entry" },
+]
+
+[search]
+queries = ["generational garbage collector write barrier", "remembered set stale entry", "finalizer resurrection semantics", "nursery collection algorithm"]
+results = "the handbook, several runtime write-ups and a course assignment; each describes the machinery but none settles the pair-table case"
+twin_found = false
+
+[collision]
+archetype = "garbage collector"
+on_list = true
+departure = "the collector here is asked for what it freed rather than what survived, and the remembered set is allowed to hold an entry the store has since overwritten, which the published algorithms never address"
+substrate_used_before = true

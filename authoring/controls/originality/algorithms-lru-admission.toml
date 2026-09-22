@@ -1,0 +1,48 @@
+# Negative control, written for this checkout - not a design that was ever submitted.
+# The shape it stands for is the one that earns a similarity flag most often: a named
+# archetype, entered from the front, with the separation left as an assertion. It must
+# score below the floor, and `--calibrate` fails if a rubric change lets it reach it.
+
+[task]
+slug = "cache-admit-decay"
+category = "Software"
+label = "Algorithms"
+tags = ["lru", "cache-eviction", "ttl"]
+status = "idea"
+
+[mechanism]
+sentence = "Implement a cache that evicts by least recent use, admits new keys against a ghost list, and expires entries on a TTL."
+substrate = "a caching layer in front of a key value store"
+graded_output = "the set of keys resident after each operation"
+failure_mode = "evicting the wrong key when the TTL and the recency order disagree"
+interaction = "admission and expiry both decide residency"
+
+[nearest.public]
+name = "the ARC and TinyLFU papers, and every cache-eviction tutorial"
+url = "https://en.wikipedia.org/wiki/Cache_replacement_policies"
+covers = "recency, frequency, admission filters, ghost lists and the standard expiry rules, with worked pseudocode"
+plans_this = false
+separation = "ours also has a TTL"
+
+[nearest.submitted]
+name = "unknown"
+source = "search"
+shares = "caching"
+same_mechanism = false
+separation = "different wording"
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "evicts by recency", ours = "evicts by recency and expiry" },
+]
+
+[search]
+queries = ["lru cache implementation", "ttl cache eviction"]
+results = "many results, all about caches"
+twin_found = false
+
+[collision]
+archetype = "LRU/LFU/TTL cache"
+on_list = true
+departure = "we add a TTL"
+substrate_used_before = false

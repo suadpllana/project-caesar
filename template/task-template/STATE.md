@@ -49,7 +49,12 @@ TODO: the specific reason a frontier agent fails. Name the step, not "it is comp
 - Leak audit (docs/DIFFICULTY.md): for each mechanism, what in the bundle could let an agent
   discover, name or verify it without reasoning? Answer must be "nothing": TODO
 - Expert path, described step by step (the harder the aim, the more this guard must hold): TODO
-- Originality check: TODO — searched for public write-ups? what was found?
+- Originality check: TODO - searched for public write-ups? what was found?
+- Distinctness record score (tools/originalitycheck.py on authoring/<slug>/originality.toml, at
+  Stage 1 before the difficulty record, again once instruction.md exists; every attempt's score,
+  and the crowded archetype named - docs/ORIGINALITY.md): TODO
+- Nearest already-submitted task (from authoring/submissions.toml or the platform's own flag),
+  what overlaps, and which of the five surfaces separate them: TODO
 
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 

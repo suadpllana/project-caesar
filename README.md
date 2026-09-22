@@ -8,6 +8,12 @@ kit, and probe evidence that belongs to those projects.
 creates a new task or fixes an existing one: every graded assertion must trace to a sentence in
 the instruction.
 
+## Starting a new task
+
+Paste `NEW-TASK-PROMPT.md` into a fresh session, or - to start from a mechanism already chosen to
+be off the crowded centre of its label - paste the matching file from
+[`prompts/`](prompts/README.md), one per Software and ML label.
+
 ## Retained projects
 
 Project Caesar AI passed:
@@ -41,10 +47,12 @@ passes.
 tasks/<slug>/          retained task source
 tasks/<slug>.zip       corresponding packaged submission
 probes/<slug>/         external probe trajectories, when available
+prompts/<label>.md      one paste-ready seed prompt per Software and ML label
 authoring/<slug>/       retained out-of-bundle authoring support, including the
-                        difficulty record scored before any code is written
+                        originality and difficulty records scored before any code
+authoring/submissions.toml  every task submitted, what it grades, and its verdict
 authoring/controls/     rejected designs that must stay below the difficulty band
-docs/                   rules, difficulty doctrine, and research notes
+docs/                   rules, difficulty and distinctness doctrine, research notes
 scripts/                preflight and packaging
 template/               new-task skeleton
 tools/                  generic local checks and two-image trial runner
@@ -58,6 +66,7 @@ archives with `scripts/package.py`; do not zip task folders by hand.
 Run the cheap structural check first, then the generic two-image runner when Docker is available:
 
 ```text
+python tools/originalitycheck.py <slug>           at Stage 1, before the difficulty record
 python tools/difficultycheck.py <slug>            before Stage 2, and again at Stage 7
 python tools/tracecheck.py <slug>                 every graded assertion traced to a sentence
 python scripts/preflight.py tasks/<slug>
@@ -67,8 +76,10 @@ python scripts/package.py tasks/<slug>
 python tools/zipcheck.py <slug>
 ```
 
-The project operating rules are in `AGENTS.md`. A new task begins with a difficulty record scored
-against the passed tasks (`docs/DIFFICULTY-SCORE.md`); no environment code is written until the
-record is inside their band. A new task is not ready merely because these commands pass: the agent must author and self-review the instruction and metadata, its verifier
+The project operating rules are in `AGENTS.md`. A new task begins with two records scored before
+any code: an originality record, because the pipeline's similarity screen rejected eight of the
+last fifteen submissions (`docs/ORIGINALITY.md`), and then a difficulty record scored against the
+passed tasks (`docs/DIFFICULTY-SCORE.md`). No environment code is written until both are inside
+their bands. A new task is not ready merely because these commands pass: the agent must author and self-review the instruction and metadata, its verifier
 contract must be frozen before implementation, and its finished bundle needs the manual quality
 review described in `docs/QUALITY-REVIEW.md`.

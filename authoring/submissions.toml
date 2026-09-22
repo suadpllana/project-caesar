@@ -1,0 +1,177 @@
+# The submission ledger: every task that has left this checkout, and what it grades.
+#
+# The pipeline screens each new submission for similarity against public material and
+# against tasks already submitted - by anyone, including you. A flag is decided on the
+# mechanism, not the prose, so the field that matters here is `mechanism`: one sentence
+# saying what the graded work is, with the story stripped out. `tools/originalitycheck.py`
+# reads this file and measures a new design's tags, substrate and mechanism sentence
+# against every entry before any code is written.
+#
+# Add an entry the day a task is submitted, not the day a verdict arrives, and update
+# `verdict` when the platform answers. A task missing from this file is a task the next
+# design is not checked against.
+#
+# verdict:  ai-passed | human-passed | pending | flagged-similar | rejected
+# When a submission is flagged, record what it was flagged against in `similar_to` and
+# what the platform said in `note`. Those two fields are the only record this repository
+# will have of a screen it cannot run locally, and they are what keeps the next design
+# away from the same neighbourhood.
+
+# --- Bundles in this checkout -------------------------------------------------------
+
+[[submission]]
+slug = "alias-settle-report"
+category = "Software"
+label = "Algorithms"
+tags = ["record-linkage", "disequality-constraints", "settling-under-uncertainty", "union-find", "differential-testing"]
+substrate = "the filing end of an evaluation harness that posts run scores under watched keys"
+mechanism = "Settle which posted keys name the same item when tags assert sameness and difference at different times, and file exactly one row for every watched key."
+verdict = "ai-passed"
+
+[[submission]]
+slug = "delta-view-retraction"
+category = "Software"
+label = "Databases"
+tags = ["incremental-view-maintenance", "retraction-handling", "bounded-aggregate-state", "change-data-capture", "watermark-ordering"]
+substrate = "a grouped-aggregate view kept up to date against a keyed change stream behind a trailing watermark"
+mechanism = "Maintain grouped aggregates incrementally against inserts, deletes and updates that carry a new value or a new group, without moving a single published number."
+verdict = "ai-passed"
+
+[[submission]]
+slug = "expert-defer-shed"
+category = "ML"
+label = "Training"
+tags = ["sparse-expert-routing", "token-dispatch", "buffer-capacity-sizing", "gradient-accumulation", "expert-parallelism", "load-balance-accounting"]
+substrate = "the dispatch stage of a sparse layer, deciding which expert buffer a token enters"
+mechanism = "Decide which expert buffer each token enters across the microbatches of an optimizer step under capacity, bank width and want-threshold rules."
+verdict = "pending"
+
+[[submission]]
+slug = "focus-return-point"
+category = "Software"
+label = "Frontend"
+tags = ["focus-management", "modal-dialogs", "tree-mutation", "deferred-resolution", "differential-testing"]
+substrate = "a terminal widget toolkit with a widget tree and a screen stack"
+mechanism = "Decide which widget holds focus after every event as dialogs open and close, widgets are removed under focus, and a return point resolves later than it was recorded."
+verdict = "ai-passed"
+
+[[submission]]
+slug = "guard-mark-unwind"
+category = "Software"
+label = "Languages"
+tags = ["structured-concurrency", "cancellation-propagation", "cooperative-scheduler", "exception-unwinding", "differential-testing"]
+substrate = "a cooperative runtime taking fibers in turns on a virtual clock"
+mechanism = "Produce the trace of a cooperative run: which guard opened and closed and how, which mark was delivered to whom, which cleanup began, and what each fiber carried when it ended."
+verdict = "ai-passed"
+
+[[submission]]
+slug = "note-carry-forward"
+category = "Software"
+label = "Algorithms"
+tags = ["diff-alignment", "revision-history", "state-reconstruction", "differential-testing"]
+substrate = "a code review tool whose threads follow the lines they were opened on while the branch moves"
+mechanism = "Carry review threads across revisions of a branch by settling the one change script between two revisions and deciding where each thread now stands."
+verdict = "ai-passed"
+
+[[submission]]
+slug = "publish-settle-order"
+category = "Software"
+label = "Systems"
+tags = ["extension-host", "lazy-activation", "visibility-scopes", "instance-identity", "reference-counted-teardown", "order-maintenance"]
+substrate = "an extension host that brings units up lazily from what they publish and what they call"
+mechanism = "Settle publication order, scoped visibility, instance identity and reference-counted teardown as units are brought up by calls, by scopes and by each other."
+verdict = "pending"
+note = "declares the retired Software/Systems label; left as it stands, and no new task uses it"
+
+[[submission]]
+slug = "reach-pair-sweep"
+category = "Software"
+label = "Languages"
+tags = ["generational-collection", "remembered-sets", "weak-references", "key-value-weak-pairs", "finalizer-resurrection", "write-barriers"]
+substrate = "a runtime with a nursery, an old space, a handle stack, pins and a pair table"
+mechanism = "Decide what a generational collection reaches, frees and resurrects given remembered sets, weak references, key-value pairs, finalizers and write barriers."
+verdict = "pending"
+
+[[submission]]
+slug = "scope-hold-release"
+category = "Software"
+label = "Systems"
+tags = ["object-lifetimes", "scope-capture", "teardown-ordering", "dependency-graphs", "transactional-rollback"]
+substrate = "a container the services of an application are wired through, with scopes opening and closing around a unit of work"
+mechanism = "Decide what a closing scope tears down when registered lifetimes, captured scopes and rollback decide ownership between them."
+verdict = "pending"
+note = "declares the retired Software/Systems label; left as it stands, and no new task uses it"
+
+[[submission]]
+slug = "share-register-screen"
+category = "Operations"
+label = "Compliance"
+tags = ["beneficial-ownership", "sanctions-screening", "seat-apportionment", "corporate-registers", "differential-testing"]
+substrate = "a sanctions screen replaying a register of corporate filings into the state it now stands in"
+mechanism = "Decide, company by company, whether a sanctions programme reaches it through the parties it has named, their seats and their holdings."
+verdict = "ai-passed"
+
+[[submission]]
+slug = "slab-fold-scope"
+category = "Software"
+label = "Data engineering"
+tags = ["commit-validation", "optimistic-concurrency", "compaction-rewrites", "key-provenance", "interval-runs", "staged-rollback"]
+substrate = "the commit path of a partitioned store where a bucket holds slabs and a slab holds keys"
+mechanism = "Decide what a proposal does when it is pushed against a head that moved under it: validation, key provenance, compaction rewrites and staged rollback."
+verdict = "pending"
+
+[[submission]]
+slug = "token-seam-emit"
+category = "ML"
+label = "Inference"
+tags = ["byte-level-bpe", "incremental-detokenization", "stop-sequences", "utf8-boundaries", "streaming-responses"]
+substrate = "the part of an inference server that decides what to put on the wire as a response streams"
+mechanism = "Release bytes from a streaming decode only when no stop sequence and no character boundary can still change what has already left."
+verdict = "pending"
+
+# --- Submitted, bundle not in this checkout -----------------------------------------
+# README.md records these as passed. Their trees were removed, so their tags, substrate
+# and mechanism are not recoverable here and are deliberately left out rather than
+# reconstructed from the slug. Fill them in if a bundle is ever restored.
+
+[[submission]]
+slug = "concurrent-commit-rules"
+verdict = "ai-passed"
+note = "bundle not in this checkout; mechanism unknown, so nothing is measured against it"
+
+[[submission]]
+slug = "sheet-block-place"
+verdict = "ai-passed"
+note = "bundle not in this checkout; mechanism unknown, so nothing is measured against it"
+
+[[submission]]
+slug = "move-clash-merge"
+verdict = "ai-passed"
+note = "bundle not in this checkout; mechanism unknown, so nothing is measured against it"
+
+[[submission]]
+slug = "heap-file-replacement"
+verdict = "human-passed"
+note = "bundle not in this checkout; mechanism unknown, so nothing is measured against it"
+
+[[submission]]
+slug = "late-dimension-updates"
+verdict = "human-passed"
+note = "bundle not in this checkout; mechanism unknown, so nothing is measured against it"
+
+# --- Submissions made outside this checkout -----------------------------------------
+# Tasks submitted from other sessions or other machines belong here too, and the ones
+# the platform flagged matter most: they are the only evidence this repository can hold
+# about where the screen draws its line. Copy this block, fill it in, and keep the
+# mechanism sentence in the same voice as the entries above.
+#
+# [[submission]]
+# slug = ""
+# category = ""
+# label = ""
+# tags = []
+# substrate = ""
+# mechanism = ""
+# verdict = "flagged-similar"
+# similar_to = ""   # what the platform said it resembled, if it named anything
+# note = ""         # the wording of the flag, verbatim where you have it

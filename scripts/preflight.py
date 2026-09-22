@@ -1029,6 +1029,45 @@ def check_state_difficulty(root: Path) -> None:
             "run tools/difficultycheck.py before Stage 2 (docs/DIFFICULTY-SCORE.md)"
         )
 
+    # The originality record is the other pre-code gate (docs/ORIGINALITY.md). The similarity
+    # screen rejected eight of the contributor's last fifteen submissions, and like the
+    # difficulty record this one lives outside the bundle, so its absence warns rather than
+    # fails.
+    slug_name = root.resolve().name
+    origin = root.resolve().parent.parent / "authoring" / slug_name / "originality.toml"
+    ledger_path = root.resolve().parent.parent / "authoring" / "submissions.toml"
+    entry = None
+    if ledger_path.is_file():
+        try:
+            entries = tomllib.loads(ledger_path.read_text(encoding="utf-8")).get("submission", [])
+            entry = next((e for e in entries if e.get("slug") == slug_name), None)
+        except tomllib.TOMLDecodeError:
+            warn("authoring/submissions.toml does not parse, so the distinctness ledger could "
+                 "not be read (docs/ORIGINALITY.md)")
+    verdict = (entry or {}).get("verdict", "")
+    if verdict == "flagged-similar":
+        warn(
+            f"authoring/submissions.toml records {slug_name} as flagged for similarity - a "
+            "resubmission needs a different mechanism, not different wording, and the record "
+            f"at authoring/{slug_name}/originality.toml has to say what moved "
+            "(docs/ORIGINALITY.md)"
+        )
+    elif not origin.is_file() and verdict in ("", "pending"):
+        # Already-screened submissions are left alone: the platform has answered for them. A
+        # task with no verdict yet is one whose distinctness nothing has scored.
+        warn(
+            f"no originality record at authoring/{slug_name}/originality.toml - the design was "
+            "never scored against what has already been submitted; copy template/originality.toml "
+            "there and run tools/originalitycheck.py before the difficulty record "
+            "(docs/ORIGINALITY.md)"
+        )
+    if entry is None and ledger_path.is_file():
+        warn(
+            f"{slug_name} is not in authoring/submissions.toml - add it on submission, or the "
+            "next design is checked against a ledger that does not include this task "
+            "(docs/ORIGINALITY.md)"
+        )
+
     tactics_line = field_value(text, "Tactics making that true") or ""
     prongs = {(m.group(1) or m.group(2)).upper() for m in TACTIC_RE.finditer(tactics_line)}
     if tactics_line and not any(m in tactics_line for m in TODO_MARKERS):
@@ -1173,7 +1212,9 @@ def main(argv: list[str]) -> int:
         "original, or genuinely verifiable. Still required:\n"
         "  harbor run -p . -a oracle -e docker   (must score 1)\n"
         "  harbor run -p . -a nop -e docker      (must score 0)\n"
-        "  every cheat/ attempt scores 0"
+        "  every cheat/ attempt scores 0\n"
+        "  python tools/originalitycheck.py <slug>  (distinctness, floor 90)\n"
+        "  python tools/difficultycheck.py <slug>   (design shape, band 95-100)"
     )
     return 0
 

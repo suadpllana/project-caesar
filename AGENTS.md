@@ -193,6 +193,7 @@ the end.
 | Harness output | Run the gates with `-o` pointing **outside** the task folder (`harbor run -p . -a oracle -e docker -o ../jobs`). Left inside, `jobs/` is harbor's own output and its `result.json` carries the org name; it is excluded from the zip and flagged by preflight, but keeping it out in the first place is cleaner |
 | Environment docs | The agent-facing tree ships no documentation: no comments, docstrings, READMEs or docs directories; `.md` files banned outright by extension (see Stage 3) |
 | Instruction typography | `instruction.md` is plain ASCII — no em dashes, curly quotes, ellipsis characters or other typographic unicode |
+| Distinctness | The design is scored by `tools/originalitycheck.py` at or above 90 with no hard stop before any code, the substrate and mechanism tags are unused by any entry of `authoring/submissions.toml`, and the task is added to that ledger on submission (`docs/ORIGINALITY.md`); `preflight.py` warns when the record is missing |
 | Instruction contract | Every graded assertion traces to a sentence in `instruction.md`. The walk is `authoring/<slug>/trace.md` and `tools/tracecheck.py` is clean; `preflight.py` errors when `STATE.md` carries the instruction-contract section with a field unanswered or no trace on disk (`docs/INSTRUCTION-CONTRACT.md`) |
 
 **Note on `task.toml` schema.** `harbor init` scaffolds a generic schema that is *not* the Frontier
@@ -290,6 +291,14 @@ could implement it yourself. Establish and write down:
 - Why a strong agent would fail: which step is long-horizon, which part requires exploration, where
   trial and error is unavoidable.
 - Whether it is findable online. Search for it. If a public write-up exists, the idea is dead as-is.
+- Whether it collides with a task somebody has already submitted. The pipeline screens for that
+  too, and it is the gate that rejected eight of the contributor's last fifteen submissions
+  (2026-09-22). Read `authoring/submissions.toml`, name the crowded archetype the idea sits
+  nearest to, score the design with `python tools/originalitycheck.py <slug>` against a floor of
+  90, and replace the idea rather than the wording when it is below. The doctrine, the per-label
+  crowded lists and the measured corpus ceilings are in `docs/ORIGINALITY.md`. This gate runs
+  before the difficulty record: an idea that has to be replaced for collision should be replaced
+  before it is scored for difficulty.
 
 Then classify the task with the exact table below; its labels are the guideline's vocabulary, not
 examples. The agent selects and records exactly one category and 1 to 6 labels from the graded work,
@@ -776,6 +785,8 @@ You have N seconds to complete this task. Do not cheat by using online solutions
 ## 8. Command reference
 
 ```
+python tools/originalitycheck.py <slug>       Score the design for distinctness (Stage 1, again at Stage 5 and 7)
+python tools/originalitycheck.py --nearest <f>  Corpus neighbours of one instruction, with the measured ceilings
 python tools/difficultycheck.py <slug>        Score the design against the passed tasks (before Stage 2, again at Stage 7)
 harbor init afterquery/<slug> -t -o <dir>     Scaffold (generic schema — see §4 note)
 harbor run -p <dir> -a oracle -e docker       Reference solution; must score 1

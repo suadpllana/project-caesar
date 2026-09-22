@@ -4,6 +4,11 @@ Paste the block below as the first message in a fresh task-authoring session. Th
 work immediately. It does not stop for the old 11-part proposal or make the contributor approve a
 separate planning document before engineering starts.
 
+If you want the session to start from a mechanism that is already off the crowded centre of its
+label, paste one of the per-label seed prompts in `prompts/` instead: each carries this contract by
+reference and supplies the idea, the planning attack and the distinctness constraints for one of
+the nine Software and ML labels.
+
 The agent reads `docs/INSTRUCTION-CONTRACT.md` before anything else, then follows every gate in
 `AGENTS.md`. It handles reversible engineering decisions itself and works through the stages
 without waiting. If a genuinely contributor-owned judgment is missing, it continues all independent
@@ -23,16 +28,25 @@ progress update, state what task you understood and start working.
 Before anything else - before inspecting the repository, and whether you are creating a task or
 fixing one - read `docs/INSTRUCTION-CONTRACT.md` in full. It is mandatory: every graded assertion
 must trace to a sentence in the instruction. Then read `AGENTS.md` completely before acting, then
-read `docs/RULES.md`, `docs/DIFFICULTY.md`, `docs/QUALITY-REVIEW.md`, and
+read `docs/RULES.md`, `docs/ORIGINALITY.md`, `docs/DIFFICULTY.md`, `docs/QUALITY-REVIEW.md`, and
 `docs/VERIFIER-ISOLATION.md` when submitted code will execute in the verifier. If this is an
 easiness rejection, also read `RAISE-DIFFICULTY.md` and follow its recovery loop completely.
 
-## Primary objective: clear the easiness probe
+## Primary objectives: clear the similarity screen and the easiness probe
 
-The easiness probe is the most important design gate. Treat it as the central constraint from the
-first minute, not as a check performed after the task is built. Start from a genuinely complex
-issue that requires a frontier agent to explore, revise an initially reasonable plan, and reconcile
-multiple interacting rules. Do not start from a simple issue and try to add difficulty later.
+Two gates reject a finished task outright, and both are decided by the idea rather than by the
+build. The pipeline screens every submission against public material and against tasks other
+contributors have already submitted; eight of the contributor's last fifteen submissions came back
+flagged as similar to somebody else's task. The easiness probe rejects a task whose correct plan
+forms in one shot. A design has to clear both before any code exists, and the distinctness gate
+runs first, because an idea that has to be replaced for collision should be replaced before it is
+scored for difficulty.
+
+The easiness probe is the most important design gate once the idea is distinct. Treat it as the
+central constraint from the first minute, not as a check performed after the task is built. Start
+from a genuinely complex issue that requires a frontier agent to explore, revise an initially
+reasonable plan, and reconcile multiple interacting rules. Do not start from a simple issue and
+try to add difficulty later.
 
 Before implementation, attack the planning problem yourself. Identify the natural first plan and
 the later discovery that makes it fail. If you can form the complete correct plan in one shot, the
@@ -49,7 +63,8 @@ overwrite or mix with existing changes. Check whether Docker and Harbor work. St
 you need yourself when they are available, and report unavailable infrastructure plainly.
 
 Use my first prompt as the task seed and begin the normal Stage 1 investigation at once. Search for
-public solutions and close variants. Inspect every retained task so the graded work is original.
+public solutions and close variants. Read `authoring/submissions.toml` - the ledger of everything
+already submitted - and inspect every retained task, so the graded work is original against both.
 If my prompt includes a repository, check its license, clone and study it, interview me about the
 parts only experience reveals, and give me the mandatory authored-on-top versus excision choice
 before settling a candidate.
@@ -90,6 +105,28 @@ contract. Never weaken the verifier to make a run pass.
 
 Work through the following build order autonomously. These are your internal gates, not questions
 for me and not separate turns unless a contributor-owned decision blocks the next gate.
+
+## Distinctness gate: prove the idea is not someone else's before you score it
+
+Before the difficulty record and before any code, write the idea down as an originality record and
+score it. Copy `template/originality.toml` to `authoring/<slug>/originality.toml` and answer every
+field: the mechanism in one sentence with the story stripped out, the substrate, what the verifier
+compares, the wrong plan being punished, the interacting pair; the nearest public write-up and
+where this departs from it; the nearest already-submitted task, what genuinely overlaps and why a
+reviewer holding both would not call them one task; at least three of the five surfaces separated;
+the queries you actually ran; and the crowded archetype this sits nearest to, named even when none
+of them fits. Then run `python tools/originalitycheck.py <slug>`.
+
+The floor is 90 with no hard stop. The checker also measures, without trusting the record, the
+tags, substrate and mechanism sentence against `authoring/submissions.toml`, and - once the
+instruction exists - the instruction against every other one in `tasks/`. Below the floor, the
+design moves: a different mechanism, a different substrate, or the archetype entered from a side
+no write-up enters from. Rewording does not move it, because the screen compares mechanisms.
+`docs/ORIGINALITY.md` carries the doctrine and the crowded archetype list for every label.
+
+Three rules bind whatever the score says. Never build two tasks in one substrate. Never reuse a
+mechanism tag any ledger entry carries. Rotate the label rather than filing a third task in a row
+under one of them.
 
 ## Difficulty gate: score the idea before writing a single line of code
 
@@ -235,13 +272,21 @@ the recovery complete on predicted difficulty or a reduced local simulation.
 Run the cheapest checks first. At minimum run task-specific generation and synchronization,
 correct variants, every cheat, determinism checks, reference and nop trials, isolation probes where
 applicable, `solvecheck`, `deadfieldcheck`, `catcheck`, `hintcheck`, `structcheck`, `simcheck`,
-`forgecheck`, `tracecheck`, `preflight`, and the criterion-by-criterion manual quality review. Run
+`forgecheck`, `tracecheck`, `originalitycheck`, `difficultycheck`, `preflight`, and the
+criterion-by-criterion manual quality review. Run `originalitycheck` again here with the built
+instruction, and with `--corpus` pointed at any directory of earlier submissions you have, because
+the corpus half only has something to measure once `instruction.md` exists. Run
 the real Docker oracle and nop gates whenever relevant inputs changed. Do not rerun an unchanged
 passing gate just for reassurance.
 
 Package with `scripts/package.py`, repair ZIP metadata with `zipfix` on Windows when needed, and run
 `zipcheck` on the final archive. Keep Harbor output outside the task folder. Inspect the packaged
 tree for scratch files, answer leaks, blocked names, incorrect modes, and missing artifact parents.
+
+Add the task to `authoring/submissions.toml` - slug, category, label, tags, substrate, mechanism
+sentence, verdict `pending` - as part of delivery, and update its verdict when the platform
+answers. A submission missing from that ledger is one the next design is not checked against, and
+a flag recorded there with its wording is worth more to the next task than any amount of doctrine.
 
 Report what actually ran and its exact result. Distinguish host emulation from container evidence.
 Do not claim that local checks guarantee a stochastic quality or difficulty result. If I asked for

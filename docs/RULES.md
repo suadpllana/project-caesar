@@ -85,6 +85,15 @@ before building it. The pipeline also screens for similarity against public and 
 tasks, so a task must not duplicate an existing one or a variant of your own earlier work. Each
 submission should target a different failure mode; reskinning a previous task is rejected.
 
+That screen rejected eight of the contributor's last fifteen submissions (2026-09-22), which makes
+it the most expensive gate in the pipeline: a flag is a rebuild from Stage 1. The doctrine, the
+crowded archetype list for every label, and the measured distance the accepted bundles keep from
+each other are in `docs/ORIGINALITY.md`. Mechanically: write `authoring/<slug>/originality.toml`
+from `template/originality.toml` at Stage 1, score it with `python tools/originalitycheck.py
+<slug>` against a floor of 90, never build two tasks in one substrate, never reuse a mechanism tag
+any entry of `authoring/submissions.toml` carries, and add the task to that ledger when it is
+submitted.
+
 ---
 
 ## Authorship

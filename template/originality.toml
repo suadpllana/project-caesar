@@ -1,0 +1,87 @@
+# Originality record - the distinctness of a task, written before any code exists.
+#
+# Copy to authoring/<slug>/originality.toml (outside the bundle; it never ships), answer
+# every field from the idea, and run:
+#
+#     python tools/originalitycheck.py <slug>
+#
+# The pipeline screens every submission against public material and against tasks other
+# contributors have already submitted. A flagged task is rejected whatever its difficulty
+# score, and the flag is decided on the mechanism - what the graded work is - not on the
+# prose. So the sentences below are written the way a reviewer holding two tasks at once
+# would write them: mechanism first, story removed, overlap stated at its strongest.
+#
+# The checker reads this record, and separately measures tags, substrate and the mechanism
+# sentence against authoring/submissions.toml, the ledger of what has already been
+# submitted. It cannot tell a real departure from an invented one. Padding a field moves
+# the number and not the screen. docs/ORIGINALITY.md carries the doctrine and the crowded
+# archetype lists this record refers to.
+
+[task]
+slug = "my-task-slug"
+category = "Software"                # Software or ML for a session from NEW-TASK-PROMPT.md
+label = "Algorithms"                 # one label of that category (AGENTS.md Stage 1 table)
+tags = []                            # the tags task.toml will carry: 1-6, specific, no
+                                     # label repeated, no tag a ledger entry already uses
+status = "idea"                      # idea | pending | submitted
+
+[mechanism]
+# One sentence a reviewer would use to say what the graded work IS. Mechanism first, no
+# setting, no marketing (>= 18 words). This is the sentence the similarity screen compares,
+# so write the one you would be embarrassed to see printed beside someone else's task.
+sentence = ""
+# The system the mechanism lives in: what the agent's tree simulates (>= 8 words).
+substrate = ""
+# What the verifier reads and compares, in the shape it compares it (>= 8 words).
+graded_output = ""
+# The wrong plan this task exists to punish (>= 12 words).
+failure_mode = ""
+# The pair of rules whose interaction is the difficulty (>= 12 words).
+interaction = ""
+
+[nearest.public]
+# The closest public write-up, paper, library, course exercise or blog post. There is
+# always one; naming it is the search test (docs/DIFFICULTY.md).
+name = ""
+url = ""
+covers = ""              # what that page does cover (>= 10 words)
+plans_this = false       # true kills the idea: the solution is findable online
+separation = ""          # where this task's rules depart from it (>= 15 words)
+
+[nearest.submitted]
+# The closest task already submitted, by this contributor or anyone. Read
+# authoring/submissions.toml first, then search. When the platform has flagged one of your
+# own tasks and named what it resembled, that name goes here.
+name = ""                # a slug or title; "none found" is an unrun search, not an answer
+source = "ledger"        # ledger | platform-feedback | search | retained
+shares = ""              # what genuinely overlaps (>= 8 words), at its strongest
+same_mechanism = false   # true kills the idea: it is a reskin
+separation = ""          # why a reviewer holding both would not call them one task (>= 20 words)
+
+[axes]
+# The five surfaces a similarity screen compares. Separate at least three of them against
+# nearest.submitted, both sides concrete (>= 5 words each). A design that differs on one
+# surface is the same task in new clothes. Axes: mechanism, substrate, graded_output,
+# failure_mode, interaction.
+differentiators = [
+  { axis = "", theirs = "", ours = "" },
+]
+
+[search]
+# What was actually run, and what came back. Four queries or more, the exact strings.
+queries = []
+results = ""             # what returned and why none of it plans this task (>= 20 words)
+twin_found = false       # true kills the idea
+twin = ""                # when twin_found: what was found, so nobody re-finds it
+
+[collision]
+# The crowded archetype this design sits nearest to, in a reviewer's vocabulary. The
+# per-label lists are in docs/ORIGINALITY.md. Name one even when none fits: an archetype
+# you cannot name is one you have not checked.
+archetype = ""
+on_list = false
+# When on_list: the invariant no write-up of that archetype carries, and why the crowded
+# form of it cannot produce this graded output (>= 25 words).
+departure = ""
+# Has any earlier submission used this substrate? The checker measures this too.
+substrate_used_before = false

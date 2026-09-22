@@ -1,0 +1,47 @@
+# Negative control, written for this checkout - not a design that was ever submitted.
+# A reskin of a task already in the ledger: same mechanism, new story. The record is
+# honest about it, and the honesty is what the hard stop reads.
+
+[task]
+slug = "dialog-cursor-return"
+category = "Software"
+label = "Frontend"
+tags = ["focus-management", "modal-dialogs", "deferred-resolution"]
+status = "idea"
+
+[mechanism]
+sentence = "Decide which control holds the cursor after every event as dialogs open and close and controls are removed while holding it."
+substrate = "a form toolkit with a control tree and a stack of dialogs"
+graded_output = "one line per event naming the control holding the cursor afterwards"
+failure_mode = "restoring the recorded control without checking it is still reachable"
+interaction = "removal under focus and the recorded return point decide the same answer"
+
+[nearest.public]
+name = "the WAI-ARIA authoring practices on dialog focus"
+url = "https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/"
+covers = "where focus goes when a dialog opens and closes, and what an author is expected to restore"
+plans_this = false
+separation = "the practices describe a single dialog and say nothing about a control removed while it holds focus"
+
+[nearest.submitted]
+name = "focus-return-point"
+source = "ledger"
+shares = "the focus rules, the return point, the widget tree and the per-event output shape"
+same_mechanism = true
+separation = "the toolkit is a form library rather than a terminal toolkit, and the events are named differently"
+
+[axes]
+differentiators = [
+  { axis = "substrate", theirs = "a terminal widget toolkit", ours = "a browser form toolkit" },
+]
+
+[search]
+queries = ["focus restore modal dialog", "focus trap implementation", "roving tabindex", "focus management removed element"]
+results = "the authoring practices and several libraries; none of them settles a return point that resolves later than it was recorded"
+twin_found = false
+
+[collision]
+archetype = "focus management and focus trap"
+on_list = true
+departure = "the toolkit differs and the event names differ, so a reader of both would see two different trees"
+substrate_used_before = true

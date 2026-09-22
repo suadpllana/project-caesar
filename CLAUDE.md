@@ -306,3 +306,43 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-22, `claim-stand-break`)
+
+- **A probe built on the reference scores 1 on merit.** Seven of the ten isolation probes came
+  back 1 in the container, and none of them was an isolation failure: each was the reference
+  engine plus a tamper, so the engine underneath did the work and earned the reward honestly. A
+  probe whose base can pass proves nothing either way. Rebuilt on an engine that prints nothing,
+  all ten score 0, and what the sandbox uid can reach was then measured directly rather than
+  argued: reward channel, nonce, `gt.json`, `model.py` and even a listing of `tests/seal` are all
+  `PermissionError` at uid 1002, while `tests/gen.py` is readable (the worker imports it) and not
+  writable.
+- **A stored derived quantity in the shipped tree hands over the rule, and the dead-field check
+  is what finds it.** `hold.Claim.end` held the filled-scan cover, computed correctly, while the
+  shipped `cover.ends` ignored it - so the agent could read the load-bearing rule off a field
+  nothing used. `deadfieldcheck` reported the unread field; the leak was behind it. The same
+  shape twice more as a vestigial parameter: `under(txn, key, upto)` and `shifted(st, txn, keys,
+  out)` both took an argument the shipped body threw away, and each named the structure the task
+  is about. Grep the shipped tree for values it computes and never reads, and for parameters it
+  accepts and never uses.
+- **A rule can be unobservable, and grading it would be grading nothing.** Whether a
+  still-standing change of the reader's own hides the key underneath it when a claim is judged
+  cannot change any printed line: every commit that writes such a key also ends the change claim
+  covering it, and that claim's index is always lower. Measured by running the variant that drops
+  the rule over the whole population - identical traces - rather than by reasoning about it. It
+  is stated in the brief because a reader needs it to answer the read, and it is not in the
+  graded-decision list.
+- **`onelinecheck`'s verdict depends on the label type.** Integer labels take its identity branch
+  and come back "no exact rule at depth <= 2" without searching at all. The first run reported
+  two of three graded quantities as deep; with `bool` labels it found `mine != same` for one of
+  them in a second. A favourable result from a checker is not evidence until the checker has been
+  checked.
+- **A patch that lands in one of the two places a rule lives is not that reading.** Six of the
+  first twenty-five readings crashed on a missing import or moved nothing, because the reference
+  applied the cover rule in `ends()` and again inline in `moved()`, and the patch only reached
+  one. The repair was a single definition in the reference; the measurement script now reports a
+  reading that crashed as loudly as one that moves nothing.
+- **`pkill -f <pattern>` matches the shell that is running the command containing the pattern.**
+  Two runs died at exit 144 and one source edit was silently skipped, because the patch and the
+  `pkill` sat on the same command line. Kill in its own call, or match on something the current
+  command line does not contain.

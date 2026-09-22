@@ -1,0 +1,29 @@
+open 1
+span 1 1 3 3
+seal 1
+open 2
+get 2 0
+span 2 1 8 3
+get 2 3
+get 2 4
+look 1 5
+drop 2
+open 3
+span 3 2 8 1
+mark 3 b
+open 4
+open 5
+put 5 4 2
+span 5 4 8 3
+seal 5
+back 3 b
+open 6
+get 3 8
+put 4 1 1
+del 3 0
+put 6 5 2
+put 4 1 0
+seal 4
+seal 3
+seal 6
+look 0 8

@@ -1,0 +1,169 @@
+# Difficulty record for claim-stand-break, written before any code exists.
+
+[task]
+slug = "claim-stand-break"
+status = "pending"
+sources = ["tasks/claim-stand-break/STATE.md"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Optimistic concurrency control with read validation. Give every transaction a base version, a
+read set of the keys and ranges it touched, and a write set. Record each read's keys when it
+happens, subtracting the keys the transaction has written itself. At commit, walk the read set
+and fail the transaction when any key in it, or any key inside a scanned range, carries a
+version stamped after the base; do the same for the write set; otherwise apply the changes and
+take the next version number. Rolling back to a savepoint drops the changes made after it.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A read stands only while answering it again, against the rows committed now, would return the
+same rows and the same values; standing is judged at every commit and never regained, so a key
+another transaction changes and a third transaction changes back has already ended the reader.
+"""
+second_discovery = """
+What a read depends on is not fixed when the read happens. Its own earlier changes hide keys
+underneath them, rolling back to a mark takes that cover away again, and a scan that filled its
+row limit depends on nothing past the last row it returned, so the recorded key set and the
+commit-time driver both have to go.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "read run_tx.py and the trace writer to fix the exact event grammar and ordering",
+  "separate the two states a read is answered from: rows at the base, own changes before it",
+  "give every read and every change an index, and keep changes per key as an index-ordered stack",
+  "derive a read's scope at check time from that stack rather than freezing it at read time",
+  "work out what a limited scan depends on: everything up to the last row it returned",
+  "drive checks from keys: index point reads by key, test span claims by scope containment",
+  "re-check on three events - a claim being made, a commit going through, a rollback to a mark",
+  "hold the first failure permanently and report its index from both dead and seal",
+  "time the two scale families and replace any per-claim rescan with the key-driven check",
+]
+
+[search]
+best_page = """
+The forward-validation branch of optimistic concurrency control, and the Hyperledger Fabric
+phantom-read note that re-executes range queries at validation time; PostgreSQL's savepoint and
+serializable-snapshot pages are the next best.
+"""
+helps_plan = false
+deviation = """
+Every one of those compares versions, not values, freezes the read set when the read happens,
+and says nothing about a savepoint rollback widening it; Fabric's re-execution is exactly the
+reading the execution limit here kills.
+"""
+
+[tactics]
+A1 = """
+The published validation rule is version-based and runs once at commit; both are specifically
+wrong here, so the better the retrieved source the more confident the wrong plan.
+"""
+A2 = """
+The brief never says read set, predicate lock, phantom or validation; it says a read stands
+while answering it again gives what it gave, so the concept has to be recognised rather than
+looked up.
+"""
+B2 = """
+Row limits, own-change cover, rollback to a mark, permanence and change claims each look small
+and each changes what another one means; no single one can be settled on its own.
+"""
+C1 = """
+Both sides are graded: a same-value rewrite, a change beyond a filled scan and a key under the
+reader's own change must all leave the transaction alive, so over-refusing fails as hard.
+"""
+C2 = """
+Nothing shipped says what a program should print; the engine in the tree is the wrong reading
+itself, and no standard tool has these semantics to compare against.
+"""
+C3 = """
+Re-answering claims on every commit stays exactly correct and dies on the two wide programs;
+the fast path follows from a claim only breaking at a commit that wrote a key inside its scope.
+"""
+C4 = """
+Exact traces, all-or-nothing, over hand programs aimed at each rule and a generated population
+shaped around cover, rollback and restore, drawn from a seed after the agent is gone.
+"""
+guard = """
+Six files under /app/tx are collected and nothing else; the driver, the op grammar, the trace
+writer and the programs are replaced by the verifier's own copy, so the printed contract is frozen.
+"""
+
+[decisions]
+graded = 11
+interactions = [
+  { a = "a read is answered under the transaction's own earlier changes", b = "rolling back to a mark", why = "the rollback takes the cover off keys a past read was answered over, so that read's scope widens after the fact" },
+  { a = "a scan's row limit", b = "what the scan depends on", why = "a scan that filled its limit depends on nothing past its last row, and the limit is what decides whether it filled" },
+  { a = "standing is judged continuously and never regained", b = "values are compared rather than versions", why = "a value changed and changed back is invisible at commit time and fatal when checked at every commit" },
+  { a = "change claims are version-based", b = "read claims are value-based", why = "the same concurrent write ends one and leaves the other alone, so one comparison cannot serve both" },
+  { a = "claim numbering counts undone ops", b = "an undone change claims nothing", why = "the index a failure reports comes from the op order while the thing that failed comes from what survives" },
+  { a = "whether a transaction commits", b = "every later transaction's reads", why = "one wrong verdict moves the committed rows and the base of everything after it, so the rest of the program is wrong too" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Another transaction rewrites a key with the value it already had, inside a range the reader
+scanned; the reader must still commit, so a version-based check fails this everyday case.
+"""
+late_case = """
+A transaction puts a key, marks, puts it again, reads a scan that covers it, rolls back to the
+mark and only then does another transaction commit that key: the scan broke at the rollback,
+and the reported index is the scan's, not the change's.
+"""
+oracle_denied = """
+The agent can run any program it writes, but the engine in the tree is the wrong reading, so
+matching it proves nothing; no library or tool implements these rules to diff against.
+"""
+
+[leaks]
+candidates = [
+  { what = "the recorded key set on each read claim in the shipped engine", closed_by = "it is the frozen reading itself, holds no scope end, and is rebuilt by the reference rather than read" },
+  { what = "the dead line's claim index, which names which claim broke", closed_by = "the index is the thing being graded, not a hint: it is only correct once the scope rule is right" },
+  { what = "the sample programs under /app/progs", closed_by = "inputs only, no expected output ships, and the worked example in the brief is chosen to decide no wrong reading" },
+  { what = "a per-key version count or any stored scope end in the store", closed_by = "the store keeps only the version list and the live key index, both primitives the engine needs to answer a read" },
+  { what = "the shipped engine's own timing behaviour on the wide programs", closed_by = "the wide programs ship, so the limit is measurable by the agent; the fast path still has to be derived" },
+]
+derived_quantities = """
+The tree stores version lists and the key index only; the scope of a read, the standing set and
+the failing index are all derived at check time and no field holds any of them.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Re-answering every standing claim of every open transaction after every commit, and re-walking
+a scan's range to answer it again, both exactly correct and both quadratic in the two wide families.
+"""
+invariant = """
+A claim can only stop standing at a commit that wrote a key inside its scope, or at a rollback
+that uncovered one, so the check is driven by the keys that moved rather than by the claims.
+"""
+input_scale = "one program of six thousand claims against three thousand commits, and one of ninety scans over a range of thirty thousand keys against twelve hundred commits, both stated in the brief"
+limit_seconds = 60
+measured = true
+
+[cheats]
+wrong_readings = [
+  { reading = "claims are checked only at commit", hand_case = "another transaction changes a key and a third changes it back before the reader seals" },
+  { reading = "versions are compared, not values", hand_case = "a concurrent transaction rewrites a scanned key with the value it already held" },
+  { reading = "a read's keys are frozen when it is answered", hand_case = "the reader covers a key with its own change, scans, then rolls back to a mark" },
+  { reading = "a filled scan depends on its whole range", hand_case = "a concurrent insert lands past the last row a filled scan returned" },
+  { reading = "a short scan depends only on the rows it returned", hand_case = "a concurrent insert lands in the gap of a scan that came back short" },
+  { reading = "an undone change still claims its key", hand_case = "the reader puts a key, rolls back over it, and another transaction commits that key" },
+  { reading = "claim numbering skips undone ops", hand_case = "a change is rolled back and a later read breaks, so the reported index differs by one" },
+  { reading = "standing is regained when the value comes back", hand_case = "the same key is changed and restored while the reader is open" },
+  { reading = "a read is answered under every own change, not only earlier ones", hand_case = "the reader reads a key and then writes it, and nobody else touches it" },
+  { reading = "dead transactions stop being checked and report their last break", hand_case = "two claims break at different commits and the first index is the one owed" },
+]
+correct_variants = [
+  "scopes held as an interval list per transaction, re-answered by walking the version lists at each commit",
+  "a per-key wait list of claim indexes with the change stack replayed forward in claim order",
+]
+
+[shape]
+environment_py_lines = 398
+editable_files = 6
+reference_lines = 421

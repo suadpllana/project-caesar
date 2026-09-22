@@ -1,0 +1,208 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/tx/rows.py",
+  "/app/tx/hold.py",
+  "/app/tx/view.py",
+  "/app/tx/cover.py",
+  "/app/tx/watch.py",
+  "/app/tx/path.py",
+]
+
+[task]
+name = "afterquery/claim-stand-break"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules seem
+to ask for survives all of them at once, and that is the work.
+
+The first plan is the published one, and the shipped store already is it: give every transaction
+a base, record the keys each read touched minus the keys it has written itself, keep a write set,
+and at the seal refuse the transaction when one of those keys carries a version stamped after the
+base. That is what optimistic concurrency control means wherever it is written up, and it is
+wrong here three times over, in ways ordinary programs do not show.
+
+It is wrong about when. Standing is judged continuously and is never regained, so a key one
+transaction moves and another moves back has already ended the reader - and by the seal, where
+the first plan looks, the rows are where they started and nothing appears to have happened.
+
+It is wrong about what is compared. A read stands while answering it again would give what it
+gave, which is a comparison of values, so a transaction that writes a key the value it already
+holds ends every writer of that key and no reader of it. A change claim is judged the other way
+round, on the version, and one test cannot serve both.
+
+It is wrong about the shape of what a read depends on, and that is the finding that takes the
+structure apart rather than patching it. A scan that filled its row limit depends on nothing past
+the last row it returned, while one that came back short depends on its whole range. A reader's
+own earlier changes lie over the keys beneath them, and a rollback to a mark takes that cover away
+after the fact - so what a read depends on is not a set that can be recorded when the read
+happens. It has to be derived, at the moment of judging, from the change stack as it still
+stands, while the numbering the failure is reported by counts the ops that rollback took back.
+
+Then the size. Answering a scan again to decide whether it still stands is exactly correct, and it
+is what the one public treatment of this problem does. Against the 60 second limit on the whole
+graded set, that reading takes 362 seconds where testing each claim at the keys that just moved
+takes 1.0, and the fast path follows from a scan only being able to move at a key inside what it
+was drawn from rather than from any technique. Every trace that reading prints is the reference's;
+the limit is the only thing that separates them.
+
+Around those sit the ordinary decisions, each a fence with two sides: a commit past the last row
+of a filled scan leaves the reader alive, a rewrite that moves no value leaves a reader alive and
+ends a writer, a rollback does not take back a read, and a dead transaction goes on answering.
+All six editable files ship wrong, and the only feedback a wrong structure gets is a line
+carrying two numbers.
+
+Identifiers are in a legacy register - `tx/`, `rows`, `hold`, `cover`, `watch`, `ci`, `cv`, `ck`,
+`seq` - short but never misleading, and no name misdescribes what it holds. That is a choice about
+the register of real commit-path code rather than an obstacle: each one is recoverable from what
+calls it and what its value flows into.
+
+The programs are synthetic, in eleven families, concentrating covered keys, rollbacks that uncover
+them, values moved and moved back, rewrites that move nothing, scans landing exactly on their row
+limit and scans coming back short. In a running store those shapes are rare, and they are exactly
+where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`rows.py` is the committed rows as a version list per key. Nothing there is per transaction: a
+transaction that opened long ago still has to be answered from the rows as they stood at its base
+while later ones are answered from the rows as they stand now, so every key keeps its whole
+history, and asking whether a key has moved since a base is the other half of the same structure.
+A change is stamped whether or not it moves the value, which is what separates a change claim from
+a read claim.
+
+`hold.py` is what an open transaction holds. Claims are numbered in op order and keep their
+numbers through a rollback. The changes are kept twice: in the order they were made, which is what
+a rollback pops, and per key in index order, which is what answering a read walks - because the
+cover a read was answered under is the last change to that key made before it, so the structure
+has to be able to give the state of a key at a claim index rather than the state of the key now.
+Point reads and change claims are indexed by key and scans kept in a list, which is what lets the
+judging be driven by the keys that moved.
+
+`view.py` answers a read from two states that move independently: the rows at the base, which
+never move, and the cover, which a rollback can take away. A scan merges the key order of the
+store with the keys this transaction has made itself.
+
+`cover.py` says what a claim was drawn from and whether it still stands. A point read was drawn
+from its key; a scan that filled its row limit from the keys up to its last row, because the rows
+up to that one decide the answer and nothing past it can reach into a list that is already full
+unless something inside moves first; a scan that came back short from its whole range. Standing is
+judged by value for a read and by version for a change, and the whole test is only run once, when
+a claim is made, because a read taken at a base the rows have moved past is wrong before anything
+else happens.
+
+`watch.py` decides who stops standing and when: at the claim being made, at another transaction's
+commit, and at this transaction's own rollback uncovering a key a read was answered over. The
+index reported is the lowest of the claims that stopped at that moment, not the first one noticed,
+so every claim a moving key reaches is tested before anything is reported, and the first failure
+is permanent.
+
+`path.py` is the op loop and the commit path: a read prints before the line its op may cause, a
+commit applies the last standing change of each key and only then are the other open transactions
+judged, lowest number first, and a dead or dropped transaction applies nothing.
+
+An expert works in that order because each file consumes the one before it: how the rows are kept
+decides what a read can be answered from, what a read was answered under decides what it depends
+on, what it depends on decides when it stops standing, and when it stops standing decides what the
+commit path prints. The same contract is implemented three further ways in the authoring set - one
+testing every claim of the transaction at every commit instead of indexing them by key, one
+rebuilding the cover by walking the change log rather than by binary search, one working out the
+key order of the rows when a scan needs it - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/tx/` are taken from the agent. The verifier lays them over its own
+pristine copy of the tree, so the driver, the op grammar and the trace writer cannot change what a
+program prints, and a new file put beside the six is never collected at all.
+
+Correct is defined twice over. Thirty programs written by hand, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and sixty-six further
+programs are generated inside the verifier from a seed drawn after the agent's container is gone,
+across eleven families that concentrate covered keys, rollbacks that uncover them, restored
+values, rewrites that move nothing, scans at their row limit and scans that come back short, and
+the two scale families. A submission cannot have seen them, so fitting the shipped examples fails,
+and so does carrying an answer key.
+
+The fences run both ways. Judging a read by version fails `same-value`, where a rewrite moves
+nothing and the reader must live; judging a change by value fails `same-claim`, where the same
+rewrite must end the writer. Covering a filled scan to the end of its range fails `win-past`;
+covering only the rows it returned fails `short-gap`; covering nothing past the last row of a
+short scan fails `win-in`. Answering a read under a change made after it fails `over-after`.
+Missing the rollback that uncovers a key fails `off-cover`, and taking a read back with it fails
+`off-keep`; taking changes back by key rather than by position fails `off-pos`; taking the mark
+away with them fails `off-twice`; letting a change the rollback took back go on claiming fails
+`off-claim`. Judging only at the seal fails `back-again`, where a value is moved and moved back.
+Reporting the first break noticed fails `low-index`, moving the index on afterwards fails
+`one-dead`, and judging the other transactions in the order they opened fails `dead-order`.
+Applying what a dead or dropped transaction changed fails `dead-none` and `drop-none`.
+
+Forty cheats score 0. Twenty-four are wrong readings, each caught by the enumerated case named for
+it. One is exactly correct and too slow: the scan answered again from the rows. Four are shortcut
+strategies - nothing printed at all, the most common line of each kind, every change landing at
+once, and the worked example replayed - which match 0, 0, 111 and 0 of the 396 graded programs.
+The one that matches 111 is the one worth reading: a third of the set is a program in which
+nothing a transaction holds ever stops standing, which is the everyday side of every fence. One
+is a forgery carrying the frozen answers to the thirty enumerated programs, which passes all
+thirty and fails on the programs it could not have seen. The other ten are probes: the reward
+written directly, a reward written late by a double-forked survivor, the sealed model and the
+frozen answers read from inside the run, a planted record, a record planted and the worker exited
+clean before it could be overwritten, a record spoiled on the way out, a privilege probe, a
+rewritten generator, a rewritten grading file, and an engine hidden in a file beside the six that
+are collected. Four independently written correct engines score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit; the reference gets through the whole graded set in 1.5 seconds of it. The
+model and the frozen answers sit in a directory that uid cannot read, so code running inside the
+verifier cannot compute its answers from them. The reward defaults to 0, is written last by the
+privileged stage into a root-owned directory locked before any agent code runs, and anything the
+run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "optimistic-concurrency",
+  "snapshot-reads",
+  "savepoint-rollback",
+  "phantom-conflicts",
+  "mvcc-version-lists",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the commit path of a keyed store: the half that decides whether a transaction
+that has been reading and writing for a while is still entitled to go through. Familiarity with
+the fact that what a reader depends on is a policy rather than a law, that a savepoint rollback
+undoes changes without undoing what a client has already been told, and that a range read with a
+row limit does not depend on the range it named. Comfort with version lists per key, with
+answering a read from a base while judging it against the rows as they stand now, and with the
+difference between a check that is correct and one that is affordable at the claim counts a real
+workload reaches.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

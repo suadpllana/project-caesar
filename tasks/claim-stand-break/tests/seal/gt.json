@@ -1,0 +1,237 @@
+{
+ "apply-last": [
+  "seal 1 ok",
+  "seal 2 ok",
+  "look 3:33"
+ ],
+ "back-again": [
+  "seal 1 ok",
+  "read 2 3 30",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 4 ok",
+  "read 2 3 30",
+  "seal 2 no 0",
+  "look 3:30"
+ ],
+ "calm": [
+  "seal 1 ok",
+  "span 2 2:20",
+  "read 2 2 20",
+  "seal 3 ok",
+  "span 2 2:20",
+  "seal 2 ok",
+  "look 2:20 4:40 6:60 8:80"
+ ],
+ "dead-none": [
+  "seal 1 ok",
+  "read 2 3 30",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 3:31"
+ ],
+ "dead-order": [
+  "seal 1 ok",
+  "read 7 3 30",
+  "read 2 3 30",
+  "read 5 3 30",
+  "seal 9 ok",
+  "dead 2 0",
+  "dead 5 0",
+  "dead 7 0",
+  "seal 5 no 0",
+  "seal 2 no 0",
+  "seal 7 no 0",
+  "look 3:31"
+ ],
+ "dead-read": [
+  "seal 1 ok",
+  "read 2 3 30",
+  "seal 3 ok",
+  "dead 2 0",
+  "read 2 3 30",
+  "read 2 5 50",
+  "seal 2 no 0",
+  "look 3:31 5:50"
+ ],
+ "drop-none": [
+  "seal 1 ok",
+  "read 3 6 -",
+  "seal 3 ok",
+  "look 3:30"
+ ],
+ "late-put": [
+  "seal 1 ok",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 3:31"
+ ],
+ "late-read": [
+  "seal 1 ok",
+  "seal 3 ok",
+  "read 2 3 30",
+  "dead 2 0",
+  "span 2 3:30",
+  "seal 2 no 0",
+  "look 3:31"
+ ],
+ "look-rows": [
+  "look -",
+  "seal 1 ok",
+  "look -",
+  "look 3:30 5:50",
+  "look 3:30 5:50"
+ ],
+ "low-index": [
+  "seal 1 ok",
+  "span 2 3:30 5:50",
+  "read 2 3 30",
+  "read 2 5 50",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 3:31 5:50"
+ ],
+ "off-claim": [
+  "seal 1 ok",
+  "read 2 7 -",
+  "seal 3 ok",
+  "seal 2 ok",
+  "look 3:31"
+ ],
+ "off-cover": [
+  "seal 1 ok",
+  "span 2 3:36",
+  "dead 2 2",
+  "seal 2 no 2",
+  "look 3:30"
+ ],
+ "off-keep": [
+  "seal 1 ok",
+  "read 2 5 50",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 3:30 5:51"
+ ],
+ "off-pos": [
+  "seal 1 ok",
+  "read 2 3 35",
+  "read 2 5 -",
+  "seal 2 ok",
+  "look 3:35"
+ ],
+ "off-twice": [
+  "seal 1 ok",
+  "read 2 3 30",
+  "seal 2 ok",
+  "look 3:30"
+ ],
+ "one-dead": [
+  "seal 1 ok",
+  "read 2 3 30",
+  "read 2 5 50",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 4 ok",
+  "seal 2 no 0",
+  "look 3:31 5:51"
+ ],
+ "over-after": [
+  "seal 1 ok",
+  "read 2 3 30",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 3:31"
+ ],
+ "read-base": [
+  "seal 1 ok",
+  "read 2 5 10",
+  "seal 3 ok",
+  "read 2 7 -",
+  "dead 2 1",
+  "seal 2 no 1",
+  "look 5:10 7:20"
+ ],
+ "read-cover": [
+  "seal 1 ok",
+  "read 2 4 11",
+  "read 2 4 12",
+  "seal 2 ok",
+  "look 4:12"
+ ],
+ "read-del": [
+  "seal 1 ok",
+  "read 2 4 -",
+  "read 2 6 30",
+  "seal 2 ok",
+  "look 6:30"
+ ],
+ "same-claim": [
+  "seal 1 ok",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 3:30"
+ ],
+ "same-value": [
+  "seal 1 ok",
+  "span 2 3:30 7:70",
+  "seal 3 ok",
+  "seal 2 ok",
+  "look 3:30 7:70"
+ ],
+ "short-gap": [
+  "seal 1 ok",
+  "span 2 2:20 8:80",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 2:20 5:50 8:80"
+ ],
+ "span-gone": [
+  "seal 1 ok",
+  "span 2 2:20 6:60",
+  "seal 2 ok",
+  "look 2:20 6:60"
+ ],
+ "span-mine": [
+  "seal 1 ok",
+  "span 2 3:30 5:50",
+  "seal 2 ok",
+  "look 3:30 5:50"
+ ],
+ "span-order": [
+  "seal 1 ok",
+  "span 2 2:20 5:50",
+  "span 2 2:20 5:50 8:80",
+  "span 2 5:50",
+  "seal 2 ok",
+  "look 2:20 5:50 8:80"
+ ],
+ "span-short": [
+  "seal 1 ok",
+  "span 2 2:20 5:50",
+  "span 2 -",
+  "seal 2 ok",
+  "look 2:20 5:50"
+ ],
+ "win-in": [
+  "seal 1 ok",
+  "span 2 2:20 4:40",
+  "seal 3 ok",
+  "dead 2 0",
+  "seal 2 no 0",
+  "look 2:20 3:30 4:40 8:80"
+ ],
+ "win-past": [
+  "seal 1 ok",
+  "span 2 2:20 4:40",
+  "seal 3 ok",
+  "seal 2 ok",
+  "look 2:20 4:40 6:60 8:80"
+ ]
+}

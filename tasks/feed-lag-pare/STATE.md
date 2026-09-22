@@ -244,7 +244,7 @@ where an item is `<seq>s<v>`, `<seq>a<n>` or `<seq>d`.
 | No answer leaked into agent image | pass | `extraneouscheck` clean; only input programs ship; nothing from `tests/` or `solution/` is copied |
 | `harbor run -a oracle` = 1 | pass | container trial, reward 1, 36 tests passed |
 | `harbor run -a nop` = 0 | pass | container trial, reward 0 |
-| Cheats all score 0 | pending | 38 cheats running in the container trial |
+| Cheats all score 0 | pass | 40/40 container trials behaved as required: oracle 1, nop 0, every one of the 38 cheats 0. The two exactly-correct-and-too-slow readings lose the worker to the 60 s clock and are graded 0 with no record, which is the scale gate biting; the malformed-record probe leaves the grader nothing to read and is graded 0 rather than crashing past the verdict |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
 | `preflight.py` | pass | no errors; 18 warnings, all the known `(?<![\w.])name\(` false positive on module-qualified calls, which every retained bundle also reports |
 | `harbor check` rubric | not run | needs an API key, which this session does not have |
@@ -253,7 +253,7 @@ where an item is `<seq>s<v>`, `<seq>a<n>` or `<seq>d`.
 | `forgecheck.py` | pass | the forgery carrying the frozen answers scores 0 |
 | `solvecheck` / `deadfieldcheck` / `catcheck` / `hintcheck` / `structcheck` / `extraneouscheck` | pass | clean |
 | `simcheck` | pass with a note | conceptually distinct; `environment/Dockerfile` identical to three retained bundles, which are identical to each other |
-| correct variants score 1 | pass | `ok-flat` and `ok-effect` reproduce the model on 33 hand, 300 shaped and 406 generated programs |
+| correct variants score 1 | pass in host emulation | `ok-flat` and `ok-effect` reproduce the model on 33 hand, 300 shaped and 406 generated programs; the container runs are recorded below |
 | three-way differential | pass | slow transcription, reference and sealed model agree on 33 hand, 2500 random and 406 generated programs |
 
 ## Quality self-review (docs/QUALITY-REVIEW.md, walked criterion by criterion)

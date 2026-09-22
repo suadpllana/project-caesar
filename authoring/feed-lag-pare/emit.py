@@ -532,9 +532,9 @@ def probe_uncollected_file():
                     "def settle(store, pins):\n    return own.settle(store, pins)\n\n\n"
                     "def collapse(store, key, floor, edge, last, lo, hi):\n"
                     "    return own.collapse(store, key, floor, edge, last, lo, hi)\n")
-    own = (SOL / "span.py").read_text(encoding="utf-8")
+    own = bare((SOL / "span.py").read_text(encoding="utf-8"))
     for part in ("store.py", "pin.py", "fold.py", "pare.py", "tell.py"):
-        f[part] = (SOL / part).read_text(encoding="utf-8")
+        f[part] = bare((SOL / part).read_text(encoding="utf-8"))
     write("probe-uncollected-file",
           "puts the span engine in a file beside the six and delegates to it",
           f, reading=False, extra={"/app/lg/own.py": own})

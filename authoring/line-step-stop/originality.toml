@@ -1,0 +1,58 @@
+# Originality record for line-step-stop - written at Stage 1, before any code.
+# Scored by: python tools/originalitycheck.py line-step-stop
+
+[task]
+slug = "line-step-stop"
+category = "Software"
+label = "Languages"
+tags = ["source-level-debugging", "inlined-call-frames", "line-number-tables", "step-over-breakpoints", "remote-debug-stub"]
+status = "idea"
+
+[mechanism]
+sentence = "Decide where a source-level debugger stops after each step, next, finish and continue, and which inlined frames it shows there, when inlined call sites share addresses with their callers, line-table rows differ in statement status, and single-stepping the target is too slow to use."
+substrate = "a source-level debugger that drives a separate target process through a link which runs to planted addresses or single-steps at a round-trip cost, reading a line table with inlined call instances"
+graded_output = "for every command of every session, one exact printed line: the addresses a breakpoint resolved to, or the stop reason, the stop address and the frame list innermost first with each frame's function and line"
+failure_mode = "single-stepping with a per-instruction line-changed test and inline frames read off the program counter, which is correct on simple programs, too slow on long loops, and wrong wherever a call site hides frames, a jump lands in the middle of a line, or recursion re-enters a planted return address"
+interaction = "the line being stepped, which changes whenever execution enters a row part-way, decides whether an inlined call site is stepped into, stepped over or stopped at; running the target to planted addresses moves every such decision onto the addresses planted, and recursion fires those addresses in frames deeper than the one being stepped"
+
+[nearest.public]
+name = "Writing a Linux Debugger, Part 6: Source-Level Stepping (Sy Brand)"
+url = "https://tartanllama.xyz/posts/writing-a-linux-debugger/source-level-stepping/"
+covers = "step in by single-stepping until the line changes, step over by planting a breakpoint on every line of the current function plus the return address, and step out by a return-address breakpoint, on x86 with DWARF line tables"
+plans_this = false
+separation = "it has no inlined frames and no hidden call-site depth, no statement flag or line-zero handling, no adoption of a line entered part-way, and its step-over breakpoints fire inside recursive calls because it never checks the frame; it also single-steps for step in, which the stated limit here forbids. The rules of this task depart from it at each of those points, and gdb's own inline and stepping sources, the other public reference, differ from these rules on line-zero code and on which line a hidden call site shows."
+
+[nearest.submitted]
+name = "guard-mark-unwind"
+source = "ledger"
+shares = "both replay a program in a small runtime and grade an exact per-step trace of what that runtime decided, and both keep a stack of nested scopes"
+same_mechanism = false
+separation = "guard-mark-unwind grades where a cancellation mark comes to rest as guards close in a cooperative scheduler on a virtual clock. This grades where a debugger's step, next and finish stop, and how many inlined scopes are visible at one address, decided at line-table row boundaries while the target has to be run to planted addresses. No rule, output token or wrong plan is shared between them."
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "cancellation marks delivered and settled as guards close during unwinding", ours = "debugger stop placement and visible inline depth decided at line-table row boundaries" },
+  { axis = "substrate", theirs = "a cooperative runtime taking fibers in turns on a virtual clock", ours = "a debugger driving a separate target process over a link with a round-trip cost" },
+  { axis = "graded_output", theirs = "per-event trace of guards, marks, cleanups and what each fiber carried", ours = "per-command breakpoint addresses, or stop reason, stop address and inline frame list" },
+  { axis = "failure_mode", theirs = "stamping one chosen guard on a travelling cancellation and matching it at a boundary", ours = "single-stepping with a line-changed test and reading inline frames off the program counter" },
+  { axis = "interaction", theirs = "a second mark landing during unwind while band liveness rules still hold", ours = "adoption of a part-way line deciding call-site behaviour, under planted addresses that recursion re-fires" },
+]
+
+[search]
+queries = [
+  "debugger step over inlined function hidden inline frames algorithm skip_inline_frames",
+  "implementing debugger \"step over\" recursion return address breakpoint frame check line table",
+  "writing a debugger step in step over step out DWARF line table tutorial",
+  "benchmark task implement source-level debugger stepping toy virtual machine line table inline",
+  "terminal-bench debugger task step next finish breakpoint toy ISA",
+  "\"is_stmt\" \"inlined\" stepping \"same line\" debugger stop rule call site line gdb infrun \"stepped into inlined function\"",
+]
+results = "Returned: Sy Brand's debugger series (naive stepping on real hardware), the gdb manual's inline-functions page (user-level behaviour only), gdb's inline-frame.c and infrun.c sources, an LLVM issue showing that gdb and lldb step into an inlined call differently, the DWARF introduction, general gdb tutorials, and patents on stepping with internal breakpoints. None describes a stepping engine for a target that cannot afford single-stepping, none combines part-way line adoption, hidden call-site depth and recursion-safe planted addresses, and the two real debuggers disagree with each other on the inline rule, so neither can serve as an oracle for this one."
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "exception unwinding and stack trace construction"
+on_list = true
+departure = "nothing is unwound here: the backtrace is a display of return addresses the target reports, shown at the call instruction rather than the return address. The graded work is where execution stops and how many inlined scopes are shown at one address, decided by line-table rows and by which addresses were planted, which no unwinding or stack-trace write-up decides and whose formulation has no notion of a step at all."
+substrate_used_before = false

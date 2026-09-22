@@ -1,0 +1,53 @@
+{
+ "action": "nop",
+ "reward": "0",
+ "handed": [
+  "frames.py",
+  "marks.py",
+  "steps.py"
+ ],
+ "secs": 0.5,
+ "verdict": {
+  "ok": false,
+  "stage": "done",
+  "model_drift": [],
+  "missing": [],
+  "counts": {
+   "sample": 4,
+   "case": 29,
+   "fence": 6,
+   "heavy": 24,
+   "nonce": 306
+  },
+  "passed": {
+   "sample": 0,
+   "case": 0,
+   "fence": 0,
+   "heavy": 0,
+   "nonce": 0
+  },
+  "spent": 0.04,
+  "limit": 300.0,
+  "failed": {
+   "group": "sample",
+   "name": "sample-calls",
+   "status": "ok",
+   "line": 4,
+   "secs": 0.04,
+   "want": "hit 18 f0:17 main:2",
+   "got": "hit 18 f0:17 main:3"
+  }
+ },
+ "pytest": [
+  "PASSED ../../../../../tests/test_stops.py::test_judge_finished",
+  "PASSED ../../../../../tests/test_stops.py::test_sealed_model_reproduces_frozen_lines",
+  "PASSED ../../../../../tests/test_stops.py::test_declared_files_present",
+  "PASSED ../../../../../tests/test_stops.py::test_whole_set_within_limit",
+  "FAILED ../../../../../tests/test_stops.py::test_samples - AssertionError: {'g...",
+  "FAILED ../../../../../tests/test_stops.py::test_enumerated_cases - AssertionE...",
+  "FAILED ../../../../../tests/test_stops.py::test_plain_fences - AssertionError...",
+  "FAILED ../../../../../tests/test_stops.py::test_heavy_sessions - AssertionErr...",
+  "FAILED ../../../../../tests/test_stops.py::test_generated_sessions - Assertio...",
+  "FAILED ../../../../../tests/test_stops.py::test_verdict - AssertionError: {'g..."
+ ]
+}

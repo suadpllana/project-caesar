@@ -1,0 +1,159 @@
+fn main 0 38 1 12
+fn f0 39 64 15 20
+fn f1 65 78 23 28
+fn f2 79 86 31 37
+fn g3 87 98
+0 call 79
+1 set d 1
+2 set d 2
+3 call 39
+4 set d 6
+5 set d 0
+6 call 87
+7 call 65
+8 set d 2
+9 call 79
+10 set d 1
+11 nop
+12 nop
+13 set d 6
+14 nop
+15 nop
+16 call 87
+17 nop
+18 nop
+19 set d 9
+20 set d 3
+21 nop
+22 nop
+23 set d 2
+24 set d 6
+25 call 79
+26 set d 2
+27 nop
+28 set d 5
+29 nop
+30 set d 5
+31 nop
+32 call 87
+33 nop
+34 set d 6
+35 nop
+36 set d 9
+37 nop
+38 ret
+39 set d 3
+40 call 79
+41 set d 3
+42 nop
+43 set d 7
+44 set d 3
+45 nop
+46 nop
+47 call 87
+48 set d 9
+49 nop
+50 nop
+51 set d 3
+52 nop
+53 set d 6
+54 set d 2
+55 set d 6
+56 set d 0
+57 call 87
+58 set d 0
+59 set d 4
+60 nop
+61 set d 8
+62 set d 6
+63 set d 7
+64 ret
+65 set d 5
+66 call 79
+67 nop
+68 nop
+69 nop
+70 nop
+71 set d 9
+72 nop
+73 call 87
+74 nop
+75 nop
+76 nop
+77 nop
+78 ret
+79 nop
+80 set d 1
+81 nop
+82 call 87
+83 set d 3
+84 nop
+85 nop
+86 ret
+87 nop
+88 set d 0
+89 nop
+90 nop
+91 set d 1
+92 nop
+93 nop
+94 nop
+95 nop
+96 set d 7
+97 set d 3
+98 ret
+row 0 2
+row 2 4
+row 4 4
+row 5 5
+row 7 6
+row 8 24
+row 10 25
+row 13 32
+row 15 33
+row 18 34
+row 20 36
+row 21 27
+row 22 10
+row 24 24
+row 26 25
+row 29 32
+row 31 33
+row 34 34
+row 36 36
+row 37 27
+row 38 11
+row 39 24
+row 41 25
+row 44 32
+row 46 33
+row 49 34
+row 51 36
+row 52 27
+row 53 16
+row 54 32
+row 56 33
+row 59 34
+row 61 36
+row 62 17
+row 63 18
+row 64 19
+row 65 24
+row 67 25
+row 70 32
+row 72 33
+row 75 34
+row 77 36
+row 78 27
+row 79 32
+row 81 33
+row 84 34
+row 86 36
+inl 1 f1 main 8 8 21
+inl 2 f2 1 26 13 20
+inl 3 f1 main 10 24 37
+inl 4 f2 3 26 29 36
+inl 5 f1 f0 16 39 52
+inl 6 f2 5 26 44 51
+inl 7 f2 f0 17 54 61
+inl 8 f2 f1 26 70 77

@@ -1,0 +1,211 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/line-step-stop/STATE.md. The link timings in [gate] come from a
+# two-process prototype run the same day (32 us per single-step round trip, 55 ns per
+# instruction when the target runs to a planted address); the full gate is re-measured on
+# the built tree before the brief states its limit.
+
+[task]
+slug = "line-step-stop"
+status = "pending"
+sources = ["tasks/line-step-stop/STATE.md", "authoring/line-step-stop/originality.toml"]
+expert_hours = 10
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep the shipped loop that single-steps the target through the link and fix its stop test:
+after every instruction, stop when the program counter reaches a statement row whose line
+differs from the line the command started on, compare call depth to step over calls and to
+finish, read the inline frames off the program counter by collecting every inline instance
+whose range contains it, show caller frames at the call instruction, and resolve breakpoints
+to the lowest statement row of each function and instance.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The brief states the graded scale and one limit for the whole graded set: commands that run
+up to a million instructions inside a single line-table row or inside called functions, with
+every link call a round trip. A single-stepping debugger prints every correct line and cannot
+finish, so the target has to be run to planted addresses and the stop test can only be made
+where something was planted.
+"""
+second_discovery = """
+Once the target runs to planted addresses, the decisions the per-instruction test made as it
+went - the moment a call deepens the stack, the moment an inline instance is entered, the
+moment execution lands part-way into another row and that row's line becomes the line being
+stepped - have to be recovered from which addresses were planted, and recursion fires a
+planted return address or row exit in a deeper frame of the same function. The stepping
+engine becomes a machine of modes (range, over-call, out-of-instance, to-return) that
+re-plants on every stop and checks the frame each time, which is a different program from
+the loop it replaces. Separately, the displayed inline depth turns out not to be a function
+of the program counter at all: a call site shows fewer frames than the same address reached
+by a breakpoint, so the frame model has to carry hidden depth as debugger state.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Read the image parser and the link module to learn which primitives the debugger has and that every link call is one round trip",
+  "Build the scope model: the chain of inline instances at an address, caller frames taken at the call instruction, and a hidden-depth count kept as debugger state",
+  "Resolve each breakpoint to the lowest statement row of every function body and inline instance that holds its line, and print the addresses",
+  "Write one row-arrival rule: a statement row start of another line stops, non-statement and line-zero rows pass, a part-way landing adopts its line, an instance entry is judged by its call line",
+  "Drive the target by modes: plant the exits of the current row, plant the return address when over a call and check depth on every hit, plant the instance exit for finish",
+  "Apply the landing rules after returns and finishes: the caller becomes the stepping frame, instances starting at the landing address are hidden, a later step reveals one of them",
+  "Keep a slow single-stepping version of the same rules and compare it with the fast engine on generated sessions before trusting either",
+  "Time the largest sample sessions under the stated limit and confirm no command single-steps across a long loop",
+]
+
+[search]
+best_page = """
+Sy Brand's Writing a Linux Debugger part on source-level stepping, which plants a breakpoint
+on every line of the current function plus the return address for step over, single-steps
+for step in, and uses a return-address breakpoint for step out; behind it, gdb's own
+inline-frame and stepping sources.
+"""
+helps_plan = false
+deviation = """
+The tutorial has no inline frames, no statement flag, no line-zero rows and no part-way
+adoption, and its step-over breakpoints fire inside recursive calls because it never checks
+the frame. gdb stops at line-zero code and shows a different line at a hidden call site, and
+gdb and lldb disagree with each other about stepping into an inlined call, so the retrieved
+plan is wrong wherever it is specific and no real debugger can be run against this machine.
+"""
+
+[tactics]
+A1 = """
+The recalled debugger reads inline frames off the program counter, stops when the line
+number changes, and steps over a call with a return-address breakpoint it trusts on first
+hit; here a call site hides frames the same address shows after a breakpoint, a row start of
+the same line does not stop, and the first hit of a return address can belong to a deeper
+recursive frame.
+"""
+A3 = """
+No single known technique satisfies the stated rules and the limit together: planting a
+breakpoint on every line breaks recursion and misses part-way landings, gdb's range stepping
+needs a target that steps ranges itself, and lldb's run-to-next-branch still stops once per
+loop iteration, so the engine is a hybrid of row-exit planting, frame checks and hidden depth.
+"""
+B2 = """
+Row arrival, adoption of a line entered part-way, non-statement and line-zero rows, the call
+line test at an instance entry, reveal-one-level, finish out of an instance, caller frames at
+the call instruction, breakpoint precedence and step into a rowless function all hold at once,
+and the adopted line decides the instance rule while the stop kind decides the hidden depth.
+"""
+C1 = """
+Plain sessions with no inlining, no non-statement rows and short loops must print exactly,
+so an engine that hides every instance, reveals every instance, stops at every row start or
+never adopts fails ordinary cases as well as the twisted ones.
+"""
+C2 = """
+No real debugger runs this machine, gdb and lldb disagree on inline stepping, no sample output
+ships beside the sample sessions, and a fast engine compared against the agent's own slow one
+only confirms that the two agree with each other.
+"""
+C3 = """
+The stated scale puts million-instruction loops inside single rows and inside called
+functions; single-stepping through the link is exactly correct and runs past the limit many
+times over, so the correct plan has to run the target to planted row exits and return
+addresses.
+"""
+C4 = """
+Every command of every graded session must print exactly, on enumerated hand sessions and on
+a nonce population generated inside the verifier after the agent is gone, shaped at each
+decision point rather than sampled uniformly.
+"""
+guard = """
+Only the three decision modules under /app/dbg are collected; the target, the link, the image
+parser, the session driver and the printer are the verifier's pristine copies, the debugger
+receives the image, the script and a connected link only, and the tape stays with the target.
+"""
+
+[decisions]
+graded = 12
+interactions = [
+  { a = "a part-way landing adopts its row's line", b = "an inline instance entry is stepped into, over or stopped at by comparing its call line with the line being stepped", why = "adoption changes the line being stepped in the middle of a command, so whether the next instance entry stops at its call site depends on a jump or return that happened earlier in the same step" },
+  { a = "instances starting at a stop address are hidden after a step or finish stop", b = "a hit shows every scope at its address", why = "the same address prints a different frame list depending on how execution arrived there, so frames cannot be computed from the program counter and the next step either reveals a level or executes" },
+  { a = "caller frames are shown at the call instruction", b = "an inline instance can end with a call", why = "while the callee runs the caller frame shows the instance, and after the return the innermost frame at the return address does not, so the frame list changes across a finish without any instance being entered or left by the stepping frame" },
+  { a = "the target runs to planted addresses", b = "next and finish stop only in the stepping frame", why = "a planted return address or row exit is also reached by deeper recursive frames of the same function, so every stop has to be checked against the frame and resumed when it belongs to another" },
+  { a = "the stepping frame returning makes the caller the stepping frame", b = "a return address can be the entry of an inline instance", why = "the landing is judged by the instance rule with the line of the frame that returned, so it stops at the call site and hides the instance rather than adopting a line" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A session that breaks on a line of main, runs, nexts over a call to a function with rows,
+steps into it, nexts twice and finishes, all on straight-line code with no inlining and no
+non-statement rows, which every overconservative engine has to print exactly.
+"""
+late_case = """
+A next over a recursive call made from inside an inlined instance whose last instruction is
+the call: the deeper frame returns to the same address first, the stepping frame's return
+lands where the instance has already ended, and the next row start belongs to the caller's
+continuation of the call line, so it must not stop there.
+"""
+oracle_denied = """
+The natural check is to compare stops with gdb or lldb, which cannot run this machine and
+disagree about inlined calls anyway, or to compare the fast engine with a slow single-stepping
+one written from the same reading, which confirms only that the two engines agree.
+"""
+
+[leaks]
+candidates = [
+  { what = "expected output shipped beside the sample sessions", closed_by = "not shipped; one worked example in the brief fixes the output format. Measured 2026-09-22: it decides two of the 29 readings, ret-address and run-skips-entry, both rules the brief states in words; every prefix of every sample that shows a stop decides at least one, and the prefixes deciding only one show no step line or give away the per-instance breakpoint rule" },
+  { what = "a link query returning frames, lines or stop reasons", closed_by = "the link returns only the program counter and the return addresses; nothing on the target side reads the line table" },
+  { what = "derived tables in the image parser (chains per address, row exits, locations)", closed_by = "the parser keeps functions, code, rows and instances as parsed primitives and derives nothing" },
+  { what = "helper names in the shipped debugger naming the rules", closed_by = "shipped functions are named for what they touch, not for adoption, hiding or recursion checks, and dead helpers are deleted" },
+  { what = "the tape, which would let a debugger simulate the program instead of driving it", closed_by = "the verifier hands the tape to the target under its own uid and gives the debugger only a connected socket" },
+]
+derived_quantities = """
+The image carries function ranges, code, line-table rows with a statement flag, and inline
+instances with their parent, call line and range, which are primitives; scope chains, hidden
+depth, displayed lines, row exits and breakpoint locations are all derived and none ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct debuggers that single-step the target through the link for every
+instruction, and the half-way family that plants return addresses for calls but still
+single-steps inside the stepping frame, including across one-line loops.
+"""
+invariant = """
+A stop decision can only change when execution passes from one line-table row into another,
+so the target may run freely until it reaches an exit of the current row, a planted return
+address at the stepping depth, or a breakpoint.
+"""
+# Measured on the built tree, 2026-09-22 (host trials, tests/test.sh unmodified): the reference
+# used 24.0 s of debugger time for all 369 sessions; the exactly correct single-stepping engine
+# and the half-way engine that plants return addresses were both stopped by the clock at
+# 300 s on sample-long, two sessions in. The half-way engine alone on the lightest frozen heavy
+# session (heavy-15, 3.0M instructions inside a stepping frame) took 157 s, every line right
+# (authoring/line-step-stop/naive_heavy.py), so two of the 24 would spend the whole clock.
+input_scale = "369 graded sessions of up to 400 addresses, whose loops run up to 700,000 times inside one row, inside called functions and inside inlined instances"
+limit_seconds = 300
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "caller frames shown at the return address instead of the call instruction", hand_case = "a call that is the last instruction of its row, so the return address starts the next line" },
+  { reading = "no adoption: a part-way landing keeps the line the command started on", hand_case = "a loop whose back edge jumps into the middle of its test row, stepped with next from the body" },
+  { reading = "a non-statement row start stops or adopts its line", hand_case = "a non-statement row of a new line followed by a statement row of that same line" },
+  { reading = "line-zero rows stop or adopt", hand_case = "compiler code with line zero between two statements of one line" },
+  { reading = "a row start of the same line stops the step", hand_case = "a line split into two statement rows with a call between them" },
+  { reading = "an instance entry is always stepped into, whatever its call line", hand_case = "stepping from the line before an inlined call whose call line has no code of its own" },
+  { reading = "next always steps over an instance entry, whatever its call line", hand_case = "next from the line before an inlined call, which must stop at the call site" },
+  { reading = "step reveals every hidden instance at once", hand_case = "two nested instances starting at the same address, reached by stepping" },
+  { reading = "inline frames read off the program counter, never hidden", hand_case = "a finish that returns to an address where an instance begins" },
+  { reading = "finish from an inline frame runs to the real frame's return", hand_case = "finish inside an instance that is followed by more code of its caller" },
+  { reading = "a planted return address is trusted on first hit", hand_case = "next over a recursive call made from the same call site one level down" },
+  { reading = "step stops inside a function with no rows", hand_case = "step on a line that calls a rowless function that calls a function with rows" },
+  { reading = "breakpoints resolve per function, ignoring inline instances, or to every row of the line", hand_case = "a line of a function inlined twice, whose line also has two statement rows in one copy" },
+  { reading = "cont from a breakpoint address stops again without executing", hand_case = "cont issued while stopped on a breakpoint that sits in a loop" },
+]
+correct_variants = [
+  "an engine that plants the exits of the current row, computed from the row's instructions, and switches to return-address mode on a call",
+  "an engine that plants every row start and every branch target of the stepping function outside the current row, filters each stop by frame and row, and never analyses a row's exits",
+]
+
+[shape]
+environment_py_lines = 460
+editable_files = 3
+reference_lines = 280

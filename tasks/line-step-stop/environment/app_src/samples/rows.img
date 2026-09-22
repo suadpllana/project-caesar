@@ -1,0 +1,58 @@
+fn main 0 26 1 17
+fn f0 27 33 22 28
+0 set d 8
+1 call 27
+2 nop
+3 nop
+4 set d 6
+5 set d 0
+6 nop
+7 set d 6
+8 nop
+9 in a
+10 in b
+11 jnz b 13
+12 jmp 21
+13 nop
+14 nop
+15 nop
+16 set d 1
+17 set d 4
+18 nop
+19 dec b
+20 jmp 11
+21 dec a
+22 jnz a 10
+23 set d 9
+24 call 27
+25 nop
+26 ret
+27 nop
+28 nop
+29 set d 6
+30 set d 8
+31 set d 7
+32 set d 8
+33 ret
+row 0 3
+row 1 5 x
+row 3 5
+row 4 5
+row 5 6
+row 6 7 x
+row 7 6 x
+row 8 7
+row 9 9
+row 10 11
+row 13 12
+row 14 14 x
+row 16 14
+row 21 9
+row 23 15
+row 24 16 x
+row 26 16
+row 27 23
+row 29 25
+row 30 25 x
+row 32 26
+row 33 27

@@ -1,0 +1,142 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/dbg/marks.py",
+  "/app/dbg/frames.py",
+  "/app/dbg/steps.py",
+]
+
+[task]
+name = "afterquery/line-step-stop"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+The work is the run-control half of a source-level debugger: turning step, next, finish and
+continue into operations on a running target, and deciding what the user is shown when it
+stops. Optimized code is where that goes wrong in practice. Compilers inline calls, split one
+line into several statement rows, mark rows that are not statements, hoist the next line's
+code into the current one and emit code with no line at all, and every one of those moves a
+stop.
+
+The programs graded here are synthetic. A generator lays out code and line tables the way an
+optimizing compiler does: calls inlined at the start of a line or after code of their own,
+nested and back to back, split and non-statement rows, back edges into the middle of a line,
+recursion through a single call site, functions with no line information. The machine and the
+image format are invented for the task. The rules are the ones real debuggers have had to
+settle, and where gdb and lldb settle them differently the brief picks one and says so.
+
+The first plan is the remembered one: single-step, stop when the line number changes, read the
+inline frames off the program counter, step over a call with a breakpoint on its return
+address. Several stated rules break it at once. A second statement row of the same line does
+not stop a step; arriving in the middle of a row makes that row's line the one being stepped,
+and that line decides whether the next inlined call site is stepped into, stepped over or
+stopped at; a call site shows fewer frames than the same address reached by a breakpoint, so
+the frame list is state the debugger keeps, not a function of the program counter; callers
+are shown at their call instruction, not at the return address.
+
+The stated limit then takes away the loop that makes those rules easy to write. Every link
+call is a round trip to the target process, and graded sessions cross loops of up to 700,000
+iterations inside one row, inside called functions and inside inlined instances, so a debugger
+that single-steps prints every line correctly and cannot finish. Running the target to planted
+addresses moves every stop decision onto what was planted - the exits of the current row, a
+callee's entry even when it lies inside that row, a return address, an instance's exit - and
+recursion fires those addresses in frames deeper than the one being stepped, so every stop has
+to be checked against the frame before it is believed.
+
+The agent's tree is deliberately small and terse: short identifiers, no comments and no
+documentation, so the design has to come from the brief and from reading the code. Finding
+files is not the difficulty; keeping every stated rule true in an engine that may not look at
+every instruction is.
+"""
+
+solution_explanation = """
+The reference replaces the three decision modules and leaves the target, the link, the image
+parser and the session driver as they ship. frames.py builds per-address tables once per
+image - the row holding each address, where rows begin, the instances holding each address
+outermost first - and prints a stop from them, reading every caller at its return address
+minus one and leaving out the innermost hidden scopes. marks.py groups the statement rows of a
+line by the innermost scope that holds them and keeps the lowest address of each group.
+
+steps.py never single-steps. A step or next keeps a stepping frame (a call depth), a stepping
+scope and a stepping line, and plants the exits of the row the program counter is in, worked
+out from that row's own instructions: branch targets and fall-throughs that leave it, every
+call target including one inside the row, and the frame's return address when the row
+returns. Each stop is sorted by depth. Deeper means a call: step stops at a callee that has
+lines, and otherwise the engine plants the return address and resumes until that address comes
+back at the stepping depth. Shallower means the stepping frame returned. Anything else is an
+arrival in a new row, judged by one function that applies the scope rule, the instance-entry
+rule and the row rule in that order. Stepping over an inlined instance and finishing out of
+one plant the instance's exit and check depth the same way; finishing a function plants its
+return address.
+
+That is the shape real debuggers give run control - a step range, resume breakpoints and a
+frame identity check on every stop - adapted to a target that cannot step a range itself. A
+command costs a handful of round trips however long the loops it crosses, so the reference
+plays the whole graded set in a small fraction of the limit.
+"""
+
+verification_explanation = """
+A graded session is a script of commands against an image and a tape, and the verifier
+compares every line the pristine session driver prints, exactly and all or nothing. The graded
+set is the four shipped samples; 29 frozen sessions, each printing differently under one wrong
+reading of the stop rules; 6 frozen ordinary sessions that an over-cautious engine gets wrong;
+24 frozen heavy sessions; and 306 sessions generated inside the verifier from a fresh seed
+across nine families shaped around the rules. Expected lines come from a sealed model that
+keeps its own copy of the machine and applies the rules one instruction at a time with the
+tape in hand, and before anything is graded it must reproduce every small frozen session's
+lines, so a model that drifted cannot redefine what correct means.
+
+The three submitted files run in a pristine copy of the debugger as an unprivileged user,
+connected by a socket to a target that runs under a second unprivileged user and alone holds
+the tape, so the debugger cannot simulate the program instead of driving it. The whole graded
+set shares one 300-second clock for the debugger's processes. The reward is root-owned, set to
+0 before any submitted code runs and written to 1 only when the trusted judge and the report
+both pass, and every process of both users is killed after each session.
+
+The reference, and a second correct engine written apart from it, score 1. Each of the 29
+single-rule readings, the shipped tree, four degenerate strategies, two exactly correct but
+single-stepping engines and eight isolation probes score 0, each caught by a named session or
+by the clock.
+"""
+
+category = "Software"
+subcategory = "Languages"
+
+tags = [
+  "source-level-debugging",
+  "inlined-call-frames",
+  "line-number-tables",
+  "step-over-breakpoints",
+  "remote-debug-stub",
+]
+
+expert_time_estimate_hours = 10
+
+relevant_experience = """
+Run control in source-level debuggers for optimized code: stepping by line-table ranges
+rather than instruction by instruction, step-over and finish built on return-address
+breakpoints checked against frame identity, and the presentation of inlined frames - which
+scopes a stop shows at a call site and how each step reveals one more. Familiar with statement
+and non-statement rows, line-zero code and hoisted instructions as optimizing compilers emit
+them, with the places where gdb and lldb resolve those cases differently, and with the cost
+model of debugging a target over a remote stub, where every single step is a round trip.
+"""
+
+[verifier]
+timeout_sec = 1800.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 900.0
+
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240
+
+gpus = 0

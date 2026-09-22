@@ -1,0 +1,44 @@
+{
+ "action": "variant:/home/user/project-caesar/authoring/line-step-stop/variants/v2",
+ "reward": "1",
+ "handed": [
+  "frames.py",
+  "marks.py",
+  "steps.py"
+ ],
+ "secs": 82.1,
+ "verdict": {
+  "ok": true,
+  "stage": "done",
+  "model_drift": [],
+  "missing": [],
+  "counts": {
+   "sample": 4,
+   "case": 29,
+   "fence": 6,
+   "heavy": 24,
+   "nonce": 306
+  },
+  "passed": {
+   "sample": 4,
+   "case": 29,
+   "fence": 6,
+   "heavy": 24,
+   "nonce": 306
+  },
+  "spent": 24.354,
+  "limit": 300.0
+ },
+ "pytest": [
+  "PASSED ../../../../../tests/test_stops.py::test_judge_finished",
+  "PASSED ../../../../../tests/test_stops.py::test_sealed_model_reproduces_frozen_lines",
+  "PASSED ../../../../../tests/test_stops.py::test_declared_files_present",
+  "PASSED ../../../../../tests/test_stops.py::test_samples",
+  "PASSED ../../../../../tests/test_stops.py::test_enumerated_cases",
+  "PASSED ../../../../../tests/test_stops.py::test_plain_fences",
+  "PASSED ../../../../../tests/test_stops.py::test_heavy_sessions",
+  "PASSED ../../../../../tests/test_stops.py::test_generated_sessions",
+  "PASSED ../../../../../tests/test_stops.py::test_whole_set_within_limit",
+  "PASSED ../../../../../tests/test_stops.py::test_verdict"
+ ]
+}

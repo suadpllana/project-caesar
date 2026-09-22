@@ -1,0 +1,6 @@
+b1 18
+b2 0
+b3 11
+hit 0 main:2
+hit 18 f0:17 main:2
+step 21 f0:18 main:2

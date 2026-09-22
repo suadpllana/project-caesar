@@ -357,10 +357,12 @@ container result above is the host emulation described in the validation table r
 what happens when their content is prescribed by the kit - the canonical pytest pins, an artifact
 parent per RUN line, `COPY . /tests/` - and there is nothing in them to author; `test.sh`,
 `worker.py` and `reap.py` were written here and are not reported. `tools/textcheck.py` still puts
-the brief's burstiness at 0.735 against 0.915 for `note-carry-forward` and its share of short
+the brief's burstiness at 0.728 against 0.915 for `note-carry-forward` and its share of short
 sentences at 14 per cent against 34; the cadence was reworked twice and the residue is what a
 brief that states ten rules exactly looks like. Its two remaining dash asides are `N - s` and
-`N - H`. `harbor check` was not run: no API key is available in this session.
+`N - H`. Two sentences added during that rework restated rules already stated and were taken
+back out at the final read; the patch that removed them asserts that it fired, because the first
+attempt matched nothing and said so to no one. `harbor check` was not run: no API key is available in this session.
 
 ## Open questions and next steps
 

@@ -14,8 +14,7 @@ never below 1.
 The store starts empty at version 0 and every `c` raises the version by one, whether or not
 anything was staged; a commit that stages nothing writes no key. A staged write or delete writes
 its key whether or not it changes what is there, and two staged operations on one key leave the
-later one and count as a single write of that key. Writing back the value a key already holds is
-a write.
+later one and count as a single write of that key.
 
 Everything the cache knows it learned from a fetch, and it knows it for a run of versions, not
 for an instant. A fetch of a key range returns the store's content over that range as it stands.
@@ -31,8 +30,7 @@ cache still accounts for at that same version. Call the current version N. The v
 answered at is at most N and at least N - s, and never below 0. When some version in that band
 has every key of lo to hi inside content the cache accounts for at that version, the read is
 answered from the cache at the largest such version and no fetch is issued. When no version in
-the band does, the read goes to the store instead and is answered at N. Nothing in between: a
-read either takes one version whole or takes the present one.
+the band does, the read goes to the store instead and is answered at N.
 
 That trip is shaped before any of it is sent. Start from the maximal runs of keys within lo to
 hi that no content the cache accounts for at N covers, in increasing key order.

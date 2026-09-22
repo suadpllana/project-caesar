@@ -59,7 +59,7 @@ Then scale. Recomputing every region against belief on every tick, or rescanning
 at every selection, is exactly correct and does not fit: the graded set includes pages of about
 seventeen thousand text nodes over 2400 ticks and a busy container that gathers over fifteen
 thousand held differences, all inside one 60 second call. Measured in the verifier container on
-one CPU, those two readers take 483.7 s and 208.3 s for the graded set against 2.4 s for the
+one CPU, those two readers take 433.9 s and 193.2 s for the graded set against 2.4 s for the
 reference. Fitting the limit means settling only the keys a tick's records can reach, indexing
 removals by the parent they are placed under, keeping held differences out of the line until an
 element on their path releases them, and a line whose stale entries are thrown away as they
@@ -126,16 +126,16 @@ from each of two scale families - and are checked against the sealed model.
 
 Passing means the reader implements the stated model rather than something near it. Each of 29
 wrong readings of the brief, written as a whole reader, fails the hand page written for its rule,
-and each also gets between 1 and 88 percent of one draw of generated pages wrong. The two exactly
-correct readers that recompute the page or rescan the line are cut off by the clock. A silent
-reader, a record-order queue, a replay of the worked example and a reader that carries the frozen
-answers by page all score 0, the last because the generated pages are new. Ten isolation probes -
-reaching for the model and the answers, writing the reward directly or from a process left running,
-rewriting the grader or shrinking the page set, planting, spoiling or cutting short the worker's
-record, and hiding the reader in a file beside the six - are each stopped by the lock meant for
-them, and the two that could score are shown to score 1 once that lock is taken off. Two correct
-readers written apart from the reference, one caching exposure and one keeping a line per region,
-score 1.
+and on average also gets between about 1 and 88 percent of the generated pages wrong, so the rarest
+can slip past one draw of them but never past its hand page. The two exactly correct readers that
+recompute the page or rescan the line are cut off by the clock. A silent reader, a record-order
+queue, a replay of the worked example and a reader that carries the frozen answers by page all
+score 0, the last because the generated pages are new. Ten isolation probes - reaching for the
+model and the answers, writing the reward directly or from a process left running, rewriting the
+grader or shrinking the page set, planting, spoiling or cutting short the worker's record, and
+hiding the reader in a file beside the six - are each stopped by the lock meant for them, and the
+two that could score are shown to score 1 once that lock is taken off. Two correct readers written
+apart from the reference, one caching exposure and one keeping a line per region, score 1.
 """
 
 category = "Software"

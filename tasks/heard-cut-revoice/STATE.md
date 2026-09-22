@@ -5,9 +5,9 @@ session starts with no memory of this one - anything not written here is lost.
 
 ## Current stage
 
-`Stage 7 - final gates and packaging` (2026-09-22). Everything below the contract has been built,
-measured and checked; the bundle is packaged and filed as pending once the last container runs
-are in.
+`Stage 7 complete - packaged and filed as pending` (2026-09-22). Built, measured and checked:
+`tasks/heard-cut-revoice.zip` is the submission, and `authoring/submissions.toml` records it with
+`verdict = "pending"`. Next is the platform's verdict.
 
 ## Assistant's assigned role
 
@@ -125,35 +125,32 @@ exactly correct and does not fit the stated limit.
 Every graded assertion traces to a sentence in the instruction. The walk is
 `authoring/heard-cut-revoice/trace.md`.
 
-- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result):
-  `authoring/heard-cut-revoice/trace.md` walks the 4 test functions, the 35 hand pages, the 6
+- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): `authoring/heard-cut-revoice/trace.md` walks the 4 test functions, the 35 hand pages, the 6
   artifacts, the pristine overlay, the 60 s clock and 29 rows of the sealed model (one per rule it
   applies, with its lines). No row is NOT STATED. `python tools/tracecheck.py heard-cut-revoice`
   is clean (its one note: `READINGS` is built by a function, so the 30 readings are cited by hand).
-- Identifiability (readings enumerated, which survived the published evidence, what separated them):
-  30 readings are written as whole readers in `authoring/heard-cut-revoice/readings.py` (the
+- Identifiability (readings enumerated, which survived the published evidence, what separated them): 30 readings are written as whole readers in `authoring/heard-cut-revoice/readings.py` (the
   shipped event-driven reader plus 29 wrong readings of the brief). None survives: each is ruled
   out by a quoted sentence and separated by a named hand page (`python3 tools/readingcheck.py
   heard-cut-revoice`: 30 of 30 separated), and `cheat_report.py` shows each cheat failing the
   hand page written for its rule. On one draw of the 276 generated pages the 29 readings get
-  between 3 (1%) and 242 (88%) pages wrong. Three of them (busy-above-region, hidden-false-shows,
-  unit-carries-held) got under 1% wrong before the busy and hide families were reshaped for them.
-- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched):
-  all score 0. The shipped tree is right on 12 of 35 hand pages and 34 of 276 generated ones and
+  between 3 (1%) and 242 (88%) pages wrong; on a second draw unit-carries-held got none wrong, so
+  for the rarest readings the generated pages are a second layer and the hand page is the one they
+  always meet. Three of them (busy-above-region, hidden-false-shows, unit-carries-held) got under 1%
+  wrong before the busy and hide families were reshaped for them.
+- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): all score 0. The shipped tree is right on 12 of 35 hand pages and 34 of 276 generated ones and
   fails tiny-example; saying nothing is right on 0 hand pages and 1 generated page; speaking every
   addition and edit in record order is right on 14 hand pages (the worked example among them) and
   32 generated; replaying the worked example is right on tiny-example only; carrying the frozen
   answers by page hash is right on all 35 hand pages and 35 of 276 generated, and fails the nonce
   test. Rows in the trace's Shortcuts table.
-- Independent implementation behind every tolerance and limit (path, measured headroom): the only
-  limit is the 60 s wall clock on the worker. `authoring/heard-cut-revoice/variants/ok-cache/` and
+- Independent implementation behind every tolerance and limit (path, measured headroom): the only limit is the 60 s wall clock on the worker. `authoring/heard-cut-revoice/variants/ok-cache/` and
   `variants/ok-region/`, both written apart from the reference, agree with the naive reader on
   1,800 generated pages each, then on 300 pages of the reshaped hide family and 400 of the final
   busy family, and read the whole graded set in
   the verifier image on one CPU in about 2.2 s and 2.7 s (reference 2.4 s): over 20 times
-  headroom. The two exactly correct naive readers take 208 s and 484 s.
-- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each):
-  author-run, on 2026-09-22, after the environment and verifier existed. Decisions the text left
+  headroom. The two exactly correct naive readers take 193 s and 434 s on the final bundle.
+- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): author-run, on 2026-09-22, after the environment and verifier existed. Decisions the text left
   open, and what was added: that `aria-live` can change value after the load (the brief said it
   was set only at load, which the hide and mix families and three hand pages contradict - now
   "fixed during the load ... a later tick may switch it between those three"); inclusive ends of
@@ -271,8 +268,8 @@ lowercase words.
 |---|---|---|
 | Agent image builds | pass | `tools/docker_trial.py` builds both images from the shipped Dockerfiles |
 | No answer leaked into agent image | pass | `tools/imagecheck.py`: 16 files, the reference runs all five shipped pages; `extraneouscheck` clean; no comments or docstrings in `app_src` |
-| `harbor run -a oracle` = 1 | HARBOR_ORACLE | |
-| `harbor run -a nop` = 0 | HARBOR_NOP | |
+| `harbor run -a oracle` = 1 | pass | harbor 0.23.0, `-e docker`, shipped Dockerfiles verbatim: reward 1.0; reader exited 0, 38 passed in 2.36 s |
+| `harbor run -a nop` = 0 | pass | same: reward 0.0; 24 failed, 14 passed |
 | Two-container trial (oracle 1, nop 0, 45 cheats 0) | pass | 47/47 behaved as required on the final files; both variants score 1 (`--dir`) |
 | Cheats all score 0, each at its layer | pass | `cheat_report.py`: 39 host rows caught by the case, clock or worker error named for them; `--trial`: six privilege probes stopped by their lock, the two that could score do score 1 unlocked |
 | readingcheck | pass | 30 of 30 readings separated by a named hand page |
@@ -283,8 +280,8 @@ lowercase words.
 | simcheck | pass | no NEAR; the four-line environment Dockerfile is HIGH (0.64-0.70) against six bundles, as any minimal Dockerfile is |
 | originalitycheck | pass | 100/100; with 67 branch-only instructions as `--corpus`, nearest move-clash-merge at cosine 0.199, shingle 0.000 |
 | difficultycheck | pass | 100/100 on the measured tree |
-| `preflight.py` | PREFLIGHT | |
-| zipcheck | ZIPCHECK | |
+| `preflight.py` | pass | no errors; 24 warnings, all the unused-public-function heuristic, which counts no attribute calls (`run_sr.py` calls `pg.apply`, `rd.load` and `rd.step`); focus-return-point, which passed, draws 15 of the same |
+| zipcheck | pass | `tasks/heard-cut-revoice.zip`, 96 entries, built by `scripts/package.py`: no findings; STATE.md excluded, scripts 0755 |
 | `harbor check` rubric | not run | no provider API key in this session |
 | Easiness probe | not run | this session cannot spawn agents; no trajectories exist for leakcheck |
 | Cold self-probe | not run | the author wrote the model before the brief; a cold solve would measure memory (CLAUDE.md, reach-pair-sweep). The cold-reader pass on the brief was run and is recorded above |
@@ -294,7 +291,12 @@ lowercase words.
 - Docker: the client was installed and the daemon not running; started `dockerd` in the session.
   Docker Hub refused unauthenticated pulls (rate limit), so `python:3.12-slim` was pulled from
   `mirror.gcr.io/library/python:3.12-slim` and tagged locally; the Dockerfiles are unchanged.
-- Harbor: not installed; installed `harbor` 0.23.0 with `uv tool install harbor`.
+- Harbor: not installed; installed `harbor` 0.23.0 with `uv tool install harbor`. Its first oracle
+  and nop runs both died in 25 s building the verifier image: `pip install` inside the build could
+  not verify pypi.org through this sandbox's TLS-intercepting proxy. The runs that count were made
+  with the local `python:3.12-slim` base layered with the proxy CA and `PIP_CERT` for their
+  duration, then the original tag restored; the shipped Dockerfiles were used verbatim. This is the
+  same accommodation `tools/docker_trial.py` makes, and it does not exist on the platform.
 - Container evidence comes from `tools/docker_trial.py` (both images built from the shipped
   Dockerfiles, agent and verifier in separate containers, the verifier's own test.sh) and from
   `harbor run -e docker`. The host emulation (`authoring/heard-cut-revoice/cheat_report.py`,
@@ -315,8 +317,9 @@ lowercase words.
   hand page (build_gt refuses otherwise) and on 540 + 1,800 generated pages before reshaping,
   300 hide and 400 busy pages after it, and the six scale pages.
 - Gate, in the verifier image on one CPU, the whole graded set as the worker: reference 2.3-2.4 s,
-  ok-cache 1.9-2.1 s, ok-region 2.5-2.6 s; whole-page recompute 483.7 s and line rescan 208.3 s
-  (both exactly correct); a cached-flags reader with an O(depth) scan 15.4 s, which passes.
+  ok-cache 1.9-2.1 s, ok-region 2.5-2.6 s; the exactly correct whole-page recompute 433.9 s and
+  line rescan 193.2 s on the final bundle (483.7 s and 208.3 s earlier, before the reshaping and
+  under other load); a cached-flags reader with an O(depth) scan 15.4 s, which passes.
 - Cheats: 45. Host layer report (`authoring/heard-cut-revoice/cheat_report.py`): every one caught
   by the layer named for it, 0 findings. Two-container probe report (`--trial`): all six
   privilege probes stopped by their lock, both unlocked controls score 1, 0 findings.

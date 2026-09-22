@@ -160,8 +160,8 @@ utterance finishes, by presence and text only. A difference the reader cannot vo
 is off or not exposed) or that its region does not find relevant is absorbed on the spot; every
 other one is in the waiting line, keeping the age of the tick that first observed it.
 
-The model recomputes this for every key on every tick. That is correct and it is exactly what the
-wide pages are there to rule out, so this only looks at keys something could have changed:
+The rule is stated for every key on every tick. Doing that literally is correct, and it is exactly
+what the wide pages are there to rule out, so this only looks at keys something could have changed:
 
 - a text record changes one node;
 - adding, moving or dropping a node, or hiding or showing an element, changes the exposure,

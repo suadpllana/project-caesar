@@ -11,7 +11,8 @@ emulation and are reported as that, never as container evidence.
 /app, /tests, /work and /logs are fixed paths, so two runs at once would read each other's
 files: this takes a lock.
 
-    python3 host_trial.py --dir tasks/pin-drift-redo/solution      the oracle
+    python3 host_trial.py --oracle                                 solution/solve.sh, as the harness runs it
+    python3 host_trial.py --dir tasks/pin-drift-redo/solution      the same files, copied in
     python3 host_trial.py --nop                                    the shipped tree
     python3 host_trial.py --cheat tasks/pin-drift-redo/cheat/x.sh  one cheat
     python3 host_trial.py --all-cheats
@@ -97,6 +98,7 @@ def main():
     ap.add_argument("--dir")
     ap.add_argument("--cheat")
     ap.add_argument("--nop", action="store_true")
+    ap.add_argument("--oracle", action="store_true")
     ap.add_argument("--all-cheats", action="store_true")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
@@ -115,6 +117,9 @@ def main():
 
     over = Path(args.dir).resolve() if args.dir else None
     cheat = Path(args.cheat).resolve() if args.cheat else None
+    if args.oracle:
+        # what the harness actually does: run solve.sh inside /app, then grade
+        cheat = TASK / "solution" / "solve.sh"
     got = trial(over=over, cheat=cheat)
     print(json.dumps({k: got[k] for k in ("reward", "test_sh", "seconds", "note")}))
     if got["reward"] != "1" or args.verbose:

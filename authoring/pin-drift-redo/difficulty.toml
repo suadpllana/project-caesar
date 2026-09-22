@@ -1,0 +1,195 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/pin-drift-redo/STATE.md.
+
+[task]
+slug = "pin-drift-redo"
+status = "pending"
+sources = ["tasks/pin-drift-redo/STATE.md", "authoring/pin-drift-redo/trace.md", "authoring/pin-drift-redo/timing.py", "authoring/pin-drift-redo/cheat_report.py", "authoring/pin-drift-redo/probe_report.py"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Give every transaction a snapshot of the store taken when it opens, a write set holding one
+number per key it has written, and a stack of savepoints each holding a copy of that write
+set. Run each op against the write set, falling back to the snapshot for a key the
+transaction has not written yet. At close, compare the keys written against the store, and
+where another transaction has committed one of them since the snapshot, redo that one write
+against the newer number instead of aborting. Test each condition as it runs, and publish
+the write set.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A transaction does not hold a number at a key, it holds what its own ops make of the value
+it took, and taking that value again moves every number it derived from it wherever those
+sit in its work - so a later commit by somebody else retroactively changes a write made ten
+ops earlier, a copy made from a key the transaction never wrote, and a condition recorded
+before either of them. The value is also taken per key at the first op that names it rather
+than once for the whole transaction, so two keys of one transaction stand on bases taken at
+different moments.
+"""
+second_discovery = """
+A mark cannot save numbers. Throwing work away at a mark, either by an explicit undo or by a
+condition that fails at close, restores values that are still owed to the bases they came
+from, and a base taken again afterwards has to move them again; a savepoint that copied the
+numbers is right until the first re-take after it and silently wrong forever after. The same
+finding kills the write set itself: what survives a cut is decided by which ops remain, so
+the transaction's state has to be recoverable from its ops or carried as a form over its
+bases, and the set of keys a commit publishes cannot be settled before the conditions run.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped engine on the sample programs and read the one line the brief says is wrong",
+  "Establish that a basis is taken per key at first touch, not once per transaction, by following which op moved which number",
+  "Work out that a re-take is retroactive, so the transaction's values are a function of its op list rather than stored numbers",
+  "Separate a read, which fixes the number going forward, from a copy, which stays owed to its basis",
+  "Rebuild the mark as a cut on the op list instead of a copy of the values, and make undo and a failed condition the same cut",
+  "Move the conditions to close time, in op order, at the position each one occupies, and drop the section a failing one sits in",
+  "Settle the publish set from the ops that survive the conditions, not from the keys written while the transaction ran",
+  "Time the wide and deep programs, find that re-deriving the whole op list on every re-take and every cut is quadratic",
+  "Carry each key's value as one basis plus an offset, index the bases by their dependents, and save those forms at a mark",
+]
+
+[search]
+best_page = """
+The PostgreSQL documentation on concurrency control and the standard write-ups of snapshot
+isolation and first-updater-wins, together with the READ COMMITTED rule that a blocked
+UPDATE re-reads the newest committed row and re-evaluates its predicate against it.
+"""
+helps_plan = false
+deviation = """
+Every one of those aborts or blocks a transaction whose basis moved, re-reads at statement
+granularity, and treats a savepoint as a restorable copy of state; here nothing aborts on a
+moved basis, the basis is per key and per first touch, the re-take reaches backwards through
+work already done, a read is what stops it reaching, and a savepoint is a cut on the work
+rather than a copy of it.
+"""
+
+[tactics]
+A1 = """
+The memorised answer to a write whose basis moved is to abort the transaction or to block it;
+here the transaction stands and its derived numbers move under it, so the more confidently
+the conflict-detection idiom is recalled the more wrong the first structure is.
+"""
+A2 = """
+The brief states the rules as what the engine does to numbers - what a read fixes, what a
+re-take moves, what a mark throws away - and never names rebasing, snapshot isolation or the
+read-modify-write distinction that decides which writes are owed to a basis.
+"""
+A3 = """
+Retroactive re-takes ask for values kept as functions of a basis while conditions tested at
+their own position in the work ask for the history of those values, and no single remembered
+structure - a write set, a snapshot stack, a replayed log - satisfies both inside the limit.
+"""
+B2 = """
+Ten rules hold at once: per-key first touch, retroactive re-takes, a read that fixes,
+sourcing just before an op, marks as cuts, undo keeping bases, conditions at close in op
+order, the section a failed condition drops, the no-mark case, and the publish set after.
+"""
+C1 = """
+Both sides are graded: an engine that never re-takes fails the programs where a commit moves
+a basis under an open transaction, and one that re-takes through a read or re-derives a
+fixed number fails the programs where what the client was told has to stand.
+"""
+C3 = """
+A wide family of long transactions under a stream of commits and a deep family of thousands
+of conditional sections make re-deriving the op list on every re-take and every cut
+infeasible inside the stated limit while leaving it exactly correct.
+"""
+C4 = """
+Every line of every graded program must match, and the population is generated inside the
+verifier from a seed drawn after the agent's container is gone, with families shaped at each
+rule rather than sampled uniformly.
+"""
+guard = """
+Six files under /app/led are collected and nothing else; the driver, the program parser, the
+trace writer and the sample programs are the verifier's own pristine copies laid under the
+submission, so neither the output format nor the program semantics can be reshaped.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a re-take moves values already derived", b = "a read fixes the value it printed", why = "the read decides how far back a later re-take reaches, so the same commit moves one transaction's earlier write and leaves another's alone, and neither rule can be implemented without the other's boundary" },
+  { a = "a mark throws away work, not values", b = "bases are kept when work is thrown away", why = "what a cut restores is still owed to a basis that can move afterwards, so a savepoint holding numbers is right until the first re-take after it and wrong from then on" },
+  { a = "a failed condition drops the section it sits in", b = "the publish set is the keys the surviving work writes", why = "dropping a section can remove the only write to a key, so the set of keys a commit publishes cannot be settled while the transaction runs and has to wait for the conditions" },
+  { a = "conditions are tested at close in op order", b = "a re-take at close moves derived values", why = "a condition that held when it was recorded can fail after the final re-take and a condition that failed can hold, so testing when the op ran and testing at close disagree on which section survives" },
+  { a = "a dropped section can remove a write", b = "a later condition reads the value at its own position", why = "the cascade runs forwards: dropping one section changes what the next condition sees, so the surviving work cannot be decided by testing the conditions independently" },
+  { a = "a copy takes the other key's value at that point", b = "a re-take moves the copied-from key", why = "a copy stays owed to the basis it copied from, so a commit on a key the transaction never wrote moves a number it wrote into a different key" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A program where no commit lands under an open transaction: every value has to come out as
+the straightforward reading gives it, so an engine that re-derives, re-takes or drops a
+section when nothing moved prints wrong numbers on the everyday programs.
+"""
+late_case = """
+A transaction that reads a key, marks, copies that key into another, undoes back to the
+mark, and only then meets a commit on the key it read: the fixed number stands, the copy is
+gone with the section, and the value the undo restored is owed to a basis that has just moved.
+"""
+oracle_denied = """
+The natural check is a real database or a spare implementation of snapshot isolation, and
+both abort where this engine re-bases; the shipped engine prints a coherent trace for every
+program, so running it says only that it runs, and the brief names one wrong line of one file.
+"""
+
+[leaks]
+candidates = [
+  { what = "a stored basis or version number on the committed record", closed_by = "the store holds one number per key and nothing else; whether a basis has moved is a comparison the transaction has to make" },
+  { what = "a trace line for a re-take, a cut or a dropped section", closed_by = "only reads and closes print, so a wrong structure is visible as a wrong number and never as a missing event" },
+  { what = "a helper that returns the keys a transaction will publish", closed_by = "the publish set is computed where it is used, after the conditions, and no shipped function names it" },
+  { what = "the sample programs shipped with their correct output", closed_by = "one line of one small program is quoted in the brief, and it is the printed read rather than a decision the task turns on" },
+  { what = "a per-transaction snapshot map in the shipped engine that already spans all keys", closed_by = "the shipped engine is wrong there and the file is editable, so the per-key first-touch structure has to be built rather than found" },
+]
+derived_quantities = """
+The program file carries the ops and the key count, and the store carries one committed
+number per key; the bases, the offsets, the dependents of a basis, the surviving sections
+and the publish set are all derived and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct engines that re-derive the whole op list of a transaction whenever a basis
+is taken again and again after every section a failing condition drops at close.
+"""
+invariant = """
+Every value a transaction holds is either a fixed number or one taken basis plus a constant
+offset, because add shifts, copy inherits and put and a read fix - so a basis that moves
+moves exactly the values naming it, each by the same difference, and a mark can save the
+forms instead of replaying the work.
+"""
+input_scale = "one transaction of sixty thousand ops under twelve thousand closes, and one of twenty thousand conditional sections"
+limit_seconds = 30
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "a basis is taken once for the whole transaction when it opens", hand_case = "a transaction that writes one key, waits for a commit on a second, then names the second" },
+  { reading = "a transaction whose basis moved aborts instead of re-taking", hand_case = "two transactions writing the same key, the second closing after the first" },
+  { reading = "a re-take moves only the op that named the key, not earlier derived values", hand_case = "an add followed by a copy into another key, then a commit on the first key" },
+  { reading = "a read is a pure observation and does not fix the value", hand_case = "a read of a key, then a commit on it, then a close that publishes that key" },
+  { reading = "a mark saves the values and undo restores those numbers", hand_case = "a copy before a mark, a put after it, an undo, then a commit on the copied-from key" },
+  { reading = "undo gives back the bases taken since the mark", hand_case = "a key first named inside a section that is undone and named again afterwards" },
+  { reading = "conditions are tested when they run rather than at close", hand_case = "a condition that holds when recorded and fails after a commit moves its key" },
+  { reading = "a failed condition ends the transaction with nothing published", hand_case = "a failing condition inside a section with a standing mark and a write before it" },
+  { reading = "a failed condition drops only the condition, not the work since the mark", hand_case = "a section that writes a key and ends in a condition that fails" },
+  { reading = "the publish set is the keys written while the transaction ran", hand_case = "a key written only inside a section a failing condition drops" },
+  { reading = "a copy takes the other key's committed value rather than the transaction's", hand_case = "a copy from a key the transaction wrote earlier in the same work" },
+  { reading = "an add sources the value after the op rather than just before it", hand_case = "two adds to one key with a copy between them" },
+]
+correct_variants = [
+  "an engine that re-derives a transaction's whole op list on every re-take and every cut, correct everywhere and only fast enough on the small families",
+  "an engine that keeps each key's value as a basis-plus-offset form with the dependents of a basis in a list and the mark stack holding copies of those forms",
+]
+
+[shape]
+environment_py_lines = 300
+editable_files = 6
+reference_lines = 260

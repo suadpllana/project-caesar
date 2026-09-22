@@ -1,0 +1,209 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/led/ver.py",
+  "/app/led/take.py",
+  "/app/led/hold.py",
+  "/app/led/work.py",
+  "/app/led/step.py",
+  "/app/led/close.py",
+]
+
+[task]
+name = "afterquery/pin-drift-redo"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the published one, and the shipped engine already is it: one snapshot of the
+store taken when a transaction opens, a write set holding a number per key, savepoints that copy
+that write set, conditions tested as they run, and a failure when a key the transaction wrote has
+moved under it. Every store of this kind does some version of that. Four of those five are wrong
+here, and none of them is wrong in a way that ordinary testing shows.
+
+A transaction whose basis has moved is not failed here, it is put on the new basis, and the basis
+is taken per key at the op that first names it rather than once for the whole transaction. What a
+transaction has at a key is therefore not a number it stored but what its own work makes of the
+numbers it has taken, and taking one again reaches backwards: an add made ten ops earlier, a copy
+made from a key the transaction never wrote, and a condition recorded before either of them all
+move. A write set of numbers cannot express that. A read is the one thing that stops it, because
+what was printed to a client is fixed where it was printed, so the same close moves one
+transaction's earlier write and leaves another's alone.
+
+Then the rule that takes the plan apart. A mark cannot save numbers. Work thrown away, either by
+an undo while the transaction runs or by a condition that fails when it closes, restores values
+that are still owed to bases that can move afterwards, so a savepoint that copied the numbers is
+right until the first re-take after it and silently wrong from then on. The same finding decides
+what a close writes: a failing condition takes the work from the last mark standing through
+itself, which can remove the only write to a key, so the set of keys a close writes cannot be
+settled while the transaction runs. Both independently written correct engines in the authoring
+set had to make their mark basis-relative before they agreed with the model, and one of them was
+wrong in exactly this way first.
+
+Two scale families decide what a correct structure is allowed to cost, and the fast path in each
+follows from an invariant rather than a technique: every number a transaction has is either fixed
+or one taken basis plus a constant offset, so a basis that moves moves exactly the numbers naming
+it; and a mark that carries the state it opened on turns a cut into a restore rather than a
+re-derivation. Measured here against the 30 second limit on the whole graded run, one wide
+program of sixty thousand ops takes 30.3 seconds with the work re-derived on every re-take
+against 0.26 seconds for the reference, and one deep program of twenty thousand conditional
+sections takes 35.9 seconds with the work re-derived after every section a failing condition
+drops, against 0.51 seconds. Both readings print exactly the reference's lines on everything
+they finish; the limit is the only thing that separates them, and either one alone takes the
+graded run to three times it while the reference finishes in 2.4 seconds.
+
+Around those sit the ordinary decisions, each a fence with two sides: a condition that held when
+it was written and fails once the close takes its key again, and one that does the reverse; a key
+written the number already standing, which is named all the same; a bulk op that names its whole
+range; a copy owed to the basis it copied from against a raw owed to a different one. All six
+editable files ship wrong, and the only feedback a wrong structure gets is one line per read and
+one per close.
+
+Identifiers are in a legacy register - `led`, `ver`, `take`, `hold`, `work`, `step`, `close`,
+`ents`, `wrote` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real write-path code rather than an obstacle: each one is
+recoverable from what calls it.
+
+The programs are synthetic, in eleven families, with closes landing under open transactions,
+reads either side of them, marks and undos with a close in between, conditions recorded early and
+tested late, marks several deep, one key copied along a chain, six transactions open at once, and
+the two scale families. In a running store these concentrations are rare, and they are exactly
+where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`ver.py` is the committed side: one number per key, and the write-in a close does, which names
+the keys in ascending order and includes one whose number has not changed.
+
+`take.py` says which keys an op names - both of a copy, both of a raw, the whole range of a bulk
+op - and holds what the transaction has taken, taking a key again when the number standing is no
+longer the one it has.
+
+`hold.py` is where the first plan has to be given up. What the transaction has at a key is kept
+as a form rather than a number: either a fixed number, or a basis key with an offset on it. A
+basis taken again then moves every value naming it with nothing re-derived, which is the whole of
+the wide family, and it is also what makes a mark saveable, because the forms a mark saves stay
+true across a re-take where the numbers it could have saved do not.
+
+`work.py` carries the work list and the marks. A mark keeps the length of the work, the forms and
+the keys written so far; an undo cuts the work back to it and puts those forms back. A key first
+named inside work that is thrown away is still taken and stands on its own basis again.
+
+`step.py` runs one op: it takes the keys the op names, appends the entry, and moves what is held.
+A read is the only op that both prints and leaves an entry, and its entry is not a write.
+
+`close.py` is the close, and it is one forward walk rather than a loop. Every moved key is taken
+again, and then the work is walked once with plain numbers: a mark pushes the numbers and the
+written keys it opened on, a condition is tested where it stands, and one that does not hold pops
+that mark back instead of re-deriving what is left. What the close writes is what the surviving
+walk set, at the numbers it ended with.
+
+An expert works in that order because each file consumes the one before it: which keys an op
+names decides what is taken, what is taken decides what the work makes of it, what the work makes
+of it decides which conditions hold, and which conditions hold decides what is written. The same
+contract is implemented two further ways in the authoring set - one taking the whole store when a
+transaction opens and taking each key again as it is named, one carrying plain numbers and
+pushing a moved basis out to the keys owed to it through a dependants index - so the shape is
+visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/led/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the program grammar, the line writer and the sample
+programs cannot change what a program prints, and a new file put beside the six is never
+collected at all.
+
+Correct is defined twice over. Forty-four hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Three hundred and sixty-six
+further programs are generated inside the verifier from a seed drawn after the agent's container
+is gone, across eleven families that concentrate closes under open transactions, reads either
+side of them, undos while a transaction runs, conditions tested late, nested marks, copy chains,
+several transactions at once, a close landing immediately before another, and the two scale
+families. A submission cannot have seen them, so fitting the shipped examples fails, and so does
+carrying an answer key.
+
+The fences run both ways. Taking the whole store when a transaction opens fails
+`take-first-touch`; taking a moved key again only at the close fails `retake-shows-in-read`; not
+taking it again there fails `retake-at-close`, and so does failing a close whose key moved.
+Fixing a copy instead of owing it fails `redo-through-copy`, and owing a put fails
+`put-not-owed`. A read that fixes nothing fails `read-fixes`, and one that counts as a write
+fails `read-no-write`. A mark that saves numbers fails `undo-owes-after-mark`. Testing conditions
+as they run fails `cond-holds-later`; testing them against the numbers the close ends with fails
+`cond-at-its-place`; ending the transaction instead of cutting fails `cut-and-carry-on`; not
+putting back the numbers the mark opened on fails `cut-feeds-next`; stopping after the first cut
+fails `nest-outer-next`. Writing the keys the transaction wrote while it ran fails
+`publish-drops-key`, naming them in another order fails `publish-order`, and leaving out one
+whose number has not changed fails `publish-unchanged`. Where nothing moves and every condition
+holds, `plain-run`, `no-move-no-redo` and `cond-all-stand` fail an engine that takes, fixes or
+cuts where it should not.
+
+Forty-two cheats score 0. Twenty-six are wrong readings, each caught by the enumerated case named
+for it, asserted by a report that reads the layer rather than the reward. Two are exactly correct
+and too slow: the work re-derived on every re-take, and re-derived after every section a failing
+condition drops. Three are shortcut strategies - one fixed output for every program, a close that
+writes only what a put named, and the worked example replayed. One is a forgery carrying the
+frozen answers for all forty-four hand programs, which passes every one of them and fails on the
+programs it could not have seen. The other ten are probes: the sealed model and the frozen
+answers, the reward written directly, a reward written late by a double-forked survivor, a
+planted worker record, a record planted and the worker exited clean before it could be
+overwritten, a record spoiled on the way out, a rewritten generator, a rewritten grading file,
+the seed and the family count rewritten, and an engine hidden in a seventh file beside the six
+that are collected. Two independently written correct engines score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Databases"
+
+tags = [
+  "write-conflict-rebasing",
+  "savepoint-sections",
+  "read-modify-write",
+  "derived-write-sets",
+  "commit-time-validation",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the write path of a small transactional store: the part that decides what a
+transaction holds between its first touch of a key and its close, what a savepoint gives back,
+and what the close writes. Familiarity with the fact that what an engine does when a
+transaction's basis moves under it is a policy rather than a law, that a blind write and one
+standing on a number a client was already told are not the same write, and that a savepoint which
+copies values is right until the first re-read after it. Comfort with visibility taken per key
+rather than once per transaction, with conditions recorded where they are written and tested when
+the transaction closes, and with the difference between a structure that is correct and one that
+is affordable on a transaction carrying tens of thousands of ops.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

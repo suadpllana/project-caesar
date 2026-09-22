@@ -87,7 +87,7 @@ rejected, transcribed from the same state files, and each must score below the f
 | `publish-settle-order-first-build` | 40, hard stop | quality review, `difficult`: roughly 100 lines across five files; the two inventions are standard techniques |
 | `alias-settle-report-first-build` | 40, hard stop | easiness 2 of 3: the definition itself supplied the algorithmic plan |
 
-The five tasks in `tasks/` that have not passed the pipeline are scored for context, not
+The six tasks in `tasks/` that have not passed the pipeline are scored for context, not
 calibration; the external probe is the authority on them:
 
 | pending task | score | state |
@@ -97,6 +97,7 @@ calibration; the external probe is the authority on them:
 | `token-seam-emit` | 96 | packaged, external result not yet recorded |
 | `slab-fold-scope` | 100 | built 2026-09-10; oracle, nop, 33 cheats and two correct variants run in the container; external result not yet recorded |
 | `expert-defer-shed` | 100 | built 2026-09-19; oracle, nop, 37 cheats and two correct variants run in the container; external result not yet recorded |
+| `pin-drift-redo` | 100 | built 2026-09-22; no Docker daemon in that workspace, so oracle, nop, 42 cheats and two correct variants were run through the shipped `tests/test.sh` under host emulation; external result not yet recorded |
 | `scope-hold-release` | 89 | below the band with no hard stop: its state commits to no solve estimate for the rollback design, no answer on per-decision feedback, and no cold attack saying the first plan is wrong - which is the same "material difficulty risk" the state itself records |
 
 The gap between the weakest pass and the strongest rejection is 36 points. What separates them

@@ -1,0 +1,7 @@
+cfg 4
+tx 1
+tx 2
+add 1 0 5
+put 2 0 100
+fin 2
+fin 1

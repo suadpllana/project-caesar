@@ -1,0 +1,166 @@
+{
+ "add-sources-before": [
+  "fin 1 ok 0=7 1=2"
+ ],
+ "bmp-adds-each": [
+  "fin 1 ok 0=2 1=6 2=2"
+ ],
+ "bmp-moves-copy": [
+  "fin 2 ok 2=20",
+  "rd 1 0 20",
+  "fin 1 ok 0=20 1=3 2=23 3=3"
+ ],
+ "bmp-retakes-range": [
+  "fin 2 ok 2=20",
+  "rd 1 2 24",
+  "fin 1 ok 1=3 2=24 3=3"
+ ],
+ "bmp-takes-range": [
+  "fin 2 ok 2=20",
+  "fin 1 ok 1=3 2=24 3=3"
+ ],
+ "cond-all-stand": [
+  "fin 1 ok 0=6 1=2"
+ ],
+ "cond-at-close": [
+  "fin 2 ok 0=30",
+  "fin 1 ok 1=7"
+ ],
+ "cond-at-its-place": [
+  "fin 1 ok 0=9"
+ ],
+ "cond-holds-later": [
+  "fin 2 ok 0=30",
+  "fin 1 ok 0=35 1=7"
+ ],
+ "cond-no-mark": [
+  "fin 1 no"
+ ],
+ "copy-holds-own": [
+  "fin 1 ok 0=6 1=6"
+ ],
+ "cut-and-carry-on": [
+  "fin 1 ok 0=1 2=3"
+ ],
+ "cut-feeds-next": [
+  "fin 1 ok 0=10 1=1"
+ ],
+ "drop-writes-nothing": [
+  "rd 2 0 0",
+  "fin 2 ok"
+ ],
+ "lim-at-n": [
+  "fin 1 ok 0=6 1=1"
+ ],
+ "lim-below-n": [
+  "fin 1 ok 1=1"
+ ],
+ "nest-inner-first": [
+  "fin 1 ok 0=1 2=3"
+ ],
+ "nest-outer-next": [
+  "fin 1 ok 2=3"
+ ],
+ "no-move-no-redo": [
+  "fin 2 ok 1=9",
+  "fin 1 ok 0=7"
+ ],
+ "plain-run": [
+  "rd 1 1 7",
+  "fin 1 ok 0=7 1=7 2=5"
+ ],
+ "publish-after-cut": [
+  "fin 1 ok 0=4"
+ ],
+ "publish-drops-key": [
+  "fin 1 ok 0=4"
+ ],
+ "publish-none": [
+  "rd 1 0 0",
+  "fin 1 ok"
+ ],
+ "publish-order": [
+  "fin 1 ok 0=2 2=3 3=1"
+ ],
+ "publish-unchanged": [
+  "fin 1 ok 0=0"
+ ],
+ "put-not-owed": [
+  "fin 2 ok 0=30",
+  "fin 1 ok 0=9"
+ ],
+ "put-still-takes": [
+  "fin 2 ok 0=30",
+  "rd 1 1 30",
+  "fin 1 ok 0=7 1=30"
+ ],
+ "raw-follows-basis": [
+  "fin 2 ok 0=33",
+  "fin 1 ok 1=33"
+ ],
+ "raw-ignores-own": [
+  "fin 1 ok 0=50 1=0"
+ ],
+ "read-fixes": [
+  "rd 1 0 4",
+  "fin 2 ok 0=70",
+  "fin 1 ok 0=4"
+ ],
+ "read-holds-own": [
+  "rd 1 0 12",
+  "fin 1 ok 0=12"
+ ],
+ "read-no-write": [
+  "rd 1 1 0",
+  "fin 1 ok 0=3"
+ ],
+ "read-then-copy": [
+  "rd 1 0 0",
+  "fin 2 ok 1=25",
+  "fin 1 ok 0=25"
+ ],
+ "redo-through-copy": [
+  "fin 2 ok 0=20",
+  "fin 1 ok 0=23 1=23"
+ ],
+ "retake-at-close": [
+  "fin 2 ok 0=30",
+  "fin 1 ok 0=35"
+ ],
+ "retake-both-kinds": [
+  "fin 2 ok 0=10 1=10",
+  "fin 1 ok 0=15 1=5"
+ ],
+ "retake-on-touch": [
+  "fin 2 ok 0=50",
+  "fin 1 ok 0=52"
+ ],
+ "retake-shows-in-read": [
+  "fin 2 ok 0=50",
+  "rd 1 0 51",
+  "fin 1 ok 0=51"
+ ],
+ "take-first-touch": [
+  "fin 2 ok 0=40",
+  "fin 1 ok 0=42"
+ ],
+ "two-open-one-key": [
+  "fin 1 ok 0=1",
+  "fin 2 ok 0=3"
+ ],
+ "undo-drops-writes": [
+  "fin 1 ok 0=5"
+ ],
+ "undo-no-mark": [
+  "fin 1 ok 1=2"
+ ],
+ "undo-owes-after-mark": [
+  "fin 2 ok 0=60",
+  "rd 1 1 60",
+  "fin 1 ok 0=60 1=60"
+ ],
+ "undo-restores-owed": [
+  "fin 2 ok 0=60",
+  "fin 1 ok 1=60"
+ ]
+}

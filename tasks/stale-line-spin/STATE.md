@@ -196,9 +196,10 @@ is busy, and no attempt at or after t succeeds.
 | simcheck, structcheck, textcheck, hintcheck, catcheck | clean | textcheck against publish-settle-order's brief |
 | deadfieldcheck, extraneouscheck, solvecheck, imagecheck | clean | imagecheck ran six shipped launches on the assembled image |
 | onelinecheck | OK | load_from_cache and spin_passes are short; frozen (234 rows) and hangs_here (73 rows) have no rule at depth 2 |
-| forgecheck | pending | carriers: forge-hand, probe-shrink-set |
+| forgecheck | clean | carriers: forge-hand, probe-shrink-set; its full host cheat report: all 32 cheats graded on the host caught, exit 0 |
 | originalitycheck with --corpus | 100 | 384 documents from 108 remote branches; nearest cosine 0.177, shingle 0.002 |
 | Ledger entry | added | authoring/submissions.toml, verdict pending |
+| Package | built | scripts/package.py, tasks/stale-line-spin.zip, 96 entries; tools/zipcheck.py clean |
 | `harbor check` rubric | not run | manual quality review instead |
 
 ## Measurements (2026-09-22)

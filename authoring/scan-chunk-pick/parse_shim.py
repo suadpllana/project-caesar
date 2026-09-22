@@ -14,5 +14,6 @@ def load(text):
 def fp(seg, q):
     heads = tuple((ch.n, ch.nulls, ch.mn, ch.mx, ch.exact, ch.enc)
                   for col in seg.cols for ch in col)
-    return repr((seg.g, seg.n, seg.k, heads,
+    ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))
+    return repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone)),
                  tuple((cd.kind, cd.c, cd.v) for cd in q.conds), tuple(q.cols)))

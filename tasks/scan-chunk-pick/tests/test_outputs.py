@@ -11,30 +11,35 @@ verifier's own pristine copy, so only those six can change what a segment file p
 
 Graded, and settled the same way by two implementations written apart:
 
-  1  a header whose exactness flag is off stands for a pair pushed out by the granularity
-     less one, and the two sound tests are read off that pair and the null count
-  2  a chunk whose header proves no row matches is dropped unread; one whose header proves
-     every row matches is kept unread, which no chunk holding nulls ever is
-  3  a dictionary answers a comparison only when it covers every row of its chunk, is charged
-     once per chunk however many conditions consult it, and never answers is-null
-  4  no entry matching drops the chunk, every entry matching with no nulls keeps it, anything
-     else reads it
-  5  a read settles the exact count of every condition of the query over that column, over all
-     the rows of the chunk
+  1  a row's value in a column is its update when it has one and what its chunk holds
+     otherwise; a deleted row is never alive. A chunk's header, dictionary and exact counts
+     describe the chunk as written.
+  2  a header whose exactness flag is off stands for a pair pushed out by the granularity
+     less one; the two sound tests are what that pair and the null count prove about every row
+     the chunk holds, and they settle the live rows that still take their value from it
+  3  live rows carrying an update are tested on their own value, and when no live row still
+     takes its value from the chunk nothing is consulted and nothing is read
+  4  a dictionary answers a comparison only when it covers every row of its chunk, is charged
+     once per chunk however many consults reach it, and never answers is-null or is-not-null;
+     no entry matching drops, every entry matching with no nulls keeps, anything else reads
+  5  a read settles the exact count of every condition of the query over that column, over
+     the chunk as written
   6  the pair worked next is the one expected to leave the fewest rows alive - the smaller of
-     the chunk's survivors and the condition's count on it, the header's interpolation until
-     the chunk has been read and the exact count after
-  7  ties go to the condition written earlier in the query, then to the lower chunk number
-  8  the report pass reads only chunks that still hold a survivor and were not read already,
-     over the columns in the order the query names them
-  9  every query starts over: all rows alive, nothing read, no dictionary charged
+     the chunk's live rows and the condition's count on it, the header's interpolation until
+     the chunk has been read and the exact count after; ties go to the condition written
+     earlier, then to the lower chunk number
+  7  the report pass wants a chunk only for survivors that take their value from it, and a
+     wanted chunk not read already is served by its header when that fixes every value, by a
+     one-entry dictionary with no overflow and no nulls (charged), and by a read otherwise;
+     columns in the order the query names them
+  8  every query starts over: all rows but the deleted alive, nothing read, nothing charged
 
 Implementation choice, and not graded: how the surviving rows are held, whether a chunk's
 survivor count is kept or worked out again, how decoded values and exact counts are stored,
-whether the row-to-chunk map is an array or a search, and any internal naming. Not a free
-choice, and not asserted here either: the survivors cannot be held as a collection of row ids
-that every score walks, which the execution limit on the worker decides rather than any
-assertion in this file.
+whether the row-to-chunk map is an array or a search, and how the next pair is found. Not a
+free choice, and not asserted here either: finding it by rescanning every pending pair after
+every step does not fit the execution limit on the worker on the wide family, which the limit
+decides rather than any assertion in this file.
 
 Hand-written segment files are checked against `gt.json`, frozen before this file was written.
 The rest are built after the agent has finished, from a seed it never saw, and checked against

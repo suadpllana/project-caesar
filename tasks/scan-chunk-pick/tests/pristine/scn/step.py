@@ -3,7 +3,11 @@ from scn import dct, hdr, live, rd
 
 def load(seg, q, st, ch, out, cond=None):
     out.dc(ch.c, ch.j)
-    vals = rd.values(ch)
+    vals = list(rd.values(ch))
+    up = seg.up[ch.c]
+    for i in range(ch.n):
+        if ch.start + i in up:
+            vals[i] = up[ch.start + i]
     st.vals[(ch.c, ch.j)] = vals
     if cond is not None:
         t = 0

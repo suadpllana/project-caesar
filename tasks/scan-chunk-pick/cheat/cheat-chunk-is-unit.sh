@@ -1,5 +1,5 @@
 #!/bin/bash
-# exactly correct, and holds the survivors as row ids every score walks
+# decides each chunk whole and reads it for any live row, ignoring updates and deletes
 set -euo pipefail
 
 cat > /app/scn/hdr.py <<'PYEOF'
@@ -121,11 +121,19 @@ def decide(seg, ch, cond, st, out):
 PYEOF
 
 cat > /app/scn/live.py <<'PYEOF'
+"""The surviving rows, and the counts every estimate is capped by.
+
+Rows only ever leave, which is what makes the per-chunk counts maintainable: a chunk's count is
+set once when the query starts and decremented as rows die, so no step ever walks the live set
+to find out how many survivors a chunk still holds. A row belongs to one chunk per column and
+the partitions differ between columns, so a death is charged to one chunk of every column the
+query touches, through a row-to-chunk map built once per column.
+"""
 from scn import rd
 
 
 class State:
-    __slots__ = ("seg", "alive", "own", "vals", "hit", "dread", "done")
+    __slots__ = ("seg", "alive", "sv", "own", "vals", "hit", "dread", "done")
 
 
 def _cols(q):
@@ -142,7 +150,8 @@ def _cols(q):
 def start(seg, q):
     st = State()
     st.seg = seg
-    st.alive = set(range(seg.n))
+    st.alive = bytearray([1]) * seg.n
+    st.sv = {}
     st.own = {}
     st.vals = {}
     st.hit = {}
@@ -150,25 +159,23 @@ def start(seg, q):
     st.done = [set() for _ in q.conds]
     for c in _cols(q):
         own = []
+        counts = []
         for ch in seg.cols[c]:
             own.extend([ch.j] * ch.n)
+            counts.append(ch.n)
         st.own[c] = own
+        st.sv[c] = counts
     return st
 
 
-def count(st, c, j):
-    ch = st.seg.cols[c][j]
-    lo = ch.start
-    hi = lo + ch.n
-    t = 0
-    for r in st.alive:
-        if lo <= r < hi:
-            t += 1
-    return t
-
-
 def kill(st, dead):
-    st.alive.difference_update(dead)
+    alive = st.alive
+    sv = st.sv
+    for r in dead:
+        if alive[r]:
+            alive[r] = 0
+            for c, own in st.own.items():
+                sv[c][own[r]] -= 1
 
 
 def drop_chunk(st, c, j):
@@ -179,11 +186,18 @@ def drop_chunk(st, c, j):
 def filter_chunk(st, c, j, cond, vals):
     ch = st.seg.cols[c][j]
     s = ch.start
-    kill(st, [s + i for i in range(ch.n) if not rd.sat(cond, vals[i])])
+    alive = st.alive
+    dead = [s + i for i in range(ch.n) if alive[s + i] and not rd.sat(cond, vals[i])]
+    kill(st, dead)
+
+
+def count(st, c, j):
+    return st.sv[c][j]
 
 
 def rows(st):
-    return sorted(st.alive)
+    alive = st.alive
+    return [r for r in range(len(alive)) if alive[r]]
 PYEOF
 
 cat > /app/scn/pick.py <<'PYEOF'

@@ -9,6 +9,9 @@ Reading them as exact skips chunks that hold matches.
 that every row does. Both fail on a chunk holding nulls for every condition but is-null. A
 widened pair is always a wider one, so low == high proves the whole chunk carries one value
 whatever the flag says.
+`pinned` says whether the header alone fixes the value every row of the chunk holds as
+written: every row null, or no nulls and a low equal to its high. The report pass needs no read
+for such a chunk.
 `guess` is neither - it is the interpolation the order is chosen on, spreading the live rows
 evenly over the bounds, and it is allowed to be wrong.
 """
@@ -82,3 +85,14 @@ def guess(seg, ch, cond):
         room = span
     part = -(-have * room // span)
     return have - part if k == "ne" else part
+
+
+def pinned(seg, ch):
+    if ch.nulls == ch.n:
+        return True, None
+    if ch.nulls:
+        return False, None
+    lo, hi = bounds(seg, ch)
+    if lo == hi:
+        return True, lo
+    return False, None

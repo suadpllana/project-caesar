@@ -4,8 +4,8 @@
 Read by tools/onelinecheck.py, which searches for the shortest exact rule over the features.
 The features are the numbers a submission can read at the moment it decides and nothing else:
 the chunk header as the segment file writes it, the granularity, the survivors that chunk still
-holds, whether it has already been read or its dictionary charged, and the condition's kind,
-value and position. Nothing derived is offered - no interpolation, no score, no count of hits -
+holds and how many of them carry an update in the column, whether it has already been read or its
+dictionary charged, the dictionary's size, and the condition's kind, value and position. Nothing derived is offered - no interpolation, no score, no count of hits -
 because those are the things the task is about and handing them over would measure the wrong
 question.
 
@@ -14,7 +14,7 @@ Three questions are exported.
   chunk-verdict   What happens to this chunk under this condition: dropped unread, kept
                   unread, settled from its dictionary, or read.
   next-pair       Is this the pending pair the engine takes next?
-  report-read     Does the report pass read this chunk?
+  report-read     What the report pass does for this chunk: nothing, a consult, or a read.
 
 Run it directly to see the rows.
 """
@@ -36,7 +36,12 @@ KIND = {"ge": 0, "le": 1, "eq": 2, "ne": 3, "nn": 4, "nu": 5}
 
 
 def feats(seg, st, cd, ch, live):
+    up = seg.up[ch.c]
+    moved = sum(1 for r in range(ch.start, ch.start + ch.n) if st.alive[r] and r in up)
     return {
+        "moved": moved,
+        "held": live.count(st, ch.c, ch.j) - moved,
+        "dk": len(ch.dic) if ch.dic is not None else 0,
         "n": ch.n,
         "u": ch.nulls,
         "mn": -1 if ch.mn is None else ch.mn,
@@ -108,12 +113,34 @@ def _rows(app):
             st.done[best[1].pos].add(best[2])
 
     def watched_proj(seg, q, st, rows, out):
+        seen = []
+        rowsof = {}
         for c in q.cols:
+            if c in seen:
+                continue
+            seen.append(c)
+            cd = next((x for x in q.conds if x.c == c), q.conds[0])
             for ch in seg.cols[c]:
-                cd = next((x for x in q.conds if x.c == c), q.conds[0])
-                row = feats(seg, st, cd, ch, live)
-                report.append((row, row["sv"] > 0 and row["read"] == 0))
-        plain_proj(seg, q, st, rows, out)
+                rowsof[(c, ch.j)] = feats(seg, st, cd, ch, live)
+        label = {k: 0 for k in rowsof}
+        plain_source = proj._source
+
+        def watched_source(seg_, q_, st_, ch, out_):
+            before = len(out_.lines)
+            got = plain_source(seg_, q_, st_, ch, out_)
+            marks = out_.lines[before:]
+            key = (ch.c, ch.j)
+            if label.get(key, 0) == 0:
+                label[key] = 2 if any(x.startswith("dc ") for x in marks) else (1 if marks else 0)
+            return got
+
+        proj._source = watched_source
+        try:
+            plain_proj(seg, q, st, rows, out)
+        finally:
+            proj._source = plain_source
+        for key, row in rowsof.items():
+            report.append((row, label[key]))
 
     plain_proj = proj.run
     pick.run = watched_pick

@@ -1,0 +1,58 @@
+# Originality record for scan-chunk-pick. Written after the fact: the distinctness gate was
+# added to this repository after the first design was built, and this record was first
+# written at the easiness recovery of 2026-09-22, for the rebuilt design.
+
+[task]
+slug = "scan-chunk-pick"
+category = "Software"
+label = "Databases"
+tags = ["columnar-scan", "chunk-statistics", "dictionary-encoding", "selectivity-estimation", "null-semantics", "delta-overlay"]
+status = "pending"
+
+[mechanism]
+sentence = "Decide which chunk headers, dictionaries and chunk reads a filtered columnar scan pays for, and in what order, when each condition is applied chunk by chunk under a cost rule, statistics describe immutable chunks as written, and row updates and deletes sit beside them."
+substrate = "the scan layer of a columnar store deciding which immutable chunks are consulted and read"
+graded_output = "the exact per-query list of dictionary consults and chunk reads in order, a surviving-row count and digest, and per-column counts and sums"
+failure_mode = "merge-on-read with the chunk as the unit of every decision, a condition order fixed from statistics, and a loop that rescans every pending pair"
+interaction = "rows carrying an update decide whether a chunk is asked at all, which decides which reads settle exact counts, which decide the order, which decides what the report pass must still read"
+
+[nearest.public]
+name = "Apache Parquet page index and row-group statistics; DuckDB and DataFusion zone-map pruning and adaptive filter reordering"
+url = "https://parquet.apache.org/docs/file-format/pageindex/"
+covers = "skipping row groups and pages whose min and max rule a predicate out, dictionary filtering, and reordering filters by observed selectivity"
+plans_this = false
+separation = "none of them charges a dictionary once per chunk, re-chooses after every chunk on capped estimates, consults a chunk only for rows it still supplies under a change overlay, or takes report values from headers and one-entry dictionaries"
+
+[nearest.submitted]
+name = "delta-view-retraction"
+source = "ledger"
+shares = "a Databases label, a change stream of inserts, deletes and updates, and exact graded output over a synthetic stream"
+same_mechanism = false
+separation = "that task maintains aggregates incrementally against retractions under a work budget; this one decides which stored chunks a filtered scan reads and in what order, and aggregates nothing beyond a count and sum at the end"
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "incremental maintenance of grouped aggregates under retraction", ours = "chunk pruning, dictionary consults and read ordering in a filtered scan" },
+  { axis = "substrate", theirs = "a grouped view over a keyed row store behind a watermark", ours = "a columnar segment of immutable chunks with headers and dictionaries" },
+  { axis = "graded_output", theirs = "published aggregate values plus fold and scan budgets", ours = "the exact ordered list of consults and reads, a row digest and column sums" },
+  { axis = "failure_mode", theirs = "rebuilding a cell that could have absorbed a retraction", ours = "merge-on-read deciding whole chunks and a rescanning choice loop" },
+  { axis = "interaction", theirs = "a narrowed rebuild changing what the dependency set means", ours = "updates removing reads, which removes exact counts, which reorders later reads" },
+]
+
+[search]
+queries = [
+  "columnar scan zone map pruning dictionary filter predicate order per chunk",
+  "adaptive predicate reordering per row group exact selectivity after decode",
+  "delta store merge on read skip column chunk all rows updated statistics stale",
+  "parquet dictionary filtering one entry dictionary value without decoding",
+  "benchmark task columnar scan read trace chunk decode order",
+]
+results = "Parquet, DuckDB, DataFusion, Kudu and C-Store material documents each ingredient - min and max pruning, dictionary filters, adaptive filter order, delta stores merged on read - and none specifies a per-chunk re-choice on capped estimates, a once-per-chunk dictionary charge, or skipping reads for rows a chunk no longer supplies; no exercise or task of this shape was found"
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "merge-on-read over a delta store, and query planning with cardinality estimation"
+on_list = true
+departure = "the crowded forms either merge changes as data is read or pick a plan once from estimates; here a chunk is never read for rows whose values come from the overlay, the estimate is re-chosen after every chunk with a cap by live rows, and the graded output is the list of consults and reads, which a merge-on-read engine gets wrong while producing identical rows"
+substrate_used_before = false

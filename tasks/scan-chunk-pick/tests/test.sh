@@ -15,7 +15,7 @@ SANDBOX_UID=1002
 REWARD_DIR=/logs/verifier
 SANDBOX_DIR=/work
 RUN_SECONDS=60
-PER_FAMILY=30
+PER_FAMILY=22
 
 # Lock the reward channel and the sealed side before anything submitted runs. Root owns both;
 # 0700 keeps the sandbox uid out even if it outlives the call.

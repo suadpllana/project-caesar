@@ -35,6 +35,53 @@ def _patch(name, *pairs):
     return {name: text}
 
 
+# The order readings are patches on a loop that rescans every pending pair after every step.
+# It is exactly the reference's order, only slow, and it is the loop the probe agents wrote, so
+# a reading on the order is the change a solver would make to that loop. The enumerated and
+# small generated files are all it ever runs on.
+_RESCAN = """from scn import hdr, live, step
+
+
+def bound(seg, st, ch, cond):
+    got = st.hit.get((ch.c, ch.j, cond.pos))
+    return hdr.guess(seg, ch, cond) if got is None else got
+
+
+def run(seg, q, st, out):
+    while True:
+        best = None
+        for cd in q.conds:
+            done = st.done[cd.pos]
+            for ch in seg.cols[cd.c]:
+                j = ch.j
+                if j in done:
+                    continue
+                have = live.count(st, cd.c, j)
+                if have <= 0:
+                    continue
+                b = bound(seg, st, ch, cd)
+                if b > have:
+                    b = have
+                if best is None or b < best[0]:
+                    best = (b, cd, j)
+        if best is None:
+            return
+        cd, j = best[1], best[2]
+        step.decide(seg, q, st, cd, j, out)
+        st.done[cd.pos].add(j)
+        st.dirty.clear()
+"""
+
+
+def _loop(*pairs):
+    text = _RESCAN
+    for old, new in pairs:
+        if old not in text:
+            raise AssertionError("anchor gone from the rescan loop: %r" % old[:60])
+        text = text.replace(old, new, 1)
+    return {"pick.py": text}
+
+
 READINGS = {
     # --- headers ---------------------------------------------------------------------
     "hdr-bounds-exact": _patch(
@@ -133,18 +180,60 @@ def run(seg, q, st, out):
         step.decide(seg, q, st, chosen, target, out)
         st.done[chosen.pos].add(target)
 '''},
-    "ord-no-cap": _patch(
-        "pick.py", ("                if b > have:\n                    b = have\n", "")),
-    "ord-header-only": _patch(
-        "pick.py", ("    got = st.hit.get((ch.c, ch.j, cond.pos))\n"
-                    "    return hdr.guess(seg, ch, cond) if got is None else got",
-                    "    return hdr.guess(seg, ch, cond)")),
-    "ord-highest-chunk": _patch(
-        "pick.py", ("                if best is None or b < best[0]:",
-                    "                if best is None or b <= best[0]:")),
-    "ord-largest-first": _patch(
-        "pick.py", ("                if best is None or b < best[0]:",
-                    "                if best is None or b > best[0]:")),
+    "ord-no-cap": _loop(("                if b > have:\n                    b = have\n", "")),
+    "ord-header-only": _loop(("    got = st.hit.get((ch.c, ch.j, cond.pos))\n"
+                              "    return hdr.guess(seg, ch, cond) if got is None else got",
+                              "    return hdr.guess(seg, ch, cond)")),
+    "ord-highest-chunk": _loop(("                if best is None or b < best[0]:",
+                                "                if best is None or b <= best[0]:")),
+    "ord-largest-first": _loop(("                if best is None or b < best[0]:",
+                                "                if best is None or b > best[0]:")),
+    # the heap, trusting a key it pushed before a read raised the score
+    "ord-stale-key": _patch(
+        "pick.py", ("        if s != score(seg, st, cd, j):\n            continue\n", "")),
+    # the heap, re-scoring only on deaths: a read never pushes its chunk again
+    "ord-read-no-push": _patch(
+        "step.py", ("            st.hit[(ch.c, ch.j, cd.pos)] = t\n    st.dirty.add((ch.c, ch.j))",
+                    "            st.hit[(ch.c, ch.j, cd.pos)] = t")),
+
+    # --- rows carrying an update, and deleted rows -------------------------------------
+    "upd-drop-takes-moved": _patch(
+        "step.py", ("    if hdr.miss(seg, ch, cond):\n        return held",
+                    "    if hdr.miss(seg, ch, cond):\n        return held + [\n"
+                    "            r for r in range(ch.start, ch.start + ch.n)\n"
+                    "            if st.alive[r] and r in seg.up[ch.c]]")),
+    "upd-keep-trusts-moved": _patch(
+        "step.py", ("    dead = [r for r in moved if not rd.sat(cond, up[r])]\n",
+                    "    dead = [] if held and hdr.allsat(seg, ch, cond) else [\n"
+                    "        r for r in moved if not rd.sat(cond, up[r])]\n")),
+    "upd-read-anyway": _patch(
+        "step.py", ("    if held:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))",
+                    "    if held or moved:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))")),
+    "upd-merge-on-read": _patch(
+        "step.py",
+        ("    vals = rd.values(ch)\n",
+         "    vals = list(rd.values(ch))\n"
+         "    for i in range(ch.n):\n"
+         "        if ch.start + i in seg.up[ch.c]:\n"
+         "            vals[i] = seg.up[ch.c][ch.start + i]\n"),
+        ("    if held:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))",
+         "    if held or moved:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))")),
+    "upd-count-current": _patch(
+        "step.py",
+        ("            t = 0\n            for v in vals:\n                if rd.sat(cd, v):\n"
+         "                    t += 1",
+         "            t = 0\n            up = seg.up[ch.c]\n"
+         "            for i, v in enumerate(vals):\n"
+         "                if ch.start + i in up:\n                    v = up[ch.start + i]\n"
+         "                if rd.sat(cd, v):\n                    t += 1")),
+    "del-still-alive": _patch(
+        "live.py", ("    for r in seg.gone:\n        st.alive[r] = 0\n", "")),
+    "del-still-counted": _patch(
+        "live.py", ("            counts.append(sum(alive[s:s + ch.n]))",
+                    "            counts.append(ch.n)"),
+        ("            alive[r] = 0\n            for c, own in st.own.items():",
+         "            alive[r] = 0\n            for c, own in st.own.items():\n"
+         "                if r in st.seg.gone:\n                    continue")),
 
     # --- what a read settles ---------------------------------------------------------
     "dec-one-cond": _patch(
@@ -163,15 +252,31 @@ def run(seg, q, st, out):
 
     # --- the report pass -------------------------------------------------------------
     "prj-all-chunks": _patch(
-        "proj.py", ("            if live.count(st, c, ch.j) > 0 and (c, ch.j) not in st.vals:",
-                    "            if (c, ch.j) not in st.vals:")),
+        "proj.py", ("            if any(alive[r] and r not in up for r in range(s, s + ch.n)):",
+                    "            if True:")),
+    "prj-reads-moved": _patch(
+        "proj.py", ("            if any(alive[r] and r not in up for r in range(s, s + ch.n)):",
+                    "            if any(alive[r] for r in range(s, s + ch.n)):")),
+    "prj-reads-pinned": _patch(
+        "proj.py", ("    fixed, v = hdr.pinned(seg, ch)\n    if fixed:\n        return lambda i: v\n", "")),
+    "prj-pinned-ignores-widen": _patch(
+        "hdr.py", ("    lo, hi = bounds(seg, ch)\n    if lo == hi:\n        return True, lo",
+                   "    if ch.mn == ch.mx:\n        return True, ch.mn")),
+    "prj-no-one-entry": _patch(
+        "proj.py", ("    if dct.single(ch):\n        dct.charge(ch, st, out)\n        one = ch.dic[0]\n"
+                    "        return lambda i: one\n", "")),
+    "prj-one-entry-with-nulls": _patch(
+        "dct.py", ("    return usable(ch) and len(ch.dic) == 1 and ch.nulls == 0",
+                   "    return usable(ch) and len(ch.dic) == 1")),
+    "prj-one-entry-free": _patch(
+        "proj.py", ("        dct.charge(ch, st, out)\n        one = ch.dic[0]", "        one = ch.dic[0]")),
     "prj-index-order": _patch("proj.py", ("    for c in q.cols:", "    for c in sorted(set(q.cols)):")),
     "prj-nulls-counted": _patch(
         "proj.py", ("            if v is not None:\n                nn += 1\n                tot += v",
                     "            nn += 1\n            if v is not None:\n                tot += v")),
     "prj-redecode": _patch(
-        "proj.py", ("            if live.count(st, c, ch.j) > 0 and (c, ch.j) not in st.vals:",
-                    "            if live.count(st, c, ch.j) > 0:")),
+        "proj.py", ("    vals = st.vals.get((ch.c, ch.j))\n    if vals is not None:\n"
+                    "        return lambda i: vals[i]\n", "")),
 
     # --- state between queries -------------------------------------------------------
     "qry-keeps-state": _patch(
@@ -242,6 +347,11 @@ def reductions(text):
             for drop in range(1, len(f)):
                 yield "\n".join(lines[:i] + [" ".join(f[:drop] + f[drop + 1:])] + lines[i + 1:])
 
+    # drop one update or one delete
+    for i, ln in enumerate(lines):
+        if ln.startswith("up ") or ln.startswith("del "):
+            yield "\n".join(lines[:i] + lines[i + 1:])
+
     # keep only the first m rows, at a boundary every column shares
     head = lines[0].split()
     if head and head[0] == "seg":
@@ -260,6 +370,10 @@ def reductions(text):
                         continue
                     seen[c] = at + int(f[2])
                     kept.append(ln)
+                elif f[0] == "up" and int(f[2]) >= cut:
+                    continue
+                elif f[0] == "del" and int(f[1]) >= cut:
+                    continue
                 else:
                     kept.append(ln)
             if all(v == cut for v in seen.values()):
@@ -275,6 +389,12 @@ def reductions(text):
                 for ln in lines[1:]:
                     f = ln.split()
                     if f[0] == "ch":
+                        c = int(f[1])
+                        if c == gone:
+                            continue
+                        f[1] = str(c - 1 if c > gone else c)
+                        out.append(" ".join(f))
+                    elif f[0] == "up":
                         c = int(f[1])
                         if c == gone:
                             continue

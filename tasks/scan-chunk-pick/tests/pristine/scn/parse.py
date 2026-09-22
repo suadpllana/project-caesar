@@ -4,7 +4,7 @@ class Chunk:
 
 
 class Seg:
-    __slots__ = ("g", "n", "k", "cols")
+    __slots__ = ("g", "n", "k", "cols", "up", "gone")
 
 
 class Cond:
@@ -35,6 +35,8 @@ def load(text):
             seg.n = int(f[2])
             seg.k = int(f[3])
             seg.cols = [[] for _ in range(seg.k)]
+            seg.up = [{} for _ in range(seg.k)]
+            seg.gone = set()
             ends = [0] * seg.k
         elif tag == "ch":
             ch = Chunk()
@@ -70,6 +72,10 @@ def load(text):
                     else:
                         ch.code.append(int(t))
             seg.cols[ch.c].append(ch)
+        elif tag == "up":
+            seg.up[int(f[1])][int(f[2])] = _val(f[3])
+        elif tag == "del":
+            seg.gone.add(int(f[1]))
         elif tag == "qry":
             cur = Query()
             cur.conds = []

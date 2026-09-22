@@ -103,6 +103,16 @@ verdict = "pending"
 note = "declares the retired Software/Systems label; left as it stands, and no new task uses it"
 
 [[submission]]
+slug = "scan-chunk-pick"
+category = "Software"
+label = "Databases"
+tags = ["columnar-scan", "chunk-statistics", "dictionary-encoding", "selectivity-estimation", "null-semantics", "delta-overlay"]
+substrate = "the scan layer of a columnar store deciding which immutable chunks are consulted and read"
+mechanism = "Decide, chunk by chunk and condition by condition, which chunk headers, dictionaries and reads a filtered scan pays for when statistics describe chunks as written and changes sit beside them."
+verdict = "rejected"
+note = "easiness probe solved the first design 3 of 3 (2026-09-22); rebuilt the same day with a change overlay, a cost rule stated in place of the procedure, and a scale gate on the choice loop; resubmission pending"
+
+[[submission]]
 slug = "share-register-screen"
 category = "Operations"
 label = "Compliance"

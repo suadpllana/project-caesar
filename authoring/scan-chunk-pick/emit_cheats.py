@@ -58,72 +58,24 @@ NOTES = {
     "prj-nulls-counted": "counts nulls in the reported figure",
     "prj-redecode": "reads a reported chunk again although it was read already",
     "qry-keeps-state": "carries reads and dictionary charges from one query into the next",
+    "ord-stale-key": "keeps its scores in a heap and trusts an entry pushed before a read raised it",
+    "ord-read-no-push": "keeps its scores in a heap and re-scores a chunk only when rows die in it",
+    "upd-drop-takes-moved": "lets a header or dictionary drop take the rows that carry an update",
+    "upd-keep-trusts-moved": "lets a header keep pass the rows that carry an update untested",
+    "upd-read-anyway": "consults and reads a chunk although every live row carries an update",
+    "upd-merge-on-read": "merges the updates into a chunk when it is read, and reads it for them",
+    "upd-count-current": "counts a read chunk's exact hits over the updated values",
+    "del-still-alive": "starts every query with the deleted rows alive",
+    "del-still-counted": "caps a score by a survivor count that still includes deleted rows",
+    "prj-reads-moved": "reads a reported chunk whose survivors all carry updates",
+    "prj-reads-pinned": "reads a reported chunk whose header already fixes every value",
+    "prj-pinned-ignores-widen": "takes a widened header's recorded pair as fixing the value",
+    "prj-no-one-entry": "never takes a reported chunk's values from a one-entry dictionary",
+    "prj-one-entry-free": "takes a one-entry dictionary's value without charging it",
+    "prj-one-entry-with-nulls": "takes a one-entry dictionary's value although the chunk holds nulls",
 }
 
-SLOW_LIVE = '''from scn import rd
-
-
-class State:
-    __slots__ = ("seg", "alive", "own", "vals", "hit", "dread", "done")
-
-
-def _cols(q):
-    seen = []
-    for cd in q.conds:
-        if cd.c not in seen:
-            seen.append(cd.c)
-    for c in q.cols:
-        if c not in seen:
-            seen.append(c)
-    return seen
-
-
-def start(seg, q):
-    st = State()
-    st.seg = seg
-    st.alive = set(range(seg.n))
-    st.own = {}
-    st.vals = {}
-    st.hit = {}
-    st.dread = set()
-    st.done = [set() for _ in q.conds]
-    for c in _cols(q):
-        own = []
-        for ch in seg.cols[c]:
-            own.extend([ch.j] * ch.n)
-        st.own[c] = own
-    return st
-
-
-def count(st, c, j):
-    ch = st.seg.cols[c][j]
-    lo = ch.start
-    hi = lo + ch.n
-    t = 0
-    for r in st.alive:
-        if lo <= r < hi:
-            t += 1
-    return t
-
-
-def kill(st, dead):
-    st.alive.difference_update(dead)
-
-
-def drop_chunk(st, c, j):
-    ch = st.seg.cols[c][j]
-    kill(st, range(ch.start, ch.start + ch.n))
-
-
-def filter_chunk(st, c, j, cond, vals):
-    ch = st.seg.cols[c][j]
-    s = ch.start
-    kill(st, [s + i for i in range(ch.n) if not rd.sat(cond, vals[i])])
-
-
-def rows(st):
-    return sorted(st.alive)
-'''
+OLD = pathlib.Path(__file__).resolve().parent / "probe_winner"
 
 CONST_PICK = '''def run(seg, q, st, out):
     return
@@ -164,7 +116,8 @@ _FP = __FP__
 def _fp(seg, q):
     heads = tuple((ch.n, ch.nulls, ch.mn, ch.mx, ch.exact, ch.enc)
                   for col in seg.cols for ch in col)
-    return repr((seg.g, seg.n, seg.k, heads,
+    ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))
+    return repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone)),
                  tuple((cd.kind, cd.c, cd.v) for cd in q.conds), tuple(q.cols)))
 
 
@@ -219,7 +172,9 @@ def _probe():
             for i, q in enumerate(queries):
                 heads = tuple((ch.n, ch.nulls, ch.mn, ch.mx, ch.exact, ch.enc)
                               for col in seg.cols for ch in col)
-                key = repr((seg.g, seg.n, seg.k, heads,
+                ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up)
+                            for r, v in sorted(u.items()))
+                key = repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone)),
                             tuple((cd.kind, cd.c, cd.v) for cd in q.conds), tuple(q.cols)))
                 _FP[key] = (name, i)
     except Exception:
@@ -372,7 +327,8 @@ KEYED_PROJ = """from scn.pick import _FP, _GT
 def _fp(seg, q):
     heads = tuple((ch.n, ch.nulls, ch.mn, ch.mx, ch.exact, ch.enc)
                   for col in seg.cols for ch in col)
-    return repr((seg.g, seg.n, seg.k, heads,
+    ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))
+    return repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone)),
                  tuple((cd.kind, cd.c, cd.v) for cd in q.conds), tuple(q.cols)))
 
 
@@ -430,9 +386,12 @@ def main():
     for name, files in sorted(R.READINGS.items()):
         write(name, NOTES[name], files)
 
-    write("slow-rowid-set",
-          "exactly correct, and holds the survivors as row ids every score walks", 
-          {"live.py": SLOW_LIVE})
+    write("slow-rescan",
+          "exactly correct, and rescans every pending pair after every step",
+          {"pick.py": R._RESCAN})
+    write("chunk-is-unit",
+          "decides each chunk whole and reads it for any live row, ignoring updates and deletes",
+          {p.name: p.read_text(encoding="utf-8") for p in sorted(OLD.glob("*.py"))})
     write("const-nothing", "one fixed output for every segment file",
           {"pick.py": CONST_PICK, "proj.py": CONST_PROJ})
     write("replay-example", "replays the worked example for every segment file",

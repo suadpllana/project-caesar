@@ -20,6 +20,7 @@ def start(seg, q):
     st = State()
     st.seg = seg
     st.alive = set(range(seg.n))
+    st.alive.difference_update(seg.gone)
     st.own = {}
     st.vals = {}
     st.hit = {}

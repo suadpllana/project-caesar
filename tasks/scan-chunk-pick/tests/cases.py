@@ -391,6 +391,237 @@ end
 """)
 
 
+# --- rows carrying an update: tested on their own value, and never a reason to read -----
+
+_add("upd-drop-spares", """
+seg 10 4 2
+ch 0 4 0 5 8 e p 5 6 7 8
+ch 1 4 0 1 4 e p 1 2 3 4
+up 0 1 30
+qry
+prd ge 0 20
+prj 1 0
+end
+""")
+
+_add("upd-keep-tests", """
+seg 10 4 2
+ch 0 4 0 5 8 e p 5 6 7 8
+ch 1 4 0 1 4 e p 1 2 3 4
+up 0 2 1
+qry
+prd ge 0 3
+prj 1
+end
+""")
+
+_add("upd-all-moved-no-read", """
+seg 10 6 2
+ch 0 3 0 0 9 e p 0 5 9
+ch 0 3 0 0 9 e p 1 6 8
+ch 1 6 0 1 6 e p 1 2 3 4 5 6
+up 0 0 7
+up 0 1 2
+up 0 2 9
+qry
+prd ge 0 5
+prj 1
+end
+""")
+
+_add("upd-all-moved-no-rd", """
+seg 10 6 2
+ch 0 3 0 0 9 e d 3 0 5 9 0 1 2
+ch 0 3 0 0 9 e p 1 6 8
+ch 1 6 0 1 6 e p 1 2 3 4 5 6
+up 0 0 7
+up 0 1 2
+up 0 2 9
+qry
+prd ge 0 5
+prj 1
+end
+""")
+
+_add("upd-last-held-dies", """
+seg 10 6 2
+ch 0 6 0 1 6 e p 1 2 3 4 5 6
+ch 1 3 0 0 9 e p 0 5 9
+ch 1 3 0 0 9 e p 1 6 8
+up 1 0 7
+up 1 1 2
+qry
+prd le 0 2
+prd ge 1 5
+prj 0
+end
+""")
+
+_add("upd-count-as-written", """
+seg 25 134 2
+ch 0 23 21 1 2 e p - - - - - - - - - - - - - 2 - - - - - - - 1 -
+ch 0 24 19 1 5 e d 3 1 2 5 2 - - - - 2 - - 0 - 1 - 0 - - - - - - - - - - -
+ch 0 29 28 1 1 e d 1 1 - - - - - - - - - 0 - - - - - - - - - - - - - - - - - - -
+ch 0 23 23 - - e p - - - - - - - - - - - - - - - - - - - - - - -
+ch 0 35 32 2 3 e d 2 2 3 0 - - - - - - - - - - - - - - - - - - - - 0 - - - - - - 1 - - - - - -
+ch 1 21 19 7 8 e p 7 - - - - - 8 - - - - - - - - - - - - - -
+ch 1 33 31 2 11 e p - - - - - - - - - - - - - - 11 - - - - - - - - - - - - - - - - 2 -
+ch 1 16 14 6 11 e d 2 6 11 - - - - 1 - 0 - - - - - - - - -
+ch 1 27 24 0 0 w d 2 0 4 - - - - - - - - - - - - 1 - - - - - - - - - - 1 0 - -
+ch 1 37 35 6 10 e d 2 6 10 - - - - - - 1 - - - - - - - 0 - - - - - - - - - - - - - - - - - - - - - -
+up 1 38 8
+up 1 41 0
+qry
+prd nn 1
+prd nu 0
+prd ge 1 2
+prj 1
+end
+""")
+
+# --- deleted rows: never alive, never counted --------------------------------------------
+
+_add("del-never-alive", """
+seg 10 6 2
+ch 0 3 0 1 3 e p 1 2 3
+ch 0 3 0 4 6 e p 4 5 6
+ch 1 6 0 1 6 e p 1 2 3 4 5 6
+del 0
+del 1
+del 2
+qry
+prd ge 0 2
+prj 1
+end
+""")
+
+_add("del-caps-score", """
+seg 10 6 2
+ch 0 3 0 0 9 e p 0 5 9
+ch 0 3 0 1 20 e p 1 4 20
+ch 1 6 0 1 6 e p 1 2 3 4 5 6
+del 0
+del 1
+qry
+prd le 0 7
+prj 1
+end
+""")
+
+# --- the report pass needs a chunk only for a value nothing cheaper supplies -------------
+
+_add("prj-moved-no-read", """
+seg 10 4 2
+ch 0 4 0 1 4 e p 1 2 3 4
+ch 1 2 0 10 20 e p 10 20
+ch 1 2 0 30 40 e p 30 40
+up 1 0 7
+up 1 1 -
+qry
+prd ge 0 1
+prj 1
+end
+""")
+
+_add("prj-void-no-read", """
+seg 10 4 2
+ch 0 4 0 1 4 e p 1 2 3 4
+ch 1 2 2 - - e p - -
+ch 1 2 0 30 40 e p 30 40
+qry
+prd le 0 3
+prj 1
+end
+""")
+
+_add("prj-pinned-no-read", """
+seg 10 4 2
+ch 0 4 0 1 4 e p 1 2 3 4
+ch 1 2 0 12 12 e p 12 12
+ch 1 2 0 30 40 e p 30 40
+qry
+prd le 0 3
+prj 1
+end
+""")
+
+_add("prj-widened-not-pinned", """
+seg 10 4 2
+ch 0 4 0 1 4 e p 1 2 3 4
+ch 1 2 0 20 20 w p 20 20
+ch 1 2 0 30 40 e p 30 40
+qry
+prd le 0 3
+prj 1
+end
+""")
+
+_add("prj-one-entry-rd", """
+seg 10 4 2
+ch 0 4 0 1 4 e p 1 2 3 4
+ch 1 2 0 20 20 w d 1 20 0 0
+ch 1 2 0 30 40 e p 30 40
+qry
+prd le 0 3
+prj 1
+end
+""")
+
+_add("prj-one-entry-nulls", """
+seg 10 4 2
+ch 0 4 0 1 4 e p 1 2 3 4
+ch 1 2 1 20 20 w d 1 20 0 -
+ch 1 2 0 30 40 e p 30 40
+qry
+prd le 0 3
+prj 1
+end
+""")
+
+# --- the order moves both ways: deaths lower a score, a read can raise one ---------------
+
+_add("ord-read-raises", """
+seg 10 87 2
+ch 0 15 0 0 0 w p 5 1 5 3 0 1 0 3 2 4 2 1 3 5 2
+ch 0 20 1 0 5 e d 6 0 1 2 3 4 5 2 0 4 1 0 5 1 3 3 3 - 4 2 1 2 1 5 4 0 5
+ch 0 15 1 0 0 w d 6 0 1 2 3 4 5 0 4 2 4 5 2 0 - 0 2 1 0 3 0 3
+ch 0 10 1 0 5 e d 4 1 2 3 5 0 *0 1 *0 1 - 2 *4 1 3
+ch 0 12 0 0 0 w d 6 0 1 2 3 4 5 0 2 3 5 2 1 3 4 2 1 2 3
+ch 0 15 2 0 5 e p 4 - 1 3 4 5 5 4 3 2 0 5 - 2 5
+ch 1 11 1 0 5 e d 6 0 1 2 3 4 5 1 1 1 5 4 - 5 2 0 3 1
+ch 1 12 0 0 5 e d 6 0 1 2 3 4 5 0 0 0 1 0 2 4 4 3 2 4 5
+ch 1 15 2 0 0 w d 6 0 1 2 3 4 5 3 5 1 1 2 5 - 3 4 - 5 4 0 1 1
+ch 1 21 4 0 0 w d 4 0 2 3 4 *5 *1 2 1 0 *1 - 0 - - 0 3 1 0 *5 *1 0 1 1 2 -
+ch 1 18 0 0 0 w d 6 0 1 2 3 4 5 2 2 0 4 2 2 5 0 5 3 1 5 2 5 4 1 2 0
+ch 1 10 1 0 5 e d 5 0 2 3 4 5 4 1 4 0 4 3 1 2 4 -
+qry
+prd ge 1 0
+prd ge 0 0
+prd ge 0 1
+prj 0
+end
+""")
+
+_add("ord-read-rescored", """
+seg 10 66 2
+ch 0 14 0 43 128 e p 123 107 121 112 128 53 58 60 55 65 49 59 43 49
+ch 0 15 0 41 112 e p 100 87 66 97 112 71 41 49 98 59 42 102 73 108 72
+ch 0 11 0 51 128 e p 97 78 52 93 64 92 106 77 51 128 124
+ch 0 8 0 43 124 e p 75 62 43 119 124 65 101 45
+ch 0 18 0 42 129 e p 123 129 106 42 67 117 113 61 62 87 124 122 76 82 93 47 120 77
+ch 1 15 0 7 35 e p 21 30 12 28 19 27 16 35 34 18 9 35 7 10 18
+ch 1 8 0 8 32 e p 9 8 29 30 27 32 21 13
+ch 1 15 0 10 36 e p 22 13 17 12 17 23 10 35 29 34 26 22 36 11 13
+ch 1 11 0 7 35 e p 9 35 21 25 31 7 17 10 23 31 16
+ch 1 17 0 9 36 e p 16 26 17 10 11 11 17 24 18 31 36 9 30 25 13 23 23
+qry
+prd ge 0 51
+prd ne 0 97
+prj 1
+end
+""")
+
+
 ORDER = sorted(CASES)
 
 

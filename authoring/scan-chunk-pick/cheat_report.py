@@ -11,7 +11,7 @@ Three kinds are not run here and say so:
   probe-*            they write /logs/verifier, fork, or exit the interpreter. They are
                      isolation probes and only the two-container trial means anything for
                      them (tools/docker_trial.py scan-chunk-pick --all).
-  slow-rowid-set     exactly correct and too slow: nothing it prints is wrong, so no case
+  slow-rescan        exactly correct and too slow: nothing it prints is wrong, so no case
                      can catch it and only the wall clock does.
   forge-hand         carries the frozen answers, so it is supposed to reproduce every
                      enumerated file and to fail on the population it could not have seen.
@@ -40,7 +40,7 @@ import host  # noqa: E402
 import model  # noqa: E402
 
 BODY = re.compile(r"cat > (\S+) <<'PYEOF'\n(.*?)\nPYEOF", re.S)
-TIME_ONLY = {"cheat-slow-rowid-set.sh"}
+TIME_ONLY = {"cheat-slow-rescan.sh"}
 FORGERY = {"cheat-forge-hand.sh"}
 
 

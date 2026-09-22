@@ -1,0 +1,208 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/res/kind.py",
+  "/app/res/pick.py",
+  "/app/res/pin.py",
+  "/app/res/cost.py",
+  "/app/res/best.py",
+  "/app/res/walk.py",
+]
+
+[task]
+name = "afterquery/widen-pin-bind"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules
+seem to ask for survive all of them at once, and that is the work.
+
+The first plan is the one every front end is written around, and the shipped binder already is
+it: settle what each argument stands at, then rank the entries that can take those kinds, add
+up how far each argument had to travel and keep the cheapest. Two of the three parts are wrong
+here in ways ordinary testing does not show.
+
+A call in a slot is bound asking for that slot's kind, and the kind it gives back is compared
+with that same kind as the last cost of the same vector. Both halves fight the model's prior:
+every language the model has read settles the arguments before it looks at the candidates, and
+every one of them keeps the result type out of the comparison entirely. Here the same call
+binds to different entries under different candidates of the call above it, so no argument has
+a kind until the candidate under test supplies one, and a pass that types the arguments and
+then ranks has nowhere to put that. The comparison is not a total either: an entry wins by
+being no worse at every cost and better at one, so two entries whose costs cross are ambiguous
+however the totals compare - and a binder that takes the lowest total prints a binding where
+the answer is one word.
+
+The rule after that is the one that takes the plan apart. An open entry keeps the kind its
+first accepted use gave it, and a trial that is abandoned or beaten leaves nothing behind. So a
+recursive walk that settles an entry as it goes carries a losing candidate's pin into the
+winner's world and into every expression after it, while a walk that holds all pins back until
+the end breaks the rule that a pin made at one slot is in force at the slots after it.
+Exploration has to become speculative, with a layer per trial that is kept or dropped whole,
+and that is a different shape from the one the tree ships with.
+
+Then the deep programs arrive. Trying the call below again under every entry above it is
+exactly correct and exponential in nesting depth: measured here on this host, one expression
+nesting sixteen calls takes 330 seconds that way against 0.01 for the reference, and the whole
+graded set of 358 programs has 60 seconds. The memo that fixes it cannot be keyed by the call
+and the kind it was asked for, because two trials of the same call run under different pins and
+the second would be answered from a world the first discarded - so the optimisation that makes
+the task finish has to carry the rule that made it hard.
+
+Around those sit the ordinary decisions, each fenced from both sides: a single survivor wins
+with nothing to beat, a call asked for nothing has no result cost and is ambiguous where a
+slot would have decided it, two least common kinds side by side settle nothing rather than the
+first of them, and the steps between two kinds are the shorter of two chains. All six editable
+files ship wrong, and the only feedback a wrong structure gets is a bind line and a number,
+because a program prints nothing while it is being bound.
+
+Identifiers are in a legacy register - `res/`, `pick`, `pin`, `walk`, `ups`, `ent`, `vec` -
+short but never misleading, and no name misdescribes what it holds. That is a choice about the
+register of real front-end code rather than an obstacle: each is recoverable from what calls it.
+
+The programs are synthetic, in ten families, with entries built to cross, entries that part only
+on what they give back, lattices with two chains between the same pair and with two least common
+kinds, expressions that settle an entry in a trial that then loses, one call reached twice under
+pins that differ, and the two scale families. In a real declaration set these concentrations are
+rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`kind.py` measures the rise between two kinds as the shortest chain of declared edges, breadth
+first. Two chains of different lengths between the same pair are ordinary in a declaration set
+that has grown, and taking the first one a search walks down changes a single cost, which is
+enough to turn an entry that wins into two that cross.
+
+`pick.py` collects the candidates - the entries of the name taking as many slots as the call has
+arguments - puts the settled kind into an entry's slots and result, and checks that kind against
+the entry's bound. Nothing there judges a candidate; an entry that cannot take its arguments is
+dropped by the trial that tries it.
+
+`pin.py` settles an open entry at the single least kind every open slot rises to: the kinds they
+all rise to, then the one of those that rises to all the others. That is stronger than the
+nearest common kind, and where two sit side by side with neither rising to the other the entry
+is dropped rather than settled at the first.
+
+`cost.py` prices a slot as the steps from the kind its argument stands at to the kind the slot
+asks for, and prices the result the same way against the kind the call was asked for, or at
+nothing when it was asked for nothing.
+
+`best.py` is the comparison: an entry wins by being no worse at every cost than each other
+survivor and better at one. A single survivor wins with nothing to beat, and two vectors that
+cross leave neither able to beat the other.
+
+`walk.py` is where the first plan has to be given up. A trial binds the open slots of an
+unsettled entry first, asking for nothing, because the settled kind does not exist yet; then it
+settles, checks the bound and binds the rest asking for their own kinds. Pins are carried as a
+map threaded through the trial, so a pin made at one slot is in force at the slots after it and
+a trial that is abandoned or beaten takes its pins with it; the winner hands its pins back to
+the call above it, in the order they were made, its own last. What a call produced is remembered
+under the call, the kind it was asked for and the pins in force, which is what makes the deep
+programs finish: keyed on the first two alone the table answers one trial from another's world,
+and with no table at all the same call is tried again under every entry above it.
+
+An expert works in that order because each file consumes the one before it: the steps decide
+what a slot costs, the costs decide the vector, the vector decides the winner, the winner
+decides which pins are kept, and the pins decide what the next expression means. The same
+contract is implemented two further ways in the authoring set - one keeping a single pin table
+under an undo log and keying its memo on a version that moves whenever the table moves, one
+reducing the survivors by elimination and settling the open kind by striking out the common
+kinds that have another below them - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/res/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the driver, the program grammar, the trace writer and the
+sample programs cannot change what a program prints, and a new file put beside the six is never
+collected at all.
+
+Correct is defined twice over. Thirty-two hand programs, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly,
+so a model that had drifted could not quietly redefine correct. Three hundred and twenty-six
+further programs are generated inside the verifier from a seed drawn after the agent's container
+is gone, across ten families that concentrate crossing costs, results that decide a tie, lattices
+with two chains and with two least common kinds, trials that settle an entry and then lose, one
+call reached twice under different pins, and the two scale families. A submission cannot have
+seen them, so fitting the shipped examples fails, and so does carrying an answer key.
+
+The fences run both ways. Taking the lowest total fails `cross-sum`; calling a single survivor
+ambiguous fails `plain-best`; reading an entry that is no worse anywhere as a winner fails
+`nest-amb`. Leaving the result out of the comparison fails `ret-decides`, and pricing a call
+asked for nothing fails `ret-free`. Binding every argument before the candidates are judged
+fails `nest-expect`. Settling an open entry at the first open slot fails `open-first`, at the
+highest of them fails `open-lub`, and at the first of two least common kinds fails `open-none`;
+reading the bound the other way round fails `amb-quiet` and not reading it fails `bound-none`.
+Pinning an entry as soon as a trial settles it fails `pin-drop`; hiding a pin from the slots
+after it fails `pin-inside`; settling a pinned entry again fails `pin-holds`; printing the
+entry's own pin before its arguments' fails `pin-order`, and binding the slots left to right
+fails `pin-slots`. Remembering a call without the pins in force fails `memo-pins`, and treating
+the site number as the call fails `memo-asks`. Printing the bind lines innermost first fails
+`order-pre`, and leaving the result costs out of the tally fails `tally-ret`.
+
+Forty-one cheats score 0. Twenty-four are wrong readings, each caught by the enumerated case
+named for it. Two are exactly correct and too slow: one with no memo at all, one remembering
+only the calls asked for nothing. Five are shortcut strategies - the tree as delivered, one
+fixed record for every expression, the worked example replayed, always the first entry that
+fits and always the last. One is a forgery carrying the frozen answers for all thirty-two
+enumerated programs, which passes every one of them and fails on the programs it could not have
+seen. The other nine are probes: the sealed answers read, a reward written late by a
+double-forked survivor, a planted record, a record planted with half one exited clean before it
+could be overwritten, a record spoiled on the way out, a privilege check, the grader and the
+generator rewritten, the graded set shrunk, and a binder hidden in a file beside the six that
+are collected. Two independently written correct binders score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward
+defaults to 0, is written last by the privileged stage into a root-owned directory locked before
+any agent code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Languages"
+
+tags = [
+  "call-binding",
+  "subtype-lattice",
+  "generic-instantiation",
+  "candidate-ranking",
+  "speculative-evaluation",
+  "memoisation",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having worked on the binder of a language front end: the stage that decides which declaration
+each call means, after names are resolved and before anything is emitted. Familiarity with the
+fact that a call in an argument position cannot be typed before the candidate above it is
+chosen, that ranking candidates by a single number turns two incomparable answers into a wrong
+one, and that a back end which emits one body per generic declaration makes the first accepted
+use decide what every later one means. Comfort with the bookkeeping that costs - trials that
+have to be undone when a candidate loses, results that have to be remembered under the
+conditions they were computed under - and with the difference between a resolution that is
+correct and one that finishes on a declaration set of real depth.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

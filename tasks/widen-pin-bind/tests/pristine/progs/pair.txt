@@ -1,0 +1,15 @@
+kind a
+kind b
+kind c
+kind t
+rise a c
+rise b c
+rise c t
+open h t * *
+entry h c a
+entry g t c
+val p a
+val q b
+ask g(h(p))
+ask h(q)
+ask g(h(q))

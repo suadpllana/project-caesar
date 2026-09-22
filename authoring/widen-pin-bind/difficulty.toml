@@ -1,0 +1,203 @@
+# Difficulty record - written 2026-09-22, before any environment or verifier code existed.
+# Restated in prose in tasks/widen-pin-bind/STATE.md.
+
+[task]
+slug = "widen-pin-bind"
+status = "pending"
+sources = ["tasks/widen-pin-bind/STATE.md", "authoring/widen-pin-bind/trace.md", "authoring/widen-pin-bind/cheat_report.py", "authoring/widen-pin-bind/coverage.py", "authoring/widen-pin-bind/timing.py"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Parse the declarations, build the kind graph and take its transitive closure, then walk each
+expression bottom up: bind every nested call first so every argument has a kind, collect the
+entries that share the call's name and arity, drop the ones an argument cannot rise to, score
+each survivor by adding up the rise steps across its parameters, and take the cheapest, calling
+it ambiguous when two share the lowest total. Infer the open kind of a generic entry from the
+first argument that lands on its open slot, and record the entry as pinned as soon as the
+inference succeeds.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+A call in argument position is bound against the parameter kind of the candidate being tried,
+and the winner's result kind is compared with that parameter kind like any other argument, so
+the same nested call binds to different entries under different candidates of the site above
+it and no argument has a kind until the candidate under test supplies one. The cheapest total
+is not the rule either: a candidate wins only by being no worse at every position and better at
+one, so two candidates whose vectors cross are ambiguous however their totals compare.
+"""
+second_discovery = """
+A trial that loses leaves nothing behind. An open entry is pinned by the trial that is kept,
+and the pin decides how every later site binds, so a binder that pins while it explores - which
+is what a plain recursive walk does - carries a losing candidate's pin into the winner's world
+and into the next expression. Exploration has to become speculative, with a layer per trial
+that is thrown away or kept whole, and the memo table that makes the exploration affordable has
+to be keyed by the pins in force or it answers from a world that was discarded.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped binder on the sample programs and find which module prints the line the brief says is wrong",
+  "Derive from the result-kind rule that a nested call cannot be bound before the candidate above it is chosen, so the bottom-up pass has to be turned inside out",
+  "Replace the summed cost with a componentwise comparison over the argument costs and the result cost",
+  "Thread the pins through binding as a layered map, keeping the winning trial's layer and dropping every losing one",
+  "Settle the open kind by binding the open slots with no expected kind and taking the single least common rise target, then check it against the bound",
+  "Put the kept pins and the bind lines in the order the brief states, innermost first and the winner's own pin last",
+  "Time the deep programs, find the re-exploration of the same site under every enclosing candidate, and memoise on the site, the expected kind and the pins in force",
+  "Re-run the small programs to confirm the memo table changed no answer, then time the wide and deep families again",
+]
+
+[search]
+best_page = """
+The overload-resolution sections of the C++ standard and the Java Language Specification, with
+the blog posts and Stack Overflow answers that explain why a particular call is ambiguous and
+how a template argument is deduced, which is what any query about picking between declarations
+returns first.
+"""
+helps_plan = false
+deviation = """
+Those rank candidates per argument and explicitly exclude the result type from the comparison,
+deduce a type variable by unification against each argument independently, and have no notion of
+a declaration that keeps the kind its first accepted use gave it. Here the result cost is the
+last component of the same vector, the open kind is the single least common rise target of every
+open slot at once, and the pin left by the winning trial changes what every later expression
+means, so the better the retrieved rules are recalled the more confidently wrong the plan is.
+"""
+
+[tactics]
+A1 = """
+Every language the model has read excludes the result type from the choice between declarations
+and types arguments before ranking candidates; both are inverted here and stated plainly, so the
+recalled idiom is a wrong answer at the two decisions that produce most of the output.
+"""
+A2 = """
+The brief states the comparison as being no worse everywhere and better somewhere, the inference
+as the single least common rise target, and the pin as what the kept trial leaves behind, and
+never names domination, inference or instantiation, so the consequences have to be derived
+rather than retrieved under a term of art.
+"""
+B2 = """
+Ten rules hold at once - rise steps, expected kinds, open slots bound free, the least common rise
+target, the bound check, componentwise comparison, discarded trials, kept pins and their order,
+pinned entries binding their open slots differently, and one tally over every cost - and each
+changes what a correct implementation of the others looks like.
+"""
+C1 = """
+Both sides are graded: a binder that calls a site ambiguous whenever two entries survive fails
+the ordinary programs where one entry is better at one slot and equal elsewhere, and a binder
+that always picks the lowest total fails the programs where two vectors cross.
+"""
+C2 = """
+The natural check is to write the same declarations in a real language and see what its compiler
+picks, or to trust that the shipped binder is right where the brief does not say otherwise; the
+first disagrees with the stated rules at the result kind and the pin, and the second prints a
+coherent trace for every shipped program.
+"""
+C3 = """
+A deep family makes the exploration of each nested site under every enclosing candidate
+exponential in nesting depth while leaving it exactly correct, so semantic correctness alone does
+not pass inside the stated limit and the memo table has to follow from what a site's outcome
+actually depends on.
+"""
+C4 = """
+Every graded program must match line for line, and the population is generated inside the verifier
+from a seed drawn after the agent's container is gone, with families shaped at each decision point
+rather than sampled uniformly.
+"""
+guard = """
+Six files under /app/res are collected and nothing else; the driver, the program parser, the trace
+writer and the sample programs are the verifier's own pristine copies laid under the submission,
+so neither the output format nor the program syntax can be reshaped.
+"""
+
+[decisions]
+graded = 10
+interactions = [
+  { a = "a nested call is bound against the candidate's parameter kind", b = "the winner is the candidate that is no worse everywhere and better somewhere", why = "the costs the comparison reads are produced by explorations the comparison itself has to run, so neither the argument kinds nor the candidate set can be settled before the other" },
+  { a = "the result kind is compared with the expected kind as the last cost", b = "a nested call is bound against the parameter kind", why = "a site bound under two different parameter kinds can pick two different entries with two different result kinds, so the cost at that position is a function of the candidate being judged rather than of the argument" },
+  { a = "a losing trial leaves nothing behind", b = "an open entry keeps the kind its first kept use gave it", why = "whether a pin exists at all depends on which candidate won, and the pin then decides how every later site binds, so binding cannot mutate the state it reads while it is still exploring" },
+  { a = "an open entry that is already pinned binds its open slots with the expected kind", b = "an unpinned open entry binds its open slots with no expected kind", why = "the same nested site binds one way in the expression that pins the entry and another way in every expression after it, so the answer depends on the order the expressions are reached" },
+  { a = "the memo table keyed by site and expected kind", b = "pins made while a trial explores are visible to the slots after them", why = "two trials of the same site can run under different pins, so a table that remembers only the site and the expected kind answers the second from a world the first discarded" },
+  { a = "rise steps are the shortest path", b = "componentwise comparison", why = "a second path of a different length changes one component, and a single component is enough to turn a candidate that dominates into one that crosses, which is ambiguous rather than cheaper" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A site where one entry costs nothing at every slot and another costs one step at a single slot:
+the first must be bound, so a binder that reports ambiguity whenever two entries survive prints
+the wrong line for a program that has no crossing in it at all.
+"""
+late_case = """
+A program whose first expression pins an open entry through a trial that wins on the result cost
+alone, where a losing trial of the same site would have pinned it to a different kind, and whose
+fourth expression contains a nested call that binds to a different entry under the pin than it
+does without it, changing the result kind of the expression above it and the tally.
+"""
+oracle_denied = """
+The agent can run the shipped binder on every program it writes and it answers coherently, and it
+can check its reading against a real compiler, but the shipped binder is wrong in five places and
+no compiler carries the result cost or the pin, so both checks confirm only that something ran.
+"""
+
+[leaks]
+candidates = [
+  { what = "a table of rise steps between every pair of kinds", closed_by = "only the direct rise edges are declared in the program file; every distance is derived where it is used" },
+  { what = "a pinned kind stored on the entry record in the shipped tree", closed_by = "the shipped entry record holds the declared kinds only; the pin lives in the run and the trace prints it after the fact" },
+  { what = "the candidate set of a site precomputed by a frozen helper", closed_by = "candidate collection sits in an editable module and is computed at the site, and the frozen driver only parses and prints" },
+  { what = "the correct output of the sample programs shipped beside them", closed_by = "nothing beside the programs; one record of one program is quoted in the brief and it decides no wrong reading that the enumerated cases do not also decide" },
+  { what = "a cost or arity field cached on the declaration table", closed_by = "the declaration table stores names and kinds; every cost is computed against the candidate under test and nothing caches it" },
+]
+derived_quantities = """
+The program file carries kinds, rise edges, entries, bounds and expressions, which are primitives;
+the rise distances, candidate sets, costs, the open kind, the pins and the tally are all derived
+and none of them ships.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Exactly correct binders that explore every nested site again under every candidate of the site
+above it, which is what a plain recursive binder does once the expected kind is threaded through.
+"""
+invariant = """
+A site's outcome depends only on the site, the expected kind it is given and the pins in force,
+and pins are monotone within a trial, so a result can be reused across the trials that share those
+three instead of being explored again.
+"""
+input_scale = "one expression nesting sixteen calls with three entries fitting at each of them, and programs of three hundred expressions"
+limit_seconds = 60
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "the cheapest total cost wins", hand_case = "two entries whose costs are zero and three against one and one" },
+  { reading = "ties on the total are the only ambiguity", hand_case = "two entries costing zero and two against one and one, totals two and two" },
+  { reading = "the result kind plays no part in the choice", hand_case = "two entries equal at every slot whose results are the expected kind and one step above it" },
+  { reading = "a nested call is bound once, before the candidates are ranked", hand_case = "a nested call with two entries, one cheaper under one parameter kind and the other under the other" },
+  { reading = "rise steps are one for any pair, or the number of paths", hand_case = "a kind reaching another by two edges and a third by one" },
+  { reading = "the open kind is taken from the first open slot", hand_case = "two open slots holding sibling kinds under one parent" },
+  { reading = "the open kind is the most specific of the open slots", hand_case = "two open slots holding kinds neither of which rises to the other" },
+  { reading = "two least common rise targets are resolved by declaration order", hand_case = "two open slots under a diamond with two minimal common targets" },
+  { reading = "an entry with no open slot is settled from its bound", hand_case = "an open entry whose slots are all declared kinds, beside a plain one" },
+  { reading = "pins are applied as soon as an inference succeeds", hand_case = "a losing trial that infers one kind and a winning trial that infers another" },
+  { reading = "pins made inside a trial are invisible to the slots after them", hand_case = "a two-slot call whose first slot pins the entry the second slot's nested call binds to" },
+  { reading = "a pinned entry re-infers its open kind at every later use", hand_case = "a second expression whose open slot holds a kind below the pinned one" },
+  { reading = "the pin of the winner is applied before the pins of its arguments", hand_case = "an expression whose winning trial pins two entries at different depths" },
+  { reading = "a failed expression still prints its bind lines or its pins", hand_case = "an expression with two crossing entries whose trials both pinned" },
+  { reading = "the memo table is keyed by the site and the expected kind alone", hand_case = "two trials of one call under pins that differ on the entry it binds to" },
+  { reading = "the call's number inside its expression stands for the call itself", hand_case = "two expressions of the same shape whose first call binds two different entries" },
+  { reading = "the bind lines run innermost first, in the order the calls were settled", hand_case = "an expression three calls deep whose outermost entry is settled last" },
+]
+correct_variants = [
+  "a binder that threads an immutable pin map through every trial, returns the pins a trial would make beside its result, and memoises on the site, the expected kind and that map",
+  "a binder that mutates one pin table under an undo log, rolling a losing trial back entry by entry, and clears its memo table whenever a pin is committed",
+]
+
+[shape]
+environment_py_lines = 273
+editable_files = 6
+reference_lines = 283

@@ -1,0 +1,9 @@
+kind a
+kind b
+kind c
+rise a b
+rise b c
+entry g a a
+entry f c b
+val x a
+ask f(g(x))

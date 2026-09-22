@@ -1,0 +1,187 @@
+{
+ "amb-quiet": [
+  "res 0 amb",
+  "bind 1 0 0",
+  "pin 0 b",
+  "res 1 b",
+  "tally 0"
+ ],
+ "arity": [
+  "bind 0 0 1",
+  "res 0 a",
+  "tally 0"
+ ],
+ "bound-none": [
+  "res 0 none",
+  "tally 0"
+ ],
+ "bound-over": [
+  "bind 0 0 1",
+  "res 0 t",
+  "tally 0"
+ ],
+ "bound-under": [
+  "bind 0 0 0",
+  "pin 0 a",
+  "res 0 a",
+  "tally 0"
+ ],
+ "cross-even": [
+  "res 0 amb",
+  "tally 0"
+ ],
+ "cross-sum": [
+  "res 0 amb",
+  "tally 0"
+ ],
+ "memo-asks": [
+  "bind 0 0 0",
+  "res 0 b",
+  "bind 1 0 1",
+  "res 1 t",
+  "tally 0"
+ ],
+ "memo-pins": [
+  "bind 0 0 3",
+  "bind 0 1 1",
+  "bind 0 2 0",
+  "pin 0 b",
+  "res 0 t",
+  "tally 0"
+ ],
+ "nest-amb": [
+  "bind 0 0 3",
+  "bind 0 1 0",
+  "res 0 t",
+  "tally 0"
+ ],
+ "nest-dead": [
+  "bind 0 0 1",
+  "bind 0 1 0",
+  "res 0 c",
+  "tally 1"
+ ],
+ "nest-expect": [
+  "bind 0 0 2",
+  "bind 0 1 0",
+  "res 0 c",
+  "tally 1"
+ ],
+ "no-entry": [
+  "res 0 none",
+  "tally 0"
+ ],
+ "one-only": [
+  "bind 0 0 0",
+  "res 0 b",
+  "tally 0"
+ ],
+ "open-first": [
+  "bind 0 0 0",
+  "pin 0 b",
+  "res 0 b",
+  "tally 1"
+ ],
+ "open-free": [
+  "bind 0 0 2",
+  "bind 0 1 1",
+  "pin 2 a",
+  "res 0 a",
+  "tally 0"
+ ],
+ "open-lub": [
+  "bind 0 0 0",
+  "pin 0 c",
+  "res 0 c",
+  "tally 2"
+ ],
+ "open-none": [
+  "res 0 none",
+  "tally 0"
+ ],
+ "open-noslot": [
+  "bind 0 0 1",
+  "res 0 a",
+  "tally 0"
+ ],
+ "order-pre": [
+  "bind 0 0 2",
+  "bind 0 1 1",
+  "bind 0 2 0",
+  "bind 0 3 0",
+  "res 0 c",
+  "tally 2"
+ ],
+ "path-short": [
+  "res 0 amb",
+  "tally 0"
+ ],
+ "path-tally": [
+  "bind 0 0 0",
+  "res 0 c",
+  "tally 1"
+ ],
+ "pin-drop": [
+  "bind 0 0 1",
+  "res 0 b",
+  "bind 1 0 0",
+  "pin 0 a",
+  "res 1 a",
+  "tally 0"
+ ],
+ "pin-holds": [
+  "bind 0 0 0",
+  "pin 0 b",
+  "res 0 b",
+  "bind 1 0 0",
+  "res 1 b",
+  "tally 1"
+ ],
+ "pin-inside": [
+  "res 0 none",
+  "tally 0"
+ ],
+ "pin-order": [
+  "bind 0 0 1",
+  "bind 0 1 0",
+  "pin 0 a",
+  "pin 1 a",
+  "res 0 a",
+  "tally 0"
+ ],
+ "pin-slots": [
+  "bind 0 0 2",
+  "bind 0 1 0",
+  "bind 0 2 1",
+  "pin 1 a",
+  "pin 0 a",
+  "pin 2 a",
+  "res 0 t",
+  "tally 2"
+ ],
+ "plain-best": [
+  "bind 0 0 0",
+  "res 0 c",
+  "tally 0"
+ ],
+ "ret-decides": [
+  "bind 0 0 2",
+  "bind 0 1 0",
+  "res 0 c",
+  "tally 0"
+ ],
+ "ret-free": [
+  "res 0 amb",
+  "tally 0"
+ ],
+ "tally-ret": [
+  "bind 0 0 1",
+  "bind 0 1 0",
+  "res 0 c",
+  "tally 2"
+ ],
+ "val-norise": [
+  "res 0 none",
+  "tally 0"
+ ]
+}

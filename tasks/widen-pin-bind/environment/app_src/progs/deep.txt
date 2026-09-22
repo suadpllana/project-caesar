@@ -1,0 +1,22 @@
+kind k0
+kind k1
+kind k2
+kind k3
+kind k4
+kind k5
+rise k0 k1
+rise k1 k2
+rise k2 k3
+rise k3 k4
+rise k4 k5
+entry f0 k0 k1
+entry f0 k0 k2
+entry f0 k0 k3
+entry f1 k0 k3
+entry f1 k0 k1
+entry f1 k0 k2
+entry f2 k0 k3
+entry f2 k0 k1
+entry f2 k0 k2
+val v0 k0
+ask f1(f2(f0(f0(f2(f0(f2(f0(f2(f0(f1(f0(f1(f2(f0(f1(v0))))))))))))))))

@@ -1,0 +1,204 @@
+{
+ "band-at-top": [
+  "f 0 s 30 g 2 b 10 w 3 6 h R2 0 m 2 p 2",
+  "f 1 s 29 g 1 b 1 w 2 6 h H2 0 m 1 p 2",
+  "f 2 s 50 g 2 b 10 w 5 8 h H3 0 m 2 p 2",
+  "end s 50 t 90 m 5"
+ ],
+ "band-last": [
+  "f 0 s 10 g 1 b 25 w 0 0 h R0 -5 m 0 p 1",
+  "f 1 s 14 g 1 b 21 w 0 1 h R0 -5 m 1 p 2",
+  "f 2 s 5 g 1 b 30 w 0 0 h R0 -5 m 0 p 1",
+  "end s 5 t 35 m 1"
+ ],
+ "band-push": [
+  "f 0 s 10 g 1 b 15 w 0 3 h H2 0 m 2 p 2",
+  "f 1 s 14 g 1 b 11 w 0 4 h H2 0 m 1 p 2",
+  "f 2 s 15 g 1 b 10 w 0 4 h H2 0 m 0 p 1",
+  "end s 15 t 55 m 3"
+ ],
+ "band-whole": [
+  "f 0 s 20 g 1 b 12 w 2 8 h R2 -4 m 6 p 2",
+  "f 1 s 32 g 1 b 12 w 3 10 h R4 0 m 2 p 2",
+  "f 2 s 24 g 1 b 12 w 2 9 h R3 0 m 0 p 1",
+  "end s 24 t 120 m 8"
+ ],
+ "clamp-foot": [
+  "f 0 s 126 g 1 b 10 w 5 10 h R6 -20 m 6 p 4",
+  "f 1 s 73 g 1 b 10 w 3 10 h R4 -1 m 2 p 3",
+  "end s 73 t 118 m 8"
+ ],
+ "clamp-top": [
+  "f 0 s 12 g 1 b 10 w 1 5 h R0 -12 m 5 p 4",
+  "f 1 s 4 g 1 b 10 w 0 6 h R0 -4 m 1 p 2",
+  "end s 4 t 166 m 6"
+ ],
+ "edit-del-above": [
+  "f 0 s 60 g 1 b 10 w 6 9 h R6 0 m 4 p 2",
+  "f 1 s 40 g 1 b 10 w 4 7 h R6 0 m 1 p 2",
+  "f 2 s 30 g 1 b 10 w 3 6 h R6 0 m 0 p 2",
+  "end s 30 t 80 m 5"
+ ],
+ "edit-del-gap": [
+  "f 0 s 48 g 1 b 6 w 5 10 h R5 -3 m 6 p 2",
+  "f 1 s 30 g 1 b 6 w 3 8 h R6 6 m 2 p 3",
+  "f 2 s 21 g 1 b 6 w 2 7 h R6 6 m 1 p 3",
+  "end s 21 t 69 m 9"
+ ],
+ "edit-del-held": [
+  "f 0 s 50 g 1 b 10 w 5 8 h R5 0 m 4 p 2",
+  "f 1 s 20 g 1 b 10 w 2 5 h R6 10 m 4 p 3",
+  "f 2 s 0 g 1 b 10 w 0 3 h R7 20 m 1 p 3",
+  "end s 0 t 110 m 9"
+ ],
+ "edit-del-tail": [
+  "f 0 s 70 g 2 b 10 w 7 9 h R6 0 m 3 p 2",
+  "f 1 s 40 g 2 b 10 w 4 6 h R4 -20 m 2 p 3",
+  "f 2 s 30 g 1 b 10 w 3 5 h R3 0 m 1 p 3",
+  "end s 30 t 60 m 6"
+ ],
+ "edit-ins-above": [
+  "f 0 s 40 g 1 b 10 w 4 7 h R4 0 m 4 p 2",
+  "f 1 s 70 g 1 b 10 w 7 10 h R4 0 m 3 p 2",
+  "f 2 s 80 g 1 b 10 w 8 11 h R4 0 m 0 p 2",
+  "end s 80 t 130 m 7"
+ ],
+ "edit-ins-below": [
+  "f 0 s 30 g 1 b 10 w 3 6 h R3 0 m 4 p 2",
+  "f 1 s 30 g 1 b 10 w 3 6 h R3 0 m 0 p 1",
+  "f 2 s 30 g 1 b 10 w 3 6 h R3 0 m 0 p 1",
+  "end s 30 t 120 m 4"
+ ],
+ "empty-group": [
+  "f 0 s 20 g 2 b 10 w 2 5 h R1 0 m 4 p 2",
+  "f 1 s 0 g 1 b 10 w 0 2 h H3 30 m 0 p 2",
+  "f 2 s 0 g 1 b 10 w 0 2 h H2 0 m 0 p 1",
+  "f 3 s 10 g 2 b 10 w 1 4 h H2 0 m 2 p 2",
+  "end s 10 t 50 m 6"
+ ],
+ "foot-grow": [
+  "f 0 s 378 g 1 b 10 w 12 12 h R4 -2 m 10 p 2",
+  "f 1 s 378 g 1 b 10 w 12 12 h R11 -10 m 0 p 1",
+  "end s 378 t 418 m 10"
+ ],
+ "foot-leave": [
+  "f 0 s 50 g 1 b 10 w 5 8 h R5 0 m 4 p 2",
+  "f 1 s 49 g 1 b 10 w 4 8 h R4 -9 m 1 p 2",
+  "f 2 s 48 g 1 b 10 w 4 8 h R4 -8 m 0 p 1",
+  "f 3 s 49 g 1 b 10 w 4 8 h R4 -9 m 0 p 1",
+  "end s 49 t 90 m 5"
+ ],
+ "foot-rest": [
+  "f 0 s 50 g 1 b 10 w 5 8 h R5 0 m 4 p 2",
+  "f 1 s 70 g 1 b 10 w 7 10 h R5 0 m 2 p 2",
+  "f 2 s 90 g 1 b 10 w 9 12 h R5 0 m 2 p 2",
+  "end s 90 t 130 m 8"
+ ],
+ "foot-shrink": [
+  "f 0 s 90 g 1 b 10 w 9 12 h R9 0 m 4 p 2",
+  "f 1 s 40 g 1 b 10 w 4 7 h R9 0 m 0 p 2",
+  "f 2 s 0 g 1 b 10 w 0 3 h R9 0 m 0 p 2",
+  "end s 0 t 40 m 4"
+ ],
+ "hold-end": [
+  "f 0 s 10 g 1 b 25 w 0 0 h R0 -5 m 0 p 1",
+  "f 1 s 12 g 1 b 23 w 0 1 h R0 -5 m 1 p 2",
+  "end s 12 t 35 m 1"
+ ],
+ "hold-gap": [
+  "f 0 s 17 g 1 b 8 w 1 5 h R1 -5 m 5 p 2",
+  "f 1 s 23 g 1 b 8 w 2 6 h R1 -11 m 1 p 2",
+  "f 2 s 29 g 1 b 8 w 2 6 h R2 -5 m 0 p 1",
+  "end s 29 t 104 m 6"
+ ],
+ "hold-under-band": [
+  "f 0 s 25 g 1 b 25 w 1 6 h R2 -5 m 6 p 2",
+  "f 1 s 25 g 1 b 25 w 1 6 h R2 -5 m 0 p 1",
+  "f 2 s 25 g 1 b 25 w 1 6 h R2 -5 m 0 p 1",
+  "end s 25 t 85 m 6"
+ ],
+ "meas-once": [
+  "f 0 s 0 g 1 b 10 w 0 3 h R0 0 m 3 p 2",
+  "f 1 s 0 g 1 b 10 w 0 3 h R0 0 m 0 p 1",
+  "f 2 s 10 g 1 b 10 w 1 4 h R1 0 m 1 p 2",
+  "f 3 s 0 g 1 b 10 w 0 3 h R0 0 m 0 p 1",
+  "end s 0 t 90 m 4"
+ ],
+ "meas-over": [
+  "f 0 s 40 g 1 b 10 w 2 8 h R4 0 m 7 p 2",
+  "end s 40 t 110 m 7"
+ ],
+ "pass-band-moves": [
+  "f 0 s 64 g 1 b 12 w 2 4 h H2 0 m 3 p 2",
+  "f 1 s 46 g 1 b 24 w 1 3 h R1 -20 m 0 p 1",
+  "end s 46 t 162 m 3"
+ ],
+ "pass-both-tests": [
+  "f 0 s 0 g 1 b 10 w 0 3 h R0 0 m 3 p 2",
+  "f 1 s 40 g 1 b 10 w 4 7 h R4 0 m 4 p 2",
+  "f 2 s 80 g 1 b 10 w 8 11 h R8 0 m 4 p 2",
+  "f 3 s 90 g 1 b 10 w 9 12 h R9 0 m 1 p 2",
+  "f 4 s 120 g 1 b 10 w 12 15 h R9 0 m 0 p 2",
+  "end s 120 t 160 m 12"
+ ],
+ "pass-cap": [
+  "f 0 s 580 g 1 b 10 w 0 14 h R0 0 m 14 p 1",
+  "f 1 s 90 g 1 b 10 w 2 4 h R2 0 m 0 p 1",
+  "end s 90 t 640 m 14"
+ ],
+ "pass-report": [
+  "f 0 s 342 g 1 b 12 w 8 10 h R0 0 m 10 p 2",
+  "f 1 s 10 g 1 b 12 w 0 3 h R0 -10 m 0 p 1",
+  "end s 10 t 392 m 10"
+ ],
+ "pass-still": [
+  "f 0 s 30 g 1 b 10 w 3 6 h R3 0 m 4 p 2",
+  "f 1 s 40 g 1 b 10 w 4 7 h R4 0 m 1 p 2",
+  "f 2 s 50 g 1 b 10 w 5 8 h R5 0 m 1 p 2",
+  "f 3 s 30 g 1 b 10 w 3 6 h R3 0 m 0 p 1",
+  "end s 30 t 110 m 6"
+ ],
+ "pass-two": [
+  "f 0 s 580 g 1 b 10 w 13 14 h R0 0 m 14 p 2",
+  "f 1 s 90 g 1 b 10 w 2 4 h R2 0 m 0 p 1",
+  "end s 90 t 640 m 14"
+ ],
+ "plain-read": [
+  "f 0 s 30 g 1 b 9 w 1 8 h R2 -8 m 7 p 2",
+  "f 1 s 60 g 1 b 9 w 4 11 h R5 -5 m 3 p 2",
+  "f 2 s 90 g 2 b 9 w 7 14 h R7 -4 m 3 p 2",
+  "f 3 s 45 g 1 b 9 w 3 9 h R4 -1 m 0 p 1",
+  "f 4 s 0 g 1 b 9 w 0 5 h R0 0 m 0 p 1",
+  "end s 0 t 258 m 13"
+ ],
+ "size-grow": [
+  "f 0 s 40 g 1 b 10 w 4 6 h R4 0 m 3 p 2",
+  "f 1 s 0 g 1 b 10 w 0 8 h R0 0 m 5 p 2",
+  "f 2 s 0 g 1 b 10 w 0 8 h R0 0 m 0 p 1",
+  "end s 0 t 90 m 8"
+ ],
+ "size-shrink": [
+  "f 0 s 0 g 1 b 10 w 0 8 h R0 0 m 8 p 2",
+  "f 1 s 0 g 1 b 10 w 0 2 h R0 0 m 0 p 1",
+  "f 2 s 0 g 1 b 10 w 0 0 h R0 0 m 0 p 1",
+  "end s 0 t 90 m 8"
+ ],
+ "win-edges": [
+  "f 0 s 0 g 1 b 10 w 0 3 h R0 0 m 3 p 2",
+  "f 1 s 10 g 1 b 10 w 1 4 h R1 0 m 1 p 2",
+  "f 2 s 20 g 1 b 10 w 2 5 h R2 0 m 1 p 2",
+  "f 3 s 35 g 1 b 10 w 3 7 h R3 -5 m 2 p 2",
+  "end s 35 t 110 m 7"
+ ],
+ "win-over-both": [
+  "f 0 s 50 g 1 b 10 w 3 10 h R5 0 m 8 p 2",
+  "f 1 s 60 g 1 b 10 w 4 11 h R6 0 m 1 p 2",
+  "f 2 s 20 g 1 b 10 w 0 7 h R2 0 m 2 p 2",
+  "end s 20 t 130 m 11"
+ ],
+ "win-over-clip": [
+  "f 0 s 0 g 1 b 10 w 0 6 h R0 0 m 6 p 2",
+  "f 1 s 30 g 1 b 10 w 0 6 h R3 0 m 0 p 1",
+  "end s 30 t 70 m 6"
+ ]
+}

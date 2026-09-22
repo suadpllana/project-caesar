@@ -1,0 +1,189 @@
+# Difficulty record for row-anchor-pass, written before any environment code exists.
+# Scored with: python tools/difficultycheck.py row-anchor-pass
+
+[task]
+slug = "row-anchor-pass"
+status = "pending"
+sources = [
+  "tasks/row-anchor-pass/STATE.md",
+  "authoring/row-anchor-pass/trace.md",
+]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Keep an array of row heights, estimated until measured. On each event move the offset, work out
+which rows fall inside the viewport, render and measure them, then take the rows above the first
+visible row, add up how much their measured heights differ from the estimates they replaced, and
+add that difference to the scroll offset so the top row does not jump. Clamp the offset to the
+document height and print the frame. That is what every virtualized list library does and what the
+browser's own scroll anchoring does.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+The pane holds the item that contains the anchor line, and the anchor line is the bottom edge of
+the pinned group header, not the top of the viewport; the frame ends at whatever offset puts that
+item's top back the same distance from the line it had before, which is a re-solve against the new
+geometry and not the sum of the height differences above it.
+"""
+second_discovery = """
+A frame is a bounded loop and not a single adjustment: re-solving the offset moves the window, the
+window measures rows that were never measured, those measurements move every top offset including
+the held item's and the next header's, the next header's position is what decides how tall the
+pinned band is, and the band is what the offset was solved against. The measured set survives the
+frame, so a frame that stopped early leaves later frames standing on a geometry that never existed.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped pane on the small sample and diff its first frames against the one frame the brief prints in full",
+  "Re-derive the frame order from the brief: move the offset, take the hold, apply the edit, then settle",
+  "Rebuild the band with the push-off against the next header, then the anchor line and the sign of the gap",
+  "Rebuild the held-item choice as the item containing the line rather than the first visible item",
+  "Rebuild the driver as a bounded pass loop whose foot offset is re-derived from the total each pass",
+  "Rebuild the edit path so the hold is taken before the source changes and tracked with the tops it had then",
+  "Time the two large samples, find the walk over the flow dominating, and maintain group sums instead",
+  "Re-run every sample and check the per-frame measured counts and the closing total against the rules",
+]
+
+[search]
+best_page = """
+The TanStack Virtual documentation on measurement and scroll anchoring together with the CSS
+scroll anchoring specification and the react-window and virtua issue threads on sticky headers,
+which is what a probe agent retrieves within a minute of reading the brief.
+"""
+helps_plan = false
+deviation = """
+Every one of those anchors to the first visible element at the top of the scrollport and corrects
+by the accumulated height delta above it in one pass; here the anchor is the item under a pinned
+band whose height varies with the next header, the correction is a re-solve for a held gap, and the
+frame repeats up to a stated cap, so the better the retrieved source the more confidently wrong the
+first implementation is.
+"""
+
+[tactics]
+A1 = """
+The published anchoring rule - first visible element, corrected by the height delta above it -
+is coherent and agrees with this specification on every frame where nothing is measured, nothing
+is edited and the band does not change, which is most of them.
+"""
+A2 = """
+The band, the anchor line and the held gap are described operationally as an offset, a header and
+a distance; nothing in the brief or the tree calls them scroll anchoring, sticky push-off or
+relayout passes, so the search query that would retrieve the standard treatment has to be invented
+from the behaviour first.
+"""
+B2 = """
+Nine rules hold at once and each changes what another means: the band decides the line, the line
+decides the held item, the held item decides the offset, the offset decides the window, the window
+decides what is measured, and measurement moves the band back again.
+"""
+C1 = """
+The must-still-work side is graded as hard as the failure side: an ordinary frame inside a long
+group must leave the offset exactly where it was, and a pane that re-solves defensively on every
+frame moves it.
+"""
+C3 = """
+Walking the flow to turn an offset into an item is correct and is what the shipped geometry does;
+at sixty thousand rows and two and a half thousand frames it cannot finish inside the stated limit,
+so semantic correctness alone does not pass.
+"""
+C4 = """
+Every frame of every program must match exactly - offset, sticky group, band height, window bounds,
+held item, gap, rows measured and passes run - over hand programs and over programs generated from
+a seed drawn after the agent's container is gone.
+"""
+guard = """
+Six files under /app/pane are collected and everything else in the tree, including any new file
+put beside them, is replaced by the verifier's pristine copy before a program runs, so the event
+grammar, the row source, the height function, the trace writer and the driver are frozen.
+"""
+
+[decisions]
+graded = 9
+interactions = [
+  { a = "band push-off", b = "held item choice", why = "the band's height is where the anchor line sits, so a band that ignores the next header selects a different item to hold and a different gap to hold it at" },
+  { a = "window bounds", b = "geometry of later frames", why = "the window decides which rows get measured and a measurement is permanent, so a window wrong by one row in frame three changes every top offset for the rest of the run" },
+  { a = "foot following", b = "pass loop", why = "the foot is derived from the total height and each pass measures rows that change the total, so following the foot has to be re-derived inside the loop and not decided once" },
+  { a = "hold taken before the edit", b = "gap tracking", why = "the held item is chosen against the tops the source had before the edit and the gap moves by the difference of those same tops, so taking the hold afterwards makes both wrong together" },
+  { a = "clamping", b = "solving for the gap", why = "an offset solved for the held gap can land outside the document, and the clamp that pulls it back changes the band and the window the next pass works from" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+A scroll of a few rows in the middle of a long group whose rows are already measured: nothing is
+measured, no edit lands, the band does not change, and the offset must end exactly where the scroll
+put it, which a pane that re-solves against a mis-chosen hold does not do.
+"""
+late_case = """
+An insert that lands while the pane is resting at the foot of a document whose last group is
+unmeasured: the first pass measures rows, the total grows, the foot moves down, the second pass
+renders a window that never existed in the first, and a single-pass pane stops one screen short.
+"""
+oracle_denied = """
+The agent can run the pane on the shipped samples and read a full trace, but nothing in the tree
+says what the trace should be, the shipped pane is internally coherent and never raises, and the
+single frame the brief prints in full was searched for rather than chosen: it settles 7 of the 29
+wrong readings, every one of them already ruled out by a sentence of the brief, and none of the
+load-bearing ones - it says nothing about the pass loop, the foot or the edit path.
+"""
+
+[leaks]
+candidates = [
+  { what = "a cached array of item tops in the shipped geometry", closed_by = "the shipped geometry walks the flow with no cache at all, so the structure the fast path needs is not announced by the structure that ships" },
+  { what = "a sample trace file beside the sample documents", closed_by = "no expected output ships anywhere in the tree; the only correct output published is the single frame quoted in the brief" },
+  { what = "the per-frame measured count being a function of the window width", closed_by = "row heights vary inside a group and windows overlap between frames, so the count is path dependent and cannot be read off the window bounds" },
+  { what = "the row height function shipped in the environment", closed_by = "true heights are not the secret; which rows have been measured is, and that is a property of the trajectory rather than of the document" },
+  { what = "an unused helper that computes the band or the anchor line", closed_by = "the band module ships the full-header reading and is reached only through the frame driver, so nothing is callable that is not already on the live path" },
+]
+derived_quantities = """
+The document stores group headers, estimates, row identities and a height function; it stores no
+top offset, no running total, no measured flag and no anchor, so every quantity the task is about
+has to be derived from the trajectory rather than read.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Turning an offset into an item, or an item into a top offset, by walking the flow from the start
+and adding heights - which is what the shipped geometry does and is exactly correct.
+"""
+invariant = """
+Heights change only where a row is measured or a row is inserted or deleted, both bounded by the
+window; the flow is partitioned into groups whose header, row count and height sum are enough to
+place any offset, so a search descends over group sums and only the last group is walked.
+"""
+input_scale = "one document of sixty thousand rows over six hundred groups driven by two and a half thousand events, and one of nine hundred groups whose events walk the whole document"
+limit_seconds = 60
+measured = true
+
+[cheats]
+wrong_readings = [
+  { reading = "the held item is the first visible item and the gap is measured from the viewport top", hand_case = "a frame where the first visible row is partly covered by the pinned band, so the two readings name different items" },
+  { reading = "the band is always the whole header height", hand_case = "a frame where the next group's header top is inside the band, so push-off shortens it and moves the line" },
+  { reading = "the offset is corrected by the sum of height differences above the held item", hand_case = "an insert above the held item, where the differences say nothing about the tops that moved" },
+  { reading = "the frame renders and settles once", hand_case = "a jump into an unmeasured group where the first pass's measurements move the window by more than the overscan" },
+  { reading = "the frame repeats until it stops changing, with no cap", hand_case = "a document whose estimates and true heights oscillate the window between two states across passes" },
+  { reading = "overscan is added below the last visible item only", hand_case = "a scroll upward into unmeasured rows, where the rows above the viewport are the ones that had to be measured" },
+  { reading = "an item whose bottom edge falls exactly on the offset is visible", hand_case = "a frame whose offset lands exactly on a group header top" },
+  { reading = "the foot is tested before the event's own movement is applied", hand_case = "a scroll of one pixel upward from the foot, which must not snap back" },
+  { reading = "the foot offset is decided once instead of per pass", hand_case = "an insert at the foot of a document whose last group is unmeasured" },
+  { reading = "the held item is chosen after the edit has been applied", hand_case = "a delete that removes the held row itself" },
+  { reading = "the gap is carried across an edit using the tops the source has afterwards", hand_case = "a delete of rows above the held item inside the same group" },
+  { reading = "the sticky group is the last group whose header top is strictly above the offset", hand_case = "an offset landing exactly on a group header top" },
+  { reading = "the gap is the line minus the item top rather than the item top minus the line", hand_case = "any frame where the held item starts above the line, which is every frame that holds a row" },
+  { reading = "the reported window is recomputed from the settled offset", hand_case = "a frame whose last pass moved the offset far enough to change the first visible item" },
+]
+correct_variants = [
+  "group sums held in a Fenwick tree over groups with a second Fenwick inside each group over its rows",
+  "per-group prefix arrays rebuilt lazily behind a dirty mark, with a plain running array of group totals",
+  "a chunked list of fixed-size runs over the flow with a height sum per chunk and a linear walk inside one",
+]
+
+[shape]
+environment_py_lines = 370
+editable_files = 6
+reference_lines = 386

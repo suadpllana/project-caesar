@@ -1,0 +1,12 @@
+cfg 45 1 4
+g 1 10 6 24 24 8
+g 2 22 6 6 6 3
+g 3 10 6 24 24 8
+go 70
+ins 1 2 3
+scroll 40
+del 1 1 4
+go 4000
+scroll -1
+ins 3 8 2
+size 120

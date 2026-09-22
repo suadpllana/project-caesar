@@ -1,0 +1,9 @@
+cfg 60 1 4
+g 1 18 7 7 7 4
+g 2 18 7 26 26 5
+g 3 12 7 7 7 4
+scroll 30
+scroll 22
+scroll 9
+scroll -14
+go 0

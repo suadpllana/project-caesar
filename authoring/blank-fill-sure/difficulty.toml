@@ -1,0 +1,188 @@
+# Difficulty record for blank-fill-sure, written at Stage 1, before any code exists.
+# Every claim here is restated in tasks/blank-fill-sure/STATE.md and is what the build has
+# to deliver. Scored with `python tools/difficultycheck.py blank-fill-sure`.
+
+[task]
+slug = "blank-fill-sure"
+status = "idea"
+sources = ["tasks/blank-fill-sure/STATE.md", "authoring/blank-fill-sure/originality.toml"]
+expert_hours = 9
+estimated_solves = 2
+
+[plan]
+first_plan = """
+Recognise the report as the rows a query returns under every filling, then do what the
+literature and every engine do with unknowns: evaluate each rule with ordinary joins,
+either with SQL null logic where a placeholder matches nothing, or with the textbook
+refinement where a placeholder matches only itself and the rows free of placeholders are
+reported. On small programs, check that against a brute force over every filling.
+"""
+first_plan_source = "prior"
+breaking_rule = """
+Every column allows a finite set of values, so a row can be returned under every filling
+without any single derivation of it being unconditional: when each allowed value of a
+placeholder leads to the row through some rule or some join, the row is forced, and neither
+null logic nor match-only-itself evaluation ever produces it. The same finiteness breaks
+the other direction once a query says X != c, because a filling can give the placeholder c.
+"""
+second_discovery = """
+Trying every filling is exact but the graded programs carry thousands of placeholders over
+ranges of a billion values, so the evaluator has to be rebuilt to carry, for each derived
+row, the conditions on the few placeholders that can change it. A placeholder may stand for
+a value nothing else holds only when it has more unused allowed values than there are
+placeholders and it reaches no inequality; one that reaches X != c can take c or a fresh
+value and nothing else matters, and taking c can create a join the fresh reading never
+made. The conditions on one row then fall apart into groups sharing no placeholder, and a
+check that does not split them is exponential again on rows with hundreds of derivations.
+"""
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Run the shipped programs and see the null-logic engine drop rows that two rows carrying one label produce under every filling; make a label equal itself.",
+  "Write the definition as a brute force over every filling for small programs and diff it against match-only-itself evaluation on random small programs with small allowed sets; find rows forced by exhausting a placeholder's allowed values, and rows wrongly reported past an inequality.",
+  "Take each placeholder's allowed set as the intersection over every column it appears in, and derive when it may be treated as a value nothing else holds: enough allowed values that appear nowhere in the program, counted against every placeholder that might share them, and no reachable inequality.",
+  "Rebuild the join so a binding carries conditions: an enumerated placeholder meets a constant or another enumerated placeholder under a recorded equality, an inequality records a disequality, and a fresh placeholder matches only itself.",
+  "Give a placeholder that reaches X != c the two cases that matter, c and a fresh value, and let the case c take part in joins with rows holding c, so that the trade between killing the inequality and creating a join is seen.",
+  "For every candidate row of constants, gather the condition of each derivation, split them into groups that share no placeholder, and report the row when some group holds under every assignment of its placeholders, searching each group for a falsifying assignment.",
+  "Time the wide and flag samples against the stated limit, and confirm the whole method against the brute force on small programs, including placeholders that share a single spare value.",
+]
+
+[search]
+best_page = """
+Libkin's PODS 2014 survey of certain answers over marked nulls, with the Imielinski and
+Lipski result that naive evaluation computes them exactly for unions of conjunctive queries.
+"""
+helps_plan = false
+deviation = """
+Every positive result there assumes an infinite domain, where an unused value always exists;
+here allowed values are finite per column and often all used by the data, inequalities are
+allowed, and the page offers only hardness for that case, so its naive evaluation is
+confidently wrong on exactly the graded late cases.
+"""
+
+[tactics]
+A1 = """
+The retrievable theorem, that letting each placeholder match only itself gives exactly the
+right rows for join-and-union queries, is the model's prior and is wrong whenever a column's
+allowed values are finite and used; SQL null logic, the other prior, is the shipped engine
+and is wrong on the brief's first example.
+"""
+A2 = """
+The brief says only that the report holds the rows a query returns whatever the placeholders
+turn out to be; it never says certain answers, naive evaluation, case analysis or fresh
+value, so the retrieval key has to be recognised before it can be found to mislead.
+"""
+A3 = """
+No single technique fits: fresh-value evaluation is exact only for placeholders with spare
+values and no inequality, trying every filling is exact only on tiny programs, and the
+combination has to be decided placeholder by placeholder and row by row.
+"""
+B2 = """
+Label identity, the intersection of column domains, the union across rules, inequalities
+against constants, repeated variables and wildcards hold at once, and each changes which
+placeholders can be treated as fresh and which cases a row must survive.
+"""
+C1 = """
+Both directions are graded: null logic and fresh-value evaluation under-report rows forced
+by case analysis, fresh-value evaluation over-reports rows guarded by an inequality a
+filling can falsify, and ordinary programs with no placeholders must still be answered.
+"""
+C2 = """
+The obvious checks mislead: an SQL database reproduces null logic, which is wrong, and a
+brute force over fillings, which is right, cannot reach the scale families, so a method
+validated only on small programs passes locally and fails the graded large ones.
+"""
+C3 = """
+Trying every filling is correct and infeasible on the wide family, thousands of placeholders
+over billion-value ranges; checking one row's conditions without splitting them into groups
+that share no placeholder is correct and infeasible on the flag family.
+"""
+C4 = """
+Every report is compared line for line with a sealed model over programs generated from a
+seed drawn after the agent has finished, thirty hand programs alongside, all or nothing.
+"""
+guard = """
+Only the three evaluator files under /app/rs are collected and laid over a pristine copy of
+the tree, so the loader, the domain parser, the printer and the driver cannot change what a
+program prints, and a new file put beside them is never collected.
+"""
+
+[decisions]
+graded = 11
+interactions = [
+  { a = "fresh placeholders", b = "inequalities", why = "a placeholder with spare values behaves as fresh for joins, but an inequality it reaches lets a filling pick the compared constant, and that constant can create a join the fresh reading never made" },
+  { a = "case analysis", b = "union across rules", why = "whether every allowed value of a placeholder leads to the row is decided across all the rules of a query together, so certainty per rule followed by a union reports a different set" },
+  { a = "intersection of domains", b = "spare values", why = "the allowed set is the meet of every column the label sits in, and that one set decides both how many cases a row must survive and whether any value is unused" },
+  { a = "spare values", b = "other placeholders", why = "a placeholder with one spare value is fresh on its own but not beside another sharing it, because the filling that makes both spare makes them equal" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = """
+Programs with no placeholders, and programs whose placeholders sit in columns no query reads,
+must be answered exactly as ordinary join-and-union queries, so a method that reports
+nothing, or everything, when placeholders exist fails at once.
+"""
+late_case = """
+A wide program whose thousands of placeholders are fresh except a handful of two-valued
+flags whose rows are forced by a union of rules: a method that switches to fresh-value
+evaluation above a size threshold passes every small check and the wide sample's timing,
+and misses exactly those rows.
+"""
+oracle_denied = """
+An SQL database reproduces the shipped null logic and is wrong; a brute force over every
+filling is right but only on small programs, and the rows that separate methods in the scale
+families lie beyond it.
+"""
+
+[leaks]
+candidates = [
+  { what = "a sample program shipped with its correct report", closed_by = "no report ships; the brief quotes one line of one program, which turns on label identity, a rule the brief states anyway" },
+  { what = "a domain helper that intersects allowed sets or counts unused values", closed_by = "the frozen domain module parses a range or a list and tests membership, nothing else; meets, sizes and spare counts are the agent's to write" },
+  { what = "file, function or field names that name the mechanism", closed_by = "the evaluator files are cmp, join and keep, and nothing in the tree says fresh, cover, case, certain, tautology or completion" },
+  { what = "the large samples revealing which rows are forced", closed_by = "wide.txt and flags.txt ship without reports, so they give a running time and nothing to diff against" },
+]
+derived_quantities = """
+Rows hold constants and labels only; no per-label allowed set, spare count, classification or
+list of occurrences is stored anywhere in the tree, and the loader keeps only column domains
+and rows.
+"""
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = """
+Trying every filling of every placeholder, and checking a derived row's conditions over all
+of its placeholders at once without splitting them into independent groups; both are exact.
+"""
+invariant = """
+A placeholder with more unused allowed values than there are placeholders and no reachable
+inequality behaves exactly like a value only it holds, and conditions over disjoint sets of
+placeholders hold under every assignment together only if one group already does.
+"""
+input_scale = "wide: about 20000 rows and 4000 placeholders over ranges of 10^9; flags: rows derived through hundreds of independent two-valued placeholders"
+limit_seconds = 120
+measured = false
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "SQL null logic, a placeholder matching nothing", hand_case = "self-same: two rows carrying ?w join on it, so every pair of their keys is reported" },
+  { reading = "fresh-value evaluation for every placeholder", hand_case = "cover-join: a placeholder whose three allowed regions all map to one manager forces that manager" },
+  { reading = "allowed values from the first column a label appears in", hand_case = "meet-cols: the label sits in a 1..6 column and a 1..3 column, and only the meet is covered" },
+  { reading = "certainty decided per rule, then a union", hand_case = "union-cover: one rule wants open, another shut, and the status allows only those two" },
+  { reading = "fresh whenever any allowed value is unused", hand_case = "pigeon-spare: two labels share one spare value, and equal or used, a rule fires either way" },
+  { reading = "an inequality on a fresh placeholder always holds", hand_case = "ne-loose: a billion-value distance with X != 0 is not certain, because a filling can give it 0" },
+  { reading = "taking the compared constant without re-deriving joins", hand_case = "ne-join-trade: making the distance 0 kills one rule and opens a join in the other" },
+  { reading = "fresh is decided by the query's constants only", hand_case = "cover-data: the region domain is covered by the region table, not by any constant in the query" },
+  { reading = "a report row may carry a label", hand_case = "head-label: a head bound to ?w prints nothing, though every filling returns a row for it" },
+]
+correct_variants = [
+  "reference: classify placeholders once, carry conditions through hash joins, split each row's conditions into groups by shared placeholder and search each group for a falsifying assignment",
+  "variant: decide fresh placeholders by a matching over spare values, evaluate rules by nested backtracking over atoms, and test each group by enumerating assignments of its placeholders in a fixed order",
+]
+
+[shape]
+environment_py_lines = 380
+editable_files = 3
+reference_lines = 350

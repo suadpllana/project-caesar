@@ -1,0 +1,58 @@
+# Originality record for blank-fill-sure, written at Stage 1, before any code exists.
+# Scored with `python tools/originalitycheck.py blank-fill-sure`. Every claim here is restated
+# in tasks/blank-fill-sure/STATE.md.
+
+[task]
+slug = "blank-fill-sure"
+category = "Software"
+label = "Databases"
+tags = ["certain-answers", "labeled-nulls", "incomplete-information", "finite-domains", "conjunctive-queries"]
+status = "idea"
+
+[mechanism]
+sentence = "Decide which answers a union of join queries with inequalities against constants returns under every filling of labelled placeholders, each drawn from the finite allowed values of its columns, including answers that hold only because every possible filling produces them some way."
+substrate = "the query side of a merged record store whose missing values are kept as labelled placeholders and whose columns each declare the values they may hold"
+graded_output = "for every query of a program, the sorted list of all-constant answer rows that the query returns under every filling, compared row for row with a sealed model"
+failure_mode = "evaluating placeholders the way SQL evaluates nulls, or as fresh values nothing else carries, which misses every answer that is forced by exhausting a placeholder's allowed values and reports rows guarded by an inequality that some filling makes false"
+interaction = "whether a placeholder has allowed values that appear nowhere else, and whether it can reach an inequality, decides if it may be treated as a fresh constant, and the joins and unions of the query decide whether its remaining values cover every case"
+
+[nearest.public]
+name = "Libkin, Incomplete Data: What Went Wrong, and How to Fix It (PODS 2014), with Imielinski and Lipski 1984 behind it"
+url = "https://homepages.inf.ed.ac.uk/libkin/papers/pods14.pdf"
+covers = "certain answers over databases with marked nulls, the result that naive evaluation computes them exactly for unions of conjunctive queries when the domain is infinite, and how SQL three-valued logic departs from them in both directions"
+plans_this = false
+separation = "every theorem on that page assumes an infinite domain, so there is always a value no placeholder or constant uses; here each column allows a finite set, a placeholder whose allowed values all occur in the data has no fresh value to take, and the answers forced by exhausting those values are exactly what the page's algorithm leaves out; the page names finite domains only as the coNP-hard case and gives no method for them"
+
+[nearest.submitted]
+name = "alias-settle-report"
+source = "ledger"
+shares = "both grade an output that must hold across every admissible completion of unknown information, and both have an exhaustive search that is exact and collapses to a closure in a special case"
+same_mechanism = false
+separation = "alias-settle-report settles item identity over time from sameness and difference tags and grades the tick at which a filing line may be written; this task evaluates select-project-join-union queries over a static store whose unknowns are values with finite allowed sets and grades answer sets per query; there is no clock, no filing and no tag, an inequality compares one value with a constant rather than two items with each other, and the collapse here is fresh-value evaluation, which is only valid when a placeholder has an allowed value nothing else uses. delta-view-retraction, the other ledger entry under Databases, maintains aggregates under a change stream and shares nothing but the label."
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "settling which posted keys name one item as sameness and difference tags arrive and expire", ours = "deciding which join-query answers survive every filling of labelled placeholders over finite allowed values" },
+  { axis = "substrate", theirs = "the filing end of an evaluation harness posting scores under watched keys", ours = "the query side of a record store holding labelled placeholders under declared column domains" },
+  { axis = "graded_output", theirs = "one filed line per watched key and the tick at which it may be written", ours = "per query, the sorted set of all-constant answer rows, with no timing at all" },
+  { axis = "failure_mode", theirs = "filing eagerly or conservatively before the item's identity is settled", ours = "SQL null logic or fresh-value evaluation, both of which drop answers forced by case analysis" },
+  { axis = "interaction", theirs = "difference tags forbidding merges that sameness tags would otherwise make", ours = "unused allowed values permitting fresh-value evaluation while joins and unions decide whether the used values cover every case" },
+]
+
+[search]
+queries = [
+  "certain answers incomplete database finite domains naive evaluation fails",
+  "labeled nulls certain answers union of conjunctive queries finite domain coNP algorithm",
+  "marked nulls query answering \"finite domain\" case analysis certain answer implementation",
+  "SQL nulls certain answers Libkin naive evaluation correctness",
+  "coding challenge certain answers placeholders query engine every completion benchmark task",
+]
+results = "the theory literature came back: naive evaluation of incomplete databases (Gheerbrant, Libkin, Sirangelo, TODS 2014), Libkin's papers on SQL three-valued logic against certain answers, Klein and Lipski on marked nulls, counting completions over finite domains (Arenas, Barcelo, Monet), and coNP dichotomies for consistent query answering. Every positive result assumes an infinite domain; the finite-domain results are hardness and counting results with no evaluation method. No task, exercise, benchmark or library found evaluates select-project-join-union queries over labelled placeholders with finite per-column domains, and none describes when fresh-value evaluation stays exact once some values are exhausted by the data."
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "query planner and join ordering"
+on_list = true
+departure = "the engine evaluates select-project-join-union queries, which is the planner's territory, but no plan, order or cost is graded and any join order passes; what is graded is which answers survive every filling of the placeholders, and a planner or an ordinary evaluator cannot produce that output at all, because both treat an unknown value as either a null that matches nothing or a value that matches itself, and neither can see an answer that only case analysis over a finite set of allowed values yields"
+substrate_used_before = false

@@ -1,0 +1,11 @@
+table ev 0..999999 0..999999999
+table kin 0..999999 0..999999
+row ev 1 ?w
+row ev 2 ?w
+row ev 3 ?v
+row ev 4 17
+row kin 1 4
+row kin 4 2
+rule pair X Y :- ev(X, W), ev(Y, W)
+rule far X :- ev(X, D), D != 0
+rule up X Z :- kin(X, Y), kin(Y, Z)

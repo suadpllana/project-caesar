@@ -1,0 +1,142 @@
+{
+ "bool-no": [
+  "ans flag 0"
+ ],
+ "bool-yes": [
+  "ans flag 1",
+  "flag"
+ ],
+ "const-atom": [
+  "ans gone 0",
+  "ans open 1",
+  "open 6"
+ ],
+ "cover-gap": [
+  "ans boss 0"
+ ],
+ "cover-join": [
+  "ans boss 1",
+  "boss 7 ann"
+ ],
+ "cover-split": [
+  "ans boss 0"
+ ],
+ "data-cover": [
+  "ans land 1",
+  "land 3 north"
+ ],
+ "dup-row": [
+  "ans who 1",
+  "who 1"
+ ],
+ "empty-table": [
+  "ans nil 0",
+  "ans who 1",
+  "who 1"
+ ],
+ "head-few": [
+  "ans set 0"
+ ],
+ "head-label": [
+  "ans who 0"
+ ],
+ "int-sym": [
+  "ans odd 0",
+  "ans all 1",
+  "all 1"
+ ],
+ "meet-cols": [
+  "ans boss 1",
+  "boss 7 ann"
+ ],
+ "ne-const": [
+  "ans go 1",
+  "go 2"
+ ],
+ "ne-tight": [
+  "ans keep 1",
+  "keep 6"
+ ],
+ "ne-trade": [
+  "ans go 1",
+  "go 1"
+ ],
+ "ne-trade-miss": [
+  "ans go 0"
+ ],
+ "ne-unallowed": [
+  "ans known 1",
+  "known 5"
+ ],
+ "ne-wide": [
+  "ans go 1",
+  "go 2"
+ ],
+ "one-value": [
+  "ans size 2",
+  "size 1 7",
+  "size 2 7"
+ ],
+ "order-mixed": [
+  "ans mix 5",
+  "mix 2 10",
+  "mix 9 ann",
+  "mix 10 9",
+  "mix 10 ann",
+  "mix 10 bob"
+ ],
+ "pigeon-spare": [
+  "ans clash 1",
+  "clash"
+ ],
+ "repeat-var": [
+  "ans loop 1",
+  "loop",
+  "ans tie 0",
+  "ans self 0"
+ ],
+ "self-same": [
+  "ans pair 4",
+  "pair 1 1",
+  "pair 1 2",
+  "pair 2 1",
+  "pair 2 2"
+ ],
+ "spare-enough": [
+  "ans at 0"
+ ],
+ "split-late": [
+  "ans live 1",
+  "live 9"
+ ],
+ "split-none": [
+  "ans live 0"
+ ],
+ "tight-tight": [
+  "ans z 1",
+  "z 6"
+ ],
+ "two-labels": [
+  "ans pair 2",
+  "pair 1 1",
+  "pair 2 2"
+ ],
+ "union-cover": [
+  "ans live 2",
+  "live 5",
+  "live 6"
+ ],
+ "union-hold": [
+  "ans live 1",
+  "live 5"
+ ],
+ "unread-labels": [
+  "ans where 2",
+  "where 7 2",
+  "where 8 3"
+ ],
+ "wild": [
+  "ans any 1",
+  "any 1"
+ ]
+}

@@ -324,6 +324,12 @@ def substrate_terms(text: str) -> set[str]:
         "engine", "tree", "file", "files", "line", "lines", "code", "task", "small",
         "simplified", "cut", "down", "tool", "app", "has", "have", "are", "was", "were",
         "which", "what", "when", "where", "does", "just", "only", "also", "than", "then",
+        # Function words. Two substrates that both say "whose" and "they" share grammar,
+        # not a system; counting them flagged a relational store as a code review tool.
+        "they", "them", "these", "those", "there", "here", "whose", "whom", "while",
+        "such", "some", "both", "other", "same", "more", "most", "may", "must", "will",
+        "been", "being", "about", "after", "before", "between", "through", "within",
+        "without", "until", "upon", "onto",
     }
     return {w for w in re.findall(r"[a-z][a-z0-9-]{3,}", text.lower()) if w not in stop}
 

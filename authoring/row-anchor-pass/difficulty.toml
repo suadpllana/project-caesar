@@ -1,0 +1,109 @@
+# Difficulty record for the easiness recovery of 2026-09-22 (the design after the probe solved the
+# submitted bundle 3 of 3). The design before it is summarised in tasks/row-anchor-pass/STATE.md,
+# "Easiness recovery - 2026-09-22", section 1; the three trajectories are in probes/row-anchor-pass/.
+
+[task]
+slug = "row-anchor-pass"
+status = "pending"
+sources = [
+  "tasks/row-anchor-pass/STATE.md",
+  "probes/row-anchor-pass/notes.md",
+  "authoring/row-anchor-pass/brute.py",
+  "authoring/row-anchor-pass/variants/",
+]
+expert_hours = 12
+estimated_solves = 2
+
+[plan]
+first_plan = "Keep a height per row that is the estimate until the row is measured and its real height after, sum the rows per group in a Fenwick tree with a second tree over group totals, point-update a row when it is measured, fix the anchoring modules to the brief, and add a heap that forgets the least recently seen row."
+first_plan_source = "prior"
+breaking_rule = "A row the pane does not remember is laid out as tall as the nearest remembered row above it in the flow, across any number of groups, so measuring or forgetting one row changes every height below it down to the next remembered row."
+second_discovery = "Pushing that change down group by group until a group that remembers a row stops it, or summing the group tops again from the first changed group, is exactly correct and cannot finish a reader scrolling down half a million groups, because every frame measures new rows at the bottom of the window and so changes the height carried into the whole rest of the document; the per-group totals the first index stores have to go, replaced by a summary of each run of groups that is linear in the height carried into it."
+second_discovery_effect = "replan"
+first_plan_correct = false
+expert_path = [
+  "Transcribe the rules into a brute-force model that recomputes every height from the flat item list",
+  "Rewrite band, window, hold, move and frame to the stated anchor line, gap, overscan, foot and pass rules",
+  "Replace the per-row index: rows before a group's first remembered row take the height carried in, the rest are fixed by the group",
+  "Summarise each group as added height, rows waiting for a carry and height handed on, and combine the summaries in a tree or in blocks",
+  "Keep the memory as a heap keyed by the pass that last had each row in its window, tie broken by flow order",
+  "Restrict the hold choice to headers and remembered rows, carry it through deletes by the pre-edit tops",
+  "Fuzz the pane against the brute-force model on small documents and time the three shipped large files",
+]
+
+[search]
+best_page = "Write-ups of list virtualization with dynamic row heights and scroll anchoring: a height cache keyed by row, an estimated size for the rest, prefix sums or a Fenwick tree, and a scroll adjustment when rows above the viewport are measured."
+helps_plan = false
+deviation = "Every write-up keeps a row's height on the row and a fixed estimate for the rest; here an unremembered row borrows the height of the nearest remembered row above it, the cache is bounded, and the anchor is chosen at the bottom of a pushed sticky band among laid-out items only, so the retrieved index is wrong rather than slow."
+
+[tactics]
+A1 = "The prior for a virtualized pane - a height per row, a fixed estimate for unmeasured rows, a measured row stays measured, anchor to whatever lies across the line - is coherent and wrong on each count here."
+A2 = "The brief describes the borrowed height, the bounded memory and the laid-out-only hold as behaviour; it never says carry-forward estimate, run, monoid, segment tree or LRU cache."
+A3 = "A height change over an unbounded run of rows, sublinear offset search and row inserts and deletes must all hold at once, and no single textbook index serves all three without the derived per-run summary."
+B2 = "The memory, the borrowed heights, the hold choice and the settle loop share one state: a measurement can evict a row far away and move the band, the hold top and the foot within the same pass."
+C1 = "Hand documents fence both sides of every rule: a carry across an empty group and a header that carries nothing, a memory large enough to never evict and one smaller than the window, a hold on a remembered row and one that falls back to the header."
+C2 = "A brute-force model written from the brief cannot run the scale family at all, and the shipped index is fast and exact for the prior model, so neither the agent's oracle nor the shipped code says the index is wrong."
+C3 = "A reader scrolling down half a million groups changes the carried height below the window on every frame: over the whole graded set the reference takes 18.0 s, a block decomposition 37.9 s and the re-summing repair 409.4 s against a 120 s limit, all with identical output."
+C4 = "Fifteen nonce families drawn after the agent has finished, shaped around carries across empty groups, deletes of the row a stretch borrows from, evictions mid-pass, jumps into unmeasured territory and the scale families, graded all or nothing against a sealed model."
+guard = "Only the six files under /app/pane are collected; the verifier lays them over its own pristine copy of the parser, the document model, the output writer and the driver, so the grammar, the real-height function and the line format cannot move."
+
+[decisions]
+graded = 14
+interactions = [
+  { a = "borrowed height", b = "band", why = "measuring or forgetting a row anywhere above the next header moves that header, which shortens or restores the band the offset is solved against" },
+  { a = "bounded memory", b = "borrowed height", why = "an eviction triggered by one measurement changes the height of every row below the forgotten one, possibly far outside the window, within the same pass" },
+  { a = "bounded memory", b = "hold choice", why = "the hold may only be a header or a remembered row, so which rows the memory kept decides which item is held and at what gap" },
+  { a = "borrowed height", b = "hold carry through a delete", why = "deleting the row a stretch borrows from changes the survivors' tops, so the gap has to use the tops as they stood before the edit" },
+  { a = "borrowed height", b = "foot", why = "a measurement changes the carried height of the whole rest of the document and so the total the foot is taken from" },
+  { a = "settle loop", b = "bounded memory", why = "a pass whose window holds more rows than the memory measures rows it will have forgotten by the next pass, so the loop can run to its cap" },
+]
+per_decision_feedback = false
+
+[fences]
+ordinary_case = "A frame over rows the pane already remembers, with a memory larger than the document, must settle in one pass and leave the offset exactly where the scroll put it, so over-correcting or re-measuring fails."
+late_case = "The half-million-group reader and the deletes that remove the row a long stretch borrows from, where a pane that is right on every small document is either too slow or wrong only after the carried height has crossed many groups."
+oracle_denied = "The agent's brute-force model of the brief is exact but cannot finish the scale family, the shipped geometry is fast and exact for a fixed estimate, and the one worked frame in the brief decides none of the carry, memory or hold-restriction readings."
+
+[leaks]
+candidates = [
+  { what = "the shipped geom.py index", closed_by = "it implements the prior (fixed estimate, per-row Fenwick, remember everything) coherently, so it names nothing about a borrowed height" },
+  { what = "the worked frame in the brief", closed_by = "chosen by search to be a frame on which no carry, eviction or hold fallback changes the line" },
+  { what = "the shipped event files", closed_by = "they carry no expected output; only the brief's one frame is printed" },
+  { what = "comments and docstrings in the tree", closed_by = "none ship; preflight rejects them" },
+]
+derived_quantities = "The tree ships row ids, header heights and height bounds only; no carried height, summary or pass stamp is stored anywhere the agent can read."
+oracle_shipped = false
+
+[gate]
+present = true
+naive_family = "The per-group index repaired by pushing the carried height down group by group until a group that remembers a row stops it, or by rebuilding group totals after each change."
+invariant = "Given the height carried into a run of groups, its rows before its first remembered row all take that height and the rest are fixed by the run, and the run hands on its last remembered row's height or what it was given, so runs compose."
+input_scale = "Three documents of five hundred thousand groups read from the top down with jumps and edits, beside six hundred groups of a hundred rows and nine hundred groups jumped across."
+limit_seconds = 120
+measured = true
+why_not = ""
+
+[cheats]
+wrong_readings = [
+  { reading = "the submitted reference: fixed estimate, remembers every row", hand_case = "carry-basic: unmeasured rows below a measured row in one group" },
+  { reading = "a borrowed height stops at the group boundary", hand_case = "carry-cross: the rows of the next group borrow from the last measured row above" },
+  { reading = "a header passes its height down", hand_case = "carry-header: a tall header between the measured row and the borrowers" },
+  { reading = "an empty group resets the carry to the estimate", hand_case = "carry-empty: a group with no rows between the source and the borrowers" },
+  { reading = "a deleted row keeps passing its height down", hand_case = "carry-del-source: the row a stretch borrows from is deleted" },
+  { reading = "an inserted row takes the estimate", hand_case = "carry-ins: rows inserted under a measured row borrow its height" },
+  { reading = "the memory forgets the row measured longest ago rather than seen longest ago", hand_case = "mem-seen: an old row seen again recently survives a newer row seen once" },
+  { reading = "a tie in the memory breaks toward the later row", hand_case = "mem-tie: two rows last seen by one pass, memory full, the earlier goes" },
+  { reading = "a row given up earlier in the same sweep is not measured again", hand_case = "mem-thrash: a window holding more rows than the memory, cap reached every frame" },
+  { reading = "the hold may be a row the pane does not remember", hand_case = "hold-jump: a jump into unmeasured rows holds the header above the line" },
+  { reading = "a hold carried through a delete must also be remembered", hand_case = "hold-carry-free: a delete removes the held row and the survivor is unmeasured" },
+  { reading = "the offset is not clamped again after an edit", hand_case = "edit-clamp: a delete shortens the document under an offset past the new foot" },
+]
+correct_variants = [
+  "authoring/row-anchor-pass/variants/blocks - groups summed in blocks instead of a tree",
+  "authoring/row-anchor-pass/variants/breaks - the groups that remember a row in a sorted list, with Fenwick trees",
+]
+
+[shape]
+environment_py_lines = 430
+editable_files = 6
+reference_lines = 430

@@ -1,0 +1,57 @@
+# Originality record for row-anchor-pass after the easiness recovery of 2026-09-22.
+# The task keeps its slug and substrate - a recovery is the same task resubmitted, not a new one -
+# and the record below is written for the recovered design.
+
+[task]
+slug = "row-anchor-pass"
+category = "Software"
+label = "Frontend"
+tags = ["list-virtualization", "scroll-anchoring", "sticky-headers", "borrowed-row-heights", "bounded-measurement-cache"]
+status = "pending"
+
+[mechanism]
+sentence = "Keep a reading position still across frames while unmeasured rows borrow the height of the nearest remembered row above them, a bounded memory forgets rows out of view, and a pushed sticky band sets the anchor line."
+substrate = "the layout half of a virtualized pane over grouped rows, whose heights it learns only by rendering them"
+graded_output = "one line per frame with the settled offset, pinned group, band, rendered window, held item and gap, rows measured and passes run, plus an end line"
+failure_mode = "a height per row that is the estimate until measured, summed per group in a tree, with a remembered row kept forever and the anchor taken at whatever lies across the line"
+interaction = "a measurement or an eviction changes the borrowed height of every row down to the next remembered one, which moves the next sticky header, the band, the held item's top and the foot inside the same pass"
+
+[nearest.public]
+name = "TanStack Virtual virtualizer documentation, with the React Virtuoso size-tree documentation beside it"
+url = "https://tanstack.com/virtual/latest/docs/api/virtualizer"
+covers = "Estimated sizes replaced by measured sizes, a measurement cache keyed by item, scroll adjustment when items above the viewport are measured, overscan, and sticky items."
+plans_this = false
+separation = "Both keep a fixed estimate, or Virtuoso's first-measured default, for every unmeasured item and never forget a measurement. Neither lets an unmeasured row borrow the height of the nearest measured row above it, bounds the memory, anchors below a pushed sticky band, or restricts the anchor to laid-out items."
+
+[nearest.submitted]
+name = "focus-return-point"
+source = "ledger"
+shares = "The same Frontend label and a per-event trace of what a UI component settles on after edits and removals under it."
+same_mechanism = false
+separation = "focus-return-point decides which widget holds keyboard focus in a widget tree with a screen stack and deferred focus effects; this task decides pixel offsets, rendered windows and anchor items in a virtualized pane from borrowed and forgotten row heights, and nothing about focus, widgets or dialogs appears in it."
+
+[axes]
+differentiators = [
+  { axis = "mechanism", theirs = "focus restoration through dialogs and removals", ours = "scroll anchoring over borrowed and forgotten row heights" },
+  { axis = "substrate", theirs = "a terminal widget toolkit with a screen stack", ours = "the layout half of a virtualized pane over grouped rows" },
+  { axis = "graded_output", theirs = "the focused widget after every event", ours = "offset, band, window, anchor item, gap, measurements and passes per frame" },
+  { axis = "failure_mode", theirs = "resolving the return point immediately or deferring everything", ours = "a per-row height index with a fixed estimate and a cache that never forgets" },
+  { axis = "interaction", theirs = "instance binding against nested render aborts", ours = "a measurement moving borrowed heights, the sticky band and the foot within one pass" },
+]
+
+[search]
+queries = [
+  "virtualized list unmeasured rows use height of last measured row estimate",
+  "virtual scroll sticky group header scroll anchoring measured row heights bounded cache LRU",
+  "react-virtuoso size tree default item size first measured item ranges",
+  "segment tree carry forward height estimate variable height list virtualization",
+]
+results = "The results are library documentation and issue threads: TanStack Virtual's fixed estimateSize replaced by measurements, Virtuoso's default height taken from the first rendered item, react-virtualized's advice to measure one row and map every row to it, an ASP.NET proposal using a running average, and several Fenwick height trees with anchor correction. None lets an unmeasured row borrow the nearest measured row above it, bounds the measurement memory, or anchors at the bottom of a pushed sticky band."
+twin_found = false
+twin = ""
+
+[collision]
+archetype = "virtualized and infinite lists"
+on_list = true
+departure = "Every write-up of the archetype keeps a height on the row it belongs to and a fixed or first-measured estimate for the rest, so a measurement changes one height and a per-row tree is the whole index. Here an unmeasured row borrows the height of the nearest remembered row above it and the memory forgets, so one measurement changes an unbounded run across groups, and the crowded form cannot even produce the per-frame band, anchor and window this task grades."
+substrate_used_before = false

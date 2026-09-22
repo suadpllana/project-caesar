@@ -306,3 +306,67 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-22, `row-anchor-pass` easiness recovery)
+
+The first build was solved 3 of 3, each agent in five or six steps: one read of the tree, one
+shipped defect per paragraph of the brief, the textbook per-group Fenwick index. The repair is a
+rule that makes that index wrong and its natural repair exactly correct and too slow - a row the
+pane does not remember borrows the height of the nearest remembered row above it - with a bounded
+memory and a hold restricted to laid-out items coupled into the anchoring rules.
+
+- **A trimmed gate output is a gate you did not read.** I ran eleven checks in one loop through
+  `| tail -8` and took `simcheck`'s last three findings for its only ones. The full report had
+  eleven, among them `tests/reap.py` byte-identical to expert-defer-shed's, and I saw them only
+  because a line-ratio script of my own disagreed with the verdict I had quoted. None were new -
+  every file scores the same as or lower than in the submission that reached the probe - but that
+  is known only because the whole output was then read. Read a gate in full, or count its
+  markers, before quoting it.
+- **A sentence describing a generated file is a count claim.** The brief said `wide.txt` is
+  "driven by two and a half thousand scrolls". It is 2,500 events: 2,011 scrolls, 391 jumps and 98
+  resizes, and the same phrase sat in two verifier docstrings. Every gate was green on it; counting
+  the shipped file by event kind found it. Check such a sentence against the maker's branches,
+  which hold for every seed, not against memory of writing the maker.
+- **A reading about unmeasured rows needs rows no window reaches.** The reading that a hold
+  carried through a delete lands only on a remembered row failed no hand case, and moved 0 or 1 of
+  144 generated documents: the case inserted rows beside the held row and deleted it a frame later,
+  and by then the insert frame's own passes had measured the new rows, because a window always
+  covers the hold and overscan covers what is next to it. It separated only once the case had no
+  overscan and a viewport ending at the held row, and `jump` deleted several rows at the top of a
+  document so the survivors had never been inside a window: 9 of 144, 34 of 60 `jump` documents.
+  When a reading turns on state the frame's own passes change, trace the passes before trusting
+  the case.
+- **Write `decisions.py` at the replan, not after the build.** The 2026-09-09 lesson says
+  `onelinecheck` measures what the easiness probe measures, and I ran it last, only because it
+  complained the file was missing. It came back OK: two of five decisions short, both rules the
+  brief states in one sentence, and the height a row stands at - `= shipped` by definition under
+  the first submission's rule - with no exact rule now. The design was right, but nothing had
+  checked it before the build, and a short answer found at the end would have sent the recovery
+  back to Stage 2 with everything already built.
+- **`pkill -f` matches the shell that runs it.** `pkill -f "time_all.py variants/naive-push"`
+  matched its own bash command line and killed it (exit 144), and the timing it was clearing the
+  way for never started. Kill by PID.
+- **A limit checked between documents is not a limit, and a killed run prints nothing.**
+  `time_all.py --limit 900` under `timeout 1000` left an empty file for the push repair: one long
+  document outlasted the whole window, so the check between documents never ran, and the empty
+  file read like a crash. `--each` now prints every large document as it finishes.
+- **A whole-set time is measured, not multiplied.** STATE.md said the lazy repair "takes about
+  426 s" on the three long documents - three times the 142 s of one. Measured over the whole set
+  it is 409.4 s, 403.7 s of it on the long documents. Close, and still a number presented as a
+  measurement that was not one.
+- **A warning class dismissed as false positives hid two true ones.** preflight's unused-function
+  check cannot see a method call - its pattern `(?<![\w.])name\s*\(` refuses a `.` before the
+  name - so it printed 29 warnings, and I recorded all 29 as false positives because the submitted
+  bundle had 24 and `publish-settle-order` 23. Checking each name against `.name(` in the shipped
+  tree found two that nothing called at all: `gindex` and `gbase`, added to the shipped `geom.py`
+  by this rebuild, and exactly the pair the reference uses to carry the hold through an edit - a
+  table of contents for the trap. A known-noisy check is still checked name by name, with a
+  script, every time it runs; "it always says that" is how a leak ships.
+- **A check that imports the emitter can rewrite the shipped cheats.** `readings.py` runs every
+  reading builder when it is imported, and `emit.write` wrote to the task's `cheat/` whatever called
+  it, so each `readingcheck` rewrote 44 of the 59 cheats - once while the two-stage trial was
+  replaying them. The rewrites were docstring-only (checked by AST with docstrings stripped, and
+  the checker checked on a planted code change), so no result moved; a reading changed between two
+  runs would have been tried in two versions inside one suite. `emit.write` now writes only under
+  `main()`. A measuring tool with a write side effect on a shipped directory is a bug, whoever
+  meant it as a convenience.

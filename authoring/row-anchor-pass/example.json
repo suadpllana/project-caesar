@@ -1,0 +1,21 @@
+{
+ "doc": [
+  "cfg 70 0 4 8 100000",
+  "g 1 14 9 9 5",
+  "g 2 18 8 8 6",
+  "g 3 18 10 10 5",
+  "scroll -6",
+  "scroll 8",
+  "scroll -16",
+  "go 119"
+ ],
+ "frame": 2,
+ "got": "f 2 s 0 g 1 b 14 w 0 6 h H1 0 m 0 p 1",
+ "want": "f 2 s 0 g 1 b 14 w 0 6 h R0 0 m 0 p 1",
+ "decides": [
+  "hold-first-visible",
+  "hold-gap-from-top",
+  "meas-counts-window",
+  "pass-counts-moves"
+ ]
+}

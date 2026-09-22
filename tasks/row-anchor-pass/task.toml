@@ -1,0 +1,212 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pane/geom.py",
+  "/app/pane/band.py",
+  "/app/pane/win.py",
+  "/app/pane/hold.py",
+  "/app/pane/move.py",
+  "/app/pane/frame.py",
+]
+
+[task]
+name = "afterquery/row-anchor-pass"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is the index those rules leave room for,
+and the first index anyone builds is the one they make wrong.
+
+The pane lays out a row it has never rendered at an estimate, and the prior for that is fixed:
+a height per row, the estimate until the row is measured and its real height after, summed per
+group in a tree with a point update per measurement. Every virtualization library keeps its
+cache that way and the shipped geometry is exactly that, fast and exact for the model it
+implements. Here a row the pane does not remember takes the real height of the nearest row above
+it that the pane does remember, in any group, headers not counting. So measuring one row, or
+forgetting one, changes the height of every row down to the next remembered one, across as many
+groups as lie between them, and a per-row cache with point updates is not slow but wrong.
+
+The repair that follows is to keep the per-group index and push the carried height down group by
+group until a group that remembers a row stops it, or to sum the group tops again from the first
+group that changed. Both are exactly correct, and neither finishes the family the brief states:
+a reader scrolling down half a million groups measures new rows at the bottom of every window,
+which changes the height carried into the whole rest of the document on every frame. Measured on
+one such document, the reference takes 4.6 seconds, a block decomposition 8.6 and the re-summing
+repair 142.0, all three with identical output; the graded set carries three. What finishes is a
+derivation from the rule rather than a structure it names: given the height carried into a run
+of groups, the run's rows before its first remembered row all take it and the rest are fixed by
+the run, which hands on its last remembered row's height or what it was given. A run is three
+numbers that compose, and a tree or blocks over the groups answer every question the pane asks.
+
+The memory is bounded. The pane keeps at most C heights and gives up the row it has seen least
+recently, where a pass sees every row of its window from the moment it works the window out and
+a tie goes to the row nearer the start of the flow; a delete frees its rows' places, a row given
+up earlier in the same sweep is measured again when the sweep reaches it. The pane's knowledge
+therefore shrinks as well as grows, an eviction triggered by one measurement changes heights far
+from the window inside the same pass, and the index has to take remembered rows away as well as
+add them. The hold is coupled to the same memory: the pane can hold only what it has laid out, a
+header or a remembered row, so after a jump into rows it has never measured it holds the header
+above the line and the jump lands where it was aimed however wrong the estimate was, while a hold
+carried through a delete may land anywhere.
+
+Around those sit the anchoring rules, each a fence with two sides: the item held is the one
+across the bottom of a sticky band that the next header pushes off, the offset is solved against
+the band the pass itself worked out, a frame is a bounded loop that settles only when a pass both
+measured nothing and left the offset alone, the foot is followed only when the movement left the
+pane on it, and a removed hold walks to the first survivor with its gap moved by the tops as they
+stood before the edit. band.py and move.py ship right; the other four ship a coherent pane for the
+familiar model, so reading them against the brief does not hand over the index.
+
+Identifiers are in a legacy register - `pane/`, `geom`, `band`, `win`, `hold`, `move`, `hh`, `rid`,
+`gtop`, `gbase` - short but never misleading, and no name misdescribes what it holds. That is a
+choice about the register of real layout code rather than an obstacle: each is recoverable from
+what calls it.
+
+The documents are synthetic, in fifteen families that concentrate what this class of pane gets
+wrong: runs of rows borrowing one height across empty groups and tall headers, deletes of the row
+a run borrows from, memories from one row up to about a window, jumps into rows never measured,
+headers pushed off constantly, estimates far enough from the truth that a pass's own measuring
+moves its window, panes driven to the foot and edited, and the three scale families. In a real
+application these concentrations are rare, and they are exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force.
+
+`geom.py` is where the work is. It keeps a segment tree over the groups whose nodes hold three
+numbers: what the node's groups add with no height carried into them, how many of their rows wait
+for a carried height, and the height they hand on (zero when they remember nothing). Two nodes
+compose - the right one's waiting rows take the left one's hand-on height when it has one - so a
+group's top and the height carried into it are one prefix walk, the total is the root with the
+estimate carried in, and the group holding an offset is one descent that carries the height down
+with it. Inside a group, the rows before its first remembered row are a multiple of the carried
+height and the rest a prefix array, rebuilt when that group changes. The memory lives here too: a
+dict of remembered rows, each with the last pass that saw it and its item index at that pass, and
+a heap keyed the same way with stale entries skipped, which gives up the row seen least recently
+and the earlier row on a tie. A measurement or an eviction only marks its group; the groups a
+sweep touched are summed again once, after the sweep, because nothing inside a sweep asks where
+anything is.
+
+`win.py` works out the window from the visibility predicate with overscan on both sides, stamps
+every remembered row of the window as seen by the pass, then goes through the window in item order
+and measures each row the pane does not remember at that moment. `hold.py` takes the item across
+the anchor line and walks back to the nearest header or remembered row when that item is a row the
+pane does not remember, and carries the hold through an edit: an insert only moves its index, and
+a delete that removes it walks to the first survivor after it, or the last before it, with the gap
+moved by the two tops as they stood before the edit. `frame.py` is the loop: movement, the foot
+flag, the hold, the edit, the clamp after the edit, then passes that each lay the band and window
+out from their starting offset, measure, and either follow the foot or solve the offset against
+the band that pass worked out, until a pass measures nothing and leaves the offset alone or the cap
+is reached. `band.py` and `move.py` ship right and stay as they are.
+
+An expert works in that order because the anchoring modules are a checklist against the brief and
+the index is not: a brute-force model of the rules settles the checklist on small documents, and
+timing the shipped half-million-group file shows that the index has to be rebuilt around the
+carried height rather than repaired. The same contract is implemented twice more in the authoring
+set - once as a sorted list of the groups that remember a row with Fenwick trees whose stretch
+weights are linear in the carried height, once as blocks of groups each holding the three numbers
+- so the tree is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/pane/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the event grammar, the document model, the real-height function,
+the line format and the driver cannot change what a document prints, and a new file put beside
+the six is never collected at all.
+
+Correct is defined twice over. Fifty-four hand documents, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen from the sealed model
+only after the model, the reference and a brute-force transcription of the rules agreed on every
+one; the grader first asserts that the model still reproduces `gt.json`, so a drifted model cannot
+quietly redefine correct. Three hundred and sixty-nine further documents are generated inside the
+verifier from a seed drawn after the agent's container is gone, across fifteen families: twelve
+small ones that concentrate borrowed heights across groups, deletes of the row a run borrows from,
+small memories, jumps into rows never measured, push-off, estimates far from the truth, the foot,
+edits that take the held item, boundary-aligned offsets, tight pass caps and degenerate documents,
+and three of each of the scale families. A submission cannot have seen them, so fitting the shipped
+samples fails, and so does carrying an answer key.
+
+The model is written apart from the reference and decomposed differently: it keeps the groups that
+remember a row in a sorted list, with Fenwick trees whose stretch weights are linear in the carried
+height, where the reference keeps a segment tree of composable three-number summaries. The two agree
+with each other and with the brute-force transcription on the fifty-four hand documents, on three
+thousand fuzzed small documents, and with each other on every generated family including the three
+scale families.
+
+The fences run both ways, and each wrong reading is failed by the enumerated document named for it,
+which `authoring/row-anchor-pass/cheat_report.py` asserts one by one. Keeping the estimate for every
+unmeasured row (the bundle the easiness probe solved) fails `carry-basic`; stopping the borrowed
+height at a group boundary fails `carry-cross`; letting a header lend its height fails
+`carry-header`; forgetting by measurement age instead of by last sight fails `mem-seen`; breaking a
+tie toward the later row fails `mem-tie`; judging a row by what the pass remembered when it began
+fails `mem-sweep-now`; keeping a deleted row in memory fails `mem-del`; holding a row the pane does
+not remember fails `hold-jump`; restricting a hold carried through a delete fails
+`hold-carry-free`; skipping the clamp after an edit fails `edit-clamp`; and the anchoring readings
+fail their own documents as before - `hold-under-band`, `band-push`, `band-at-top`, `win-edges`,
+`win-over-both`, `foot-leave`, `foot-grow`, `pass-two`, `pass-cap`, `pass-both-tests`,
+`pass-band-moves`, `edit-del-gap` and the rest.
+
+Fifty-nine cheats score 0. Forty-four are wrong readings, each caught by its named document. Two
+are exactly correct and too slow - the per-group index with the carried height pushed down group by
+group, and the group tops summed again from the first changed group - and only the execution limit
+separates them. Four are shortcut strategies - one fixed line for every frame, a pane that never
+corrects its offset, the brief's worked line replayed onto the shipped pane, and the frozen answers
+for every enumerated document carried in the pane, which passes all fifty-four and fails on the
+documents it could not have seen. The other nine are probes: the pane reaching for the frozen
+answers and the sealed model, a reward written late by a double-forked survivor, a worker record
+planted by another survivor, a record planted with the worker exited clean before it could be
+overwritten, a record handed out in the wrong shape, a uid and root-path check, the generator and
+the grading file rewritten, the seed and the size of the exam rewritten, and the working pane hidden
+in a seventh file beside the six that are collected. Two independently written correct panes score 1.
+
+The submitted code runs unprivileged, in its own session, under the 120 second wall clock that is
+also the task's execution limit. The model and the frozen answers sit in a directory that uid cannot
+read, so code running inside the verifier cannot compute its answers from them. The reward defaults
+to 0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Frontend"
+
+tags = [
+  "list-virtualization",
+  "scroll-anchoring",
+  "sticky-headers",
+  "borrowed-row-heights",
+  "bounded-measurement-cache",
+]
+
+expert_time_estimate_hours = 12
+
+relevant_experience = """
+Having owned the list virtualization layer of a desktop application shell: the part that renders a
+window of rows out of a document of hundreds of thousands of sections, learns row heights only by
+rendering them, keeps a bounded cache of those heights, and holds the reading position still while
+all of it changes underneath. Familiarity with estimating unrendered rows from the last row that
+was rendered, with what that does to every offset below it, with anchoring below a sticky header
+that the next header pushes off, and with a frame that lays out more than once because its own
+measuring moves what it has to render. Comfort with keeping an offset-to-row index affordable when
+one measurement can change the height of an unbounded run of rows, and with the difference between
+a layout that is correct and one that is affordable at the sizes a real log or chat history reaches.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

@@ -1,0 +1,231 @@
+schema_version = "1.3"
+
+artifacts = [
+  "/app/pane/geom.py",
+  "/app/pane/band.py",
+  "/app/pane/win.py",
+  "/app/pane/hold.py",
+  "/app/pane/move.py",
+  "/app/pane/frame.py",
+]
+
+[task]
+name = "afterquery/row-anchor-pass"
+
+[metadata]
+author_name = "Shiela marie"
+author_email = "aurigue.shielamarie20@gmail.com"
+
+difficulty_explanation = """
+Every rule is in the brief. What is not in the brief is which of the structures those rules seem
+to ask for survive all of them at once, and that is the work.
+
+The first plan is the published one and the shipped pane already is it. Keep the row heights in an
+array, estimated until a row is rendered. On each event move the offset, work out which rows fall
+inside the viewport, render and measure them, then take the rows above the first visible one, add
+up how much their measured heights differ from the estimates they replaced, and add that
+difference back to the offset so the top row does not jump. Every virtualization library does
+exactly this and so does the browser's own scroll anchoring, so retrieval does not correct it - it
+confirms it. It is also right on most frames here, which is why ordinary testing does not show it
+up: on a frame where nothing is measured, no edit lands and the pinned header does not change, the
+delta correction and the rule below give the same offset to the pixel.
+
+Two things make it wrong. The item the frame holds is the one lying across the anchor line, and
+the anchor line is the bottom of the pinned header rather than the top of the pane, so on any
+frame where an item is partly behind the pinned band the plan holds the wrong item at the wrong
+distance. And the pinned band is not a constant: the next group's header pushes it off from below,
+so the band shortens as the pane approaches that header, which means a measurement inside the
+pinned group moves the anchor line. The correction therefore stops being a sum of deltas and
+becomes a re-solve of the offset against a band that the frame's own work has just moved.
+
+The rule after that is the one that takes the plan apart rather than patching it. A frame is a
+bounded loop, not an adjustment. Solving the offset moves the window; the window measures rows
+nobody had rendered; those measurements move every top offset, the held item's and the next
+header's alike; the next header's position is what decides the band; and the band is what the
+offset was solved against. A pane that lays out once settles at an offset that its own
+measurements have already invalidated - and because a measured row stays measured, the rows it
+failed to render are rows every later frame is then missing. The error does not stay inside the
+frame that made it. Following the foot is the same shape: the foot is derived from the total and
+the pass's own measuring is what moves the total, so a pane that works the foot out before it
+lays out stops one screen short.
+
+Then the edits. The hold is taken before the source changes and carried through it, and when a
+delete removes it the hold walks to the first item that survives after it with its gap moved by
+the difference of the two tops as they stood before the edit. Re-choosing the hold after the edit
+is the natural implementation and gives a different item, a different gap and a different offset.
+
+The scale family decides what a correct structure is allowed to cost, and the fast path follows
+from a property of the document rather than from a technique: a height changes only where a row is
+measured or an edit lands, both bounded by the window, and the flow is partitioned into groups
+whose header, row count and height sum place any offset on their own, so a search descends over
+group sums and enters one group. Measured here against the 60 second limit for the whole graded
+set, one wide document of six hundred groups of a hundred rows takes 325.4 seconds with the flow
+held as one flat prefix array rebuilt whenever a height moves, and one deep document of nine
+hundred groups takes 67.4, against 0.40 and 0.21 seconds for the reference. Those readings produce
+the reference's traces exactly on everything they finish; the limit is the only thing separating
+them. The shipped geometry, which walks the flow from the start on every call, does not finish
+either one at all.
+
+Around those sit the ordinary decisions, each a fence with two sides: an item ending exactly on
+the top edge is not visible and one starting exactly on the bottom edge is not either, overscan
+counts above the viewport as well as below, a header standing exactly at the offset has pinned, a
+scroll of one pixel off the foot must not snap back, and a frame over rows that are already
+measured must leave the offset exactly where the scroll put it. Six editable files ship wrong, and
+the only feedback a wrong structure gets is one frame of one document printed in the brief.
+
+Identifiers are in a legacy register - `pane/`, `geom`, `band`, `win`, `hold`, `move`, `est`,
+`hh`, `rid`, `gtop`, `rh` - short but never misleading, and no name misdescribes what it holds.
+That is a choice about the register of real layout code rather than an obstacle: each is
+recoverable from what calls it.
+
+The documents are synthetic, in eleven families, with headers tall enough to be pushed off
+constantly, estimates far enough from the truth that a pass's own measuring moves its window,
+panes driven to the foot and then edited, deletes that take the held row and deletes that run to
+the end of the last group, every height equal so offsets land on boundaries, pass caps of one and
+two, and the two scale families. In a real application these concentrations are rare, and they are
+exactly where this class of bug lives.
+"""
+
+solution_explanation = """
+Six files, settled in the order the rules force rather than one that is tidy.
+
+`band.py` finds the pinned group by descending the group tops rather than walking them, and takes
+the band as the smaller of that header's height and the distance from the offset to the next
+group's header top, with the total standing in for that top in the last group. The push-off is the
+part the shipped pane never had, and it is what makes the band move when a row inside the pinned
+group is measured.
+
+`hold.py` chooses the item lying across the anchor line, not the first visible one, and takes the
+gap as that item's top less the line, which is zero or negative. Carrying the hold across an edit
+is where the ordering matters: the hold is read before the source changes, and when a delete
+removes it the hold walks to the first surviving item after it - the last surviving item before it
+when nothing follows - with the gap moved by the difference of the two tops as they stood before
+the edit. An insert only shifts the hold's place in the flow and leaves the gap alone, which is
+what makes the offset follow the rows pushed in above it.
+
+`win.py` is the visibility predicate and the overscan on both sides, plus the sweep that measures
+what the window has not measured. `move.py` applies the event's own movement, clamps, and reads
+the foot flag from what the movement left behind rather than from what preceded it.
+
+`frame.py` is the loop the first plan does not have. A pass lays the band and the window out from
+the offset it starts with, measures, then puts the offset at the foot when the flag is set and
+otherwise at the held item's top less the gap less the band that pass rendered with. The loop ends
+when a pass has measured nothing and left the offset alone, and at the cap otherwise; both halves
+of that condition are load-bearing, because a pass that measures without moving the offset is not
+settled and neither is one that moves the offset without measuring.
+
+`geom.py` is where the affordable structure lives. Two Fenwick trees over the groups carry the
+height sum and the item count, and one Fenwick inside each group carries its rows; an offset
+descends the group heights and then the rows of one group, an item's top is a prefix of each, a
+measurement is two point updates and an edit rebuilds one group's tree and moves two group totals.
+That is what the limit is for: the shipped walk and a flat prefix array rebuilt on every height
+change are both exactly correct and neither finishes the scale families.
+
+An expert works in that order because each file consumes the one before it: the band decides where
+the anchor line is, the line decides what is held and at what gap, the hold decides where the
+offset goes, the offset decides the window, the window decides what is measured, and the measuring
+moves the band back again. The same contract is implemented two further ways in the authoring set
+- one holding the flow as fixed-size chunks with a height sum per chunk and a walk inside one
+chunk, one holding per-group prefix arrays rebuilt lazily behind a dirty mark over a running array
+of group totals - so the shape is visibly not what is graded.
+"""
+
+verification_explanation = """
+Only the six files under `/app/pane/` are taken from the agent. The verifier lays them over its
+own pristine copy of the tree, so the event grammar, the document model, the row height function,
+the line format and the driver cannot change what a document prints, and a new file put beside
+the six is never collected at all.
+
+Correct is defined twice over. Thirty-four hand documents, one per graded decision plus the
+must-still-work side of each fence, are checked against `gt.json`, frozen before the grading file
+was written; the grader first asserts that the sealed model still reproduces `gt.json` exactly, so
+a model that had drifted could not quietly redefine correct. Three hundred and twenty-one further
+documents are generated inside the verifier from a seed drawn after the agent's container is gone,
+across eleven families that concentrate push-off, estimates far from the truth, the foot, edits
+that take the held item, deletes that run to the end of the document, boundary-aligned offsets,
+tight pass caps, degenerate documents and the two scale families. A submission cannot have seen
+them, so fitting the shipped samples fails, and so does carrying an answer key.
+
+The model is written apart from the reference and decomposed differently: it flattens the whole
+flow into one array with a block decomposition over it and rebuilds it outright on every edit,
+where the reference keeps the document's own partition into groups and moves its sums
+incrementally. The two agree on the thirty-four hand documents and over sixteen hundred generated
+ones.
+
+The fences run both ways. Holding the first visible item fails `band-at-top` and every other
+document in the set; measuring the gap from the top of the pane rather than from the anchor line
+fails the same way, and reversing its sign fails `band-last`. Showing the pinned header whole
+fails `band-push`; treating a header standing exactly at the offset as not yet pinned fails
+`band-at-top`. Counting an item that starts exactly on the bottom edge fails `win-edges`, and so
+does counting one that ends exactly on the top edge. Overscan on one side only fails `meas-over`,
+and measuring only what the viewport shows fails it too. Laying out once fails `pass-two`, running
+past the cap fails `pass-cap`, and stopping on either half of the settle condition alone fails
+`pass-both-tests`. Solving against a band recomputed after the measuring fails `pass-band-moves`.
+Reading the foot before the event's own movement fails `foot-leave`, working the foot out once per
+frame fails `foot-grow`, and anchoring a pane that rests at the foot fails `foot-rest`. Re-choosing
+the hold after an edit fails `edit-del-above`, falling back to the item before the removed run
+fails `edit-del-gap`, and carrying the gap unchanged fails it too. Skipping the clamp fails
+`clamp-foot`. Counting every rendered row as measured, or counting only the passes that changed
+something, fails every document in the set. A pane that corrects nothing fails `pass-still`, where
+the offset must end exactly where the scroll put it.
+
+Forty-one cheats score 0. Twenty-nine are wrong readings, each caught by the enumerated document
+named for it, which `authoring/row-anchor-pass/cheat_report.py` asserts one by one rather than
+taking the reward as evidence. Two are shortcut strategies - one fixed line for every frame, and a
+pane that never corrects its offset. One is a forgery carrying the frozen answers for every
+enumerated document, which passes all thirty-four and fails on the documents it could not have
+seen. The other nine are probes: the pane reaching for the frozen answers and the sealed model, a
+reward written late by a double-forked survivor, a worker record planted by another survivor, a
+record planted with the worker exited clean before it could be overwritten, a record handed out in
+the wrong shape, a uid and root-path check, the generator and the grading file rewritten, the seed
+and the size of the exam rewritten, and the working pane hidden in a seventh file beside the six
+that are collected. Two independently written correct panes score 1.
+
+The submitted code runs unprivileged, in its own session, under the wall clock that is also the
+task's execution limit. The model and the frozen answers sit in a directory that uid cannot read,
+so code running inside the verifier cannot compute its answers from them. The reward defaults to
+0, is written last by the privileged stage into a root-owned directory locked before any agent
+code runs, and anything the run left behind is reaped by owner first.
+"""
+
+category = "Software"
+
+subcategory = "Frontend"
+
+tags = [
+  "list-virtualization",
+  "scroll-anchoring",
+  "sticky-headers",
+  "incremental-measurement",
+  "order-statistic-index",
+]
+
+expert_time_estimate_hours = 9
+
+relevant_experience = """
+Having owned the list virtualization layer of a desktop application shell: the part that renders a
+window of rows out of a document of tens of thousands, learns their heights only by rendering
+them, and keeps the reading position still while that happens. Familiarity with the fact that
+anchoring to the first visible row is wrong the moment a header is pinned over it, that a frame
+which lays out once settles against a geometry its own measuring has already changed, and that
+following the foot of a growing document is not the same as clamping to it. Comfort with keeping
+an offset-to-row index affordable while heights arrive one window at a time and rows are inserted
+and deleted underneath it, and with the difference between a layout that is correct and one that
+is affordable at the row counts a real document reaches.
+"""
+
+[verifier]
+timeout_sec = 900.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 14400.0
+
+[environment]
+build_timeout_sec = 600.0
+
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+
+gpus = 0

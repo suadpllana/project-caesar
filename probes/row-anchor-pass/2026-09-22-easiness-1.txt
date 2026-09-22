@@ -1,0 +1,462 @@
+Easiness probe, trial 1 of 3 (platform trial id row-anchor-pass__EqLgJML).
+
+THIS FILE IS THE SOLVING AGENT'S OWN WORDS AND TOOL OUTPUT, AND NOTHING ELSE. The brief
+that opened the transcript was removed so that tools/leakcheck.py is not circular.
+Commentary lives in notes.md beside it.
+
+I'll start by reading the pane code and the event files, then run the tiny case.
+
+Bash(find . -type f | grep -v __pycache__ | sort && echo ---- && cat run_pane.py && for f in pane/*.py; do echo "==…)
+
+./evs/deep.txt
+./evs/pair.txt
+./evs/tiny.txt
+./evs/wide.txt
+./pane/__init__.py
+./pane/band.py
+./pane/frame.py
+./pane/geom.py
+./pane/hold.py
+./pane/move.py
+./pane/say.py
+./pane/spec.py
+./pane/src.py
+./pane/win.py
+./run_pane.py
+----
+import sys
+
+from pane import frame, say, spec, src
+
+
+def run(text):
+    cfg, decls, evs = spec.parse(text)
+    doc = src.Doc(decls)
+    out = say.Out()
+    frame.play(cfg, doc, evs, out)
+    return out.lines
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_pane.py <event-file>\n")
+        return 2
+    with open(argv[1], encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        lines = run(text)
+    except spec.Bad as exc:
+        sys.stderr.write("%s\n" % exc)
+        return 1
+    for line in lines:
+        print(line)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+==== pane/__init__.py
+==== pane/band.py
+def pinned(gm, off):
+    gi = 0
+    n = gm.ngroups()
+    k = 0
+    while k < n:
+        if gm.gtop(k) > off:
+            break
+        gi = k
+        k += 1
+    return gi
+
+
+def band(gm, off):
+    gi = pinned(gm, off)
+    return gi, gm.ghh(gi)
+==== pane/frame.py
+from pane import band, geom, hold, move, win
+
+
+class St:
+    __slots__ = ("off", "vh", "foot")
+
+    def __init__(self, vh):
+        self.off = 0
+        self.vh = vh
+        self.foot = False
+
+
+def settle(gm, st, cfg, held):
+    gi, b = band.band(gm, st.off)
+    w0, w1 = win.bounds(gm, st.off, st.vh, cfg.over)
+    was = gm.top(held[0])
+    m = win.sweep(gm, w0, w1)
+    if st.foot:
+        st.off = move.foot(gm.total(), st.vh)
+    else:
+        st.off = move.clamp(st.off + gm.top(held[0]) - was, gm.total(), st.vh)
+    return gi, b, w0, w1, m, 1
+
+
+def play(cfg, doc, evs, out):
+    gm = geom.Geom(doc)
+    st = St(cfg.vh)
+    for i, ev in enumerate(evs):
+        move.apply(gm, st, ev)
+        gi, b = band.band(gm, st.off)
+        held = hold.take(gm, st.off)
+        if ev[0] in ("ins", "del"):
+            held = hold.track(gm, held, ev, st.off)
+        gi, b, w0, w1, m, p = settle(gm, st, cfg, held)
+        out.frame(i, st.off, gm.ggid(gi), b, w0, w1, held[1], held[2], m, p)
+    out.end(st.off, gm.total(), doc.meas)
+==== pane/geom.py
+class Geom:
+    __slots__ = ("doc",)
+
+    def __init__(self, doc):
+        self.doc = doc
+
+    def ngroups(self):
+        return len(self.doc.gs)
+
+    def ggid(self, gi):
+        return self.doc.gs[gi].gid
+
+    def ghh(self, gi):
+        return self.doc.gs[gi].hh
+
+    def gtop(self, gi):
+        y = 0
+        for g in self.doc.gs[:gi]:
+            y += g.hh
+            for rid in g.rows:
+                y += self.doc.rh(g, rid)
+        return y
+
+    def count(self):
+        i = 0
+        for g in self.doc.gs:
+            i += 1 + len(g.rows)
+        return i
+
+    def total(self):
+        y = 0
+        for g in self.doc.gs:
+            y += g.hh
+            for rid in g.rows:
+                y += self.doc.rh(g, rid)
+        return y
+
+    def _place(self, i):
+        for g in self.doc.gs:
+            if i == 0:
+                return g, -1
+            i -= 1
+            if i < len(g.rows):
+                return g, i
+            i -= len(g.rows)
+        return None, -1
+
+    def top(self, i):
+        y = 0
+        for g in self.doc.gs:
+            if i == 0:
+                return y
+            y += g.hh
+            i -= 1
+            if i < len(g.rows):
+                for rid in g.rows[:i]:
+                    y += self.doc.rh(g, rid)
+                return y
+            for rid in g.rows:
+                y += self.doc.rh(g, rid)
+            i -= len(g.rows)
+        return y
+
+    def at(self, y):
+        i = 0
+        run = 0
+        for g in self.doc.gs:
+            if run + g.hh > y:
+                return i
+            run += g.hh
+            i += 1
+            for rid in g.rows:
+                h = self.doc.rh(g, rid)
+                if run + h > y:
+                    return i
+                run += h
+                i += 1
+        return i - 1
+
+    def key(self, i):
+        g, k = self._place(i)
+        if k < 0:
+            return "H%d" % g.gid
+        return "R%d" % g.rows[k]
+
+    def mark(self, i):
+        g, k = self._place(i)
+        if k < 0:
+            return 0
+        return self.doc.mark(g, g.rows[k])
+
+    def ins(self, gid, pos, n):
+        g = self.doc.byid[gid]
+        g.rows[pos:pos] = self.doc.fresh(g, n)
+
+    def dele(self, gid, pos, n):
+        g = self.doc.byid[gid]
+        del g.rows[pos:pos + n]
+==== pane/hold.py
+def take(gm, off):
+    i = gm.at(off)
+    return i, gm.key(i), gm.top(i) - off
+
+
+def track(gm, held, ev, off):
+    kind, gid, pos, n = ev
+    if kind == "ins":
+        gm.ins(gid, pos, n)
+    else:
+        gm.dele(gid, pos, n)
+    return take(gm, off)
+==== pane/move.py
+def foot(total, vh):
+    f = total - vh
+    return f if f > 0 else 0
+
+
+def clamp(off, total, vh):
+    f = foot(total, vh)
+    if off < 0:
+        return 0
+    if off > f:
+        return f
+    return off
+
+
+def apply(gm, st, ev):
+    st.foot = st.off == foot(gm.total(), st.vh)
+    kind = ev[0]
+    if kind == "scroll":
+        st.off += ev[1]
+    elif kind == "go":
+        st.off = ev[1]
+    elif kind == "size":
+        st.vh = ev[1]
+    st.off = clamp(st.off, gm.total(), st.vh)
+==== pane/say.py
+class Out:
+    __slots__ = ("lines",)
+
+    def __init__(self):
+        self.lines = []
+
+    def frame(self, i, off, gid, band, w0, w1, key, gap, m, p):
+        self.lines.append(
+            "f %d s %d g %d b %d w %d %d h %s %d m %d p %d"
+            % (i, off, gid, band, w0, w1, key, gap, m, p)
+        )
+
+    def end(self, off, total, m):
+        self.lines.append("end s %d t %d m %d" % (off, total, m))
+==== pane/spec.py
+class Bad(Exception):
+    pass
+
+
+class Cfg:
+    __slots__ = ("vh", "over", "pcap")
+
+    def __init__(self, vh, over, pcap):
+        self.vh = vh
+        self.over = over
+        self.pcap = pcap
+
+
+def _ints(bits, want, kind):
+    if len(bits) != want:
+        raise Bad("bad %s line" % kind)
+    try:
+        return
+… [clipped]
+collapse
+Bash(cat evs/pair.txt; echo ----; python3 run_pane.py evs/tiny.txt; echo "rc=$?"; head -3 evs/wide.txt; head -3 evs…)
+
+cfg 45 1 4
+g 1 10 6 24 24 8
+g 2 22 6 6 6 3
+g 3 10 6 24 24 8
+go 70
+ins 1 2 3
+scroll 40
+del 1 1 4
+go 4000
+scroll -1
+ins 3 8 2
+size 120
+----
+f 0 s 30 g 1 b 18 w 2 10 h R1 -5 m 8 p 1
+f 1 s 52 g 2 b 18 w 5 8 h H2 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 5 9 h H2 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 5 8 h H2 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h H1 0 m 1 p 1
+end s 0 t 234 m 9
+rc=0
+cfg 900 2 4
+g 1 12 14 9 20 100
+g 2 13 15 10 22 100
+cfg 600 1 4
+g 1 20 5 25 39 30
+g 2 21 6 26 41 30
+tail: option used in invalid context -- 2
+evs/wide.txt:600
+evs/deep.txt:900
+      1 cfg
+    407 go
+   1998 scroll
+     95 size
+      1 cfg
+    215 del
+   1442 go
+    218 ins
+    625 scroll
+
+[stdout]
+cfg 45 1 4
+g 1 10 6 24 24 8
+g 2 22 6 6 6 3
+g 3 10 6 24 24 8
+go 70
+ins 1 2 3
+scroll 40
+del 1 1 4
+go 4000
+scroll -1
+ins 3 8 2
+size 120
+----
+f 0 s 30 g 1 b 18 w 2 10 h R1 -5 m 8 p 1
+f 1 s 52 g 2 b 18 w 5 8 h H2 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 5 9 h H2 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 5 8 h H2 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h H1 0 m 1 p 1
+end s 0 t 234 m 9
+rc=0
+cfg 900 2 4
+g 1 12 14 9 20 100
+g 2 13 15 10 22 100
+cfg 600 1 4
+g 1 20 5 25 39 30
+g 2 21 6 26 41 30
+tail: option used in invalid context -- 2
+evs/wide.txt:600
+evs/deep.txt:900
+      1 cfg
+    407 go
+   1998 scroll
+     95 size
+      1 cfg
+    215 del
+   1442 go
+    218 ins
+    625 scroll
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+I've found several spec deviations in the current code (hold anchor offset, missing window extension, foot detection order, single-pass logic) plus O(n) geometry that won't scale. I'll rewrite the six files using Fenwick-tree geometry and the correct frame order.
+
+Bash({"command":"cat > pane/geom.py <<'EOF'\nclass Fen:\n __slots__ = (\"n\", \"t\", \"hb\")\n\n def __init__(self,…)
+
+f 0 s 30 g 1 b 16 w 1 7 h H2 0 m 9 p 2
+f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 4 9 h R4 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 4 8 h R4 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h R0 0 m 0 p 1
+end s 0 t 234 m 9
+---
+f 0 s 88 g 2 b 22 w 8 15 h R10 0 m 7 p 2
+f 1 s 124 g 2 b 22 w 11 18 h R10 0 m 1 p 4
+f 2 s 164 g 3 b 10 w 16 19 h R11 -12 m 0 p 1
+f 3 s 140 g 3 b 10 w 12 15 h R11 -12 m 1 p 2
+f 4 s 285 g 3 b 10 w 18 20 h R14 -13 m 4 p 2
+f 5 s 284 g 3 b 10 w 18 20 h R17 -12 m 0 p 1
+f 6 s 284 g 3 b 10 w 18 21 h R17 -12 m 1 p 2
+f 7 s 258 g 3 b 10 w 17 22 h R15 -16 m 1 p 2
+end s 258 t 378 m 15
+---
+f 2499 s 314302 g 187 b 16 w 18807 18842 h R18623 -4 m 0 p 1
+end s 314302 t 1010466 m 35486
+
+real	0m0.279s
+user	0m0.252s
+sys	0m0.022s
+f 2499 s 487174 g 586 b 22 w 18215 18236 h R17555 -13 m 0 p 1
+end s 487174 t 746675 m 18281
+
+real	0m0.200s
+user	0m0.181s
+sys	0m0.019s
+
+[stdout]
+f 0 s 30 g 1 b 16 w 1 7 h H2 0 m 9 p 2
+f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 4 9 h R4 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 4 8 h R4 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h R0 0 m 0 p 1
+end s 0 t 234 m 9
+---
+f 0 s 88 g 2 b 22 w 8 15 h R10 0 m 7 p 2
+f 1 s 124 g 2 b 22 w 11 18 h R10 0 m 1 p 4
+f 2 s 164 g 3 b 10 w 16 19 h R11 -12 m 0 p 1
+f 3 s 140 g 3 b 10 w 12 15 h R11 -12 m 1 p 2
+f 4 s 285 g 3 b 10 w 18 20 h R14 -13 m 4 p 2
+f 5 s 284 g 3 b 10 w 18 20 h R17 -12 m 0 p 1
+f 6 s 284 g 3 b 10 w 18 21 h R17 -12 m 1 p 2
+f 7 s 258 g 3 b 10 w 17 22 h R15 -16 m 1 p 2
+end s 258 t 378 m 15
+---
+f 2499 s 314302 g 187 b 16 w 18807 18842 h R18623 -4 m 0 p 1
+end s 314302 t 1010466 m 35486
+
+real	0m0.279s
+user	0m0.252s
+sys	0m0.022s
+f 2499 s 487174 g 586 b 22 w 18215 18236 h R17555 -13 m 0 p 1
+end s 487174 t 746675 m 18281
+
+real	0m0.200s
+user	0m0.181s
+sys	0m0.019s
+[metadata] {"noOutputExpected": false}
+collapse
+Frame 1 of `tiny.txt` now reads exactly `f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1`, and I hand-checked frame 0 against the spec as well. Both large runs finish in well under a second.
+
+**What was wrong** in the rewritten half:
+
+- The hold was taken at the offset, not at the anchor line (offset plus band), so it held the first visible item rather than the item across the line.
+- The band was always the full header height. It never shrank when the next group's header pushed the pinned one off.
+- The window only extended K items below the viewport, never above, and the last visible item was computed at offset plus viewport rather than the last pixel inside it.
+- Foot-following was decided before the movement was applied instead of after.
+- Settling ran exactly one pass, and moved the offset by the held item's displacement instead of placing it at top minus gap minus band.
+- On a delete that removed the held item, the hold was simply retaken at the offset, with no transfer to the surviving neighbour and no gap adjustment.
+- Every geometry query walked the whole document, which would not have scaled.
+
+**What I changed**, within the six permitted files:
+
+- `pane/geom.py` now keeps Fenwick trees over group heights, group item counts and per-group row heights, so tops, item lookup and pinned-group lookup are logarithmic. Measuring updates the trees in place. Inserts and deletes rebuild only the affected group's tree.
+- `pane/band.py` computes the band as the smaller of the header height and the distance to the next header top, with the total standing in for the last group.
+- `pane/win.py` clips K items on both sides and uses the last pixel of the viewport for the last visible item.
+- `pane/hold.py` holds an item by group and row id, and on a removing delete moves to the first survivor after it, or the last before it, shifting the gap by the difference of their pre-edit tops.
+- `pane/move.py` sets the foot flag after the movement and clamp.
+- `pane/frame.py` runs up to P passes in the spec'd order and reports the last pass's band, group and window.
+
+Timings for the two big shapes:
+
+| file | time |
+|---|---|
+| `evs/wide.txt` | 0.28 s |
+| `evs/deep.txt` | 0.20 s |
+
+Nothing outside the six files was touched.

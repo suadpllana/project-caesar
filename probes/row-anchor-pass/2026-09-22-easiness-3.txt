@@ -1,0 +1,368 @@
+Easiness probe, trial 3 of 3 (platform trial id row-anchor-pass__uvZvm2g).
+
+THIS FILE IS THE SOLVING AGENT'S OWN WORDS AND TOOL OUTPUT, AND NOTHING ELSE. The brief
+that opened the transcript was removed so that tools/leakcheck.py is not circular.
+Commentary lives in notes.md beside it.
+
+I'll start by reading the pane code and the event files.
+
+Bash(find . -type f | grep -v __pycache__ | sort && echo ---- && cat run_pane.py && for f in pane/*.py; do echo "==…)
+
+./evs/deep.txt
+./evs/pair.txt
+./evs/tiny.txt
+./evs/wide.txt
+./pane/__init__.py
+./pane/band.py
+./pane/frame.py
+./pane/geom.py
+./pane/hold.py
+./pane/move.py
+./pane/say.py
+./pane/spec.py
+./pane/src.py
+./pane/win.py
+./run_pane.py
+----
+import sys
+
+from pane import frame, say, spec, src
+
+
+def run(text):
+    cfg, decls, evs = spec.parse(text)
+    doc = src.Doc(decls)
+    out = say.Out()
+    frame.play(cfg, doc, evs, out)
+    return out.lines
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_pane.py <event-file>\n")
+        return 2
+    with open(argv[1], encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        lines = run(text)
+    except spec.Bad as exc:
+        sys.stderr.write("%s\n" % exc)
+        return 1
+    for line in lines:
+        print(line)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+==== pane/__init__.py
+==== pane/band.py
+     1	def pinned(gm, off):
+     2	    gi = 0
+     3	    n = gm.ngroups()
+     4	    k = 0
+     5	    while k < n:
+     6	        if gm.gtop(k) > off:
+     7	            break
+     8	        gi = k
+     9	        k += 1
+    10	    return gi
+    11	
+    12	
+    13	def band(gm, off):
+    14	    gi = pinned(gm, off)
+    15	    return gi, gm.ghh(gi)
+==== pane/frame.py
+     1	from pane import band, geom, hold, move, win
+     2	
+     3	
+     4	class St:
+     5	    __slots__ = ("off", "vh", "foot")
+     6	
+     7	    def __init__(self, vh):
+     8	        self.off = 0
+     9	        self.vh = vh
+    10	        self.foot = False
+    11	
+    12	
+    13	def settle(gm, st, cfg, held):
+    14	    gi, b = band.band(gm, st.off)
+    15	    w0, w1 = win.bounds(gm, st.off, st.vh, cfg.over)
+    16	    was = gm.top(held[0])
+    17	    m = win.sweep(gm, w0, w1)
+    18	    if st.foot:
+    19	        st.off = move.foot(gm.total(), st.vh)
+    20	    else:
+    21	        st.off = move.clamp(st.off + gm.top(held[0]) - was, gm.total(), st.vh)
+    22	    return gi, b, w0, w1, m, 1
+    23	
+    24	
+    25	def play(cfg, doc, evs, out):
+    26	    gm = geom.Geom(doc)
+    27	    st = St(cfg.vh)
+    28	    for i, ev in enumerate(evs):
+    29	        move.apply(gm, st, ev)
+    30	        gi, b = band.band(gm, st.off)
+    31	        held = hold.take(gm, st.off)
+    32	        if ev[0] in ("ins", "del"):
+    33	            held = hold.track(gm, held, ev, st.off)
+    34	        gi, b, w0, w1, m, p = settle(gm, st, cfg, held)
+    35	        out.frame(i, st.off, gm.ggid(gi), b, w0, w1, held[1], held[2], m, p)
+    36	    out.end(st.off, gm.total(), doc.meas)
+==== pane/geom.py
+     1	class Geom:
+     2	    __slots__ = ("doc",)
+     3	
+     4	    def __init__(self, doc):
+     5	        self.doc = doc
+     6	
+     7	    def ngroups(self):
+     8	        return len(self.doc.gs)
+     9	
+    10	    def ggid(self, gi):
+    11	        return self.doc.gs[gi].gid
+    12	
+    13	    def ghh(self, gi):
+    14	        return self.doc.gs[gi].hh
+    15	
+    16	    def gtop(self, gi):
+    17	        y = 0
+    18	        for g in self.doc.gs[:gi]:
+    19	            y += g.hh
+    20	            for rid in g.rows:
+    21	                y += self.doc.rh(g, rid)
+    22	        return y
+    23	
+    24	    def count(self):
+    25	        i = 0
+    26	        for g in self.doc.gs:
+    27	            i += 1 + len(g.rows)
+    28	        return i
+    29	
+    30	    def total(self):
+    31	        y = 0
+    32	        for g in self.doc.gs:
+    33	            y += g.hh
+    34	            for rid in g.rows:
+    35	                y += self.doc.rh(g, rid)
+    36	        return y
+    37	
+    38	    def _place(self, i):
+    39	        for g in self.doc.gs:
+    40	            if i == 0:
+    41	                return g, -1
+    42	            i -= 1
+    43	            if i < len(g.rows):
+    44	                return g, i
+    45	            i -= len(g.rows)
+    46	        return None, -1
+    47	
+    48	    def top(self, i):
+    49	        y = 0
+    50	        for g in self.doc.gs:
+    51	            if i == 0:
+    52	                return y
+    53	            y += g.hh
+    54	            i -= 1
+    55	            if i < len(g.rows):
+    56	                for rid in g.rows[:i]:
+    57	                    y += self.doc.rh(g, rid)
+    58	                return y
+    59	            for rid in g.rows:
+    60	                y += self.doc.rh(g, rid)
+    61	            i -= len(g.rows)
+    62	        return y
+    63	
+    64	    def at(self, y):
+    65	        i = 0
+    66	        run = 0
+    67	        for g in self.doc.gs:
+    68	            if run + g.hh > y:
+    69	                return i
+    70	            run += g.hh
+    71	            i += 1
+    72	            for rid in g.rows:
+    73	                h = self.doc.rh(g, rid)
+    74	                if run + h > y:
+    75	                    return i
+    76	                run += h
+    77	                i += 1
+    78	        return i - 1
+    79	
+    80	    def key(self, i):
+    81	        g, k = self._place(i)
+    82	        if k < 0:
+    83	            return "H%d" % g.gid
+    84	        return "R%d" % g.rows[k]
+    85	
+    86	    def mark(self, i):
+    87	        g, k = self._place(i)
+    88	        if k < 0:
+    89	            return 0
+    90	        return self.doc.mark(g, g.rows[k])
+    91	
+    92	    def ins(self, gid, pos, n):
+    93	        g = self.doc.byid[gid]
+    94	        g.rows[pos:pos] = self.doc.fresh(g, n)
+    95	
+    96	    def dele(self, gid, pos, n):
+    97	        g = self.doc.byid[gid]
+    98	        del g.rows[pos:pos + n]
+==== pane/hold.py
+     1	def take(gm, off):
+     2	    i = gm.at(off)
+     3	    return i, gm.key(i), gm.top(i) - off
+     4	
+     5	
+     6	def track(gm, held, ev, off):
+     7	    kind, gid, pos, n = ev
+     8	    if kind == "ins":
+     9	        gm.ins(gid, pos, n)
+    10	    else:
+    11	        gm.dele(gid, pos, n)
+    12	    return take(gm, off)
+==== pane/move.py
+     1	def foot(total, vh):
+     2	    f = total - vh
+     3	    return f if f > 0 else 0
+     4	
+     5	
+     6
+… [clipped]
+collapse
+Thinking…
+I've identified several semantic bugs (band, hold, window, foot flag ordering) plus inefficient linear-scan geometry queries. I'll rewrite the six files using cached prefix sums and the correct frame order.
+
+Bash(head -3 evs/pair.txt && grep -c . evs/deep.txt && grep '^g ' evs/deep.txt | awk '{s+=$7} END{print "deep rows"…)
+
+cfg 45 1 4
+g 1 10 6 24 24 8
+g 2 22 6 6 6 3
+3401
+deep rows 27000
+      1 cfg
+    215 del
+   1442 go
+    218 ins
+    625 scroll
+      1 cfg
+    407 go
+   1998 scroll
+     95 size
+
+[stdout]
+cfg 45 1 4
+g 1 10 6 24 24 8
+g 2 22 6 6 6 3
+3401
+deep rows 27000
+      1 cfg
+    215 del
+   1442 go
+    218 ins
+    625 scroll
+      1 cfg
+    407 go
+   1998 scroll
+     95 size
+[metadata] {"noOutputExpected": false}
+collapse
+Bash({"command":"cat > pane/geom.py <<'EOF'\nfrom bisect import bisect_right\n\n\nclass Geom:\n __slots__ = (\"doc\…)
+
+f 0 s 30 g 1 b 16 w 1 7 h H2 0 m 9 p 2
+f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 4 9 h R4 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 4 8 h R4 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h R0 0 m 0 p 1
+end s 0 t 234 m 9
+f 0 s 88 g 2 b 22 w 8 15 h R10 0 m 7 p 2
+f 1 s 124 g 2 b 22 w 11 18 h R10 0 m 1 p 4
+f 2 s 164 g 3 b 10 w 16 19 h R11 -12 m 0 p 1
+f 3 s 140 g 3 b 10 w 12 15 h R11 -12 m 1 p 2
+f 4 s 285 g 3 b 10 w 18 20 h R14 -13 m 4 p 2
+f 5 s 284 g 3 b 10 w 18 20 h R17 -12 m 0 p 1
+f 6 s 284 g 3 b 10 w 18 21 h R17 -12 m 1 p 2
+f 7 s 258 g 3 b 10 w 17 22 h R15 -16 m 1 p 2
+end s 258 t 378 m 15
+f 2499 s 314302 g 187 b 16 w 18807 18842 h R18623 -4 m 0 p 1
+end s 314302 t 1010466 m 35486
+
+real	0m0.367s
+user	0m0.339s
+sys	0m0.029s
+f 2499 s 487174 g 586 b 22 w 18215 18236 h R17555 -13 m 0 p 1
+end s 487174 t 746675 m 18281
+
+real	0m0.261s
+user	0m0.235s
+sys	0m0.021s
+
+[stdout]
+f 0 s 30 g 1 b 16 w 1 7 h H2 0 m 9 p 2
+f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 4 9 h R4 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 4 8 h R4 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h R0 0 m 0 p 1
+end s 0 t 234 m 9
+f 0 s 88 g 2 b 22 w 8 15 h R10 0 m 7 p 2
+f 1 s 124 g 2 b 22 w 11 18 h R10 0 m 1 p 4
+f 2 s 164 g 3 b 10 w 16 19 h R11 -12 m 0 p 1
+f 3 s 140 g 3 b 10 w 12 15 h R11 -12 m 1 p 2
+f 4 s 285 g 3 b 10 w 18 20 h R14 -13 m 4 p 2
+f 5 s 284 g 3 b 10 w 18 20 h R17 -12 m 0 p 1
+f 6 s 284 g 3 b 10 w 18 21 h R17 -12 m 1 p 2
+f 7 s 258 g 3 b 10 w 17 22 h R15 -16 m 1 p 2
+end s 258 t 378 m 15
+f 2499 s 314302 g 187 b 16 w 18807 18842 h R18623 -4 m 0 p 1
+end s 314302 t 1010466 m 35486
+
+real	0m0.367s
+user	0m0.339s
+sys	0m0.029s
+f 2499 s 487174 g 586 b 22 w 18215 18236 h R17555 -13 m 0 p 1
+end s 487174 t 746675 m 18281
+
+real	0m0.261s
+user	0m0.235s
+sys	0m0.021s
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Frame 1 now matches exactly and both large files run well under a second. Next I'll cross-check the cached geometry against a naive reference using random documents with inserts and deletes.
+
+Bash(cat > /tmp/ref.py <<'EOF' import sys, random MIX=2654435761 def run(text): lines=[l.split() for l in text.spli…)
+
+mismatches 0
+tiny True
+pair True
+
+[stdout]
+mismatches 0
+tiny True
+pair True
+[metadata] {"noOutputExpected": false}
+collapse
+The rewrite is complete and verified.
+
+**What was wrong** in the six layout files:
+- The band was just the pinned header's height. It now takes the smaller of that and the distance to the next header, with the total standing in for the last group.
+- The hold was taken at the offset rather than the anchor line, so it caught the first visible item instead of the item across the line.
+- The window started at the first visible item with no overscan above it, and used `off + vh` for the last visible item rather than the last item whose top is below it.
+- The foot flag was set before the movement was applied, and the settle loop ran a single pass with an ad hoc offset delta instead of re-anchoring on the held item less gap less band, up to P passes.
+- Removing the held row did not carry the gap over to the surviving neighbour.
+- Every geometry query walked the whole document, which made the two big files impractical.
+
+**What I changed.** `pane/geom.py` now caches per-group row prefix sums and group-level top and item-index prefixes, rebuilt lazily only for groups touched by measuring or edits. Lookups are binary searches. The other five files implement the frame order as specified: move and clamp, set the foot flag, take the hold at the anchor line, apply the edit and re-home the hold if its row was deleted, then settle.
+
+**Verification.**
+- Frame 1 of `evs/tiny.txt` now prints `f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1`.
+- I wrote an independent brute-force reference of the spec and compared it on 3000 random generated documents with scrolls, jumps, resizes, inserts and deletes. All 3000 matched, as did the two small event files.
+
+**Timing.**
+
+| File | Wall time |
+|---|---|
+| `evs/wide.txt` | 0.37 s |
+| `evs/deep.txt` | 0.26 s |
+
+The graded set of about 355 documents, including six of the large shapes, comes in well under the 60 second budget.

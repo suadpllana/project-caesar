@@ -1,0 +1,426 @@
+Easiness probe, trial 2 of 3 (platform trial id row-anchor-pass__rz9cGwC).
+
+THIS FILE IS THE SOLVING AGENT'S OWN WORDS AND TOOL OUTPUT, AND NOTHING ELSE. The brief
+that opened the transcript was removed so that tools/leakcheck.py is not circular.
+Commentary lives in notes.md beside it.
+
+I'll start by reading the pane code and the event files.
+
+Bash(find . -type f | grep -v __pycache__ | sort && cat run_pane.py && for f in pane/*.py; do echo "=== $f"; cat $f…)
+
+./evs/deep.txt
+./evs/pair.txt
+./evs/tiny.txt
+./evs/wide.txt
+./pane/__init__.py
+./pane/band.py
+./pane/frame.py
+./pane/geom.py
+./pane/hold.py
+./pane/move.py
+./pane/say.py
+./pane/spec.py
+./pane/src.py
+./pane/win.py
+./run_pane.py
+import sys
+
+from pane import frame, say, spec, src
+
+
+def run(text):
+    cfg, decls, evs = spec.parse(text)
+    doc = src.Doc(decls)
+    out = say.Out()
+    frame.play(cfg, doc, evs, out)
+    return out.lines
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write("usage: run_pane.py <event-file>\n")
+        return 2
+    with open(argv[1], encoding="utf-8") as fh:
+        text = fh.read()
+    try:
+        lines = run(text)
+    except spec.Bad as exc:
+        sys.stderr.write("%s\n" % exc)
+        return 1
+    for line in lines:
+        print(line)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+=== pane/__init__.py
+=== pane/band.py
+def pinned(gm, off):
+    gi = 0
+    n = gm.ngroups()
+    k = 0
+    while k < n:
+        if gm.gtop(k) > off:
+            break
+        gi = k
+        k += 1
+    return gi
+
+
+def band(gm, off):
+    gi = pinned(gm, off)
+    return gi, gm.ghh(gi)
+=== pane/frame.py
+from pane import band, geom, hold, move, win
+
+
+class St:
+    __slots__ = ("off", "vh", "foot")
+
+    def __init__(self, vh):
+        self.off = 0
+        self.vh = vh
+        self.foot = False
+
+
+def settle(gm, st, cfg, held):
+    gi, b = band.band(gm, st.off)
+    w0, w1 = win.bounds(gm, st.off, st.vh, cfg.over)
+    was = gm.top(held[0])
+    m = win.sweep(gm, w0, w1)
+    if st.foot:
+        st.off = move.foot(gm.total(), st.vh)
+    else:
+        st.off = move.clamp(st.off + gm.top(held[0]) - was, gm.total(), st.vh)
+    return gi, b, w0, w1, m, 1
+
+
+def play(cfg, doc, evs, out):
+    gm = geom.Geom(doc)
+    st = St(cfg.vh)
+    for i, ev in enumerate(evs):
+        move.apply(gm, st, ev)
+        gi, b = band.band(gm, st.off)
+        held = hold.take(gm, st.off)
+        if ev[0] in ("ins", "del"):
+            held = hold.track(gm, held, ev, st.off)
+        gi, b, w0, w1, m, p = settle(gm, st, cfg, held)
+        out.frame(i, st.off, gm.ggid(gi), b, w0, w1, held[1], held[2], m, p)
+    out.end(st.off, gm.total(), doc.meas)
+=== pane/geom.py
+class Geom:
+    __slots__ = ("doc",)
+
+    def __init__(self, doc):
+        self.doc = doc
+
+    def ngroups(self):
+        return len(self.doc.gs)
+
+    def ggid(self, gi):
+        return self.doc.gs[gi].gid
+
+    def ghh(self, gi):
+        return self.doc.gs[gi].hh
+
+    def gtop(self, gi):
+        y = 0
+        for g in self.doc.gs[:gi]:
+            y += g.hh
+            for rid in g.rows:
+                y += self.doc.rh(g, rid)
+        return y
+
+    def count(self):
+        i = 0
+        for g in self.doc.gs:
+            i += 1 + len(g.rows)
+        return i
+
+    def total(self):
+        y = 0
+        for g in self.doc.gs:
+            y += g.hh
+            for rid in g.rows:
+                y += self.doc.rh(g, rid)
+        return y
+
+    def _place(self, i):
+        for g in self.doc.gs:
+            if i == 0:
+                return g, -1
+            i -= 1
+            if i < len(g.rows):
+                return g, i
+            i -= len(g.rows)
+        return None, -1
+
+    def top(self, i):
+        y = 0
+        for g in self.doc.gs:
+            if i == 0:
+                return y
+            y += g.hh
+            i -= 1
+            if i < len(g.rows):
+                for rid in g.rows[:i]:
+                    y += self.doc.rh(g, rid)
+                return y
+            for rid in g.rows:
+                y += self.doc.rh(g, rid)
+            i -= len(g.rows)
+        return y
+
+    def at(self, y):
+        i = 0
+        run = 0
+        for g in self.doc.gs:
+            if run + g.hh > y:
+                return i
+            run += g.hh
+            i += 1
+            for rid in g.rows:
+                h = self.doc.rh(g, rid)
+                if run + h > y:
+                    return i
+                run += h
+                i += 1
+        return i - 1
+
+    def key(self, i):
+        g, k = self._place(i)
+        if k < 0:
+            return "H%d" % g.gid
+        return "R%d" % g.rows[k]
+
+    def mark(self, i):
+        g, k = self._place(i)
+        if k < 0:
+            return 0
+        return self.doc.mark(g, g.rows[k])
+
+    def ins(self, gid, pos, n):
+        g = self.doc.byid[gid]
+        g.rows[pos:pos] = self.doc.fresh(g, n)
+
+    def dele(self, gid, pos, n):
+        g = self.doc.byid[gid]
+        del g.rows[pos:pos + n]
+=== pane/hold.py
+def take(gm, off):
+    i = gm.at(off)
+    return i, gm.key(i), gm.top(i) - off
+
+
+def track(gm, held, ev, off):
+    kind, gid, pos, n = ev
+    if kind == "ins":
+        gm.ins(gid, pos, n)
+    else:
+        gm.dele(gid, pos, n)
+    return take(gm, off)
+=== pane/move.py
+def foot(total, vh):
+    f = total - vh
+    return f if f > 0 else 0
+
+
+def clamp(off, total, vh):
+    f = foot(total, vh)
+    if off < 0:
+        return 0
+    if off > f:
+        return f
+    return off
+
+
+def apply(gm, st, ev):
+    st.foot = st.off == foot(gm.total(), st.vh)
+    kind = ev[0]
+    if kind == "scroll":
+        st.off += ev[1]
+    elif kind == "go":
+        st.off = ev[1]
+    elif kind == "size":
+        st.vh = ev[1]
+    st.off = clamp(st.off, gm.total(), st.vh)
+=== pane/say.py
+class Out:
+    __slots__ = ("lines",)
+
+    def __init__(self):
+        self.lines = []
+
+    def frame(self, i, off, gid, band, w0, w1, key, gap, m, p):
+        self.lines.append(
+            "f %d s %d g %d b %d w %d %d h %s %d m %d p %d"
+            % (i, off, gid, band, w0, w1, key, gap, m, p)
+        )
+
+    def end(self, off, total, m):
+        self.lines.append("end s %d t %d m %d" % (off, total, m))
+=== pane/spec.py
+class Bad(Exception):
+    pass
+
+
+class Cfg:
+    __slots__ = ("vh", "over", "pcap")
+
+    def __init__(self, vh, over, pcap):
+        self.vh = vh
+        self.over = over
+        self.pcap = pcap
+
+
+def _ints(bits, want, kind):
+    if len(bits) != want:
+        raise Bad("bad %s line" % kind)
+    try:
+        return [int(b) for 
+… [clipped]
+collapse
+Thinking…
+I've spotted several bugs (misplaced hold offset, band logic missing the next header, asymmetric window, single-pass issue, stale foot flag) plus slow O(n) geometry queries. I'll rewrite the six files using per-group Fenwick trees to fix these and keep large documents performant.
+
+Bash({"command":"cat > pane/geom.py <<'EOF'\nfrom bisect import bisect_right\n\n\nclass Fen:\n \"\"\"Fenwick tree o…)
+
+f 0 s 30 g 1 b 16 w 1 7 h H2 0 m 9 p 2
+f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 4 9 h R4 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 4 8 h R4 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h R0 0 m 0 p 1
+end s 0 t 234 m 9
+cfg 45 1 4
+g 1 10 6 24 24 8
+g 2 22 6 6 6 3
+g 3 10 6 24 24 8
+go 70
+ins 1 2 3
+scroll 40
+del 1 1 4
+go 4000
+scroll -1
+ins 3 8 2
+size 120
+f 0 s 88 g 2 b 22 w 8 15 h R10 0 m 7 p 2
+f 1 s 124 g 2 b 22 w 11 18 h R10 0 m 1 p 4
+f 2 s 164 g 3 b 10 w 16 19 h R11 -12 m 0 p 1
+f 3 s 140 g 3 b 10 w 12 15 h R11 -12 m 1 p 2
+f 4 s 285 g 3 b 10 w 18 20 h R14 -13 m 4 p 2
+f 5 s 284 g 3 b 10 w 18 20 h R17 -12 m 0 p 1
+f 6 s 284 g 3 b 10 w 18 21 h R17 -12 m 1 p 2
+f 7 s 258 g 3 b 10 w 17 22 h R15 -16 m 1 p 2
+end s 258 t 378 m 15
+
+[stdout]
+f 0 s 30 g 1 b 16 w 1 7 h H2 0 m 9 p 2
+f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1
+f 2 s 61 g 2 b 18 w 4 9 h R4 -15 m 0 p 1
+f 3 s 47 g 2 b 18 w 4 8 h R4 -1 m 0 p 1
+f 4 s 0 g 1 b 18 w 0 6 h R0 0 m 0 p 1
+end s 0 t 234 m 9
+cfg 45 1 4
+g 1 10 6 24 24 8
+g 2 22 6 6 6 3
+g 3 10 6 24 24 8
+go 70
+ins 1 2 3
+scroll 40
+del 1 1 4
+go 4000
+scroll -1
+ins 3 8 2
+size 120
+f 0 s 88 g 2 b 22 w 8 15 h R10 0 m 7 p 2
+f 1 s 124 g 2 b 22 w 11 18 h R10 0 m 1 p 4
+f 2 s 164 g 3 b 10 w 16 19 h R11 -12 m 0 p 1
+f 3 s 140 g 3 b 10 w 12 15 h R11 -12 m 1 p 2
+f 4 s 285 g 3 b 10 w 18 20 h R14 -13 m 4 p 2
+f 5 s 284 g 3 b 10 w 18 20 h R17 -12 m 0 p 1
+f 6 s 284 g 3 b 10 w 18 21 h R17 -12 m 1 p 2
+f 7 s 258 g 3 b 10 w 17 22 h R15 -16 m 1 p 2
+end s 258 t 378 m 15
+[metadata] {"noOutputExpected": false}
+collapse
+Frame 1 now reads exactly as required. Next I'll cross-check the Fenwick geometry against a naive list-based oracle on random documents, and time the two big files.
+
+Bash(time python3 run_pane.py evs/wide.txt | tail -1 && time python3 run_pane.py evs/deep.txt | tail -1 cat > /tmp/…)
+
+end s 314302 t 1010466 m 35486
+
+real	0m0.229s
+user	0m0.187s
+sys	0m0.022s
+end s 487174 t 746675 m 18281
+
+real	0m0.192s
+user	0m0.171s
+sys	0m0.023s
+Traceback (most recent call last):
+  File "/tmp/oracle.py", line 124, in <module>
+    a = run(text); b = run_pane.run(text)
+        ^^^^^^^^^
+  File "/tmp/oracle.py", line 76, in run
+    w0 = max(0, vis[0] - K); w1 = min(len(it) - 1, vis[-1] + K)
+                ~~~^^^
+IndexError: list index out of range
+
+[stdout]
+end s 314302 t 1010466 m 35486
+
+real	0m0.229s
+user	0m0.187s
+sys	0m0.022s
+end s 487174 t 746675 m 18281
+
+real	0m0.192s
+user	0m0.171s
+sys	0m0.023s
+Traceback (most recent call last):
+  File "/tmp/oracle.py", line 124, in <module>
+    a = run(text); b = run_pane.run(text)
+        ^^^^^^^^^
+  File "/tmp/oracle.py", line 76, in run
+    w0 = max(0, vis[0] - K); w1 = min(len(it) - 1, vis[-1] + K)
+                ~~~^^^
+IndexError: list index out of range
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Found the oracle crashes on a corner case: a stale offset past the new total after a delete without movement, which my code already handles correctly. I'll patch the oracle to fall back to the last item in that case, then rerun.
+
+Bash(sed -i 's/w0 = max(0, vis\[0\] - K); w1 = min(len(it) - 1, vis\[-1\] + K)/if not vis: vis = [len(it) - 1]\n w0…)
+
+mismatches 0
+mismatches 0
+
+[stdout]
+mismatches 0
+mismatches 0
+[metadata] {"noOutputExpected": false}
+collapse
+Done. Both required lines now come out right, and the whole thing is fast.
+
+**What was wrong.** The rewrite took the hold at the offset instead of the anchor line, used the pinned header's full height as the band without letting the next header push it off, built the window from the first visible item with no overscan above, ran a single pass, and decided whether the pane was following the foot before the movement rather than after. Every geometry query also walked the whole document, which would have been far too slow on the big files.
+
+**What I changed.** Only the six permitted files under `pane/`.
+
+- `geom.py` now keeps a Fenwick tree of row heights per group and one over group totals, so tops, lookups by position and measurements are logarithmic. Inserts and deletes rebuild only the edited group.
+- `band.py` takes the smaller of the pinned header height and the distance to the next header top, with the total standing in for the last group.
+- `win.py` runs from K before the first visible item to K after the last, clipped to the flow.
+- `hold.py` tracks the held item by identity, takes it at the anchor line, and on a delete that removes it moves to the first survivor after, or the last before, adjusting the gap by the difference of the pre-edit tops.
+- `move.py` clamps after the movement and sets the foot flag from the offset the movement left.
+- `frame.py` runs up to P passes and stops once a pass measures nothing and leaves the offset in place.
+
+**Verification.** Frame 1 of `evs/tiny.txt` prints `f 1 s 52 g 2 b 18 w 4 8 h R4 -6 m 0 p 1`. I also wrote a naive list-based oracle of the spec in `/tmp` and compared it against the pane on 3000 random generated documents with scrolls, jumps, resizes, inserts and deletes. There were zero mismatches.
+
+Timing of the two large shapes:
+
+| File | Wall time |
+|---|---|
+| `evs/wide.txt` | 0.23 s |
+| `evs/deep.txt` | 0.19 s |
+
+One judgment call worth knowing: when a delete leaves the stale offset past the new total, nothing is visible during the first pass. I treat the last item of the flow as the visible item for the window in that pass. The offset is clamped at the end of the pass so later passes behave normally.

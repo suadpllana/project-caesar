@@ -129,6 +129,16 @@ substrate = "the part of an inference server that decides what to put on the wir
 mechanism = "Release bytes from a streaming decode only when no stop sequence and no character boundary can still change what has already left."
 verdict = "pending"
 
+[[submission]]
+slug = "row-anchor-pass"
+category = "Software"
+label = "Frontend"
+tags = ["list-virtualization", "scroll-anchoring", "sticky-headers", "borrowed-row-heights", "bounded-measurement-cache"]
+substrate = "the layout half of a virtualized pane over grouped rows, whose heights it learns only by rendering them"
+mechanism = "Keep a reading position still across frames while unmeasured rows borrow the height of the nearest remembered row above them, a bounded memory forgets rows out of view, and a pushed sticky band sets the anchor line."
+verdict = "pending"
+note = "first submission failed the easiness probe 3 of 3 on 2026-09-22; this entry describes the recovered design, not yet resubmitted"
+
 # --- Submitted, bundle not in this checkout -----------------------------------------
 # README.md records these as passed. Their trees were removed, so their tags, substrate
 # and mechanism are not recoverable here and are deliberately left out rather than

@@ -140,7 +140,9 @@ contract.
   at depth 2 for removed-by-lone-delete, audit-removed, audit-held or delete-refused.
 - Resource gate recorded for both families: correct fast family 51-71 s whole run in the
   container; naive replay 2,402 s for the deep scripts alone on the host.
-- Cheat sweep, preflight and the manual quality review: recorded below.
+- Cheat sweep: 41/41 scored 0 for the intended reason in the capped containers, the probe-winning
+  tree plan included (caught by merge-either); table below. Preflight and the manual quality
+  review: recorded below.
 - Cold self-attack: recorded below; author-run and contaminated.
 
 ### 6. Exit gate
@@ -374,7 +376,7 @@ Re-run 2026-09-23 on the rebuilt bundle.
 | No answer leaked into agent image | pass | tools/imagecheck.py assembles the image (14 files) and runs the four samples with the reference; tools/extraneouscheck.py clean |
 | `harbor run -a oracle` = 1 | pass (docker; harbor blocked) | local_trial.py on the rebuilt images, --cpus 1 --memory 2g: reward 1, 37 passed; time_container.sh: worker 51 s for the whole graded set; `harbor run` itself is still stopped by the 403 at the Debian mirror (see Harbor) |
 | `harbor run -a nop` = 0 | pass (docker) | reward 0, 27 failed / 10 passed (the 7 hand cases the shipped engine gets right plus the 3 sealed-side checks) |
-| Cheats all score 0 | CHEAT_STATUS | CHEAT_NOTES |
+| Cheats all score 0 | pass | authoring/partial-key-purge/cheat_report.py on the rebuilt images, 1 CPU and 2 GB per container: 41/41 scored 0 for the intended reason, including the plan the probe won with (tree-audit, merge-either) and the correct per-row replay (worker exit 124 on the wall clock); table below |
 | Correct variants score 1 | pass | variants/chk and variants/walk through time_container.sh: reward 1 each; whole-run worker time 65 s and 71 s |
 | Model = reference = variants = brute force | pass | 480 generated scripts through all five (agree.py 40), 33 hand scripts (brute skips chain-1500), deep scripts model = reference = both variants; deterministic across three hash seeds |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
@@ -385,48 +387,62 @@ Re-run 2026-09-23 on the rebuilt bundle.
 | hintcheck, structcheck, deadfieldcheck, catcheck, solvecheck, simcheck | pass | all clean; simcheck's boilerplate figures 0.59-0.72 stay under 0.75 and nothing conceptual |
 | `harbor check` rubric | not run | no provider key here; the manual criterion-by-criterion review is recorded below |
 
-## Cheat report (Stage 6), second full run on the final images
+## Cheat report (Stage 6), rebuilt bundle
 
-Run 2026-09-22 with `python -u authoring/partial-key-purge/cheat_report.py` after forgecheck's
-own run had reported `34/34 cheats scored 0 for the intended reason`; each run draws a fresh
-nonce population. Every cheat scored 0 and each was caught by the layer named for it:
+Run 2026-09-23, 11:18 to 12:04 UTC, with `python -u authoring/partial-key-purge/cheat_report.py`
+on the rebuilt images (local_trial.py, 1 CPU and 2 GB per container, three containers at a time,
+a fresh nonce population for each). emit.py had been re-run after the last change to readings.py,
+so every reading cheat is the reading readingcheck separated. The 41 cheats are the 25 readings,
+four fixed-output families (constant, named-only, refuse-first, example-replayed), the correct
+per-row replay of the audit, a forgery carrying every frozen answer, and ten isolation probes.
+`cheat-tree-audit.sh` is the plan the easiness probe won with (the probed reference's ownership
+tree, replaying only what the tree could not express), and `cheat-descendant-reach.sh` is the
+counting half of the same idea. The earlier 34-cheat report on the first version is superseded
+by this one. Every cheat scored 0 and each was caught by the layer named for it:
 
 | Cheat | Reward | Layer that caught it |
 |---|---|---|
 | `cheat-audit-retained-set.sh` | 0 | hand audit-loop fails |
 | `cheat-audit-sums-children.sh` | 0 | hand audit-diamond fails |
 | `cheat-cleared-only-if-changed.sh` | 0 | hand setnull-already-null fails |
-| `cheat-constant.sh` | 0 | 25 hand cases fail |
-| `cheat-end-check-before-clearing.sh` | 0 | hand setnull-all fails |
-| `cheat-example-replayed.sh` | 0 | 25 hand cases fail |
+| `cheat-constant.sh` | 0 | 33 hand cases fail |
+| `cheat-depth-at-fifteen.sh` | 0 | hand depth-limit fails |
+| `cheat-depth-fails-first-ref-only.sh` | 0 | hand depth-both-refs fails |
+| `cheat-descendant-reach.sh` | 0 | hand merge-wild-side fails |
+| `cheat-end-check-before-clearing.sh` | 0 | hand restrict-broken-by-clear fails |
+| `cheat-example-replayed.sh` | 0 | 33 hand cases fail |
 | `cheat-forge-from-truth.sh` | 0 | 0 hand cases fail (all carried), nonce population fails it |
-| `cheat-fork-needs-both.sh` | 0 | hand fork-either fails |
+| `cheat-fork-needs-both.sh` | 0 | hand merge-either fails |
 | `cheat-full-half-null-accepted.sh` | 0 | hand full-broken-by-clear fails |
-| `cheat-held-counts-zero.sh` | 0 | hand cascade-tree fails |
+| `cheat-held-counts-zero.sh` | 0 | hand audit-names fails |
 | `cheat-key-null-allowed.sh` | 0 | hand setnull-key-column fails |
+| `cheat-loops-always-keep.sh` | 0 | hand or-loop-broken fails |
 | `cheat-name-by-row-first.sh` | 0 | hand order-decl fails |
 | `cheat-named-not-counted.sh` | 0 | hand audit-diamond fails |
-| `cheat-named-only.sh` | 0 | 24 hand cases fail |
+| `cheat-named-only.sh` | 0 | 32 hand cases fail |
+| `cheat-no-depth-limit.sh` | 0 | hand depth-limit fails |
 | `cheat-no-self-match.sh` | 0 | hand self-restrict fails |
 | `cheat-noaction-as-restrict.sh` | 0 | hand noaction-removed-anyway fails |
-| `cheat-probe-answer-key.sh` | 0 | 261 denials, 0 successes |
+| `cheat-probe-answer-key.sh` | 0 | 285 denials, 0 successes |
 | `cheat-probe-crash-worker.sh` | 0 | worker exit 137 after the kill |
-| `cheat-probe-hijack-driver.sh` | 0 | 21 hand cases fail |
+| `cheat-probe-hijack-driver.sh` | 0 | 26 hand cases fail |
 | `cheat-probe-late-reward.sh` | 0 | lingered True, reaped 4 |
 | `cheat-probe-malformed-report.sh` | 0 | grader refused the corrupted report |
-| `cheat-probe-malformed.sh` | 0 | 25 hand cases fail |
-| `cheat-probe-plant-verdict.sh` | 0 | 174 denials, 0 successes |
-| `cheat-probe-privilege.sh` | 0 | 264 denials, 0 successes |
-| `cheat-probe-rewrite-frozen.sh` | 0 | 261 denials, 0 successes |
-| `cheat-probe-shrink-set.sh` | 0 | 870 denials, 0 successes |
+| `cheat-probe-malformed.sh` | 0 | 33 hand cases fail |
+| `cheat-probe-plant-verdict.sh` | 0 | 190 denials, 0 successes |
+| `cheat-probe-privilege.sh` | 0 | 285 denials, 0 successes |
+| `cheat-probe-rewrite-frozen.sh` | 0 | 285 denials, 0 successes |
+| `cheat-probe-shrink-set.sh` | 0 | 950 denials, 0 successes |
 | `cheat-reachability-frees-loops.sh` | 0 | hand audit-loop fails |
-| `cheat-refuse-first.sh` | 0 | 25 hand cases fail |
+| `cheat-refuse-first.sh` | 0 | 33 hand cases fail |
 | `cheat-replay-audit.sh` | 0 | worker exit 124 (wall clock), 0 hand cases fail |
 | `cheat-restrict-as-noaction.sh` | 0 | hand restrict-removed-anyway fails |
 | `cheat-restrict-only-by-losing.sh` | 0 | hand restrict-broken-by-clear fails |
+| `cheat-rounds-longest-path.sh` | 0 | hand depth-merge-shortcut fails |
 | `cheat-row-by-row-clear-feeds-back.sh` | 0 | hand clear-no-feedback fails |
 | `cheat-setnull-clears-all.sh` | 0 | hand full-broken-by-clear fails |
 | `cheat-simple-for-all.sh` | 0 | hand audit-diamond fails |
+| `cheat-tree-audit.sh` | 0 | hand merge-either fails |
 
 ## Cold self-attack (Stage 7) - author-run, contaminated
 

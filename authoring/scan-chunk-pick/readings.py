@@ -36,15 +36,14 @@ def _patch(name, *pairs):
 
 
 # The order readings are patches on a loop that rescans every pending pair after every step.
-# It is exactly the reference's order, only slow, and it is the loop the probe agents wrote, so
-# a reading on the order is the change a solver would make to that loop. The enumerated and
+# It is exactly the reference's order, only slow, and it is the loop the probe agents wrote first,
+# so a reading on the order is the change a solver would make to that loop. The enumerated and
 # small generated files are all it ever runs on.
 _RESCAN = """from scn import hdr, live, step
 
 
 def bound(seg, st, ch, cond):
-    got = st.hit.get((ch.c, ch.j, cond.pos))
-    return hdr.guess(seg, ch, cond) if got is None else got
+    return st.cnt[(cond.pos, ch.j)]
 
 
 def run(seg, q, st, out):
@@ -82,48 +81,87 @@ def _loop(*pairs):
     return {"pick.py": text}
 
 
+def _join(*parts):
+    out = {}
+    for part in parts:
+        for name, text in part.items():
+            if name in out:
+                raise AssertionError("two patches on %s; chain them instead" % name)
+            out[name] = text
+    return out
+
+
 READINGS = {
-    # --- headers ---------------------------------------------------------------------
+    # --- page headers ------------------------------------------------------------------
     "hdr-bounds-exact": _patch(
         "hdr.py",
-        ("    if ch.exact:\n        return ch.mn, ch.mx\n    w = seg.g - 1\n"
-         "    return ch.mn - w, ch.mx + w",
-         "    return ch.mn, ch.mx")),
+        ("    if pg.exact:\n        return pg.mn, pg.mx\n    w = seg.g - 1\n"
+         "    return pg.mn - w, pg.mx + w",
+         "    return pg.mn, pg.mx")),
     "hdr-pass-ignores-nulls": _patch(
         "hdr.py",
-        ("    if ch.nulls:\n        return False\n    if k == \"nn\":\n        return True",
-         "    if k == \"nn\":\n        return ch.nulls == 0")),
+        ("    if pg.nulls:\n        return False\n    if k == \"nn\":\n        return True",
+         "    if k == \"nn\":\n        return pg.nulls == 0")),
     "hdr-null-always-read": _patch(
         "hdr.py",
-        ("def miss(seg, ch, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return ch.nulls == 0",
-         "def miss(seg, ch, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return False"),
-        ("def allsat(seg, ch, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return ch.nulls == ch.n",
-         "def allsat(seg, ch, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return False")),
+        ("def miss(seg, pg, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return pg.nulls == 0",
+         "def miss(seg, pg, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return False"),
+        ("def allsat(seg, pg, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return pg.nulls == pg.n",
+         "def allsat(seg, pg, cond):\n    k = cond.kind\n    if k == \"nu\":\n        return False")),
     "hdr-spread-floor": _patch(
         "hdr.py", ("    part = -(-have * room // span)", "    part = have * room // span")),
     "hdr-spread-open": _patch(
         "hdr.py", ("        room = hi - v + 1", "        room = hi - v"),
         ("        room = v - lo + 1", "        room = v - lo")),
 
-    # --- dictionaries ----------------------------------------------------------------
-    "dic-overflow-used": _patch(
-        "dct.py", ("    return ch.enc == \"d\" and not ch.lit", "    return ch.enc == \"d\"")),
+    # --- dictionaries ------------------------------------------------------------------
+    "dic-fallback-used": _patch(
+        "dct.py", ("    return ch.enc == \"d\" and pg.form == \"i\"", "    return ch.enc == \"d\"")),
     "dic-charge-each": _patch(
         "dct.py",
-        ("    key = (ch.c, ch.j)\n    if key not in st.dread:\n        st.dread.add(key)\n"
+        ("    key = (ch.c, ch.j)\n    if key not in st.mem.dread:\n        st.mem.dread.add(key)\n"
          "        out.rd(ch.c, ch.j)",
-         "    out.rd(ch.c, ch.j)")),
+         "    st.mem.dread.add((ch.c, ch.j))\n    out.rd(ch.c, ch.j)")),
     "dic-keep-ignores-nulls": _patch(
-        "dct.py", ("    if good == len(ch.dic) and ch.nulls == 0:", "    if good == len(ch.dic):")),
+        "step.py", ("            if verdict == \"keep\" and pg.nulls == 0:",
+                    "            if verdict == \"keep\":")),
     "dic-answers-null": _patch(
-        "step.py", ("        if cond.kind not in (\"nn\", \"nu\") and dct.usable(ch):",
-                    "        if dct.usable(ch):")),
+        "step.py", ("        if vals is None and cond.kind not in (\"nn\", \"nu\") and dct.usable(ch, pg):",
+                    "        if vals is None and dct.usable(ch, pg):")),
     "dic-drop-needs-nulls": _patch(
         "dct.py", ("    if good == 0:\n        return \"drop\"",
-                   "    if good == 0 and ch.nulls == 0:\n        return \"drop\"")),
+                   "    if good == 0 and all(p.nulls == 0 for p in ch.pages):\n        return \"drop\"")),
+    "pg-dict-all-pages": _patch(
+        "dct.py", ("    return ch.enc == \"d\" and pg.form == \"i\"",
+                   "    return ch.enc == \"d\" and all(p.form == \"i\" for p in ch.pages)")),
+    "pg-dict-keep-chunk-nulls": _patch(
+        "step.py", ("            if verdict == \"keep\" and pg.nulls == 0:",
+                    "            if verdict == \"keep\" and all(p.nulls == 0 for p in ch.pages):")),
 
-    # --- the order -------------------------------------------------------------------
-    "ord-fixed-sweep": {"pick.py": '''from scn import hdr, live, step
+    # --- pages ---------------------------------------------------------------------------
+    "pg-whole-chunk-read": _patch(
+        "step.py",
+        ("        if vals is None:\n            vals = load(seg, q, st, ch, pg, out)\n",
+         "        if vals is None:\n            for other in ch.pages:\n"
+         "                if (c, j, other.p) not in st.mem.vals:\n"
+         "                    got = load(seg, q, st, ch, other, out)\n"
+         "                    if other is pg:\n                        vals = got\n")),
+    "pg-count-all-or-nothing": _patch(
+        "live.py",
+        ("    for cd in q.conds:\n        if cd.c == ch.c:\n"
+         "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
+         "    whole = all((p.c, p.j, p.p) in st.mem.vals for p in ch.pages)\n"
+         "    for cd in q.conds:\n        if cd.c == ch.c:\n"
+         "            if whole:\n"
+         "                st.cnt[(cd.pos, ch.j)] = sum(exact(st, cd, p) for p in ch.pages)\n"),
+        ("            t = 0\n            for pg in ch.pages:\n"
+         "                if (pg.c, pg.j, pg.p) in mem.vals:\n",
+         "            t = 0\n            whole = all((p.c, p.j, p.p) in mem.vals for p in ch.pages)\n"
+         "            for pg in ch.pages:\n"
+         "                if whole:\n")),
+
+    # --- the order -----------------------------------------------------------------------
+    "ord-fixed-sweep": {"pick.py": """from scn import hdr, live, step
 
 
 def run(seg, q, st, out):
@@ -131,7 +169,8 @@ def run(seg, q, st, out):
     for cd in q.conds:
         tot = 0
         for ch in seg.cols[cd.c]:
-            tot += hdr.guess(seg, ch, cd)
+            for pg in ch.pages:
+                tot += hdr.guess(seg, pg, cd)
         order.append((tot, cd.pos, cd))
     order.sort(key=lambda t: (t[0], t[1]))
     for _tot, _pos, cd in order:
@@ -140,13 +179,8 @@ def run(seg, q, st, out):
                 continue
             step.decide(seg, q, st, cd, ch.j, out)
             st.done[cd.pos].add(ch.j)
-'''},
-    "ord-column-sum": {"pick.py": '''from scn import hdr, live, step
-
-
-def bound(seg, st, ch, cond):
-    got = st.hit.get((ch.c, ch.j, cond.pos))
-    return hdr.guess(seg, ch, cond) if got is None else got
+"""},
+    "ord-column-sum": {"pick.py": """from scn import live, step
 
 
 def run(seg, q, st, out):
@@ -167,7 +201,7 @@ def run(seg, q, st, out):
                     continue
                 if first < 0:
                     first = ch.j
-                b = bound(seg, st, ch, cd)
+                b = st.cnt[(cd.pos, ch.j)]
                 tot += b if b < have else have
             if first < 0:
                 continue
@@ -179,112 +213,173 @@ def run(seg, q, st, out):
             return
         step.decide(seg, q, st, chosen, target, out)
         st.done[chosen.pos].add(target)
-'''},
+"""},
     "ord-no-cap": _loop(("                if b > have:\n                    b = have\n", "")),
-    "ord-header-only": _loop(("    got = st.hit.get((ch.c, ch.j, cond.pos))\n"
-                              "    return hdr.guess(seg, ch, cond) if got is None else got",
-                              "    return hdr.guess(seg, ch, cond)")),
+    "ord-header-only": _loop(("    return st.cnt[(cond.pos, ch.j)]",
+                              "    return sum(hdr.guess(seg, pg, cond) for pg in ch.pages)")),
     "ord-highest-chunk": _loop(("                if best is None or b < best[0]:",
                                 "                if best is None or b <= best[0]:")),
     "ord-largest-first": _loop(("                if best is None or b < best[0]:",
                                 "                if best is None or b > best[0]:")),
     # the heap, trusting a key it pushed before a read raised the score
     "ord-stale-key": _patch(
-        "pick.py", ("        if s != score(seg, st, cd, j):\n            continue\n", "")),
+        "pick.py", ("        if s != score(st, cd, j):\n            continue\n", "")),
     # the heap, re-scoring only on deaths: a read never pushes its chunk again
     "ord-read-no-push": _patch(
-        "step.py", ("            st.hit[(ch.c, ch.j, cd.pos)] = t\n    st.dirty.add((ch.c, ch.j))",
-                    "            st.hit[(ch.c, ch.j, cd.pos)] = t")),
+        "live.py", ("            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n"
+                    "    st.dirty.add((ch.c, ch.j))",
+                    "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)")),
 
-    # --- rows carrying an update, and deleted rows -------------------------------------
+    # --- what a read settles -------------------------------------------------------------
+    "dec-one-cond": _join(
+        _patch("live.py",
+               ("def learn(st, q, ch, pg):", "def learn(st, q, ch, pg, only=None):"),
+               ("    for cd in q.conds:\n        if cd.c == ch.c:\n"
+                "            st.cnt[(cd.pos, ch.j)] +=",
+                "    for cd in q.conds:\n        if cd.c == ch.c and (only is None or cd is only):\n"
+                "            st.cnt[(cd.pos, ch.j)] +=")),
+        _patch("step.py",
+               ("def load(seg, q, st, ch, pg, out):", "def load(seg, q, st, ch, pg, out, only=None):"),
+               ("    live.learn(st, q, ch, pg)", "    live.learn(st, q, ch, pg, only)"),
+               ("            vals = load(seg, q, st, ch, pg, out)",
+                "            vals = load(seg, q, st, ch, pg, out, cond)"))),
+    "dec-hits-live-only": _patch(
+        "live.py",
+        ("        for v in st.mem.vals[(pg.c, pg.j, pg.p)]:\n            if rd.sat(cd, v):",
+         "        for i, v in enumerate(st.mem.vals[(pg.c, pg.j, pg.p)]):\n"
+         "            if st.alive[pg.start + i] and rd.sat(cd, v):")),
+
+    # --- rows carrying an update, and deleted rows ---------------------------------------
     "upd-drop-takes-moved": _patch(
-        "step.py", ("    if hdr.miss(seg, ch, cond):\n        return held",
-                    "    if hdr.miss(seg, ch, cond):\n        return held + [\n"
-                    "            r for r in range(ch.start, ch.start + ch.n)\n"
-                    "            if st.alive[r] and r in seg.up[ch.c]]")),
+        "step.py", ("        if hdr.miss(seg, pg, cond):\n            dead.extend(held)\n            continue",
+                    "        if hdr.miss(seg, pg, cond):\n            dead.extend(held)\n"
+                    "            dead.extend(moved)\n            continue")),
     "upd-keep-trusts-moved": _patch(
-        "step.py", ("    dead = [r for r in moved if not rd.sat(cond, up[r])]\n",
-                    "    dead = [] if held and hdr.allsat(seg, ch, cond) else [\n"
-                    "        r for r in moved if not rd.sat(cond, up[r])]\n")),
+        "step.py",
+        ("        dead.extend(r for r in moved if not rd.sat(cond, up[r]))\n        if not held:\n"
+         "            continue\n",
+         "        if not held:\n            dead.extend(r for r in moved if not rd.sat(cond, up[r]))\n"
+         "            continue\n        if not hdr.allsat(seg, pg, cond):\n"
+         "            dead.extend(r for r in moved if not rd.sat(cond, up[r]))\n")),
     "upd-read-anyway": _patch(
-        "step.py", ("    if held:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))",
-                    "    if held or moved:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))")),
+        "step.py", ("        if not held:\n            continue", "        if not held and not moved:\n            continue")),
     "upd-merge-on-read": _patch(
         "step.py",
-        ("    vals = rd.values(ch)\n",
-         "    vals = list(rd.values(ch))\n"
-         "    for i in range(ch.n):\n"
-         "        if ch.start + i in seg.up[ch.c]:\n"
-         "            vals[i] = seg.up[ch.c][ch.start + i]\n"),
-        ("    if held:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))",
-         "    if held or moved:\n        dead.extend(_held(seg, q, st, cond, ch, held, out))")),
+        ("    vals = rd.values(ch, pg)\n",
+         "    vals = list(rd.values(ch, pg))\n    up = seg.up[ch.c]\n"
+         "    for i in range(pg.n):\n        if pg.start + i in up:\n"
+         "            vals[i] = up[pg.start + i]\n"),
+        ("        if not held:\n            continue", "        if not held and not moved:\n            continue")),
     "upd-count-current": _patch(
-        "step.py",
-        ("            t = 0\n            for v in vals:\n                if rd.sat(cd, v):\n"
-         "                    t += 1",
-         "            t = 0\n            up = seg.up[ch.c]\n"
-         "            for i, v in enumerate(vals):\n"
-         "                if ch.start + i in up:\n                    v = up[ch.start + i]\n"
-         "                if rd.sat(cd, v):\n                    t += 1")),
+        "live.py",
+        ("        for v in st.mem.vals[(pg.c, pg.j, pg.p)]:\n            if rd.sat(cd, v):",
+         "        up = st.seg.up[pg.c]\n"
+         "        for i, v in enumerate(st.mem.vals[(pg.c, pg.j, pg.p)]):\n"
+         "            if pg.start + i in up:\n                v = up[pg.start + i]\n"
+         "            if rd.sat(cd, v):")),
     "del-still-alive": _patch(
         "live.py", ("    for r in seg.gone:\n        st.alive[r] = 0\n", "")),
     "del-still-counted": _patch(
-        "live.py", ("            counts.append(sum(alive[s:s + ch.n]))",
+        "live.py", ("            counts.append(sum(alive[ch.start:ch.start + ch.n]))",
                     "            counts.append(ch.n)"),
         ("            alive[r] = 0\n            for c, own in st.own.items():",
          "            alive[r] = 0\n            for c, own in st.own.items():\n"
          "                if r in st.seg.gone:\n                    continue")),
 
-    # --- what a read settles ---------------------------------------------------------
-    "dec-one-cond": _patch(
-        "step.py",
-        ("def load(seg, q, st, ch, out):", "def load(seg, q, st, ch, out, only=None):"),
-        ("    for cd in q.conds:\n        if cd.c == ch.c:",
-         "    for cd in q.conds:\n        if cd is only or (only is None and cd.c == ch.c):"),
-        ("        vals = load(seg, q, st, ch, out)", "        vals = load(seg, q, st, ch, out, cond)")),
-    "dec-hits-live-only": _patch(
-        "step.py",
-        ("            t = 0\n            for v in vals:\n                if rd.sat(cd, v):\n"
-         "                    t += 1",
-         "            t = 0\n            base = ch.start\n"
-         "            for i, v in enumerate(vals):\n"
-         "                if st.alive[base + i] and rd.sat(cd, v):\n                    t += 1")),
+    # --- the file's memory ---------------------------------------------------------------
+    "mem-none": _patch("live.py", ("    st.mem = mem\n", "    st.mem = fresh(seg)\n")),
+    "mem-no-exact-start": _patch(
+        "live.py",
+        ("                if (pg.c, pg.j, pg.p) in mem.vals:\n                    t += exact(st, cd, pg)\n"
+         "                else:\n                    t += hdr.guess(seg, pg, cd)",
+         "                t += hdr.guess(seg, pg, cd)"),
+        ("    for cd in q.conds:\n        if cd.c == ch.c:\n"
+         "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
+         "    for cd in q.conds:\n        if cd.c == ch.c and (ch.c, ch.j, pg.p, cd.pos) not in st.hit:\n"
+         "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n")),
+    "mem-charge-per-query": _patch("live.py", ("    st.mem = mem\n", "    st.mem = mem\n    mem.dread = set()\n")),
+    "mem-report-not-kept": _patch(
+        "proj.py",
+        ("from scn import dct, hdr, live, step", "from scn import dct, hdr, live, rd, step"),
+        ("        vals = step.load(seg, q, st, ch, pg, out)",
+         "        out.dc(ch.c, ch.j, pg.p)\n        vals = rd.values(ch, pg)")),
 
-    # --- the report pass -------------------------------------------------------------
-    "prj-all-chunks": _patch(
-        "proj.py", ("            if any(alive[r] and r not in up for r in range(s, s + ch.n)):",
-                    "            if True:")),
-    "prj-reads-moved": _patch(
-        "proj.py", ("            if any(alive[r] and r not in up for r in range(s, s + ch.n)):",
-                    "            if any(alive[r] for r in range(s, s + ch.n)):")),
+    # --- the report pass -----------------------------------------------------------------
+    "prj-all-pages": _patch("proj.py", ("                if held:\n", "                if True:\n")),
+    "prj-reads-moved": _patch("proj.py", ("                if held:\n", "                if held or moved:\n")),
     "prj-reads-pinned": _patch(
-        "proj.py", ("    fixed, v = hdr.pinned(seg, ch)\n    if fixed:\n        return lambda i: v\n", "")),
+        "proj.py", ("        fixed, v = hdr.pinned(seg, pg)\n        if fixed:\n"
+                    "            return (0, 0) if v is None else (len(held), v * len(held))\n", "")),
     "prj-pinned-ignores-widen": _patch(
-        "hdr.py", ("    lo, hi = bounds(seg, ch)\n    if lo == hi:\n        return True, lo",
-                   "    if ch.mn == ch.mx:\n        return True, ch.mn")),
+        "hdr.py", ("    lo, hi = bounds(seg, pg)\n    if lo == hi:\n        return True, lo",
+                   "    if pg.mn == pg.mx:\n        return True, pg.mn")),
+    "prj-no-whole-sum": _patch(
+        "proj.py", ("        if len(held) == pg.n:\n            return pg.n - pg.nulls, pg.sum\n", "")),
+    "prj-whole-ignores-deletes": _patch(
+        "proj.py", ("        if len(held) == pg.n:",
+                    "        if len(held) == sum(1 for r in range(pg.start, pg.start + pg.n)\n"
+                    "                            if r not in seg.gone):")),
+    "prj-whole-ignores-updates": _patch(
+        "proj.py", ("        if len(held) == pg.n:",
+                    "        if sum(st.alive[pg.start:pg.start + pg.n]) == pg.n:")),
     "prj-no-one-entry": _patch(
-        "proj.py", ("    if dct.single(ch):\n        dct.charge(ch, st, out)\n        one = ch.dic[0]\n"
-                    "        return lambda i: one\n", "")),
+        "proj.py", ("        if dct.single(ch, pg):\n            dct.charge(ch, st, out)\n"
+                    "            return len(held), ch.dic[0] * len(held)\n", "")),
     "prj-one-entry-with-nulls": _patch(
-        "dct.py", ("    return usable(ch) and len(ch.dic) == 1 and ch.nulls == 0",
-                   "    return usable(ch) and len(ch.dic) == 1")),
+        "dct.py", ("    return usable(ch, pg) and len(ch.dic) == 1 and pg.nulls == 0",
+                   "    return usable(ch, pg) and len(ch.dic) == 1")),
+    "prj-one-entry-fallback": _patch(
+        "dct.py", ("    return usable(ch, pg) and len(ch.dic) == 1 and pg.nulls == 0",
+                   "    return ch.enc == \"d\" and len(ch.dic) == 1 and pg.nulls == 0")),
     "prj-one-entry-free": _patch(
-        "proj.py", ("        dct.charge(ch, st, out)\n        one = ch.dic[0]", "        one = ch.dic[0]")),
+        "proj.py", ("            dct.charge(ch, st, out)\n            return len(held), ch.dic[0] * len(held)",
+                    "            return len(held), ch.dic[0] * len(held)")),
     "prj-index-order": _patch("proj.py", ("    for c in q.cols:", "    for c in sorted(set(q.cols)):")),
     "prj-nulls-counted": _patch(
-        "proj.py", ("            if v is not None:\n                nn += 1\n                tot += v",
-                    "            nn += 1\n            if v is not None:\n                tot += v")),
+        "proj.py", ("        if v is not None:\n            nn += 1\n            tot += v",
+                    "        nn += 1\n        if v is not None:\n            tot += v")),
     "prj-redecode": _patch(
-        "proj.py", ("    vals = st.vals.get((ch.c, ch.j))\n    if vals is not None:\n"
-                    "        return lambda i: vals[i]\n", "")),
-
-    # --- state between queries -------------------------------------------------------
-    "qry-keeps-state": _patch(
-        "live.py",
-        ("from scn import rd", "from scn import rd\n\n_KEEP = ({}, {}, set())"),
-        ("    st.vals = {}\n    st.hit = {}\n    st.dread = set()",
-         "    st.vals, st.hit, st.dread = _KEEP")),
+        "proj.py", ("    vals = st.mem.vals.get((ch.c, ch.j, pg.p))\n    if vals is None:",
+                    "    vals = None\n    if vals is None:")),
 }
+
+
+# The design the second easiness probe was run against, written in this grammar: every query
+# starts over, a chunk is read whole, its dictionary is used only when every page is an index
+# page and only when no page of it holds a null, a chunk's count turns exact only once every
+# page is read, and the report pass never takes a page's sum from its header. Applied as one
+# sequence of patches on the reference, each of which has to fire.
+PREVIOUS = [
+    ("live.py", "    st.mem = mem\n", "    st.mem = fresh(seg)\n"),
+    ("live.py",
+     "    for cd in q.conds:\n        if cd.c == ch.c:\n"
+     "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
+     "    whole = all((p.c, p.j, p.p) in st.mem.vals for p in ch.pages)\n"
+     "    for cd in q.conds:\n        if cd.c == ch.c:\n"
+     "            if whole:\n"
+     "                st.cnt[(cd.pos, ch.j)] = sum(exact(st, cd, p) for p in ch.pages)\n"),
+    ("step.py",
+     "        if vals is None:\n            vals = load(seg, q, st, ch, pg, out)\n",
+     "        if vals is None:\n            for other in ch.pages:\n"
+     "                if (c, j, other.p) not in st.mem.vals:\n"
+     "                    got = load(seg, q, st, ch, other, out)\n"
+     "                    if other is pg:\n                        vals = got\n"),
+    ("step.py", "            if verdict == \"keep\" and pg.nulls == 0:",
+     "            if verdict == \"keep\" and all(p.nulls == 0 for p in ch.pages):"),
+    ("dct.py", "    return ch.enc == \"d\" and pg.form == \"i\"",
+     "    return ch.enc == \"d\" and all(p.form == \"i\" for p in ch.pages)"),
+    ("proj.py", "        if len(held) == pg.n:\n            return pg.n - pg.nulls, pg.sum\n", ""),
+]
+
+
+def previous():
+    files = {}
+    for name, old, new in PREVIOUS:
+        text = files.get(name, _SRC[name])
+        if old not in text:
+            raise AssertionError("anchor gone from %s: %r" % (name, old[:60]))
+        files[name] = text.replace(old, new, 1)
+    return files
 
 
 def _engine(policy):
@@ -312,14 +407,31 @@ def generated(n):
     return out[:n]
 
 
+def _blocks(lines):
+    """The segment's chunks as (column, [line indexes of the chunk line and its pages])."""
+    out = []
+    for i, ln in enumerate(lines):
+        f = ln.split()
+        if not f:
+            continue
+        if f[0] == "ch":
+            out.append((int(f[1]), [i]))
+        elif f[0] == "pg":
+            out[-1][1].append(i)
+    return out
+
+
+def _size(lines, block):
+    return sum(int(lines[i].split()[1]) for i in block[1][1:])
+
+
 def _cuts(lines):
     """Row counts where every column has a chunk boundary."""
     ends = {}
-    for ln in lines:
-        f = ln.split()
-        if f and f[0] == "ch":
-            c = int(f[1])
-            ends.setdefault(c, []).append(ends[c][-1] + int(f[2]) if ends.get(c) else int(f[2]))
+    for c, idx in _blocks(lines):
+        ends.setdefault(c, [])
+        prev = ends[c][-1] if ends[c] else 0
+        ends[c].append(prev + _size(lines, (c, idx)))
     if not ends:
         return []
     common = set(ends[min(ends)])
@@ -352,46 +464,51 @@ def reductions(text):
         if ln.startswith("up ") or ln.startswith("del "):
             yield "\n".join(lines[:i] + lines[i + 1:])
 
-    # keep only the first m rows, at a boundary every column shares
     head = lines[0].split()
+    blocks = _blocks(lines)
+
+    # keep only the first m rows, at a boundary every column shares
     if head and head[0] == "seg":
         n = int(head[2])
         for cut in _cuts(lines):
             if cut >= n:
                 continue
-            kept = ["seg %s %d %s" % (head[1], cut, head[3])]
+            drop = set()
             seen = {}
-            for ln in lines[1:]:
+            for c, idx in blocks:
+                at = seen.get(c, 0)
+                if at >= cut:
+                    drop.update(idx)
+                seen[c] = at + _size(lines, (c, idx))
+            kept = ["seg %s %d %s" % (head[1], cut, head[3])]
+            for i, ln in enumerate(lines[1:], 1):
+                if i in drop:
+                    continue
                 f = ln.split()
-                if f[0] == "ch":
-                    c = int(f[1])
-                    at = seen.get(c, 0)
-                    if at >= cut:
-                        continue
-                    seen[c] = at + int(f[2])
-                    kept.append(ln)
-                elif f[0] == "up" and int(f[2]) >= cut:
+                if f[0] == "up" and int(f[2]) >= cut:
                     continue
-                elif f[0] == "del" and int(f[1]) >= cut:
+                if f[0] == "del" and int(f[1]) >= cut:
                     continue
-                else:
-                    kept.append(ln)
-            if all(v == cut for v in seen.values()):
-                yield "\n".join(kept)
+                kept.append(ln)
+            yield "\n".join(kept)
 
     # drop a column entirely, renumbering the ones above it
     if head and head[0] == "seg":
         k = int(head[3])
         if k > 1:
             for gone in range(k):
+                skip = set()
+                for c, idx in blocks:
+                    if c == gone:
+                        skip.update(idx)
                 out = ["seg %s %s %d" % (head[1], head[2], k - 1)]
                 ok = True
-                for ln in lines[1:]:
+                for i, ln in enumerate(lines[1:], 1):
+                    if i in skip:
+                        continue
                     f = ln.split()
                     if f[0] == "ch":
                         c = int(f[1])
-                        if c == gone:
-                            continue
                         f[1] = str(c - 1 if c > gone else c)
                         out.append(" ".join(f))
                     elif f[0] == "up":

@@ -7,9 +7,9 @@ hang or a silent exit loses the record, and a lost record is a failure, never a 
 
 The wall clock the platform puts on this process is the task's execution limit, and the
 programs were built before it started, so it measures the engine and nothing else. Two of the
-sixteen families exist for it: one segment of sixty thousand rows over five columns in chunks
-of ten to twenty-four rows with eight conditions to a query, and one of forty thousand rows
-over four columns in chunks of about two thousand with seven.
+sixteen families exist for it: one segment of sixty thousand rows over five columns in chunks of
+sixteen to forty rows and pages of four to twelve, three queries of eight conditions, and one of
+forty thousand rows over four columns in chunks of about two thousand, three queries of seven.
 """
 import argparse
 import hashlib

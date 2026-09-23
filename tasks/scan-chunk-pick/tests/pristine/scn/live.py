@@ -2,7 +2,11 @@ from scn import rd
 
 
 class State:
-    __slots__ = ("seg", "alive", "own", "vals", "hit", "dread", "done")
+    __slots__ = ("seg", "alive", "own", "vals", "hit", "done")
+
+
+def fresh(seg):
+    return None
 
 
 def _cols(q):
@@ -16,7 +20,7 @@ def _cols(q):
     return seen
 
 
-def start(seg, q):
+def start(seg, q, mem):
     st = State()
     st.seg = seg
     st.alive = set(range(seg.n))
@@ -24,7 +28,6 @@ def start(seg, q):
     st.own = {}
     st.vals = {}
     st.hit = {}
-    st.dread = set()
     st.done = [set() for _ in q.conds]
     for c in _cols(q):
         own = []

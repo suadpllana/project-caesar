@@ -1,0 +1,550 @@
+`/app` is the scan layer of a columnar store, cut down to the part that decides which chunks get read. A segment file holds one table, the changes made to it since its chunks were written, and the queries to run over it. `/app/run_scan.py` takes one and prints what happens. `seg G N K` opens the file with the statistics granularity, the row count and the column count. Rows and columns are numbered from 0. `ch C n u mn mx x k ...` is one chunk of column C over n rows, u of them null, with mn and mx the recorded low and high over the rest, x either `e` or `w`, and k either `p` or `d`. A column's chunks appear in row order and cover every row of the table. Chunks are numbered from 0 within their column. The partitions of two columns need not line up. A `p` chunk lists its n values, `-` for a null. A `d` chunk gives its dictionary size, then the entries ascending, then one token per row: an index into the dictionary, `-` for a null, or `*` followed directly by a value the dictionary does not hold. `up C r v` says row r now holds v in column C, `-` for a null, and `del r` says row r was deleted; each row has at most one update per column. `qry` opens a query, `prd` carries one condition, `prj` names the columns to report and `end` closes it. A condition is `ge C v`, `le C v`, `eq C v` or `ne C v` against a value, or `nn C` and `nu C` for not-null and null. A null satisfies `nu` and nothing else. Every query names at least one condition and at least one column. `/app/segs` holds four segment files.
+
+We rewrote this layer last cycle and it has been wrong since. Run `/app/run_scan.py` on `/app/segs/tiny.txt`. The seven lines it should print are `qry 0`, `rd 0 0`, `dc 0 0`, `sel 4 2000021000077000102`, `dc 1 0`, `prj 1 4 16` and `prj 0 4 30`. It prints the last three as `prj 0 4 30`, `dc 1 0`, `prj 1 4 16` instead.
+
+The files you may change are `/app/scn/hdr.py`, `/app/scn/dct.py`, `/app/scn/live.py`, `/app/scn/pick.py`, `/app/scn/step.py` and `/app/scn/proj.py`. Nothing else. The rest of the tree is replaced by our own copy before a segment file is run, including any new file put beside those six. `/app/run_scan.py` calls `live.start`, `pick.run`, `live.rows` and `proj.run` in that order, so those four keep their names and the arguments they are handed.
+
+Chunks are never rewritten. A row's value in a column is its update when it has one, and what its chunk holds otherwise. A deleted row is never alive. Everything a chunk says about itself describes the chunk as written: its header, its dictionary and the counts a read of it yields. Deleted rows and replaced values are included.
+
+A header knows two things: u of the chunk's rows are null, and every other value it holds lies between its bounds. Under `e` the bounds are the recorded pair. Under `w` that pair was rounded inward to a multiple of G, so the bounds are the recorded low less G-1 and the recorded high plus G-1. A chunk whose rows are all null writes both as `-` and has no bounds. What those two facts prove about every row the chunk holds, the header settles: that a condition fails for all of them, or holds for all of them. A `d` chunk none of whose tokens is written with `*` holds exactly the values of its entries, each at least once, besides its nulls. Its dictionary can settle a comparison the same way. No entry satisfying it fails every row; every entry satisfying it, with the chunk holding no nulls, passes every row. It can never settle `nn` or `nu`. How many entries a dictionary has, and whether any token is written with `*`, is known without consulting it.
+
+Reading a chunk prints `dc`, the column and the chunk number, and consulting its dictionary prints `rd` with the same two numbers the first time it happens in a query and nothing after. Nothing is consulted or read while something cheaper already answers. The header costs nothing, a read already made costs nothing, a dictionary costs its charge, and a read costs a read. A chunk is only ever consulted or read for a live row that takes its value in that column from that chunk. When a condition is applied to a chunk, its live rows that carry an update in that column are tested on that value. The rest are settled by the header if it can, then by a read already made; otherwise, for a comparison on a chunk whose dictionary has no `*` token, that dictionary is consulted, however little it turns out to settle, before the chunk is read. Rows the condition fails die.
+
+A read settles the exact count of every condition of the query over that column on that chunk, counted over the chunk as written. Before that, the count is the spread of the header. Take two widths. One is the width of the bounds, the high less the low plus one; the other is the width of the part the condition asks for. That part is the high less v plus one for `ge v`, v less the low plus one for `le v`, and one for `eq v` and `ne v` when v lies within the bounds and none when it does not. Where it comes out at nothing or less the count is zero for `ge v`, `le v` and `eq v`, and all of the non-null rows of the chunk for `ne v`. Otherwise cut the part down to the width of the bounds, multiply the non-null rows by it, divide by that width and round up; that is the count for `ge v`, `le v` and `eq v`, and for `ne v` it is the non-null rows less it. `nn` counts the non-null rows, `nu` counts the nulls, and a chunk with no bounds counts nothing for anything but `nu`.
+
+A condition and a chunk of its column are a pending pair while the condition has not been applied to that chunk and the chunk still holds a live row. The pair applied next is always the one expected to leave the fewest rows alive. That is the smaller of the live rows that chunk holds and the count of the condition on it. A tie goes to the condition written earlier in the query, then to the lower chunk number. The conditions are done when nothing is pending.
+
+Then comes `sel`, the number of live rows and a digest of them: start at zero and, for each live row in ascendi
+… [clipped]
+
+I'll start by reading the code and running the failing case.
+
+Bash(ls -R | head -50 && cat run_scan.py && wc -l scn/*.py && cat segs/tiny.txt && python3 run_scan.py segs/tiny.tx…)
+
+.:
+run_scan.py
+scn
+segs
+
+./scn:
+__init__.py
+dct.py
+emit.py
+hdr.py
+live.py
+parse.py
+pick.py
+proj.py
+rd.py
+step.py
+
+./segs:
+deep.txt
+pair.txt
+tiny.txt
+wide.txt
+import sys
+
+from scn import emit, live, parse, pick, proj
+
+
+def run(text):
+    seg, queries = parse.load(text)
+    out = emit.Out()
+    for i, q in enumerate(queries):
+        out.qry(i)
+        st = live.start(seg, q)
+        pick.run(seg, q, st, out)
+        rows = live.rows(st)
+        out.sel(len(rows), emit.digest(rows))
+        proj.run(seg, q, st, rows, out)
+    return out.lines
+
+
+def main():
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        text = fh.read()
+    sys.stdout.write("\n".join(run(text)) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+   0 scn/__init__.py
+  18 scn/dct.py
+  30 scn/emit.py
+  65 scn/hdr.py
+  64 scn/live.py
+  95 scn/parse.py
+  17 scn/pick.py
+  20 scn/proj.py
+  31 scn/rd.py
+  39 scn/step.py
+ 379 total
+seg 10 6 2
+ch 0 6 0 3 9 e d 3 3 6 9 0 1 2 0 1 2
+ch 1 6 0 1 6 e p 1 2 3 4 5 6
+qry
+prd ge 0 5
+prj 1 0
+end
+qry 0
+rd 0 0
+dc 0 0
+sel 4 2000021000077000102
+prj 0 4 30
+dc 1 0
+prj 1 4 16
+
+[stdout]
+.:
+run_scan.py
+scn
+segs
+
+./scn:
+__init__.py
+dct.py
+emit.py
+hdr.py
+live.py
+parse.py
+pick.py
+proj.py
+rd.py
+step.py
+
+./segs:
+deep.txt
+pair.txt
+tiny.txt
+wide.txt
+import sys
+
+from scn import emit, live, parse, pick, proj
+
+
+def run(text):
+    seg, queries = parse.load(text)
+    out = emit.Out()
+    for i, q in enumerate(queries):
+        out.qry(i)
+        st = live.start(seg, q)
+        pick.run(seg, q, st, out)
+        rows = live.rows(st)
+        out.sel(len(rows), emit.digest(rows))
+        proj.run(seg, q, st, rows, out)
+    return out.lines
+
+
+def main():
+    with open(sys.argv[1], encoding="utf-8") as fh:
+        text = fh.read()
+    sys.stdout.write("\n".join(run(text)) + "\n")
+
+
+if __name__ == "__main__":
+    main()
+   0 scn/__init__.py
+  18 scn/dct.py
+  30 scn/emit.py
+  65 scn/hdr.py
+  64 scn/live.py
+  95 scn/parse.py
+  17 scn/pick.py
+  20 scn/proj.py
+  31 scn/rd.py
+  39 scn/step.py
+ 379 total
+seg 10 6 2
+ch 0 6 0 3 9 e d 3 3 6 9 0 1 2 0 1 2
+ch 1 6 0 1 6 e p 1 2 3 4 5 6
+qry
+prd ge 0 5
+prj 1 0
+end
+qry 0
+rd 0 0
+dc 0 0
+sel 4 2000021000077000102
+prj 0 4 30
+dc 1 0
+prj 1 4 16
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(for f in scn/parse.py scn/emit.py scn/rd.py scn/hdr.py scn/dct.py scn/live.py scn/pick.py scn/step.py scn/proj…)
+
+=== scn/parse.py
+     1	class Chunk:
+     2	    __slots__ = ("c", "j", "n", "start", "nulls", "mn", "mx", "exact",
+     3	                 "enc", "plain", "dic", "code", "lit")
+     4	
+     5	
+     6	class Seg:
+     7	    __slots__ = ("g", "n", "k", "cols", "up", "gone")
+     8	
+     9	
+    10	class Cond:
+    11	    __slots__ = ("kind", "c", "v", "pos")
+    12	
+    13	
+    14	class Query:
+    15	    __slots__ = ("conds", "cols")
+    16	
+    17	
+    18	def _val(tok):
+    19	    return None if tok == "-" else int(tok)
+    20	
+    21	
+    22	def load(text):
+    23	    seg = None
+    24	    queries = []
+    25	    cur = None
+    26	    ends = []
+    27	    for line in text.split("\n"):
+    28	        if not line:
+    29	            continue
+    30	        f = line.split()
+    31	        tag = f[0]
+    32	        if tag == "seg":
+    33	            seg = Seg()
+    34	            seg.g = int(f[1])
+    35	            seg.n = int(f[2])
+    36	            seg.k = int(f[3])
+    37	            seg.cols = [[] for _ in range(seg.k)]
+    38	            seg.up = [{} for _ in range(seg.k)]
+    39	            seg.gone = set()
+    40	            ends = [0] * seg.k
+    41	        elif tag == "ch":
+    42	            ch = Chunk()
+    43	            ch.c = int(f[1])
+    44	            ch.n = int(f[2])
+    45	            ch.nulls = int(f[3])
+    46	            ch.mn = _val(f[4])
+    47	            ch.mx = _val(f[5])
+    48	            ch.exact = f[6] == "e"
+    49	            ch.enc = f[7]
+    50	            ch.j = len(seg.cols[ch.c])
+    51	            ch.start = ends[ch.c]
+    52	            ends[ch.c] += ch.n
+    53	            if ch.enc == "p":
+    54	                ch.plain = [_val(t) for t in f[8:8 + ch.n]]
+    55	                ch.dic = None
+    56	                ch.code = None
+    57	                ch.lit = None
+    58	            else:
+    59	                k = int(f[8])
+    60	                ch.plain = None
+    61	                ch.dic = [int(t) for t in f[9:9 + k]]
+    62	                ch.code = []
+    63	                ch.lit = {}
+    64	                at = 9 + k
+    65	                for i in range(ch.n):
+    66	                    t = f[at + i]
+    67	                    if t == "-":
+    68	                        ch.code.append(-1)
+    69	                    elif t[0] == "*":
+    70	                        ch.code.append(-2)
+    71	                        ch.lit[i] = int(t[1:])
+    72	                    else:
+    73	                        ch.code.append(int(t))
+    74	            seg.cols[ch.c].append(ch)
+    75	        elif tag == "up":
+    76	            seg.up[int(f[1])][int(f[2])] = _val(f[3])
+    77	        elif tag == "del":
+    78	            seg.gone.add(int(f[1]))
+    79	        elif tag == "qry":
+    80	            cur = Query()
+    81	            cur.conds = []
+    82	            cur.cols = []
+    83	        elif tag == "prd":
+    84	            cd = Cond()
+    85	            cd.kind = f[1]
+    86	            cd.c = int(f[2])
+    87	            cd.v = int(f[3]) if len(f) > 3 else 0
+    88	            cd.pos = len(cur.conds)
+    89	            cur.conds.append(cd)
+    90	        elif tag == "prj":
+    91	            cur.cols.extend(int(t) for t in f[1:])
+    92	        elif tag == "end":
+    93	            queries.append(cur)
+    94	            cur = None
+    95	    return seg, queries
+=== scn/emit.py
+     1	MOD = 2305843009213693951
+     2	
+     3	
+     4	def digest(rows):
+     5	    h = 0
+     6	    for r in rows:
+     7	        h = (h * 1000003 + r + 1) % MOD
+     8	    return h
+     9	
+    10	
+    11	class Out:
+    12	    __slots__ = ("lines",)
+    13	
+    14	    def __init__(self):
+    15	        self.lines = []
+    16	
+    17	    def qry(self, i):
+    18	        self.lines.append("qry %d" % i)
+    19	
+    20	    def rd(self, c, j):
+    21	        self.lines.append("rd %d %d" % (c, j))
+    22	
+    23	    def dc(self, c, j):
+    24	        self.lines.append("dc %d %d" % (c, j))
+    25	
+    26	    def sel(self, n, h):
+    27	        self.lines.append("sel %d %d" % (n, h))
+    28	
+    29	    def prj(self, c, nn, tot):
+    30	        self.lines.append("prj %d %d %d" % (c, nn, tot))
+=== scn/rd.py
+     1	def values(ch):
+     2	    if ch.enc == "p":
+     3	        return ch.plain
+     4	    dic = ch.dic
+     5	    lit = ch.lit
+     6	    out = []
+     7	    for i, code in enumerate(ch.code):
+     8	        if code >= 0:
+     9	            out.append(dic[code])
+    10	        elif code == -1:
+    11	            out.append(None)
+    12	        else:
+    13	            out.append(lit[i])
+    14	    return out
+    15	
+    16	
+    17	def sat(cond, v):
+    18	    k = cond.kind
+    19	    if v is None:
+    20	        return k == "nu"
+    21	    if k == "nu":
+    22	        return False
+    23	    if k == "nn":
+    24	        return True
+    25	    if k == "ge":
+    26	        return v >= cond.v
+    27	    if k == "le":
+    28	        return v <= cond.v
+    29	    if k == "eq":
+    30	        return v == cond.v
+    31	    return v != cond.v
+=== scn/hdr.py
+     1	def bounds(seg, ch):
+     2	    if ch.mn is None:
+     3	        return None
+     4	    return ch.mn, ch.mx
+     5	
+     6	
+     7	def miss(seg, ch, cond):
+     8	    k = cond.kind
+     9	    if k == "nu":
+    10	        return ch.nulls == 0
+    11	    have = ch.n - ch.nulls
+    12	    if have == 0 or k == "nn":
+    13	        return have == 0
+    14	    lo, hi = bounds(seg, ch)
+    15	    v = cond.v
+    16	    if k == "ge":
+    17	        return hi < v
+    18	    if k == "le":
+    19	        return lo > v
+    20	    if k == "eq":
+    21	        return v < lo or v > hi
+    22	    return lo == hi == v
+    23	
+    24	
+    25	def allsat(seg, ch, cond):
+    26	    k = cond.kind
+    27	    if k == "nu":
+    28	        return ch.nulls == ch.n
+    29	    if k == "nn":
+    30	        return ch.nulls == 0
+    31	    lo, hi = bounds(seg, ch)
+    32	    if lo is None:
+    33	        return False
+    34	    v = cond.v
+    35	    if k 
+… [clipped]
+collapse
+Thinking…
+I found several spec deviations in the existing code (missing `w` widening, static condition ordering, reads baked with updates, projection sorted by column). I'll rewrite the six files to match the spec, then verify against tiny and timing files.
+
+Bash({"command":"cat > scn/hdr.py <<'EOF'\ndef bounds(seg, ch):\n if ch.mn is None:\n return None\n if ch.exact:\n …)
+
+qry 0
+rd 0 0
+dc 0 0
+sel 4 2000021000077000102
+dc 1 0
+prj 1 4 16
+prj 0 4 30
+---
+qry 0
+dc 0 1
+dc 0 0
+dc 2 0
+sel 5 2168783150129166846
+prj 2 5 553
+prj 0 5 275
+qry 1
+dc 0 0
+dc 0 1
+sel 2 9000037
+prj 0 2 108
+prj 1 0 0
+---
+qry 0
+rd 0 2468
+rd 0 3263
+rd 1 948
+rd 3 572
+rd 3 1038
+rd 3 2409
+rd 0 716
+rd 0 2415
+rd 1 1868
+qry 0
+sel 22 2157468261836032830
+prj 2 22 2398
+prj 1 0 0
+qry 1
+sel 185 1849036071985682299
+prj 2 185 20165
+prj 1 185 13848
+
+real	0m2.384s
+user	0m2.317s
+sys	0m0.058s
+
+[stdout]
+qry 0
+rd 0 0
+dc 0 0
+sel 4 2000021000077000102
+dc 1 0
+prj 1 4 16
+prj 0 4 30
+---
+qry 0
+dc 0 1
+dc 0 0
+dc 2 0
+sel 5 2168783150129166846
+prj 2 5 553
+prj 0 5 275
+qry 1
+dc 0 0
+dc 0 1
+sel 2 9000037
+prj 0 2 108
+prj 1 0 0
+---
+qry 0
+rd 0 2468
+rd 0 3263
+rd 1 948
+rd 3 572
+rd 3 1038
+rd 3 2409
+rd 0 716
+rd 0 2415
+rd 1 1868
+qry 0
+sel 22 2157468261836032830
+prj 2 22 2398
+prj 1 0 0
+qry 1
+sel 185 1849036071985682299
+prj 2 185 20165
+prj 1 185 13848
+
+real	0m2.384s
+user	0m2.317s
+sys	0m0.058s
+[metadata] {"noOutputExpected": false}
+collapse
+Tiny now matches. I hand-traced both queries of pair.txt against the spec and every line matches. Let me cross-check the `sel`/`prj` values on the big files against a brute-force evaluator.
+
+Bash(cat > /tmp/brute.py <<'EOF' import sys, subprocess sys.path.insert(0, '/app') from scn import parse, rd, emit …)
+
+Command did not complete within its 120s timeout and was moved to the background (ID: bxk2dcyz0). Output is being written to: /tmp/claude-0/-app/55b6f9a3-6b14-46c6-b343-e97c04b32e0d/tasks/bxk2dcyz0.output. You will be notified when it completes. To check interim output, use Read on that file path.
+
+[metadata] {"noOutputExpected": false, "backgroundTaskId": "bxk2dcyz0", "timedOutAfterMs": 120000}
+The brute-force checker itself is slow. I'll make it precompute values and rerun.
+
+Bash(python3 - <<'EOF' import re s = open('/tmp/brute.py').read() s = s.replace('''def val(c, r): if r in seg.up[c]…)
+
+segs/deep.txt OK
+segs/pair.txt OK
+segs/tiny.txt OK
+segs/wide.txt OK
+
+[stdout]
+segs/deep.txt OK
+segs/pair.txt OK
+segs/tiny.txt OK
+segs/wide.txt OK
+[metadata] {"noOutputExpected": false}
+collapse
+All four segments match the brute-force row selection and projections, and the exact expected trace for tiny.txt now prints. Quick timing check:
+
+Bash(for f in wide deep; do /usr/bin/time -f "$f %es" python3 run_scan.py segs/$f.txt | wc -l; done)
+
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+0
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+0
+
+[stdout]
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+0
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+0
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /app; time python3 run_scan.py segs/wide.txt | wc -l; time python3 run_scan.py segs/deep.txt | wc -l)
+
+32919
+
+real	0m2.080s
+user	0m2.046s
+sys	0m0.031s
+103
+
+real	0m0.337s
+user	0m0.325s
+sys	0m0.011s
+
+[stdout]
+32919
+
+real	0m2.080s
+user	0m2.046s
+sys	0m0.031s
+103
+
+real	0m0.337s
+user	0m0.325s
+sys	0m0.011s
+[metadata] {"noOutputExpected": false}
+collapse
+Fixed. `run_scan.py segs/tiny.txt` now prints exactly the seven expected lines, ending `dc 1 0`, `prj 1 4 16`, `prj 0 4 30`.
+
+**What was wrong** (all six files rewritten to follow the spec):
+
+- `hdr.py` ignored the `w` widening by G-1, and `allsat` for comparisons didn't require zero nulls. Added header value-fixing for projection (all null, or no nulls with equal bounds).
+- `pick.py` ordered conditions statically by total guess, then swept each column's chunks. Now it keeps a heap of pending (condition, chunk) pairs keyed on min(live rows, expected count), tie-broken by condition position then chunk number, and re-keys pairs whenever a chunk's live count changes or a read fixes its exact counts.
+- `step.py` stored reads with updates baked in and counted hits over updated values. Now reads hold the chunk as written, exact counts for every condition on that column are fixed on read, updated live rows are tested on their update, and the rest go header, then existing read, then dictionary (only for `d` chunks with no `*` token), then read. A chunk with no live non-updated rows is never consulted or read.
+- `dct.py` treated any `d` chunk as usable and printed `rd` on every consult. Now it excludes chunks with `*` tokens, prints `rd` once per query per chunk, and can fix values for a single-entry, null-free dictionary.
+- `proj.py` iterated `sorted(set(cols))`. Now it follows the query's column order with repeats, supplies only chunks that own a live non-updated row, and applies updates when summing.
+- `live.py` used a set with O(n) chunk counting. Now a bytearray with per-column per-chunk live counts.
+
+**Verification:**
+- tiny.txt matches the expected trace exactly.
+- pair.txt hand-traced against the spec for both queries, including `rd`/`dc` order and digests, all consistent.
+- A brute-force evaluator confirms the `sel` and `prj` lines on all four shipped segments.
+- Timing: wide.txt about 2.1s, deep.txt about 0.3s, comfortably inside the 60s budget for the graded set.

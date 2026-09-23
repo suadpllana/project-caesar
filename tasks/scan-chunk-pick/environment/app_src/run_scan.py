@@ -6,9 +6,10 @@ from scn import emit, live, parse, pick, proj
 def run(text):
     seg, queries = parse.load(text)
     out = emit.Out()
+    mem = live.fresh(seg)
     for i, q in enumerate(queries):
         out.qry(i)
-        st = live.start(seg, q)
+        st = live.start(seg, q, mem)
         pick.run(seg, q, st, out)
         rows = live.rows(st)
         out.sel(len(rows), emit.digest(rows))

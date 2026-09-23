@@ -3,9 +3,10 @@
 
 Read by tools/onelinecheck.py, which searches for the shortest exact rule over the features.
 The features are the numbers a submission can read at the moment it decides and nothing else:
-the chunk header as the segment file writes it, the granularity, the survivors that chunk still
-holds and how many of them carry an update in the column, whether it has already been read or its
-dictionary charged, the dictionary's size, and the condition's kind, value and position. Nothing derived is offered - no interpolation, no score, no count of hits -
+the page headers as the segment file writes them (summed or bounded over a chunk for the choice
+and the chunk verdict, one page for the report pass), the granularity, the live rows and how many
+carry an update in the column, how many pages have been read and whether the dictionary has been
+charged, the dictionary's size, and the condition's kind, value and position. Nothing derived is offered - no interpolation, no score, no count of hits -
 because those are the things the task is about and handing them over would measure the wrong
 question.
 
@@ -14,7 +15,7 @@ Three questions are exported.
   chunk-verdict   What happens to this chunk under this condition: dropped unread, kept
                   unread, settled from its dictionary, or read.
   next-pair       Is this the pending pair the engine takes next?
-  report-read     What the report pass does for this chunk: nothing, a consult, or a read.
+  report-read     What the report pass does for this page: nothing, a consult, or a read.
 
 Run it directly to see the rows.
 """
@@ -36,27 +37,54 @@ KIND = {"ge": 0, "le": 1, "eq": 2, "ne": 3, "nn": 4, "nu": 5}
 
 
 def feats(seg, st, cd, ch, live):
+    """Chunk-level raw fields: what the page headers say, summed or bounded, and the state."""
     up = seg.up[ch.c]
-    moved = sum(1 for r in range(ch.start, ch.start + ch.n) if st.alive[r] and r in up)
+    moved = 0
+    for r in range(ch.start, ch.start + ch.n):
+        if st.alive[r] and r in up:
+            moved += 1
+    mns = [pg.mn for pg in ch.pages if pg.mn is not None]
+    mxs = [pg.mx for pg in ch.pages if pg.mx is not None]
     return {
         "moved": moved,
         "held": live.count(st, ch.c, ch.j) - moved,
         "dk": len(ch.dic) if ch.dic is not None else 0,
         "n": ch.n,
-        "u": ch.nulls,
-        "mn": -1 if ch.mn is None else ch.mn,
-        "mx": -1 if ch.mx is None else ch.mx,
-        "ex": 1 if ch.exact else 0,
-        "enc": 1 if ch.enc == "d" else 0,
-        "lit": 1 if (ch.lit) else 0,
+        "u": sum(pg.nulls for pg in ch.pages),
+        "mn": min(mns) if mns else -1,
+        "mx": max(mxs) if mxs else -1,
+        "ex": sum(1 for pg in ch.pages if pg.exact),
+        "pages": len(ch.pages),
+        "ipages": sum(1 for pg in ch.pages if pg.form == "i"),
         "sv": live.count(st, ch.c, ch.j),
-        "read": 1 if (ch.c, ch.j) in st.vals else 0,
-        "charged": 1 if (ch.c, ch.j) in st.dread else 0,
+        "read": sum(1 for pg in ch.pages if (pg.c, pg.j, pg.p) in st.mem.vals),
+        "charged": 1 if (ch.c, ch.j) in st.mem.dread else 0,
         "kind": KIND[cd.kind],
         "v": cd.v,
         "g": seg.g,
         "pos": cd.pos,
         "j": ch.j,
+    }
+
+
+def page_feats(seg, st, ch, pg, live):
+    """Page-level raw fields for the report pass."""
+    held, moved = live.split(st, pg.c, pg)
+    return {
+        "held": len(held),
+        "moved": len(moved),
+        "n": pg.n,
+        "u": pg.nulls,
+        "mn": -1 if pg.mn is None else pg.mn,
+        "mx": -1 if pg.mx is None else pg.mx,
+        "ex": 1 if pg.exact else 0,
+        "s": pg.sum,
+        "form": 1 if pg.form == "i" else 0,
+        "dk": len(ch.dic) if ch.dic is not None else 0,
+        "read": 1 if (pg.c, pg.j, pg.p) in st.mem.vals else 0,
+        "charged": 1 if (ch.c, ch.j) in st.mem.dread else 0,
+        "g": seg.g,
+        "p": pg.p,
     }
 
 
@@ -97,7 +125,7 @@ def _rows(app):
                     have = live.count(st, cd.c, ch.j)
                     if have <= 0:
                         continue
-                    b = pick.bound(seg, st, ch, cd)
+                    b = st.cnt[(cd.pos, ch.j)]
                     if b > have:
                         b = have
                     here.append((b, cd, ch))
@@ -111,6 +139,7 @@ def _rows(app):
                                  cd.pos == best[1].pos and ch.j == best[2]))
             watched_decide(seg, q, st, best[1], best[2], out)
             st.done[best[1].pos].add(best[2])
+            st.dirty.clear()
 
     def watched_proj(seg, q, st, rows, out):
         seen = []
@@ -119,26 +148,26 @@ def _rows(app):
             if c in seen:
                 continue
             seen.append(c)
-            cd = next((x for x in q.conds if x.c == c), q.conds[0])
             for ch in seg.cols[c]:
-                rowsof[(c, ch.j)] = feats(seg, st, cd, ch, live)
+                for pg in ch.pages:
+                    rowsof[(c, ch.j, pg.p)] = page_feats(seg, st, ch, pg, live)
         label = {k: 0 for k in rowsof}
-        plain_source = proj._source
+        plain_page = proj._page
 
-        def watched_source(seg_, q_, st_, ch, out_):
+        def watched_page(seg_, q_, st_, ch, pg, held, out_):
             before = len(out_.lines)
-            got = plain_source(seg_, q_, st_, ch, out_)
+            got = plain_page(seg_, q_, st_, ch, pg, held, out_)
             marks = out_.lines[before:]
-            key = (ch.c, ch.j)
+            key = (ch.c, ch.j, pg.p)
             if label.get(key, 0) == 0:
                 label[key] = 2 if any(x.startswith("dc ") for x in marks) else (1 if marks else 0)
             return got
 
-        proj._source = watched_source
+        proj._page = watched_page
         try:
             plain_proj(seg, q, st, rows, out)
         finally:
-            proj._source = plain_source
+            proj._page = plain_page
         for key, row in rowsof.items():
             report.append((row, label[key]))
 

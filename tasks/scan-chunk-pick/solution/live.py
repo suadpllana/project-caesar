@@ -1,19 +1,33 @@
-"""The surviving rows, and the counts every estimate is capped by.
+"""What the scan knows: across the file, and within one query.
 
-Rows only ever leave, which is what makes the per-chunk counts maintainable: a chunk's count is
-set once when the query starts and decremented as rows die, so no step ever walks the live set
-to find out how many survivors a chunk still holds. A row belongs to one chunk per column and
-the partitions differ between columns, so a death is charged to one chunk of every column the
-query touches, through a row-to-chunk map built once per column. Each chunk whose count moved
-is remembered in `dirty`, which is how the choice loop knows whose scores to look at again.
+`fresh` makes the file's memory. A page read or a dictionary consulted by any query stays in it
+for every query after, so a later query reads and charges nothing twice, and the pages it
+remembers count exactly from its first step.
 
-A deleted row is not a row: it starts dead and is never counted anywhere.
+`start` makes one query's state. Rows only ever leave, which is what makes the per-chunk live
+counts maintainable: set once when the query starts - deleted rows are never alive - and
+decremented as rows die, through a row-to-chunk map per column, because the partitions differ
+between columns. Each chunk whose count moved is marked dirty, which is how the choice loop
+knows whose scores to look at again. `cnt` holds each condition's count on each chunk of its
+column: the sum over the chunk's pages of the exact count where the page has been read and the
+header's spread where it has not.
 """
-from scn import rd
+from scn import hdr, rd
+
+
+class Mem:
+    __slots__ = ("vals", "dread")
 
 
 class State:
-    __slots__ = ("seg", "alive", "sv", "own", "vals", "hit", "dread", "done", "dirty")
+    __slots__ = ("seg", "mem", "alive", "sv", "own", "hit", "cnt", "done", "dirty")
+
+
+def fresh(seg):
+    mem = Mem()
+    mem.vals = {}
+    mem.dread = set()
+    return mem
 
 
 def _cols(q):
@@ -27,17 +41,29 @@ def _cols(q):
     return seen
 
 
-def start(seg, q):
+def exact(st, cd, pg):
+    key = (pg.c, pg.j, pg.p, cd.pos)
+    got = st.hit.get(key)
+    if got is None:
+        got = 0
+        for v in st.mem.vals[(pg.c, pg.j, pg.p)]:
+            if rd.sat(cd, v):
+                got += 1
+        st.hit[key] = got
+    return got
+
+
+def start(seg, q, mem):
     st = State()
     st.seg = seg
+    st.mem = mem
     st.alive = bytearray([1]) * seg.n
     for r in seg.gone:
         st.alive[r] = 0
     st.sv = {}
     st.own = {}
-    st.vals = {}
     st.hit = {}
-    st.dread = set()
+    st.cnt = {}
     st.done = [set() for _ in q.conds]
     st.dirty = set()
     alive = st.alive
@@ -46,11 +72,28 @@ def start(seg, q):
         counts = []
         for ch in seg.cols[c]:
             own.extend([ch.j] * ch.n)
-            s = ch.start
-            counts.append(sum(alive[s:s + ch.n]))
+            counts.append(sum(alive[ch.start:ch.start + ch.n]))
         st.own[c] = own
         st.sv[c] = counts
+    for cd in q.conds:
+        for ch in seg.cols[cd.c]:
+            t = 0
+            for pg in ch.pages:
+                if (pg.c, pg.j, pg.p) in mem.vals:
+                    t += exact(st, cd, pg)
+                else:
+                    t += hdr.guess(seg, pg, cd)
+            st.cnt[(cd.pos, ch.j)] = t
     return st
+
+
+def learn(st, q, ch, pg):
+    """A page has just been read: its guesses give way to exact counts."""
+    seg = st.seg
+    for cd in q.conds:
+        if cd.c == ch.c:
+            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)
+    st.dirty.add((ch.c, ch.j))
 
 
 def kill(st, dead):
@@ -66,14 +109,13 @@ def kill(st, dead):
                 dirty.add((c, j))
 
 
-def split(st, c, j):
-    """The chunk's live rows: those that still take their value from it, and those that don't."""
-    ch = st.seg.cols[c][j]
+def split(st, c, pg):
+    """A page's live rows: those that still take their value from it, and those that don't."""
     up = st.seg.up[c]
     alive = st.alive
     held = []
     moved = []
-    for r in range(ch.start, ch.start + ch.n):
+    for r in range(pg.start, pg.start + pg.n):
         if alive[r]:
             if r in up:
                 moved.append(r)

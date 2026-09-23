@@ -6,15 +6,15 @@
 slug = "scan-chunk-pick"
 category = "Software"
 label = "Databases"
-tags = ["columnar-scan", "chunk-statistics", "dictionary-encoding", "selectivity-estimation", "null-semantics", "delta-overlay"]
+tags = ["columnar-scan", "chunk-statistics", "dictionary-encoding", "selectivity-estimation", "page-index-pruning", "delta-overlay"]
 status = "pending"
 
 [mechanism]
-sentence = "Decide which chunk headers, dictionaries and chunk reads a filtered columnar scan pays for, and in what order, when each condition is applied chunk by chunk under a cost rule, statistics describe immutable chunks as written, and row updates and deletes sit beside them."
-substrate = "the scan layer of a columnar store deciding which immutable chunks are consulted and read"
+sentence = "Decide which page headers, dictionaries and page reads a filtered columnar scan pays for, and in what order, across the queries of one session, when conditions are applied chunk by chunk and page by page under a cost rule and statistics describe immutable pages as written beside row updates and deletes."
+substrate = "the scan layer of a columnar store deciding which pages of immutable column chunks are consulted and read"
 graded_output = "the exact per-query list of dictionary consults and chunk reads in order, a surviving-row count and digest, and per-column counts and sums"
-failure_mode = "merge-on-read with the chunk as the unit of every decision, a condition order fixed from statistics, and a loop that rescans every pending pair"
-interaction = "rows carrying an update decide whether a chunk is asked at all, which decides which reads settle exact counts, which decide the order, which decides what the report pass must still read"
+failure_mode = "the chunk as the unit of reading, counting and trusting, merge-on-read updates, per-query scan state, and a loop that rescans every pending pair"
+interaction = "which pages one query reads decides which counts are exact for the next, which decides its order and what it still pays for, while updates and deaths decide whether a page is asked at all or answered from its sum"
 
 [nearest.public]
 name = "Apache Parquet page index and row-group statistics; DuckDB and DataFusion zone-map pruning and adaptive filter reordering"

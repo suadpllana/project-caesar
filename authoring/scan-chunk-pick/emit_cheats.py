@@ -35,47 +35,56 @@ def write(name, note, files, extra=None):
 
 
 NOTES = {
-    "hdr-bounds-exact": "reads a widened header as if the recorded pair were exact",
-    "hdr-pass-ignores-nulls": "keeps a chunk unread on its bounds while it holds nulls",
-    "hdr-null-always-read": "never lets the header settle is-null or is-not-null",
+    "hdr-bounds-exact": "reads a widened page header as if the recorded pair were exact",
+    "hdr-pass-ignores-nulls": "passes a page whole on its bounds while it holds nulls",
+    "hdr-null-always-read": "never lets a page header settle is-null or is-not-null",
     "hdr-spread-floor": "rounds the interpolation down instead of up",
     "hdr-spread-open": "takes the interpolation's endpoint exclusive",
-    "dic-overflow-used": "uses a dictionary that falls back to a literal",
+    "dic-fallback-used": "lets the dictionary speak for a page that fell back to plain values",
     "dic-charge-each": "charges a chunk's dictionary once per consult",
-    "dic-keep-ignores-nulls": "keeps a chunk whose dictionary all matches while it holds nulls",
+    "dic-keep-ignores-nulls": "keeps a page whose dictionary all matches while it holds nulls",
     "dic-answers-null": "answers is-null and is-not-null from a dictionary",
-    "dic-drop-needs-nulls": "will not drop a ruled-out chunk that holds nulls",
+    "dic-drop-needs-nulls": "will not drop pages the dictionary rules out when the chunk holds nulls",
+    "pg-dict-all-pages": "uses a dictionary only when every page of its chunk is an index page",
+    "pg-dict-keep-chunk-nulls": "keeps pages on an all-matching dictionary only if no page of the chunk holds a null",
+    "pg-whole-chunk-read": "reads every page of a chunk once any page of it has to be read",
+    "pg-count-all-or-nothing": "counts a chunk exactly only once every page of it has been read",
     "ord-fixed-sweep": "settles the condition order once and sweeps each over its column",
     "ord-column-sum": "scores a whole condition rather than one pending pair",
-    "ord-no-cap": "does not cap a score by the survivors the chunk still holds",
-    "ord-header-only": "scores a chunk that has been read from its header",
+    "ord-no-cap": "does not cap a score by the live rows the chunk still holds",
+    "ord-header-only": "scores a chunk from its page headers even where a page has been read",
     "ord-highest-chunk": "breaks a tie toward the later condition and the higher chunk",
     "ord-largest-first": "takes the pair expected to leave the most rows alive",
-    "dec-one-cond": "records only the condition that asked for the read",
-    "dec-hits-live-only": "counts a read chunk's hits over the rows still alive",
-    "prj-all-chunks": "reads every chunk of a reported column",
-    "prj-index-order": "reports the columns in index order",
-    "prj-nulls-counted": "counts nulls in the reported figure",
-    "prj-redecode": "reads a reported chunk again although it was read already",
-    "qry-keeps-state": "carries reads and dictionary charges from one query into the next",
     "ord-stale-key": "keeps its scores in a heap and trusts an entry pushed before a read raised it",
     "ord-read-no-push": "keeps its scores in a heap and re-scores a chunk only when rows die in it",
-    "upd-drop-takes-moved": "lets a header or dictionary drop take the rows that carry an update",
+    "dec-one-cond": "counts a read page exactly only for the condition that asked for it",
+    "dec-hits-live-only": "counts a read page's hits over the rows still alive",
+    "upd-drop-takes-moved": "lets a header drop take the rows that carry an update",
     "upd-keep-trusts-moved": "lets a header keep pass the rows that carry an update untested",
-    "upd-read-anyway": "consults and reads a chunk although every live row carries an update",
-    "upd-merge-on-read": "merges the updates into a chunk when it is read, and reads it for them",
-    "upd-count-current": "counts a read chunk's exact hits over the updated values",
+    "upd-read-anyway": "consults and reads a page although every live row on it carries an update",
+    "upd-merge-on-read": "merges the updates into a page when it is read, and reads it for them",
+    "upd-count-current": "counts a read page's exact hits over the updated values",
     "del-still-alive": "starts every query with the deleted rows alive",
-    "del-still-counted": "caps a score by a survivor count that still includes deleted rows",
-    "prj-reads-moved": "reads a reported chunk whose survivors all carry updates",
-    "prj-reads-pinned": "reads a reported chunk whose header already fixes every value",
+    "del-still-counted": "caps a score by a live count that still includes deleted rows",
+    "mem-none": "starts every query with nothing read and nothing charged",
+    "mem-no-exact-start": "counts a page read by an earlier query from its header until it is read again",
+    "mem-charge-per-query": "remembers pages across queries but charges each dictionary again per query",
+    "mem-report-not-kept": "forgets the pages the report pass read",
+    "prj-all-pages": "reads reported pages that hold no live row",
+    "prj-reads-moved": "reads a reported page whose live rows all carry updates",
+    "prj-reads-pinned": "reads a reported page whose header already fixes every value",
     "prj-pinned-ignores-widen": "takes a widened header's recorded pair as fixing the value",
-    "prj-no-one-entry": "never takes a reported chunk's values from a one-entry dictionary",
-    "prj-one-entry-free": "takes a one-entry dictionary's value without charging it",
-    "prj-one-entry-with-nulls": "takes a one-entry dictionary's value although the chunk holds nulls",
+    "prj-no-whole-sum": "never answers a reported page from its header's sum",
+    "prj-whole-ignores-deletes": "takes a page's sum although some of its rows were deleted",
+    "prj-whole-ignores-updates": "takes a page's sum although some of its rows carry an update",
+    "prj-no-one-entry": "never answers a reported page from a one-entry dictionary",
+    "prj-one-entry-with-nulls": "answers from a one-entry dictionary although the page holds nulls",
+    "prj-one-entry-fallback": "answers a fallback page from its chunk's one-entry dictionary",
+    "prj-one-entry-free": "answers from a one-entry dictionary without charging it",
+    "prj-index-order": "reports the columns in index order",
+    "prj-nulls-counted": "counts nulls in the reported figure",
+    "prj-redecode": "reads a reported page again although it was read already",
 }
-
-OLD = pathlib.Path(__file__).resolve().parent / "probe_winner"
 
 CONST_PICK = '''def run(seg, q, st, out):
     return
@@ -86,8 +95,8 @@ CONST_PROJ = '''def run(seg, q, st, rows, out):
 
 REPLAY_PICK = CONST_PICK
 REPLAY_PROJ = '''def run(seg, q, st, rows, out):
-    out.lines[:] = ["qry 0", "rd 0 0", "dc 0 0", "sel 4 2000021000077000102",
-                    "dc 1 0", "prj 1 4 16", "prj 0 4 30"]
+    out.lines[:] = ["qry 0", "rd 0 0", "dc 0 0 0", "sel 4 2000021000077000102",
+                    "dc 1 0 0", "prj 1 4 16", "prj 0 4 30"]
 '''
 
 SWEEP_PICK = '''from scn import live, step
@@ -113,12 +122,23 @@ _GT = json.loads(r'''__GT__''')
 _FP = __FP__
 
 
+_LAST = [None, []]
+
+
 def _fp(seg, q):
-    heads = tuple((ch.n, ch.nulls, ch.mn, ch.mx, ch.exact, ch.enc)
+    if _LAST[0] is not seg:
+        _LAST[0] = seg
+        _LAST[1] = []
+    _LAST[1].append(q)
+    heads = tuple((ch.enc, tuple(ch.dic or ()),
+                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.sum, pg.form, tuple(pg.toks))
+                         for pg in ch.pages))
                   for col in seg.cols for ch in col)
     ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))
-    return repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone)),
-                 tuple((cd.kind, cd.c, cd.v) for cd in q.conds), tuple(q.cols)))
+    segfp = repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone))))
+    hist = tuple(repr((tuple((cd.kind, cd.c, cd.v) for cd in x.conds), tuple(x.cols)))
+                 for x in _LAST[1])
+    return repr((segfp, hist))
 
 
 def run(seg, q, st, rows, out):
@@ -169,14 +189,17 @@ def _probe():
         from scn import parse
         for name in cases.ORDER:
             seg, queries = parse.load("\\n".join(cases.prog(name)) + "\\n")
-            for i, q in enumerate(queries):
-                heads = tuple((ch.n, ch.nulls, ch.mn, ch.mx, ch.exact, ch.enc)
-                              for col in seg.cols for ch in col)
-                ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up)
-                            for r, v in sorted(u.items()))
-                key = repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone)),
-                            tuple((cd.kind, cd.c, cd.v) for cd in q.conds), tuple(q.cols)))
-                _FP[key] = (name, i)
+            heads = tuple((ch.enc, tuple(ch.dic or ()),
+                           tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.sum, pg.form,
+                                  tuple(pg.toks)) for pg in ch.pages))
+                          for col in seg.cols for ch in col)
+            ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up)
+                        for r, v in sorted(u.items()))
+            segfp = repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone))))
+            for i in range(len(queries)):
+                hist = tuple(repr((tuple((cd.kind, cd.c, cd.v) for cd in x.conds), tuple(x.cols)))
+                             for x in queries[:i + 1])
+                _FP[repr((segfp, hist))] = (name, i)
     except Exception:
         pass
 '''),
@@ -324,12 +347,23 @@ def _probe():
 KEYED_PROJ = """from scn.pick import _FP, _GT
 
 
+_LAST = [None, []]
+
+
 def _fp(seg, q):
-    heads = tuple((ch.n, ch.nulls, ch.mn, ch.mx, ch.exact, ch.enc)
+    if _LAST[0] is not seg:
+        _LAST[0] = seg
+        _LAST[1] = []
+    _LAST[1].append(q)
+    heads = tuple((ch.enc, tuple(ch.dic or ()),
+                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.sum, pg.form, tuple(pg.toks))
+                         for pg in ch.pages))
                   for col in seg.cols for ch in col)
     ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))
-    return repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone)),
-                 tuple((cd.kind, cd.c, cd.v) for cd in q.conds), tuple(q.cols)))
+    segfp = repr((seg.g, seg.n, seg.k, heads, ups, tuple(sorted(seg.gone))))
+    hist = tuple(repr((tuple((cd.kind, cd.c, cd.v) for cd in x.conds), tuple(x.cols)))
+                 for x in _LAST[1])
+    return repr((segfp, hist))
 
 
 def run(seg, q, st, rows, out):
@@ -351,8 +385,10 @@ MALFORMED_PROJ = '''from scn import live, step
 def run(seg, q, st, rows, out):
     for c in q.cols:
         for ch in seg.cols[c]:
-            if live.count(st, c, ch.j) > 0 and (c, ch.j) not in st.vals:
-                step.load(seg, q, st, ch, out)
+            for pg in ch.pages:
+                held, _moved = live.split(st, c, pg)
+                if held and (c, ch.j, pg.p) not in st.mem.vals:
+                    step.load(seg, q, st, ch, pg, out)
     out.lines.append({"prj": [c for c in q.cols]})
 '''
 
@@ -365,15 +401,15 @@ def run(seg, q, st, out):
 
 
 def _keys():
-    """Fingerprint -> (case name, which query), so the forgery carries gt.json verbatim."""
+    """History key -> (case name, which query), so the forgery carries gt.json verbatim."""
     sys.path.insert(0, str(TASK / "tests"))
     import cases
     import parse_shim
     out = {}
     for name in cases.ORDER:
         seg, queries = parse_shim.load("\n".join(cases.prog(name)) + "\n")
-        for i, q in enumerate(queries):
-            out[parse_shim.fp(seg, q)] = (name, i)
+        for i in range(len(queries)):
+            out[parse_shim.fp(seg, queries[:i + 1])] = (name, i)
     assert len(out) >= len(cases.ORDER), "the answer key reproduces nothing"
     return out
 
@@ -390,8 +426,8 @@ def main():
           "exactly correct, and rescans every pending pair after every step",
           {"pick.py": R._RESCAN})
     write("chunk-is-unit",
-          "decides each chunk whole and reads it for any live row, ignoring updates and deletes",
-          {p.name: p.read_text(encoding="utf-8") for p in sorted(OLD.glob("*.py"))})
+          "the previous design: every query starts over and a chunk is read, counted and trusted whole",
+          R.previous())
     write("const-nothing", "one fixed output for every segment file",
           {"pick.py": CONST_PICK, "proj.py": CONST_PROJ})
     write("replay-example", "replays the worked example for every segment file",

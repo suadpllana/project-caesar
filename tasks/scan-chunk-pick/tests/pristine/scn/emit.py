@@ -20,8 +20,8 @@ class Out:
     def rd(self, c, j):
         self.lines.append("rd %d %d" % (c, j))
 
-    def dc(self, c, j):
-        self.lines.append("dc %d %d" % (c, j))
+    def dc(self, c, j, p):
+        self.lines.append("dc %d %d %d" % (c, j, p))
 
     def sel(self, n, h):
         self.lines.append("sel %d %d" % (n, h))

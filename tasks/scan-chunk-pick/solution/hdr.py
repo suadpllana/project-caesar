@@ -1,39 +1,36 @@
-"""Header-only decisions, and the estimate the order is chosen on.
+"""What a page header proves, and the estimate the order is chosen on.
 
-Every chunk carries a row count, a null count, a recorded low and high and a flag saying
-whether that pair is exact. When it is not, the recorded pair was rounded inward to a multiple
-of the segment granularity, so the usable bounds are the recorded ones pushed out by g - 1.
-Reading them as exact skips chunks that hold matches.
+A page header carries a row count, a null count, a recorded low and high with a flag saying
+whether that pair is exact, and the sum of the non-null values. When the flag is off the
+recorded pair was rounded inward to a multiple of the segment granularity, so the usable bounds
+are the recorded ones pushed out by g - 1. Reading them as exact skips pages that hold matches.
 
-`miss` and `allsat` are the two sound tests: the header proves no row of the chunk matches, or
-that every row does. Both fail on a chunk holding nulls for every condition but is-null. A
-widened pair is always a wider one, so low == high proves the whole chunk carries one value
-whatever the flag says.
-`pinned` says whether the header alone fixes the value every row of the chunk holds as
-written: every row null, or no nulls and a low equal to its high. The report pass needs no read
-for such a chunk.
-`guess` is neither - it is the interpolation the order is chosen on, spreading the live rows
-evenly over the bounds, and it is allowed to be wrong.
+`miss` and `allsat` are the two sound tests: the bounds and the null count prove that no row of
+the page matches, or that every row does. A null satisfies is-null and nothing else, so a page
+holding a null never passes a comparison or is-not-null whole. `pinned` says when the header
+alone fixes every value the page holds: every row null, or no nulls and a low equal to its high
+after widening. `guess` is neither: it is the interpolation the order is chosen on, spreading
+the non-null rows evenly over the bounds, and it is allowed to be wrong.
 """
 
 
-def bounds(seg, ch):
-    if ch.mn is None:
+def bounds(seg, pg):
+    if pg.mn is None:
         return None
-    if ch.exact:
-        return ch.mn, ch.mx
+    if pg.exact:
+        return pg.mn, pg.mx
     w = seg.g - 1
-    return ch.mn - w, ch.mx + w
+    return pg.mn - w, pg.mx + w
 
 
-def miss(seg, ch, cond):
+def miss(seg, pg, cond):
     k = cond.kind
     if k == "nu":
-        return ch.nulls == 0
-    have = ch.n - ch.nulls
+        return pg.nulls == 0
+    have = pg.n - pg.nulls
     if have == 0 or k == "nn":
         return have == 0
-    lo, hi = bounds(seg, ch)
+    lo, hi = bounds(seg, pg)
     v = cond.v
     if k == "ge":
         return hi < v
@@ -44,15 +41,15 @@ def miss(seg, ch, cond):
     return lo == hi == v
 
 
-def allsat(seg, ch, cond):
+def allsat(seg, pg, cond):
     k = cond.kind
     if k == "nu":
-        return ch.nulls == ch.n
-    if ch.nulls:
+        return pg.nulls == pg.n
+    if pg.nulls:
         return False
     if k == "nn":
         return True
-    lo, hi = bounds(seg, ch)
+    lo, hi = bounds(seg, pg)
     v = cond.v
     if k == "ge":
         return lo >= v
@@ -63,14 +60,25 @@ def allsat(seg, ch, cond):
     return hi < v or lo > v
 
 
-def guess(seg, ch, cond):
+def pinned(seg, pg):
+    if pg.nulls == pg.n:
+        return True, None
+    if pg.nulls:
+        return False, None
+    lo, hi = bounds(seg, pg)
+    if lo == hi:
+        return True, lo
+    return False, None
+
+
+def guess(seg, pg, cond):
     k = cond.kind
     if k == "nu":
-        return ch.nulls
-    have = ch.n - ch.nulls
+        return pg.nulls
+    have = pg.n - pg.nulls
     if have == 0 or k == "nn":
         return have
-    lo, hi = bounds(seg, ch)
+    lo, hi = bounds(seg, pg)
     v = cond.v
     span = hi - lo + 1
     if k == "ge":
@@ -85,14 +93,3 @@ def guess(seg, ch, cond):
         room = span
     part = -(-have * room // span)
     return have - part if k == "ne" else part
-
-
-def pinned(seg, ch):
-    if ch.nulls == ch.n:
-        return True, None
-    if ch.nulls:
-        return False, None
-    lo, hi = bounds(seg, ch)
-    if lo == hi:
-        return True, lo
-    return False, None

@@ -13,6 +13,6 @@ def decide(seg, ch, cond, st, out):
             good += 1
     if good == 0:
         return "drop"
-    if good == len(ch.dic) and ch.nulls == 0:
+    if good == len(ch.dic) and sum(pg.nulls for pg in ch.pages) == 0:
         return "keep"
     return "read"

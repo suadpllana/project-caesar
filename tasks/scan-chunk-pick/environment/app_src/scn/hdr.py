@@ -1,17 +1,25 @@
-def bounds(seg, ch):
-    if ch.mn is None:
-        return None
-    return ch.mn, ch.mx
+def stats(seg, ch):
+    n = 0
+    nulls = 0
+    lo = None
+    hi = None
+    for pg in ch.pages:
+        n += pg.n
+        nulls += pg.nulls
+        if pg.mn is not None:
+            lo = pg.mn if lo is None or pg.mn < lo else lo
+            hi = pg.mx if hi is None or pg.mx > hi else hi
+    return n, nulls, lo, hi
 
 
 def miss(seg, ch, cond):
+    n, nulls, lo, hi = stats(seg, ch)
     k = cond.kind
     if k == "nu":
-        return ch.nulls == 0
-    have = ch.n - ch.nulls
+        return nulls == 0
+    have = n - nulls
     if have == 0 or k == "nn":
         return have == 0
-    lo, hi = bounds(seg, ch)
     v = cond.v
     if k == "ge":
         return hi < v
@@ -23,12 +31,12 @@ def miss(seg, ch, cond):
 
 
 def allsat(seg, ch, cond):
+    n, nulls, lo, hi = stats(seg, ch)
     k = cond.kind
     if k == "nu":
-        return ch.nulls == ch.n
+        return nulls == n
     if k == "nn":
-        return ch.nulls == 0
-    lo, hi = bounds(seg, ch)
+        return nulls == 0
     if lo is None:
         return False
     v = cond.v
@@ -42,13 +50,13 @@ def allsat(seg, ch, cond):
 
 
 def guess(seg, ch, cond):
+    n, nulls, lo, hi = stats(seg, ch)
     k = cond.kind
     if k == "nu":
-        return ch.nulls
-    have = ch.n - ch.nulls
+        return nulls
+    have = n - nulls
     if have == 0 or k == "nn":
         return have
-    lo, hi = bounds(seg, ch)
     v = cond.v
     span = hi - lo + 1
     if k == "ge":

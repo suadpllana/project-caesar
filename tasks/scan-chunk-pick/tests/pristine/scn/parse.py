@@ -1,6 +1,10 @@
+class Page:
+    __slots__ = ("c", "j", "p", "n", "start", "nulls", "mn", "mx", "exact", "sum",
+                 "form", "toks")
+
+
 class Chunk:
-    __slots__ = ("c", "j", "n", "start", "nulls", "mn", "mx", "exact",
-                 "enc", "plain", "dic", "code", "lit")
+    __slots__ = ("c", "j", "enc", "dic", "pages", "start", "n")
 
 
 class Seg:
@@ -23,6 +27,7 @@ def load(text):
     seg = None
     queries = []
     cur = None
+    ch = None
     ends = []
     for line in text.split("\n"):
         if not line:
@@ -41,37 +46,30 @@ def load(text):
         elif tag == "ch":
             ch = Chunk()
             ch.c = int(f[1])
-            ch.n = int(f[2])
-            ch.nulls = int(f[3])
-            ch.mn = _val(f[4])
-            ch.mx = _val(f[5])
-            ch.exact = f[6] == "e"
-            ch.enc = f[7]
             ch.j = len(seg.cols[ch.c])
+            ch.enc = f[2]
+            ch.dic = [int(t) for t in f[4:4 + int(f[3])]] if ch.enc == "d" else None
+            ch.pages = []
             ch.start = ends[ch.c]
-            ends[ch.c] += ch.n
-            if ch.enc == "p":
-                ch.plain = [_val(t) for t in f[8:8 + ch.n]]
-                ch.dic = None
-                ch.code = None
-                ch.lit = None
-            else:
-                k = int(f[8])
-                ch.plain = None
-                ch.dic = [int(t) for t in f[9:9 + k]]
-                ch.code = []
-                ch.lit = {}
-                at = 9 + k
-                for i in range(ch.n):
-                    t = f[at + i]
-                    if t == "-":
-                        ch.code.append(-1)
-                    elif t[0] == "*":
-                        ch.code.append(-2)
-                        ch.lit[i] = int(t[1:])
-                    else:
-                        ch.code.append(int(t))
+            ch.n = 0
             seg.cols[ch.c].append(ch)
+        elif tag == "pg":
+            pg = Page()
+            pg.c = ch.c
+            pg.j = ch.j
+            pg.p = len(ch.pages)
+            pg.n = int(f[1])
+            pg.nulls = int(f[2])
+            pg.mn = _val(f[3])
+            pg.mx = _val(f[4])
+            pg.exact = f[5] == "e"
+            pg.sum = int(f[6])
+            pg.form = f[7]
+            pg.toks = [_val(t) for t in f[8:8 + pg.n]]
+            pg.start = ends[ch.c]
+            ends[ch.c] += pg.n
+            ch.n += pg.n
+            ch.pages.append(pg)
         elif tag == "up":
             seg.up[int(f[1])][int(f[2])] = _val(f[3])
         elif tag == "del":

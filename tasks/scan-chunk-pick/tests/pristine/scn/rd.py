@@ -1,17 +1,8 @@
-def values(ch):
-    if ch.enc == "p":
-        return ch.plain
+def values(ch, pg):
+    if pg.form == "v":
+        return pg.toks
     dic = ch.dic
-    lit = ch.lit
-    out = []
-    for i, code in enumerate(ch.code):
-        if code >= 0:
-            out.append(dic[code])
-        elif code == -1:
-            out.append(None)
-        else:
-            out.append(lit[i])
-    return out
+    return [None if t is None else dic[t] for t in pg.toks]
 
 
 def sat(cond, v):

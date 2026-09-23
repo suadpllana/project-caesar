@@ -1,31 +1,31 @@
 {
  "dec-hits-whole-chunk": [
   "qry 0",
-  "dc 0 0",
-  "dc 2 0",
+  "dc 0 0 0",
+  "dc 2 0 0",
   "sel 0 0",
   "prj 2 0 0"
  ],
  "del-caps-score": [
   "qry 0",
-  "dc 0 0",
-  "dc 0 1",
+  "dc 0 0 0",
+  "dc 0 1 0",
   "sel 2 4000017",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 2 9"
  ],
  "del-never-alive": [
   "qry 0",
   "sel 3 4000029000057",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 3 15"
  ],
  "dic-charge-once": [
   "qry 0",
   "rd 0 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 6 2299716151806507690",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 6 10"
  ],
  "dic-drop-with-nulls": [
@@ -36,24 +36,24 @@
  ],
  "dic-not-for-null": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 7 440016862020804994",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 7 10"
  ],
  "dic-nulls-read": [
   "qry 0",
   "rd 0 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 7 440016862020804994",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 7 10"
  ],
  "dic-overflow-read": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 1 2",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 1 2"
  ],
  "dic-whole-drop": [
@@ -66,105 +66,149 @@
   "qry 0",
   "rd 0 0",
   "sel 8 1769081309199363475",
-  "dc 1 0",
   "prj 1 8 12"
  ],
  "dic-whole-read": [
   "qry 0",
   "rd 0 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 6 2299716151806507690",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 6 10"
  ],
  "hdr-all-pass": [
   "qry 0",
   "sel 8 1769081309199363475",
-  "dc 1 0",
   "prj 1 8 12"
  ],
  "hdr-miss-skip": [
   "qry 0",
-  "dc 0 1",
+  "dc 0 1 0",
   "sel 3 6000043000083",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 3 5"
  ],
  "hdr-ne-exact-miss": [
   "qry 0",
   "sel 4 388364981750612316",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 4 6"
  ],
  "hdr-nu-no-nulls": [
   "qry 0",
-  "dc 0 1",
+  "dc 0 1 0",
   "sel 2 6000026",
   "prj 0 0 0"
  ],
  "hdr-null-chunk-null": [
   "qry 0",
   "sel 4 1000011000042000058",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 4 6",
   "qry 1",
   "sel 4 388364981750612316",
-  "dc 1 0",
   "prj 1 4 6"
  ],
  "hdr-nulls-block-pass": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 6 1512800716811726698",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 6 8"
  ],
  "hdr-widen-eq": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 2 2000010",
   "prj 0 2 60"
  ],
  "hdr-widen-high": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 1 3",
   "prj 0 1 48"
  ],
  "hdr-widen-low": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 1 1",
   "prj 0 1 21"
  ],
  "hdr-widen-ne": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 2 1000006",
   "prj 0 2 61"
  ],
+ "mem-charge-across": [
+  "qry 0",
+  "rd 0 0",
+  "sel 0 0",
+  "prj 1 0 0",
+  "qry 1",
+  "sel 6 1649863575924253874",
+  "prj 1 6 21"
+ ],
+ "mem-charge-once-file": [
+  "qry 0",
+  "rd 0 0",
+  "dc 0 0 0",
+  "sel 4 2000021000077000102",
+  "dc 1 0 0",
+  "prj 1 4 16",
+  "qry 1",
+  "sel 4 1000011000043000062",
+  "prj 1 4 12"
+ ],
+ "mem-exact-from-start": [
+  "qry 0",
+  "dc 0 0 0",
+  "sel 5 1031708290962639577",
+  "prj 0 5 340",
+  "qry 1",
+  "sel 0 0",
+  "prj 1 0 0"
+ ],
+ "mem-no-reread": [
+  "qry 0",
+  "dc 0 0 0",
+  "dc 0 0 1",
+  "sel 4 2000021000077000102",
+  "dc 1 0 0",
+  "prj 1 4 16",
+  "qry 1",
+  "sel 4 1000011000043000062",
+  "prj 1 4 12"
+ ],
+ "mem-report-read-kept": [
+  "qry 0",
+  "dc 0 0 0",
+  "sel 4 1000011000042000058",
+  "dc 1 0 0",
+  "prj 1 4 100",
+  "qry 1",
+  "sel 4 694187990896306187",
+  "prj 0 4 18"
+ ],
  "ord-exact-after-read": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 0 0",
   "prj 1 0 0"
  ],
  "ord-keeps-all": [
   "qry 0",
   "sel 8 1769081309199363475",
-  "dc 0 0",
-  "dc 0 1",
   "prj 0 8 282",
-  "dc 1 0",
   "prj 1 8 12"
  ],
  "ord-nothing-prunes": [
   "qry 0",
-  "dc 1 0",
-  "dc 1 1",
-  "dc 1 2",
-  "dc 0 1",
-  "dc 0 0",
+  "dc 1 0 0",
+  "dc 1 1 0",
+  "dc 1 2 0",
+  "dc 0 1 0",
+  "dc 0 0 0",
   "sel 6 2130956001775341003",
   "prj 0 6 96",
   "prj 1 6 205"
@@ -172,145 +216,187 @@
  "ord-read-raises": [
   "qry 0",
   "rd 0 4",
-  "dc 0 4",
+  "dc 0 4 0",
   "rd 1 2",
-  "dc 1 2",
+  "dc 1 2 0",
   "rd 0 2",
-  "dc 0 2",
-  "dc 0 0",
-  "dc 0 3",
-  "dc 1 3",
+  "dc 0 2 0",
+  "dc 0 0 0",
+  "dc 0 3 0",
+  "dc 1 3 0",
   "rd 1 5",
-  "dc 1 5",
+  "dc 1 5 0",
   "rd 1 0",
-  "dc 1 0",
+  "dc 1 0 0",
   "rd 1 4",
-  "dc 0 5",
+  "dc 0 5 0",
   "rd 0 1",
-  "dc 0 1",
+  "dc 0 1 0",
   "sel 61 304011921253275645",
   "prj 0 61 180"
  ],
  "ord-read-rescored": [
   "qry 0",
-  "dc 0 3",
-  "dc 0 2",
-  "dc 0 0",
-  "dc 0 1",
-  "dc 0 4",
+  "dc 0 3 0",
+  "dc 0 2 0",
+  "dc 0 0 0",
+  "dc 0 1 0",
+  "dc 0 4 0",
   "sel 54 561550595631978246",
-  "dc 1 0",
-  "dc 1 1",
-  "dc 1 2",
-  "dc 1 3",
-  "dc 1 4",
+  "dc 1 0 0",
+  "dc 1 1 0",
+  "dc 1 2 0",
+  "dc 1 3 0",
+  "dc 1 4 0",
   "prj 1 54 1150"
  ],
  "ord-spread-rounds-up": [
   "qry 0",
-  "dc 1 0",
-  "dc 1 1",
-  "dc 0 0",
+  "dc 1 0 0",
+  "dc 1 1 0",
+  "dc 0 0 0",
   "sel 1 2",
   "prj 0 1 5"
  ],
  "ord-spread-takes-edge": [
   "qry 0",
-  "dc 1 0",
-  "dc 1 1",
-  "dc 0 0",
+  "dc 1 0 0",
+  "dc 1 1 0",
+  "dc 0 0 0",
   "sel 1 4",
   "prj 0 1 9"
+ ],
+ "pg-count-mixed": [
+  "qry 0",
+  "dc 0 0 0",
+  "sel 5 1031708290962639577",
+  "prj 0 5 340",
+  "qry 1",
+  "sel 0 0",
+  "prj 1 0 0"
+ ],
+ "pg-dict-keep-page-nulls": [
+  "qry 0",
+  "rd 0 0",
+  "dc 0 0 1",
+  "sel 3 1000008000018",
+  "dc 1 0 0",
+  "prj 1 3 6"
+ ],
+ "pg-dict-skips-fallback": [
+  "qry 0",
+  "rd 0 0",
+  "dc 0 0 1",
+  "sel 1 6",
+  "dc 1 0 0",
+  "prj 1 1 6"
+ ],
+ "pg-partial-read": [
+  "qry 0",
+  "dc 0 0 1",
+  "sel 4 1388374981784612356",
+  "dc 1 0 0",
+  "prj 1 4 30"
  ],
  "prj-dead-chunk": [
   "qry 0",
   "sel 4 388364981750612316",
-  "dc 1 1",
   "prj 1 4 14"
  ],
  "prj-listed-order": [
   "qry 0",
   "sel 4 1000011000042000058",
-  "dc 2 0",
   "prj 2 4 30",
-  "dc 1 0",
   "prj 1 4 6"
  ],
  "prj-moved-no-read": [
   "qry 0",
   "sel 4 1000011000042000058",
-  "dc 1 1",
   "prj 1 3 77"
  ],
  "prj-nulls-out": [
   "qry 0",
   "sel 4 1000011000042000058",
-  "dc 1 0",
   "prj 1 2 3"
+ ],
+ "prj-one-entry-fallback": [
+  "qry 0",
+  "dc 0 0 0",
+  "sel 3 1000008000018",
+  "dc 1 0 1",
+  "prj 1 3 60"
  ],
  "prj-one-entry-nulls": [
   "qry 0",
-  "dc 0 0",
-  "sel 3 1000008000018",
-  "dc 1 0",
-  "dc 1 1",
-  "prj 1 2 50"
+  "dc 0 0 0",
+  "sel 3 1000009000022",
+  "dc 1 0 0",
+  "prj 1 3 90"
  ],
  "prj-one-entry-rd": [
   "qry 0",
-  "dc 0 0",
-  "sel 3 1000008000018",
+  "dc 0 0 0",
+  "sel 3 1000009000022",
   "rd 1 0",
-  "dc 1 1",
-  "prj 1 3 70"
+  "prj 1 3 90"
  ],
  "prj-pinned-no-read": [
   "qry 0",
-  "dc 0 0",
-  "sel 3 1000008000018",
-  "dc 1 1",
-  "prj 1 3 54"
+  "dc 0 0 0",
+  "sel 3 1000009000022",
+  "prj 1 3 82"
  ],
  "prj-reuse-read": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 2 3000013",
   "prj 0 2 57"
  ],
  "prj-same-twice": [
   "qry 0",
   "sel 4 1000011000042000058",
-  "dc 1 0",
   "prj 1 4 6",
   "prj 1 4 6"
  ],
  "prj-void-no-read": [
   "qry 0",
-  "dc 0 0",
-  "sel 3 1000008000018",
-  "dc 1 1",
-  "prj 1 1 30"
+  "dc 0 0 0",
+  "sel 3 1000009000022",
+  "prj 1 2 70"
+ ],
+ "prj-whole-broken-by-delete": [
+  "qry 0",
+  "sel 2 4000018",
+  "dc 1 0 1",
+  "prj 1 2 100"
+ ],
+ "prj-whole-broken-by-update": [
+  "qry 0",
+  "sel 3 4000029000057",
+  "dc 1 0 1",
+  "prj 1 2 139"
+ ],
+ "prj-whole-page-sum": [
+  "qry 0",
+  "sel 3 4000029000057",
+  "prj 1 2 100"
  ],
  "prj-widened-not-pinned": [
   "qry 0",
-  "dc 0 0",
-  "sel 3 1000008000018",
-  "dc 1 0",
-  "dc 1 1",
-  "prj 1 3 70"
+  "dc 0 0 0",
+  "sel 3 1000009000022",
+  "dc 1 0 0",
+  "prj 1 3 90"
  ],
  "qry-starts-over": [
   "qry 0",
   "rd 0 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 6 2299716151806507690",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 6 10",
   "qry 1",
-  "rd 0 0",
-  "dc 0 0",
   "sel 6 2299716151806507690",
-  "dc 1 0",
   "prj 1 6 10"
  ],
  "sel-empty": [
@@ -321,49 +407,49 @@
  ],
  "upd-all-moved-no-rd": [
   "qry 0",
-  "dc 0 1",
+  "dc 0 1 0",
   "sel 4 1000012000050000075",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 4 15"
  ],
  "upd-all-moved-no-read": [
   "qry 0",
-  "dc 0 1",
+  "dc 0 1 0",
   "sel 4 1000012000050000075",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 4 15"
  ],
  "upd-count-as-written": [
   "qry 0",
-  "dc 1 0",
-  "dc 1 1",
-  "dc 1 2",
-  "dc 1 4",
-  "dc 0 0",
-  "dc 0 4",
-  "dc 0 1",
+  "dc 1 0 0",
+  "dc 1 1 0",
+  "dc 1 2 0",
+  "dc 1 4 0",
+  "dc 0 0 0",
+  "dc 0 4 0",
+  "dc 0 1 0",
   "rd 1 3",
-  "dc 1 3",
-  "dc 0 2",
+  "dc 1 3 0",
+  "dc 0 2 0",
   "sel 10 2206839713766188681",
   "prj 1 10 66"
  ],
  "upd-drop-spares": [
   "qry 0",
   "sel 1 2",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 1 2",
   "prj 0 1 30"
  ],
  "upd-keep-tests": [
   "qry 0",
   "sel 3 1000008000019",
-  "dc 1 0",
+  "dc 1 0 0",
   "prj 1 3 7"
  ],
  "upd-last-held-dies": [
   "qry 0",
-  "dc 0 0",
+  "dc 0 0 0",
   "sel 1 1",
   "prj 0 1 1"
  ]

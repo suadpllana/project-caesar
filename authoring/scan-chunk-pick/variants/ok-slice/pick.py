@@ -1,7 +1,7 @@
 """Correct variant: a heap whose entries carry a stamp, and a stamp that goes stale is skipped."""
 import heapq
 
-from scn import hdr, live, step
+from scn import live, step
 
 
 def run(seg, q, st, out):
@@ -14,8 +14,7 @@ def run(seg, q, st, out):
         have = live.count(st, cd.c, j)
         if have <= 0:
             return
-        got = st.hit.get((cd.c, j, cd.pos))
-        b = hdr.guess(seg, seg.cols[cd.c][j], cd) if got is None else got
+        b = live.chunk_count(st, cd, seg.cols[cd.c][j])
         key = (cd.pos, j)
         stamp[key] = stamp.get(key, 0) + 1
         heapq.heappush(heap, (min(have, b), cd.pos, j, stamp[key]))

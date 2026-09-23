@@ -1,49 +1,52 @@
 # Difficulty record for scan-chunk-pick. First written before any environment code existed;
-# rewritten for the easiness recovery of 2026-09-22 (the probe solved the first design 3 of 3,
-# see STATE.md), before the rebuilt environment code was written.
+# rewritten for the easiness recovery of 2026-09-22 (the probe solved the first design 3 of 3)
+# and again for the second recovery of 2026-09-23 (2 of 3), before the page and memory code was
+# written. See STATE.md for both.
 
 [task]
 slug = "scan-chunk-pick"
 status = "pending"
 sources = ["authoring/scan-chunk-pick/difficulty.toml", "tasks/scan-chunk-pick/STATE.md"]
-expert_hours = 10
-estimated_solves = 3
+expert_hours = 12
+estimated_solves = 2
 
 [plan]
 first_plan = """
-Parse the segment. For each condition and chunk, test the header's bounds and null count, use a
-dictionary where the chunk has one, read the chunk otherwise, and filter; merge the updates into
-the chunk's values when it is read, and start the survivors without the deleted rows. Loop over
-the pending pairs, rescanning them after every step for the smallest score, as the brief says.
-Report by reading every chunk of a reported column that still holds a survivor.
+Take the chunk as the unit, as every scan engine does: merge its pages' headers into chunk
+statistics, decide each (condition, chunk) pair from those statistics or the dictionary, read
+the chunk whole when neither settles it, lay the updates over the values, keep one state per
+query, and pick pairs from a heap of scores. Report by answering each reported chunk from what
+was read or from its statistics, and read the rest.
 """
 first_plan_source = "prior"
 breaking_rule = """
-Nothing is consulted or read while something cheaper already answers, and a chunk is consulted
-or read only for a live row that still takes its value in that column from it. A header or
-dictionary verdict therefore settles only the rows the chunk still supplies, a condition whose
-remaining live rows all carry updates consults and reads nothing, and the report pass does not
-read a chunk whose survivors all carry updates, whose header fixes every value, or whose
-one-entry dictionary with no nulls can supply the value for its charge.
+A condition is applied page by page, and each page is asked only for the live rows that still
+take their value from it: its own header, then a page already read, then - for a comparison on
+an index page only - the chunk's dictionary, then a read of that page alone. So a chunk is read
+in part, its count is exact on the pages read and a spread on the rest, the dictionary never
+speaks for a page that fell back to plain values, and a verdict that every entry passes still
+reads a page holding a null. The report pass answers a page from its header's sum only while
+the rows it wants are every row of the page, which a delete, an update or a death anywhere in
+the row's other columns takes away.
 """
 second_discovery = """
-The rescan loop is exactly correct and does not fit: on the wide shape it takes 506 seconds for
-one file against 1.3 for the reference and 60 for the whole graded set. The loop has to become an
-incremental priority structure, and a score moves both ways - it falls when rows die in any
-column whose partition overlaps the chunk and rises when a read replaces a low interpolation
-with a higher exact count - so a structure that only lowers keys, or trusts a key pushed before
-the read, takes the wrong pair and the trace diverges several reads later.
+The file is scanned with one memory. A page read or a dictionary consulted by any query is known
+to every later query and prints only the first time, and a later query counts a remembered page
+exactly from its first step - so a query's state cannot be built fresh from the segment: the
+exact counts it starts from, the pages it will not pay for, the dictionaries it will not charge
+and the report pages it can answer free all come from what earlier queries and earlier report
+passes did. An engine whose per-query state was right for one query is wrong on the second.
 """
 second_discovery_effect = "replan"
 first_plan_correct = false
 expert_path = [
-  "Run the shipped engine on the sample segments and see that it merges updates into a chunk when it reads it and lets a header verdict take every row of the chunk",
-  "Work the cost rule through the filter step: split a chunk's live rows into those that carry an update in the column and those the chunk still supplies, test the first on their own values, and put only the second to the header, a read already made, the dictionary and a read, so a chunk with none of the second is never consulted",
-  "Work the same rule through the report pass: a chunk is wanted only for survivors it supplies, and a wanted chunk is served by a read already made, then by a header that fixes every value (all null, or no nulls and one value after widening), then by a one-entry dictionary with no nulls for its charge, then by a read",
-  "Start the survivors without the deleted rows and cap every score by the live rows only; count a read's exact hits over the chunk as written",
-  "Settle the carried rules on both sides: widened bounds, a null blocking a whole-chunk pass, dictionary completeness and one charge per chunk, the rounded-up inclusive interpolation, a read settling every condition over its column",
-  "Time the wide shape, find the rescan loop is two orders of magnitude over the limit, and replace it with a heap keyed by score, condition position and chunk, re-pushing every pending pair of each chunk whose survivor count moved or that was read",
-  "Validate a popped entry against the pair's current score, because a read can raise a score and a stale lower entry would otherwise be taken first",
+  "Run the shipped engine on the samples and see that it merges page headers into chunk statistics, reads whole chunks, trusts the dictionary for every page of a dictionary chunk and starts every query from nothing",
+  "Split what the file owns (pages read, dictionaries charged) from what a query owns (live rows, counts, pairs done), and make the driver's fresh memory the owner of the first",
+  "Apply a condition page by page: updated live rows on their own values, then for the other live rows the page header, a page already read, the dictionary for a comparison on an index page, and a read of that page alone",
+  "Keep each condition's count on each chunk as the sum over its pages of the exact count where the page is read and the spread where it is not, and compute the exact counts of remembered pages at the start of each query",
+  "Work the report pass per page: a page already read, the header when every row is null, when the bounds are one value with no null, or when every row of the page is wanted (its non-null count and sum), a one-entry dictionary on an index page with no null, and a read otherwise",
+  "Settle the carried rules: widened bounds, nulls blocking a whole-page pass, the dictionary's verdicts per page, the rounded-up inclusive spread, deleted rows never alive, a read's counts over the page as written",
+  "Time the wide shape, replace any rescan loop with a heap keyed by score, condition position and chunk, re-push the pending pairs of every chunk whose live count moved or whose page was read, and trust a popped key only while it equals the current score",
 ]
 
 [search]
@@ -54,32 +57,36 @@ rule the predicate out and decoding the filter column before the payload columns
 """
 helps_plan = false
 deviation = """
-Those sources order predicates once from statistics and merge a delta store into the data as it
-is read; here the choice is remade after every chunk, a chunk is consulted only for rows it still
-supplies, statistics describe the chunk as written while the answer uses the current values, and
-the report pass takes values from headers and one-entry dictionaries before it reads.
+Those sources order predicates once from statistics, prune row groups and pages but read what
+survives in full, and keep no memory between queries; here the choice is remade after every
+chunk, a chunk is read in part and counted as a mix of exact and estimated pages, a dictionary
+covers only the pages written against it, the report pass takes a page's aggregate from its
+header only while every row of it is wanted, and a scan session remembers what it paid for.
 """
 
 [tactics]
 A1 = """
-The memorised plans are pushdown with a fixed predicate order and merge-on-read for a delta
-store, and the shipped engine is exactly those plans, working and coherent, so retrieval confirms
-a policy in which the chunk is the unit of every decision, which the cost rule replaces.
+The memorised plans are pushdown with a fixed predicate order, row-group pruning on merged
+statistics, merge-on-read for a delta store and per-query scan state, and the shipped engine is
+exactly those plans, working and coherent, so retrieval confirms the chunk and the query as the
+units of every decision; pages and the file's memory replace both.
 """
 A2 = """
-No sentence names a delta store, delete vectors, late materialization, zone maps, adaptive
-reordering or dictionary pruning; the brief states what a header and a dictionary can prove and
-what a consult and a read cost, and never what the techniques are called or how to sequence them.
+No sentence names a page index, dictionary fallback, a delta store, delete vectors, aggregate
+pushdown, a buffer pool, zone maps or adaptive reordering; the brief states what a header and a
+dictionary can prove, what the file remembers and what a consult and a read cost, and never what
+the techniques are called or how to sequence them.
 """
 A3 = """
 An exact consult-and-read trace and a wall-clock limit together forbid both the decode-and-merge
 plan and the rescan-the-pairs plan, so no single retrieved implementation satisfies the pair.
 """
 B2 = """
-The update overlay decides whether a chunk is asked at all, which decides whether a read happens,
-which decides which exact counts exist, which decide the order, which decides what the report
-pass still has to supply; header widening, null blocking, dictionary completeness and charging
-and the survivor cap all feed the same chain, so no rule can be confirmed on its own.
+Which pages a query reads decides which counts are exact, which decides the order, which decides
+which pages the next query finds remembered, which decides that query's counts and reads; the
+overlay decides whether a page is asked at all and whether the report can take its sum; the
+dictionary's page scope and its null rule decide whether a consult ends in a read. No rule can be
+confirmed on its own, and a brute force written from a misreading of any of them agrees with it.
 """
 C1 = """
 Cases fence both sides: chunks that must be skipped unread, chunks that must pass unread, and
@@ -91,9 +98,9 @@ Running the engine shows a surviving row digest that a decode-everything impleme
 produces, so the natural self-check confirms a plan whose decode events are already wrong.
 """
 C3 = """
-The wide shape, about three and a half thousand chunks per column and eight conditions, makes the
-rescan-every-pair loop infeasible while it stays exactly correct (506 s for one file, about 100
-with the estimates cached, against 1.3 s for the reference and 60 s for the whole graded set).
+The wide shape, about two thousand chunks per column in pages of four to twelve rows, three
+queries of eight conditions, makes the rescan-every-pair loop infeasible while it stays exactly
+correct (142.5 s for one file against 2.1 s for the reference and 60 s for the whole graded set).
 """
 C4 = """
 Every printed event and digest of every query must match, over hand-written segments aimed at
@@ -106,7 +113,7 @@ beside them is never collected, so the engine cannot be restructured around the 
 """
 
 [decisions]
-graded = 25
+graded = 31
 interactions = [
   { a = "the predicate chosen next", b = "the exact hit counts of decoded chunks", why = "the choice reads the counts, and which chunks are decoded is decided by the choice, so the two determine each other step by step" },
   { a = "the survivor cap in an estimate", b = "the rows a chunk decision kills", why = "each decision changes the survivor counts that every later estimate is capped by, so the order after a chunk depends on what that chunk removed" },
@@ -117,6 +124,9 @@ interactions = [
   { a = "rows that carry an update", b = "whether a chunk is consulted or read", why = "a chunk is asked only for live rows it still supplies, so an update, or another condition killing the last row the chunk supplied, removes a read and the exact counts it would have settled" },
   { a = "a read raising a score", b = "the incremental structure the loop needs to fit the limit", why = "the fast loop has to accept a key that rises as well as one that falls, or it takes a stale pair several reads before the divergence shows" },
   { a = "what the condition phase read", b = "how the report pass supplies each chunk", why = "a chunk already read costs nothing, otherwise the header, then a one-entry dictionary, then a read, so the report's events depend on every earlier choice" },
+  { a = "pages read by one query", b = "the next query's starting counts and reads", why = "remembered pages count exactly from the start and are never paid for again, so the second query's order depends on everything the first one read, including in its report pass" },
+  { a = "a partial read of a chunk", b = "the chunk's count and every later score on it", why = "the count becomes exact on the pages read and a spread on the rest, so the next choice depends on which pages the last pair happened to need" },
+  { a = "deaths, deletes and updates on a page", b = "whether the report can answer the page from its sum", why = "the sum answers only while every row of the page is wanted, so a death caused by another column's condition turns a free answer into a read" },
 ]
 per_decision_feedback = false
 
@@ -156,20 +166,20 @@ oracle_shipped = false
 present = true
 naive_family = """
 The loop the brief describes, transcribed: rescan every pending pair after every step for the
-smallest score. Measured on the wide shape: 506 seconds for one file with the reference's own
-estimate function, about 100 with every header estimate cached in a list, against 1.3 for the
+smallest score. Measured on the wide shape: 142.5 seconds for one file against 2.1 for the
 reference, printing the identical trace.
 """
 invariant = """
-A pair's score changes only when its chunk's live-row count moves or its chunk is read, and the
-step that changed it knows which chunks those were, so only their pending pairs need scoring
-again; since a score can rise as well as fall, a stored score is valid only while it equals the
-current one.
+A pair's score changes only when its chunk's live-row count moves or one of the chunk's pages is
+read, and the step that changed it knows which chunks those were, so only their pending pairs
+need scoring again; since a score can rise as well as fall, a stored score is valid only while it
+equals the current one.
 """
 input_scale = """
-Three wide files of sixty thousand rows over five columns in chunks of ten to thirty-three rows
-with eight conditions to a query, and three deep files of forty thousand rows in chunks of about
-two thousand with seven; both shapes, the counts and the limit are stated in the brief.
+Three wide files of sixty thousand rows over five columns in chunks of sixteen to forty rows and
+pages of four to twelve, three queries of eight conditions, and three deep files of forty
+thousand rows in chunks of about two thousand with seven; both shapes, the counts and the limit
+are stated in the brief.
 """
 limit_seconds = 60
 measured = true
@@ -205,13 +215,23 @@ wrong_readings = [
   { reading = "the report ignoring a one-entry dictionary, or using it free or with nulls", hand_case = "prj-one-entry-rd and prj-one-entry-nulls" },
   { reading = "a heap that trusts a key pushed before a read raised it", hand_case = "ord-read-raises" },
   { reading = "a heap that does not re-score a chunk after it is read", hand_case = "ord-read-rescored" },
+  { reading = "a whole chunk read once any page of it has to be", hand_case = "pg-partial-read" },
+  { reading = "the dictionary trusted for a page that fell back to plain values, or refused for a chunk that has one", hand_case = "dic-overflow-read and pg-dict-skips-fallback" },
+  { reading = "the dictionary's keep verdict checked against the chunk's nulls rather than the page's", hand_case = "pg-dict-keep-page-nulls" },
+  { reading = "a partly read chunk counted from its headers until every page is read", hand_case = "pg-count-mixed" },
+  { reading = "every query starting from nothing", hand_case = "qry-starts-over and mem-no-reread" },
+  { reading = "a remembered page counted by its spread at a query's start", hand_case = "mem-exact-from-start" },
+  { reading = "dictionaries charged again in every query", hand_case = "mem-charge-across" },
+  { reading = "pages the report pass read forgotten", hand_case = "mem-report-read-kept" },
+  { reading = "never answering a whole page from its sum, or answering after a delete or an update", hand_case = "prj-whole-page-sum, prj-whole-broken-by-delete and prj-whole-broken-by-update" },
+  { reading = "a one-entry dictionary answering a fallback page", hand_case = "prj-one-entry-fallback" },
 ]
 correct_variants = [
-  "no maintained survivor counts (a byte slice summed when asked), chunk lookup by binary search, heap entries invalidated by version stamps",
-  "the pending pairs in a segment tree of exact minima, with the survivor counts in one dict keyed by column and chunk",
+  "no maintained counts: live rows summed off a byte slice and a condition's chunk count summed from its pages when asked, chunk lookup by binary search, heap entries invalidated by version stamps",
+  "the pending pairs in a segment tree of exact minima, a chunk's count summed afresh from its pages whenever the chunk is touched",
 ]
 
 [shape]
-environment_py_lines = 405
+environment_py_lines = 408
 editable_files = 6
-reference_lines = 406
+reference_lines = 438

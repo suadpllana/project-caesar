@@ -18,103 +18,99 @@ author_email = "aurigue.shielamarie20@gmail.com"
 
 difficulty_explanation = """
 The surviving rows are the easy half and they are not what is graded. What is graded is the
-list of chunks the scan consulted and read, in the order it did so, and an engine that reads
-every chunk and filters produces exactly the right surviving rows while that list is wrong from
-its first entry. So the check a solver reaches for first - run it, see whether the answer is
-right - confirms a plan that has already failed.
+list of dictionary consults and page reads the scan paid for, in the order it paid for them,
+across every query of a file. An engine that reads every page and filters produces exactly the
+right surviving rows while that list is wrong from its first entry, so the check a solver
+reaches for first - run it, compare the rows with a brute force - confirms a plan that has
+already failed.
 
-The table carries changes. Chunks are immutable; an update gives a row a new value in one
-column and a delete removes a row, and a chunk's header, dictionary and exact counts go on
-describing the chunk as written. The textbook plan for that is merge-on-read: decide the chunk,
-read it, lay the updates over the values. The brief does not describe a procedure. It states
-what the header and the dictionary can prove and one rule about cost - nothing is consulted or
-read while something cheaper already answers, and a chunk is consulted or read only for a live
-row that still takes its value from it - and every procedure follows from that. Worked through,
-it takes the chunk apart as the unit of a decision: a header or dictionary verdict settles only
-the rows the chunk still supplies, the updated rows are tested on their own values, and a
-condition whose remaining live rows all carry updates consults and reads nothing. The report
-pass inherits the same rule, and there it reaches further than the filter: a chunk whose
-survivors all carry updates is not read, a chunk whose header fixes every value (all null, or
-one value and no nulls, which a header rounded inward never shows) is not read, and a chunk
-whose dictionary has one entry, no overflow and no nulls is consulted for its charge instead of
-read. None of those consequences is a sentence of the brief, and each is a different printed
-list.
+The storage is the shape real column stores have. A column is chunks, a chunk is pages, each
+page carries its own header with a sum, a chunk's dictionary covers the pages written as
+indexes and not the pages that fell back to plain values, and changes sit beside immutable
+pages as row updates and deletes. The textbook plan treats the chunk as the unit: merge its page
+statistics, decide it, read it whole, merge the updates in. Almost every rule of this engine is
+a consequence of the chunk not being the unit. A condition is applied page by page, so a chunk
+is read in part and its count becomes a mix of exact counts on the pages read and header spreads
+on the rest; the dictionary settles its index pages and sends its fallback pages to a read; a
+verdict that every entry passes still sends a page holding a null to a read; and a page holding
+nothing alive that it still supplies is never touched.
 
-Underneath that is the order. The next pair of one condition and one chunk is always the one
-expected to leave the fewest rows alive: the smaller of the chunk's live rows and the
-condition's count there, the header's interpolation until the chunk is read and its exact count
-after, and a read settles every condition over that column at once. The rules are stated, and
-the natural implementation rescans every pending pair after every step. It is exactly correct
-and it does not fit: the wide shape puts about three and a half thousand chunks in each column, and the
-rescan takes 506 seconds on one such file, about a hundred with the estimates cached, against
-1.3 for the reference and 60 for the whole graded set. The fast path is an incremental priority
-structure, and it has a boundary that the obvious one crosses. A score falls when rows die in
-any column whose partition overlaps the chunk and rises when a read replaces a low
-interpolation with a higher exact count, so a structure that only lowers keys, or trusts a key
-pushed before the read, takes the wrong pair - a difference that shows only several reads later.
+On top of that the file is scanned with one memory. A page read or a dictionary consulted by any
+query is known to every later query, prints only the first time, and a later query counts a
+remembered page exactly from its first step, which reorders what it pays for next. What a query
+owns and what the file owns are different things, and the natural per-query state has to be
+split. The report pass inherits all of it: it answers a page from a page already read, from its
+header when every row is null or the bounds are one value, and from the header's sum when the
+rows it wants are every row of the page - which a single delete, update or death in another
+column quietly takes away - then from a one-entry dictionary for its charge, and only then reads.
 
-Around those sit rules that are each ordinary and that a wrong reading of any one of fails a
-case: a header whose exactness flag is off was rounded inward, a chunk holding a null is never
-proved to pass whole, a dictionary answers only when no row fell back to a literal and is
-charged once per chunk, the interpolation rounds up and takes its endpoints inclusive, deleted
-rows neither survive nor cap a score, and a read's exact counts ignore updates.
+The brief states each of these once, as what a header, a dictionary and a read can prove and
+what each costs, not as steps; the procedure has to be worked out, and there is no oracle for
+the printed list beyond the one worked example. Underneath is a measured boundary: the pair
+applied next is re-chosen after every step, the wide shape puts about two thousand chunks in each
+column, and rescanning every pending pair is exactly correct and takes 142 seconds on one such
+file against 2.1 for the reference and 60 for the whole graded set. The fast path is an
+incremental priority structure whose keys move both ways: they fall as rows die in any column
+whose partition overlaps the chunk and rise when a page read replaces a low spread with a higher
+exact count.
 
 Identifiers are in a legacy register - `scn/`, `hdr`, `dct`, `live`, `pick`, `step`, `proj`,
-`mn`, `mx`, `dic`, `lit`, `up`, `gone` - short but never misleading, and no name misdescribes
-what it holds. That is a choice about the register of real scan-path code rather than an
-obstacle: each is recoverable from what calls it.
+`mn`, `mx`, `dic`, `toks`, `up`, `gone`, `mem` - short but never misleading. That is a choice
+about the register of real scan-path code rather than an obstacle: each is recoverable from what
+calls it.
 
 The segment files are synthetic, in sixteen families, concentrating headers rounded inward,
-dictionaries that fall back to a literal, misaligned partitions, null runs, chunks whose every
-row was updated, report columns whose header or one-entry dictionary already fixes a chunk,
-heavy deletion, skewed chunks whose interpolation sits far below what a read finds, scores built
-to tie, and the two scale shapes. In a warehouse these concentrations are rare, and they are
-exactly where this class of bug lives.
+dictionary chunks whose later pages fell back to plain values, misaligned partitions, null runs,
+chunks whose every row was updated, pages whose header or one-entry dictionary already answers,
+pages that stay whole and pages a delete or an update breaks, heavy deletion, skewed pages whose
+spread sits far below what a read finds, files whose later queries run on what earlier ones read,
+scores built to tie, and the two scale shapes. In a warehouse these concentrations are rare, and
+they are exactly where this class of bug lives.
 """
 
 solution_explanation = """
 Six files. The order they are settled in is the order the rules force.
 
-`hdr.py` is the header. `bounds` widens a recorded pair by the granularity less one when the
-exactness flag is off. `miss` and `allsat` are what the bounds and the null count prove about
-every row the chunk holds - no row matches, or every row does, which with a null present is
+`hdr.py` is the page header. `bounds` widens a recorded pair by the granularity less one when
+the exactness flag is off. `miss` and `allsat` are what the bounds and the null count prove
+about every row a page holds - no row matches, or every row does, which with a null present is
 never true except for is-null. `pinned` says when the header alone fixes every value: all rows
-null, or no nulls and a low equal to its high after widening. `guess` is the interpolation the
-order is chosen on: non-null rows times the width of the part over the width of the bounds,
-rounded up, with `ne` taking the complement.
+null, or no nulls and a low equal to its high after widening. `guess` is the spread the order is
+chosen on: non-null rows times the width of the part over the width of the bounds, rounded up,
+with `ne` taking the complement.
 
-`live.py` holds the survivors as a byte per row, deleted rows dead from the start, and every
-chunk of every column the query touches carries the count of live rows it still holds,
-decremented as rows die through a row-to-chunk map per column. Each chunk whose count moved is
-marked dirty, which is how the loop knows whose scores to look at again. `split` separates a
-chunk's live rows into those that still take their value from it and those that carry an update.
-
-`step.py` applies one condition to one chunk. The updated live rows are tested on their own
-values. Only if some live row still takes its value from the chunk is anything else asked: the
-header, both ways round, then a read already made, then for a comparison a dictionary with no
-literal (charged once per chunk by `dct.py`), then a read. A read stores the values, settles the
-exact count of every condition over that column counted over the chunk as written, and marks the
+`live.py` separates what the file owns from what a query owns. `fresh` makes the file's memory,
+the values of every page read and the set of dictionaries charged. `start` makes one query's
+state: a byte per row with deleted rows dead from the start, a live-row count per chunk of every
+column the query touches kept through a row-to-chunk map, and each condition's count on each
+chunk, summed over its pages from exact counts where the page is remembered and spreads where it
+is not. `learn` swaps a page's spread for its exact count when the page is read, and marks the
 chunk dirty.
 
-`pick.py` is the loop. Every pending pair sits in a heap keyed exactly as the order is - score,
-condition position, chunk number. After each step the pending pairs of every dirty chunk are
-pushed again with their current score, and a popped entry is trusted only if it still equals the
-pair's current score: scores fall as rows die and rise when a read replaces a guess, so a stale
-entry of either kind is dropped because a current one sits beside it.
+`dct.py` says a dictionary speaks only for `i` pages and charges once per chunk per file.
+`step.py` applies one condition to one chunk page by page: updated live rows are tested on their
+own values; a page with nothing else alive is passed over; otherwise the header, then a page
+already read, then for a comparison the dictionary (its verdict worked out once for the pair),
+then a read of that page alone. A verdict that every entry passes keeps a page only when the
+page holds no null.
 
-`proj.py` reports the named columns in order. A chunk is wanted only when a survivor takes its
-value from it; a wanted chunk is served by a read already made, by its header when `pinned`
-says so, by a one-entry dictionary with no nulls for its charge, and by a read otherwise. The
-updated survivors bring their own values.
+`pick.py` keeps every pending pair in a heap keyed exactly as the order is - score, condition
+position, chunk number - re-pushes the pending pairs of every dirty chunk after each step, and
+trusts a popped key only while it still equals the pair's current score, because scores fall as
+rows die and rise when a read replaces a spread.
+
+`proj.py` reports the named columns in order, page by page, adding the updated survivors' own
+values and answering each wanted page from a page already read, from its header (all null, one
+value, or its non-null count and sum when every row of the page is wanted), from a one-entry
+dictionary on an `i` page with no null for its charge, and from a read otherwise.
 
 An expert works in that order because each file consumes the one before it: the bounds decide
-what the header can settle, the update overlay decides whether the header is asked at all, the
-header decides whether a dictionary is reached, the dictionary decides whether the chunk is
-read, a read decides the next scores, and the scores decide what the report pass is left to
-read. Two further correct layers are in the authoring set - one that keeps no survivor counts
-and sums a byte slice when asked, with version-stamped heap entries and chunk lookup by binary
-search, and one that keeps the pending pairs in a segment tree of exact minima - so the shape of
-the reference is visibly not what is graded.
+what a header settles, the overlay decides whether a page is asked at all, the dictionary's scope
+decides whether a page is read, a read decides the next scores and what the file remembers, and
+the memory decides what the next query and the report pass still pay for. Two further correct
+layers are in the authoring set - one that keeps no counts and sums a byte slice and a chunk's
+pages when asked, with version-stamped heap entries, and one that keeps the pending pairs in a
+segment tree of exact minima - so the shape of the reference is visibly not what is graded.
 """
 
 verification_explanation = """
@@ -123,49 +119,48 @@ own pristine copy of the tree, so the grammar, the value decoder, the trace writ
 and the sample segments cannot change what a segment file prints, and a new file put beside the
 six is never collected at all.
 
-Correct is defined twice over. Forty-seven hand-written segment files, one per graded decision
-plus the must-still-work side of each fence, are checked against `gt.json`; the grader first
-asserts that the sealed model still reproduces `gt.json` exactly, so a model that had drifted
-could not quietly redefine correct. Three hundred and fourteen further files - twenty-two of
-each of fourteen small families and three of each of the two scale shapes - are built inside the
+Correct is defined twice over. Sixty hand-written segment files, one per graded decision plus
+the must-still-work side of each fence, are checked against `gt.json`; the grader first asserts
+that the sealed model still reproduces `gt.json` exactly, so a model that had drifted could not
+quietly redefine correct. Three hundred and fourteen further files - twenty-two of each of
+fourteen small families and three of each of the two scale shapes - are built inside the
 verifier from a seed drawn after the agent's container is gone, and checked against the sealed
 model, which was written apart from the reference: one module, a segment tree of exact minima
-where the reference has a heap, and every row resolved against the update map on its own. A
-submission cannot have seen those files, so fitting the shipped examples fails, and so does
-carrying an answer key.
+where the reference has a heap, and a chunk's count summed afresh from its pages whenever the
+chunk is touched where the reference maintains it. A submission cannot have seen those files,
+so fitting the shipped examples fails, and so does carrying an answer key.
 
-The fences run both ways. Letting a header drop take the updated rows fails `upd-drop-spares`;
-letting a header keep pass them untested fails `upd-keep-tests`; consulting or reading a chunk
-whose live rows all carry updates fails `upd-all-moved-no-read` and `upd-all-moved-no-rd`, and
-merging updates at read time fails the same two; counting a read's hits over updated values
-fails `upd-count-as-written`. Keeping deleted rows alive, or counting them in the cap, fails
-`del-caps-score`. In the report pass, reading a chunk whose survivors all carry updates fails
-`prj-moved-no-read`; reading a chunk whose header fixes every value fails `prj-pinned-no-read`
-and `prj-void-no-read`; treating a widened recorded pair as fixing the value, never using a
-one-entry dictionary, or using it without its charge fails `prj-one-entry-rd`; using it while
-the chunk holds nulls fails `prj-one-entry-nulls`. A heap that trusts a key pushed before a read
-raised it fails `ord-read-raises`, and one that does not re-score a chunk after a read fails
-`ord-read-rescored`. The rules carried over are fenced as before: the widened header by the
-`hdr-widen-` files, a null blocking a pass by `hdr-nulls-block-pass`, the dictionary rules by
-the `dic-` files, the order by `ord-nothing-prunes`, `ord-exact-after-read` and
-`dec-hits-whole-chunk`, the rest of the report pass by the `prj-` files and state carried
-between queries by `del-caps-score`.
+The fences run both ways. Reading a whole chunk when one page needs it fails `pg-partial-read`;
+letting the dictionary speak for a fallback page, or refusing it for a chunk that has one, fails
+`dic-overflow-read` and `pg-dict-skips-fallback`; keeping or reading on the chunk's nulls rather
+than the page's fails `pg-dict-keep-page-nulls`; counting a partly read chunk from its headers
+fails `pg-count-mixed`. Forgetting what earlier queries read fails `mem-no-reread` and
+`qry-starts-over`; charging a dictionary again per query fails `mem-charge-across`; counting a
+remembered page by its spread fails `mem-exact-from-start`; forgetting a page the report pass
+read fails `mem-report-read-kept`. Never answering a whole page from its sum fails
+`prj-whole-page-sum`, and answering from it after a delete or an update fails
+`prj-whole-broken-by-delete` and `prj-whole-broken-by-update`; the one-entry dictionary is fenced
+by `prj-one-entry-rd`, `prj-one-entry-nulls` and `prj-one-entry-fallback`. The rules carried over
+are fenced as before: updated rows by the `upd-` files, deletes by `del-caps-score`, the widened
+header by the `hdr-widen-` files, a null blocking a pass by `hdr-nulls-block-pass`, the order by
+`ord-nothing-prunes`, `ord-exact-after-read`, `ord-read-raises` and `ord-read-rescored`, and the
+rest of the report pass by the `prj-` files.
 
-Fifty-five cheats score 0. Thirty-eight are wrong readings, each caught by the enumerated case
-named for it. One is a complete engine for the rules without the change overlay or the
-cheaper-first report, which fails twelve of the hand files. One is exactly correct and too slow:
-the pending pairs rescanned after every step, 506 seconds on one wide file. Three are shortcut
-strategies - one fixed output for every file, the worked example replayed, and the conditions
-run in query order over whole columns - and the shipped tree is the fourth, run as the
-do-nothing agent. One is a forgery carrying the frozen answers for every enumerated file, which
-reproduces all forty-seven and fails on the files it could not have seen. The other eleven are
-probes, each on an engine that prints a constant so that a reward of 1 can only have come from
-the tamper: reading the frozen answers out of the sealed directory, the reward written
-directly, a reward written late by a double-forked survivor, a planted worker record, a record
-planted and the worker exited clean before it could be overwritten, a record spoiled on the way
-out, a rewritten generator, a rewritten grader, a rewritten case list, a uid and root-path
-probe, and an engine hidden in a file beside the six that are collected. Two independently
-written correct scan layers score 1.
+Sixty-six cheats score 0. Forty-nine are wrong readings, each caught by the enumerated case
+named for it. One is the previous design of this engine - every query starting over, a chunk
+read, counted and trusted whole, no page sums - which fails 26 of the 60 hand files. One is
+exactly correct and too slow: the pending pairs rescanned after every step, 142 seconds on one
+wide file. Three are shortcut strategies - one fixed output for every file, the worked example
+replayed, and the conditions run in query order over whole columns - and the shipped tree is the
+fourth, run as the do-nothing agent. One is a forgery carrying the frozen answers keyed on each
+file's query history, which reproduces all sixty and fails on the files it could not have seen.
+The other eleven are probes, each on an engine that prints a constant so that a reward of 1 can
+only have come from the tamper: reading the frozen answers out of the sealed directory, the
+reward written directly, a reward written late by a double-forked survivor, a planted worker
+record, a record planted and the worker exited clean before it could be overwritten, a record
+spoiled on the way out, a rewritten generator, a rewritten grader, a rewritten case list, a uid
+and root-path probe, and an engine hidden in a file beside the six that are collected. Two
+independently written correct scan layers score 1.
 
 The submitted code runs unprivileged, in its own session, under the wall clock that is also the
 task's execution limit. The graded segment files are built before that clock starts, by the
@@ -186,11 +181,11 @@ tags = [
   "chunk-statistics",
   "dictionary-encoding",
   "selectivity-estimation",
-  "null-semantics",
+  "page-index-pruning",
   "delta-overlay",
 ]
 
-expert_time_estimate_hours = 10
+expert_time_estimate_hours = 12
 
 relevant_experience = """
 Having worked on the scan layer of a columnar store: the part that turns a segment footer and a
@@ -200,9 +195,11 @@ dictionaries that stop being usable the moment a chunk falls back to a literal, 
 difference between a filter order chosen once from the footer and one chosen again as each
 chunk lands. Comfort with null semantics that decide whether a chunk can be skipped or has to
 be fetched, with chunk partitions that do not line up between columns of the same table, and
-with changes kept beside immutable chunks rather than written into them, so that what a chunk's
-statistics say and what a row now holds can differ, and with the difference between a scan that
-is correct and one that is affordable at the row counts a real segment carries.
+with page-level statistics and dictionaries that cover only the pages written against them, with
+changes kept beside immutable pages rather than written into them, so that what a page's
+statistics say and what a row now holds can differ, with what a scan may remember from one query
+to the next in a session, and with the difference between a scan that is correct and one that
+is affordable at the row counts a real segment carries.
 """
 
 [verifier]

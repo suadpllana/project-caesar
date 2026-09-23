@@ -1,7 +1,8 @@
 """Correct variant: the pending pairs sit in a segment tree of exact minima.
 
 Slots are laid out condition by condition and chunk by chunk, so the smallest (score, slot) is
-the order's own tie-break. A score that moves either way is overwritten where it stands.
+the order's own tie-break. A score that moves either way is overwritten where it stands, and a
+condition's count on a chunk is summed afresh from its pages whenever the chunk is touched.
 """
 from scn import hdr, live, step
 
@@ -32,9 +33,13 @@ def run(seg, q, st, out):
         if j in st.done[cd.pos] or have <= 0:
             put(slot, None)
             return
-        got = st.hit.get((cd.c, j, cd.pos))
-        b = hdr.guess(seg, seg.cols[cd.c][j], cd) if got is None else got
-        put(slot, (min(have, b), slot, cd.pos, j))
+        total = 0
+        for pg in seg.cols[cd.c][j].pages:
+            if (pg.c, pg.j, pg.p) in st.mem.vals:
+                total += live.exact(st, cd, pg)
+            else:
+                total += hdr.guess(seg, pg, cd)
+        put(slot, (min(have, total), slot, cd.pos, j))
 
     on = {}
     for cd in q.conds:

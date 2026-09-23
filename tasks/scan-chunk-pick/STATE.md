@@ -5,7 +5,7 @@ session starts with no memory of this one - anything not written here is lost.
 
 ## Current stage
 
-`Easiness recovery - rebuilt and validated locally; external easiness probe pending`
+`Easiness recovery round 2 - rebuilt for pages and file memory; external easiness probe pending`
 
 ## Assistant's assigned role
 
@@ -226,74 +226,174 @@ Estimated solves after the repair: 3 of 8 (aimed at 1 to 3).
 | `difficultycheck` | 100 (the first design also scored 100 and was solved 3 of 3) |
 | `originalitycheck` | 97, floor 90 |
 
+## Easiness recovery, round 2, 2026-09-23 (probe: 2 of 3 solved)
+
+Status: recovery active. The first repair moved the probe from 3 of 3 to 2 of 3; the exit gate
+needs at most 1 of 3, so this is a second repair, not a pass.
+
+### 1. The failure, captured
+
+- Trajectories: `probes/scan-chunk-pick/round2/trial{1,2,3}-raw.txt` as supplied, and
+  `trial{1,2,3}-own-words.md` with the brief stripped. The supplied files carry no verdicts;
+  which trial failed is not recorded in them.
+- Shapes: trial 1, 5 tool calls - read the tree, one Bash call rewriting all six files with a
+  heap, hand-traced `pair.txt`. Trial 2, 14 calls - rewrote all six files, then wrote "an
+  independent, spec-literal reference" and a random generator in `/tmp`, fuzzed 700 small files
+  and six 2000-row wide-shaped files against it, all equal. Trial 3, 7 calls - rewrote all six,
+  hand-traced `pair.txt`, checked `sel` and `prj` on the four shipped files with a brute force.
+- Every fragment of output the three printed on the shipped files matches the reference (trial
+  1's `sel`/`prj` lines on wide and deep, trial 2's first 40 lines of wide and deep, trial 3's
+  first nine `rd` lines of wide). The failing trial therefore slipped on a corner only the graded
+  set exercises; the transcripts do not show which one. Trial 1, the one that neither fuzzed nor
+  brute-forced, is the likeliest.
+- First plan, decisive discovery, final method: the same for all three again - read the brief
+  once and derive the whole engine. All three planned the heap before timing anything ("with a
+  heap-based scheduler for the pending pairs", trial 1's first sentence after reading), and all
+  three derived the report pass's cost-rule consequences on first read (trial 3: "Added header
+  value-fixing for projection (all null, or no nulls with equal bounds)"; trial 1: "ignored the
+  header and dictionary as cheaper sources of values").
+- Where the plan came from: the brief, but no longer its wording - `leakcheck` finds one phrase
+  in one write-up. The dominant mode is C, the specification checked against itself: trial 2's
+  spec-literal reference plus fuzzing, trial 3's brute force. A self-built brute force catches
+  implementation slips and cannot catch a misreading, because it is built from the same reading.
+- What failed in practice: stating rules as a cost principle hid nothing (A2 did not bite); the
+  scale gate was planned around on first read (C3 gave no late discovery); the overlay rules were
+  individually derivable and confirmable against a brute force.
+
+### 2. Classification
+
+| Failure mode | Evidence | Direction taken |
+|---|---|---|
+| C: the specification checked against itself | trial 2's spec-literal reference and fuzz; trial 3's brute force | put the difficulty in how the state is owned and composed, where a misreading is shared by the brute force |
+| The default plan was correct | all three wrote the whole engine on first read | make the chunk, which every agent took as the unit, stop being the unit of reading, counting and trusting |
+| The instruction delivered the plan | only one leaked phrase | kept the principle-style statements; no new step lists |
+
+### 3. Candidates
+
+1. More overlay rules (snapshot visibility, commit order). Rejected: each is a local rule a
+   brute force confirms.
+2. Disjunctions across columns. Rejected: a decision unit of row fragments across misaligned
+   partitions is deep, but the order and cost rules for it cannot be stated in the length the
+   brief has left without becoming a procedure again.
+3. **Pages inside chunks, with page headers and sums, a dictionary that covers only the pages
+   written against it, and partial reads**, plus **one memory per file** so a later query builds
+   on what earlier ones paid for. Selected. Both are how real column stores behave (a page index
+   with a dictionary that falls back part-way through a column chunk; a scan session that keeps
+   what it has read), and together they take apart the one structure all three agents relied on:
+   a chunk is no longer read, counted or trusted whole, and a query no longer owns its state.
+   Consequences a solver has to derive and a brute force built from a misreading shares: a
+   chunk's count is exact on the pages read and a spread on the rest; the dictionary's verdict
+   applies to index pages only, and "every entry passes" still reads a page holding a null; a
+   later query counts remembered pages exactly from its start, which reorders what it pays for;
+   pages the report pass read serve the next query; and the report answers a page from its
+   header's sum only while the rows it wants are every row of the page, which a delete, an
+   update or a death in another column quietly breaks.
+
+### 4. The rebuild
+
+- Grammar: `ch C p` / `ch C d m entries` opens a chunk; `pg n u mn mx x s f tokens` lines are its
+  pages (`f` is `v` or `i`); `up`, `del`, `qry`/`prd`/`prj`/`end` unchanged. `dc` prints three
+  numbers (column, chunk, page). The driver calls `live.fresh(seg)` once per file and passes the
+  memory to `live.start(seg, q, mem)`.
+- Shipped engine: the chunk-as-unit plan, coherently - page headers merged into chunk statistics,
+  a chunk read whole, the dictionary trusted for a whole `d` chunk and charged per consult,
+  updates merged at read time, every query starting from nothing, a fixed condition order, a
+  report that reads every chunk in index order. On `tiny.txt` it prints exactly the three wrong
+  lines the brief quotes.
+- Reference (`solution/`), sealed model (rewritten apart: segment tree, counts summed afresh from
+  pages), generator (14 small families reshaped for pages, fallback pages and multi-query files,
+  plus the two scale shapes), 60 hand files (the 47 earlier ones converted - each old chunk one
+  page, a literal-token chunk a dictionary chunk whose page fell back - plus 13 new), 49 readings
+  all separated by a named hand file (`readingcheck` exit 0), 66 cheats, two correct variants.
+- The earlier answers moved, as a contract change must: 44 of the 47 converted files gained the
+  page number in `dc`, and 13 changed further, every one explained by the two new rules (a whole
+  report page answered by its sum instead of a read, and a second query not re-reading or
+  re-charging).
+
+### 5. Measurements
+
+| What | Measured |
+|---|---|
+| reference vs model | agree on 60 hand files and 948 generated files over four seeds (924 small, twelve wide, twelve deep) |
+| reference, whole graded set (374 files, host) | 7.6 s |
+| ok-slice / ok-tree, whole graded set (host) | 10.0 s / 12.3 s |
+| reference, one wide file | 2.1 to 2.3 s |
+| rescan loop, one wide file | 142.5 s |
+| previous design (`cheat-chunk-is-unit`) | 34 of 60 hand, 7 of 308 small generated: reward 0 |
+| shipped tree | 9 of 60 hand, 0 of 308 small generated |
+| readings moving the most small generated files | no memory 70.7%, report reads not remembered 51.4%, dictionary for all-index chunks only 42.9%, no page sums 26.1%, charges reset per query 25.7% |
+| `onelinecheck` | no graded decision has an exact rule at depth 2 |
+
+Estimated solves after this repair: 2 of 8, easiness probe 0 or 1 of 3. The risk on the other
+side is real and recorded: the engine is now larger and every rule is stated once; a fresh-session
+cold read is run below before anything ships.
+
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 
-- Instruction trace (authoring/scan-chunk-pick/trace.md; rows walked, NOT STATED left, tracecheck result): rebuilt for the recovery by `authoring/scan-chunk-pick/make_trace.py`, which asserts every quote is still in instruction.md: 89 graded rows - four test functions, six artifacts, the clock, the overlay, 47 enumerated cases and the sealed model split one rule per row with its line range - plus 38 readings, the shortcuts and the limit. No NOT STATED row. `python tools/tracecheck.py scan-chunk-pick` is clean.
-- Identifiability (readings enumerated, which survived the published evidence, what separated them): 38 readings written as patches that must fire; none equivalent to the reference; `tools/readingcheck.py scan-chunk-pick 400` exits 0 with every one separated by a named hand file. Sixteen were blind to the old hand set and got a case each.
-- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): shipped tree 17 of 47 hand and 0 of 308 small generated files, reward 0; constant output 0 and 0; conditions in query order 42 of 47 hand (the single-condition files, where query order is the order) and 13 of 308 generated, reward 0; worked example replayed 0 and 0; forgery of gt.json 47 of 47 hand and 0 of 308 generated, reward 0.
-- Independent implementation behind every tolerance and limit (path, measured headroom): the 60 s clock only. `authoring/scan-chunk-pick/variants/ok-slice` and `variants/ok-tree`, written apart from the reference, run the whole 361-file set in 5.4 s and 8.0 s on the host against the reference's 4.9 s; container timings are in the validation table.
-- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): both forms ran. Author-run found the report pass never said its chunks go in chunk order; added. A fresh session that saw only the brief and the agent tree found one real gap - whether the report pass may predict that a dictionary will not fix the values or has to consult it to find out, which prints different `rd` lines - and the brief now says a dictionary's size and whether it has a `*` token are known without consulting it. It also found the shipped chunk sizes described loosely, stray `__pycache__` bytecode in the agent tree (deleted), the letter `e` used for two things in the chunk grammar (now `k`), and the `*` token read as two tokens; all fixed.
+- Instruction trace (authoring/scan-chunk-pick/trace.md; rows walked, NOT STATED left, tracecheck result): rebuilt for recovery round 2 by `authoring/scan-chunk-pick/make_trace.py`, which asserts every quote is still in instruction.md: 103 graded rows - four test functions, six artifacts, the clock, the overlay, 60 enumerated cases and the sealed model split one rule per row with its line range - plus 49 readings, six shortcuts and the limit. No NOT STATED row. `python tools/tracecheck.py scan-chunk-pick` is clean.
+- Identifiability (readings enumerated, which survived the published evidence, what separated them): 49 readings written as patches that must fire; none equivalent to the reference; `tools/readingcheck.py scan-chunk-pick 400` exits 0 with every one separated by a named hand file. Six were blind to the converted hand set and got a case or a repaired case each: the one-entry and header-pinned report cases had become whole pages, so a row of each now dies first.
+- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): shipped tree 9 of 60 hand and 0 of 308 small generated files; constant output 0 and 0; conditions in query order 53 of 60 hand (the single-condition files) and 2 of 308; worked example replayed 0 and 0; forgery keyed on query history 60 of 60 hand and 0 of 308; the previous design 34 of 60 and 7 of 308. All reward 0.
+- Independent implementation behind every tolerance and limit (path, measured headroom): the 60 s clock only. `variants/ok-slice` and `variants/ok-tree`, written apart from the reference, run the whole 374-file set in 10.8 s and 12.9 s in a 1-CPU, 2 GB python:3.12-slim container, against the reference's 8.2 s.
+- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): PENDING - a fresh session reading only the brief and the agent tree is running.
 
-## Verifier contract - FROZEN after Stage 2 (revised in the easiness recovery, 2026-09-22)
+## Verifier contract - FROZEN after Stage 2 (revised in both easiness recoveries)
 
-The contributor asked for the task to be made substantially harder after the easiness probe
-solved it 3 of 3. That request is the approval for this revision, which changes what "correct"
-means: the grammar gained `up` and `del` lines, the report pass no longer reads a chunk whose
-values something cheaper supplies, and the graded set gained the wide scale shape. The 31 hand
-answers frozen before the revision came out byte-identical under it (`build_gt.py` checks that),
-so no previously correct output on those files moved; `pair.txt`, which is not graded, did move.
+The contributor asked, after each probe, for the task to be made harder; each request is the
+approval for the revision that followed, which changes what "correct" means. Revision two
+(2026-09-23): the grammar became chunks of pages (`ch` then `pg` lines, `dc` printing three
+numbers), a dictionary speaks only for its `i` pages, pages are read singly, the file keeps one
+memory across its queries, and the report pass answers a whole page from its header's sum. The
+47 hand files carried over were converted mechanically and their answers re-derived; every
+change beyond the page number in `dc` is one of the two new rules at work.
 
 - Artifacts the agent produces: the six files `/app/scn/hdr.py`, `/app/scn/dct.py`,
   `/app/scn/pick.py`, `/app/scn/live.py`, `/app/scn/step.py`, `/app/scn/proj.py`. Nothing else
-  is collected. The verifier lays them over its own pristine copy of the tree, so the parser,
-  the chunk reader, the trace writer, the driver and the sample segments cannot change what a
-  segment file prints, and a seventh file placed beside the six is never collected.
+  is collected; the verifier lays them over its own pristine copy of the tree.
 - What is checked: the exact list of lines `/app/run_scan.py` prints for a segment file, in
-  order, compared byte for byte. 47 hand-written segment files against `gt.json`; 314 generated
-  ones (22 of each of 14 small families, 3 of each of 2 scale shapes) against the sealed model,
-  which must itself reproduce `gt.json` exactly before anything is graded. Every file must
-  match; one wrong line is a zero.
+  order. 60 hand-written files against `gt.json`; 314 generated ones (22 of each of 14 small
+  families, 3 of each of 2 scale shapes) against the sealed model, which must itself reproduce
+  `gt.json` before anything is graded. Every file must match.
 - Tolerances: none. The one limit is the 60 s wall clock on the worker, stated in the brief and
   validated against two correct implementations written apart from the reference.
-- Ground truth, and where it lives: `tests/seal/model.py` and `tests/seal/gt.json`, in a
-  root-owned `0700` directory the sandbox uid cannot read.
+- Ground truth: `tests/seal/model.py` and `tests/seal/gt.json`, in a root-owned `0700` directory.
 
 ### The graded decisions, and the sentence each is owed
 
-1. widened bounds when the exactness flag says the recorded pair is not exact
-2. what the header proves (fails all / holds all) from the null count and the bounds alone
-3. a dictionary with no `*` token settles comparisons only; no entry satisfying fails all,
-   every entry satisfying with no nulls passes all
-4. a dictionary is charged once per chunk per query, whoever consults it
-5. a row's value is its update if it has one; a deleted row is never alive
-6. header, dictionary and exact counts describe the chunk as written
-7. updated live rows are tested on their own value
-8. a chunk is consulted or read only for a live row it still supplies
-9. the order of asking: header, a read already made, the dictionary for a comparison
-   (charged however little it settles), a read
-10. a read settles every condition over its column, counted over the chunk as written
-11. the spread formula, its rounding and its endpoints
-12. the pending pair, its score (the smaller of live rows and the count) and the two tie-breaks
-13. the survivor count and digest
-14. the report: columns in named order, repeats reported, chunks in chunk order, a chunk
-    supplied by a read already made or its header when either fixes the values, then its
-    dictionary when that fixes them, then a read
-15. the reported count excludes nulls and the sum adds the non-null current values
-16. every query starts over: every row not deleted alive, nothing read, nothing charged
-17. the 60 s clock, one Python 3.12 process, standard library only
+1. the grammar: chunks and their pages in row order, page numbering, `i` and `v` pages
+2. widened page bounds when the exactness flag is off; no bounds for an all-null page
+3. what a page header proves (fails all / holds all) from its null count and bounds
+4. a dictionary speaks only for `i` pages and only for comparisons; its three verdicts, with a
+   null on the page sending an all-pass verdict to a read
+5. a row's value is its update if it has one; a deleted row is never alive; a page's header,
+   reads and exact counts describe it as written
+6. updated live rows tested on their own value; a page asked only for live rows it supplies
+7. per page, in page order: header, a page already read, the dictionary (comparison on an `i`
+   page, charged however little it settles), a read of that page
+8. one memory per file: pages read and dictionaries consulted stay known, print once
+9. a page read settles the exact count of every condition over its column on it, as written; a
+   page read before a query starts counts exactly from its start; spread otherwise; a chunk's
+   count is the sum over its pages
+10. the spread formula, its rounding and its endpoints
+11. the pending pair, its score (smaller of live rows and count), the two tie-breaks
+12. `sel`: count and digest of live rows
+13. the report: named order with repeats, pages in chunk and page order, answered by a page
+    already read, the header (all null; one value and no null; every row wanted, with its sum),
+    a one-entry dictionary on an `i` page with no null (charged), a read
+14. the reported count excludes nulls and the sum adds non-null current values
+15. every query starts with every non-deleted row alive
+16. the 60 s clock, one Python 3.12 process, standard library only
 
 ### Prong C in the contract
 
-- C1: cases fence both sides of every skip - chunks dropped or kept unread, updated rows that
-  still need the chunk read for the others, ordinary queries where every chunk is read.
-- C2: the surviving-row digest is the only thing an implementation can check against itself,
-  and a merge-on-read engine produces it correctly while its events are wrong.
-- C3: the wide shape, measured: the rescan loop 506 s per file (about 100 s with cached
-  estimates) against 1.3 s for the reference and 60 s for the whole graded set.
-- C4: 47 hand files aimed one per decision, plus 314 generated after the agent's container is
+- C1: both sides of every skip - pages dropped or kept unread, pages read singly while their
+  neighbours are settled free, report pages answered free and pages that must still be read.
+- C2: the surviving rows are the only thing an implementation can check against itself, and the
+  chunk-as-unit engine produces them correctly while its list of reads is wrong.
+- C3: the wide shape, measured - the rescan loop 142.5 s for one file against 2.1 s for the
+  reference and 60 s for the whole graded set.
+- C4: 60 hand files aimed one per decision, plus 314 generated after the agent's container is
   gone, compared line for line, all or nothing.
-- Route-around guard: only the six files are collected and everything else is replaced from the
-  verifier's pristine copy.
+- Route-around guard: only the six files are collected.
 
 ## Decisions and their reasons
 
@@ -330,6 +430,26 @@ so no previously correct output on those files moved; `pair.txt`, which is not g
   brief stated it: the first reshaping (chunks of 20 to 60 rows) left the cached rescan at 7 to
   18 s per file, close enough to squeeze three files under 60 s, so the wide shape went to
   sixty thousand rows in chunks of ten to twenty-four.
+
+- (Recovery 2) Dictionary fallback is per page and one-way, as a writer does it: a `d` chunk's
+  index pages come first and any fallback pages after, and the generator never writes an index
+  page after a fallback page. The brief states "pages are taken in order", so the printed order
+  inside a pair is fixed either way; with index pages first, a dictionary consult always comes
+  before the reads of the same pair, so no reading about "consult first versus page order" is
+  graded - they cannot differ on any file this grammar produces from the generator.
+- (Recovery 2) The report pass answers a page from its header's sum only when the rows it wants
+  are every row of the page. A combined inference - a header bound plus a dictionary's entries
+  pinning one value - is deliberately not part of the contract; the brief lists the header's
+  three answers and the dictionary's one explicitly rather than leaving "answers" to be derived,
+  so there is exactly one reading.
+- (Recovery 2) The file's memory is owned by an object the driver makes once per file and hands
+  to every `live.start`, not by module state keyed on the segment. Keyed state would work across
+  one file and silently break across the 374 files one process runs, which would make the task
+  hard for a reason that is not the task.
+- (Recovery 2) The forgery cheat keys its answers on the whole query history of a file, not on
+  one query, because with a memory the same segment and query can owe different lines after
+  different earlier queries; keyed on one query it failed to reproduce a hand file, which would
+  have made it a weaker proof than it claims to be.
 
 ## Validation status (after the recovery rebuild, 2026-09-22)
 

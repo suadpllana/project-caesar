@@ -2,8 +2,10 @@ from scn import dct, hdr, live, rd
 
 
 def load(seg, q, st, ch, out, cond=None):
-    out.dc(ch.c, ch.j)
-    vals = list(rd.values(ch))
+    vals = []
+    for pg in ch.pages:
+        out.dc(ch.c, ch.j, pg.p)
+        vals.extend(rd.values(ch, pg))
     up = seg.up[ch.c]
     for i in range(ch.n):
         if ch.start + i in up:

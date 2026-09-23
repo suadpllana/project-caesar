@@ -39,6 +39,10 @@ class Mem:
     def fetch(self, ln):
         return [self.word(ln * LW + i) for i in range(LW)]
 
+    def lines(self, a, n):
+        ln = a // LW
+        return sum(self.word(w) for w in range(ln * LW, (ln + n) * LW))
+
     def ld(self, blk, a, cached):
         if not cached:
             return self.word(a)
@@ -167,6 +171,8 @@ def step(launch, mem, b, t):
         return a
     elif op == "fence":
         mem.fence(b)
+    elif op in ("sum.ca", "sum.cg"):
+        b.reg[ins.rd] = mem.lines(load.ea(b, ins.at), ins.b[1])
     elif op in ("spin.ca", "spin.cg"):
         a = load.ea(b, ins.at)
         want = v(ins.b)

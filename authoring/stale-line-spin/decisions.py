@@ -1,18 +1,21 @@
 """The graded decisions as rows of integer features read off the machine at that moment.
 
-`tools/onelinecheck.py` searches these for the shortest exact rule. The features are raw counts a
-solver can read off the state at that cycle - how many ready blocks there are, how many of them
-spin through the cache with their line held, how many bypass with their line absent, how many
-would get through right now, how many blocks are busy, how many were never placed. Nothing
-derived is offered, because the derivation is the task. The rows come from the sealed model,
-which defines correct, instrumented from outside so that nothing in it changes.
+`tools/onelinecheck.py` searches these for the shortest exact rule. The features are raw state
+a solver can read at that cycle - counts of ready blocks and of spinners with their line held or
+absent, whether a line is cached and where it sits in the fill order, how far a running sum is
+from a line. Nothing derived is offered, because the derivation is the task. The rows come from
+the sealed model, which defines correct, instrumented from outside so that nothing in it changes;
+it is run with sum plans off (mode "spins"), so every line of every sum is a stepped issue and
+every row is read at the exact cycle it describes.
 
-Four questions, two of which are expected to be short:
+Five questions, two of which are expected to be short:
 
   load_from_cache   does this load answer from a cached copy (short: the rule is local)
   spin_passes       does this attempt get through (short once the value is known)
-  frozen            may the clock jump from this cycle to the next wake
   hangs_here        does the all-spinning stretch that starts at this cycle never end
+  frozen            is every ready block, in such a stretch, a spinner that changes nothing
+  store_in_sum      does a store made now end up in the total of a sum running on another
+                    multiprocessor whose remaining lines include the stored line
 
     python3 authoring/stale-line-spin/decisions.py
 """
@@ -58,19 +61,53 @@ def _counts(m, t):
 
 class Probe(model.Machine):
     def __init__(self, *a):
-        super().__init__(*a)
+        super().__init__(*a, mode="spins")
         self.loads, self.spins, self.skips, self.closed, self.passes = [], [], [], [], set()
+        self.now = 0
+        self.stores = []          # (t, sm, line, features per running sum) for later labels
+        self.reads = {}           # (block, sum serial, line) -> (t, sm, from memory)
+        self.serial = [0] * self.G
 
-    def load(self, s, op, a):
-        held = (a // 4) in self.cache[s]
-        ca = op in ("ld.ca", "spin.ca")
-        self.loads.append(({"ca": int(ca), "held": int(held)}, ca and held))
-        return super().load(s, op, a)
+    def read_line(self, s, cached, line):
+        held = line in self.cache[s]
+        self.loads.append(({"ca": int(cached), "held": int(held)}, cached and held))
+        return super().read_line(s, cached, line)
 
     def issue(self, b, s, t):
         ins = self.code[self.pc[b]]
-        if ins[0] in model.SPINS:
-            op, rd, adr, cmp, v = ins
+        op = ins[0]
+        if op in model.SUMS:
+            if self.sleft[b] == 0:
+                self.serial[b] += 1
+                line = self.ea(b, ins[2]) // 4
+            else:
+                line = self.sline[b]
+            memory = op == "sum.cg" or line not in self.cache[s]
+            self.reads[(b, self.serial[b], line)] = (t, s, memory)
+        if op in ("st", "atom.add"):
+            adr = ins[1] if op == "st" else ins[2]
+            line = self.ea(b, adr) // 4
+            runs = []
+            for j in range(self.S):
+                if j == s:
+                    continue
+                c = self.cache[j]
+                order = list(c)
+                for x in self.slot[j]:
+                    if x is None or self.ended[x] is not None or self.sleft[x] == 0:
+                        continue
+                    ahead = line - self.sline[x]
+                    if 0 <= ahead < self.sleft[x]:
+                        k = sum(1 for y in self.slot[j] if self.ready(y, t))
+                        runs.append(((x, self.serial[x]), {
+                            "ahead": ahead, "later_sm": int(j > s),
+                            "held": int(line in c),
+                            "place": order.index(line) if line in c else -1,
+                            "cached": len(c), "cap": self.C, "ready": k,
+                        }))
+            self.stores.append((t, s, line, runs))
+        if op in model.SPINS:
+            _, rd, adr, cmp, v = ins
             a = self.ea(b, adr)
             line, w = a // 4, a % 4
             held = line in self.cache[s]
@@ -87,24 +124,49 @@ class Probe(model.Machine):
     def frozen(self, t):
         got = super().frozen(t)
         row = _counts(self, t)
-        if self.at_spin == self.live and not self.heap:
-            self.closed.append((t, row))
-        else:
-            self.skips.append((row, got))
+        self.closed.append((t, row))
+        self.skips.append((row, got))
         return got
+
+    def labelled_stores(self):
+        """Each (store, running sum) pair: did the sum read that line from memory after it?"""
+        out = []
+        for t, s, line, runs in self.stores:
+            for key, row in runs:
+                read = self.reads.get((key[0], key[1], line))
+                if read is None:
+                    continue
+                rt, rs, memory = read
+                after = rt > t or (rt == t and rs > s)
+                out.append((row, bool(memory and after)))
+        return out
+
+
+def launches():
+    """The small generated families, then more reduce launches and unshaped fuzz launches,
+    where a store racing a running sum is common enough to decide anything."""
+    import random
+    sys.path.insert(0, str(HERE))
+    import fuzz_sums
+    for fam, _name, lines in gen.programs("decisions", 12):
+        if fam not in ("wide", "deep", "stream"):
+            yield lines
+    for i in range(400):
+        yield gen.reduce(random.Random("decisions-reduce:%d" % i))
+    for i in range(1500):
+        yield fuzz_sums.launch(10 ** 6 + i)
 
 
 def samples():
-    loads, spins, skips, hangs = [], [], [], []
-    for fam, _name, lines in gen.programs("decisions", 12):
-        if fam in ("wide", "deep"):
-            continue
+    loads, spins, skips, hangs, stores = [], [], [], [], []
+    for lines in launches():
         dev, grid, mem, show, code = model.parse(lines)
         m = Probe(dev, grid, mem, code)
         hang = m.run()
         loads += m.loads
         spins += m.spins
         skips += m.skips
+        stores += m.labelled_stores()
         prev = None
         for t, row in m.closed:
             start = prev is None or prev != t - 1 or (t - 1) in m.passes
@@ -112,7 +174,7 @@ def samples():
                 hangs.append((row, t == hang))
             prev = t
     return {"load_from_cache": loads, "spin_passes": spins, "frozen": skips,
-            "hangs_here": hangs}
+            "hangs_here": hangs, "store_in_sum": stores}
 
 
 if __name__ == "__main__":

@@ -35,6 +35,18 @@ class Lines:
         changed = bool(self.rows)
         self.rows.clear()
         return changed
+
+    def order(self):
+        """The cached lines, the one filled earliest first."""
+        return list(self.rows)
+
+    def keep(self, lines, fresh):
+        """Keep `lines` (cached now, in fill order) and then fill each of `fresh` in turn,
+        where fresh maps a line to its words and holds no line of `lines`."""
+        rows = self.rows
+        new = {ln: rows[ln] for ln in lines}
+        new.update(fresh)
+        self.rows = new
 PYEOF
 
 cat > /app/sim/mem.py <<'PYEOF'
@@ -51,37 +63,97 @@ step with memory or with each other:
   atomic add     works on memory only; every cached copy, the issuer's included, stays
   fence          empties the issuer's own cache
 
-Loads report whether they changed the cache, because a spin attempt that changes nothing is
-the only kind of issue a stretch of time may be skipped over.
+A sum reads whole lines the same two ways. Loads report whether they changed the cache,
+because an issue that changes nothing can be repeated without being stepped.
+
+Two things the clock needs besides the loads:
+
+  * a running sum of memory over any range of lines, so that a stretch in which a sum read
+    thousands of lines straight from memory can be settled with one lookup. Memory is sparse,
+    so words are kept grouped by chunks of lines, with a total per chunk and per line;
+  * a hook called with the address of every write before the write lands, so that a clock
+    that is carrying some multiprocessor forward without stepping it can settle that
+    multiprocessor first if the write is one it would have seen.
 """
 from sim.line import Lines
 
 LW = 4
+CHUNK = 1 << 12
 
 
 class Mem:
     def __init__(self, init, sms, cap):
-        self.gm = dict(init)
+        self.gm = {}
         self.l1 = [Lines(cap) for _ in range(sms)]
+        self.chunk = {}           # chunk number -> sum of every word in it
+        self.lines = {}           # chunk number -> {line: sum of its words}, lines ever written
+        self.before_write = None  # called with (sm, address) ahead of every write
+        for a, v in init.items():
+            self.put(a, v)
 
     def word(self, a):
         return self.gm.get(a, 0)
 
+    def words(self, ln):
+        gm, base = self.gm, ln * LW
+        return [gm.get(base, 0), gm.get(base + 1, 0), gm.get(base + 2, 0), gm.get(base + 3, 0)]
+
+    def put(self, a, v):
+        d = v - self.gm.get(a, 0)
+        self.gm[a] = v
+        if d:
+            ln = a // LW
+            c = ln // CHUNK
+            self.chunk[c] = self.chunk.get(c, 0) + d
+            per = self.lines.get(c)
+            if per is None:
+                per = self.lines[c] = {}
+            per[ln] = per.get(ln, 0) + d
+
+    def span(self, lo, hi):
+        """The sum of every word of lines lo .. hi-1, as memory holds them now."""
+        if hi <= lo:
+            return 0
+        c0, c1 = lo // CHUNK, (hi - 1) // CHUNK
+        total = 0
+        first = self.lines.get(c0)
+        if first:
+            for ln, v in first.items():
+                if lo <= ln < hi:
+                    total += v
+        if c1 == c0:
+            return total
+        last = self.lines.get(c1)
+        if last:
+            for ln, v in last.items():
+                if ln < hi:
+                    total += v
+        chunk = self.chunk
+        if c1 - c0 - 1 <= len(chunk):
+            for c in range(c0 + 1, c1):
+                total += chunk.get(c, 0)
+        else:
+            for c, v in chunk.items():
+                if c0 < c < c1:
+                    total += v
+        return total
+
     def ld(self, sm, a, cached):
         """Returns (value, whether this multiprocessor's cache changed)."""
-        ln = a // LW
+        row, changed = self.row(sm, a // LW, cached)
+        return row[a % LW], changed
+
+    def row(self, sm, ln, cached):
+        """One whole line, read as a load of that kind reads it: (words, changed)."""
         c = self.l1[sm]
         if cached:
             row = c.get(ln)
             if row is not None:
-                return row[a % LW], False
-            base = ln * LW
-            gm = self.gm
-            row = [gm.get(base, 0), gm.get(base + 1, 0), gm.get(base + 2, 0),
-                   gm.get(base + 3, 0)]
+                return row, False
+            row = self.words(ln)
             c.put(ln, row)
-            return row[a % LW], True
-        return self.gm.get(a, 0), c.drop(ln)
+            return row, True
+        return self.words(ln), c.drop(ln)
 
     def peek(self, sm, a, cached):
         """What a load would answer, and whether it would change the cache - without doing it."""
@@ -94,14 +166,18 @@ class Mem:
         return self.gm.get(a, 0), row is not None
 
     def st(self, sm, a, v):
-        self.gm[a] = v
+        if self.before_write is not None:
+            self.before_write(sm, a)
+        self.put(a, v)
         row = self.l1[sm].get(a // LW)
         if row is not None:
             row[a % LW] = v
 
     def add(self, sm, a, v):
+        if self.before_write is not None:
+            self.before_write(sm, a)
         old = self.gm.get(a, 0)
-        self.gm[a] = old + v
+        self.put(a, old + v)
         return old
 
     def fence(self, sm):
@@ -133,6 +209,8 @@ class Place:
         self.gone.append(b)
 
     def fill(self, blocks, t):
+        if not self.gone and self.next >= self.grid:
+            return ()
         for b in self.gone:
             self.rows[b.sm][b.slot] = None
             self.free[b.sm] += 1
@@ -160,8 +238,9 @@ cat > /app/sim/turn.py <<'PYEOF'
 """One multiprocessor's issue rotation.
 
 Each cycle the multiprocessor issues from the first ready block in slot order after the slot
-that issued last, wrapping round. A spinning block is ready: every turn it gets is one
-attempt, so spinners keep their place in the rotation and delay everyone behind them.
+that issued last, wrapping round. A spinning block is ready, and so is a block in the middle
+of a sum: every turn it gets is one attempt or one line, so it keeps its place in the rotation
+and delays everyone behind it.
 """
 
 
@@ -169,10 +248,6 @@ class Turn:
     def __init__(self, k):
         self.k = k
         self.last = k - 1
-
-    @staticmethod
-    def ready(b, t):
-        return b is not None and b.end is None and b.busy <= t
 
     def pick(self, row, t):
         k = self.k
@@ -184,12 +259,14 @@ class Turn:
                 return b
         return None
 
-    def skip(self, row, t, d):
-        """Account for d cycles in which the ready blocks only took failing, idle turns."""
-        ready = [j for j in range(self.k) if self.ready(row[j], t)]
-        if ready:
-            order = sorted(ready, key=lambda j: (j - self.last - 1) % self.k)
-            self.last = order[(d - 1) % len(order)]
+    def queue(self, row, t):
+        """The blocks ready at t, in the order they will issue from t while none joins or leaves."""
+        k, out = self.k, []
+        for i in range(1, k + 1):
+            b = row[(self.last + i) % k]
+            if b is not None and b.end is None and b.busy <= t:
+                out.append(b)
+        return out
 PYEOF
 
 cat > /app/sim/step.py <<'PYEOF'
@@ -197,12 +274,15 @@ cat > /app/sim/step.py <<'PYEOF'
 
 Every operand is read before the instruction writes anything. A spin makes exactly one
 attempt per issue - the load it names, into its destination - and moves on only when the
-comparison holds. The caller needs to know what kind of issue it was:
+comparison holds. A sum reads one line per issue, from the line holding its address upward,
+the way the load of the same kind would read it, and keeps a running total on the block; the
+issue that reads its last line writes the total to its destination and moves on. The caller
+needs to know what kind of issue it was:
 
   QUIET   a failing attempt that changed no cache: repeating it changes nothing
   MOVED   a failing attempt that filled or dropped a line
   PASS    an attempt that got through
-  OTHER   any other instruction
+  OTHER   any other instruction, a line of a sum included
 """
 from sim import load
 
@@ -216,6 +296,7 @@ TEST = {
 }
 
 SPIN = ("spin.ca", "spin.cg")
+SUM = ("sum.ca", "sum.cg")
 
 
 def spinning(launch, b):
@@ -227,6 +308,14 @@ def frozen(launch, mem, b):
     ins = launch.code[b.pc]
     got, changed = mem.peek(b.sm, load.ea(b, ins.at), ins.op == "spin.ca")
     return not changed and not TEST[ins.cmp](got, load.val(launch, b, ins.b))
+
+
+def begin_sum(b, ins):
+    """The state a sum starts from at its first issue: next line, lines left, total."""
+    if b.left == 0:
+        b.line = load.ea(b, ins.at) // 4
+        b.left = ins.b[1]
+        b.acc = 0
 
 
 def step(launch, mem, b, t):
@@ -242,6 +331,16 @@ def step(launch, mem, b, t):
             b.pc += 1
             return PASS
         return MOVED if changed else QUIET
+    if op in SUM:
+        begin_sum(b, ins)
+        row, _ = mem.row(b.sm, b.line, op == "sum.ca")
+        b.acc += row[0] + row[1] + row[2] + row[3]
+        b.line += 1
+        b.left -= 1
+        if b.left == 0:
+            r[ins.rd] = b.acc
+            b.pc += 1
+        return OTHER
     if op == "mov":
         r[ins.rd] = load.val(launch, b, ins.a)
     elif op in ("add", "sub", "mul", "slt", "mod"):

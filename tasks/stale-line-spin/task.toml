@@ -18,87 +18,84 @@ author_email = "aurigue.shielamarie20@gmail.com"
 
 difficulty_explanation = """
 The brief describes a small GPU: multiprocessors with a few block slots each, a cache of four-word
-lines per multiprocessor, and an instruction set whose loads, stores, atomics, fences and spin-waits
-say which cache they go through. The shipped model is wrong the way a first plan from the prior is
-wrong: memory behaves coherently (a store updates every cached copy), each block carries a cache
-that dies with it, blocks go to multiprocessor number modulo the device, lines are replaced
-least-recently-used, and a spinning block is parked until something stores to the word it watches.
-Each is the textbook shape of a cache or a scheduler and each is wrong here. It fails 17 of the 30
-hand launches and 253 of 326 generated ones. The shipped tree is terse on purpose - short module and
-field names, no comments or docstrings - so that nothing in it names a rule or says which structure
-is the wrong one; the naming is a design choice, not carelessness.
+lines per multiprocessor, and an instruction set whose loads, stores, atomics, fences, spin-waits
+and streaming sums say which cache they go through. The shipped model is wrong the way a first plan
+from the prior is wrong: memory behaves coherently (a store updates every cached copy), each block
+carries a cache that dies with it, blocks go to multiprocessor number modulo the device, lines are
+replaced least-recently-used, a spinning block is parked until something stores to the word it
+watches, and a sum is one read of global memory. Each is the textbook shape of a cache, a scheduler
+or a reduction and each is wrong here. It fails 29 of the 42 hand launches and 287 of the 360 small
+generated ones. The shipped tree is terse on purpose - short module and field names, no comments or
+docstrings - so that nothing in it names a rule or says which structure is the wrong one; the
+naming is a design choice, not carelessness.
 
 The first discovery is that the caches are copies and nothing keeps them in step. A
 multiprocessor's lines outlive the blocks placed on it; a load answers from the line as that
 multiprocessor last filled it; a store updates only the storer's copy; an atomic touches no copy
-at all, so a block that cached a counter and bumped it reads the old value back; a fence empties
-only its own cache. What a block reads therefore depends on which blocks ran on its multiprocessor
-before it, which makes placement - most free slots, ties to the lower number, a slot free the cycle
-after its block exits - part of what a load returns and not only of when things happen.
+at all; a fence empties only its own cache. What a block reads therefore depends on which blocks
+ran on its multiprocessor before it, which makes placement part of what a load returns. The second
+is that a spinning block is not waiting on a word: it is issuing loads, so a neighbour's fill, a
+bypassing load or a fence on the same multiprocessor can release it without any store, and a
+launch in which nothing can store any more has not necessarily hung.
 
-The second discovery replans the clock. A spinning block is not waiting on a word: it is issuing
-loads. An attempt that misses fills its line and pushes out the oldest one, a bypassing attempt
-drops its line, and a neighbour's load or fence on the same multiprocessor can do either, so a
-stale spinner can be released without any store, and a launch in which nothing can store any more
-has not necessarily hung. Parking spinners, calling a hang once no store can come, and skipping
-time whenever every ready block spins are each wrong, and each is what a fast model reaches for
-first.
-
-Some skip cannot be avoided, because the scale is stated: up to 4400 blocks on sixteen
-multiprocessors whose work runs for tens of thousands of cycles while other blocks spin, and the
-whole graded set inside 60 seconds on one CPU. A model that steps every cycle while any block
-spins gets every launch it reaches right and has not finished the large chain launches after 240
-seconds; the reference takes 10 to 12 seconds. The exact skip has to be derived. Time may jump only
-while every ready block sits at a spin whose attempt fails and leaves its cache exactly as it was
-(a hit, or a bypass of a line that is not cached), and the skipped cycles still hand each rotation
-to its spinners one cycle at a time, so each rotation has to be advanced by the length of the jump
-over its ready slots. A hang is the same condition with no block busy, dated from the first cycle
-of the stretch, and a stretch that is not frozen has to be stepped until it freezes, an attempt
-succeeds, or its state repeats.
+The third decides the clock. A sum reads one line per issue through its multiprocessor's cache,
+so it never repeats a state, and one kind of large launch keeps sums streaming on most
+multiprocessors for up to 16 million cycles while the others issue an instruction every few
+cycles. Stepping each line is correct and takes 306 seconds on one such launch and more than 450 on
+another, against 60 for the whole graded set. Advancing every stream in bulk between device-wide
+events is also correct, and takes 231 and more than 450, because the device is never quiet for
+long; the reference runs the whole graded set in about 15 seconds on one CPU. What
+fits is to carry each multiprocessor forward on its own and to stop only for what it can observe,
+and that is exact only with a rule the brief implies but never states: a store reaches a carried
+stream only if it lands before the stream's issue on that line, cycle first and multiprocessor
+number second, and only through memory, since a copy cached there hides it; a store to a line the
+stream already read changes nothing it read; and which cached lines survive a stream's fills is
+first-in-first-out arithmetic, so a stale prefetched line is read on a quiet multiprocessor and
+pushed out unread next to a neighbour that streams, and a stale waiter is let go at an exact fill.
+The plan built on "memory is static between events" is the one that has to be taken apart.
 
 Nothing ships an expected output but one worked example, found by search so that it decides only
 conventions the brief states outright, and the only runner is the model under repair. Grading is
-exact and all-or-nothing over 30 hand launches, each named for the rule it pins, and 326 launches
-generated at grading time from patterns shaped so that each cache and spin rule changes the
-output; each of 27 plausible wrong readings fails a named hand launch.
+exact and all-or-nothing over 42 hand launches, each named for the rule it pins, and 369 launches
+generated at grading time from patterns shaped so that each cache, spin and sum rule changes the
+output; each of 38 plausible wrong readings fails a named hand launch.
 """
 
 solution_explanation = """
-The reference keeps the machine exactly as the brief states it and adds two exact shortcuts.
-`line.py` is one multiprocessor's cache: a dict from line number to its four words in fill order,
-where a hit reads without reordering and a fill into a full cache drops the first entry. `mem.py`
-holds global memory as a dict and one cache per multiprocessor for the whole launch; a load returns
-the value and whether it changed a cache, and a side-effect-free peek answers the same question for
-a spinner's next attempt. A store writes memory and the storer's own copy if it is there, an atomic
-touches memory only, and a fence clears the issuer's cache. `place.py` keeps free counts per
-multiprocessor and puts the next block on the one with the most, ties to the lower number, in its
-lowest free slot, giving an exited block's slot back at the next cycle's placement. `turn.py` keeps
-the slot that issued last and scans after it, wrapping. `step.py` executes one instruction, reading
-operands before writing, and classifies a spin attempt as passing, failing with a cache change, or
-failing quietly.
+The reference keeps the machine exactly as the brief states it and carries stretches forward
+where that is exact. `line.py` is one multiprocessor's cache: a dict from line number to its four
+words in fill order, where a hit reads without reordering and a fill into a full cache drops the
+first entry. `mem.py` holds global memory and one cache per multiprocessor for the whole launch,
+reads a word or a whole line the way a load of either kind would, keeps running sums of memory by
+chunks of lines so a range of lines can be summed at once, and calls a hook before every write
+lands. `place.py` puts the next block on the multiprocessor with the most free slots, ties to the
+lower number. `turn.py` keeps the slot that issued last. `step.py` executes one instruction; a sum
+keeps its next line, lines left and running total on the block.
 
-`clock.py` runs wake, place and issue each cycle, with wake cycles in a heap. The first shortcut is
-the frozen stretch: when every ready block is at a spin whose next attempt would fail and change no
-cache, and some block is busy, nothing can change before the next wake except the rotations, so the
-clock jumps there and each multiprocessor's rotation lands on the d-th of its ready slots in cyclic
-order after the last issuer, for a jump of d cycles. It is checked only after a cycle made entirely
-of quiet attempts; stepping one more cycle is always exact. The second is the hang: once every
-placed block sits at a spin and none is busy, the machine is closed. If the stretch is frozen it
-hung at its first cycle; otherwise it is stepped, remembering a snapshot of every cache in fill
-order and every rotation, until an attempt succeeds (the stretch is over) or a snapshot repeats
-(no attempt ever will).
+`clock.py` runs wake, place and issue each cycle for the multiprocessors that need it. When every
+ready block on a multiprocessor sits at a sum or a spin, it opens a lane: the run of cycles over
+which every issue there is regular - a cached sum missing and filling, a bypassing sum reading an
+uncached line, a spin attempt failing and changing nothing. Over a lane the cache moves only by
+fills, first in first out, so whether a line cached at the start is still there at a given issue
+is the count of fills before it against its place in the queue, and the lane ends before the first
+issue that might not be regular, after a sum's last line, or when a block of its own wakes or is
+placed. The before-write hook carries forward, up to the write, every lane that reads the written
+line from memory or holds a bypassing spinner on it, through the writing cycle when the lane's
+multiprocessor issues first in it. Carrying a lane forward is arithmetic: each block took one issue
+in k, each sum added a range of memory, the cache is its surviving old lines followed by its last
+fills, the rotation sits on the block that issued last. A cycle in which one multiprocessor alone
+can issue skips the device bookkeeping. The hang test is unchanged: once every placed block sits at
+a spin and none is busy, the stretch is frozen from its first cycle or stepped until an attempt
+succeeds or a snapshot of caches and rotations repeats.
 
-This is how an expert would build it because both shortcuts rest on an invariant rather than a
-heuristic: a failing attempt that hits its cached line, or bypasses a line that is not cached,
-leaves the machine unchanged except for whose turn it is, so skipping is exact whenever that holds
-for every ready block and wrong whenever it does not. It is quiescence detection from
-discrete-event simulation, applied to a machine whose idle-looking blocks are in fact issuing loads.
-The instruction names borrow PTX's cache operators - `.ca` caches in the first level, `.cg`
-bypasses it - and everything below the first level is one global memory. The shipped modules keep
-plain names that say what each structure is and never how it should behave. Two variants written
-apart from the reference, an event heap with bisected rotations and slot-array caches and a cycle
-loop that rebuilds its lists every cycle, agree with it on every graded launch and take 16 and 27
-to 30 seconds for the whole set at one CPU.
+This is how an expert would build it because it is conservative parallel discrete-event
+simulation with per-component lookahead, applied to a machine whose components share only memory
+and placement: each multiprocessor advances on its own until the next event it could observe, and
+the observation rule is derived from the cache semantics rather than approximated. The instruction
+names borrow PTX's cache operators - `.ca` caches in the first level, `.cg` bypasses it. Two
+variants score 1: the sealed model's own clock, written apart from the reference with a different
+plan structure and a Fenwick tree for memory sums, and a variant of the reference that never works
+out when a cached line goes and steps those cycles instead.
 """
 
 verification_explanation = """
@@ -107,29 +104,33 @@ verification_explanation = """
 the submission: it copies the verifier's pristine tree, lays the six submitted files over it,
 imports `run_launch` once and records what every graded launch printed, with a digest of the launch
 it was given. Survivors are reaped by uid. The second half runs as root and never executes
-submitted code: pytest compares the 30 hand launches with `tests/seal/gt.json`, answers frozen from the
-sealed model that the grader first checks the model still reproduces, and 326 generated launches with the sealed model
-itself, from a seed drawn with `secrets` at grading time, after the agent's container is gone. The
-model has its own parser and clock and shares no code with the reference. `tests/seal` is made
-root-only before the worker starts, so submitted code cannot import the model, and the reward
-starts at 0 and becomes 1 only when the worker exits cleanly inside the clock and every test passes.
+submitted code: pytest compares the 42 hand launches with `tests/seal/gt.json`, answers frozen from
+the sealed model that the grader first checks the model still reproduces, and 369 generated
+launches with the sealed model itself, from a seed drawn with `secrets` at grading time, after the
+agent's container is gone. The model has its own parser and clock and shares no code with the
+reference. `tests/seal` is made root-only before the worker starts, so submitted code cannot import
+the model, and the reward starts at 0 and becomes 1 only when the worker exits cleanly inside the
+clock and every test passes.
 
-The hand launches are one per graded rule and named for it, and each of 27 plausible wrong readings
+The hand launches are one per graded rule and named for it, and each of 38 plausible wrong readings
 fails at least one. The generated families are shaped around the mechanism rather than sampled:
 split-K fixups whose last segment reads partials through a line an earlier block fetched, grid
 barriers larger than the device, look-back chains, tile queues, statistics lines rewritten under
-blocks placed later, more spun-on lines than a cache holds, dense load, store and fence mixes on one-
-and two-line caches, and a stale spinner released only by a neighbour's miss; the two large
-families put the scale boundary inside the graded set. Every cheat scores 0 in the two-container
-run: each wrong reading built from the reference, one fixed answer for every launch, one block at
-a time in number order, a replay of the frozen hand answers keyed by launch, the correct per-cycle
-stepper, and ten isolation probes against the reward file, the grader, the sealed model, the
-collected set and the judge's own imports. Each of those probes was also run against a copy of the
-verifier with its defence removed and scored 1 there, so its 0 is the defence and not an accident.
-The judge runs from `/tests` with every root interpreter isolated (`python3 -I`), so no file the
-submission leaves behind can stand in for a module it imports. Two correct variants written apart from the reference score 1. Passing therefore
-means the six files implement the stated machine, including its exact skip and hang rules, fast
-enough, on launches nobody had seen.
+blocks placed later, more spun-on lines than a cache holds, dense load, store and fence mixes on
+small caches, a stale spinner released only by a neighbour's miss, and tiles summed while a
+prefetched copy goes stale, a waiter's flag is pushed out by a neighbour's sum, writers race the
+sum from lower and higher multiprocessors, or two sums trail each other over shared lines. The
+three large families put the scale boundary inside the graded set, and in the persistent one
+over a thousand stores per launch land in a tile while it is being summed. Every cheat scores 0:
+each wrong reading built from the reference, one fixed answer for every launch, one block at a time
+in number order, a replay of the frozen hand answers keyed by launch, the delivered stepper that
+knows no sums, the correct stepper that steps every line of every sum, the correct engine that
+carries streams only while the whole device is quiet, and ten isolation probes against the reward
+file, the grader, the sealed model, the collected set and the judge's own imports. Each probe was
+also run against a copy of the verifier with its defence removed and scored 1 there, so its 0 is
+the defence and not an accident. The judge runs from `/tests` with every root interpreter isolated
+(`python3 -I`). Two correct variants written apart from the reference score 1. Passing therefore
+means the six files implement the stated machine exactly, fast enough, on launches nobody had seen.
 """
 
 category = "ML"
@@ -141,11 +142,11 @@ tags = [
   "thread-block-residency",
   "spin-wait-liveness",
   "inter-block-synchronization",
-  "write-through-l1",
+  "streaming-reductions",
   "fifo-replacement",
 ]
 
-expert_time_estimate_hours = 10
+expert_time_estimate_hours = 16
 
 relevant_experience = """
 Having worked on GPU kernels that synchronize across thread blocks - split-K reductions with a
@@ -154,9 +155,11 @@ an atomic queue - or on the simulators and race checkers used to reason about th
 with first-level caches that nothing keeps coherent and with the PTX cache operators, with why a
 flag one block sets may never become visible to a block spinning on a cached copy, and with
 co-residency deadlock, where a kernel that waits on the whole grid hangs because the grid never
-fits on the device at once. Comfort with cycle-level and discrete-event simulation, with the
-difference between a machine that is idle and one whose idle-looking parts are still changing
-state, and with making a skip-ahead exact rather than approximately right.
+fits on the device at once. Comfort with cycle-level and discrete-event simulation - including
+conservative parallel simulation, where each component advances on its own until the next event
+it could observe - with the difference between a machine that is idle and one whose idle-looking
+parts are still changing state, and with making a skip-ahead exact rather than approximately
+right.
 """
 
 [verifier]

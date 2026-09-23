@@ -5,16 +5,16 @@
 slug = "stale-line-spin"
 category = "ML"
 label = "Kernels"
-tags = ["non-coherent-caches", "thread-block-residency", "spin-wait-liveness", "inter-block-synchronization", "write-through-l1", "fifo-replacement"]
-status = "idea"
+tags = ["non-coherent-caches", "thread-block-residency", "spin-wait-liveness", "inter-block-synchronization", "streaming-reductions", "fifo-replacement"]
+status = "built"
 
 [mechanism]
 # The sentence a reviewer holding two tasks would use for this one.
-sentence = "Decide which value every load of a kernel launch sees, where each block runs and when it ends, when every multiprocessor keeps its own small uncoordinated copy of global memory that outlives the blocks placed on it and a spinning block may never see the store it waits for."
+sentence = "Decide which value every load and every line of a streaming reduction sees, where each block runs and when it ends, when every multiprocessor keeps its own small uncoordinated copy of global memory that outlives the blocks placed on it, a spinning block may never see the store it waits for, and a reduction running for millions of cycles sees only the stores that land ahead of it."
 substrate = "a cycle model of one kernel launch across a whole device: multiprocessors that each keep a small line cache over global memory, a block dispatcher bounded by a residency limit, and a per-multiprocessor issue rotation"
-graded_output = "for every block the multiprocessor it ran on, the cycles it was placed and exited, and the values it printed; the cycle a launch hung with each stuck block and the address it spins on; final words of global memory"
-failure_mode = "modelling global memory as one coherent array or giving each block its own cache, then skipping time whenever every ready block is spinning, as if a spinning block could never be released by the fills, drops and evictions happening on its own multiprocessor"
-interaction = "the line cache decides what each spin attempt reads while the issue rotation decides when attempts happen, and a spin is only frozen while its attempt changes nothing in its multiprocessor's cache, so both skipping time and declaring a hang hinge on cache residency"
+graded_output = "for every block the multiprocessor it ran on, the cycles it was placed and exited, and the values it printed, reduction totals included; the cycle a launch hung with each stuck block and the address it spins on; final words of global memory"
+failure_mode = "modelling global memory as one coherent array or a reduction as one read of it, then making the clock fast by treating memory as static between device-wide events, as if a stream could not be reached by a store elsewhere or a spinner could never be released by the fills and drops of its own multiprocessor"
+interaction = "the line cache decides what each spin attempt and each line of a sum reads while the issue rotation and the multiprocessor order decide when, so whether a store lands in a reduction, whether a stale copy survives a neighbour's stream and when a waiter is let go all hinge on cache residency and issue order together"
 
 [nearest.public]
 name = "Alglave et al., GPU concurrency: weak behaviours and programming assumptions (ASPLOS 2015)"

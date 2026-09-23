@@ -68,83 +68,88 @@ def write(name, comment, files, reading=True, extra=None):
     MADE.append(name)
 
 
+# --- helpers for the readings --------------------------------------------------------------------
+
+def no_lanes(f):
+    """Carry nothing forward: every cycle is stepped. For readings whose rules the lane
+    arithmetic does not model; they are caught by their hand case long before time matters."""
+    sub(f, "clock.py", "    queue = turn.queue(row, t0)\n",
+        "    return None\n    queue = turn.queue(row, t0)\n")
+
+
+def no_solo(f):
+    """Every cycle goes through the full cycle, none through the one-issuer shortcut."""
+    sub(f, "clock.py", "        if stepping or len(active) != 1:\n            continue\n",
+        "        continue\n")
+
+
+def no_sum_lanes(f):
+    """Lanes hold spinners only; every line of every sum is stepped."""
+    sub(f, "clock.py",
+        'KIND = {"sum.ca": CA_SUM, "sum.cg": CG_SUM, "spin.ca": CA_SPIN, "spin.cg": CG_SPIN}',
+        'KIND = {"spin.ca": CA_SPIN, "spin.cg": CG_SPIN}')
+
+
+STORE_OWN = ("        self.put(a, v)\n        row = self.l1[sm].get(a // LW)\n"
+             "        if row is not None:\n            row[a % LW] = v\n")
+ROW_DOC = '        """One whole line, read as a load of that kind reads it: (words, changed)."""\n'
+PEEK_DOC = ('        """What a load would answer, and whether it would change the cache - '
+            'without doing it."""\n')
+SUM_BODY = ('        begin_sum(b, ins)\n        row, _ = mem.row(b.sm, b.line, op == "sum.ca")\n'
+            '        b.acc += row[0] + row[1] + row[2] + row[3]\n        b.line += 1\n'
+            '        b.left -= 1\n        if b.left == 0:\n            r[ins.rd] = b.acc\n'
+            '            b.pc += 1\n        return OTHER\n')
+
+
 # --- the caches ---------------------------------------------------------------------------
 
 def coherent():
     f = base()
-    sub(f, "mem.py", '        """Returns (value, whether this multiprocessor\'s cache changed)."""\n',
-        '        """Returns (value, whether this multiprocessor\'s cache changed)."""\n'
-        '        return self.gm.get(a, 0), False\n')
-    sub(f, "mem.py",
-        '        """What a load would answer, and whether it would change the cache - without doing it."""\n',
-        '        """What a load would answer, and whether it would change the cache - without doing it."""\n'
-        '        return self.gm.get(a, 0), False\n')
-    write("coherent", "every load answers from global memory", f)
+    sub(f, "mem.py", ROW_DOC, ROW_DOC + "        return self.words(ln), False\n")
+    sub(f, "mem.py", PEEK_DOC, PEEK_DOC + "        return self.gm.get(a, 0), False\n")
+    no_lanes(f)
+    write("coherent", "every load and every sum answers from global memory", f)
 
 
 def per_block_cache():
     f = base()
     sub(f, "mem.py", "        self.l1 = [Lines(cap) for _ in range(sms)]",
         "        self.cap = cap\n        self.l1 = {}")
-    sub(f, "mem.py", "        c = self.l1[sm]\n",
-        "        c = self.l1.setdefault(sm, Lines(self.cap))\n")
-    sub(f, "mem.py", "        row = self.l1[sm].get(ln)\n        if cached:",
-        "        row = self.l1.setdefault(sm, Lines(self.cap)).get(ln)\n        if cached:")
-    sub(f, "mem.py", "        row = self.l1[sm].get(a // LW)\n",
-        "        row = self.l1.setdefault(sm, Lines(self.cap)).get(a // LW)\n")
-    sub(f, "mem.py", "        return self.l1[sm].wipe()",
-        "        return self.l1.setdefault(sm, Lines(self.cap)).wipe()")
-    sub(f, "step.py", "b.sm, load.ea", "b.n, load.ea", times=3)
-    sub(f, "step.py", "mem.ld(b.sm, a, op", "mem.ld(b.n, a, op")
-    sub(f, "step.py", "mem.fence(b.sm)", "mem.fence(b.n)")
-    sub(f, "step.py", "r[ins.rd] = mem.add(b.sm, a, v)", "r[ins.rd] = mem.add(b.n, a, v)")
-    sub(f, "clock.py", "                    live -= 1\n                    pl.release(b)",
-        "                    live -= 1\n                    mem.l1.pop(b.n, None)\n"
-        "                    pl.release(b)")
-    sub(f, "clock.py",
-        "        return (tuple(tuple((ln, tuple(w)) for ln, w in c.rows.items()) for c in mem.l1),",
-        "        return (tuple((k, tuple((ln, tuple(w)) for ln, w in c.rows.items()))\n"
-        "                      for k, c in sorted(mem.l1.items())),")
+    sub(f, "mem.py", "self.l1[sm]", "self.l1.setdefault(sm, Lines(self.cap))", times=4)
+    sub(f, "step.py", "b.sm", "b.n", times=7)
+    sub(f, "clock.py", "pl.release(b)\n", "pl.release(b); mem.l1.pop(b.n, None)\n", times=2)
+    sub(f, "clock.py", "for c in mem.l1),", "for _, c in sorted(mem.l1.items())),")
+    no_lanes(f)
     write("per-block-cache", "a cache per block, gone when the block exits", f)
 
 
 def store_broadcast():
     f = base()
-    sub(f, "mem.py",
-        "        self.gm[a] = v\n        row = self.l1[sm].get(a // LW)\n"
-        "        if row is not None:\n            row[a % LW] = v",
-        "        self.gm[a] = v\n        for c in self.l1:\n            row = c.get(a // LW)\n"
-        "            if row is not None:\n                row[a % LW] = v")
+    sub(f, "mem.py", STORE_OWN,
+        "        self.put(a, v)\n        for c in self.l1:\n            row = c.get(a // LW)\n"
+        "            if row is not None:\n                row[a % LW] = v\n")
+    no_lanes(f)
     write("store-broadcast", "a store updates every multiprocessor's cached copy", f)
 
 
 def store_leaves_copy():
     f = base()
-    sub(f, "mem.py",
-        "        self.gm[a] = v\n        row = self.l1[sm].get(a // LW)\n"
-        "        if row is not None:\n            row[a % LW] = v",
-        "        self.gm[a] = v")
+    sub(f, "mem.py", STORE_OWN, "        self.put(a, v)\n")
     write("store-leaves-copy", "a store leaves the storer's own cached copy as it was", f)
 
 
 def store_allocates():
     f = base()
-    sub(f, "mem.py",
-        "        self.gm[a] = v\n        row = self.l1[sm].get(a // LW)\n"
-        "        if row is not None:\n            row[a % LW] = v",
-        "        self.gm[a] = v\n        row = self.l1[sm].get(a // LW)\n"
-        "        if row is not None:\n            row[a % LW] = v\n"
-        "        else:\n            self.ld(sm, a, True)")
+    sub(f, "mem.py", STORE_OWN,
+        STORE_OWN + "        else:\n            self.row(sm, a // LW, True)\n")
     write("store-allocates", "a store that misses fills the line", f)
 
 
 def atom_updates_own():
     f = base()
-    sub(f, "mem.py",
-        "        old = self.gm.get(a, 0)\n        self.gm[a] = old + v\n        return old",
-        "        old = self.gm.get(a, 0)\n        self.gm[a] = old + v\n"
-        "        row = self.l1[sm].get(a // LW)\n        if row is not None:\n"
-        "            row[a % LW] = old + v\n        return old")
+    sub(f, "mem.py", "        self.put(a, old + v)\n        return old",
+        "        self.put(a, old + v)\n        row = self.l1[sm].get(a // LW)\n"
+        "        if row is not None:\n            row[a % LW] = old + v\n        return old")
     write("atom-updates-own", "an atomic updates the issuer's cached copy", f)
 
 
@@ -153,23 +158,24 @@ def lru():
     sub(f, "line.py", "    def get(self, ln):\n        return self.rows.get(ln)",
         "    def get(self, ln):\n        row = self.rows.pop(ln, None)\n"
         "        if row is not None:\n            self.rows[ln] = row\n        return row")
+    no_lanes(f)
     write("lru", "a hit moves its line to the back of the replacement order", f)
 
 
 def cg_keeps():
     f = base()
-    sub(f, "mem.py", "        return self.gm.get(a, 0), c.drop(ln)",
-        "        return self.gm.get(a, 0), False")
+    sub(f, "mem.py", "        return self.words(ln), c.drop(ln)", "        return self.words(ln), False")
     sub(f, "mem.py", "        return self.gm.get(a, 0), row is not None",
         "        return self.gm.get(a, 0), False")
-    write("cg-keeps", "a bypassing load leaves the cached line alone", f)
+    write("cg-keeps", "a bypassing load or sum leaves the cached line alone", f)
 
 
 def cg_drops_all():
     f = base()
-    sub(f, "mem.py", "        return self.gm.get(a, 0), c.drop(ln)",
+    sub(f, "mem.py", "        return self.words(ln), c.drop(ln)",
         "        mine = c.drop(ln)\n        for other in self.l1:\n            other.drop(ln)\n"
-        "        return self.gm.get(a, 0), mine")
+        "        return self.words(ln), mine")
+    no_lanes(f)
     write("cg-drops-all", "a bypassing load drops the line from every multiprocessor", f)
 
 
@@ -178,6 +184,7 @@ def fence_all():
     sub(f, "mem.py", "    def fence(self, sm):\n        return self.l1[sm].wipe()",
         "    def fence(self, sm):\n        for c in self.l1:\n            c.wipe()\n"
         "        return True")
+    no_lanes(f)
     write("fence-all", "a fence empties every multiprocessor's cache", f)
 
 
@@ -192,10 +199,150 @@ def line_word():
     f = base()
     sub(f, "mem.py", "LW = 4\n", "LW = 1\n")
     sub(f, "mem.py",
-        "            row = [gm.get(base, 0), gm.get(base + 1, 0), gm.get(base + 2, 0),\n"
-        "                   gm.get(base + 3, 0)]",
-        "            row = [gm.get(base, 0)]")
+        "        return [gm.get(base, 0), gm.get(base + 1, 0), gm.get(base + 2, 0), "
+        "gm.get(base + 3, 0)]",
+        "        return [gm.get(base, 0)]")
+    sub(f, "step.py", "        b.line = load.ea(b, ins.at) // 4\n", "        b.line = load.ea(b, ins.at)\n")
+    sub(f, "step.py", "        b.acc += row[0] + row[1] + row[2] + row[3]\n", "        b.acc += sum(row)\n")
+    no_lanes(f)
     write("line-word", "a line is a single word", f)
+
+
+# --- sums ---------------------------------------------------------------------------------------
+
+def sum_one_issue():
+    f = base()
+    sub(f, "step.py", SUM_BODY,
+        "        ln = load.ea(b, ins.at) // 4\n        r[ins.rd] = mem.span(ln, ln + ins.b[1])\n"
+        "        b.pc += 1\n        return OTHER\n")
+    no_sum_lanes(f)
+    write("sum-one-issue", "a sum reads its n lines from global memory in one issue", f)
+
+
+def sum_coherent():
+    f = base()
+    sub(f, "step.py", '        row, _ = mem.row(b.sm, b.line, op == "sum.ca")\n',
+        '        if op == "sum.ca":\n            row = mem.words(b.line)\n'
+        '        else:\n            row, _ = mem.row(b.sm, b.line, False)\n')
+    sub(f, "clock.py", 'KIND = {"sum.ca": CA_SUM,', 'KIND = {"sum.ca": CG_SUM,')
+    write("sum-coherent", "a cached sum reads every line from global memory and fills nothing", f)
+
+
+def sum_no_fill():
+    f = base()
+    sub(f, "step.py", '        row, _ = mem.row(b.sm, b.line, op == "sum.ca")\n',
+        '        if op == "sum.ca":\n'
+        '            row = mem.l1[b.sm].get(b.line) or mem.words(b.line)\n'
+        '        else:\n            row, _ = mem.row(b.sm, b.line, False)\n')
+    sub(f, "clock.py", 'KIND = {"sum.ca": CA_SUM,', 'KIND = {"sum.ca": CG_SUM,')
+    write("sum-no-fill", "a cached sum uses a line it finds cached but fills none it misses", f)
+
+
+def sum_cg_keeps():
+    f = base()
+    sub(f, "step.py", '        row, _ = mem.row(b.sm, b.line, op == "sum.ca")\n',
+        '        if op == "sum.cg":\n            row = mem.words(b.line)\n'
+        '        else:\n            row, _ = mem.row(b.sm, b.line, True)\n')
+    write("sum-cg-keeps", "a bypassing sum leaves a cached line where it is", f)
+
+
+def sum_word_issues():
+    f = base()
+    sub(f, "step.py", SUM_BODY,
+        "        if b.left == 0:\n"
+        "            b.line, b.left, b.acc = load.ea(b, ins.at), 4 * ins.b[1], 0\n"
+        '        v, _ = mem.ld(b.sm, b.line, op == "sum.ca")\n'
+        "        b.acc += v\n        b.line += 1\n        b.left -= 1\n"
+        "        if b.left == 0:\n            r[ins.rd] = b.acc\n            b.pc += 1\n"
+        "        return OTHER\n")
+    no_sum_lanes(f)
+    write("sum-word-issues", "a sum reads 4n words from its address, one word per issue", f)
+
+
+def sum_first_issue():
+    f = base()
+    sub(f, "step.py", SUM_BODY,
+        "        if b.left == 0:\n            ln = load.ea(b, ins.at) // 4\n"
+        "            b.left, b.acc = ins.b[1], 0\n"
+        "            for x in range(ln, ln + ins.b[1]):\n"
+        '                row, _ = mem.row(b.sm, x, op == "sum.ca")\n'
+        "                b.acc += sum(row)\n"
+        "        b.left -= 1\n        if b.left == 0:\n            r[ins.rd] = b.acc\n"
+        "            b.pc += 1\n        return OTHER\n")
+    no_sum_lanes(f)
+    write("sum-first-issue", "a sum reads all its lines at its first issue and waits out the rest",
+          f)
+
+
+def sum_last_issue():
+    f = base()
+    sub(f, "step.py", SUM_BODY,
+        "        if b.left == 0:\n            b.line, b.left = load.ea(b, ins.at) // 4, ins.b[1]\n"
+        "        b.left -= 1\n        if b.left == 0:\n            total = 0\n"
+        "            for x in range(b.line, b.line + ins.b[1]):\n"
+        '                row, _ = mem.row(b.sm, x, op == "sum.ca")\n'
+        "                total += sum(row)\n"
+        "            r[ins.rd] = total\n            b.pc += 1\n        return OTHER\n")
+    no_sum_lanes(f)
+    write("sum-last-issue", "a sum takes its n issues and reads all its lines at the last one", f)
+
+
+def sum_fills_at_end():
+    f = base()
+    sub(f, "step.py", SUM_BODY,
+        "        begin_sum(b, ins)\n"
+        '        if op == "sum.ca":\n'
+        "            row = mem.l1[b.sm].get(b.line)\n"
+        "            if row is None:\n"
+        "                row = mem.words(b.line)\n"
+        "                b.late = getattr(b, 'late', []) + [(b.line, row)]\n"
+        "        else:\n"
+        "            row, _ = mem.row(b.sm, b.line, False)\n"
+        "        b.acc += row[0] + row[1] + row[2] + row[3]\n        b.line += 1\n"
+        "        b.left -= 1\n        if b.left == 0:\n"
+        "            for ln, words in getattr(b, 'late', []):\n"
+        "                if not mem.l1[b.sm].has(ln):\n"
+        "                    mem.l1[b.sm].put(ln, words)\n"
+        "            b.late = []\n"
+        "            r[ins.rd] = b.acc\n            b.pc += 1\n        return OTHER\n")
+    no_sum_lanes(f)
+    write("sum-fills-at-end", "a cached sum fills the lines it missed only when it finishes", f)
+
+
+def sum_is_spin():
+    f = base()
+    sub(f, "clock.py", "    at_spin = [ins.op in SPIN for ins in code] + [False]\n",
+        '    at_spin = [ins.op in SPIN or ins.op in ("sum.ca", "sum.cg") for ins in code] + [False]\n')
+    sub(f, "step.py", '    """Would this spinner\'s next attempt fail and leave its cache as it is?"""\n'
+        "    ins = launch.code[b.pc]\n",
+        '    """Would this spinner\'s next attempt fail and leave its cache as it is?"""\n'
+        "    ins = launch.code[b.pc]\n    if ins.op in SUM:\n        return False\n")
+    write("sum-is-spin", "a block in the middle of a sum counts as sitting at a spin", f)
+
+
+# --- lanes: the fast path's own readings ---------------------------------------------------------
+
+def lane_late_read():
+    f = base()
+    sub(f, "clock.py",
+        "        starts, spans, reach = index[0] or reindex()\n"
+        "        i = bisect_right(starts, ln) - 1\n"
+        "        while i >= 0 and reach[i] > ln:\n"
+        "            lo, hi, j = spans[i]\n"
+        "            if ln < hi and j != sm:\n"
+        "                hit.add(j)\n"
+        "            i -= 1\n", "")
+    write("lane-late-read",
+          "a sum carried forward reads each line as memory holds it when the stretch is settled",
+          f)
+
+
+def lane_same_cycle():
+    f = base()
+    sub(f, "clock.py", "            close(j, now + 1 if j < sm else now)\n            shut.append(j)\n",
+        "            close(j, now + 1)\n")
+    write("lane-same-cycle",
+          "a store never reaches another multiprocessor's sum in the cycle it is made", f)
 
 
 # --- placement, rotation, timing -----------------------------------------------------------
@@ -222,17 +369,22 @@ def place_first_free():
 
 def free_same_cycle():
     f = base()
-    sub(f, "clock.py", "        t += 1\n",
+    sub(f, "clock.py", "        if not stepping:\n            for s, b in issued:\n",
         "        for b in pl.fill(blocks, t):\n            live += 1\n"
-        "            spin += spinning(launch, b)\n            b.busy = t + 1\n        t += 1\n")
+        "            spin += at_spin[b.pc]\n            b.busy = t + 1\n"
+        "            heapq.heappush(wakes, (t + 1, b.n))\n"
+        "        if not stepping:\n            for s, b in issued:\n")
+    no_solo(f)
     write("free-same-cycle", "an exit frees its slot in the same cycle", f)
 
 
 def placed_next_cycle():
     f = base()
-    sub(f, "clock.py", "        for b in pl.fill(blocks, t):\n            live += 1\n",
-        "        for b in pl.fill(blocks, t):\n            live += 1\n"
-        "            b.busy = t + 1\n            heapq.heappush(wakes, t + 1)\n")
+    sub(f, "clock.py",
+        "            spin += at_spin[b.pc]\n            ready[s] += 1\n"
+        "            if lanes[s] is not None:\n                close(s, t)\n            refresh(s)\n",
+        "            spin += at_spin[b.pc]\n            b.busy = t + 1\n"
+        "            heapq.heappush(wakes, (t + 1, b.n))\n")
     write("placed-next-cycle", "a placed block first issues on the next cycle", f)
 
 
@@ -240,13 +392,20 @@ def rotate_from_zero():
     f = base()
     sub(f, "turn.py", "    def pick(self, row, t):\n        k = self.k\n",
         "    def pick(self, row, t):\n        k = self.k\n        self.last = k - 1\n")
+    no_lanes(f)
+    no_solo(f)
     write("rotate-from-zero", "each cycle the scan starts again from slot 0", f)
 
 
 def sm_reverse():
     f = base()
-    sub(f, "clock.py", "    sms = range(launch.sms)\n",
-        "    sms = range(launch.sms - 1, -1, -1)\n")
+    sub(f, "clock.py", "        order = sorted(active)\n", "        order = sorted(active, reverse=True)\n")
+    sub(f, "clock.py", "            close(j, now + 1 if j < sm else now)\n",
+        "            close(j, now + 1 if j > sm else now)\n")
+    sub(f, "clock.py",
+        "                    if j > s and j not in order:\n                        insort(order, j)\n",
+        "                    if j < s and j not in order:\n                        order.append(j)\n"
+        "                        order[i:] = sorted(order[i:], reverse=True)\n")
     write("sm-reverse", "multiprocessors issue in descending order", f)
 
 
@@ -273,6 +432,8 @@ def cmp_reversed():
     sub(f, "step.py", "TEST[ins.cmp](got, load.val(launch, b, ins.b))",
         "TEST[ins.cmp](load.val(launch, b, ins.b), got)")
     sub(f, "step.py", "        if TEST[ins.cmp](got, want):\n", "        if TEST[ins.cmp](want, got):\n")
+    sub(f, "clock.py", "test(cache.rows[ln][a % LW], want)", "test(want, cache.rows[ln][a % LW])")
+    sub(f, "clock.py", "test(mem.word(a), want)", "test(want, mem.word(a))")
     write("cmp-reversed", "a spin compares v against the loaded value", f)
 
 
@@ -285,42 +446,26 @@ def park_spinners():
         "                self.last = j\n",
         "            if b is not None and b.end is None and b.busy <= t and b.wait is None:\n"
         "                self.last = j\n")
-    sub(f, "turn.py",
-        "        return b is not None and b.end is None and b.busy <= t\n",
-        "        return b is not None and b.end is None and b.busy <= t and b.wait is None\n")
     sub(f, "step.py",
         "        if TEST[ins.cmp](got, want):\n            b.pc += 1\n            return PASS\n",
         "        if TEST[ins.cmp](got, want):\n            b.pc += 1\n            return PASS\n"
         "        b.wait = a\n")
-    sub(f, "step.py",
-        "        mem.st(b.sm, load.ea(b, ins.at), load.val(launch, b, ins.a))",
-        "        mem.st(b.sm, load.ea(b, ins.at), load.val(launch, b, ins.a))\n"
-        "        mem.hit = load.ea(b, ins.at)")
-    sub(f, "step.py", "        r[ins.rd] = mem.add(b.sm, a, v)",
-        "        r[ins.rd] = mem.add(b.sm, a, v)\n        mem.hit = a")
-    sub(f, "clock.py", "    for b in blocks:\n        b.busy = 0\n",
-        "    for b in blocks:\n        b.busy = 0\n        b.wait = None\n")
-    sub(f, "clock.py", "    mem = Mem(launch.mem, launch.sms, launch.lines)\n",
-        "    mem = Mem(launch.mem, launch.sms, launch.lines)\n    mem.hit = None\n")
-    sub(f, "clock.py", "            what = step(launch, mem, b, t)\n",
-        "            what = step(launch, mem, b, t)\n"
-        "            if mem.hit is not None:\n"
-        "                for w in blocks:\n"
-        "                    if w.wait == mem.hit:\n"
-        "                        w.wait = None\n"
-        "                mem.hit = None\n")
+    sub(f, "clock.py", "        b.line = b.left = b.acc = 0\n",
+        "        b.line = b.left = b.acc = 0\n        b.wait = None\n")
+    sub(f, "clock.py", "        ln = a // LW\n        hit = set()\n",
+        "        for w in blocks:\n            if w.wait == a:\n                w.wait = None\n"
+        "        ln = a // LW\n        hit = set()\n")
     sub(f, "clock.py",
-        "    def ready_any():\n        for row in rows:\n            for b in row:\n"
-        "                if b is not None and b.end is None and b.busy <= t:\n"
-        "                    return True\n        return False",
-        "    def ready_any():\n        for row in rows:\n            for b in row:\n"
-        "                if b is not None and b.end is None and b.busy <= t and b.wait is None:\n"
-        "                    return True\n        return False")
-    sub(f, "clock.py",
-        "            if not ready_any():\n                t = wakes[0]\n                continue",
-        "            if not ready_any():\n                if not wakes:\n"
-        "                    return blocks, t, launch.grid - pl.next, mem.gm\n"
-        "                t = wakes[0]\n                continue")
+        "            b = turns[s].pick(rows[s], t)\n            was = at_spin[b.pc]\n",
+        "            b = turns[s].pick(rows[s], t)\n            if b is None:\n"
+        "                continue\n            was = at_spin[b.pc]\n")
+    sub(f, "clock.py", "        if not stepping:\n            for s, b in issued:\n",
+        "        if not issued:\n            if not wakes:\n"
+        "                return blocks, t, launch.grid - pl.next, mem.gm\n"
+        "            t = wakes[0][0]\n            continue\n"
+        "        if not stepping:\n            for s, b in issued:\n")
+    no_lanes(f)
+    no_solo(f)
     write("park-spinners", "a failing spinner leaves the rotation until its word is stored to", f)
 
 
@@ -329,16 +474,27 @@ def skip_any_spin():
     sub(f, "step.py",
         "    return not changed and not TEST[ins.cmp](got, load.val(launch, b, ins.b))",
         "    return not TEST[ins.cmp](got, load.val(launch, b, ins.b))")
+    sub(f, "clock.py",
+        "            if p is None or test(cache.rows[ln][a % LW], want):\n",
+        "            if (test(mem.word(a), want) if p is None\n"
+        "                    else test(cache.rows[ln][a % LW], want)):\n")
+    sub(f, "clock.py", "            elif m:\n                need = room + p + 1\n",
+        "            elif m and p is not None:\n                need = room + p + 1\n")
+    sub(f, "clock.py", "            if ln in where or test(mem.word(a), want):\n",
+        "            if test(mem.word(a), want):\n")
+    sub(f, "clock.py", "                if kd == CA_SPIN:\n"
+        "                    b.reg[ins.rd] = mem.l1[s].rows[a // LW][a % LW]\n",
+        "                if kd == CA_SPIN and mem.l1[s].has(a // LW):\n"
+        "                    b.reg[ins.rd] = mem.l1[s].rows[a // LW][a % LW]\n"
+        "                elif kd == CA_SPIN:\n"
+        "                    b.reg[ins.rd] = mem.word(a)\n")
     write("skip-any-spin", "time is skipped whenever every ready block is failing a spin", f)
 
 
 def skip_no_rotate():
     f = base()
-    sub(f, "clock.py",
-        "                d = wakes[0] - t\n                for s in sms:\n"
-        "                    turns[s].skip(rows[s], t, d)\n",
-        "")
-    write("skip-no-rotate", "a skipped frozen stretch leaves every rotation where it was", f)
+    sub(f, "clock.py", "        turns[s].last = lane.blocks[(d - 1) % k].slot\n", "")
+    write("skip-no-rotate", "a stretch carried forward leaves the rotation where it was", f)
 
 
 def hang_no_store():
@@ -350,11 +506,10 @@ def hang_no_store():
         "            key = snapshot()")
     sub(f, "clock.py", "    def snapshot():",
         "    def all_fail():\n"
-        "        from sim.step import TEST\n"
-        "        for s in sms:\n"
+        "        for s in range(S):\n"
         "            for b in rows[s]:\n"
-        "                if b is not None and b.end is None and b.busy <= t:\n"
-        "                    ins = launch.code[b.pc]\n"
+        "                if b is not None and b.end is None and b.busy <= now:\n"
+        "                    ins = code[b.pc]\n"
         "                    got, _ = mem.peek(b.sm, load.ea(b, ins.at), ins.op == 'spin.ca')\n"
         "                    if TEST[ins.cmp](got, load.val(launch, b, ins.b)):\n"
         "                        return False\n"
@@ -390,6 +545,8 @@ def hang_never_early():
 READING_BUILDERS = (
     coherent, per_block_cache, store_broadcast, store_leaves_copy, store_allocates,
     atom_updates_own, lru, cg_keeps, cg_drops_all, fence_all, fence_noop, line_word,
+    sum_one_issue, sum_coherent, sum_no_fill, sum_cg_keeps, sum_word_issues, sum_first_issue,
+    sum_last_issue, sum_fills_at_end, sum_is_spin, lane_late_read, lane_same_cycle,
     place_mod, place_first_free, free_same_cycle, placed_next_cycle, rotate_from_zero,
     sm_reverse, work_plus_one, lt_inclusive, cmp_reversed, park_spinners, skip_any_spin,
     skip_no_rotate, hang_no_store, hang_at_detect, hang_never_early,
@@ -398,14 +555,44 @@ READING_BUILDERS = (
 
 # --- correct but too slow -------------------------------------------------------------------
 
+DELIVERED = "ef7a40e"      # the bundle the easiness probe solved 3 of 3
+
+
+def old_plan():
+    """The delivered reference, unchanged: the plan all three probe trials converged on - a
+    literal stepper with a frozen-stretch skip - written before sums existed. It treats a sum as
+    an instruction that does nothing."""
+    import subprocess
+    f = {}
+    for part in PARTS:
+        f[part] = subprocess.run(
+            ["git", "show", "%s:tasks/stale-line-spin/solution/%s" % (DELIVERED, part)],
+            cwd=str(ROOT), capture_output=True, text=True, check=True).stdout
+    write("old-plan", "the delivered reference: literal stepping and a frozen skip, no sums", f,
+          reading=False)
+
+
+def literal_sums():
+    f = base()
+    no_sum_lanes(f)
+    write("literal-sums", "correct, but steps every line of every sum (spinners still skipped)", f,
+          reading=False)
+
+
+def device_bulk():
+    f = base()
+    sub(f, "clock.py", "        order = sorted(active)\n",
+        "        for x in range(S):\n            if lanes[x] is not None:\n"
+        "                close(x, t)\n        order = sorted(active)\n")
+    no_solo(f)
+    write("device-bulk", "correct, but every stretch is carried forward only while the whole "
+          "device is quiet", f, reading=False)
+
+
 def slow_step():
     f = base()
-    sub(f, "clock.py",
-        "            if quiet and wakes and all_frozen():\n                d = wakes[0] - t\n"
-        "                for s in sms:\n                    turns[s].skip(rows[s], t, d)\n"
-        "                t = wakes[0]\n                continue\n",
-        "")
-    write("slow-step", "correct, but steps every cycle in which any block spins", f,
+    no_lanes(f)
+    write("slow-step", "correct, but steps every cycle in which any block is ready", f,
           reading=False)
 
 
@@ -790,7 +977,7 @@ def main():
         old.unlink()
     for build in READING_BUILDERS:
         build()
-    for build in (slow_step, const_none, pos_serial):
+    for build in (old_plan, literal_sums, device_bulk, slow_step, const_none, pos_serial):
         build()
     for build in PROBE_BUILDERS:
         build()

@@ -32,13 +32,18 @@ made resident.
 able to hold R blocks at once and each with its own cache of C four-word lines over global
 memory; a dispatcher that places blocks as residency slots free up; a per-multiprocessor
 issue rotation; and a small instruction set with cached and bypassing loads, stores,
-atomics, fences, spin-waits and timed work. `/app/run_launch.py` runs a launch file and
+atomics, fences, spin-waits, streaming sums that read one line per issue through the cache,
+and timed work. `/app/run_launch.py` runs a launch file and
 prints, for every block, where it ran, when it was placed and when it exited and what it
 printed; when a launch hangs, the cycle it hung and every stuck block with the word it spins
 on; and chosen words of final memory. The shipped model is the coherent-machine model most
 engineers carry in their heads, and it is wrong in six files. The agent repairs the six
 files so that every launch prints exactly what the stated machine does, and so that the
-graded set (large launches included) finishes inside 60 seconds.
+graded set (large launches included) finishes inside 60 seconds. Since easiness recovery 1
+the graded set includes persistent launches that keep sums streaming on most multiprocessors
+for up to 16 million cycles while the rest issue every few cycles, so the clock has to carry
+each multiprocessor forward on its own, and doing that exactly needs a rule for which stores a
+carried stream can observe.
 
 ## Why it is hard
 
@@ -46,27 +51,27 @@ The difficulty is not the amount of code. It is that the model every engineer ca
 coherent one, and that the natural way to make the simulation fast is exactly the way that
 breaks the incoherent one.
 
-- Expert time estimate: 10 hours
-- Why a frontier agent cannot one-shot the plan (the strategic answer - required): its plan comes from the coherent-machine prior - answer every load from one array or from a cache kept in step, send blocks round robin, and, when the big launches crawl, park each spinning block until something stores to the word it watches. Two stated rules take that plan apart at different stages: the caches are per multiprocessor, incoherent and outlive their blocks, so values depend on placement history; and a spin attempt is a load, so fills, bypass drops and fences on the spinner's own multiprocessor release it without any store, which means the fast path and the hang test both have to be rebuilt around whether an attempt changes its cache.
-- Tactics making that true (docs/DIFFICULTY.md - prong A poison / prong B withholding / prong C late failure): A1 (coherent-memory prior, per-block cache prior, round-robin dispatch prior, spin-as-wait prior), A2 (the brief never names coherence, staleness, livelock or when time may be skipped), B2 (placement, rotation, fill order, bypass drops, store updates, atomic bypass, fences, spin attempts, work and exit timing interact in one trace), C1 (ordinary launches must still be cycle-exact; answering from global memory, never skipping and never hanging all fail somewhere), C2 (no expected output ships; the only runner is the model being repaired), C3 (thousands of blocks in long work while others spin; a stepper that only skips idle cycles never skips), C4 (exact all-or-nothing grading over hand launches and hundreds of nonce-generated ones), plus the guard (six collected files, pristine parser/reporter/runner).
-- Assistant's attack on the plan (its first plan, and where that plan is wrong): cold, my first plan is a cycle stepper with one cache per multiprocessor and spinners parked on the word they watch, woken by any store to it. The cache half of that plan is right only once caches are per multiprocessor, FIFO and kept across blocks; the parking half is wrong twice - a parked spinner no longer takes its turn, which moves every later cycle of its neighbours, and a spinner on a cached line is released by a neighbour's fill, a bypassing load or a fence on its own multiprocessor, none of which is a store to its word. My second plan (skip whenever every ready block is spinning) is still wrong wherever an attempt misses, because a miss fills and pushes out another spinner's line. I would not have committed to the correct frozen condition without first writing out what each attempt does to its cache.
-- Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): 2 (range 1-3)
-- Difficulty record score (tools/difficultycheck.py on authoring/<slug>/difficulty.toml, before Stage 2; every attempt's score and what changed): attempt 1, 2026-09-22, 100/100 IN BAND, one warning (gate not yet measured). No earlier attempt; the design was changed before the first record from "frozen when every ready block spins" to "frozen only when every attempt leaves its cache untouched" after the planning attack found the first version plannable in one shot.
+- Expert time estimate: 16 hours (10 before easiness recovery 1)
+- Why a frontier agent cannot one-shot the plan (the strategic answer - required): since easiness recovery 1 the plan that solved the delivered task 3 of 3 - literal stepping plus generic repeat detection plus a self-built stepper - is correct and far too slow: a running sum never repeats a state, and the persistent kind keeps sums streaming on most multiprocessors for millions of cycles while the rest issue every few cycles. The next plan, advancing streams in bulk between device-wide events, is also correct and also too slow, because the device is never quiet for long. What fits is to carry each multiprocessor forward on its own, which is exact only with a derived observation rule: a store reaches a carried stream only if it lands before the stream's issue on that line (cycle, then multiprocessor number) and only through memory (a cached copy hides it); a store to a line already read changes nothing read; which cached lines survive the stream's fills is first-in-first-out arithmetic. The priors underneath are unchanged: coherent memory, per-block caches, round-robin dispatch, spin-as-wait, and a reduction as one read of memory.
+- Tactics making that true (docs/DIFFICULTY.md - prong A poison / prong B withholding / prong C late failure): A1 (coherent memory, per-block caches, round-robin dispatch, spin-as-wait, a reduction as one read, memory static between events), A2 (the brief never names coherence, staleness, livelock, lookahead or which stores a stream can see), B2 (placement, rotation, fill order, bypass drops, store updates, atomic bypass, fences, spin attempts, sums, work and exit timing interact in one trace), C1 (ordinary launches and small reduce launches must be cycle-exact), C2 (no expected output ships; a stepper written from the brief cannot run the persistent kind), C3 (measured, three tiers: 306 s and over 450 s for stepping every sum line, 231 s and over 450 s for device-wide bulk, about 15 s for the whole set with per-multiprocessor lanes), C4 (exact all-or-nothing over 42 hand and 369 nonce launches), plus the guard (six collected files, pristine parser/reporter/runner).
+- Assistant's attack on the plan (its first plan, and where that plan is wrong): author-run and contaminated (the author wrote the model first), recorded as such. From the brief alone the plan I would write first is the probes' plan with sums stepped literally; timing the persistent sample kills it. The second plan is to bulk-advance streams between device-wide events using range sums over memory - it is what one does after seeing that sums never repeat - and it is correct but still minutes per launch. The third, per-multiprocessor lanes, is where I would get the observation rule wrong first: my own first model settled a carried stream after the store that cut it had landed (a stream reading a line in the storing cycle saw the new value), and the fuzz caught it in 122 of 9000 runs (3000 launches, each in three plan modes). That is the late failure the design depends on, and it happened to the author.
+- Estimated solves out of 8 (design for 1, the hard edge; the realized rate drifts up): 3 (range 2-4). The delivered design was estimated at 2 and realized 3 of 3; the estimate for the rebuild is raised, not lowered, because an author who wrote the model cannot put a cold number on it (see the recovery section).
+- Difficulty record score (tools/difficultycheck.py on authoring/<slug>/difficulty.toml, before Stage 2; every attempt's score and what changed): attempt 1, 2026-09-22, 100/100 IN BAND, one warning (gate not yet measured). Attempt 2, 2026-09-23, after easiness recovery 1 rewrote the record for the rebuilt design: 100/100 IN BAND on the measured tree (410 environment lines, 6 editable files, 781 reference lines, 55 cheats of which 44 semantic, 2 variants).
 - Difficulty score anchor (50 at first complete submission, approved by contributor): not set - no submission yet.
-- Score history (date, score, what moved, and any pipeline re-anchor): 2026-09-22 originality 100, difficulty 100 (record only). 2026-09-22 difficulty 100 on the built tree (gate measured; shape 399 environment lines after two dead helpers were removed, 6 editable files, 391 reference lines by the tool's count, 41 cheats, 2 variants).
-- Leak audit (docs/DIFFICULTY.md): the launch files carry only device shape, initial words and programs; no expected output, placement or cycle ships; the worked example in the brief was found by search (authoring/stale-line-spin/example_search.py) and, run against all 31 cheat trees that are not isolation probes, decides only three conventions the brief states outright (first issue in the placing cycle, a slot free the cycle after its exit, the loaded value on the left of a comparison) and the constant, positional and replay strategies, none of the cache, residency, skipping or hang readings; the engine prints only what the graded format prints (no per-cycle log that would show a fill, a drop or a skip); no helper exists that only the correct rules would call. Answer, re-checked on the built tree: nothing.
-- Expert path, described step by step: (1) run the samples and read the engine end to end; (2) replace memory with a FIFO line cache per multiprocessor that outlives its blocks, with the stated fill, bypass-drop, store-update, atomic-bypass and fence rules; (3) fix placement (most free slots, ties to the lower number, slot free the cycle after exit) and the rotation (slot order after the last issuer, spinners take turns); (4) derive the frozen condition - every ready block is at a spin whose attempt fails and leaves its cache untouched - and skip to the next wake, advancing each rotation by the skipped cycles; (5) settle hangs from the same condition, stepping any unfrozen all-spinning stretch until it freezes, succeeds or repeats, and reporting the cycle it began; (6) time the large launches and diff the fast clock against a plain stepper on generated launches.
+- Score history (date, score, what moved, and any pipeline re-anchor): 2026-09-22 originality 100, difficulty 100 (record only). 2026-09-22 difficulty 100 on the built tree. 2026-09-23 easiness probe: solved 3 of 3 (failed). 2026-09-23 rebuilt: originality 100 (nearest ledger entry alias-settle-report at cosine 0.14), difficulty 100 on the rebuilt tree.
+- Leak audit (docs/DIFFICULTY.md): the launch files carry only device shape, initial words and programs; no expected output, placement or cycle ships; the two new samples (tile_reduce, persistent_reduce) are inputs to run and time; the worked example is unchanged and decides only stated conventions; the shipped sum is one call to a memory-range helper (the reduction prior) and no helper exists that only the correct rules would call; the engine prints only the graded format. tools/onelinecheck.py over the rebuilt model: only load_from_cache has a short exact rule; store_in_sum (254 samples), hangs_here, frozen and spin_passes have none at depth 2. tools/leakcheck.py on the three probe trajectories: nothing above the floor.
+- Expert path, described step by step: (1) run the samples, time the three large ones, read the engine end to end; (2) per-multiprocessor FIFO caches that outlive blocks, with the stated fill, drop, store, atomic and fence rules; (3) placement and rotation fixes; (4) sums literally, one line per issue read the way the matching load reads it, and the hang rules with a summing block not spinning; (5) profile the persistent launch and give each multiprocessor its own stretch of regular issues, carried forward by arithmetic (turns per block, range sums of memory, surviving old lines plus the last fills); (6) derive what ends a stretch from outside (a store to a line one of its sums reads from memory or a bypassing spinner watches, applied after the stretch is carried up to it in cycle and multiprocessor order) and from inside (a cached line reached before it is pushed out, a waiter's line evicted or dropped, a sum's last line); (7) diff against a plain stepper on small launches and on the persistent pattern shrunk until the stepper can run it, then time the whole set.
 - Originality check: searched six queries (recorded in authoring/stale-line-spin/originality.toml). Found: Alglave et al. ASPLOS 2015 (stale L1 reads in message passing on real GPUs), Sorensen et al. OOPSLA 2016 (co-residency deadlock of inter-workgroup barriers), the GPGPU-Sim manual (atomics modelled as skipping L1), LightScan (ld.cg bypasses and evicts L1 lines), a dispatch study (placement by resource availability, not round robin). None states a complete model or computes placements, cycles, values or hangs for a launch. No twin.
 - Distinctness record score: 2026-09-22 100/100 DISTINCT (tags overlap nothing in the ledger, substrate new, mechanism sentence nearest ledger entry alias-settle-report at cosine 0.14). Crowded archetype named: occupancy tuning (Kernels list), departure recorded.
 - Nearest already-submitted task: guard-mark-unwind (ledger) - both are turn-taking execution models with an exact trace where waiters may never be released; all five surfaces separate (mechanism, substrate, graded output, failure mode, interaction). Also checked against every task on every remote branch (about seventy) and the nine per-label seed prompts: no GPU memory model anywhere; the Kernels seed (a warp execution model with divergence, barriers and bank conflicts) is intra-multiprocessor and grades barrier release steps and bank cycles, this is inter-multiprocessor and grades cache visibility, placement and hangs.
 
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 
-- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): every test function, the 30 hand cases, the six artifacts, the worker's collection and import, the frozen interface, the 60 s clock and each rule of the sealed model split by line range; no NOT STATED row; tracecheck result recorded in the validation table below.
-- Identifiability (readings enumerated, which survived the published evidence, what separated them): 27 wrong readings built as file sets from the reference (authoring/stale-line-spin/readings.py, the same files the cheats ship); every one is ruled out by a quoted sentence and failed by a named hand case (tools/readingcheck.py: 27 separated, 0 blind, 0 equivalent). One candidate, work-zero-skips (no floor at one cycle), survived everything and was proved the rule itself: a block issues at most once a cycle. The comparison conventions had no graded case until spin-tests was added (lt against at-most, operands reversed, ne against eq all separated).
+- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): rewalked in full on 2026-09-23 after the rebuild: every test function, the 42 hand cases, the six artifacts, the worker's collection and import, the frozen interface and the parser's sum rule, the 60 s clock, and each rule of the rebuilt sealed model split by line range (sum start, sum line, sum end, plans, settling, observation); no NOT STATED row; tracecheck clean.
+- Identifiability (readings enumerated, which survived the published evidence, what separated them): 38 wrong readings built as file sets from the reference (authoring/stale-line-spin/readings.py, the same files the cheats ship), eleven of them new for sums and for carried streams (sum-one-issue, sum-coherent, sum-no-fill, sum-cg-keeps, sum-word-issues, sum-first-issue, sum-last-issue, sum-fills-at-end, sum-is-spin, lane-late-read, lane-same-cycle); every one is ruled out by a quoted sentence and failed by a named hand case (tools/readingcheck.py: 38 separated). Readings whose rules the fast path cannot model step every cycle, so several stall on the large launches after failing their hand case.
 - Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): nop 0 (fails 17 of 30 hand cases, 253 of 326 generated); const-none 0 (fails all 30 and all 326); pos-serial 0 (fails 27 of 30 and all 326); forge-hand (frozen answers replayed by launch key, shipped engine otherwise) 0 - passes all 30 hand cases, fails 253 of 326 generated. The worked example is not in the graded set; replaying known answers is what forge-hand does for all 30 frozen ones.
-- Independent implementation behind every tolerance and limit (path, measured headroom): the 60 s clock - authoring/stale-line-spin/variants/ok-heap (16.3-16.4 s) and ok-list (27.1-29.7 s), both written apart from solution/, plus the reference (10.4-11.4 s), each the whole 356-launch set in the verifier image at --cpus=1 (authoring/stale-line-spin/container_time.py). The per-cycle stepper (cheat slow-step) matches all 353 launches it reaches and has not finished the large chain launches after 240 s on the host.
-- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): author-run, mechanically (trace.md header). Sentences added for: the comparison order, the mod range, operands read before writes, the rotation remembering the slot not the block, an atomic touching no cache, the frozen interface and the fields say.py reads, one process for all launches. The one decision prose leaves loose - whether a block reaching its spin during cycle t sits at it at t - is settled by the worked example (hang 6, not 5).
+- Independent implementation behind every tolerance and limit (path, measured headroom): the 60 s clock - authoring/stale-line-spin/variants/ok-model (the sealed model's clock behind the frozen interface, written apart from solution/) 27.1 and 28.6 s, and ok-edges (the reference with a fast path that never computes when a cached line goes) 14.4 and 14.7 s, against the reference's 14.7 and 15.1 s: the whole 411-launch set in the verifier image at --cpus=1, fresh nonce each run (authoring/stale-line-spin/container_time.py). Both variants score 1 in the two-container run.
+- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): author-run, mechanically (trace.md header). Sentences added for: the comparison order, the mod range, operands read before writes, the rotation remembering the slot not the block, an atomic touching no cache, the frozen interface and the fields say.py reads, one process for all launches; for sums (2026-09-23): which line comes first, one line per issue, what an issue reads and does to the cache, when rd is written, that a summing block is ready, and that it does not count toward a hang. The one decision prose leaves loose - whether a block reaching its spin during cycle t sits at it at t - is settled by the worked example (hang 6, not 5).
 
 ## Verifier contract - FROZEN after Stage 2
 
@@ -193,6 +198,28 @@ is busy, and no attempt at or after t succeeds.
   every kind of output line, 676 decide no switches.py reading beyond four that date what the
   example must print; the 30 best were run against the cheat trees and the pick decides only
   stated conventions.
+
+- 2026-09-23, easiness recovery 1, the persistent family's shape: roles come from the
+  multiprocessor (three in four reduce, one in four runs workers) because persistent kernels that
+  dedicate multiprocessors to a job is the real pattern and because it puts the worker events on
+  multiprocessors without streams - which is exactly where a device-wide bulk step pays for every
+  stream at every event and a per-multiprocessor lane pays nothing. The worker loop was cut to four
+  instructions (work, store, step, branch) so the reference's cost per event stays small while
+  the number of events - what the device-wide plan pays for - stays near two hundred thousand.
+- 2026-09-23, stale hits at scale are fresh: instrumented, the persistent kind has 840 to 936
+  prefetch hits per launch in some seeds and none stale, because nothing stores into a prefetched
+  line in the few cycles before the stream reaches it. Accepted rather than engineered: the stale
+  sum rules are graded by the reduce family and five hand cases, and what the persistent kind
+  must carry is the observation rule, which it exercises over a thousand times per launch
+  (stores landing in a tile while it is summed).
+- 2026-09-23, readings the lane arithmetic cannot model (coherent, per-block-cache, broadcast,
+  LRU, drop-all, fence-all, line-word, rotate-from-zero, park-spinners) are built with lanes off
+  and step every cycle; the sum readings that change what one issue reads step every sum line.
+  Each is caught by its hand case long before it stalls, and the cheat report says both.
+- 2026-09-23, the variants ok-heap and ok-list were retired: they implemented the delivered
+  contract and treat a sum as doing nothing. ok-model (the sealed model's clock behind the frozen
+  interface) is the independent implementation; ok-edges is the reference with a different fast
+  path, kept to show the verifier does not require the eviction arithmetic.
 
 ## Validation status
 
@@ -381,7 +408,68 @@ to the six files, and a second lazy clock written apart; (10) the expert sequenc
 
 ### 4. What was rebuilt
 
-(filled in as the rebuild proceeds)
+Measured before the contract was frozen, as RAISE-DIFFICULTY requires: a prototype of the
+persistent kind (authoring/stale-line-spin/proto_stream.py) timed under the three tiers of one
+engine - per-multiprocessor plans 7.4 s, plans only while the device is quiet over 240 s, spinner
+plans only (every sum line stepped) 136 s - and the three agreed where they finished. Only then
+was rule 12 frozen (test_outputs.py docstring and the verifier contract section above).
+
+- Contract: rule 12, sums. The 30 frozen answers are byte-identical (build_gt.py), 12 sum hand
+  cases were added (42 in all), and two generated families: `reduce` (small, 40 per nonce: a
+  stale prefetch read or not, a waiter released by a neighbour's sum, writers racing a sum from
+  lower and higher multiprocessors, two sums trailing each other) and `stream` (large, 3 per
+  nonce: persistent reducers on three multiprocessors in four, workers looping on the rest, stores
+  sweeping the tile region, watchers on bypassing multiprocessors). 369 generated per nonce.
+- Sealed model: rebuilt around per-multiprocessor plans, with a `mode` switch that runs the same
+  engine as the two slower tiers for measurement. It reproduces the delivered model on all 30
+  hand answers and on 978 generated launches of the earlier ten families (three seeds), and the
+  plain stepper (naive.py, now with literal sums) in every mode on 20000 unshaped sum launches,
+  3000 reduce launches and 40 persistent launches shrunk until the stepper can run them.
+- Environment: the frozen parser accepts `sum.ca`/`sum.cg` with a positive literal count; the
+  shipped engine reads a whole sum from global memory in one issue (the reduction prior); two
+  samples, `tile_reduce.txt` and `persistent_reduce.txt`; pristine copy synced.
+- Reference: per-multiprocessor lanes written apart from the model (different memory sums,
+  different end computation, different cache rebuild), a before-write hook with an interval index
+  over lane ranges, and a one-issuer fast path. It agrees with the model on 1233 graded launches
+  over three seeds and on 12000 fuzzed small launches, and with the plain stepper on the shrunk
+  persistent launches.
+- Bugs found on the way, each by a differential test: the model settled a plan after the store
+  that cut it had landed (122 of 9000 fuzz runs; the exact failure the design rests on); the
+  reference's fast path advanced the rotation and then declined to issue a store (a block starved
+  forever); it ran a cycle while a freed slot waited to be filled (a placement four cycles late);
+  it skipped the all-spinning check on its first cycle (hang dates one late in 264 of 12000). A
+  sed patch mis-indented four authoring scripts (CLAUDE.md warns against shell-patching Python;
+  repaired line by line and compiled), and `pkill -f` twice killed its own shell because the
+  pattern was in its own command line (use a bracketed pattern or PIDs).
+- Brief: a sum paragraph, "A block at a spin or a sum is ready", "A block at a sum does not sit
+  at a spin", the new counts and the persistent kind's scale, re-derived from the generator
+  (small bounds over 60 seeds; the longest of 24 persistent launches 14.5 million cycles, the
+  construction bound 15.3 million). 8221 characters.
+- Trace rewalked in full; readings 38; cheats 55; variants ok-model and ok-edges replace ok-heap
+  and ok-list, which knew nothing of sums; metadata, difficulty and originality records and the
+  ledger entry rewritten.
+
+### 5. The old winning implementation, kept as a cheat
+
+`cheat-old-plan.sh` ships the delivered reference (commit ef7a40e) unchanged: the literal stepper
+with the frozen-stretch skip that all three trials converged on. It treats a sum as doing nothing.
+`cheat-literal-sums.sh` is the same plan carried into the new contract - every sum line stepped,
+spinners still skipped - and is correct and too slow. `cheat-device-bulk.sh` is the second plan -
+streams advanced in bulk only while no multiprocessor issues anything else - and is correct and
+too slow. The hand case that proves the old plan wrong is `sum-issues` (and every other sum case):
+see the cheat report in the validation table.
+
+### 6. Measurement of the repair
+
+- Scale gate, current family, one persistent launch each (authoring/stale-line-spin/tiers.py,
+  host): sealed model with plans 6.9 s and 4.9 s; every sum line stepped over 450 s and 305.7 s;
+  device-wide bulk over 450 s and 230.7 s. Whole graded set, verifier image, --cpus=1: reference
+  14.7 and 15.1 s, ok-edges 14.4 and 14.7 s, ok-model 27.1 and 28.6 s.
+- Two-container runs: see the validation table.
+- Cold self-attack: author-run and contaminated; see "Assistant's attack" above. It does say the
+  thing the exit gate asks for - I can see where to start, and I got the observation rule wrong
+  the first time I wrote it - but a contaminated author's attack is not the probe.
+- Not done, and cannot be done here: the external easiness probe. Recovery is not complete.
 
 ## Open questions and next steps
 

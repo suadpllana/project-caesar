@@ -25,18 +25,30 @@ import gen  # noqa: E402
 REFERENCE = str(TASK / "solution")
 
 EDITS = {
-    "coherent": "every load answers from global memory",
+    "coherent": "every load and every sum answers from global memory",
     "per-block-cache": "a cache per block, gone when the block exits",
     "store-broadcast": "a store updates every multiprocessor's cached copy",
     "store-leaves-copy": "a store leaves the storer's own cached copy as it was",
     "store-allocates": "a store that misses fills the line",
     "atom-updates-own": "an atomic updates the issuer's cached copy",
     "lru": "a hit moves its line to the back of the replacement order",
-    "cg-keeps": "a bypassing load leaves the cached line alone",
+    "cg-keeps": "a bypassing load or sum leaves the cached line alone",
     "cg-drops-all": "a bypassing load drops the line from every multiprocessor",
     "fence-all": "a fence empties every multiprocessor's cache",
     "fence-noop": "a fence does nothing",
     "line-word": "a line is a single word",
+    "sum-one-issue": "a sum reads its n lines from global memory in one issue",
+    "sum-coherent": "a cached sum reads every line from global memory and fills nothing",
+    "sum-no-fill": "a cached sum uses a line it finds cached but fills none it misses",
+    "sum-cg-keeps": "a bypassing sum leaves a cached line where it is",
+    "sum-word-issues": "a sum reads 4n words from its address, one word per issue",
+    "sum-first-issue": "a sum reads all its lines at its first issue and waits out the rest",
+    "sum-last-issue": "a sum takes its n issues and reads all its lines at the last one",
+    "sum-fills-at-end": "a cached sum fills the lines it missed only when it finishes",
+    "sum-is-spin": "a block in the middle of a sum counts as sitting at a spin",
+    "lane-late-read": "a sum carried forward reads each line as memory holds it when the "
+                      "stretch is settled",
+    "lane-same-cycle": "a store never reaches another multiprocessor's sum in the cycle it is made",
     "place-mod": "block b goes to multiprocessor b mod S and waits for a slot there",
     "place-first-free": "a block goes to the lowest-numbered multiprocessor with room",
     "free-same-cycle": "an exit frees its slot in the same cycle",
@@ -48,7 +60,7 @@ EDITS = {
     "cmp-reversed": "a spin compares v against the loaded value",
     "park-spinners": "a failing spinner leaves the rotation until its word is stored to",
     "skip-any-spin": "time is skipped whenever every ready block is failing a spin",
-    "skip-no-rotate": "a skipped frozen stretch leaves every rotation where it was",
+    "skip-no-rotate": "a stretch carried forward leaves the rotation where it was",
     "hang-no-store": "a hang is called as soon as every block spins and no attempt passes",
     "hang-at-detect": "a hang is reported at the cycle it is recognised",
     "hang-last-start": "a hang is dated from the cycle it is found, never from its start",
@@ -125,4 +137,4 @@ def enumerated():
 def generated(n):
     per = max(1, n // 8)
     return [(name, "\n".join(lines)) for fam, name, lines in gen.programs("readingcheck", per)
-            if fam not in ("wide", "deep")]
+            if fam not in ("wide", "deep", "stream")]

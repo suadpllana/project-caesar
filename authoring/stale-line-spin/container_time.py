@@ -15,7 +15,7 @@ IMAGE = "stale-line-spin-test:local"
 INNER = r"""
 set -e
 mkdir -p /app/sim /work
-cp /sub/line.py /sub/mem.py /sub/place.py /sub/turn.py /sub/step.py /sub/clock.py /app/sim/
+for f in line mem place turn step clock; do if [ -f /sub/$f.py ]; then cp /sub/$f.py /app/sim/; fi; done
 chmod -R a+rX /app
 python3 -c "import secrets; print(secrets.token_hex(16))" > /work/nonce
 echo 40 > /work/per

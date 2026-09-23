@@ -33,7 +33,8 @@ def main():
         app = os.path.join(room, "app")
         shutil.copytree(os.path.join(TASK, "environment", "app_src"), app)
         for p in PARTS:
-            shutil.copy(os.path.join(src, p), os.path.join(app, "sim", p))
+            if os.path.isfile(os.path.join(src, p)):
+                shutil.copy(os.path.join(src, p), os.path.join(app, "sim", p))
         sys.path.insert(0, app)
         import run_launch
         bad = 0

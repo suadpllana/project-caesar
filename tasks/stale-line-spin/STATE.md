@@ -259,7 +259,7 @@ the platform does; anything marked "host" is emulation outside any container.
 | Cheats all score 0 | 0 | tools/docker_trial.py --all: 57 of 57 trials as required (oracle 1, nop 0, all 55 cheats 0). The nine probes and forge-hand were then moved onto the constant answer and re-run with lane-same-cycle: all 11 score 0, each at its layer (forge-hand and shrink-set: 1 failed, the generated set; malformed: record rejected; the rest: 43 failed) |
 | Probe potency | yes | potency.py after the move: answer-key, privilege, late-reward, disarm-grader and cwd-plant score 1 against the defence-free copy, all seven score 0 against the real image; before the move privilege and disarm-grader were not potent (recovery section 6) |
 | Host cheat report | caught | all 46 cheats graded on the host caught, each at a named layer (recovery section 6) |
-| forgecheck | clean | carriers forge-hand and probe-shrink-set; its re-run of the cheat report (three at a time): all 46 caught |
+| forgecheck | clean | carriers forge-hand and probe-shrink-set; run twice, before and after the probes moved, each re-running the whole cheat report three at a time: all 46 caught both times, the two reports identical except forge-hand (0/296 on the shipped engine, 0/369 on the constant answer) |
 | Old winning plan | fails | cheat-old-plan (the delivered reference) fails all twelve sum hand cases, 39 of 40 reduce launches and all three persistent launches; literal-sums and device-bulk are right and too slow (249.1 s and 161.5 s on the persistent sample alone) |
 | `readingcheck.py` | clean | 38 readings, 38 separated, none blind |
 | `tracecheck.py` | clean | |
@@ -270,7 +270,7 @@ the platform does; anything marked "host" is emulation outside any container.
 | leakcheck on the probe trajectories | clean | nothing above the floor with the brief stripped |
 | Manual quality review | walked | recovery section 6; three metadata claims and one cheat description fixed |
 | Ledger entry | updated | authoring/submissions.toml, verdict pending, note on the 3/3 failure and the rebuild |
-| Package | see recovery section 6 | built after the last change |
+| Package | built | scripts/package.py after the last change to a shipped file: tasks/stale-line-spin.zip, 114 entries, 468 KB; tools/zipcheck.py clean; no cache, STATE.md or scratch entry. Built for the external probe - not to be submitted for review before that probe passes |
 | `harbor check` rubric | not run | no harbor here; manual quality review instead |
 
 ## Measurements (2026-09-22, the delivered bundle; the rebuilt bundle's are in recovery section 6)

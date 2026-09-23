@@ -49,6 +49,7 @@ NOTES = {
     "pg-dict-keep-chunk-nulls": "keeps pages on an all-matching dictionary only if no page of the chunk holds a null",
     "pg-whole-chunk-read": "reads every page of a chunk once any page of it has to be read",
     "pg-count-all-or-nothing": "counts a chunk exactly only once every page of it has been read",
+    "pg-read-consults-dict": "consults the dictionary before it reads any index page",
     "ord-fixed-sweep": "settles the condition order once and sweeps each over its column",
     "ord-column-sum": "scores a whole condition rather than one pending pair",
     "ord-no-cap": "does not cap a score by the live rows the chunk still holds",

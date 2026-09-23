@@ -286,6 +286,13 @@ def run(seg, q, st, out):
          "            alive[r] = 0\n            for c, own in st.own.items():\n"
          "                if r in st.seg.gone:\n                    continue")),
 
+    # a read of an index page taken to need the dictionary first
+    "pg-read-consults-dict": _patch(
+        "step.py",
+        ("    out.dc(ch.c, ch.j, pg.p)\n    vals = rd.values(ch, pg)\n",
+         "    if dct.usable(ch, pg):\n        dct.charge(ch, st, out)\n"
+         "    out.dc(ch.c, ch.j, pg.p)\n    vals = rd.values(ch, pg)\n")),
+
     # --- the file's memory ---------------------------------------------------------------
     "mem-none": _patch("live.py", ("    st.mem = mem\n", "    st.mem = fresh(seg)\n")),
     "mem-no-exact-start": _patch(

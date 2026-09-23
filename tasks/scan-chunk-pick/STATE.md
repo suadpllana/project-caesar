@@ -482,12 +482,12 @@ this design and on the round-2 design the external screen solved 2 of 3
 | Design | External screen | Stand-in |
 |---|---|---|
 | round 2 | 2 of 3 solved | 2 of 2 finished runs solved, each right on five verifier runs (33 and 54 minutes); the third ended on an output-token error before writing code |
-| this design | not yet run | 0 of 2 finished runs solved, wrong on 19 and 17 of the 82 hand files (53 and 66 minutes); one run ended on an output-token error before writing code, its rerun still running |
+| this design | not yet run | 0 of 3 solved, wrong on 19, 17 and 13 of the 82 hand files (53, 66 and 123 minutes; the third is the rerun of a run that ended on an output-token error before writing code) |
 
 The stand-in solves what the screen solved and fails this, on the rules this round added: facts
 acting at once, exact counts after a read, the report told by chunk sums, the report's consult.
-Both failures checked only the numbers on `sel` and `prj` against a brute force, which cannot see
-which pages were read; the round-2 solves had no such rule to miss.
+All three failures checked only the numbers on `sel` and `prj` against a brute force, which cannot
+see which pages were read; the round-2 solves had no such rule to miss.
 
 What it says, as far as it goes: the easiness screen is likelier to pass than on any earlier
 design, and the difficulty probe is no likelier to come back 8 of 8 than it was for the two
@@ -664,7 +664,7 @@ moved are each explained by a new rule, and one was renamed for what it now pins
 | `difficultycheck.py` / `originalitycheck.py` | 100 / 97 | see the recovery sections for why 100 is not evidence |
 | `harbor check` rubric | not run | no API key in this environment |
 | Local calibration (three strong agents, full brief) | 3 of 3 solved | round 3, section 6; the same agents solve two tasks the platform passed 3 of 4 (section 7), so this does not place the task above the band |
-| Smaller-model stand-in for the easiness screen | 0 of 2 finished | solves the round-2 design 2 of 2 finished; round 3, section 7 |
+| Smaller-model stand-in for the easiness screen | 0 of 3 solved | wrong on 19, 17 and 13 of the 82 hand files; the same stand-in solves the round-2 design 2 of 2 finished runs; round 3, section 7 |
 | External easiness probe | not run | the recovery exit gate; required before calling the task ready |
 
 ## Quality self-review (docs/QUALITY-REVIEW.md), after the recovery, 2026-09-22
@@ -735,8 +735,8 @@ works page by page.
 Estimated solves: 7 of 8 for the eight-attempt difficulty probe, with the uncertainty of the
 tasks it was calibrated on (round 3, section 7): the local strong agents solve those about three
 times in four and this 3 of 3, so they cannot place it inside the band or above it. For the
-easiness screen, the smaller-model stand-in that solves the round-2 design fails this one on
-every finished run.
+easiness screen, the smaller-model stand-in that solves the round-2 design fails this one 0 of
+3.
 
 ## Open questions and next steps
 

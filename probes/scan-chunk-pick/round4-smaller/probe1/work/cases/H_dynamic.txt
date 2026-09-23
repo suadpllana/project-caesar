@@ -1,0 +1,10 @@
+seg 10 8 1
+ch 0 p 230
+pg 4 0 10 90 e v 10 60 70 90
+ch 0 p 225
+pg 4 0 20 100 e v 20 45 60 100
+qry
+prd eq 0 90
+prd le 0 50
+prj 0
+end

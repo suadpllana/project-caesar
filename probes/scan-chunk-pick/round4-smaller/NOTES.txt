@@ -17,8 +17,16 @@ probe2  FAIL  (about 53 minutes, 70 tool calls). Wrong on 19 of 82 hand files an
         (prj-consult-needs-live-row, prj-consult-not-sparing, prj-one-entry-fallback) and
         upd-read-not-merged. Its brute force compared only the numbers on sel and prj, never
         which pages were read, so it could not see any of these.
-probe1  the first run ended on an output-token error before writing any code; its rerun is
-        still running at the time of writing.
+probe1  FAIL on the rerun (about 123 minutes, 78 tool calls; the first run ended on an
+        output-token error before writing any code). Wrong on 13 of 82 hand files and on 282 of
+        418 files for each of the two seeds. The same spread again: facts acting at the query's
+        start and after a consult (flt-header-kills-at-start, flt-header-kills-other-column,
+        flt-memory-kills-at-start, flt-consult-settles-whole-chunk, flt-dict-settles-every-page,
+        dec-hits-whole-chunk), the order after a read (ord-exact-after-read, ord-nothing-prunes,
+        ord-read-raises, ord-read-raises-repush), counts over the page as written
+        (upd-count-as-written), the chunk-sum report (prj-chunk-sum-pinned-dead) and the report's
+        consult (prj-consult-needs-live-row). Its brute force, too, compared only the numbers on
+        sel and prj; its eleven hand-built files are in work/cases.
 probe3  FAIL  (about 66 minutes, 89 tool calls). Wrong on 17 of 82 hand files and on 214 and 220
         of 418 files for the two seeds. Same spread: facts acting at the query's start and after
         a consult (flt-header-kills-at-start, flt-header-kills-other-column,

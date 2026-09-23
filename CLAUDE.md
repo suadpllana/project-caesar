@@ -317,15 +317,15 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   3 does not separate a task from the ones inside the band; it is the instrument's ceiling.
   Evidence: `probes/scan-chunk-pick/calibration/`.
 - **A stand-in for the easiness screen is evidence only once it solves what the screen solved.**
-  Agents on a smaller model failed the rebuild on every finished run (17 and 19 of 82 hand files
-  wrong), which says nothing if they fail everything. On the round-2 design, which the external
+  Agents on a smaller model failed the rebuild 0 of 3 (13, 17 and 19 of 82 hand files wrong),
+  which says nothing if they fail everything. On the round-2 design, which the external
   screen solved 2 of 3, the same stand-in solved 2 of 2 finished runs, each right on five
   verifier runs. After that, its failures on the rebuild mean something.
 - **Grade a probe the way the platform does, and more than once.** Both calibration verifiers
   draw their generated set from a nonce at run time. One `alias-settle-report` agent passed its
   second grading and failed three runs in nine: its equal-score reading is wrong on a fraction of
   generated sets. One grading would have called it a pass, or a fail, by luck.
-- **A brute force that compares only the final numbers cannot see a trace.** Both failing
+- **A brute force that compares only the final numbers cannot see a trace.** All three failing
   stand-in agents fuzzed thousands of files against a brute force of `sel` and `prj` and never
   compared which pages were read, which is where every rule they missed lives. The strong agents
   wrote a whole-trace model and passed.

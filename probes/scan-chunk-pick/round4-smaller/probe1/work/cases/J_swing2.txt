@@ -1,0 +1,12 @@
+seg 10 9 2
+ch 0 p 45
+pg 9 0 1 9 e v 1 2 3 4 5 6 7 8 9
+ch 1 p 165
+pg 3 0 2 8 e v 2 5 8
+pg 3 0 10 20 e v 10 15 20
+pg 3 0 30 40 e v 30 35 40
+del 7
+qry
+prd nn 0
+prj 1
+end

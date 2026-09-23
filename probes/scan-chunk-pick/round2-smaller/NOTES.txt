@@ -16,5 +16,5 @@ probe2  ended on an output-token error (its thinking ran past the output cap) be
         code; not a result either way, and not rerun
 
 Reading: the stand-in solves the design the external screen solved, as the screen did. The same
-stand-in fails the round-3 rebuild on every run that finished (round4-smaller). It is not simply
+stand-in fails the round-3 rebuild 0 of 3 (round4-smaller). It is not simply
 weaker than the screen, so its failures on the rebuild are evidence about the rebuild.

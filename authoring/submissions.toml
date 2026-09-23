@@ -110,7 +110,7 @@ tags = ["columnar-scan", "chunk-statistics", "dictionary-encoding", "selectivity
 substrate = "the scan layer of a columnar store deciding which pages of immutable column chunks are consulted and read"
 mechanism = "Decide which page headers, dictionaries and page reads a filtered scan pays for across the queries of a session, when statistics describe immutable pages as written and changes sit beside them."
 verdict = "rejected"
-note = "easiness probe 3 of 3 on the first design (2026-09-22), 2 of 3 after the change overlay and scale gate (2026-09-23); rebuilt for pages, partial reads and one memory per file, which three local agents solved 3 of 3, then rebuilt again for chunk-level sums and known facts acting at once, which three local agents also solved 3 of 3; resubmission pending"
+note = "easiness probe 3 of 3 on the first design (2026-09-22), 2 of 3 after the change overlay and scale gate (2026-09-23); rebuilt for pages, partial reads and one memory per file, which three local agents solved 3 of 3, then rebuilt again for chunk-level sums and known facts acting at once, which three local agents also solved 3 of 3 (the same agents solve two tasks the platform passed 3 of 4) and which a smaller-model stand-in that solves the 2-of-3 design fails on every finished run; resubmission pending"
 
 [[submission]]
 slug = "share-register-screen"

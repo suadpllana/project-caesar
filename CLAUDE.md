@@ -306,3 +306,29 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-23, `scan-chunk-pick` recovery round 3)
+
+- **A local probe is an instrument, and an instrument is read only after it is calibrated on a
+  known result.** Three strong local agents solved the round-3 rebuild 3 of 3 in about half an
+  hour each, which read as a predicted 8 of 8 at the difficulty probe and nearly started a fourth
+  rebuild. The same prompt, model and effort then solved `guard-mark-unwind` 2 of 2 and
+  `alias-settle-report` 1 of 2, both passed by the platform, in the same half hour. A local 3 of
+  3 does not separate a task from the ones inside the band; it is the instrument's ceiling.
+  Evidence: `probes/scan-chunk-pick/calibration/`.
+- **A stand-in for the easiness screen is evidence only once it solves what the screen solved.**
+  Agents on a smaller model failed the rebuild on every finished run (17 and 19 of 82 hand files
+  wrong), which says nothing if they fail everything. On the round-2 design, which the external
+  screen solved 2 of 3, the same stand-in solved 2 of 2 finished runs, each right on five
+  verifier runs. After that, its failures on the rebuild mean something.
+- **Grade a probe the way the platform does, and more than once.** Both calibration verifiers
+  draw their generated set from a nonce at run time. One `alias-settle-report` agent passed its
+  second grading and failed three runs in nine: its equal-score reading is wrong on a fraction of
+  generated sets. One grading would have called it a pass, or a fail, by luck.
+- **A brute force that compares only the final numbers cannot see a trace.** Both failing
+  stand-in agents fuzzed thousands of files against a brute force of `sel` and `prj` and never
+  compared which pages were read, which is where every rule they missed lives. The strong agents
+  wrote a whole-trace model and passed.
+- **A smaller model at maximum effort can think past the output cap.** Two stand-in runs ended
+  on an output-token error before writing a line. Record those as no result, not as a failure of
+  the task.

@@ -2,14 +2,21 @@
 
 The dictionary belongs to the chunk and speaks only for the chunk's `i` pages - a page that fell
 back to plain values is outside it. It is charged once per chunk for the whole file: the first
-consult prints, and every later one, in this query or any after it, is free. The report pass can
-take a value from it too, when it has a single entry and the page holds no null.
+consult prints, and every later one, in this query or any after it, is free. Its verdict on a
+comparison is the same for every `i` page of the chunk: no entry satisfying it fails every row,
+every entry satisfying it passes every row of a page holding no null, anything else settles
+nothing. A dictionary with a single entry also fixes every non-null value of its `i` pages, which
+is what the report pass takes from it.
 """
 from scn import rd
 
 
 def usable(ch, pg):
     return ch.enc == "d" and pg.form == "i"
+
+
+def known(st, ch):
+    return (ch.c, ch.j) in st.mem.dread
 
 
 def charge(ch, st, out):
@@ -19,8 +26,7 @@ def charge(ch, st, out):
         out.rd(ch.c, ch.j)
 
 
-def decide(seg, ch, cond, st, out):
-    charge(ch, st, out)
+def verdict(ch, cond):
     good = 0
     for v in ch.dic:
         if rd.sat(cond, v):
@@ -32,5 +38,5 @@ def decide(seg, ch, cond, st, out):
     return "read"
 
 
-def single(ch, pg):
-    return usable(ch, pg) and len(ch.dic) == 1 and pg.nulls == 0
+def single(ch):
+    return ch.enc == "d" and len(ch.dic) == 1

@@ -1,14 +1,15 @@
 """Segment files generated inside the verifier, from a seed drawn after the agent is gone.
 
-Sixteen families, each shaped at one part of the mechanism rather than drawn at random: inexact
+Seventeen families, each shaped at one part of the mechanism rather than drawn at random: inexact
 headers that only the widening rule survives, dictionary chunks whose later pages fell back to
 plain values, chunk partitions that disagree between columns, conditions that collapse the live
 counts early so every later estimate moves, estimates built to tie, chunks whose every row
-carries an update, report columns whose page header or one-entry dictionary already answers,
-pages that stay whole so their header sum answers and pages that a delete or an update breaks,
+carries an update, report columns whose page bounds or one-entry dictionary already answer,
 heavy deletion, skewed pages whose interpolation sits far below what a read finds, files whose
-later queries run on what earlier ones read, and the two scale shapes the execution limit is
-set against.
+later queries run on what earlier ones read, a banded column whose range conditions kill some
+pages of the reported columns whole and keep others whole - so a chunk's sum answers its wholly
+live pages unless a dead page with an unknown sum blocks it - and the two scale shapes the
+execution limit is set against. A chunk line carries the sum of its pages' non-null values.
 
 `programs(seed, per)` returns (family, name, lines) with `per` files of every small family and
 three of each large one. The same call is made by the worker, which runs them, and by the
@@ -35,6 +36,7 @@ FAMILIES = (
     ("pinned", False),
     ("gone", False),
     ("rise", False),
+    ("block", False),
     ("wide", True),
     ("deep", True),
 )
@@ -98,7 +100,8 @@ def _values(rng, n, base, span, nullrate, style, g):
 
 
 def _column(rng, sizes, base, span, g, nullrate, dictrate, fallrate, exactrate, pagelo,
-            pagehi, constrate=0.0, voidrate=0.0, lean=0.0, pagevoid=0.0):
+            pagehi, constrate=0.0, voidrate=0.0, lean=0.0, pagevoid=0.0, ramp=False,
+            pageconst=0.0):
     """Values, pages and headers for one column.
 
     A dictionary chunk keeps its first pages as indexes into the dictionary, which holds exactly
@@ -109,6 +112,7 @@ def _column(rng, sizes, base, span, g, nullrate, dictrate, fallrate, exactrate, 
     nulls; a lean chunk piles its values into the top of its range behind one low outlier.
     """
     chunks = []
+    first = 0
     for n in sizes:
         roll = rng.random()
         style = "mixed"
@@ -119,6 +123,11 @@ def _column(rng, sizes, base, span, g, nullrate, dictrate, fallrate, exactrate, 
         elif roll < voidrate + constrate + lean:
             style = "lean"
         vals = _values(rng, n, base, span, nullrate, style, g)
+        if ramp and style == "mixed":
+            third = max(1, span // 3)
+            vals = [None if v is None else base + (span - third if ramp[first + i] else 0)
+                    + rng.randrange(third) for i, v in enumerate(vals)]
+        first += n
         cuts = _parts(rng, n, pagelo, pagehi)
         pages = []
         at = 0
@@ -126,6 +135,11 @@ def _column(rng, sizes, base, span, g, nullrate, dictrate, fallrate, exactrate, 
             pv = vals[at:at + m]
             if style == "mixed" and rng.random() < pagevoid:
                 pv = [None] * m
+            elif pageconst and style == "mixed" and m > 2 and rng.random() < pageconst:
+                one = next((v for v in pv if v is not None), base)
+                pv = [one] * m
+                for i in rng.sample(range(m), rng.randint(1, m - 1)):
+                    pv[i] = None
             pages.append(pv)
             at += m
         seen = sorted({v for pv in pages for v in pv if v is not None})
@@ -155,16 +169,18 @@ def _column(rng, sizes, base, span, g, nullrate, dictrate, fallrate, exactrate, 
 
 
 def _chunk_lines(c, ch):
+    total = sum(pg["sum"] for pg in ch["pages"])
     if ch["enc"] == "p":
-        lines = ["ch %d p" % c]
+        lines = ["ch %d p %d" % (c, total)]
     else:
-        lines = ["ch %d d %d %s" % (c, len(ch["dic"]), " ".join(str(v) for v in ch["dic"]))]
+        lines = ["ch %d d %d %d %s" % (c, total, len(ch["dic"]),
+                                       " ".join(str(v) for v in ch["dic"]))]
     at = {v: i for i, v in enumerate(ch["dic"] or ())}
     for pg in ch["pages"]:
         head = ["pg", str(len(pg["vals"])), str(pg["nulls"]),
                 "-" if pg["mn"] is None else str(pg["mn"]),
                 "-" if pg["mx"] is None else str(pg["mx"]),
-                "e" if pg["exact"] else "w", str(pg["sum"]), pg["form"]]
+                "e" if pg["exact"] else "w", pg["form"]]
         if pg["form"] == "i":
             body = ["-" if v is None else str(at[v]) for v in pg["vals"]]
         else:
@@ -222,7 +238,7 @@ def _build(g, n, layout, queries, over=()):
     return lines
 
 
-def _queries(rng, layout, nq, nc, kinds, nproj, pool=None, share=0.0):
+def _queries(rng, layout, nq, nc, kinds, nproj, pool=None, share=0.0, lead=None):
     """Queries over the layout. With `share`, a later query reuses columns an earlier one
     already read, so what the file remembers decides what it prints."""
     k = len(layout)
@@ -278,9 +294,17 @@ def _queries(rng, layout, nq, nc, kinds, nproj, pool=None, share=0.0):
             else:
                 picks[i] = (c, "nn")
         out.append("qry")
+        if lead is not None:
+            vs = stats[lead][0]
+            mid = (vs[0] + vs[-1]) // 2 if vs else 0
+            out.append("prd %s %d %d" % (rng.choice(("ge", "le")), lead, mid))
+            picks = picks[1:]
         for c, kind in picks:
             out.append(one(c, kind))
-        out.append("prj " + " ".join(str(c) for c in rng.sample(range(k), min(k, nproj))))
+        cols = rng.sample(range(k), min(k, nproj))
+        if lead is not None and lead in cols and len(cols) > 1:
+            cols.remove(lead)
+        out.append("prj " + " ".join(str(c) for c in cols))
         out.append("end")
     return out
 
@@ -301,6 +325,7 @@ _OV = {
     "pinned": (0.03, 0.08, 0.01, 0.0),
     "gone": (0.03, 0.05, 0.2, 0.8),
     "rise": (0.05, 0.05, 0.02, 0.0),
+    "block": (0.005, 0.02, 0.005, 0.0),
 }
 
 
@@ -354,7 +379,7 @@ def _small(fam, rng):
     elif fam == "pinned":
         g, n, k = rng.choice((5, 10, 25)), rng.randint(50, 150), rng.randint(3, 5)
         cfg = dict(nullrate=0.06, dictrate=0.35, fallrate=0.3, exactrate=0.5)
-        more = dict(constrate=0.3, voidrate=0.12, pagevoid=0.08)
+        more = dict(constrate=0.3, voidrate=0.12, pagevoid=0.08, pageconst=0.06)
         nq, nc, kinds, nproj, pool = rng.randint(1, 3), rng.randint(1, 3), KINDS, 4, 2
     elif fam == "gone":
         g, n, k = rng.choice((5, 10, 25)), rng.randint(50, 150), rng.randint(2, 4)
@@ -366,6 +391,12 @@ def _small(fam, rng):
         cfg = dict(nullrate=0.04, dictrate=0.2, fallrate=0.3, exactrate=0.8)
         more = dict(lean=0.6)
         nq, nc, kinds, nproj, pool = rng.randint(1, 3), rng.randint(4, 6), ("ge", "le", "ne"), 2, 1
+    elif fam == "block":
+        g, n, k = rng.choice((5, 10, 25)), rng.randint(80, 200), rng.randint(3, 4)
+        cfg = dict(nullrate=0.03, dictrate=0.45, fallrate=0.3, exactrate=0.6)
+        more = dict(constrate=0.3, voidrate=0.06, pagevoid=0.05, pageconst=0.12)
+        share = 0.6
+        nq, nc, kinds, nproj, pool = rng.randint(1, 3), rng.randint(1, 2), ("nn", "le"), 3, 2
     else:
         g, n, k = rng.choice((5, 10, 25)), rng.randint(50, 140), rng.randint(2, 4)
         cfg = dict(nullrate=0.12, dictrate=0.4, fallrate=0.3, exactrate=0.5)
@@ -373,6 +404,13 @@ def _small(fam, rng):
         share = 0.7
         nq, nc, kinds, nproj, pool = rng.randint(2, 4), rng.randint(3, 4), KINDS, 2, 2
 
+    ramped = rng.randrange(k) if fam == "block" else -1
+    bands = None
+    if fam == "block":
+        bands = []
+        while len(bands) < n:
+            bands.extend([rng.random() < 0.5] * rng.randint(max(4, n // 14), max(6, n // 6)))
+        bands = bands[:n]
     layout = []
     for c in range(k):
         if fam == "skew":
@@ -386,12 +424,18 @@ def _small(fam, rng):
         base = rng.choice((0, 7, 40, 200))
         span = rng.choice((6, 12, 30, 90)) if fam != "ties" else 20
         pl = max(1, min(sizes) // 3)
-        layout.append(_column(rng, sizes, base, span, g=g, pagelo=pl, pagehi=max(pl, pl * 3),
-                              **cfg, **more))
+        if c == ramped:
+            layout.append(_column(rng, sizes, base, 300, g=g, pagelo=pl, pagehi=max(pl, pl * 3),
+                                  nullrate=0.0, dictrate=0.0, fallrate=0.0, exactrate=1.0,
+                                  ramp=bands))
+        else:
+            layout.append(_column(rng, sizes, base, span, g=g, pagelo=pl, pagehi=max(pl, pl * 3),
+                                  **cfg, **more))
 
     up, full, dl, run = _OV[fam]
     over = _overlay(rng, layout, n, up, full, dl, run)
-    qs = _queries(rng, layout, nq, nc, kinds, min(k, nproj), pool, share)
+    qs = _queries(rng, layout, nq, nc, kinds, min(k, nproj), pool, share,
+                  lead=ramped if fam == "block" else None)
     if fam == "empty":
         qs = ["qry", "prd eq 0 999999", "prd ne 1 -5", "prj 0 1", "end"] + qs
     return _build(g, n, layout, qs, over)

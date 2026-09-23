@@ -1,44 +1,47 @@
 """The sealed model: what a segment file must print, worked out a second time.
 
 Written against the contract rather than against the reference, and deliberately not shaped
-like it. The reference splits the engine over six modules, keeps its scores in a heap that
-tolerates stale entries and maintains every condition's count on every chunk incrementally as
-pages are read. This is one module; the pending pairs sit in a segment tree of exact minima laid
-out in tie-break order, and a chunk's count is summed afresh from its pages every time the chunk
-is touched.
+like it. The reference splits the engine over six modules, keeps a set of open pages per
+condition, keeps its scores in a heap that tolerates stale entries, maintains every condition's
+count on every chunk incrementally, and classifies the report's pages into kinds. This is one
+module. It asks each row's fate afresh from what is known; the pending pairs sit in a segment
+tree of exact minima laid out in tie-break order; a chunk's count is summed afresh from its pages
+every time the chunk is touched; and the report's reads are found by asking of each page, in so
+many words, whether the line could be told without it if every other page that could be read
+were read.
 
 `expect(lines)` returns the lines `/app/run_scan.py` must print for that segment file.
 
-A column is chunks and a chunk is pages. What a page header, a page read and a chunk's dictionary
-describe is the page as written. A row's value in a column is its update when it has one, else
-what its page holds; a deleted row is never alive. What a query reads or consults is remembered
-for the rest of the file and printed only the first time.
+A column is chunks and a chunk is pages. A chunk line carries the sum of the non-null values of
+all its pages; a page line carries its row count, null count and recorded bounds, and no sum.
+Everything a page or a chunk says describes it as written. A row's value in a column is its
+update when it has one, else what its page holds; a deleted row is never alive. What a query
+reads or consults is remembered for the rest of the file and printed only the first time.
 
-A pair (condition, chunk) is applied page by page, in page order:
+What is known of a live row's value in a column: its update; otherwise its page's header (the
+two sound tests, with widened bounds when the recorded pair was rounded inward), the page's
+values once read, and for an `i` page the chunk's dictionary once consulted (no entry matching a
+comparison fails it; every entry matching passes it on a page holding no null). A row dies the
+moment that shows it fails a condition - at the start of the query and after every consult and
+every read.
 
-  1  live rows carrying an update in the column are tested on their new value, for nothing.
-  2  a page with no live row that it still supplies is passed over: nothing consulted or read.
-  3  otherwise those rows are put to the page header's two sound tests, in this order: no row
-     of the page matches (they die), every row matches (they stay). A widened header means the
-     recorded pair was rounded inward to a multiple of g, so the usable pair is pushed out by
-     g - 1.
-  4  a page read already settles them from its values, with nothing printed.
-  5  a comparison on an `i` page consults the chunk's dictionary, charged once per chunk per
-     file; no entry matching kills them, every entry matching keeps them if the page holds no
-     null; anything else reads the page. is-null and is-not-null never consult a dictionary,
-     and neither does a `v` page.
-  6  otherwise the page is read, which settles the exact count of every condition of the query
-     over that column on that page, over the page as written, and the rows are filtered.
+A pair (condition, chunk) is pending while a live row takes its value from one of the chunk's
+pages without the condition settled for it. The pending pair expected to leave the fewest rows
+alive is applied next: the smaller of the chunk's live rows and the condition's count on the
+chunk, summed over its pages - exact on a page read in this query or an earlier one, the header's
+interpolation otherwise. Ties go to the condition written earlier, then to the lower chunk.
+Applying it takes the chunk's pages in order; a page still holding such a row consults the
+dictionary first for a comparison on an `i` page whose dictionary is not yet consulted, and is
+read if such a row remains.
 
-The order: the pending pair expected to leave the fewest rows alive, that being the smaller of
-the chunk's live rows and the condition's count on the chunk - summed over its pages, exact on a
-page read in this query or an earlier one, the header's interpolation otherwise. Ties go to the
-condition written earlier, then to the lower chunk. The report pass works the named columns in
-order and each page in order; a page is wanted only when a live row takes its value from it, and
-a wanted page not read already is answered by its header when every row is null, when it holds
-no null and its bounds are one value, or when the wanted rows are every row of the page (its
-non-null count and its sum); then by the dictionary (charged) for an `i` page with no null when
-the dictionary has one entry; and by a read otherwise.
+The report works the named columns in order. From each page it needs how many of the live rows
+taking their value from it are non-null and their sum. Known: a page read; every value null on a
+page whose rows are all null; every non-null value equal on a page whose bounds are one value,
+or on an `i` page of a consulted one-entry dictionary; the null count of every page; and each
+chunk's sum. A page is read only for its live rows and only when the line cannot be told without
+it even with every other page that could be read. A one-entry dictionary not yet consulted is
+consulted before its chunk's reads when one of its `i` pages supplies a live row and knowing it
+spares a read. Reads come in chunk and page order.
 """
 
 MOD = 2305843009213693951
@@ -67,13 +70,14 @@ def _read(lines):
         elif f[0] == "ch":
             c = int(f[1])
             rec = {"c": c, "j": len(seg["cols"][c]), "start": tail[c], "n": 0,
-                   "dic": [int(t) for t in f[4:4 + int(f[3])]] if f[2] == "d" else None,
+                   "total": int(f[3]),
+                   "dic": [int(t) for t in f[5:5 + int(f[4])]] if f[2] == "d" else None,
                    "pages": []}
             seg["cols"][c].append(rec)
         elif f[0] == "pg":
             n = int(f[1])
-            form = f[7]
-            toks = [_num(t) for t in f[8:8 + n]]
+            form = f[6]
+            toks = [_num(t) for t in f[7:7 + n]]
             if form == "i":
                 vals = [None if t is None else rec["dic"][t] for t in toks]
             else:
@@ -81,7 +85,7 @@ def _read(lines):
             c = rec["c"]
             page = {"c": c, "j": rec["j"], "p": len(rec["pages"]), "n": n,
                     "start": tail[c], "nulls": int(f[2]), "mn": _num(f[3]), "mx": _num(f[4]),
-                    "exact": f[5] == "e", "sum": int(f[6]),
+                    "exact": f[5] == "e",
                     "dict": rec["dic"] is not None and form == "i", "vals": vals}
             tail[c] += n
             rec["n"] += n
@@ -238,20 +242,80 @@ def _one(seg, q, known, charged):
         if c not in used:
             used.append(c)
     home = {}
-    left = {}
+    where = {}
     for c in used:
         pick = [0] * seg["n"]
+        at = [None] * seg["n"]
         for rec in cols[c]:
-            live = 0
-            for r in range(rec["start"], rec["start"] + rec["n"]):
-                pick[r] = rec["j"]
-                live += flag[r]
-            left[(c, rec["j"])] = live
+            for page in rec["pages"]:
+                for r in range(page["start"], page["start"] + page["n"]):
+                    pick[r] = rec["j"]
+                    at[r] = page
         home[c] = pick
+        where[c] = at
+    by_col = {}
+    for cd in conds:
+        by_col.setdefault(cd["c"], []).append(cd)
 
     out = []
     hits = {}
-    settled = set()
+
+    def fate(cd, r):
+        """What is known says about row r under condition cd: True, False, or None."""
+        c = cd["c"]
+        if (c, r) in ups:
+            return _holds(cd, ups[(c, r)])
+        page = where[c][r]
+        key = (c, page["j"], page["p"])
+        if key in known:
+            return _holds(cd, page["vals"][r - page["start"]])
+        if _none(g, page, cd):
+            return False
+        if _all(g, page, cd):
+            return True
+        if (c, page["j"]) in charged and page["dict"] and cd["kind"] in CMP:
+            dic = cols[c][page["j"]]["dic"]
+            fit = sum(1 for v in dic if _holds(cd, v))
+            if fit == 0:
+                return False
+            if fit == len(dic) and page["nulls"] == 0:
+                return True
+        return None
+
+    touched = set()
+
+    def strike(rows):
+        for r in rows:
+            if flag[r]:
+                flag[r] = 0
+                for c in used:
+                    touched.add((c, home[c][r]))
+
+    def sweep(c, lo, hi):
+        """Put rows lo..hi-1 to every condition over column c; the ones any fails die."""
+        doomed = []
+        for r in range(lo, hi):
+            if flag[r]:
+                for cd in by_col.get(c, ()):
+                    if fate(cd, r) is False:
+                        doomed.append(r)
+                        break
+        strike(doomed)
+
+    for c in by_col:
+        sweep(c, 0, seg["n"])
+
+    def left(c, j):
+        rec = cols[c][j]
+        return sum(flag[r] for r in range(rec["start"], rec["start"] + rec["n"]))
+
+    def waiting(cd, j):
+        c = cd["c"]
+        rec = cols[c][j]
+        for r in range(rec["start"], rec["start"] + rec["n"]):
+            if flag[r] and (c, r) not in ups and fate(cd, r) is None:
+                return True
+        return False
 
     def exact(cd, page):
         key = (page["c"], page["j"], page["p"], cd["pos"])
@@ -274,30 +338,16 @@ def _one(seg, q, known, charged):
         base.append(at)
         at += len(cols[cd["c"]])
     tree = _Tree(max(1, at))
-    by_col = {}
-    for cd in conds:
-        by_col.setdefault(cd["c"], []).append(cd)
 
     def refresh(c, j):
         for cd in by_col.get(c, ()):
             slot = base[cd["pos"]] + j
-            room = left[(c, j)]
-            if (cd["pos"], j) in settled or room <= 0:
+            if not waiting(cd, j):
                 tree.put(slot, None)
             else:
+                room = left(c, j)
                 m = mark(cd, j)
                 tree.put(slot, (room if room < m else m, slot, cd["pos"], j))
-
-    touched = set()
-
-    def strike(rows):
-        for r in rows:
-            if flag[r]:
-                flag[r] = 0
-                for c in used:
-                    j = home[c][r]
-                    left[(c, j)] -= 1
-                    touched.add((c, j))
 
     def fetch(page):
         key = (page["c"], page["j"], page["p"])
@@ -311,10 +361,12 @@ def _one(seg, q, known, charged):
         if key not in charged:
             charged.add(key)
             out.append("rd %d %d" % key)
+            touched.add(key)
 
     for c in by_col:
         for rec in cols[c]:
             refresh(c, rec["j"])
+    touched.clear()
 
     while True:
         best = tree.top()
@@ -324,42 +376,24 @@ def _one(seg, q, known, charged):
         cond = conds[pos]
         c = cond["c"]
         rec = cols[c][j]
-        settled.add((pos, j))
-        touched.add((c, j))
-        doomed = []
-        verdict = None
         for page in rec["pages"]:
             lo = page["start"]
-            own = []
-            for r in range(lo, lo + page["n"]):
-                if not flag[r]:
-                    continue
-                if (c, r) in ups:
-                    if not _holds(cond, ups[(c, r)]):
-                        doomed.append(r)
-                else:
-                    own.append(r)
-            if not own:
+            hi = lo + page["n"]
+
+            def open_rows():
+                return [r for r in range(lo, hi)
+                        if flag[r] and (c, r) not in ups and fate(cond, r) is None]
+
+            if not open_rows():
                 continue
-            if _none(g, page, cond):
-                doomed.extend(own)
-                continue
-            if _all(g, page, cond):
-                continue
-            key = (c, j, page["p"])
-            if key not in known and cond["kind"] in CMP and page["dict"]:
-                if verdict is None:
-                    charge(rec)
-                    fit = sum(1 for v in rec["dic"] if _holds(cond, v))
-                    verdict = "none" if fit == 0 else ("all" if fit == len(rec["dic"]) else "some")
-                if verdict == "none":
-                    doomed.extend(own)
+            if cond["kind"] in CMP and page["dict"] and (c, j) not in charged:
+                charge(rec)
+                sweep(c, rec["start"], rec["start"] + rec["n"])
+                if not open_rows():
                     continue
-                if verdict == "all" and page["nulls"] == 0:
-                    continue
-            vals = page["vals"] if key in known else fetch(page)
-            doomed.extend(r for r in own if not _holds(cond, vals[r - lo]))
-        strike(doomed)
+            fetch(page)
+            sweep(c, lo, hi)
+        touched.add((c, j))
         for cc, jj in touched:
             refresh(cc, jj)
         touched.clear()
@@ -370,11 +404,80 @@ def _one(seg, q, known, charged):
         h = (h * 1000003 + r + 1) % MOD
     out.append("sel %d %d" % (len(kept), h))
 
+    def figures(rec, dk, reads):
+        """Whether the chunk's part of the line is told if the pages in `reads` are read too."""
+        c = rec["c"]
+        total_known = True
+        unknown_whole = []
+        other_unknown = False
+        for page in rec["pages"]:
+            key = (c, rec["j"], page["p"])
+            lo = page["start"]
+            own = [r for r in range(lo, lo + page["n"]) if flag[r] and (c, r) not in ups]
+            if key in known or key in reads or page["nulls"] == page["n"]:
+                continue
+            span = _span(g, page)
+            same = span is not None and span[0] == span[1]
+            if not same and dk and page["dict"] and len(rec["dic"]) == 1:
+                same = True
+            if same:
+                if own and len(own) < page["n"] and page["nulls"] > 0:
+                    total_known = False
+                continue
+            if not own:
+                other_unknown = True
+            elif len(own) == page["n"]:
+                unknown_whole.append(page)
+            else:
+                total_known = False
+        if unknown_whole and other_unknown:
+            total_known = False
+        return total_known
+
+    def readable(rec):
+        c = rec["c"]
+        got = []
+        for page in rec["pages"]:
+            key = (c, rec["j"], page["p"])
+            lo = page["start"]
+            if key in known:
+                continue
+            if any(flag[r] and (c, r) not in ups for r in range(lo, lo + page["n"])):
+                got.append(key)
+        return got
+
+    def owed(rec, dk):
+        cand = readable(rec)
+        need = []
+        for key in cand:
+            others = set(k for k in cand if k != key)
+            if not figures(rec, dk, others):
+                need.append(key)
+        return need
+
     for c in q["cols"]:
         good = 0
         total = 0
         for rec in cols[c]:
+            j = rec["j"]
+            dk = (c, j) in charged
+            if not dk and rec["dic"] is not None and len(rec["dic"]) == 1:
+                supplies = False
+                for page in rec["pages"]:
+                    lo = page["start"]
+                    if page["dict"] and any(flag[r] and (c, r) not in ups
+                                            for r in range(lo, lo + page["n"])):
+                        supplies = True
+                if supplies and len(owed(rec, True)) < len(owed(rec, False)):
+                    charge(rec)
+                    dk = True
+            for key in sorted(owed(rec, dk)):
+                fetch(cols[c][key[1]]["pages"][key[2]])
+            rest = rec["total"]
+            whole_left = 0
+            whole_count = 0
             for page in rec["pages"]:
+                key = (c, j, page["p"])
                 lo = page["start"]
                 own = []
                 for r in range(lo, lo + page["n"]):
@@ -387,12 +490,15 @@ def _one(seg, q, known, charged):
                             total += v
                     else:
                         own.append(r)
-                if not own:
-                    continue
-                key = (c, rec["j"], page["p"])
                 span = _span(g, page)
+                same = None
+                if span is not None and span[0] == span[1]:
+                    same = span[0]
+                elif dk and page["dict"] and len(rec["dic"]) == 1:
+                    same = rec["dic"][0]
                 if key in known:
                     vals = page["vals"]
+                    rest -= sum(v for v in vals if v is not None)
                     for r in own:
                         v = vals[r - lo]
                         if v is not None:
@@ -400,23 +506,21 @@ def _one(seg, q, known, charged):
                             total += v
                 elif page["nulls"] == page["n"]:
                     pass
-                elif page["nulls"] == 0 and span[0] == span[1]:
-                    good += len(own)
-                    total += span[0] * len(own)
+                elif same is not None:
+                    seen = page["n"] - page["nulls"]
+                    rest -= same * seen
+                    if len(own) == page["n"]:
+                        good += seen
+                        total += same * seen
+                    else:
+                        good += len(own)
+                        total += same * len(own)
                 elif len(own) == page["n"]:
-                    good += page["n"] - page["nulls"]
-                    total += page["sum"]
-                elif page["dict"] and len(rec["dic"]) == 1 and page["nulls"] == 0:
-                    charge(rec)
-                    good += len(own)
-                    total += rec["dic"][0] * len(own)
-                else:
-                    vals = fetch(page)
-                    for r in own:
-                        v = vals[r - lo]
-                        if v is not None:
-                            good += 1
-                            total += v
+                    whole_left += 1
+                    whole_count += page["n"] - page["nulls"]
+            if whole_left:
+                good += whole_count
+                total += rest
         out.append("prj %d %d %d" % (c, good, total))
     return out
 

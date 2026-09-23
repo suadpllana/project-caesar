@@ -19,9 +19,7 @@ def run(seg, q, st, out):
         stamp[key] = stamp.get(key, 0) + 1
         heapq.heappush(heap, (min(have, b), cd.pos, j, stamp[key]))
 
-    on = {}
     for cd in q.conds:
-        on.setdefault(cd.c, []).append(cd)
         for ch in seg.cols[cd.c]:
             push(cd, ch.j)
     st.dirty.clear()
@@ -30,11 +28,14 @@ def run(seg, q, st, out):
         if stamp.get((pos, j)) != mark or j in st.done[pos]:
             continue
         cd = q.conds[pos]
+        if not live.pending(st, cd, j):
+            st.done[pos].add(j)
+            continue
         step.decide(seg, q, st, cd, j, out)
         st.done[pos].add(j)
         stamp[(pos, j)] = -1
         touched = list(st.dirty)
         st.dirty.clear()
         for c, jj in touched:
-            for other in on.get(c, ()):
+            for other in st.on.get(c, ()):
                 push(other, jj)

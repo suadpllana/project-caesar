@@ -1,8 +1,19 @@
 {
+ "dec-hits-over-page": [
+  "qry 0",
+  "dc 1 0 1",
+  "sel 4 1000011000042000059",
+  "dc 0 0 1",
+  "prj 0 3 28",
+  "qry 1",
+  "dc 1 0 0",
+  "dc 0 0 0",
+  "sel 3 2000015000032",
+  "prj 0 3 28"
+ ],
  "dec-hits-whole-chunk": [
   "qry 0",
   "dc 0 0 0",
-  "dc 2 0 0",
   "sel 0 0",
   "prj 2 0 0"
  ],
@@ -75,6 +86,44 @@
   "sel 6 2299716151806507690",
   "dc 1 0 0",
   "prj 1 6 10"
+ ],
+ "flt-consult-settles-whole-chunk": [
+  "qry 0",
+  "dc 1 0 0",
+  "rd 0 0",
+  "sel 0 0",
+  "prj 0 0 0"
+ ],
+ "flt-dict-settles-every-page": [
+  "qry 0",
+  "rd 0 1",
+  "rd 0 0",
+  "dc 0 0 0",
+  "sel 0 0",
+  "prj 0 0 0"
+ ],
+ "flt-header-kills-at-start": [
+  "qry 0",
+  "sel 0 0",
+  "prj 0 0 0"
+ ],
+ "flt-header-kills-other-column": [
+  "qry 0",
+  "dc 1 0 1",
+  "sel 5 1063405581883279096",
+  "prj 1 5 35"
+ ],
+ "flt-memory-kills-at-start": [
+  "qry 0",
+  "rd 1 0",
+  "dc 1 0 1",
+  "dc 1 0 2",
+  "sel 5 2168782150117166810",
+  "dc 0 1 0",
+  "prj 0 5 86",
+  "qry 1",
+  "sel 1 4",
+  "prj 1 1 45"
  ],
  "hdr-all-pass": [
   "qry 0",
@@ -160,6 +209,17 @@
   "sel 4 1000011000043000062",
   "prj 1 4 12"
  ],
+ "mem-counts-exact-from-start": [
+  "qry 0",
+  "dc 0 0 0",
+  "sel 3 2000020000051",
+  "prj 0 3 27",
+  "qry 1",
+  "dc 0 1 0",
+  "dc 0 0 1",
+  "sel 6 344031566752559980",
+  "prj 0 6 40"
+ ],
  "mem-exact-from-start": [
   "qry 0",
   "dc 0 0 0",
@@ -213,6 +273,18 @@
   "prj 0 6 96",
   "prj 1 6 205"
  ],
+ "ord-read-counts-exact": [
+  "qry 0",
+  "dc 0 0 2",
+  "sel 5 2168781150109166793",
+  "prj 1 4 172",
+  "qry 1",
+  "dc 0 0 0",
+  "dc 0 0 1",
+  "dc 2 0 0",
+  "sel 1 1",
+  "prj 2 1 0"
+ ],
  "ord-read-raises": [
   "qry 0",
   "rd 0 4",
@@ -223,17 +295,36 @@
   "dc 0 2 0",
   "dc 0 0 0",
   "dc 0 3 0",
+  "rd 1 0",
+  "dc 1 0 0",
   "dc 1 3 0",
   "rd 1 5",
   "dc 1 5 0",
-  "rd 1 0",
-  "dc 1 0 0",
   "rd 1 4",
   "dc 0 5 0",
   "rd 0 1",
   "dc 0 1 0",
   "sel 61 304011921253275645",
   "prj 0 61 180"
+ ],
+ "ord-read-raises-repush": [
+  "qry 0",
+  "dc 1 0 0",
+  "dc 1 2 0",
+  "dc 0 0 0",
+  "dc 0 0 1",
+  "sel 1 2",
+  "prj 1 1 13"
+ ],
+ "ord-read-raises-stale": [
+  "qry 0",
+  "dc 0 0 0",
+  "dc 0 0 1",
+  "dc 0 0 2",
+  "sel 9 1144753665323943236",
+  "dc 1 1 0",
+  "dc 1 4 0",
+  "prj 1 9 216"
  ],
  "ord-read-rescored": [
   "qry 0",
@@ -298,10 +389,64 @@
   "dc 1 0 0",
   "prj 1 4 30"
  ],
+ "prj-chunk-sum-blocked": [
+  "qry 0",
+  "sel 6 1649866575945253913",
+  "dc 0 0 0",
+  "dc 0 0 2",
+  "prj 0 6 30"
+ ],
+ "prj-chunk-sum-pinned-dead": [
+  "qry 0",
+  "sel 6 1649866575945253913",
+  "prj 0 6 30"
+ ],
+ "prj-chunk-sum-together": [
+  "qry 0",
+  "sel 4 1000011000042000058",
+  "prj 0 4 73"
+ ],
+ "prj-chunk-sum-update": [
+  "qry 0",
+  "sel 9 48757370013698165",
+  "dc 0 1 1",
+  "prj 0 9 100"
+ ],
+ "prj-chunk-sum-whole": [
+  "qry 0",
+  "sel 6 1649863575924253874",
+  "prj 0 6 21"
+ ],
+ "prj-consult-needs-live-row": [
+  "qry 0",
+  "sel 3 4000029000057",
+  "dc 0 0 1",
+  "prj 0 3 12"
+ ],
+ "prj-consult-not-sparing": [
+  "qry 0",
+  "dc 1 0 0",
+  "sel 5 1031708290962639577",
+  "dc 0 0 0",
+  "prj 0 3 30"
+ ],
+ "prj-consult-spares-read": [
+  "qry 0",
+  "dc 1 0 1",
+  "sel 5 2232175731950445831",
+  "rd 0 0",
+  "prj 0 5 32"
+ ],
  "prj-dead-chunk": [
   "qry 0",
   "sel 4 388364981750612316",
   "prj 1 4 14"
+ ],
+ "prj-dead-page-blocks-sum": [
+  "qry 0",
+  "sel 3 4000029000057",
+  "dc 1 0 1",
+  "prj 1 2 100"
  ],
  "prj-listed-order": [
   "qry 0",
@@ -346,6 +491,18 @@
   "sel 3 1000009000022",
   "prj 1 3 82"
  ],
+ "prj-pinned-nulls-sum": [
+  "qry 0",
+  "sel 2 3000013",
+  "prj 0 2 25"
+ ],
+ "prj-reads-in-page-order": [
+  "qry 0",
+  "sel 3 1000008000018",
+  "dc 0 0 0",
+  "dc 0 0 1",
+  "prj 0 3 40"
+ ],
  "prj-reuse-read": [
   "qry 0",
   "dc 0 0 0",
@@ -375,11 +532,6 @@
   "sel 3 4000029000057",
   "dc 1 0 1",
   "prj 1 2 139"
- ],
- "prj-whole-page-sum": [
-  "qry 0",
-  "sel 3 4000029000057",
-  "prj 1 2 100"
  ],
  "prj-widened-not-pinned": [
   "qry 0",
@@ -426,13 +578,25 @@
   "dc 1 2 0",
   "dc 1 4 0",
   "dc 0 0 0",
-  "dc 0 4 0",
   "dc 0 1 0",
+  "dc 0 4 0",
   "rd 1 3",
   "dc 1 3 0",
   "dc 0 2 0",
   "sel 10 2206839713766188681",
   "prj 1 10 66"
+ ],
+ "upd-count-over-page-as-written": [
+  "qry 0",
+  "dc 0 1 1",
+  "sel 2 7000029",
+  "dc 1 1 1",
+  "prj 1 2 7",
+  "qry 1",
+  "dc 0 0 0",
+  "dc 0 1 0",
+  "sel 5 2168781150110166800",
+  "prj 0 5 65"
  ],
  "upd-drop-spares": [
   "qry 0",
@@ -452,5 +616,11 @@
   "dc 0 0 0",
   "sel 1 1",
   "prj 0 1 1"
+ ],
+ "upd-read-not-merged": [
+  "qry 0",
+  "dc 0 0 1",
+  "sel 5 2168781150109166795",
+  "prj 0 5 214"
  ]
 }

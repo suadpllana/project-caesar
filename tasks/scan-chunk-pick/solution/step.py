@@ -1,55 +1,39 @@
-"""Applying one condition to one chunk, page by page, and what a read settles.
+"""Applying one condition to one chunk, page by page.
 
-A page's header and the chunk's dictionary describe the page as written, and a row with an
-update no longer takes its value from it. So each page is decided in two halves: the live rows
-carrying an update are tested on their new value, which costs nothing, and only the rest are put
-to the header, then to a read already made, then - for a comparison on an `i` page - to the
-dictionary, then to a read of that page alone. A page with nothing alive that it still supplies
-is not consulted for or read. The dictionary's verdict is worked out once for the pair and then
-holds for each of its `i` pages; a verdict that every entry passes still sends a page holding a
-null to a read.
+By the time a pair is applied, everything that costs nothing has already been done: the header
+verdicts, the updated values, the remembered pages and the dictionaries already consulted were
+put to every condition when the query started, and every consult and read since has been put to
+every condition over its column as it happened. What is left for the pair is the pages still
+open for its condition that still supply a live row, in page order. For a comparison on an `i`
+page whose dictionary has not been consulted, the dictionary comes first, however little it
+turns out to settle, and what it settles it settles for every open `i` page of the chunk and
+every comparison over the column. A page still open after that is read.
 
 A read settles every condition of the query over that column on that page, counted over the page
 as written, and the file remembers the page.
 """
-from scn import dct, hdr, live, rd
+from scn import dct, live, rd
 
 
-def load(seg, q, st, ch, pg, out):
+def load(seg, st, ch, pg, out):
     out.dc(ch.c, ch.j, pg.p)
     vals = rd.values(ch, pg)
     st.mem.vals[(ch.c, ch.j, pg.p)] = vals
-    live.learn(st, q, ch, pg)
     return vals
 
 
 def decide(seg, q, st, cond, j, out):
     c = cond.c
     ch = seg.cols[c][j]
-    up = seg.up[c]
-    dead = []
-    verdict = None
+    opened = st.open[cond.pos]
     for pg in ch.pages:
-        held, moved = live.split(st, c, pg)
-        dead.extend(r for r in moved if not rd.sat(cond, up[r]))
-        if not held:
+        key = (j, pg.p)
+        if key not in opened or not live.held(st, c, pg):
             continue
-        if hdr.miss(seg, pg, cond):
-            dead.extend(held)
-            continue
-        if hdr.allsat(seg, pg, cond):
-            continue
-        vals = st.mem.vals.get((c, j, pg.p))
-        if vals is None and cond.kind not in ("nn", "nu") and dct.usable(ch, pg):
-            if verdict is None:
-                verdict = dct.decide(seg, ch, cond, st, out)
-            if verdict == "drop":
-                dead.extend(held)
+        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):
+            dct.charge(ch, st, out)
+            live.settle_dict(st, ch)
+            if key not in opened or not live.held(st, c, pg):
                 continue
-            if verdict == "keep" and pg.nulls == 0:
-                continue
-        if vals is None:
-            vals = load(seg, q, st, ch, pg, out)
-        s = pg.start
-        dead.extend(r for r in held if not rd.sat(cond, vals[r - s]))
-    live.kill(st, dead)
+        vals = load(seg, st, ch, pg, out)
+        live.settle_read(st, ch, pg, vals)

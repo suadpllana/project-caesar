@@ -1,10 +1,9 @@
 class Page:
-    __slots__ = ("c", "j", "p", "n", "start", "nulls", "mn", "mx", "exact", "sum",
-                 "form", "toks")
+    __slots__ = ("c", "j", "p", "n", "start", "nulls", "mn", "mx", "exact", "form", "toks")
 
 
 class Chunk:
-    __slots__ = ("c", "j", "enc", "dic", "pages", "start", "n")
+    __slots__ = ("c", "j", "enc", "sum", "dic", "pages", "start", "n")
 
 
 class Seg:
@@ -48,7 +47,8 @@ def load(text):
             ch.c = int(f[1])
             ch.j = len(seg.cols[ch.c])
             ch.enc = f[2]
-            ch.dic = [int(t) for t in f[4:4 + int(f[3])]] if ch.enc == "d" else None
+            ch.sum = int(f[3])
+            ch.dic = [int(t) for t in f[5:5 + int(f[4])]] if ch.enc == "d" else None
             ch.pages = []
             ch.start = ends[ch.c]
             ch.n = 0
@@ -63,9 +63,8 @@ def load(text):
             pg.mn = _val(f[3])
             pg.mx = _val(f[4])
             pg.exact = f[5] == "e"
-            pg.sum = int(f[6])
-            pg.form = f[7]
-            pg.toks = [_val(t) for t in f[8:8 + pg.n]]
+            pg.form = f[6]
+            pg.toks = [_val(t) for t in f[7:7 + pg.n]]
             pg.start = ends[ch.c]
             ends[ch.c] += pg.n
             ch.n += pg.n

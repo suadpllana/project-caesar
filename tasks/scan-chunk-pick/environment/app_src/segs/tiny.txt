@@ -1,8 +1,8 @@
 seg 10 6 2
-ch 0 d 3 3 6 9
-pg 6 0 3 9 e 36 i 0 1 2 0 1 2
-ch 1 p
-pg 6 0 1 6 e 21 v 1 2 3 4 5 6
+ch 0 d 36 3 3 6 9
+pg 6 0 3 9 e i 0 1 2 0 1 2
+ch 1 p 21
+pg 6 0 1 6 e v 1 2 3 4 5 6
 qry
 prd ge 0 5
 prj 1 0

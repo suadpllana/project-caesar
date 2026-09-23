@@ -1,5 +1,5 @@
 #!/bin/bash
-# answers a fallback page from its chunk's one-entry dictionary
+# the design the calibration agents solved: free facts act on their own condition when its turn comes, and the report answers each page on its own
 set -euo pipefail
 
 cat > /app/scn/hdr.py <<'PYEOF'
@@ -136,7 +136,7 @@ def decide(seg, ch, cond, st, out):
 
 
 def single(ch, pg):
-    return ch.enc == "d" and len(ch.dic) == 1 and pg.nulls == 0
+    return usable(ch, pg) and len(ch.dic) == 1 and pg.nulls == 0
 PYEOF
 
 cat > /app/scn/live.py <<'PYEOF'
@@ -410,8 +410,6 @@ def _page(seg, q, st, ch, pg, held, out):
         fixed, v = hdr.pinned(seg, pg)
         if fixed:
             return (0, 0) if v is None else (len(held), v * len(held))
-        if len(held) == pg.n:
-            return pg.n - pg.nulls, pg.sum
         if dct.single(ch, pg):
             dct.charge(ch, st, out)
             return len(held), ch.dic[0] * len(held)

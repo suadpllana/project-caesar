@@ -1,0 +1,16 @@
+Local calibration of the round-2 rebuild (commit 0443435), 2026-09-23.
+
+Three fresh local agents, each given only instruction.md (paths rewritten to a scratch copy of
+environment/app_src) and that tree. No verifier, reference or model. Each directory keeps the
+agent's six submitted files (scn/) and its own scratch scripts (work/): a model written from
+the brief, a random segment generator and a differ.
+
+Graded afterwards the way the worker and grader do it: 60 hand files against tests/seal/gt.json
+and 314 generated files of a fresh seed against tests/seal/model.py.
+
+probe1  PASS  (about 16 minutes)
+probe2  PASS  (about 23 minutes)
+probe3  PASS  (about 25 minutes; engine 4.4 s for the whole set)
+
+All three wrote the model first, fuzzed the engine against it, and never changed plan.
+These files use the round-2 grammar (page sums on pg lines) and do not run on round 3.

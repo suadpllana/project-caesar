@@ -35,6 +35,17 @@ def _patch(name, *pairs):
     return {name: text}
 
 
+def _chain(*edits):
+    """Several patches on one or more files, applied in order, each of which has to fire."""
+    out = {}
+    for name, old, new in edits:
+        text = out.get(name, _SRC[name])
+        if old not in text:
+            raise AssertionError("anchor gone from %s: %r" % (name, old[:60]))
+        out[name] = text.replace(old, new, 1)
+    return out
+
+
 # The order readings are patches on a loop that rescans every pending pair after every step.
 # It is exactly the reference's order, only slow, and it is the loop the probe agents wrote first,
 # so a reading on the order is the change a solver would make to that loop. The enumerated and
@@ -50,14 +61,11 @@ def run(seg, q, st, out):
     while True:
         best = None
         for cd in q.conds:
-            done = st.done[cd.pos]
             for ch in seg.cols[cd.c]:
                 j = ch.j
-                if j in done:
+                if j in st.done[cd.pos] or not live.pending(st, cd, j):
                     continue
                 have = live.count(st, cd.c, j)
-                if have <= 0:
-                    continue
                 b = bound(seg, st, ch, cd)
                 if b > have:
                     b = have
@@ -91,6 +99,75 @@ def _join(*parts):
     return out
 
 
+_STEP_BODY = """        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):
+            dct.charge(ch, st, out)
+            live.settle_dict(st, ch)
+            if key not in opened or not live.held(st, c, pg):
+                continue
+        vals = load(seg, st, ch, pg, out)
+        live.settle_read(st, ch, pg, vals)
+"""
+
+# Free facts acting only when their own condition's pair reaches the page, the settlement every
+# first engine wrote: shared by the four late-settlement readings below.
+_LATE_START = ("live.py", """                for cd in cds:
+                    if vals is not None:
+                        s = pg.start
+                        dead.update(r for r in rows if not rd.sat(cd, vals[r - s]))
+                    elif hdr.miss(seg, pg, cd):
+                        dead.update(rows)
+                    elif hdr.allsat(seg, pg, cd):
+                        pass
+                    elif dk and cd.kind not in ("nn", "nu") and dct.usable(ch, pg):
+                        v = dct.verdict(ch, cd)
+                        if v == "drop":
+                            dead.update(rows)
+                        elif v != "keep" or pg.nulls:
+                            st.open[cd.pos].add((ch.j, pg.p))
+                    else:
+                        st.open[cd.pos].add((ch.j, pg.p))""", """                for cd in cds:
+                    st.open[cd.pos].add((ch.j, pg.p))""")
+_LATE_STEP = ("step.py", _STEP_BODY, """        if hdr.miss(seg, pg, cond):
+            live.kill(st, live.held(st, c, pg))
+            opened.discard(key)
+            continue
+        if hdr.allsat(seg, pg, cond):
+            opened.discard(key)
+            continue
+        known = st.mem.vals.get((c, j, pg.p))
+        if known is not None:
+            s = pg.start
+            live.kill(st, [r for r in live.held(st, c, pg) if not rd.sat(cond, known[r - s])])
+            opened.discard(key)
+            continue
+        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg):
+            if not dct.known(st, ch):
+                dct.charge(ch, st, out)
+            v = dct.verdict(ch, cond)
+            if v == "drop":
+                live.kill(st, live.held(st, c, pg))
+                opened.discard(key)
+                continue
+            if v == "keep" and pg.nulls == 0:
+                opened.discard(key)
+                continue
+        vals = load(seg, st, ch, pg, out)
+        s = pg.start
+        live.kill(st, [r for r in live.held(st, c, pg) if not rd.sat(cond, vals[r - s])])
+        opened.discard(key)
+        live.settle_counts(st, ch, pg)
+""")
+_LATE_COUNTS = ("live.py", "def settle_dict(st, ch):", """def settle_counts(st, ch, pg):
+    seg = st.seg
+    for cd in st.on.get(ch.c, ()):
+        st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)
+    st.dirty.add((ch.c, ch.j))
+
+
+def settle_dict(st, ch):""")
+_LATE_IMPORT = ("step.py", "from scn import dct, live, rd", "from scn import dct, hdr, live, rd")
+
+
 READINGS = {
     # --- page headers ------------------------------------------------------------------
     "hdr-bounds-exact": _patch(
@@ -117,48 +194,217 @@ READINGS = {
     # --- dictionaries ------------------------------------------------------------------
     "dic-fallback-used": _patch(
         "dct.py", ("    return ch.enc == \"d\" and pg.form == \"i\"", "    return ch.enc == \"d\"")),
+    # the dictionary charged again by every pair that puts a page to it
     "dic-charge-each": _patch(
-        "dct.py",
-        ("    key = (ch.c, ch.j)\n    if key not in st.mem.dread:\n        st.mem.dread.add(key)\n"
-         "        out.rd(ch.c, ch.j)",
-         "    st.mem.dread.add((ch.c, ch.j))\n    out.rd(ch.c, ch.j)")),
-    "dic-keep-ignores-nulls": _patch(
-        "step.py", ("            if verdict == \"keep\" and pg.nulls == 0:",
-                    "            if verdict == \"keep\":")),
-    "dic-answers-null": _patch(
-        "step.py", ("        if vals is None and cond.kind not in (\"nn\", \"nu\") and dct.usable(ch, pg):",
-                    "        if vals is None and dct.usable(ch, pg):")),
+        "step.py",
+        ("        if cond.kind not in (\"nn\", \"nu\") and dct.usable(ch, pg) and not dct.known(st, ch):",
+         "        if (cond.kind not in (\"nn\", \"nu\") and dct.usable(ch, pg) and dct.known(st, ch)\n"
+         "                and (id(st), cond.pos, j) not in _CHARGED):\n"
+         "            _CHARGED.add((id(st), cond.pos, j))\n"
+         "            out.rd(ch.c, ch.j)\n"
+         "        if cond.kind not in (\"nn\", \"nu\") and dct.usable(ch, pg) and not dct.known(st, ch):\n"
+         "            _CHARGED.add((id(st), cond.pos, j))"),
+        ("from scn import dct, live, rd\n", "from scn import dct, live, rd\n\n_CHARGED = set()\n")),
+    "dic-keep-ignores-nulls": _chain(
+        ("live.py", "            elif pg.nulls == 0:\n                opened.discard(key)",
+         "            else:\n                opened.discard(key)"),
+        ("live.py", "                        elif v != \"keep\" or pg.nulls:",
+         "                        elif v != \"keep\":")),
+    "dic-answers-null": _chain(
+        ("live.py", "        if cd.kind in (\"nn\", \"nu\"):\n            continue\n        v = dct.verdict(ch, cd)",
+         "        v = dct.verdict(ch, cd)"),
+        ("live.py", "                    elif dk and cd.kind not in (\"nn\", \"nu\") and dct.usable(ch, pg):",
+         "                    elif dk and dct.usable(ch, pg):"),
+        ("step.py", "        if cond.kind not in (\"nn\", \"nu\") and dct.usable(ch, pg) and not dct.known(st, ch):",
+         "        if dct.usable(ch, pg) and not dct.known(st, ch):")),
     "dic-drop-needs-nulls": _patch(
         "dct.py", ("    if good == 0:\n        return \"drop\"",
                    "    if good == 0 and all(p.nulls == 0 for p in ch.pages):\n        return \"drop\"")),
     "pg-dict-all-pages": _patch(
         "dct.py", ("    return ch.enc == \"d\" and pg.form == \"i\"",
                    "    return ch.enc == \"d\" and all(p.form == \"i\" for p in ch.pages)")),
-    "pg-dict-keep-chunk-nulls": _patch(
-        "step.py", ("            if verdict == \"keep\" and pg.nulls == 0:",
-                    "            if verdict == \"keep\" and all(p.nulls == 0 for p in ch.pages):")),
+    "pg-dict-keep-chunk-nulls": _chain(
+        ("live.py", "            elif pg.nulls == 0:\n                opened.discard(key)",
+         "            elif all(p.nulls == 0 for p in ch.pages):\n                opened.discard(key)"),
+        ("live.py", "                        elif v != \"keep\" or pg.nulls:",
+         "                        elif v != \"keep\" or any(p.nulls for p in ch.pages):")),
 
     # --- pages ---------------------------------------------------------------------------
     "pg-whole-chunk-read": _patch(
         "step.py",
-        ("        if vals is None:\n            vals = load(seg, q, st, ch, pg, out)\n",
-         "        if vals is None:\n            for other in ch.pages:\n"
-         "                if (c, j, other.p) not in st.mem.vals:\n"
-         "                    got = load(seg, q, st, ch, other, out)\n"
-         "                    if other is pg:\n                        vals = got\n")),
-    "pg-count-all-or-nothing": _patch(
-        "live.py",
-        ("    for cd in q.conds:\n        if cd.c == ch.c:\n"
-         "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
-         "    whole = all((p.c, p.j, p.p) in st.mem.vals for p in ch.pages)\n"
-         "    for cd in q.conds:\n        if cd.c == ch.c:\n"
-         "            if whole:\n"
-         "                st.cnt[(cd.pos, ch.j)] = sum(exact(st, cd, p) for p in ch.pages)\n"),
-        ("            t = 0\n            for pg in ch.pages:\n"
+        ("        vals = load(seg, st, ch, pg, out)\n        live.settle_read(st, ch, pg, vals)\n",
+         "        for other in ch.pages:\n"
+         "            if (c, j, other.p) not in st.mem.vals:\n"
+         "                live.settle_read(st, ch, other, load(seg, st, ch, other, out))\n")),
+    "pg-count-all-or-nothing": _chain(
+        ("live.py",
+         "        st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
+         "        if all((p.c, p.j, p.p) in st.mem.vals for p in ch.pages):\n"
+         "            st.cnt[(cd.pos, ch.j)] = sum(exact(st, cd, p) for p in ch.pages)\n"),
+        ("live.py",
+         "            t = 0\n            for pg in ch.pages:\n"
          "                if (pg.c, pg.j, pg.p) in mem.vals:\n",
          "            t = 0\n            whole = all((p.c, p.j, p.p) in mem.vals for p in ch.pages)\n"
          "            for pg in ch.pages:\n"
          "                if whole:\n")),
+    "pg-read-consults-dict": _patch(
+        "step.py",
+        ("    out.dc(ch.c, ch.j, pg.p)\n    vals = rd.values(ch, pg)\n",
+         "    if dct.usable(ch, pg):\n        dct.charge(ch, st, out)\n"
+         "    out.dc(ch.c, ch.j, pg.p)\n    vals = rd.values(ch, pg)\n")),
+
+    # --- what is known, and when it acts -------------------------------------------------
+    # headers, remembered pages, updated values and consulted dictionaries all wait for their
+    # own condition's pair; a read settles only the condition that asked for it
+    "flt-free-when-applied": _chain(_LATE_START, _LATE_STEP, _LATE_COUNTS, _LATE_IMPORT,
+                                    ("live.py", """        for r, v in up.items():
+            if st.alive[r]:
+                for cd in cds:
+                    if not rd.sat(cd, v):
+                        dead.add(r)
+                        break
+""", ""),
+                                    ("live.py", """    for pg in ch.pages:
+        if (j, pg.p) in opened:
+            for r in range(pg.start, pg.start + pg.n):
+                if alive[r] and r not in up:
+                    return True
+    return False""", """    for pg in ch.pages:
+        if (j, pg.p) in opened:
+            for r in range(pg.start, pg.start + pg.n):
+                if alive[r] and r not in up:
+                    return True
+    for r in range(ch.start, ch.start + ch.n):
+        if alive[r] and r in up and (r, cd.pos) not in st.hit:
+            return True
+    return False"""),
+                                    ("step.py", """    opened = st.open[cond.pos]
+    for pg in ch.pages:""", """    opened = st.open[cond.pos]
+    up = seg.up[c]
+    moved = [r for r in range(ch.start, ch.start + ch.n) if st.alive[r] and r in up]
+    for r in moved:
+        st.hit[(r, cond.pos)] = True
+    live.kill(st, [r for r in moved if not rd.sat(cond, up[r])])
+    for pg in ch.pages:""")),
+    # only a page header's fail-all waits for its condition's pair
+    "flt-header-late": _chain(
+        ("live.py", "                    elif hdr.miss(seg, pg, cd):\n                        dead.update(rows)",
+         "                    elif hdr.miss(seg, pg, cd):\n                        st.open[cd.pos].add((ch.j, pg.p))"),
+        ("step.py", """        if key not in opened or not live.held(st, c, pg):
+            continue
+        if cond.kind""", """        if key not in opened or not live.held(st, c, pg):
+            continue
+        if hdr.miss(seg, pg, cond):
+            live.kill(st, live.held(st, c, pg))
+            opened.discard(key)
+            continue
+        if cond.kind"""),
+        _LATE_IMPORT),
+    # only pages remembered from earlier queries wait
+    "flt-memory-late": _chain(
+        ("live.py", """                    if vals is not None:
+                        s = pg.start
+                        dead.update(r for r in rows if not rd.sat(cd, vals[r - s]))""",
+         """                    if vals is not None:
+                        st.open[cd.pos].add((ch.j, pg.p))"""),
+        ("step.py", """        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):""",
+         """        known = st.mem.vals.get((c, j, pg.p))
+        if known is not None:
+            s = pg.start
+            live.kill(st, [r for r in live.held(st, c, pg) if not rd.sat(cond, known[r - s])])
+            opened.discard(key)
+            continue
+        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):""")),
+    # only updated values wait, each until its condition's pair reaches its chunk
+    "flt-updates-late": _chain(
+        ("live.py", """        for r, v in up.items():
+            if st.alive[r]:
+                for cd in cds:
+                    if not rd.sat(cd, v):
+                        dead.add(r)
+                        break
+""", ""),
+        ("live.py", """    for pg in ch.pages:
+        if (j, pg.p) in opened:
+            for r in range(pg.start, pg.start + pg.n):
+                if alive[r] and r not in up:
+                    return True
+    return False""", """    for pg in ch.pages:
+        if (j, pg.p) in opened:
+            for r in range(pg.start, pg.start + pg.n):
+                if alive[r] and r not in up:
+                    return True
+    for r in range(ch.start, ch.start + ch.n):
+        if alive[r] and r in up and (r, cd.pos) not in st.hit:
+            return True
+    return False"""),
+        ("step.py", """    opened = st.open[cond.pos]
+    for pg in ch.pages:""", """    opened = st.open[cond.pos]
+    up = seg.up[c]
+    moved = [r for r in range(ch.start, ch.start + ch.n) if st.alive[r] and r in up]
+    for r in moved:
+        st.hit[(r, cond.pos)] = True
+    live.kill(st, [r for r in moved if not rd.sat(cond, up[r])])
+    for pg in ch.pages:""")),
+    # a read settles only the condition it was made for; the others settle on it, free, later
+    "flt-read-own-cond": _chain(
+        ("step.py", _STEP_BODY, """        known = st.mem.vals.get((c, j, pg.p))
+        if known is not None:
+            live.settle_one(st, ch, pg, known, cond)
+            continue
+        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):
+            dct.charge(ch, st, out)
+            live.settle_dict(st, ch)
+            if key not in opened or not live.held(st, c, pg):
+                continue
+        vals = load(seg, st, ch, pg, out)
+        live.settle_read(st, ch, pg, vals, cond)
+"""),
+        ("live.py", "def settle_read(st, ch, pg, vals):", """def settle_one(st, ch, pg, vals, only):
+    rows = held(st, ch.c, pg)
+    s = pg.start
+    st.open[only.pos].discard((ch.j, pg.p))
+    kill(st, [r for r in rows if not rd.sat(only, vals[r - s])])
+
+
+def settle_read(st, ch, pg, vals, only=None):"""),
+        ("live.py", """    for cd in st.on.get(ch.c, ()):
+        st.open[cd.pos].discard(key)
+        dead.extend(r for r in rows if not rd.sat(cd, vals[r - s]))""", """    for cd in st.on.get(ch.c, ()):
+        if only is None or cd is only:
+            st.open[cd.pos].discard(key)
+            dead.extend(r for r in rows if not rd.sat(cd, vals[r - s]))""")),
+    # a consulted dictionary settles each page only when a pair reaches it
+    "flt-dict-lazy": _patch(
+        "step.py", (_STEP_BODY, """        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg):
+            if not dct.known(st, ch):
+                dct.charge(ch, st, out)
+            v = dct.verdict(ch, cond)
+            if v == "drop":
+                live.kill(st, live.held(st, c, pg))
+                opened.discard(key)
+                continue
+            if v == "keep" and pg.nulls == 0:
+                opened.discard(key)
+                continue
+        vals = load(seg, st, ch, pg, out)
+        live.settle_read(st, ch, pg, vals)
+""")),
+    # a consult settles only the page it was made for
+    "flt-dict-one-page": _chain(
+        ("step.py", """            dct.charge(ch, st, out)
+            live.settle_dict(st, ch)""", """            dct.charge(ch, st, out)
+            live.settle_dict(st, ch, pg)"""),
+        ("live.py", "def settle_dict(st, ch):", "def settle_dict(st, ch, only=None):"),
+        ("live.py", "            if key not in opened or not dct.usable(ch, pg):\n                continue",
+         "            if key not in opened or not dct.usable(ch, pg) or (only is not None and pg is not only):\n"
+         "                continue"),
+        ("step.py", """        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):""",
+         """        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and dct.known(st, ch):
+            live.settle_dict(st, ch, pg)
+            if key not in opened or not live.held(st, c, pg):
+                continue
+        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):""")),
 
     # --- the order -----------------------------------------------------------------------
     "ord-fixed-sweep": {"pick.py": """from scn import hdr, live, step
@@ -175,7 +421,7 @@ def run(seg, q, st, out):
     order.sort(key=lambda t: (t[0], t[1]))
     for _tot, _pos, cd in order:
         for ch in seg.cols[cd.c]:
-            if live.count(st, cd.c, ch.j) <= 0:
+            if not live.pending(st, cd, ch.j):
                 continue
             step.decide(seg, q, st, cd, ch.j, out)
             st.done[cd.pos].add(ch.j)
@@ -196,7 +442,7 @@ def run(seg, q, st, out):
                 have = live.count(st, cd.c, ch.j)
                 if have <= 0:
                     continue
-                if ch.j in done:
+                if ch.j in done or not live.pending(st, cd, ch.j):
                     tot += have
                     continue
                 if first < 0:
@@ -221,28 +467,19 @@ def run(seg, q, st, out):
                                 "                if best is None or b <= best[0]:")),
     "ord-largest-first": _loop(("                if best is None or b < best[0]:",
                                 "                if best is None or b > best[0]:")),
-    # the heap, trusting a key it pushed before a read raised the score
     "ord-stale-key": _patch(
         "pick.py", ("        if s != score(st, cd, j):\n            continue\n", "")),
-    # the heap, re-scoring only on deaths: a read never pushes its chunk again
     "ord-read-no-push": _patch(
-        "live.py", ("            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n"
-                    "    st.dirty.add((ch.c, ch.j))",
-                    "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)")),
+        "live.py", ("    st.dirty.add((ch.c, ch.j))\n    kill(st, dead)", "    kill(st, dead)")),
 
     # --- what a read settles -------------------------------------------------------------
-    "dec-one-cond": _join(
-        _patch("live.py",
-               ("def learn(st, q, ch, pg):", "def learn(st, q, ch, pg, only=None):"),
-               ("    for cd in q.conds:\n        if cd.c == ch.c:\n"
-                "            st.cnt[(cd.pos, ch.j)] +=",
-                "    for cd in q.conds:\n        if cd.c == ch.c and (only is None or cd is only):\n"
-                "            st.cnt[(cd.pos, ch.j)] +=")),
-        _patch("step.py",
-               ("def load(seg, q, st, ch, pg, out):", "def load(seg, q, st, ch, pg, out, only=None):"),
-               ("    live.learn(st, q, ch, pg)", "    live.learn(st, q, ch, pg, only)"),
-               ("            vals = load(seg, q, st, ch, pg, out)",
-                "            vals = load(seg, q, st, ch, pg, out, cond)"))),
+    "dec-one-cond": _chain(
+        ("live.py", "def settle_read(st, ch, pg, vals):", "def settle_read(st, ch, pg, vals, only=None):"),
+        ("live.py", "        st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
+         "        if only is None or cd is only:\n"
+         "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n"),
+        ("step.py", "        live.settle_read(st, ch, pg, vals)\n",
+         "        live.settle_read(st, ch, pg, vals, cond)\n")),
     "dec-hits-live-only": _patch(
         "live.py",
         ("        for v in st.mem.vals[(pg.c, pg.j, pg.p)]:\n            if rd.sat(cd, v):",
@@ -251,25 +488,35 @@ def run(seg, q, st, out):
 
     # --- rows carrying an update, and deleted rows ---------------------------------------
     "upd-drop-takes-moved": _patch(
-        "step.py", ("        if hdr.miss(seg, pg, cond):\n            dead.extend(held)\n            continue",
-                    "        if hdr.miss(seg, pg, cond):\n            dead.extend(held)\n"
-                    "            dead.extend(moved)\n            continue")),
+        "live.py", ("                    elif hdr.miss(seg, pg, cd):\n                        dead.update(rows)",
+                    "                    elif hdr.miss(seg, pg, cd):\n"
+                    "                        dead.update(r for r in range(pg.start, pg.start + pg.n)\n"
+                    "                                    if st.alive[r])")),
     "upd-keep-trusts-moved": _patch(
-        "step.py",
-        ("        dead.extend(r for r in moved if not rd.sat(cond, up[r]))\n        if not held:\n"
-         "            continue\n",
-         "        if not held:\n            dead.extend(r for r in moved if not rd.sat(cond, up[r]))\n"
-         "            continue\n        if not hdr.allsat(seg, pg, cond):\n"
-         "            dead.extend(r for r in moved if not rd.sat(cond, up[r]))\n")),
-    "upd-read-anyway": _patch(
-        "step.py", ("        if not held:\n            continue", "        if not held and not moved:\n            continue")),
+        "live.py", ("""        for r, v in up.items():
+            if st.alive[r]:
+                for cd in cds:
+                    if not rd.sat(cd, v):""", """        where = {}
+        for ch in seg.cols[c]:
+            for pg in ch.pages:
+                for r in range(pg.start, pg.start + pg.n):
+                    where[r] = pg
+        for r, v in up.items():
+            if st.alive[r]:
+                for cd in cds:
+                    if not rd.sat(cd, v) and not hdr.allsat(seg, where[r], cd):""")),
+    "upd-read-anyway": _chain(
+        ("step.py", "        if key not in opened or not live.held(st, c, pg):\n            continue\n        if cond",
+         "        if key not in opened or not any(st.alive[pg.start:pg.start + pg.n]):\n"
+         "            continue\n        if cond"),
+        ("live.py", "                if alive[r] and r not in up:\n                    return True",
+         "                if alive[r]:\n                    return True")),
     "upd-merge-on-read": _patch(
         "step.py",
         ("    vals = rd.values(ch, pg)\n",
          "    vals = list(rd.values(ch, pg))\n    up = seg.up[ch.c]\n"
          "    for i in range(pg.n):\n        if pg.start + i in up:\n"
-         "            vals[i] = up[pg.start + i]\n"),
-        ("        if not held:\n            continue", "        if not held and not moved:\n            continue")),
+         "            vals[i] = up[pg.start + i]\n")),
     "upd-count-current": _patch(
         "live.py",
         ("        for v in st.mem.vals[(pg.c, pg.j, pg.p)]:\n            if rd.sat(cd, v):",
@@ -281,17 +528,8 @@ def run(seg, q, st, out):
         "live.py", ("    for r in seg.gone:\n        st.alive[r] = 0\n", "")),
     "del-still-counted": _patch(
         "live.py", ("            counts.append(sum(alive[ch.start:ch.start + ch.n]))",
-                    "            counts.append(ch.n)"),
-        ("            alive[r] = 0\n            for c, own in st.own.items():",
-         "            alive[r] = 0\n            for c, own in st.own.items():\n"
-         "                if r in st.seg.gone:\n                    continue")),
-
-    # a read of an index page taken to need the dictionary first
-    "pg-read-consults-dict": _patch(
-        "step.py",
-        ("    out.dc(ch.c, ch.j, pg.p)\n    vals = rd.values(ch, pg)\n",
-         "    if dct.usable(ch, pg):\n        dct.charge(ch, st, out)\n"
-         "    out.dc(ch.c, ch.j, pg.p)\n    vals = rd.values(ch, pg)\n")),
+                    "            counts.append(sum(alive[ch.start:ch.start + ch.n])\n"
+                    "                          + sum(1 for r in seg.gone if ch.start <= r < ch.start + ch.n))")),
 
     # --- the file's memory ---------------------------------------------------------------
     "mem-none": _patch("live.py", ("    st.mem = mem\n", "    st.mem = fresh(seg)\n")),
@@ -299,93 +537,92 @@ def run(seg, q, st, out):
         "live.py",
         ("                if (pg.c, pg.j, pg.p) in mem.vals:\n                    t += exact(st, cd, pg)\n"
          "                else:\n                    t += hdr.guess(seg, pg, cd)",
-         "                t += hdr.guess(seg, pg, cd)"),
-        ("    for cd in q.conds:\n        if cd.c == ch.c:\n"
-         "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
-         "    for cd in q.conds:\n        if cd.c == ch.c and (ch.c, ch.j, pg.p, cd.pos) not in st.hit:\n"
-         "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n")),
+         "                t += hdr.guess(seg, pg, cd)")),
     "mem-charge-per-query": _patch("live.py", ("    st.mem = mem\n", "    st.mem = mem\n    mem.dread = set()\n")),
     "mem-report-not-kept": _patch(
-        "proj.py",
-        ("from scn import dct, hdr, live, step", "from scn import dct, hdr, live, rd, step"),
-        ("        vals = step.load(seg, q, st, ch, pg, out)",
-         "        out.dc(ch.c, ch.j, pg.p)\n        vals = rd.values(ch, pg)")),
+        "proj.py", ("    if whole:\n        tot += rest\n    return nn, tot",
+                    "    if whole:\n        tot += rest\n"
+                    "    for pg in need:\n        st.mem.vals.pop((c, ch.j, pg.p), None)\n"
+                    "    return nn, tot")),
 
     # --- the report pass -----------------------------------------------------------------
-    "prj-all-pages": _patch("proj.py", ("                if held:\n", "                if True:\n")),
-    "prj-reads-moved": _patch("proj.py", ("                if held:\n", "                if held or moved:\n")),
-    "prj-reads-pinned": _patch(
-        "proj.py", ("        fixed, v = hdr.pinned(seg, pg)\n        if fixed:\n"
-                    "            return (0, 0) if v is None else (len(held), v * len(held))\n", "")),
+    "prj-all-pages": _patch(
+        "proj.py", ("    need = []\n    whole = []\n    blocked = False\n",
+                    "    return sorted([pg for pg, own in pages if (ch.c, ch.j, pg.p) not in st.mem.vals],\n"
+                    "                  key=lambda pg: pg.p), []\n")),
+    "prj-reads-moved": _patch(
+        "proj.py", ("        if not own:\n            if v is None:\n                blocked = True",
+                    "        if not own and not any(st.alive[pg.start:pg.start + pg.n]):\n"
+                    "            if v is None:\n                blocked = True")),
+    "prj-reads-pinned": _patch("proj.py", ("    v = hdr.one(seg, pg)\n", "    v = None\n")),
     "prj-pinned-ignores-widen": _patch(
-        "hdr.py", ("    lo, hi = bounds(seg, pg)\n    if lo == hi:\n        return True, lo",
-                   "    if pg.mn == pg.mx:\n        return True, pg.mn")),
-    "prj-no-whole-sum": _patch(
-        "proj.py", ("        if len(held) == pg.n:\n            return pg.n - pg.nulls, pg.sum\n", "")),
+        "hdr.py", ("    b = bounds(seg, pg)\n    if b is None or b[0] != b[1]:\n        return None\n    return b[0]",
+                   "    if pg.mn is None or pg.mn != pg.mx:\n        return None\n    return pg.mn")),
+    "prj-no-chunk-sum": _patch("proj.py", ("    if blocked:\n        need.extend(whole)", "    if True:\n        need.extend(whole)")),
+    "prj-last-page-only": _patch(
+        "proj.py", ("    if blocked:\n        need.extend(whole)\n        whole = []",
+                    "    if blocked:\n        need.extend(whole)\n        whole = []\n"
+                    "    elif len(whole) > 1:\n        need.extend(whole[:-1])\n        whole = whole[-1:]")),
+    "prj-dead-pages-ignored": _chain(
+        ("proj.py", "        if not own:\n            if v is None:\n                blocked = True",
+         "        if not own:\n            pass"),
+        ("proj.py", "    for pg, own in pages:\n        if pg in whole:\n            nn += pg.n - pg.nulls\n            continue",
+         "    for pg, own in pages:\n        if pg in whole:\n            nn += pg.n - pg.nulls\n            continue\n"
+         "        if not own:\n            continue")),
+    "prj-pinned-nulls-unknown": _chain(
+        ("proj.py", "        v = _one(seg, ch, pg, dk)\n        if not own:",
+         "        v = _one(seg, ch, pg, dk)\n        if pg.nulls:\n            v = None\n        if not own:"),
+        ("proj.py", "        v = _one(seg, ch, pg, dk)\n        if v is None:\n            continue",
+         "        v = _one(seg, ch, pg, dk)\n        if pg.nulls:\n            v = None\n"
+         "        if v is None:\n            continue")),
+    "prj-dict-ignored": _patch(
+        "proj.py", ("    if v is None and dk and dct.usable(ch, pg) and len(ch.dic) == 1:",
+                    "    if v is None and False:")),
+    "prj-consult-always": _patch(
+        "proj.py", ("        if len(_plan(seg, st, ch, pages, True)[0]) < len(_plan(seg, st, ch, pages, False)[0]):",
+                    "        if True:")),
+    "prj-consult-never": _patch(
+        "proj.py", ("    if not dk and dct.single(ch) and any(", "    if False and not dk and dct.single(ch) and any(")),
+    "prj-consult-for-dead": _patch(
+        "proj.py", ("any(own and dct.usable(ch, pg) for pg, own in pages)",
+                    "any(dct.usable(ch, pg) for pg, own in pages)")),
+    "prj-need-first": _patch(
+        "proj.py", ("    if blocked:\n        need.extend(whole)\n        whole = []\n    need.sort(key=lambda pg: pg.p)",
+                    "    need.sort(key=lambda pg: pg.p)\n    if blocked:\n        need.extend(whole)\n        whole = []")),
     "prj-whole-ignores-deletes": _patch(
-        "proj.py", ("        if len(held) == pg.n:",
-                    "        if len(held) == sum(1 for r in range(pg.start, pg.start + pg.n)\n"
-                    "                            if r not in seg.gone):")),
+        "proj.py", ("        elif len(own) == pg.n:",
+                    "        elif len(own) == sum(1 for r in range(pg.start, pg.start + pg.n)\n"
+                    "                             if r not in seg.gone):")),
     "prj-whole-ignores-updates": _patch(
-        "proj.py", ("        if len(held) == pg.n:",
-                    "        if sum(st.alive[pg.start:pg.start + pg.n]) == pg.n:")),
-    "prj-no-one-entry": _patch(
-        "proj.py", ("        if dct.single(ch, pg):\n            dct.charge(ch, st, out)\n"
-                    "            return len(held), ch.dic[0] * len(held)\n", "")),
-    "prj-one-entry-with-nulls": _patch(
-        "dct.py", ("    return usable(ch, pg) and len(ch.dic) == 1 and pg.nulls == 0",
-                   "    return usable(ch, pg) and len(ch.dic) == 1")),
-    "prj-one-entry-fallback": _patch(
-        "dct.py", ("    return usable(ch, pg) and len(ch.dic) == 1 and pg.nulls == 0",
-                   "    return ch.enc == \"d\" and len(ch.dic) == 1 and pg.nulls == 0")),
-    "prj-one-entry-free": _patch(
-        "proj.py", ("            dct.charge(ch, st, out)\n            return len(held), ch.dic[0] * len(held)",
-                    "            return len(held), ch.dic[0] * len(held)")),
+        "proj.py", ("        elif len(own) == pg.n:",
+                    "        elif sum(st.alive[pg.start:pg.start + pg.n]) == pg.n:")),
     "prj-index-order": _patch("proj.py", ("    for c in q.cols:", "    for c in sorted(set(q.cols)):")),
     "prj-nulls-counted": _patch(
-        "proj.py", ("        if v is not None:\n            nn += 1\n            tot += v",
-                    "        nn += 1\n        if v is not None:\n            tot += v")),
+        "proj.py", ("                v = vals[r - s]\n                if v is not None:\n                    nn += 1\n"
+                    "                    tot += v",
+                    "                v = vals[r - s]\n                nn += 1\n                if v is not None:\n"
+                    "                    tot += v")),
     "prj-redecode": _patch(
-        "proj.py", ("    vals = st.mem.vals.get((ch.c, ch.j, pg.p))\n    if vals is None:",
-                    "    vals = None\n    if vals is None:")),
+        "proj.py", ("        if (ch.c, ch.j, pg.p) in st.mem.vals or pg.nulls == pg.n:\n            continue",
+                    "        if pg.nulls == pg.n:\n            continue")),
 }
 
 
-# The design the second easiness probe was run against, written in this grammar: every query
-# starts over, a chunk is read whole, its dictionary is used only when every page is an index
-# page and only when no page of it holds a null, a chunk's count turns exact only once every
-# page is read, and the report pass never takes a page's sum from its header. Applied as one
-# sequence of patches on the reference, each of which has to fire.
-PREVIOUS = [
-    ("live.py", "    st.mem = mem\n", "    st.mem = fresh(seg)\n"),
-    ("live.py",
-     "    for cd in q.conds:\n        if cd.c == ch.c:\n"
-     "            st.cnt[(cd.pos, ch.j)] += exact(st, cd, pg) - hdr.guess(seg, pg, cd)\n",
-     "    whole = all((p.c, p.j, p.p) in st.mem.vals for p in ch.pages)\n"
-     "    for cd in q.conds:\n        if cd.c == ch.c:\n"
-     "            if whole:\n"
-     "                st.cnt[(cd.pos, ch.j)] = sum(exact(st, cd, p) for p in ch.pages)\n"),
-    ("step.py",
-     "        if vals is None:\n            vals = load(seg, q, st, ch, pg, out)\n",
-     "        if vals is None:\n            for other in ch.pages:\n"
-     "                if (c, j, other.p) not in st.mem.vals:\n"
-     "                    got = load(seg, q, st, ch, other, out)\n"
-     "                    if other is pg:\n                        vals = got\n"),
-    ("step.py", "            if verdict == \"keep\" and pg.nulls == 0:",
-     "            if verdict == \"keep\" and all(p.nulls == 0 for p in ch.pages):"),
-    ("dct.py", "    return ch.enc == \"d\" and pg.form == \"i\"",
-     "    return ch.enc == \"d\" and all(p.form == \"i\" for p in ch.pages)"),
-    ("proj.py", "        if len(held) == pg.n:\n            return pg.n - pg.nulls, pg.sum\n", ""),
-]
+# The design the local calibration agents all solved, written in this grammar: a condition's
+# free facts act only when its pair is applied, a read settles only its own condition, and the
+# report pass answers a page on its own - a read, an all-null page, one value and no null, a
+# one-entry dictionary consulted for an index page with no null - and reads every page whose
+# live rows are all its rows, since no page carries a sum now. Built from the round-3 reference
+# files kept beside this one, with the one line that used a page sum taken out.
+_V3 = HERE / "v3"
 
 
 def previous():
-    files = {}
-    for name, old, new in PREVIOUS:
-        text = files.get(name, _SRC[name])
-        if old not in text:
-            raise AssertionError("anchor gone from %s: %r" % (name, old[:60]))
-        files[name] = text.replace(old, new, 1)
+    files = {p.name: p.read_text(encoding="utf-8") for p in _V3.glob("*.py")}
+    old = "        if len(held) == pg.n:\n            return pg.n - pg.nulls, pg.sum\n"
+    if old not in files["proj.py"]:
+        raise AssertionError("anchor gone from v3/proj.py")
+    files["proj.py"] = files["proj.py"].replace(old, "", 1)
     return files
 
 
@@ -457,10 +694,17 @@ def reductions(text):
         for a, b in zip(heads, tails):
             yield "\n".join(lines[:a] + lines[b + 1:])
 
-    # drop one condition, or one reported column
+    # drop one condition while its query keeps another, or one reported column
+    owner = {}
+    for a, b in zip(heads, tails):
+        for i in range(a, b + 1):
+            owner[i] = a
     for i, ln in enumerate(lines):
-        if ln.startswith("prd") and sum(1 for x in lines if x.startswith("prd")) > 1:
-            yield "\n".join(lines[:i] + lines[i + 1:])
+        if ln.startswith("prd"):
+            mates = [x for x in range(len(lines)) if owner.get(x) == owner.get(i)
+                     and lines[x].startswith("prd")]
+            if len(mates) > 1:
+                yield "\n".join(lines[:i] + lines[i + 1:])
         if ln.startswith("prj") and len(ln.split()) > 2:
             f = ln.split()
             for drop in range(1, len(f)):

@@ -1,0 +1,19 @@
+Local calibration of the round-3 rebuild (chunk sums, known facts acting at once), 2026-09-23.
+
+Three fresh local agents, each given only instruction.md (paths rewritten to a scratch copy of
+environment/app_src) and that tree. No verifier, reference or model. Each directory keeps the
+agent's six submitted files (scn/) and its own scratch scripts (work/).
+
+Graded afterwards the way the worker and grader do it: the 82 hand files against the sealed
+model's answers and 336 generated files of two fresh seeds.
+
+probe1  PASS on both seeds  (about 30 minutes; engine 2.8 s for the whole set)
+probe2  PASS on both seeds  (about 32 minutes; engine 3.5 s)
+probe3  PASS on both seeds  (about 32 minutes; engine 3.6 s)
+
+All three wrote the engine in the first ten to fifteen minutes, then a slow literal model from
+the brief, then fuzzed the engine against it (10,800 to 30,000 random files each, some shaped
+like wide and deep). All three named the same readings as the ones they had to choose - the
+dictionary's verdict taken over all its entries rather than those inside a page's bounds, "the
+live rows that chunk holds" counted with the updated rows, and the report's consult - and all
+three chose as the brief says. One decided the report's reads in its model by enumeration.

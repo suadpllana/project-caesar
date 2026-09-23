@@ -15,7 +15,8 @@ Three questions are exported.
   chunk-verdict   What happens to this chunk under this condition: dropped unread, kept
                   unread, settled from its dictionary, or read.
   next-pair       Is this the pending pair the engine takes next?
-  report-read     What the report pass does for this page: nothing, a consult, or a read.
+  report-read     What the report pass does for this page: nothing, a consult of its chunk's
+                  dictionary, or a read.
 
 Run it directly to see the rows.
 """
@@ -68,8 +69,10 @@ def feats(seg, st, cd, ch, live):
 
 
 def page_feats(seg, st, ch, pg, live):
-    """Page-level raw fields for the report pass."""
-    held, moved = live.split(st, pg.c, pg)
+    """Page-level raw fields for the report pass, with the chunk's own raw fields beside them."""
+    held = live.held(st, pg.c, pg)
+    up = seg.up[pg.c]
+    moved = [r for r in range(pg.start, pg.start + pg.n) if st.alive[r] and r in up]
     return {
         "held": len(held),
         "moved": len(moved),
@@ -78,7 +81,8 @@ def page_feats(seg, st, ch, pg, live):
         "mn": -1 if pg.mn is None else pg.mn,
         "mx": -1 if pg.mx is None else pg.mx,
         "ex": 1 if pg.exact else 0,
-        "s": pg.sum,
+        "chs": ch.sum,
+        "pages": len(ch.pages),
         "form": 1 if pg.form == "i" else 0,
         "dk": len(ch.dic) if ch.dic is not None else 0,
         "read": 1 if (pg.c, pg.j, pg.p) in st.mem.vals else 0,
@@ -120,11 +124,9 @@ def _rows(app):
             here = []
             for cd in q.conds:
                 for ch in seg.cols[cd.c]:
-                    if ch.j in st.done[cd.pos]:
+                    if ch.j in st.done[cd.pos] or not live.pending(st, cd, ch.j):
                         continue
                     have = live.count(st, cd.c, ch.j)
-                    if have <= 0:
-                        continue
                     b = st.cnt[(cd.pos, ch.j)]
                     if b > have:
                         b = have
@@ -152,22 +154,29 @@ def _rows(app):
                 for pg in ch.pages:
                     rowsof[(c, ch.j, pg.p)] = page_feats(seg, st, ch, pg, live)
         label = {k: 0 for k in rowsof}
-        plain_page = proj._page
+        plain_chunk = proj._chunk
 
-        def watched_page(seg_, q_, st_, ch, pg, held, out_):
+        def watched_chunk(seg_, q_, st_, ch, out_):
             before = len(out_.lines)
-            got = plain_page(seg_, q_, st_, ch, pg, held, out_)
-            marks = out_.lines[before:]
-            key = (ch.c, ch.j, pg.p)
-            if label.get(key, 0) == 0:
-                label[key] = 2 if any(x.startswith("dc ") for x in marks) else (1 if marks else 0)
+            got = plain_chunk(seg_, q_, st_, ch, out_)
+            for x in out_.lines[before:]:
+                f = x.split()
+                if f[0] == "dc":
+                    key = (int(f[1]), int(f[2]), int(f[3]))
+                    if label.get(key, 0) == 0:
+                        label[key] = 2
+                elif f[0] == "rd":
+                    for pg in ch.pages:
+                        key = (ch.c, ch.j, pg.p)
+                        if pg.form == "i" and label.get(key, 0) == 0:
+                            label[key] = 1
             return got
 
-        proj._page = watched_page
+        proj._chunk = watched_chunk
         try:
             plain_proj(seg, q, st, rows, out)
         finally:
-            proj._page = plain_page
+            proj._chunk = plain_chunk
         for key, row in rowsof.items():
             report.append((row, label[key]))
 

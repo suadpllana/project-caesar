@@ -11,30 +11,39 @@ pristine copy, so only those six can change what a segment file prints.
 
 Graded, and settled the same way by two implementations written apart:
 
-  1  a column is chunks and a chunk is pages. A row's value in a column is its update when it
-     has one and what its page holds otherwise; a deleted row is never alive. A page's header,
-     a read of it and its chunk's dictionary describe the page as written.
+  1  a column is chunks and a chunk is pages; a chunk carries the sum of its pages' non-null
+     values and a page carries none. A row's value in a column is its update when it has one
+     and what its page holds otherwise; a deleted row is never alive. A page's header, a read of
+     it, its chunk's dictionary and its chunk's sum describe the page as written.
   2  a page header whose exactness flag is off stands for a pair pushed out by the granularity
      less one; the two sound tests are what that pair and the null count prove about every row
-     the page holds, and they settle the live rows that still take their value from the page
-  3  live rows carrying an update are tested on their own value; a page with no live row that
-     it still supplies is neither read nor consulted for
-  4  a chunk's dictionary speaks only for its `i` pages and only for comparisons: no entry
-     matching drops, every entry matching keeps a page holding no null, anything else reads
-  5  the file has one memory: a page read or a dictionary consulted by any query is known to
+     the page holds
+  3  a chunk's dictionary speaks only for its `i` pages and only for comparisons, once
+     consulted: no entry matching fails every row, every entry matching passes a page holding
+     no null
+  4  what is known - updated values, headers, pages read and dictionaries consulted, by this
+     query or an earlier one - acts at once on every condition of the query: at its start and
+     after every consult and every read, a row it shows failing dies
+  5  a pair is pending while a live row takes its value from one of its chunk's pages without
+     its condition settled; applying it takes those pages in order, consults the dictionary
+     first for a comparison on an `i` page, however little that settles, and reads a page
+     still holding such a row
+  6  the file has one memory: a page read or a dictionary consulted by any query is known to
      every later query, and `dc` and `rd` print only the first time
-  6  a read of a page settles the exact count of every condition of the query over that column
+  7  a read of a page settles the exact count of every condition of the query over that column
      on that page, over the page as written; a page read before a query starts counts exactly
-     from its start; a chunk's count is the sum over its pages
-  7  the pair worked next is the one expected to leave the fewest rows alive - the smaller of
+     from its start; otherwise the header's spread; a chunk's count is the sum over its pages
+  8  the pair worked next is the one expected to leave the fewest rows alive - the smaller of
      the chunk's live rows and the condition's count on it; ties go to the condition written
      earlier, then to the lower chunk number
-  8  the report pass wants a page only for live rows that take their value from it, pages in
-     order, and answers it by a page already read, by its header (every row null, one value and
-     no null, or the wanted rows being every row of the page, with its sum), by a one-entry
-     dictionary on an `i` page with no null (charged), and by a read otherwise; columns in the
-     order the query names them
-  9  every query starts with every row not deleted alive
+  9  the report pass reads a page only for live rows that take their value from it, and only
+     when the line cannot be worked out without it even with every other page it could read
+     read - from pages read, all-null pages, one-value pages, a known one-entry dictionary,
+     null counts and chunk sums; so the pages whose rows are all live are told by their chunk's
+     sum unless a page with no live row has an unknown sum. It consults a one-entry dictionary
+     first when one of its `i` pages supplies a row and that spares a read; reads come in chunk
+     and page order, columns in the order the query names them
+  10 every query starts with every row not deleted alive
 
 Implementation choice, and not graded: how the surviving rows are held, whether a chunk's live
 count or a condition's count on it is kept or worked out again, how remembered pages and exact

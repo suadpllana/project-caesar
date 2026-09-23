@@ -41,7 +41,7 @@ NOTES = {
     "hdr-spread-floor": "rounds the interpolation down instead of up",
     "hdr-spread-open": "takes the interpolation's endpoint exclusive",
     "dic-fallback-used": "lets the dictionary speak for a page that fell back to plain values",
-    "dic-charge-each": "charges a chunk's dictionary once per consult",
+    "dic-charge-each": "charges a chunk's dictionary again for every pair that puts a page to it",
     "dic-keep-ignores-nulls": "keeps a page whose dictionary all matches while it holds nulls",
     "dic-answers-null": "answers is-null and is-not-null from a dictionary",
     "dic-drop-needs-nulls": "will not drop pages the dictionary rules out when the chunk holds nulls",
@@ -50,6 +50,13 @@ NOTES = {
     "pg-whole-chunk-read": "reads every page of a chunk once any page of it has to be read",
     "pg-count-all-or-nothing": "counts a chunk exactly only once every page of it has been read",
     "pg-read-consults-dict": "consults the dictionary before it reads any index page",
+    "flt-free-when-applied": "lets every free fact wait for its own condition's turn, and a read settle only its own condition",
+    "flt-header-late": "lets a header's fail-all verdict wait for its condition's turn",
+    "flt-memory-late": "lets a page remembered from an earlier query wait for its condition's turn",
+    "flt-updates-late": "tests an updated value only when its condition's turn reaches the chunk",
+    "flt-read-own-cond": "lets a read settle only the condition it was made for",
+    "flt-dict-lazy": "lets a consulted dictionary settle a page only when a pair reaches it",
+    "flt-dict-one-page": "lets a consult settle only the page it was made for",
     "ord-fixed-sweep": "settles the condition order once and sweeps each over its column",
     "ord-column-sum": "scores a whole condition rather than one pending pair",
     "ord-no-cap": "does not cap a score by the live rows the chunk still holds",
@@ -62,26 +69,30 @@ NOTES = {
     "dec-hits-live-only": "counts a read page's hits over the rows still alive",
     "upd-drop-takes-moved": "lets a header drop take the rows that carry an update",
     "upd-keep-trusts-moved": "lets a header keep pass the rows that carry an update untested",
-    "upd-read-anyway": "consults and reads a page although every live row on it carries an update",
-    "upd-merge-on-read": "merges the updates into a page when it is read, and reads it for them",
+    "upd-read-anyway": "reads a page although every live row on it carries an update",
+    "upd-merge-on-read": "merges the updates into a page when it is read",
     "upd-count-current": "counts a read page's exact hits over the updated values",
     "del-still-alive": "starts every query with the deleted rows alive",
     "del-still-counted": "caps a score by a live count that still includes deleted rows",
     "mem-none": "starts every query with nothing read and nothing charged",
-    "mem-no-exact-start": "counts a page read by an earlier query from its header until it is read again",
+    "mem-no-exact-start": "counts a page read by an earlier query from its header",
     "mem-charge-per-query": "remembers pages across queries but charges each dictionary again per query",
     "mem-report-not-kept": "forgets the pages the report pass read",
-    "prj-all-pages": "reads reported pages that hold no live row",
+    "prj-all-pages": "reads every reported page it has not read, live rows or not",
     "prj-reads-moved": "reads a reported page whose live rows all carry updates",
-    "prj-reads-pinned": "reads a reported page whose header already fixes every value",
+    "prj-reads-pinned": "reads a reported page whose bounds already fix every value",
     "prj-pinned-ignores-widen": "takes a widened header's recorded pair as fixing the value",
-    "prj-no-whole-sum": "never answers a reported page from its header's sum",
-    "prj-whole-ignores-deletes": "takes a page's sum although some of its rows were deleted",
-    "prj-whole-ignores-updates": "takes a page's sum although some of its rows carry an update",
-    "prj-no-one-entry": "never answers a reported page from a one-entry dictionary",
-    "prj-one-entry-with-nulls": "answers from a one-entry dictionary although the page holds nulls",
-    "prj-one-entry-fallback": "answers a fallback page from its chunk's one-entry dictionary",
-    "prj-one-entry-free": "answers from a one-entry dictionary without charging it",
+    "prj-no-chunk-sum": "never takes a page's sum from its chunk's sum",
+    "prj-last-page-only": "takes only one page's sum from its chunk's sum, reading the others",
+    "prj-dead-pages-ignored": "leaves the pages with no live row out of the chunk's sum",
+    "prj-pinned-nulls-unknown": "does not know the sum of a one-value page that holds nulls",
+    "prj-dict-ignored": "takes nothing from a consulted one-entry dictionary",
+    "prj-consult-always": "consults a one-entry dictionary whenever an index page supplies a row",
+    "prj-consult-never": "never consults a dictionary in the report pass",
+    "prj-consult-for-dead": "consults a one-entry dictionary although no index page supplies a row",
+    "prj-need-first": "reads the partly live pages before the wholly live ones",
+    "prj-whole-ignores-deletes": "treats a page as wholly live although some of its rows were deleted",
+    "prj-whole-ignores-updates": "treats a page as wholly live although some of its rows carry an update",
     "prj-index-order": "reports the columns in index order",
     "prj-nulls-counted": "counts nulls in the reported figure",
     "prj-redecode": "reads a reported page again although it was read already",
@@ -106,7 +117,7 @@ SWEEP_PICK = '''from scn import live, step
 def run(seg, q, st, out):
     for cd in q.conds:
         for ch in seg.cols[cd.c]:
-            if live.count(st, cd.c, ch.j) <= 0:
+            if not live.pending(st, cd, ch.j):
                 continue
             step.decide(seg, q, st, cd, ch.j, out)
             st.done[cd.pos].add(ch.j)
@@ -131,8 +142,8 @@ def _fp(seg, q):
         _LAST[0] = seg
         _LAST[1] = []
     _LAST[1].append(q)
-    heads = tuple((ch.enc, tuple(ch.dic or ()),
-                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.sum, pg.form, tuple(pg.toks))
+    heads = tuple((ch.enc, ch.sum, tuple(ch.dic or ()),
+                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.form, tuple(pg.toks))
                          for pg in ch.pages))
                   for col in seg.cols for ch in col)
     ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))
@@ -190,8 +201,8 @@ def _probe():
         from scn import parse
         for name in cases.ORDER:
             seg, queries = parse.load("\\n".join(cases.prog(name)) + "\\n")
-            heads = tuple((ch.enc, tuple(ch.dic or ()),
-                           tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.sum, pg.form,
+            heads = tuple((ch.enc, ch.sum, tuple(ch.dic or ()),
+                           tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.form,
                                   tuple(pg.toks)) for pg in ch.pages))
                           for col in seg.cols for ch in col)
             ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up)
@@ -356,8 +367,8 @@ def _fp(seg, q):
         _LAST[0] = seg
         _LAST[1] = []
     _LAST[1].append(q)
-    heads = tuple((ch.enc, tuple(ch.dic or ()),
-                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.sum, pg.form, tuple(pg.toks))
+    heads = tuple((ch.enc, ch.sum, tuple(ch.dic or ()),
+                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.form, tuple(pg.toks))
                          for pg in ch.pages))
                   for col in seg.cols for ch in col)
     ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))
@@ -387,9 +398,8 @@ def run(seg, q, st, rows, out):
     for c in q.cols:
         for ch in seg.cols[c]:
             for pg in ch.pages:
-                held, _moved = live.split(st, c, pg)
-                if held and (c, ch.j, pg.p) not in st.mem.vals:
-                    step.load(seg, q, st, ch, pg, out)
+                if live.held(st, c, pg) and (c, ch.j, pg.p) not in st.mem.vals:
+                    step.load(seg, st, ch, pg, out)
     out.lines.append({"prj": [c for c in q.cols]})
 '''
 
@@ -426,8 +436,9 @@ def main():
     write("slow-rescan",
           "exactly correct, and rescans every pending pair after every step",
           {"pick.py": R._RESCAN})
-    write("chunk-is-unit",
-          "the previous design: every query starts over and a chunk is read, counted and trusted whole",
+    write("previous-design",
+          "the design the calibration agents solved: free facts act on their own condition when its"
+          " turn comes, and the report answers each page on its own",
           R.previous())
     write("const-nothing", "one fixed output for every segment file",
           {"pick.py": CONST_PICK, "proj.py": CONST_PROJ})

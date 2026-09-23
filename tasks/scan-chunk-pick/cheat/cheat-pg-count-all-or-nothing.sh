@@ -5,17 +5,18 @@ set -euo pipefail
 cat > /app/scn/hdr.py <<'PYEOF'
 """What a page header proves, and the estimate the order is chosen on.
 
-A page header carries a row count, a null count, a recorded low and high with a flag saying
-whether that pair is exact, and the sum of the non-null values. When the flag is off the
-recorded pair was rounded inward to a multiple of the segment granularity, so the usable bounds
-are the recorded ones pushed out by g - 1. Reading them as exact skips pages that hold matches.
+A page header carries a row count, a null count, and a recorded low and high with a flag saying
+whether that pair is exact. It carries no sum: the sum belongs to the chunk. When the flag is
+off the recorded pair was rounded inward to a multiple of the segment granularity, so the usable
+bounds are the recorded ones pushed out by g - 1. Reading them as exact skips pages that hold
+matches.
 
 `miss` and `allsat` are the two sound tests: the bounds and the null count prove that no row of
 the page matches, or that every row does. A null satisfies is-null and nothing else, so a page
-holding a null never passes a comparison or is-not-null whole. `pinned` says when the header
-alone fixes every value the page holds: every row null, or no nulls and a low equal to its high
-after widening. `guess` is neither: it is the interpolation the order is chosen on, spreading
-the non-null rows evenly over the bounds, and it is allowed to be wrong.
+holding a null never passes a comparison or is-not-null whole. `one` says when the header alone
+fixes every non-null value the page holds: its bounds, after widening, are a single value.
+`guess` is neither: it is the interpolation the order is chosen on, spreading the non-null rows
+evenly over the bounds, and it is allowed to be wrong.
 """
 
 
@@ -65,15 +66,11 @@ def allsat(seg, pg, cond):
     return hi < v or lo > v
 
 
-def pinned(seg, pg):
-    if pg.nulls == pg.n:
-        return True, None
-    if pg.nulls:
-        return False, None
-    lo, hi = bounds(seg, pg)
-    if lo == hi:
-        return True, lo
-    return False, None
+def one(seg, pg):
+    b = bounds(seg, pg)
+    if b is None or b[0] != b[1]:
+        return None
+    return b[0]
 
 
 def guess(seg, pg, cond):
@@ -105,14 +102,21 @@ cat > /app/scn/dct.py <<'PYEOF'
 
 The dictionary belongs to the chunk and speaks only for the chunk's `i` pages - a page that fell
 back to plain values is outside it. It is charged once per chunk for the whole file: the first
-consult prints, and every later one, in this query or any after it, is free. The report pass can
-take a value from it too, when it has a single entry and the page holds no null.
+consult prints, and every later one, in this query or any after it, is free. Its verdict on a
+comparison is the same for every `i` page of the chunk: no entry satisfying it fails every row,
+every entry satisfying it passes every row of a page holding no null, anything else settles
+nothing. A dictionary with a single entry also fixes every non-null value of its `i` pages, which
+is what the report pass takes from it.
 """
 from scn import rd
 
 
 def usable(ch, pg):
     return ch.enc == "d" and pg.form == "i"
+
+
+def known(st, ch):
+    return (ch.c, ch.j) in st.mem.dread
 
 
 def charge(ch, st, out):
@@ -122,8 +126,7 @@ def charge(ch, st, out):
         out.rd(ch.c, ch.j)
 
 
-def decide(seg, ch, cond, st, out):
-    charge(ch, st, out)
+def verdict(ch, cond):
     good = 0
     for v in ch.dic:
         if rd.sat(cond, v):
@@ -135,8 +138,8 @@ def decide(seg, ch, cond, st, out):
     return "read"
 
 
-def single(ch, pg):
-    return usable(ch, pg) and len(ch.dic) == 1 and pg.nulls == 0
+def single(ch):
+    return ch.enc == "d" and len(ch.dic) == 1
 PYEOF
 
 cat > /app/scn/live.py <<'PYEOF'
@@ -146,15 +149,24 @@ cat > /app/scn/live.py <<'PYEOF'
 for every query after, so a later query reads and charges nothing twice, and the pages it
 remembers count exactly from its first step.
 
-`start` makes one query's state. Rows only ever leave, which is what makes the per-chunk live
-counts maintainable: set once when the query starts - deleted rows are never alive - and
-decremented as rows die, through a row-to-chunk map per column, because the partitions differ
+`start` makes one query's state, and it is where "the moment what is known shows it" begins: a
+row dies as soon as anything known fails it on any condition, not when that condition's turn
+comes. So before the first choice every condition is put to what is already known - each
+page's header, every updated value, every remembered page and every dictionary consulted by an
+earlier query - and the rows any of them fail are gone. What is left of each condition is a set
+of open pages per condition: pages whose rows that condition cannot yet be settled on without
+paying. `settle_read` and `settle_dict` are the two ways a page closes during the query, and
+both act on every condition over the column at once, which is what makes a read made for one
+condition kill rows for another.
+
+Rows only ever leave, which is what makes the per-chunk live counts maintainable: set once, and
+decremented as rows die through a row-to-chunk map per column, because the partitions differ
 between columns. Each chunk whose count moved is marked dirty, which is how the choice loop
 knows whose scores to look at again. `cnt` holds each condition's count on each chunk of its
 column: the sum over the chunk's pages of the exact count where the page has been read and the
 header's spread where it has not.
 """
-from scn import hdr, rd
+from scn import dct, hdr, rd
 
 
 class Mem:
@@ -162,7 +174,8 @@ class Mem:
 
 
 class State:
-    __slots__ = ("seg", "mem", "alive", "sv", "own", "hit", "cnt", "done", "dirty")
+    __slots__ = ("seg", "q", "mem", "alive", "sv", "own", "on", "open", "hit", "cnt", "done",
+                 "dirty")
 
 
 def fresh(seg):
@@ -195,20 +208,64 @@ def exact(st, cd, pg):
     return got
 
 
+def held(st, c, pg):
+    """The live rows that still take their value in column c from this page."""
+    up = st.seg.up[c]
+    alive = st.alive
+    return [r for r in range(pg.start, pg.start + pg.n) if alive[r] and r not in up]
+
+
 def start(seg, q, mem):
     st = State()
     st.seg = seg
+    st.q = q
     st.mem = mem
     st.alive = bytearray([1]) * seg.n
     for r in seg.gone:
         st.alive[r] = 0
-    st.sv = {}
-    st.own = {}
+    st.on = {}
+    for cd in q.conds:
+        st.on.setdefault(cd.c, []).append(cd)
+    st.open = [set() for _ in q.conds]
     st.hit = {}
     st.cnt = {}
     st.done = [set() for _ in q.conds]
     st.dirty = set()
+    dead = set()
+    for c, cds in st.on.items():
+        up = seg.up[c]
+        for r, v in up.items():
+            if st.alive[r]:
+                for cd in cds:
+                    if not rd.sat(cd, v):
+                        dead.add(r)
+                        break
+        for ch in seg.cols[c]:
+            dk = (c, ch.j) in mem.dread
+            for pg in ch.pages:
+                vals = mem.vals.get((c, ch.j, pg.p))
+                rows = held(st, c, pg)
+                for cd in cds:
+                    if vals is not None:
+                        s = pg.start
+                        dead.update(r for r in rows if not rd.sat(cd, vals[r - s]))
+                    elif hdr.miss(seg, pg, cd):
+                        dead.update(rows)
+                    elif hdr.allsat(seg, pg, cd):
+                        pass
+                    elif dk and cd.kind not in ("nn", "nu") and dct.usable(ch, pg):
+                        v = dct.verdict(ch, cd)
+                        if v == "drop":
+                            dead.update(rows)
+                        elif v != "keep" or pg.nulls:
+                            st.open[cd.pos].add((ch.j, pg.p))
+                    else:
+                        st.open[cd.pos].add((ch.j, pg.p))
+    for r in dead:
+        st.alive[r] = 0
     alive = st.alive
+    st.sv = {}
+    st.own = {}
     for c in _cols(q):
         own = []
         counts = []
@@ -230,17 +287,6 @@ def start(seg, q, mem):
     return st
 
 
-def learn(st, q, ch, pg):
-    """A page has just been read: its guesses give way to exact counts."""
-    seg = st.seg
-    whole = all((p.c, p.j, p.p) in st.mem.vals for p in ch.pages)
-    for cd in q.conds:
-        if cd.c == ch.c:
-            if whole:
-                st.cnt[(cd.pos, ch.j)] = sum(exact(st, cd, p) for p in ch.pages)
-    st.dirty.add((ch.c, ch.j))
-
-
 def kill(st, dead):
     alive = st.alive
     sv = st.sv
@@ -254,19 +300,58 @@ def kill(st, dead):
                 dirty.add((c, j))
 
 
-def split(st, c, pg):
-    """A page's live rows: those that still take their value from it, and those that don't."""
-    up = st.seg.up[c]
+def settle_read(st, ch, pg, vals):
+    """A page has just been read: every condition over its column is settled on its rows, and
+    its guesses give way to exact counts."""
+    seg = st.seg
+    key = (ch.j, pg.p)
+    rows = held(st, ch.c, pg)
+    s = pg.start
+    dead = []
+    for cd in st.on.get(ch.c, ()):
+        st.open[cd.pos].discard(key)
+        dead.extend(r for r in rows if not rd.sat(cd, vals[r - s]))
+        if all((p.c, p.j, p.p) in st.mem.vals for p in ch.pages):
+            st.cnt[(cd.pos, ch.j)] = sum(exact(st, cd, p) for p in ch.pages)
+    st.dirty.add((ch.c, ch.j))
+    kill(st, dead)
+
+
+def settle_dict(st, ch):
+    """A dictionary has just been consulted: every comparison over its column is put to it, on
+    every `i` page of the chunk that is still open for that comparison."""
+    dead = []
+    for cd in st.on.get(ch.c, ()):
+        if cd.kind in ("nn", "nu"):
+            continue
+        v = dct.verdict(ch, cd)
+        if v == "read":
+            continue
+        opened = st.open[cd.pos]
+        for pg in ch.pages:
+            key = (ch.j, pg.p)
+            if key not in opened or not dct.usable(ch, pg):
+                continue
+            if v == "drop":
+                dead.extend(held(st, ch.c, pg))
+                opened.discard(key)
+            elif pg.nulls == 0:
+                opened.discard(key)
+    kill(st, dead)
+
+
+def pending(st, cd, j):
+    """Whether a live row still takes its value from the chunk without the condition settled."""
+    opened = st.open[cd.pos]
+    ch = st.seg.cols[cd.c][j]
+    up = st.seg.up[cd.c]
     alive = st.alive
-    held = []
-    moved = []
-    for r in range(pg.start, pg.start + pg.n):
-        if alive[r]:
-            if r in up:
-                moved.append(r)
-            else:
-                held.append(r)
-    return held, moved
+    for pg in ch.pages:
+        if (j, pg.p) in opened:
+            for r in range(pg.start, pg.start + pg.n):
+                if alive[r] and r not in up:
+                    return True
+    return False
 
 
 def count(st, c, j):
@@ -281,18 +366,21 @@ PYEOF
 cat > /app/scn/pick.py <<'PYEOF'
 """The loop, and the estimate it chooses on.
 
-The unit of work is one chunk of one condition. A pending pair is scored by the rows it is
-expected to leave alive: the smaller of the live rows that chunk still holds and the condition's
-count on it, which is the sum over its pages of the exact count where a page has been read and
-the header's spread where it has not. The smallest score is taken, a tie going to the condition
-written earlier and then to the lower chunk.
+The unit of work is one chunk of one condition. A pair is pending while a live row still takes
+its value from one of the chunk's pages without the condition settled for it. It is scored by
+the rows it is expected to leave alive: the smaller of the live rows that chunk still holds and
+the condition's count on it, which is the sum over its pages of the exact count where a page has
+been read and the header's spread where it has not. The smallest score is taken, a tie going to
+the condition written earlier and then to the lower chunk.
 
 Rescanning every pending pair after every step is correct and far too slow once a column has a
 thousand chunks, so the scores live in a heap keyed exactly as the order is. A score moves only
 when its chunk's live count moves or one of its pages is read, and those chunks are the ones the
-step marked dirty; each of their pending pairs is pushed again with its current score. The move
-can go either way - deaths lower a score, and a read can replace a low spread with a higher
-exact count - so a popped entry is trusted only while it still equals the pair's current score.
+step marked dirty; each of their pairs is pushed again with its current score. The move can go
+either way - deaths lower a score, and a read can replace a low spread with a higher exact count
+- so a popped entry is trusted only while it still equals the pair's current score. A pair stops
+being pending only by its last open row dying or settling, never the other way, so a popped pair
+found not pending is finished for good.
 """
 import heapq
 
@@ -306,146 +394,202 @@ def score(st, cond, j):
 
 
 def run(seg, q, st, out):
-    on = {}
-    for cd in q.conds:
-        on.setdefault(cd.c, []).append(cd)
     heap = []
     for cd in q.conds:
         for ch in seg.cols[cd.c]:
-            if live.count(st, cd.c, ch.j) > 0:
+            if live.pending(st, cd, ch.j):
                 heap.append((score(st, cd, ch.j), cd.pos, ch.j))
     heapq.heapify(heap)
     conds = q.conds
+    on = st.on
     st.dirty.clear()
     while heap:
         s, pos, j = heapq.heappop(heap)
         cd = conds[pos]
-        if j in st.done[pos] or live.count(st, cd.c, j) <= 0:
+        if j in st.done[pos]:
             continue
         if s != score(st, cd, j):
+            continue
+        if not live.pending(st, cd, j):
+            st.done[pos].add(j)
             continue
         step.decide(seg, q, st, cd, j, out)
         st.done[pos].add(j)
         for c, jj in st.dirty:
             for other in on.get(c, ()):
-                if jj in st.done[other.pos] or live.count(st, c, jj) <= 0:
+                if jj in st.done[other.pos]:
                     continue
                 heapq.heappush(heap, (score(st, other, jj), other.pos, jj))
         st.dirty.clear()
 PYEOF
 
 cat > /app/scn/step.py <<'PYEOF'
-"""Applying one condition to one chunk, page by page, and what a read settles.
+"""Applying one condition to one chunk, page by page.
 
-A page's header and the chunk's dictionary describe the page as written, and a row with an
-update no longer takes its value from it. So each page is decided in two halves: the live rows
-carrying an update are tested on their new value, which costs nothing, and only the rest are put
-to the header, then to a read already made, then - for a comparison on an `i` page - to the
-dictionary, then to a read of that page alone. A page with nothing alive that it still supplies
-is not consulted for or read. The dictionary's verdict is worked out once for the pair and then
-holds for each of its `i` pages; a verdict that every entry passes still sends a page holding a
-null to a read.
+By the time a pair is applied, everything that costs nothing has already been done: the header
+verdicts, the updated values, the remembered pages and the dictionaries already consulted were
+put to every condition when the query started, and every consult and read since has been put to
+every condition over its column as it happened. What is left for the pair is the pages still
+open for its condition that still supply a live row, in page order. For a comparison on an `i`
+page whose dictionary has not been consulted, the dictionary comes first, however little it
+turns out to settle, and what it settles it settles for every open `i` page of the chunk and
+every comparison over the column. A page still open after that is read.
 
 A read settles every condition of the query over that column on that page, counted over the page
 as written, and the file remembers the page.
 """
-from scn import dct, hdr, live, rd
+from scn import dct, live, rd
 
 
-def load(seg, q, st, ch, pg, out):
+def load(seg, st, ch, pg, out):
     out.dc(ch.c, ch.j, pg.p)
     vals = rd.values(ch, pg)
     st.mem.vals[(ch.c, ch.j, pg.p)] = vals
-    live.learn(st, q, ch, pg)
     return vals
 
 
 def decide(seg, q, st, cond, j, out):
     c = cond.c
     ch = seg.cols[c][j]
-    up = seg.up[c]
-    dead = []
-    verdict = None
+    opened = st.open[cond.pos]
     for pg in ch.pages:
-        held, moved = live.split(st, c, pg)
-        dead.extend(r for r in moved if not rd.sat(cond, up[r]))
-        if not held:
+        key = (j, pg.p)
+        if key not in opened or not live.held(st, c, pg):
             continue
-        if hdr.miss(seg, pg, cond):
-            dead.extend(held)
-            continue
-        if hdr.allsat(seg, pg, cond):
-            continue
-        vals = st.mem.vals.get((c, j, pg.p))
-        if vals is None and cond.kind not in ("nn", "nu") and dct.usable(ch, pg):
-            if verdict is None:
-                verdict = dct.decide(seg, ch, cond, st, out)
-            if verdict == "drop":
-                dead.extend(held)
+        if cond.kind not in ("nn", "nu") and dct.usable(ch, pg) and not dct.known(st, ch):
+            dct.charge(ch, st, out)
+            live.settle_dict(st, ch)
+            if key not in opened or not live.held(st, c, pg):
                 continue
-            if verdict == "keep" and pg.nulls == 0:
-                continue
-        if vals is None:
-            vals = load(seg, q, st, ch, pg, out)
-        s = pg.start
-        dead.extend(r for r in held if not rd.sat(cond, vals[r - s]))
-    live.kill(st, dead)
+        vals = load(seg, st, ch, pg, out)
+        live.settle_read(st, ch, pg, vals)
 PYEOF
 
 cat > /app/scn/proj.py <<'PYEOF'
 """The report pass.
 
-A reported column needs a page only for the live rows that take their value from it; rows with
-an update in that column bring their own. What the line needs from those rows is how many hold a
-non-null value and what those values sum to, and that is paid for only when nothing cheaper
-answers it: a page already read, or its header when every row is null, when it holds no null and
-its bounds are one value, or when those rows are every row the page holds as written - then its
-non-null count and its sum are the answer. After those the chunk's dictionary, for an `i` page
-with no null when the dictionary has a single entry, for its charge; and a read otherwise.
-Columns are worked in the order the query names them, once per naming, pages in order.
+A reported column needs, from each page, how many of the live rows taking their value from it
+hold a non-null value and what those values sum to; rows with an update in that column bring
+their own. A page whose rows are all live needs only its non-null count, which its header gives,
+and its sum. Pages carry no sum, but their chunk does, and the chunk's sum less the sums of its
+other pages is the sum of the pages whose rows are all live - so those need no read at all when
+every other page of the chunk has a known sum. A page's sum is known once it has been read, when
+its rows are all null, or when every non-null value on it is one known value: its bounds are one
+value, or it is an `i` page of a chunk whose single-entry dictionary is known.
+
+A page only some of whose rows are live cannot be told by any sum, so it is read unless it has
+been read, its rows are all null, or it holds no null and every value on it is one known value.
+A page with no live row is never read, and when one of those has an unknown sum the chunk's sum
+cannot be split, so every page whose rows are all live and whose sum is unknown must be read
+instead. That is the whole of what a read is owed: each of those pages is one the line cannot be
+told without, even with every other page that could be read, and together they suffice.
+
+A single-entry dictionary not yet consulted is consulted first when one of its `i` pages supplies
+a live row and knowing it means fewer reads - it can answer a page directly, give a page's sum,
+or give the sum of a page with no live row that was blocking the chunk. Reads come in chunk and
+page order. Columns are worked in the order the query names them, once per naming.
 """
-from scn import dct, hdr, live, step
+from scn import dct, hdr, step
 
 
-def _page(seg, q, st, ch, pg, held, out):
-    vals = st.mem.vals.get((ch.c, ch.j, pg.p))
-    if vals is None:
-        fixed, v = hdr.pinned(seg, pg)
-        if fixed:
-            return (0, 0) if v is None else (len(held), v * len(held))
-        if len(held) == pg.n:
-            return pg.n - pg.nulls, pg.sum
-        if dct.single(ch, pg):
-            dct.charge(ch, st, out)
-            return len(held), ch.dic[0] * len(held)
-        vals = step.load(seg, q, st, ch, pg, out)
-    s = pg.start
+def _one(seg, ch, pg, dk):
+    v = hdr.one(seg, pg)
+    if v is None and dk and dct.usable(ch, pg) and len(ch.dic) == 1:
+        v = ch.dic[0]
+    return v
+
+
+def _plan(seg, st, ch, pages, dk):
+    """The pages the line cannot be told without, given whether the dictionary is known."""
+    need = []
+    whole = []
+    blocked = False
+    for pg, own in pages:
+        if (ch.c, ch.j, pg.p) in st.mem.vals or pg.nulls == pg.n:
+            continue
+        v = _one(seg, ch, pg, dk)
+        if not own:
+            if v is None:
+                blocked = True
+        elif len(own) == pg.n:
+            if v is None:
+                whole.append(pg)
+        elif pg.nulls or v is None:
+            need.append(pg)
+    if blocked:
+        need.extend(whole)
+        whole = []
+    need.sort(key=lambda pg: pg.p)
+    return need, whole
+
+
+def _chunk(seg, q, st, ch, out):
+    c = ch.c
+    up = seg.up[c]
     nn = 0
     tot = 0
-    for r in held:
-        v = vals[r - s]
-        if v is not None:
-            nn += 1
-            tot += v
+    pages = []
+    for pg in ch.pages:
+        own = []
+        for r in range(pg.start, pg.start + pg.n):
+            if st.alive[r]:
+                if r in up:
+                    v = up[r]
+                    if v is not None:
+                        nn += 1
+                        tot += v
+                else:
+                    own.append(r)
+        pages.append((pg, own))
+    dk = dct.known(st, ch)
+    if not dk and dct.single(ch) and any(own and dct.usable(ch, pg) for pg, own in pages):
+        if len(_plan(seg, st, ch, pages, True)[0]) < len(_plan(seg, st, ch, pages, False)[0]):
+            dct.charge(ch, st, out)
+            dk = True
+    need, whole = _plan(seg, st, ch, pages, dk)
+    for pg in need:
+        step.load(seg, st, ch, pg, out)
+    rest = ch.sum
+    for pg, own in pages:
+        if pg in whole:
+            nn += pg.n - pg.nulls
+            continue
+        vals = st.mem.vals.get((c, ch.j, pg.p))
+        if vals is not None:
+            s = pg.start
+            for r in own:
+                v = vals[r - s]
+                if v is not None:
+                    nn += 1
+                    tot += v
+            if whole:
+                rest -= sum(v for v in vals if v is not None)
+            continue
+        if pg.nulls == pg.n:
+            continue
+        v = _one(seg, ch, pg, dk)
+        if v is None:
+            continue
+        if whole:
+            rest -= v * (pg.n - pg.nulls)
+        if len(own) == pg.n:
+            nn += pg.n - pg.nulls
+            tot += v * (pg.n - pg.nulls)
+        elif own:
+            nn += len(own)
+            tot += v * len(own)
+    if whole:
+        tot += rest
     return nn, tot
 
 
 def run(seg, q, st, rows, out):
     for c in q.cols:
-        up = seg.up[c]
         nn = 0
         tot = 0
         for ch in seg.cols[c]:
-            for pg in ch.pages:
-                held, moved = live.split(st, c, pg)
-                for r in moved:
-                    v = up[r]
-                    if v is not None:
-                        nn += 1
-                        tot += v
-                if held:
-                    a, b = _page(seg, q, st, ch, pg, held, out)
-                    nn += a
-                    tot += b
+            a, b = _chunk(seg, q, st, ch, out)
+            nn += a
+            tot += b
         out.prj(c, nn, tot)
 PYEOF

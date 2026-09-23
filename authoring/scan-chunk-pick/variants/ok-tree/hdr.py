@@ -1,16 +1,17 @@
 """What a page header proves, and the estimate the order is chosen on.
 
-A page header carries a row count, a null count, a recorded low and high with a flag saying
-whether that pair is exact, and the sum of the non-null values. When the flag is off the
-recorded pair was rounded inward to a multiple of the segment granularity, so the usable bounds
-are the recorded ones pushed out by g - 1. Reading them as exact skips pages that hold matches.
+A page header carries a row count, a null count, and a recorded low and high with a flag saying
+whether that pair is exact. It carries no sum: the sum belongs to the chunk. When the flag is
+off the recorded pair was rounded inward to a multiple of the segment granularity, so the usable
+bounds are the recorded ones pushed out by g - 1. Reading them as exact skips pages that hold
+matches.
 
 `miss` and `allsat` are the two sound tests: the bounds and the null count prove that no row of
 the page matches, or that every row does. A null satisfies is-null and nothing else, so a page
-holding a null never passes a comparison or is-not-null whole. `pinned` says when the header
-alone fixes every value the page holds: every row null, or no nulls and a low equal to its high
-after widening. `guess` is neither: it is the interpolation the order is chosen on, spreading
-the non-null rows evenly over the bounds, and it is allowed to be wrong.
+holding a null never passes a comparison or is-not-null whole. `one` says when the header alone
+fixes every non-null value the page holds: its bounds, after widening, are a single value.
+`guess` is neither: it is the interpolation the order is chosen on, spreading the non-null rows
+evenly over the bounds, and it is allowed to be wrong.
 """
 
 
@@ -60,15 +61,11 @@ def allsat(seg, pg, cond):
     return hi < v or lo > v
 
 
-def pinned(seg, pg):
-    if pg.nulls == pg.n:
-        return True, None
-    if pg.nulls:
-        return False, None
-    lo, hi = bounds(seg, pg)
-    if lo == hi:
-        return True, lo
-    return False, None
+def one(seg, pg):
+    b = bounds(seg, pg)
+    if b is None or b[0] != b[1]:
+        return None
+    return b[0]
 
 
 def guess(seg, pg, cond):

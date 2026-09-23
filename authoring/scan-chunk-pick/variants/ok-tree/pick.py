@@ -1,10 +1,11 @@
 """Correct variant: the pending pairs sit in a segment tree of exact minima.
 
 Slots are laid out condition by condition and chunk by chunk, so the smallest (score, slot) is
-the order's own tie-break. A score that moves either way is overwritten where it stands, and a
-condition's count on a chunk is summed afresh from its pages whenever the chunk is touched.
+the order's own tie-break. A score that moves either way is overwritten where it stands, a pair
+that is no longer pending is cleared, and a condition's count on a chunk is summed afresh from
+its pages whenever the chunk is touched.
 """
-from scn import hdr, live, step
+from scn import live, step
 
 
 def run(seg, q, st, out):
@@ -29,21 +30,14 @@ def run(seg, q, st, out):
 
     def fresh(cd, j):
         slot = base[cd.pos] + j
-        have = live.count(st, cd.c, j)
-        if j in st.done[cd.pos] or have <= 0:
+        if j in st.done[cd.pos] or not live.pending(st, cd, j):
             put(slot, None)
             return
-        total = 0
-        for pg in seg.cols[cd.c][j].pages:
-            if (pg.c, pg.j, pg.p) in st.mem.vals:
-                total += live.exact(st, cd, pg)
-            else:
-                total += hdr.guess(seg, pg, cd)
+        have = live.count(st, cd.c, j)
+        total = live.chunk_count(st, cd, seg.cols[cd.c][j])
         put(slot, (min(have, total), slot, cd.pos, j))
 
-    on = {}
     for cd in q.conds:
-        on.setdefault(cd.c, []).append(cd)
         for ch in seg.cols[cd.c]:
             fresh(cd, ch.j)
     st.dirty.clear()
@@ -56,5 +50,5 @@ def run(seg, q, st, out):
         touched = list(st.dirty)
         st.dirty.clear()
         for c, jj in touched:
-            for other in on.get(c, ()):
+            for other in st.on.get(c, ()):
                 fresh(other, jj)

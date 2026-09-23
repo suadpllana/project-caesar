@@ -12,8 +12,8 @@ def load(text):
 
 
 def segfp(seg):
-    heads = tuple((ch.enc, tuple(ch.dic or ()),
-                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.sum, pg.form, tuple(pg.toks))
+    heads = tuple((ch.enc, ch.sum, tuple(ch.dic or ()),
+                   tuple((pg.n, pg.nulls, pg.mn, pg.mx, pg.exact, pg.form, tuple(pg.toks))
                          for pg in ch.pages))
                   for col in seg.cols for ch in col)
     ups = tuple((c, r, repr(v)) for c, u in enumerate(seg.up) for r, v in sorted(u.items()))

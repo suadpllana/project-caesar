@@ -29,17 +29,28 @@ def page(g, vals, flag, form="v", dic=None):
         lo = hi = "-"
     at = {v: i for i, v in enumerate(dic or ())}
     toks = ["-" if v is None else str(at[v] if form == "i" else v) for v in vals]
-    return " ".join(["pg", str(len(vals)), str(nulls), lo, hi, flag, str(sum(live)), form] + toks)
+    return " ".join(["pg", str(len(vals)), str(nulls), lo, hi, flag, form] + toks)
+
+
+def chunk(c, pages, dic=None):
+    """A chunk line: its sum is the sum of the non-null values of all its pages."""
+    total = sum(v for vals in pages for v in vals if v is not None)
+    if dic is None:
+        return "ch %d p %d" % (c, total)
+    return "ch %d d %d %d %s" % (c, total, len(dic), " ".join(str(v) for v in dic))
 
 
 def _tiny():
     g = 10
+    d0 = [3, 6, 9]
+    p0 = [3, 6, 9, 3, 6, 9]
+    p1 = [1, 2, 3, 4, 5, 6]
     return "\n".join([
         "seg 10 6 2",
-        "ch 0 d 3 3 6 9",
-        page(g, [3, 6, 9, 3, 6, 9], "e", "i", [3, 6, 9]),
-        "ch 1 p",
-        page(g, [1, 2, 3, 4, 5, 6], "e"),
+        chunk(0, [p0], d0),
+        page(g, p0, "e", "i", d0),
+        chunk(1, [p1]),
+        page(g, p1, "e"),
         "qry", "prd ge 0 5", "prj 1 0", "end", ""])
 
 
@@ -47,26 +58,34 @@ def _pair():
     g = 25
     d0 = [50, 63, 75]
     d1 = [0, 3, 6, 9]
+    a = [[50, 63, None, 75, 50], [58, 63, 63]]
+    b = [[31, 77, 44], [68, 52, 39]]
+    c = [[10, None, 22, 17, None, 13]]
+    d = [[0, 2, 4, 1, 3]]
+    e = [[None] * 5]
+    f = [[0, 3, 6, 9, 0, 3], [6, 9, 0, 3]]
+    h = [[104, 118, None, 137, 122, 109, None, 131, 115, 126],
+         [140, 102, None, 119, 133, 107, 124, 112, 138, 128]]
     return "\n".join([
         "seg 25 20 3",
-        "ch 0 d 3 50 63 75",
-        page(g, [50, 63, None, 75, 50], "e", "i", d0),
-        page(g, [58, 63, 63], "e", "v"),
-        "ch 0 p",
-        page(g, [31, 77, 44], "w"),
-        page(g, [68, 52, 39], "w"),
-        "ch 0 p",
-        page(g, [10, None, 22, 17, None, 13], "e"),
-        "ch 1 p",
-        page(g, [0, 2, 4, 1, 3], "e"),
-        "ch 1 p",
-        page(g, [None] * 5, "e"),
-        "ch 1 d 4 0 3 6 9",
-        page(g, [0, 3, 6, 9, 0, 3], "e", "i", d1),
-        page(g, [6, 9, 0, 3], "e", "i", d1),
-        "ch 2 p",
-        page(g, [104, 118, None, 137, 122, 109, None, 131, 115, 126], "w"),
-        page(g, [140, 102, None, 119, 133, 107, 124, 112, 138, 128], "w"),
+        chunk(0, a, d0),
+        page(g, a[0], "e", "i", d0),
+        page(g, a[1], "e", "v"),
+        chunk(0, b),
+        page(g, b[0], "w"),
+        page(g, b[1], "w"),
+        chunk(0, c),
+        page(g, c[0], "e"),
+        chunk(1, d),
+        page(g, d[0], "e"),
+        chunk(1, e),
+        page(g, e[0], "e"),
+        chunk(1, f, d1),
+        page(g, f[0], "e", "i", d1),
+        page(g, f[1], "e", "i", d1),
+        chunk(2, h),
+        page(g, h[0], "w"),
+        page(g, h[1], "w"),
         "up 0 3 70", "up 0 15 44", "up 2 12 -", "up 1 7 8", "del 5", "del 17",
         "qry", "prd ge 0 40", "prd le 2 130", "prd nn 1", "prj 2 0", "end",
         "qry", "prd nu 1", "prd ne 0 63", "prj 0 1", "end",

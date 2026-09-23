@@ -1,7 +1,8 @@
 # Difficulty record for scan-chunk-pick. First written before any environment code existed;
 # rewritten for the easiness recovery of 2026-09-22 (the probe solved the first design 3 of 3)
 # and again for the second recovery of 2026-09-23 (2 of 3), before the page and memory code was
-# written. See STATE.md for both.
+# written, and a third time the same day, after three local agents solved the page design 3 of 3,
+# before the chunk-sum and known-facts code was written. See STATE.md for all three.
 
 [task]
 slug = "scan-chunk-pick"
@@ -12,41 +13,44 @@ estimated_solves = 2
 
 [plan]
 first_plan = """
-Take the chunk as the unit, as every scan engine does: merge its pages' headers into chunk
-statistics, decide each (condition, chunk) pair from those statistics or the dictionary, read
-the chunk whole when neither settles it, lay the updates over the values, keep one state per
-query, and pick pairs from a heap of scores. Report by answering each reported chunk from what
-was read or from its statistics, and read the rest.
+Settle one condition at a time: put each (condition, chunk) pair to its pages' headers, a page
+already read or the chunk's dictionary, read what they cannot settle, and let what that pair
+learned settle that pair's condition; keep the file's memory across queries and pick pairs from
+a heap of scores. Report each reported page on its own: a page read, a page of one value or all
+nulls, a one-entry dictionary, and a read otherwise - and since pages carry no sum, read every
+page whose rows are all wanted.
 """
 first_plan_source = "prior"
 breaking_rule = """
-A condition is applied page by page, and each page is asked only for the live rows that still
-take their value from it: its own header, then a page already read, then - for a comparison on
-an index page only - the chunk's dictionary, then a read of that page alone. So a chunk is read
-in part, its count is exact on the pages read and a spread on the rest, the dictionary never
-speaks for a page that fell back to plain values, and a verdict that every entry passes still
-reads a page holding a null. The report pass answers a page from its header's sum only while
-the rows it wants are every row of the page, which a delete, an update or a death anywhere in
-the row's other columns takes away.
+What is known acts at once, on every condition. A header, an updated value, a remembered page or
+a consulted dictionary kills every row it fails before any pair is applied; a read settles every
+condition over its column on that page; a consult settles every index page of its chunk for
+every comparison, killing rows in pages no pair has reached. So a pair is pending only while a
+live row it supplies is still unsettled for its condition, and many reads the per-condition plan
+makes are never paid for, which moves the live counts every later choice is scored on.
 """
 second_discovery = """
-The file is scanned with one memory. A page read or a dictionary consulted by any query is known
-to every later query and prints only the first time, and a later query counts a remembered page
-exactly from its first step - so a query's state cannot be built fresh from the segment: the
-exact counts it starts from, the pages it will not pay for, the dictionaries it will not charge
-and the report pages it can answer free all come from what earlier queries and earlier report
-passes did. An engine whose per-query state was right for one query is wrong on the second.
+The report reads a page only when the line could not be worked out without it even if every
+other page it could read were read. The chunk carries the sum its pages carry no longer, so the
+pages of a chunk whose rows are all live are told together by the chunk's sum less the sums of
+its other pages - unless another page has no live row and a sum nobody knows, which can never be
+read and so forces every wholly live page to be read instead. Whether a dead page's sum is known
+is decided by the filter (killed by its header it stays unknown, read before its rows died it
+does not), by the file's memory, by a one-value page's null count not mattering to its sum, and
+by a one-entry dictionary, which the report consults only when knowing it spares a read. The
+per-page report is replaced by a per-chunk decision that reads the filter's history.
 """
 second_discovery_effect = "replan"
 first_plan_correct = false
 expert_path = [
-  "Run the shipped engine on the samples and see that it merges page headers into chunk statistics, reads whole chunks, trusts the dictionary for every page of a dictionary chunk and starts every query from nothing",
-  "Split what the file owns (pages read, dictionaries charged) from what a query owns (live rows, counts, pairs done), and make the driver's fresh memory the owner of the first",
-  "Apply a condition page by page: updated live rows on their own values, then for the other live rows the page header, a page already read, the dictionary for a comparison on an index page, and a read of that page alone",
-  "Keep each condition's count on each chunk as the sum over its pages of the exact count where the page is read and the spread where it is not, and compute the exact counts of remembered pages at the start of each query",
-  "Work the report pass per page: a page already read, the header when every row is null, when the bounds are one value with no null, or when every row of the page is wanted (its non-null count and sum), a one-entry dictionary on an index page with no null, and a read otherwise",
+  "Run the shipped engine on the samples and see that it merges page headers into chunk statistics, reads whole chunks, trusts the dictionary for every page of a dictionary chunk, starts every query from nothing and reads every reported chunk",
+  "Split what the file owns (pages read, dictionaries consulted) from what a query owns (live rows, counts, pairs done, pages still open per condition)",
+  "At a query's start put every condition to everything already known - updated values, page headers, remembered pages, consulted dictionaries - and kill the rows any of them fail; keep per condition the pages it is still open on",
+  "Apply a pair to its open pages that still supply a live row, in order: the dictionary first for a comparison on an index page not yet consulted, then a read; after each consult or read, put what was learned to every condition over the column at once",
+  "Keep each condition's count on each chunk as the sum over its pages of the exact count where the page is read and the spread where it is not, including remembered pages from the start",
+  "Work the report per chunk: partly live pages need their values; wholly live pages need only their sum, which the chunk's sum gives together unless a dead page has an unknown sum; count a one-value page's sum as known whatever its nulls; consult a one-entry dictionary only when that leaves fewer reads; read in page order",
   "Settle the carried rules: widened bounds, nulls blocking a whole-page pass, the dictionary's verdicts per page, the rounded-up inclusive spread, deleted rows never alive, a read's counts over the page as written",
-  "Time the wide shape, replace any rescan loop with a heap keyed by score, condition position and chunk, re-push the pending pairs of every chunk whose live count moved or whose page was read, and trust a popped key only while it equals the current score",
+  "Time the wide shape, replace any rescan loop with a heap keyed by score, condition position and chunk, re-push the pairs of every chunk whose live count moved or whose page was read, and trust a popped key only while it equals the current score",
 ]
 
 [search]
@@ -57,11 +61,13 @@ rule the predicate out and decoding the filter column before the payload columns
 """
 helps_plan = false
 deviation = """
-Those sources order predicates once from statistics, prune row groups and pages but read what
-survives in full, and keep no memory between queries; here the choice is remade after every
-chunk, a chunk is read in part and counted as a mix of exact and estimated pages, a dictionary
-covers only the pages written against it, the report pass takes a page's aggregate from its
-header only while every row of it is wanted, and a scan session remembers what it paid for.
+Those sources order predicates once from statistics, apply one predicate at a time over what
+survives, prune row groups and pages but read what survives in full, answer an aggregate from
+statistics only for a row group that qualifies whole, and keep no memory between queries. Here
+every fact already known kills at once on every condition, the choice is remade after every
+chunk, a chunk is read in part, a dictionary covers only the pages written against it, the
+report takes the sum of several wholly live pages from their chunk's sum less the pages it
+knows, and a page it can never read decides whether that works.
 """
 
 [tactics]
@@ -73,20 +79,22 @@ units of every decision; pages and the file's memory replace both.
 """
 A2 = """
 No sentence names a page index, dictionary fallback, a delta store, delete vectors, aggregate
-pushdown, a buffer pool, zone maps or adaptive reordering; the brief states what a header and a
-dictionary can prove, what the file remembers and what a consult and a read cost, and never what
-the techniques are called or how to sequence them.
+pushdown, constraint propagation, a buffer pool, zone maps or adaptive reordering; the brief
+states what is known, when a row dies, when a report read is owed and what the file remembers,
+and never what the techniques are called or how the report's reads are to be found.
 """
 A3 = """
 An exact consult-and-read trace and a wall-clock limit together forbid both the decode-and-merge
 plan and the rescan-the-pairs plan, so no single retrieved implementation satisfies the pair.
 """
 B2 = """
-Which pages a query reads decides which counts are exact, which decides the order, which decides
-which pages the next query finds remembered, which decides that query's counts and reads; the
-overlay decides whether a page is asked at all and whether the report can take its sum; the
-dictionary's page scope and its null rule decide whether a consult ends in a read. No rule can be
-confirmed on its own, and a brute force written from a misreading of any of them agrees with it.
+Which pages a query reads decides which counts are exact and which rows die at once on every
+condition, which decides the order, which decides which pages the next query finds remembered;
+how a page's rows died - by a header or after a read - decides whether the report knows its sum,
+and a dead page with an unknown sum decides whether the chunk's sum can answer every wholly live
+page; a one-entry dictionary consulted in the filter, or in the report because it spares a read,
+gives page sums that unblock another page. No rule can be confirmed on its own, and a brute force
+written from a misreading of any of them agrees with it.
 """
 C1 = """
 Cases fence both sides: chunks that must be skipped unread, chunks that must pass unread, and
@@ -100,7 +108,7 @@ produces, so the natural self-check confirms a plan whose decode events are alre
 C3 = """
 The wide shape, about two thousand chunks per column in pages of four to twelve rows, three
 queries of eight conditions, makes the rescan-every-pair loop infeasible while it stays exactly
-correct (142.5 s for one file against 2.1 s for the reference and 60 s for the whole graded set).
+correct (139.6 s for one file against 1.6 s for the reference and 60 s for the whole graded set).
 """
 C4 = """
 Every printed event and digest of every query must match, over hand-written segments aimed at
@@ -126,7 +134,10 @@ interactions = [
   { a = "what the condition phase read", b = "how the report pass supplies each chunk", why = "a chunk already read costs nothing, otherwise the header, then a one-entry dictionary, then a read, so the report's events depend on every earlier choice" },
   { a = "pages read by one query", b = "the next query's starting counts and reads", why = "remembered pages count exactly from the start and are never paid for again, so the second query's order depends on everything the first one read, including in its report pass" },
   { a = "a partial read of a chunk", b = "the chunk's count and every later score on it", why = "the count becomes exact on the pages read and a spread on the rest, so the next choice depends on which pages the last pair happened to need" },
-  { a = "deaths, deletes and updates on a page", b = "whether the report can answer the page from its sum", why = "the sum answers only while every row of the page is wanted, so a death caused by another column's condition turns a free answer into a read" },
+  { a = "deaths, deletes and updates on a page", b = "whether the report can answer the page from its chunk's sum", why = "a page's sum answers only while every row of the page is wanted, so a death caused by another column's condition turns a free answer into a read" },
+  { a = "a fact learned for one condition", b = "rows of other conditions and other pages", why = "what is known acts at once on every condition, so a read or a consult made for one pair kills rows another pair would have paid to settle" },
+  { a = "how a page's rows died in the filter", b = "whether the report knows its sum", why = "a page killed by its header was never read and its sum stays unknown, which blocks the chunk's sum for every wholly live page beside it" },
+  { a = "a one-entry dictionary consulted in the report", b = "the sums of dead index pages", why = "knowing the entry gives the sum of every index page of the chunk, which can unblock the chunk's sum, so the consult is made exactly when that spares a read" },
 ]
 per_decision_feedback = false
 
@@ -166,7 +177,7 @@ oracle_shipped = false
 present = true
 naive_family = """
 The loop the brief describes, transcribed: rescan every pending pair after every step for the
-smallest score. Measured on the wide shape: 142.5 seconds for one file against 2.1 for the
+smallest score. Measured on the wide shape: 139.6 seconds for one file against 1.6 for the
 reference, printing the identical trace.
 """
 invariant = """
@@ -225,13 +236,21 @@ wrong_readings = [
   { reading = "pages the report pass read forgotten", hand_case = "mem-report-read-kept" },
   { reading = "never answering a whole page from its sum, or answering after a delete or an update", hand_case = "prj-whole-page-sum, prj-whole-broken-by-delete and prj-whole-broken-by-update" },
   { reading = "a one-entry dictionary answering a fallback page", hand_case = "prj-one-entry-fallback" },
+  { reading = "free facts waiting for their own condition's turn", hand_case = "flt-header-kills-at-start, flt-header-kills-other-column and flt-memory-kills-at-start" },
+  { reading = "a read settling only the condition it was made for", hand_case = "dec-hits-whole-chunk" },
+  { reading = "a consult settling only its own page or only when a pair reaches a page", hand_case = "flt-consult-settles-whole-chunk and flt-dict-settles-every-page" },
+  { reading = "wholly live pages read instead of told by their chunk's sum, or told one at a time", hand_case = "prj-chunk-sum-whole and prj-chunk-sum-together" },
+  { reading = "the chunk's sum split past a dead page whose sum is unknown", hand_case = "prj-chunk-sum-blocked and prj-dead-page-blocks-sum" },
+  { reading = "a one-value page holding nulls treated as having no known sum", hand_case = "prj-chunk-sum-pinned-dead and prj-pinned-nulls-sum" },
+  { reading = "the report consulting a one-entry dictionary always, never, or for a dead page", hand_case = "prj-consult-spares-read, prj-consult-not-sparing and prj-consult-needs-live-row" },
+  { reading = "the report reading its partly live pages before its wholly live ones", hand_case = "prj-reads-in-page-order" },
 ]
 correct_variants = [
-  "no maintained counts: live rows summed off a byte slice and a condition's chunk count summed from its pages when asked, chunk lookup by binary search, heap entries invalidated by version stamps",
-  "the pending pairs in a segment tree of exact minima, a chunk's count summed afresh from its pages whenever the chunk is touched",
+  "settlement kept per row rather than per page, no maintained counts: live rows summed off a byte slice and a condition's chunk count summed from its pages when asked, heap entries invalidated by version stamps",
+  "settlement kept per row, maintained live counts, the pending pairs in a segment tree of exact minima, a chunk's count summed afresh from its pages whenever the chunk is touched",
 ]
 
 [shape]
-environment_py_lines = 408
+environment_py_lines = 407
 editable_files = 6
-reference_lines = 438
+reference_lines = 583

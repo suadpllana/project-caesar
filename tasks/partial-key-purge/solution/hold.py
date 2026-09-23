@@ -1,17 +1,22 @@
 from db import match
 
+LIMIT = 15
+
 
 def check(store, bk, eff):
     """The refusal of a planned delete, as (declaration name, row id), or None.
 
-    A restrict reference fails on any row that lost it, removed or not. Everything else is
-    judged on the end state: the remaining rows with their values after clearing. Only a row
-    that lost a reference, or that matched a key row whose key was cleared, can be in a
-    different position from the one it was in before, so only those are checked."""
+    A restrict reference fails on any row that lost it, removed or not, and a row removed
+    deeper than the limit fails every cascade reference it lost. Everything else is judged on
+    the end state: the remaining rows with their values after clearing. Only a row that lost a
+    reference, or that matched a key row whose key was cleared, can be in a different position
+    from the one it was in before, so only those are checked."""
     bad = []
     look = set()
     for t, rid, ref in eff.lost:
         if ref.act == "restrict":
+            bad.append((ref.pos, rid))
+        if ref.act == "cascade" and eff.gone.get((t, rid), 0) > LIMIT:
             bad.append((ref.pos, rid))
         if (t, rid) not in eff.gone:
             look.add((t, rid))

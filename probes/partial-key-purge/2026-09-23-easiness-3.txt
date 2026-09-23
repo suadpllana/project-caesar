@@ -1,0 +1,2148 @@
+
+I'll start by looking at the driver, the db package, and the scripts.
+
+Bash(ls -R | head -50 && cat run_db.py && wc -l db/*.py && cat scripts/tiny.txt && ls -la scripts)
+
+.:
+db
+run_db.py
+scripts
+
+./db:
+__init__.py
+audit.py
+clear.py
+drop.py
+hold.py
+match.py
+parse.py
+rows.py
+say.py
+
+./scripts:
+deep.txt
+docs.txt
+loops.txt
+tiny.txt
+import sys
+
+from db import audit, drop, parse, rows, say
+
+
+def main(path):
+    script = parse.read(path)
+    store = rows.Store(script)
+    for tab, rid, vals in script.rows:
+        store.add(tab.name, rid, vals)
+    out = sys.stdout
+    for st in script.stmts:
+        if st.op == "delete":
+            lines = [say.verdict(drop.delete(store, st.tab.name, st.ids))]
+        elif st.op == "dump":
+            lines = say.dump(store, st.tab.name)
+        else:
+            lines = say.audit(audit.audit(store))
+        for line in lines:
+            out.write(line + "\n")
+    out.flush()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])
+    0 db/__init__.py
+   17 db/audit.py
+    3 db/clear.py
+   34 db/drop.py
+   12 db/hold.py
+   29 db/match.py
+  210 db/parse.py
+   23 db/rows.py
+   19 db/say.py
+  347 total
+table doc d
+table rev d n bd bn
+table note k d n
+key doc_k doc d
+key rev_k rev d n
+key note_k note k
+ref rev_doc rev d -> doc_k simple noaction
+ref rev_base rev bd bn -> rev_k partial cascade
+ref note_on note d n -> rev_k partial cascade
+row doc 1 a
+row rev 1 a 1 - -
+row rev 2 a 2 a 1
+row rev 3 a 3 a 1
+row note 1 1 a 2
+row note 2 2 a -
+delete rev 2
+dump note
+delete rev 1
+audit
+total 1032
+drwxr-xr-x 2 root root    4096 Sep 23 06:10 .
+drwxr-xr-x 4 root root    4096 Sep 23 06:10 ..
+-rw-r--r-- 1 root root 1025554 Jan  1  1980 deep.txt
+-rw-r--r-- 1 root root    8556 Jan  1  1980 docs.txt
+-rw-r--r-- 1 root root    1214 Jan  1  1980 loops.txt
+-rw-r--r-- 1 root root     380 Jan  1  1980 tiny.txt
+
+[stdout]
+.:
+db
+run_db.py
+scripts
+
+./db:
+__init__.py
+audit.py
+clear.py
+drop.py
+hold.py
+match.py
+parse.py
+rows.py
+say.py
+
+./scripts:
+deep.txt
+docs.txt
+loops.txt
+tiny.txt
+import sys
+
+from db import audit, drop, parse, rows, say
+
+
+def main(path):
+    script = parse.read(path)
+    store = rows.Store(script)
+    for tab, rid, vals in script.rows:
+        store.add(tab.name, rid, vals)
+    out = sys.stdout
+    for st in script.stmts:
+        if st.op == "delete":
+            lines = [say.verdict(drop.delete(store, st.tab.name, st.ids))]
+        elif st.op == "dump":
+            lines = say.dump(store, st.tab.name)
+        else:
+            lines = say.audit(audit.audit(store))
+        for line in lines:
+            out.write(line + "\n")
+    out.flush()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])
+    0 db/__init__.py
+   17 db/audit.py
+    3 db/clear.py
+   34 db/drop.py
+   12 db/hold.py
+   29 db/match.py
+  210 db/parse.py
+   23 db/rows.py
+   19 db/say.py
+  347 total
+table doc d
+table rev d n bd bn
+table note k d n
+key doc_k doc d
+key rev_k rev d n
+key note_k note k
+ref rev_doc rev d -> doc_k simple noaction
+ref rev_base rev bd bn -> rev_k partial cascade
+ref note_on note d n -> rev_k partial cascade
+row doc 1 a
+row rev 1 a 1 - -
+row rev 2 a 2 a 1
+row rev 3 a 3 a 1
+row note 1 1 a 2
+row note 2 2 a -
+delete rev 2
+dump note
+delete rev 1
+audit
+total 1032
+drwxr-xr-x 2 root root    4096 Sep 23 06:10 .
+drwxr-xr-x 4 root root    4096 Sep 23 06:10 ..
+-rw-r--r-- 1 root root 1025554 Jan  1  1980 deep.txt
+-rw-r--r-- 1 root root    8556 Jan  1  1980 docs.txt
+-rw-r--r-- 1 root root    1214 Jan  1  1980 loops.txt
+-rw-r--r-- 1 root root     380 Jan  1  1980 tiny.txt
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(for f in db/match.py db/drop.py db/clear.py db/hold.py db/audit.py db/rows.py db/say.py db/parse.py; do echo "…)
+
+=== db/match.py
+def form(ref, vals):
+    got = tuple(i for i, c in enumerate(ref.cols) if vals[c] is not None)
+    if len(got) < len(ref.cols):
+        return None
+    return got
+
+
+def ups(store, ref, vals):
+    if not form(ref, vals):
+        return []
+    want = [vals[c] for c in ref.cols]
+    kt = ref.key.tab.name
+    out = []
+    for pid in store.ids(kt):
+        pv = store.get(kt, pid)
+        if [pv[c] for c in ref.key.cols] == want:
+            out.append(pid)
+    return out
+
+
+def downs(store, ref, pvals):
+    want = [pvals[c] for c in ref.key.cols]
+    ct = ref.tab.name
+    out = []
+    for cid in store.ids(ct):
+        cv = store.get(ct, cid)
+        if form(ref, cv) and [cv[c] for c in ref.cols] == want:
+            out.append(cid)
+    return out
+=== db/drop.py
+import copy
+
+from db import clear, hold, match
+
+
+def delete(store, tab, ids):
+    keep = copy.deepcopy(store.data)
+    log = {"gone": [], "wiped": set(), "bad": []}
+    for rid in ids:
+        if store.has(tab, rid):
+            cut(store, tab, rid, log)
+    bad = hold.check(store, log)
+    if bad:
+        store.data = keep
+        return ("refused",) + bad
+    return ("ok", len(log["gone"]), len(log["wiped"]))
+
+
+def cut(store, tab, rid, log):
+    vals = store.get(tab, rid)
+    store.drop(tab, rid)
+    log["gone"].append((tab, rid))
+    for ref in store.tabs[tab].used:
+        ct = ref.tab.name
+        for c in match.downs(store, ref, vals):
+            if not store.has(ct, c) or match.ups(store, ref, store.get(ct, c)):
+                continue
+            if ref.act == "cascade":
+                cut(store, ct, c, log)
+            elif ref.act == "setnull":
+                clear.wipe(store, ref, ct, c)
+                log["wiped"].add((ct, c))
+            else:
+                log["bad"].append((ref.name, c))
+=== db/clear.py
+def wipe(store, ref, tab, rid):
+    for c in ref.cols:
+        store.put(tab, rid, c, None)
+=== db/hold.py
+from db import match
+
+
+def check(store, log):
+    if log["bad"]:
+        return log["bad"][0]
+    for tab, rid in sorted(log["wiped"]):
+        vals = store.get(tab, rid)
+        for ref in store.tabs[tab].refs:
+            if match.form(ref, vals) and not match.ups(store, ref, vals):
+                return (ref.name, rid)
+    return None
+=== db/audit.py
+import copy
+
+from db import drop, rows
+
+
+def audit(store):
+    out = []
+    for tab in store.script.tabs:
+        for rid in store.ids(tab.name):
+            twin = rows.Store(store.script)
+            twin.data = copy.deepcopy(store.data)
+            res = drop.delete(twin, tab.name, [rid])
+            if res[0] == "ok":
+                out.append((tab.name, rid, res[1], res[2], False))
+            else:
+                out.append((tab.name, rid, 0, 0, True))
+    return out
+=== db/rows.py
+class Store:
+    def __init__(self, script):
+        self.script = script
+        self.tabs = {t.name: t for t in script.tabs}
+        self.data = {t.name: {} for t in script.tabs}
+
+    def add(self, tab, rid, vals):
+        self.data[tab][rid] = list(vals)
+
+    def has(self, tab, rid):
+        return rid in self.data[tab]
+
+    def get(self, tab, rid):
+        return self.data[tab][rid]
+
+    def ids(self, tab):
+        return sorted(self.data[tab])
+
+    def drop(self, tab, rid):
+        del self.data[tab][rid]
+
+    def put(self, tab, rid, col, val):
+        self.data[tab][rid][col] = val
+=== db/say.py
+def verdict(res):
+    if res[0] == "ok":
+        return "ok %d %d" % (res[1], res[2])
+    return "refused %s %d" % (res[1], res[2])
+
+
+def dump(store, tab):
+    out = []
+    for rid in store.ids(tab):
+        vals = ["-" if v is None else v for v in store.get(tab, rid)]
+        out.append(" ".join([tab, str(rid)] + vals))
+    return out
+
+
+def audit(rows):
+    out = []
+    for tab, rid, gone, wiped, held in rows:
+        out.append("%s %d %d %d %s" % (tab, rid, gone, wiped, "held" if held else "ok"))
+    return out
+=== db/parse.py
+import re
+
+NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
+VALUE = re.compile(r"[A-Za-z0-9_]+\Z")
+ID = re.compile(r"[1-9][0-9]*\Z")
+MODES = ("simple", "full", "partial")
+ACTS = ("cascade", "restrict", "noaction", "setnull")
+
+
+class Tab:
+    def __init__(self, name, cols, pos):
+        self.name = name
+        self.cols = cols
+        self.pos = pos
+        self.keys = []
+        self.refs = []
+        self.used = []
+
+
+class Key:
+    def __init__(self, name, tab, cols, pos):
+        self.name = name
+        self.tab = tab
+        self.cols = cols
+        self.pos = pos
+
+
+class Ref:
+    def __init__(self, name, tab, cols, key, mode, act, wipe, pos):
+        self.name = name
+        self.tab = tab
+        self.cols = cols
+        self.key = key
+        self.mode = mode
+        self.act = act
+        self.wipe = wipe
+        self.pos = pos
+
+
+class Stmt:
+    def __init__(self, op, tab, ids):
+        self.op = op
+        self.tab = tab
+        self.ids = ids
+
+
+class Script:
+    def __init__(self):
+        self.tabs = []
+        self.decls = []
+        self.names = {}
+        self.rows = []
+        self.stmts = []
+
+
+class Bad(Exception):
+    pass
+
+
+def _name(word, no):
+    if not NAME.match(word):
+        raise Bad("line %d: bad name %r" % (no, word))
+    return word
+
+
+def _cols(tab, words, no):
+    out = []
+    for w in words:
+        if w not in tab.cols:
+            raise Bad("line %d: %s has no column %r" % (no, tab.name, w))
+        i = tab.cols.index(w)
+        if i in out:
+            raise Bad("line %d: column %r twice" % (no, w))
+        out.append(i)
+    if not out:
+        raise Bad("line %d: no columns" % no)
+    return out
+
+
+def _get(sc, word, kind, no):
+    got = sc.names.get(word)
+    if not isinstance(got, kind):
+        raise Bad("line %d: %r is not a %s" % (no, word, kind.__name__.lower()))
+    return got
+
+
+def _fresh(sc, word, no):
+    _name(word, no)
+    if word in sc.names:
+        raise Bad("line %d: %r declared twice" % (no, word))
+    return word
+
+
+def _id(word, no):
+    if not ID.match(word):
+        raise Bad("line %d: bad id %
+… [clipped]
+collapse
+Now I understand the current code's shape. Before designing the fix, let me profile the structure of the big script.
+
+Bash(python3 - <<'EOF' from collections import Counter, defaultdict from db import parse sc = parse.read('scripts/d…)
+
+Exit code 1
+Counter({'rev': 29632, 'note': 4000, 'link': 1000, 'pin': 1000, 'hold': 100, 'watch': 100, 'cite': 100, 'tag': 100, 'doc': 34})
+docs 34 [53, 59, 63, 67, 69, 76, 79, 83, 85, 86, 88, 91, 95, 96, 103, 115, 115, 118, 120, 121, 134, 140, 152, 155, 156, 166, 167, 173, 181, 182, 6262, 6477, 6612, 6893]
+nullbn 246 nullbd 0 roots 98 self 0 cross 277
+[['d1', '5775', 'd1', None], ['d2', '6324', 'd2', None], ['d5', '5', 'd3', None], ['d5', '14', 'd1', None], ['d5', '15', 'd3', None]] [['d5', '5', 'd3', None], ['d5', '12', 'd2', '1958'], ['d5', '13', 'd1', '1449'], ['d5', '14', 'd1', None], ['d5', '15', 'd3', None]]
+Traceback (most recent call last):
+  File "<stdin>", line 26, in d
+  File "<stdin>", line 26, in d
+  File "<stdin>", line 26, in d
+  [Previous line repeated 997 more times]
+RecursionError: maximum recursion depth exceeded
+
+[error] tool reported failure
+collapse
+Bash(python3 - <<'EOF' from collections import Counter, defaultdict from db import parse sc = parse.read('scripts/d…)
+
+Exit code 137
+dangling single 0
+/bin/bash: line 65:   129 Killed                  python3 - <<'EOF'
+from collections import Counter, defaultdict
+from db import parse
+sc = parse.read('scripts/deep.txt')
+revs = {}
+bydoc = defaultdict(list)
+for t,rid,v in sc.rows:
+    if t.name=='rev':
+        revs[rid]=v; bydoc[v[0]].append(rid)
+keymap = {(v[0],v[1]):r for r,v in revs.items()}
+par = {r:keymap.get((v[2],v[3])) for r,v in revs.items() if v[2] is not None and v[3] is not None}
+print('dangling single', sum(1 for r,p in par.items() if p is None))
+depth={}
+for r in revs:
+    path=[]; x=r
+    while x is not None and x not in depth:
+        path.append(x); x=par.get(x)
+    base = depth[x] if x is not None else 0
+    for y in reversed(path):
+        base+=1; depth[y]=base
+print('maxdepth', max(depth.values()))
+ch=Counter(p for p in par.values() if p is not None); print('branching', Counter(ch.values()).most_common(6))
+rootsper = Counter(v[0] for v in revs.values() if v[2] is None)
+print('roots per doc', sorted(rootsper.items(), key=lambda x:-x[1])[:8])
+nb = Counter((v[0]==v[2]) for v in revs.values() if v[2] is not None and v[3] is None); print('nullbn same doc?', nb)
+for tn in ['note','link','hold','watch','pin','cite','tag']:
+    rows=[v for t,rid,v in sc.rows if t.name==tn]
+    print(tn, Counter(tuple(x is None for x in v) for v in rows))
+# link both refs to rev? notes n null count target sizes
+notes=[v for t,rid,v in sc.rows if t.name=='note']
+print('note null n', sum(1 for v in notes if v[2] is None))
+# cycles in par?
+EOF
+
+[error] tool reported failure
+collapse
+The loop was killed, which means the base chain has cycles. Let me check that properly with a cycle-safe walk.
+
+Bash(timeout 120 python3 - <<'EOF' from collections import Counter, defaultdict from db import parse sc = parse.rea…)
+
+cycles 77 [([5928, 5929], [['d1', '5928', 'd1', '5929'], ['d1', '5929', 'd1', '5928']]), ([12266, 12267], [['d2', '6004', 'd2', '6005'], ['d2', '6005', 'd2', '6004']]), ([26277, 26278], [['d5', '33', 'd5', '34'], ['d5', '34', 'd5', '33']]), ([26310, 26312, 26311], [['d5', '66', 'd5', '68'], ['d5', '68', 'd5', '67'], ['d5', '67', 'd5', '66']]), ([26326, 26327], [['d5', '82', 'd5', '83'], ['d5', '83', 'd5', '82']])]
+maxdepth 4460
+branching [(1, 23697), (2, 2534), (3, 166), (4, 5), (5, 1)]
+roots per doc [('d27', 9), ('d28', 6), ('d10', 5), ('d11', 5), ('d18', 5), ('d21', 5), ('d30', 5), ('d33', 5)]
+nullbn same doc? Counter({False: 130, True: 116})
+note Counter({(False, False, False): 3208, (False, False, True): 792})
+link Counter({(False, False, False, False, False): 898, (False, False, False, False, True): 102})
+hold Counter({(False, False, False): 100})
+watch Counter({(False, False, False): 100})
+pin Counter({(False, False, False): 769, (False, False, True): 231})
+cite Counter({(False, False, False): 100})
+tag Counter({(False, False, False): 100})
+
+[stdout]
+cycles 77 [([5928, 5929], [['d1', '5928', 'd1', '5929'], ['d1', '5929', 'd1', '5928']]), ([12266, 12267], [['d2', '6004', 'd2', '6005'], ['d2', '6005', 'd2', '6004']]), ([26277, 26278], [['d5', '33', 'd5', '34'], ['d5', '34', 'd5', '33']]), ([26310, 26312, 26311], [['d5', '66', 'd5', '68'], ['d5', '68', 'd5', '67'], ['d5', '67', 'd5', '66']]), ([26326, 26327], [['d5', '82', 'd5', '83'], ['d5', '83', 'd5', '82']])]
+maxdepth 4460
+branching [(1, 23697), (2, 2534), (3, 166), (4, 5), (5, 1)]
+roots per doc [('d27', 9), ('d28', 6), ('d10', 5), ('d11', 5), ('d18', 5), ('d21', 5), ('d30', 5), ('d33', 5)]
+nullbn same doc? Counter({False: 130, True: 116})
+note Counter({(False, False, False): 3208, (False, False, True): 792})
+link Counter({(False, False, False, False, False): 898, (False, False, False, False, True): 102})
+hold Counter({(False, False, False): 100})
+watch Counter({(False, False, False): 100})
+pin Counter({(False, False, False): 769, (False, False, True): 231})
+cite Counter({(False, False, False): 100})
+tag Counter({(False, False, False): 100})
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+The current per-row rescan approach is both incorrect (mishandles partial-null matches and least-fixpoint removal) and quadratic (audit copies the whole store per row). I'll rebuild the referential pass around a precomputed match graph—an exact engine for delete and an incremental closure-merging pass for audit—starting with match.py for graph construction.
+
+Write({"file_path":"/app/db/match.py","content":"\"\"\"Match graph: rows, match groups and the references that depen…)
+
+The file /app/db/match.py has been updated successfully. (file state is current in your context — no need to Read it back)
+
+[metadata] {"type": "update", "filePath": "/app/db/match.py", "content": "\"\"\"Match graph: rows, match groups and the references that depend on them.\n\nA group is one (key, mask, values) triple: the set of rows of the key's table\nwhose key columns at the mask positions equal the values.  A row that is not\ninert for a reference matches exactly one group of that reference's key.\n\"\"\"\n\nfrom db import parse as _p\n\nCASCADE = \"cascade\"\nRESTRICT = \"restrict\"\nNOACTION = \"noaction\"\nSETNULL = \"setnull\"\n\n\ndef form(ref, vals):\n    \"\"\"None if the reference is inert for these values, False if broken,\n    otherwise the tuple of positions in ref.cols that are non-null.\"\"\"\n    mask = tuple(i for i, c in enumerate(ref.cols) if vals[c] is not None)\n    if not mask:\n        return None\n    if len(mask) < len(ref.cols):\n        if ref.mode == \"simple\":\n            return None\n        if ref.mode == \"full\":\n            return False\n    return mask\n\n\ndef _unions(sets):\n    out = []\n    for s in sets:\n        out += [x | s for x in out] + [set(s)]\n    return out\n\n\nclass Graph:\n    def __init__(self, store):\n        sc = store.script\n        self.store = store\n        self.tabs = sc.tabs\n        self.decls = sc.decls\n        self.refs = [d for d in sc.decls if isinstance(d, _p.Ref)]\n        self.refidx = {r.name: i for i, r in enumerate(self.refs)}\n        keys = [d for d in sc.decls if isinstance(d, _p.Key)]\n\n        # ---- nodes -------------------------------------------------------\n        self.node_tab = []\n        self.node_id = []\n        self.vals = []\n        self.nid = {}\n        self.trange = {}\n        for t in sc.tabs:\n            d = store.data[t.name]\n            start = len(self.vals)\n            m = {}\n            for rid in sorted(d):\n                m[rid] = len(self.vals)\n                self.node_tab.append(t)\n                self.node_id.append(rid)\n                self.vals.append(d[rid])\n            self.nid[t.name] = m\n            self.trange[t.name] = (start, len(self.vals))\n        n = len(self.vals)\n        vals = self.vals\n\n        # ---- masks in use per key ---------------------------------------\n        masks = {}\n        self.potential = set()\n        for R in self.refs:\n            ks = masks.setdefault(R.key.name, set())\n            wipes = []\n            if R.mode == \"partial\":\n                sn = [set(W.wipe) for W in R.tab.refs if W.act == SETNULL]\n                wipes = [w for w in _unions(sn) if w & set(R.cols)]\n            s, e = self.trange[R.tab.name]\n            for node in range(s, e):\n                f = form(R, vals[node])\n                if not f:\n                    continue\n                ks.add(f)\n                for w in wipes:\n                    f2 = tuple(i for i in f if R.cols[i] not in w)\n                    if f2 and f2 != f:\n                        ks.add(f2)\n                        self.potential.add((R.key.name, f2))\n\n        # ---- groups ------------------------------------------------------\n        self.gindex = {}\n        self.gsize = []\n        self.gmembers = []\n        self.gdeps = []\n        self.gkey = []\n        self.node_groups = [[] for _ in range(n)]\n        for K in keys:\n            for mask in sorted(masks.get(K.name, ())):\n                self._build(K, mask, True)\n\n        # ---- dependents --------------------------------------------------\n        self.node_refs = [[] for _ in range(n)]\n        for ri, R in enumerate(self.refs):\n            s, e = self.trange[R.tab.name]\n            kn = R.key.name\n            for node in range(s, e):\n                v = vals[node]\n                f = form(R, v)\n                if f is None:\n                    continue\n                gid = None\n                if f:\n                    idx = self.gindex.get((kn, f))\n                    if idx is not None:\n                        gid = idx.get(tuple(v[R.cols[i]] for i in f))\n                self.node_refs[node].append((ri, gid))\n                if gid is not None:\n                    self.gdeps[gid].append((node, ri))\n\n        # ---- per node classification ------------------------------------\n        self.leafy_tab = set()\n        for t in sc.tabs:\n            if sum(1 for R in t.refs if R.act == CASCADE) >= 2:\n                self.leafy_tab.add(t.name)\n        self.cgroups = []\n        self.removable = []\n        self.leafy = []\n        self.multi = []\n        refs = self.refs\n        for node in range(n):\n            cg = []\n            live = 0\n            sn = False\n            for ri, gid in self.node_refs[node]:\n                live += 1\n                act = refs[ri].act\n                if act == CASCADE and gid is not None:\n                    cg.append(gid)\n                elif act == SETNULL:\n                    sn = True\n            self.cgroups.append(cg)\n            ng = self.node_groups[node]\n            self.removable.append(any(gid not in ng for gid in cg))\n            self.leafy.append(self.node_tab[node].name in self.leafy_tab)\n            self.multi.append(live >= 2 and sn)\n        # audit cannot use the fast path if a leafy table has other refs\n        self.simple_only = any(\n            any(R.act != CASCADE for R in t.refs)\n            for t in sc.tabs if t.name in self.leafy_tab)\n\n    def _build(self, K, mask, register):\n        idx = {}\n        s, e = self.trange[K.tab.name]\n        cols = [K.cols[i] for i in mask]\n        vals = self.vals\n        for node in range(s, e):\n            v = vals[node]\n            kv = tuple(v[c] for c in cols)\n            if None in kv:\n                continue\n            gid = idx.get(kv)\n            if gid is None:\n                gid = idx[kv] = len(self.gsize)\n                self.gsiz
+… [clipped]
+collapse
+Now the exact engine: drop.py (propagation + statement entry point), hold.py (end-state judgement), clear.py (applying the result).
+
+Write(/app/db/drop.py)
+
+Wrote 56 lines
+"""Delete statements: exact least-fixpoint removal over the match graph."""
+ 
+from db import clear, hold, match
+ 
+CASCADE = match.CASCADE
+ 
+ 
+def run(g, seeds):
+    """Remove the seed rows and everything that loses a cascade reference.
+ 
+    Returns (removed, lost): the set of removed nodes and the list of
+    (node, refidx) pairs whose non-cascade reference lost every match.
+    """
+    removed = set()
+    count = {}
+    lost = []
+    stack = list(seeds)
+    gsize = g.gsize
+    gdeps = g.gdeps
+    ng = g.node_groups
+    refs = g.refs
+    while stack:
+        m = stack.pop()
+        if m in removed:
+            continue
+        removed.add(m)
+        for gid in ng[m]:
+            c = count.get(gid, 0) + 1
+            count[gid] = c
+            if c == gsize[gid]:
+                for r, ri in gdeps[gid]:
+                    if refs[ri].act == CASCADE:
+                        if r not in removed:
+                            stack.append(r)
+                    else:
+                        lost.append((r, ri))
+    return removed, lost
+ 
+ 
+def outcome(g, seeds):
+    """(removed count, cleared count, fails dict) for deleting the seeds."""
+    removed, lost = run(g, seeds)
+    fails, newvals = hold.judge(g, removed, lost)
+    return removed, newvals, fails
+ 
+ 
+def delete(store, tab, ids):
+    g = match.graph(store)
+    known = g.nid[tab]
+    seeds = [known[i] for i in ids if i in known]
+    removed, newvals, fails = outcome(g, seeds)
+    if fails:
+        pos = min(fails)
+        return ("refused", g.decls[pos].name, fails[pos])
+    clear.apply(store, g, removed, newvals)
+    return ("ok", len(removed), len(newvals))
+collapse
+The file /app/db/drop.py has been updated successfully. (file state is current in your context — no need to Read it back)
+
+[metadata] {"type": "update", "filePath": "/app/db/drop.py", "content": "\"\"\"Delete statements: exact least-fixpoint removal over the match graph.\"\"\"\n\nfrom db import clear, hold, match\n\nCASCADE = match.CASCADE\n\n\ndef run(g, seeds):\n    \"\"\"Remove the seed rows and everything that loses a cascade reference.\n\n    Returns (removed, lost): the set of removed nodes and the list of\n    (node, refidx) pairs whose non-cascade reference lost every match.\n    \"\"\"\n    removed = set()\n    count = {}\n    lost = []\n    stack = list(seeds)\n    gsize = g.gsize\n    gdeps = g.gdeps\n    ng = g.node_groups\n    refs = g.refs\n    while stack:\n        m = stack.pop()\n        if m in removed:\n            continue\n        removed.add(m)\n        for gid in ng[m]:\n            c = count.get(gid, 0) + 1\n            count[gid] = c\n            if c == gsize[gid]:\n                for r, ri in gdeps[gid]:\n                    if refs[ri].act == CASCADE:\n                        if r not in removed:\n                            stack.append(r)\n                    else:\n                        lost.append((r, ri))\n    return removed, lost\n\n\ndef outcome(g, seeds):\n    \"\"\"(removed count, cleared count, fails dict) for deleting the seeds.\"\"\"\n    removed, lost = run(g, seeds)\n    fails, newvals = hold.judge(g, removed, lost)\n    return removed, newvals, fails\n\n\ndef delete(store, tab, ids):\n    g = match.graph(store)\n    known = g.nid[tab]\n    seeds = [known[i] for i in ids if i in known]\n    removed, newvals, fails = outcome(g, seeds)\n    if fails:\n        pos = min(fails)\n        return (\"refused\", g.decls[pos].name, fails[pos])\n    clear.apply(store, g, removed, newvals)\n    return (\"ok\", len(removed), len(newvals))\n", "structuredPatch": [{"oldStart": 1, "oldLines": 34, "newStart": 1, "newLines": 56, "lines": ["-import copy", "+\"\"\"Delete statements: exact least-fixpoint removal over the match graph.\"\"\"", " ", " from db import clear, hold, match", " ", "+CASCADE = match.CASCADE", " ", "-def delete(store, tab, ids):", "-    keep = copy.deepcopy(store.data)", "-    log = {\"gone\": [], \"wiped\": set(), \"bad\": []}", "-    for rid in ids:", "-        if store.has(tab, rid):", "-            cut(store, tab, rid, log)", "-    bad = hold.check(store, log)", "-    if bad:", "-        store.data = keep", "-        return (\"refused\",) + bad", "-    return (\"ok\", len(log[\"gone\"]), len(log[\"wiped\"]))", " ", "+def run(g, seeds):", "+    \"\"\"Remove the seed rows and everything that loses a cascade reference.", " ", "-def cut(store, tab, rid, log):", "-    vals = store.get(tab, rid)", "-    store.drop(tab, rid)", "-    log[\"gone\"].append((tab, rid))", "-    for ref in store.tabs[tab].used:", "-        ct = ref.tab.name", "-        for c in match.downs(store, ref, vals):", "-            if not store.has(ct, c) or match.ups(store, ref, store.get(ct, c)):", "-                continue", "-            if ref.act == \"cascade\":", "-                cut(store, ct, c, log)", "-            elif ref.act == \"setnull\":", "-                clear.wipe(store, ref, ct, c)", "-                log[\"wiped\"].add((ct, c))", "-            else:", "-                log[\"bad\"].append((ref.name, c))", "+    Returns (removed, lost): the set of removed nodes and the list of", "+    (node, refidx) pairs whose non-cascade reference lost every match.", "+    \"\"\"", "+    removed = set()", "+    count = {}", "+    lost = []", "+    stack = list(seeds)", "+    gsize = g.gsize", "+    gdeps = g.gdeps", "+    ng = g.node_groups", "+    refs = g.refs", "+    while stack:", "+        m = stack.pop()", "+        if m in removed:", "+            continue", "+        removed.add(m)", "+        for gid in ng[m]:", "+            c = count.get(gid, 0) + 1", "+            count[gid] = c", "+            if c == gsize[gid]:", "+                for r, ri in gdeps[gid]:", "+                    if refs[ri].act == CASCADE:", "+                        if r not in removed:", "+                            stack.append(r)", "+                    else:", "+                        lost.append((r, ri))", "+    return removed, lost", "+", "+", "+def outcome(g, seeds):", "+    \"\"\"(removed count, cleared count, fails dict) for deleting the seeds.\"\"\"", "+    removed, lost = run(g, seeds)", "+    fails, newvals = hold.judge(g, removed, lost)", "+    return removed, newvals, fails", "+", "+", "+def delete(store, tab, ids):", "+    g = match.graph(store)", "+    known = g.nid[tab]", "+    seeds = [known[i] for i in ids if i in known]", "+    removed, newvals, fails = outcome(g, seeds)", "+    if fails:", "+        pos = min(fails)", "+        return (\"refused\", g.decls[pos].name, fails[pos])", "+    clear.apply(store, g, removed, newvals)", "+    return (\"ok\", len(removed), len(newvals))"]}], "originalFile": "import copy\n\nfrom db import clear, hold, match\n\n\ndef delete(store, tab, ids):\n    keep = copy.deepcopy(store.data)\n    log = {\"gone\": [], \"wiped\": set(), \"bad\": []}\n    for rid in ids:\n        if store.has(tab, rid):\n            cut(store, tab, rid, log)\n    bad = hold.check(store, log)\n    if bad:\n        store.data = keep\n        return (\"refused\",) + bad\n    return (\"ok\", len(log[\"gone\"]), len(log[\"wiped\"]))\n\n\ndef cut(store, tab, rid, log):\n    vals = store.get(tab, rid)\n    store.drop(tab, rid)\n    log[\"gone\"].append((tab, rid))\n    for ref in store.tabs[tab].used:\n        ct = ref.tab.name\n        for c in match.downs(store, ref, vals):\n            if not store.has(ct, c) or match.ups(store, ref, store.get(ct, c)):\n                continue\n            if ref.act == \"cascade\":\n                cut(store, ct, c, log)\n            elif ref.act == \"setnull\":\n                clear.wipe(store, ref, ct, c)\n               
+… [clipped]
+collapse
+Write(/app/db/hold.py)
+
+Wrote 73 lines
+"""End-state judgement of a delete: which keys and references fail."""
+ 
+from db import match
+ 
+RESTRICT = match.RESTRICT
+SETNULL = match.SETNULL
+form = match.form
+ 
+ 
+def judge(g, removed, lost):
+    """Return (fails, newvals).
+ 
+    fails maps declaration position -> smallest failing row id.
+    newvals maps node -> its values after clearing (rows that are cleared).
+    """
+    fails = {}
+    node_id = g.node_id
+ 
+    def fail(pos, node):
+        rid = node_id[node]
+        if pos not in fails or rid < fails[pos]:
+            fails[pos] = rid
+ 
+    wiped = {}
+    affected = set()
+    for r, ri in lost:
+        R = g.refs[ri]
+        if R.act == RESTRICT:
+            fail(R.pos, r)
+            continue
+        if r in removed:
+            continue
+        affected.add(r)
+        if R.act == SETNULL:
+            wiped.setdefault(r, set()).update(R.wipe)
+ 
+    newvals = {}
+    for r, w in wiped.items():
+        v = list(g.vals[r])
+        for c in w:
+            v[c] = None
+        newvals[r] = v
+        t = g.node_tab[r]
+        for K in t.keys:
+            if any(v[c] is None for c in K.cols):
+                fail(K.pos, r)
+        for gid in g.node_groups[r]:
+            K, mask = g.gkey[gid]
+            if any(K.cols[i] in w for i in mask):
+                for r2, _ in g.gdeps[gid]:
+                    if r2 not in removed:
+                        affected.add(r2)
+ 
+    def gone(p, K, mask):
+        if p in removed:
+            return True
+        w = wiped.get(p)
+        return bool(w) and any(K.cols[i] in w for i in mask)
+ 
+    for r in affected:
+        v = newvals.get(r) or g.vals[r]
+        for R in g.node_tab[r].refs:
+            f = form(R, v)
+            if f is None:
+                continue
+            if f is False:
+                fail(R.pos, r)
+                continue
+            K = R.key
+            mem = g.members(K, f, tuple(v[R.cols[i]] for i in f))
+            if not mem or all(gone(p, K, f) for p in mem):
+                fail(R.pos, r)
+    return fails, newvals
+collapse
+The file /app/db/hold.py has been updated successfully. (file state is current in your context — no need to Read it back)
+
+[metadata] {"type": "update", "filePath": "/app/db/hold.py", "content": "\"\"\"End-state judgement of a delete: which keys and references fail.\"\"\"\n\nfrom db import match\n\nRESTRICT = match.RESTRICT\nSETNULL = match.SETNULL\nform = match.form\n\n\ndef judge(g, removed, lost):\n    \"\"\"Return (fails, newvals).\n\n    fails maps declaration position -> smallest failing row id.\n    newvals maps node -> its values after clearing (rows that are cleared).\n    \"\"\"\n    fails = {}\n    node_id = g.node_id\n\n    def fail(pos, node):\n        rid = node_id[node]\n        if pos not in fails or rid < fails[pos]:\n            fails[pos] = rid\n\n    wiped = {}\n    affected = set()\n    for r, ri in lost:\n        R = g.refs[ri]\n        if R.act == RESTRICT:\n            fail(R.pos, r)\n            continue\n        if r in removed:\n            continue\n        affected.add(r)\n        if R.act == SETNULL:\n            wiped.setdefault(r, set()).update(R.wipe)\n\n    newvals = {}\n    for r, w in wiped.items():\n        v = list(g.vals[r])\n        for c in w:\n            v[c] = None\n        newvals[r] = v\n        t = g.node_tab[r]\n        for K in t.keys:\n            if any(v[c] is None for c in K.cols):\n                fail(K.pos, r)\n        for gid in g.node_groups[r]:\n            K, mask = g.gkey[gid]\n            if any(K.cols[i] in w for i in mask):\n                for r2, _ in g.gdeps[gid]:\n                    if r2 not in removed:\n                        affected.add(r2)\n\n    def gone(p, K, mask):\n        if p in removed:\n            return True\n        w = wiped.get(p)\n        return bool(w) and any(K.cols[i] in w for i in mask)\n\n    for r in affected:\n        v = newvals.get(r) or g.vals[r]\n        for R in g.node_tab[r].refs:\n            f = form(R, v)\n            if f is None:\n                continue\n            if f is False:\n                fail(R.pos, r)\n                continue\n            K = R.key\n            mem = g.members(K, f, tuple(v[R.cols[i]] for i in f))\n            if not mem or all(gone(p, K, f) for p in mem):\n                fail(R.pos, r)\n    return fails, newvals\n", "structuredPatch": [{"oldStart": 1, "oldLines": 12, "newStart": 1, "newLines": 73, "lines": ["+\"\"\"End-state judgement of a delete: which keys and references fail.\"\"\"", "+", " from db import match", " ", "+RESTRICT = match.RESTRICT", "+SETNULL = match.SETNULL", "+form = match.form", " ", "-def check(store, log):", "-    if log[\"bad\"]:", "-        return log[\"bad\"][0]", "-    for tab, rid in sorted(log[\"wiped\"]):", "-        vals = store.get(tab, rid)", "-        for ref in store.tabs[tab].refs:", "-            if match.form(ref, vals) and not match.ups(store, ref, vals):", "-                return (ref.name, rid)", "-    return None", "+", "+def judge(g, removed, lost):", "+    \"\"\"Return (fails, newvals).", "+", "+    fails maps declaration position -> smallest failing row id.", "+    newvals maps node -> its values after clearing (rows that are cleared).", "+    \"\"\"", "+    fails = {}", "+    node_id = g.node_id", "+", "+    def fail(pos, node):", "+        rid = node_id[node]", "+        if pos not in fails or rid < fails[pos]:", "+            fails[pos] = rid", "+", "+    wiped = {}", "+    affected = set()", "+    for r, ri in lost:", "+        R = g.refs[ri]", "+        if R.act == RESTRICT:", "+            fail(R.pos, r)", "+            continue", "+        if r in removed:", "+            continue", "+        affected.add(r)", "+        if R.act == SETNULL:", "+            wiped.setdefault(r, set()).update(R.wipe)", "+", "+    newvals = {}", "+    for r, w in wiped.items():", "+        v = list(g.vals[r])", "+        for c in w:", "+            v[c] = None", "+        newvals[r] = v", "+        t = g.node_tab[r]", "+        for K in t.keys:", "+            if any(v[c] is None for c in K.cols):", "+                fail(K.pos, r)", "+        for gid in g.node_groups[r]:", "+            K, mask = g.gkey[gid]", "+            if any(K.cols[i] in w for i in mask):", "+                for r2, _ in g.gdeps[gid]:", "+                    if r2 not in removed:", "+                        affected.add(r2)", "+", "+    def gone(p, K, mask):", "+        if p in removed:", "+            return True", "+        w = wiped.get(p)", "+        return bool(w) and any(K.cols[i] in w for i in mask)", "+", "+    for r in affected:", "+        v = newvals.get(r) or g.vals[r]", "+        for R in g.node_tab[r].refs:", "+            f = form(R, v)", "+            if f is None:", "+                continue", "+            if f is False:", "+                fail(R.pos, r)", "+                continue", "+            K = R.key", "+            mem = g.members(K, f, tuple(v[R.cols[i]] for i in f))", "+            if not mem or all(gone(p, K, f) for p in mem):", "+                fail(R.pos, r)", "+    return fails, newvals"]}], "originalFile": "from db import match\n\n\ndef check(store, log):\n    if log[\"bad\"]:\n        return log[\"bad\"][0]\n    for tab, rid in sorted(log[\"wiped\"]):\n        vals = store.get(tab, rid)\n        for ref in store.tabs[tab].refs:\n            if match.form(ref, vals) and not match.ups(store, ref, vals):\n                return (ref.name, rid)\n    return None\n", "userModified": false}
+Write(/app/db/clear.py)
+
+Wrote 11 lines
+"""Apply an accepted delete to the store."""
+ 
+from db import match
+ 
+ 
+def apply(store, g, removed, newvals):
+    for m in removed:
+        store.drop(g.node_tab[m].name, g.node_id[m])
+    for r, v in newvals.items():
+        store.data[g.node_tab[r].name][g.node_id[r]] = v
+    match.forget(store)
+The file /app/db/clear.py has been updated successfully. (file state is current in your context — no need to Read it back)
+
+[metadata] {"type": "update", "filePath": "/app/db/clear.py", "content": "\"\"\"Apply an accepted delete to the store.\"\"\"\n\nfrom db import match\n\n\ndef apply(store, g, removed, newvals):\n    for m in removed:\n        store.drop(g.node_tab[m].name, g.node_id[m])\n    for r, v in newvals.items():\n        store.data[g.node_tab[r].name][g.node_id[r]] = v\n    match.forget(store)\n", "structuredPatch": [{"oldStart": 1, "oldLines": 3, "newStart": 1, "newLines": 11, "lines": ["-def wipe(store, ref, tab, rid):", "-    for c in ref.cols:", "-        store.put(tab, rid, c, None)", "+\"\"\"Apply an accepted delete to the store.\"\"\"", "+", "+from db import match", "+", "+", "+def apply(store, g, removed, newvals):", "+    for m in removed:", "+        store.drop(g.node_tab[m].name, g.node_id[m])", "+    for r, v in newvals.items():", "+        store.data[g.node_tab[r].name][g.node_id[r]] = v", "+    match.forget(store)"]}], "originalFile": "def wipe(store, ref, tab, rid):\n    for c in ref.cols:\n        store.put(tab, rid, c, None)\n", "userModified": false}
+Now audit.py, with both the exact per-row reference (used as fallback) and the incremental closure-merging pass.
+
+Write({"file_path":"/app/db/audit.py","content":"\"\"\"Audit: the verdict of deleting each row on its own, for every…)
+
+The file /app/db/audit.py has been updated successfully. (file state is current in your context — no need to Read it back)
+
+[metadata] {"type": "update", "filePath": "/app/db/audit.py", "content": "\"\"\"Audit: the verdict of deleting each row on its own, for every row.\n\nThe closures C(x) of single-row deletes form a laminar family (nested or\ndisjoint) for every row that is not in a table with two or more cascade\nreferences.  Seeds are processed dependents-first, so that by the time a\nseed is handled every row its delete would force (other than rows in its\nown strongly connected component) already has a finished aggregate, which\nis merged wholesale instead of being re-derived row by row.\n\"\"\"\n\nfrom db import drop, match\n\nCASCADE = match.CASCADE\nRESTRICT = match.RESTRICT\nNOACTION = match.NOACTION\nSETNULL = match.SETNULL\nform = match.form\n\n\ndef audit(store):\n    g = match.graph(store)\n    res = _all(g)\n    out = []\n    for t in g.tabs:\n        s, e = g.trange[t.name]\n        for node in range(s, e):\n            rem, cl, held = res[node]\n            out.append((t.name, g.node_id[node], rem, cl, held))\n    return out\n\n\ndef exact(g, x):\n    removed, newvals, fails = drop.outcome(g, [x])\n    return (len(removed), len(newvals), bool(fails))\n\n\nclass Agg(object):\n    __slots__ = (\"n\", \"leafy_n\", \"leafy_open\", \"groups\", \"cleared_n\",\n                 \"fails\", \"pending\", \"exact\")\n\n    def __init__(self):\n        self.n = 0\n        self.leafy_n = 0\n        self.leafy_open = {}\n        self.groups = {}\n        self.cleared_n = 0\n        self.fails = {}\n        self.pending = []\n        self.exact = False\n\n\ndef _tarjan(g):\n    \"\"\"SCCs of the dependency digraph (row -> cascade group -> members),\n    emitted with dependees first.  Returns (list of row lists, scc index).\"\"\"\n    n = len(g.vals)\n    G = len(g.gsize)\n    total = n + G\n    cgroups = g.cgroups\n    gmembers = g.gmembers\n    index = [-1] * total\n    low = [0] * total\n    onstack = [False] * total\n    scc = [-1] * total\n    stack = []\n    comps = []\n    counter = 0\n\n    def adj(v):\n        if v < n:\n            return [n + gid for gid in cgroups[v]]\n        return gmembers[v - n]\n\n    for root in range(total):\n        if index[root] != -1:\n            continue\n        work = [(root, 0, adj(root))]\n        index[root] = low[root] = counter\n        counter += 1\n        stack.append(root)\n        onstack[root] = True\n        while work:\n            v, i, nb = work[-1]\n            if i < len(nb):\n                work[-1] = (v, i + 1, nb)\n                w = nb[i]\n                if index[w] == -1:\n                    index[w] = low[w] = counter\n                    counter += 1\n                    stack.append(w)\n                    onstack[w] = True\n                    work.append((w, 0, adj(w)))\n                elif onstack[w] and index[w] < low[v]:\n                    low[v] = index[w]\n            else:\n                work.pop()\n                if work:\n                    u = work[-1][0]\n                    if low[v] < low[u]:\n                        low[u] = low[v]\n                if low[v] == index[v]:\n                    comp = []\n                    while True:\n                        w = stack.pop()\n                        onstack[w] = False\n                        scc[w] = len(comps)\n                        if w < n:\n                            comp.append(w)\n                        if w == v:\n                            break\n                    comps.append(comp)\n    return comps, scc\n\n\ndef _all(g):\n    n = len(g.vals)\n    if g.simple_only:\n        return [exact(g, x) for x in range(n)]\n    comps, scc = _tarjan(g)\n    fin = [None] * n\n    res = [None] * n\n    par = [-1] * n\n    alias = list(range(n))\n\n    def rep(y):\n        while alias[y] != y:\n            y = alias[y]\n        return y\n\n    for comp in reversed(comps):\n        if not comp:\n            continue\n        if len(comp) == 1:\n            x = comp[0]\n            agg, own, blocks = _context(g, x, scc, fin, par, alias, res)\n            _finish(g, x, agg, own, blocks, fin, par, alias, True)\n            continue\n        done = []\n        for x in comp:\n            agg, own, blocks = _context(g, x, scc, fin, par, alias, res)\n            done.append((agg.n, x, agg, own, blocks))\n        done.sort(key=lambda d: (d[0], d[1]))\n        owns = {}\n        for _, x, agg, own, blocks in done:\n            owns[x] = own\n            dup = None\n            for z in own:\n                if z != x and z in owns and x in owns[z] and fin[z] is not None:\n                    dup = z\n                    break\n            if dup is not None:\n                alias[x] = rep(dup)\n                fin[x] = fin[alias[x]]\n                continue\n            _finish(g, x, agg, own, blocks, fin, par, alias, False)\n    return res\n\n\ndef _finish(g, x, agg, own, blocks, fin, par, alias, free):\n    for m in own:\n        if par[m] == -1 and m != x:\n            par[m] = x\n    for b in blocks:\n        if par[b] == -1:\n            par[b] = x\n        if free:\n            fin[b] = None\n    fin[x] = agg\n\n\ndef _context(g, x, scc, fin, par, alias, res):\n    refs = g.refs\n    gsize = g.gsize\n    gdeps = g.gdeps\n    gkey = g.gkey\n    gmembers = g.gmembers\n    ng = g.node_groups\n    node_id = g.node_id\n    leafy = g.leafy\n    cgroups = g.cgroups\n    potential = g.potential\n    sx = scc[x]\n\n    agg = Agg()\n    groups = agg.groups\n    fails = agg.fails\n    leafy_open = agg.leafy_open\n    own = set()\n    blocks = set()\n    lost = []\n    fires = []\n\n    def fail(pos, node):\n        rid = node_id[node]\n        if pos not in fails or rid < fails[pos]:\n            fails[pos] = rid\n\n    def inc(gid):\n        e = groups.get(gid)\n        if e is None:\n            e = groups[gid] = [0, None]\n        e[0] += 1\n        
+… [clipped]
+collapse
+Let me remove the leftover no-op lines in the fire loop and then run tiny.txt.
+
+Bash(python3 - <<'EOF' import re s = open('db/audit.py').read() s = s.replace(""" if gkey[gid][0].name in potential…)
+
+ok 2 0
+note 2 2 a -
+ok 3 0
+doc 1 1 0 ok
+---
+ok 1 0
+hold 1 1 d1 -
+hold 3 3 d1 2
+doc 1 1 0 held
+doc 2 1 0 held
+doc 3 1 0 held
+doc 4 1 0 held
+rev 1 11 0 held
+rev 2 6 0 held
+rev 3 10 0 ok
+rev 4 6 0 ok
+rev 5 2 0 ok
+rev 6 2 0 ok
+rev 7 1 0 ok
+rev 8 3 0 ok
+rev 9 2 0 ok
+rev 10 1 0 ok
+rev 11 1 0 ok
+rev 12 4 0 ok
+rev 13 3 0 ok
+rev 14 1 0 ok
+rev 15 4 0 ok
+rev 16 2 0 ok
+note 1 1 0 ok
+note 2 1 0 ok
+note 3 1 0 ok
+note 4 1 0 ok
+note 5 1 0 ok
+note 6 1 0 ok
+note 7 1 0 ok
+note 8 1 0 ok
+note 9 1 0 ok
+note 10 1 0 ok
+note 11 1 0 ok
+note 12 1 0 ok
+note 13 1 0 ok
+note 14 1 0 ok
+note 15 1 0 ok
+note 16 1 0 ok
+note 17 1 0 ok
+note 18 1 0 ok
+note 19 1 0 ok
+note 20 1 0 ok
+note 21 1 0 ok
+note 22 1 0 ok
+hold 1 1 0 ok
+hold 3 1 0 ok
+ok 1 0
+---
+ok 4 0
+cite 1 1 d7 8
+cite 2 2 d8 4
+cite 3 3 d3 5
+cite 4 4 d5 1
+cite 5 5 d6 1
+cite 6 6 d8 16
+cite 7 7 d5 4
+cite 8 8 d5 1
+cite 9 9 d8 14
+cite 10 10 d5 2
+cite 11 11 d3 4
+cite 12 12 d4 3
+cite 13 13 d8 18
+cite 14 14 d5 5
+cite 15 15 - -
+cite 16 16 - -
+cite 17 17 d4 3
+cite 18 18 - -
+cite 19 19 d6 4
+cite 20 20 d2 4
+cite 21 21 d1 2
+cite 22 22 d8 11
+cite 23 23 - -
+pin 1 1 d4 -
+pin 2 2 d3 5
+pin 3 3 d3 9
+pin 4 4 d2 26
+pin 5 5 d1 -
+pin 6 6 d8 18
+pin 7 7 d1 4
+pin 8 8 d4 -
+pin 9 9 d6 3
+pin 10 10 d5 4
+pin 11 11 d4 1
+pin 12 12 d8 20
+pin 13 13 d8 8
+pin 14 14 d5 4
+pin 15 15 d8 18
+pin 16 16 d4 1
+Traceback (most recent call last):
+  File "/app/run_db.py", line 25, in <module>
+    main(sys.argv[1])
+  File "/app/run_db.py", line 20, in main
+    out.write(line + "\n")
+BrokenPipeError: [Errno 32] Broken pipe
+
+real	0m0.112s
+user	0m0.090s
+sys	0m0.016s
+
+[stdout]
+ok 2 0
+note 2 2 a -
+ok 3 0
+doc 1 1 0 ok
+---
+ok 1 0
+hold 1 1 d1 -
+hold 3 3 d1 2
+doc 1 1 0 held
+doc 2 1 0 held
+doc 3 1 0 held
+doc 4 1 0 held
+rev 1 11 0 held
+rev 2 6 0 held
+rev 3 10 0 ok
+rev 4 6 0 ok
+rev 5 2 0 ok
+rev 6 2 0 ok
+rev 7 1 0 ok
+rev 8 3 0 ok
+rev 9 2 0 ok
+rev 10 1 0 ok
+rev 11 1 0 ok
+rev 12 4 0 ok
+rev 13 3 0 ok
+rev 14 1 0 ok
+rev 15 4 0 ok
+rev 16 2 0 ok
+note 1 1 0 ok
+note 2 1 0 ok
+note 3 1 0 ok
+note 4 1 0 ok
+note 5 1 0 ok
+note 6 1 0 ok
+note 7 1 0 ok
+note 8 1 0 ok
+note 9 1 0 ok
+note 10 1 0 ok
+note 11 1 0 ok
+note 12 1 0 ok
+note 13 1 0 ok
+note 14 1 0 ok
+note 15 1 0 ok
+note 16 1 0 ok
+note 17 1 0 ok
+note 18 1 0 ok
+note 19 1 0 ok
+note 20 1 0 ok
+note 21 1 0 ok
+note 22 1 0 ok
+hold 1 1 0 ok
+hold 3 1 0 ok
+ok 1 0
+---
+ok 4 0
+cite 1 1 d7 8
+cite 2 2 d8 4
+cite 3 3 d3 5
+cite 4 4 d5 1
+cite 5 5 d6 1
+cite 6 6 d8 16
+cite 7 7 d5 4
+cite 8 8 d5 1
+cite 9 9 d8 14
+cite 10 10 d5 2
+cite 11 11 d3 4
+cite 12 12 d4 3
+cite 13 13 d8 18
+cite 14 14 d5 5
+cite 15 15 - -
+cite 16 16 - -
+cite 17 17 d4 3
+cite 18 18 - -
+cite 19 19 d6 4
+cite 20 20 d2 4
+cite 21 21 d1 2
+cite 22 22 d8 11
+cite 23 23 - -
+pin 1 1 d4 -
+pin 2 2 d3 5
+pin 3 3 d3 9
+pin 4 4 d2 26
+pin 5 5 d1 -
+pin 6 6 d8 18
+pin 7 7 d1 4
+pin 8 8 d4 -
+pin 9 9 d6 3
+pin 10 10 d5 4
+pin 11 11 d4 1
+pin 12 12 d8 20
+pin 13 13 d8 8
+pin 14 14 d5 4
+pin 15 15 d8 18
+pin 16 16 d4 1
+Traceback (most recent call last):
+  File "/app/run_db.py", line 25, in <module>
+    main(sys.argv[1])
+  File "/app/run_db.py", line 20, in main
+    out.write(line + "\n")
+BrokenPipeError: [Errno 32] Broken pipe
+
+real	0m0.112s
+user	0m0.090s
+sys	0m0.016s
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+I'll now build an independent brute-force reference and a random script generator to fuzz `delete` and `audit`, and fix a merge issue where a group already covered by a merged block shouldn't re-trigger its dependents.
+
+Bash({"command":"python3 - <<'EOF'\ns = open('/app/db/audit.py').read()\nold = \"\"\" for gid, (c, dyn) in a.groups…)
+
+tiny same
+loops same
+docs same
+
+[stdout]
+tiny same
+loops same
+docs same
+[metadata] {"noOutputExpected": false}
+collapse
+The reference agrees on all three small scripts. Now I'll fuzz with randomly generated small scripts against the reference, and time deep.txt in parallel.
+
+Bash({"command":"cat > /tmp/fuzz.py <<'EOF'\nimport random, subprocess, sys, os\nsys.path.insert(0, '/app'); sys.pa…)
+
+Traceback (most recent call last):
+  File "/tmp/fuzz.py", line 138, in <module>
+    main(int(sys.argv[1]), int(sys.argv[2]))
+  File "/tmp/fuzz.py", line 104, in main
+    if not valid(path): continue
+           ^^^^^^^^^^^
+  File "/tmp/fuzz.py", line 82, in valid
+    R = Ref(path)
+        ^^^^^^^^^
+  File "/tmp/ref.py", line 8, in __init__
+    self.sc = parse.read(path)
+              ^^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 102, in read
+    return parse(f.read())
+           ^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 146, in parse
+    k = _get(sc, w[arrow + 1], Key, no)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 83, in _get
+    raise Bad("line %d: %r is not a %s" % (no, word, kind.__name__.lower()))
+db.parse.Bad: line 9: 'rev_k' is not a key
+
+[stdout]
+Traceback (most recent call last):
+  File "/tmp/fuzz.py", line 138, in <module>
+    main(int(sys.argv[1]), int(sys.argv[2]))
+  File "/tmp/fuzz.py", line 104, in main
+    if not valid(path): continue
+           ^^^^^^^^^^^
+  File "/tmp/fuzz.py", line 82, in valid
+    R = Ref(path)
+        ^^^^^^^^^
+  File "/tmp/ref.py", line 8, in __init__
+    self.sc = parse.read(path)
+              ^^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 102, in read
+    return parse(f.read())
+           ^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 146, in parse
+    k = _get(sc, w[arrow + 1], Key, no)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 83, in _get
+    raise Bad("line %d: %r is not a %s" % (no, word, kind.__name__.lower()))
+db.parse.Bad: line 9: 'rev_k' is not a key
+[metadata] {"noOutputExpected": false}
+collapse
+The shuffle put refs before the keys they name. I'll shuffle keys and refs separately, then run the fuzzer and the deep.txt timing at the same time since they're independent.
+
+Bash(cd /tmp && python3 - <<'EOF' s = open('/tmp/fuzz.py').read() s = s.replace(""" rnd.shuffle(decls) L += decls""…)
+
+Traceback (most recent call last):
+  File "/tmp/fuzz.py", line 139, in <module>
+    main(int(sys.argv[1]), int(sys.argv[2]))
+  File "/tmp/fuzz.py", line 105, in main
+    if not valid(path): continue
+           ^^^^^^^^^^^
+  File "/tmp/fuzz.py", line 83, in valid
+    R = Ref(path)
+        ^^^^^^^^^
+  File "/tmp/ref.py", line 8, in __init__
+    self.sc = parse.read(path)
+              ^^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 102, in read
+    return parse(f.read())
+           ^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 177, in parse
+    raise Bad("line %d: %s has %d columns" % (no, t.name, len(t.cols)))
+db.parse.Bad: line 27: note has 3 columns
+Shell cwd was reset to /app
+
+[stdout]
+Traceback (most recent call last):
+  File "/tmp/fuzz.py", line 139, in <module>
+    main(int(sys.argv[1]), int(sys.argv[2]))
+  File "/tmp/fuzz.py", line 105, in main
+    if not valid(path): continue
+           ^^^^^^^^^^^
+  File "/tmp/fuzz.py", line 83, in valid
+    R = Ref(path)
+        ^^^^^^^^^
+  File "/tmp/ref.py", line 8, in __init__
+    self.sc = parse.read(path)
+              ^^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 102, in read
+    return parse(f.read())
+           ^^^^^^^^^^^^^^^
+  File "/app/db/parse.py", line 177, in parse
+    raise Bad("line %d: %s has %d columns" % (no, t.name, len(t.cols)))
+db.parse.Bad: line 27: note has 3 columns
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Row generators are missing the key column for note, link, pin and ann. Fixing, then launching the fuzzer and the deep.txt timing together.
+
+Bash(cd /tmp && python3 - <<'EOF' s = open('/tmp/fuzz.py').read() s = s.replace('rows.append("row note %d %s" % (i …)
+
+ref error 211 cannot access local variable 'say' where it is not associated with a value
+ref error 214 cannot access local variable 'say' where it is not associated with a value
+ref error 221 cannot access local variable 'say' where it is not associated with a value
+ref error 222 cannot access local variable 'say' where it is not associated with a value
+ref error 225 cannot access local variable 'say' where it is not associated with a value
+ref error 226 cannot access local variable 'say' where it is not associated with a value
+ref error 229 cannot access local variable 'say' where it is not associated with a value
+ref error 233 cannot access local variable 'say' where it is not associated with a value
+ref error 234 cannot access local variable 'say' where it is not associated with a value
+ref error 241 cannot access local variable 'say' where it is not associated with a value
+ref error 243 cannot access local variable 'say' where it is not associated with a value
+ref error 245 cannot access local variable 'say' where it is not associated with a value
+ref error 247 cannot access local variable 'say' where it is not associated with a value
+ref error 256 cannot access local variable 'say' where it is not associated with a value
+ref error 259 cannot access local variable 'say' where it is not associated with a value
+ref error 262 cannot access local variable 'say' where it is not associated with a value
+ref error 266 cannot access local variable 'say' where it is not associated with a value
+ref error 269 cannot access local variable 'say' where it is not associated with a value
+ref error 270 cannot access local variable 'say' where it is not associated with a value
+ref error 274 cannot access local variable 'say' where it is not associated with a value
+ref error 279 cannot access local variable 'say' where it is not associated with a value
+ref error 281 cannot access local variable 'say' where it is not associated with a value
+ref error 282 cannot access local variable 'say' where it is not associated with a value
+ref error 283 cannot access local variable 'say' where it is not associated with a value
+ref error 285 cannot access local variable 'say' where it is not associated with a value
+ref error 291 cannot access local variable 'say' where it is not associated with a value
+ref error 292 cannot access local variable 'say' where it is not associated with a value
+ref error 296 cannot access local variable 'say' where it is not associated with a value
+ref error 298 cannot access local variable 'say' where it is not associated with a value
+tried 0 bad 0
+Shell cwd was reset to /app
+
+[stdout]
+ref error 211 cannot access local variable 'say' where it is not associated with a value
+ref error 214 cannot access local variable 'say' where it is not associated with a value
+ref error 221 cannot access local variable 'say' where it is not associated with a value
+ref error 222 cannot access local variable 'say' where it is not associated with a value
+ref error 225 cannot access local variable 'say' where it is not associated with a value
+ref error 226 cannot access local variable 'say' where it is not associated with a value
+ref error 229 cannot access local variable 'say' where it is not associated with a value
+ref error 233 cannot access local variable 'say' where it is not associated with a value
+ref error 234 cannot access local variable 'say' where it is not associated with a value
+ref error 241 cannot access local variable 'say' where it is not associated with a value
+ref error 243 cannot access local variable 'say' where it is not associated with a value
+ref error 245 cannot access local variable 'say' where it is not associated with a value
+ref error 247 cannot access local variable 'say' where it is not associated with a value
+ref error 256 cannot access local variable 'say' where it is not associated with a value
+ref error 259 cannot access local variable 'say' where it is not associated with a value
+ref error 262 cannot access local variable 'say' where it is not associated with a value
+ref error 266 cannot access local variable 'say' where it is not associated with a value
+ref error 269 cannot access local variable 'say' where it is not associated with a value
+ref error 270 cannot access local variable 'say' where it is not associated with a value
+ref error 274 cannot access local variable 'say' where it is not associated with a value
+ref error 279 cannot access local variable 'say' where it is not associated with a value
+ref error 281 cannot access local variable 'say' where it is not associated with a value
+ref error 282 cannot access local variable 'say' where it is not associated with a value
+ref error 283 cannot access local variable 'say' where it is not associated with a value
+ref error 285 cannot access local variable 'say' where it is not associated with a value
+ref error 291 cannot access local variable 'say' where it is not associated with a value
+ref error 292 cannot access local variable 'say' where it is not associated with a value
+ref error 296 cannot access local variable 'say' where it is not associated with a value
+ref error 298 cannot access local variable 'say' where it is not associated with a value
+tried 0 bad 0
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /tmp && sed -i 's/^import random, subprocess, sys, os$/import random, subprocess, sys, os\nsys.path.insert(…)
+
+tried 8 bad 0
+Shell cwd was reset to /app
+
+[stdout]
+tried 8 bad 0
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Only 8 of 300 generated scripts meet the initial-state guarantees, so I'll fix the generator to repair invalid rows and select delete ids from live rows. I'll run that fix alongside the deep.txt timing work since they're independent.
+
+Bash(cd /tmp && python3 - <<'EOF' s = open('/tmp/fuzz.py').read() # split gen into decls+rows and statements chosen…)
+
+MISMATCH seed 5 
+  exp: doc 1 10 2 ok | got: doc 1 5 0 ok
+MISMATCH seed 6 
+  exp: doc 1 7 10 ok | got: doc 1 7 0 ok
+MISMATCH seed 86 
+  exp: doc 2 7 1 held | got: doc 2 7 0 ok
+MISMATCH seed 88 
+  exp: doc 1 10 0 ok | got: doc 1 6 0 ok
+MISMATCH seed 92 
+  exp: doc 1 7 2 held | got: doc 1 4 0 ok
+MISMATCH seed 93 
+  exp: doc 1 10 0 held | got: doc 1 3 0 ok
+tried 94 bad 6
+Shell cwd was reset to /app
+
+[stdout]
+MISMATCH seed 5 
+  exp: doc 1 10 2 ok | got: doc 1 5 0 ok
+MISMATCH seed 6 
+  exp: doc 1 7 10 ok | got: doc 1 7 0 ok
+MISMATCH seed 86 
+  exp: doc 2 7 1 held | got: doc 2 7 0 ok
+MISMATCH seed 88 
+  exp: doc 1 10 0 ok | got: doc 1 6 0 ok
+MISMATCH seed 92 
+  exp: doc 1 7 2 held | got: doc 1 4 0 ok
+MISMATCH seed 93 
+  exp: doc 1 10 0 held | got: doc 1 3 0 ok
+tried 94 bad 6
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cat /tmp/fz_5.txt; echo ---; python3 /tmp/ref.py /tmp/fz_5.txt | head -3; python3 run_db.py /tmp/fz_5.txt | he…)
+
+table doc d
+table rev d n bd bn
+table note k d n
+table link k fd fn td tn
+table pin k d n
+table tag d n t
+table ann k d n e m
+key pin_k pin k
+key tag_k tag d n t
+key doc_k doc d
+key ann_k ann k
+key rev_k rev d n
+key note_k note k
+key link_k link k
+ref pin_on pin d n -> rev_k full setnull
+ref ann_see ann e m -> rev_k simple setnull
+ref link_from link fd fn -> rev_k simple cascade
+ref link_to link td tn -> rev_k simple cascade
+ref rev_doc rev d -> doc_k partial cascade
+ref tag_on tag d n -> rev_k full cascade
+ref rev_base rev bd bn -> rev_k partial cascade
+ref ann_on ann d n -> rev_k partial cascade
+ref note_on note d n -> rev_k full restrict
+row doc 1 d1
+row rev 1 d1 1 - -
+row rev 2 d1 2 d1 2
+row rev 3 d1 3 d1 4
+row rev 4 d1 4 d1 -
+row link 1 1 d1 3 - -
+row link 2 2 d1 3 d1 3
+row link 3 3 d1 - d1 1
+row link 4 4 d1 - d1 3
+row pin 1 1 - -
+row pin 2 2 d1 3
+row pin 3 3 d1 1
+row ann 1 1 d1 4 - 3
+audit
+delete ann 1
+dump pin
+delete rev 1 4
+dump pin
+audit
+---
+doc 1 10 2 ok
+rev 1 2 1 ok
+rev 2 1 0 ok
+doc 1 5 0 ok
+rev 1 2 1 ok
+rev 2 2 0 ok
+Traceback (most recent call last):
+  File "/app/run_db.py", line 25, in <module>
+    main(sys.argv[1])
+  File "/app/run_db.py", line 20, in main
+    out.write(line + "\n")
+BrokenPipeError: [Errno 32] Broken pipe
+
+[stdout]
+table doc d
+table rev d n bd bn
+table note k d n
+table link k fd fn td tn
+table pin k d n
+table tag d n t
+table ann k d n e m
+key pin_k pin k
+key tag_k tag d n t
+key doc_k doc d
+key ann_k ann k
+key rev_k rev d n
+key note_k note k
+key link_k link k
+ref pin_on pin d n -> rev_k full setnull
+ref ann_see ann e m -> rev_k simple setnull
+ref link_from link fd fn -> rev_k simple cascade
+ref link_to link td tn -> rev_k simple cascade
+ref rev_doc rev d -> doc_k partial cascade
+ref tag_on tag d n -> rev_k full cascade
+ref rev_base rev bd bn -> rev_k partial cascade
+ref ann_on ann d n -> rev_k partial cascade
+ref note_on note d n -> rev_k full restrict
+row doc 1 d1
+row rev 1 d1 1 - -
+row rev 2 d1 2 d1 2
+row rev 3 d1 3 d1 4
+row rev 4 d1 4 d1 -
+row link 1 1 d1 3 - -
+row link 2 2 d1 3 d1 3
+row link 3 3 d1 - d1 1
+row link 4 4 d1 - d1 3
+row pin 1 1 - -
+row pin 2 2 d1 3
+row pin 3 3 d1 1
+row ann 1 1 d1 4 - 3
+audit
+delete ann 1
+dump pin
+delete rev 1 4
+dump pin
+audit
+---
+doc 1 10 2 ok
+rev 1 2 1 ok
+rev 2 1 0 ok
+doc 1 5 0 ok
+rev 1 2 1 ok
+rev 2 2 0 ok
+Traceback (most recent call last):
+  File "/app/run_db.py", line 25, in <module>
+    main(sys.argv[1])
+  File "/app/run_db.py", line 20, in main
+    out.write(line + "\n")
+BrokenPipeError: [Errno 32] Broken pipe
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Seed 5 breaks the constraint that no table can have two cascading references (rev has both rev_doc and rev_base), so the generator is the issue, not the code. I'll fix the generator and rerun the fuzz test while kicking off the deep.txt timing in parallel.
+
+Bash(cd /tmp && python3 - <<'EOF' s = open('/tmp/fuzz.py').read() old = """ decls.append("ref rev_doc rev d -> doc_…)
+
+tried 400 bad 0
+Shell cwd was reset to /app
+
+[stdout]
+tried 400 bad 0
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Fuzzing came back clean across 400 seeds. Next I'll run three checks in parallel: timing deep.txt, fuzzing another 1000 small seeds, and testing mid-sized scripts with more revisions and deeper chains where the reference is still tractable.
+
+Bash(/usr/bin/time -v python3 run_db.py scripts/deep.txt > /tmp/deep.out 2> /tmp/deep.time; tail -n 20 /tmp/deep.ti…)
+
+0 /tmp/deep.out
+0
+
+[stdout]
+0 /tmp/deep.out
+0
+[metadata] {"returnCodeInterpretation": "No matches found", "noOutputExpected": false}
+collapse
+Bash(cat /tmp/deep.time | head -30)
+
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+
+[stdout]
+/bin/bash: line 1: /usr/bin/time: No such file or directory
+[metadata] {"noOutputExpected": false}
+collapse
+No `/usr/bin/time` here. I'll use the shell's `time` and run the fuzz batches alongside.
+
+Bash(time python3 run_db.py scripts/deep.txt > /tmp/deep.out; wc -l /tmp/deep.out; grep -n "^ok\|^refused" /tmp/dee…)
+
+real	0m8.633s
+user	0m6.683s
+sys	0m0.493s
+72158 /tmp/deep.out
+36067:refused hold_on 7
+36068:ok 11 0
+36069:refused hold_on 13
+25198
+
+[stdout]
+real	0m8.633s
+user	0m6.683s
+sys	0m0.493s
+72158 /tmp/deep.out
+36067:refused hold_on 7
+36068:ok 11 0
+36069:refused hold_on 13
+25198
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+deep.txt runs in 8.6s, well within budget alongside the other scripts. I'll now verify its audit by comparing the merged-closure fast path to the exact per-row engine across every row (running in background), while in parallel fuzzing 1000 more small seeds and a batch of mid-sized chain-heavy scripts.
+
+Bash(cat > /tmp/cmp_deep.py <<'EOF' import sys, time sys.path.insert(0, '/app') from db import parse, rows, match, …)
+
+started
+
+[stdout]
+started
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cd /tmp && python3 /tmp/fuzz.py 400 1000 2>&1 | tail -8)
+
+Command running in background with ID: bfugfh52v. Output is being written to: /tmp/claude-0/-app/0d7502ec-bca3-41dd-8ef7-dd03ff314f0f/tasks/bfugfh52v.output. You will be notified when it completes. To check interim output, use Read on that file path.
+Session cwd remains /app; directory changes made by the backgrounded command do not apply to subsequent commands.
+
+[metadata] {"noOutputExpected": false, "backgroundTaskId": "bfugfh52v", "backgroundCwdHint": "Session cwd remains /app; directory changes made by the backgrounded command do not apply to subsequent commands."}
+collapse
+Now the mid-sized fuzz variant, with chain-shaped revision histories and cycles, run in the background too.
+
+Bash(cd /tmp && python3 - <<'EOF' s = open('/tmp/fuzz.py').read() s = s.replace("ndoc = rnd.randint(1, 3)", "ndoc =…)
+
+Command running in background with ID: b8cjeavtw. Output is being written to: /tmp/claude-0/-app/0d7502ec-bca3-41dd-8ef7-dd03ff314f0f/tasks/b8cjeavtw.output. You will be notified when it completes. To check interim output, use Read on that file path.
+Session cwd remains /app; directory changes made by the backgrounded command do not apply to subsequent commands.
+
+[metadata] {"noOutputExpected": false, "backgroundTaskId": "b8cjeavtw", "backgroundCwdHint": "Session cwd remains /app; directory changes made by the backgrounded command do not apply to subsequent commands."}
+collapse
+While those run, I'll profile the deep.txt run to see where the 8.6 s goes and check peak memory.
+
+Bash(python3 -c " import cProfile, pstats, sys, resource sys.argv=['run_db.py','scripts/deep.txt'] import run_db, i…)
+
+maxrss MB 92.59765625
+Wed Sep 23 06:44:02 2026    /tmp/prof
+         12664557 function calls (12664555 primitive calls) in 43.403 seconds
+   Ordered by: cumulative time
+   List reduced from 102 to 18 due to restriction <18>
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000   43.403   43.403 {built-in method builtins.exec}
+        1    0.001    0.001   43.403   43.403 <string>:1(<module>)
+        1    0.356    0.356   43.403   43.403 /app/run_db.py:6(main)
+        2    0.195    0.097   37.096   18.548 /app/db/audit.py:20(audit)
+        2    0.954    0.477   32.386   16.193 /app/db/audit.py:114(_all)
+    72121    2.208    0.000   28.455    0.000 /app/db/audit.py:170(_context)
+    63037   16.124    0.000   16.124    0.000 /app/db/audit.py:301(member)
+        5    0.000    0.000    8.619    1.724 /app/db/match.py:184(graph)
+        2    2.842    1.421    8.619    4.309 /app/db/match.py:38(__init__)
+        3    0.000    0.000    4.229    1.410 /app/db/drop.py:47(delete)
+    68243    2.269    0.000    3.979    0.000 /app/db/audit.py:227(merge)
+       71    0.001    0.000    3.921    0.055 /app/db/drop.py:40(outcome)
+       68    0.002    0.000    3.810    0.056 /app/db/audit.py:32(exact)
+       71    1.752    0.025    3.782    0.053 /app/db/hold.py:10(judge)
+   388625    2.269    0.000    3.352    0.000 /app/db/match.py:16(form)
+  2849194    2.848    0.000    2.848    0.000 {method 'get' of 'dict' objects}
+        2    1.616    0.808    2.586    1.293 /app/db/audit.py:52(_tarjan)
+        6    1.230    0.205    1.913    0.319 /app/db/match.py:149(_build)
+
+[stdout]
+maxrss MB 92.59765625
+Wed Sep 23 06:44:02 2026    /tmp/prof
+         12664557 function calls (12664555 primitive calls) in 43.403 seconds
+   Ordered by: cumulative time
+   List reduced from 102 to 18 due to restriction <18>
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000   43.403   43.403 {built-in method builtins.exec}
+        1    0.001    0.001   43.403   43.403 <string>:1(<module>)
+        1    0.356    0.356   43.403   43.403 /app/run_db.py:6(main)
+        2    0.195    0.097   37.096   18.548 /app/db/audit.py:20(audit)
+        2    0.954    0.477   32.386   16.193 /app/db/audit.py:114(_all)
+    72121    2.208    0.000   28.455    0.000 /app/db/audit.py:170(_context)
+    63037   16.124    0.000   16.124    0.000 /app/db/audit.py:301(member)
+        5    0.000    0.000    8.619    1.724 /app/db/match.py:184(graph)
+        2    2.842    1.421    8.619    4.309 /app/db/match.py:38(__init__)
+        3    0.000    0.000    4.229    1.410 /app/db/drop.py:47(delete)
+    68243    2.269    0.000    3.979    0.000 /app/db/audit.py:227(merge)
+       71    0.001    0.000    3.921    0.055 /app/db/drop.py:40(outcome)
+       68    0.002    0.000    3.810    0.056 /app/db/audit.py:32(exact)
+       71    1.752    0.025    3.782    0.053 /app/db/hold.py:10(judge)
+   388625    2.269    0.000    3.352    0.000 /app/db/match.py:16(form)
+  2849194    2.848    0.000    2.848    0.000 {method 'get' of 'dict' objects}
+        2    1.616    0.808    2.586    1.293 /app/db/audit.py:52(_tarjan)
+        6    1.230    0.205    1.913    0.319 /app/db/match.py:149(_build)
+[metadata] {"noOutputExpected": false}
+collapse
+The profile shows most audit time in `member` chain walks that are called even for rows that can never be removed. Reordering that check removes nearly all of those walks.
+
+Bash(python3 - <<'EOF' s = open('/app/db/audit.py').read() old = """ if member(r): continue if g.removable[r]: agg.…)
+
+real	0m15.821s
+user	0m6.940s
+sys	0m0.574s
+same
+
+[stdout]
+real	0m15.821s
+user	0m6.940s
+sys	0m0.574s
+same
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(cat /tmp/claude-0/-app/0d7502ec-bca3-41dd-8ef7-dd03ff314f0f/tasks/b8cjeavtw.output; echo ---; cat /tmp/cmp_dee…)
+
+MISMATCH seed 5016 
+  exp: rev 1 1 0 held | got: rev 1 1 0 ok
+  len 221 217
+MISMATCH seed 5035 
+  exp: rev 6 1 0 held | got: rev 6 1 0 ok
+  len 133 132
+tried 60 bad 2
+
+[exited with code 0]
+---
+fast 2.8490114212036133
+exact 117.74575066566467 bad 0
+---
+
+[stdout]
+MISMATCH seed 5016 
+  exp: rev 1 1 0 held | got: rev 1 1 0 ok
+  len 221 217
+MISMATCH seed 5035 
+  exp: rev 6 1 0 held | got: rev 6 1 0 ok
+  len 133 132
+tried 60 bad 2
+
+[exited with code 0]
+---
+fast 2.8490114212036133
+exact 117.74575066566467 bad 0
+---
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+I found that deep.txt's fast audit matches the reference engine on all rows except two mid-sized seeds, where my code marks a row as fine but the reference flags it for refusal. I'll dig into seed 5016 next.
+
+Bash(grep -v "^row" /tmp/fzm_5016.txt | grep -v "^table"; echo; grep "^row rev 1 \|^row doc" /tmp/fzm_5016.txt; gre…)
+
+key link_k link k
+key pin_k pin k
+key rev_k rev d n
+key doc_k doc d
+key tag_k tag t
+key note_k note k
+key ann_k ann k
+ref link_to link td tn -> rev_k partial noaction
+ref ann_see ann e m -> rev_k partial setnull
+ref rev_doc rev d -> doc_k partial cascade
+ref pin_on pin d n -> rev_k simple noaction
+ref link_from link fd fn -> rev_k full setnull
+ref note_on note d n -> rev_k simple cascade
+ref rev_base rev bd bn -> rev_k full noaction
+ref ann_on ann d n -> rev_k simple setnull
+ref tag_on tag d n -> rev_k partial cascade
+audit
+delete rev 37
+dump rev
+delete ann 4 1
+dump ann
+delete rev 4 10
+dump rev
+audit
+
+row doc 1 d1
+row doc 2 d2
+row rev 1 d2 1 - -
+69
+3c3
+< rev 1 1 0 held
+---
+> rev 1 1 0 ok
+15,16c15,16
+< rev 13 1 0 held
+< rev 14 1 0 held
+---
+> rev 13 1 0 ok
+> rev 14 1 0 ok
+
+[stdout]
+key link_k link k
+key pin_k pin k
+key rev_k rev d n
+key doc_k doc d
+key tag_k tag t
+key note_k note k
+key ann_k ann k
+ref link_to link td tn -> rev_k partial noaction
+ref ann_see ann e m -> rev_k partial setnull
+ref rev_doc rev d -> doc_k partial cascade
+ref pin_on pin d n -> rev_k simple noaction
+ref link_from link fd fn -> rev_k full setnull
+ref note_on note d n -> rev_k simple cascade
+ref rev_base rev bd bn -> rev_k full noaction
+ref ann_on ann d n -> rev_k simple setnull
+ref tag_on tag d n -> rev_k partial cascade
+audit
+delete rev 37
+dump rev
+delete ann 4 1
+dump ann
+delete rev 4 10
+dump rev
+audit
+
+row doc 1 d1
+row doc 2 d2
+row rev 1 d2 1 - -
+69
+3c3
+< rev 1 1 0 held
+---
+> rev 1 1 0 ok
+15,16c15,16
+< rev 13 1 0 held
+< rev 14 1 0 held
+---
+> rev 13 1 0 ok
+> rev 14 1 0 ok
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(python3 - <<'EOF' import sys sys.path.insert(0,'/app') from db import parse, rows, match, audit, drop sc = par…)
+
+simple_only False removable True leafy False
+exact (1, 0, False)
+fast (1, 0, False)
+group rev_k (0,) size 19 deps [('link', 3, 'link_to')]
+group rev_k (0, 1) size 1 deps []
+lost []
+
+[stdout]
+simple_only False removable True leafy False
+exact (1, 0, False)
+fast (1, 0, False)
+group rev_k (0,) size 19 deps [('link', 3, 'link_to')]
+group rev_k (0, 1) size 1 deps []
+lost []
+[metadata] {"noOutputExpected": false}
+collapse
+Both my engines agree on rev 1, so the reference disagrees. Let me see which declaration the reference thinks fails.
+
+Bash(python3 - <<'EOF' import sys sys.path.insert(0,'/tmp'); sys.path.insert(0,'/app') from ref import Ref R = Ref(…)
+
+('refused', 'link_from', 7)
+broken rev 8 rev_base
+broken rev 26 rev_base
+broken rev 28 rev_base
+broken rev 31 rev_base
+broken link 7 link_from
+row link 3 3 d2 9 d2 -
+row ann 1 1 d1 16 d2 4
+row ann 2 2 d1 18 d1 -
+row ann 3 3 d2 22 d2 23
+row ann 4 4 d2 38 d1 32
+
+[stdout]
+('refused', 'link_from', 7)
+broken rev 8 rev_base
+broken rev 26 rev_base
+broken rev 28 rev_base
+broken rev 31 rev_base
+broken link 7 link_from
+row link 3 3 d2 9 d2 -
+row ann 1 1 d1 16 d2 4
+row ann 2 2 d1 18 d1 -
+row ann 3 3 d2 22 d2 23
+row ann 4 4 d2 38 d1 32
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+The invalid rows stem from a script that breaks the initial-state guarantee, which my repair step should have fixed but didn't—I'll investigate why while also checking the other 1000-seed batch result.
+
+Bash(tail -3 /tmp/claude-0/-app/0d7502ec-bca3-41dd-8ef7-dd03ff314f0f/tasks/bfugfh52v.output; cd /tmp && python3 - <…)
+
+tried 1000 bad 0
+
+[exited with code 0]
+92 77
+[]
+full gone
+Shell cwd was reset to /app
+
+[stdout]
+tried 1000 bad 0
+
+[exited with code 0]
+92 77
+[]
+full gone
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Found the mid-size mismatches were caused by fuzzers sharing a single temp file during repair, breaking the guarantee. I'll fix repair to use per-process temp files, rerun the mid batch in the background, and re-time deep.txt now that the machine is idle.
+
+Bash(cd /tmp && sed -i "s#path = '/tmp/fz_tmp.txt'#path = '/tmp/fz_tmp_%d.txt' % os.getpid()#" /tmp/fuzz.py /tmp/fu…)
+
+103:        path = '/tmp/fz_tmp_%d.txt' % os.getpid(); open(path, 'w').write(text)
+started
+Shell cwd was reset to /app
+
+[stdout]
+103:        path = '/tmp/fz_tmp_%d.txt' % os.getpid(); open(path, 'w').write(text)
+started
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(sed -n 225,330p /app/db/audit.py)
+
+leafy_open[L] = e
+
+    def merge(y):
+        y = rep(alias, y)
+        if y in blocks:
+            return
+        blocks.add(y)
+        a = fin[y]
+        agg.n += a.n
+        agg.leafy_n += a.leafy_n
+        for L, e2 in a.leafy_open.items():
+            e = leafy_open.get(L)
+            if e is None:
+                leafy_open[L] = e2
+            else:
+                agg.leafy_n -= 1
+                e |= e2
+                if e == (1 << len(cgroups[L])) - 1:
+                    del leafy_open[L]
+                else:
+                    leafy_open[L] = e
+        for gid, (c, dyn) in a.groups.items():
+            e = groups.get(gid)
+            if e is None:
+                e = groups[gid] = [c, list(dyn) if dyn else None]
+                if c < gsize[gid]:
+                    continue
+            else:
+                e[0] += c
+                if dyn:
+                    e[1] = (e[1] or []) + dyn
+                if e[0] < gsize[gid]:
+                    continue
+                if c < gsize[gid]:
+                    # coverage completed by this merge: fire normally
+                    fires.append(gid)
+                    continue
+            # covered inside the block: its dependents fired there, only
+            # dynamic checks registered here are still outstanding
+            if e[1]:
+                for pos, node in e[1]:
+                    fail(pos, node)
+                e[1] = None
+        agg.cleared_n += a.cleared_n
+        for pos, rid in a.fails.items():
+            if pos not in fails or rid < fails[pos]:
+                fails[pos] = rid
+        agg.pending.extend(a.pending)
+        agg.exact = agg.exact or a.exact
+
+    add_row(x)
+    while fires:
+        gid = fires.pop()
+        e = groups.get(gid)
+        if e is None or e[0] != gsize[gid]:
+            continue
+        dyn = e[1]
+        if dyn:
+            for pos, node in dyn:
+                fail(pos, node)
+            e[1] = None
+        if (gkey[gid][0].name, gkey[gid][1]) not in potential:
+            del groups[gid]
+        for r, ri in gdeps[gid]:
+            if refs[ri].act == CASCADE:
+                if leafy[r]:
+                    leafy_fire(r, gid)
+                elif r in own or r in blocks:
+                    pass
+                elif fin[r] is not None and scc[r] != sx:
+                    merge(r)
+                else:
+                    add_row(r)
+            else:
+                lost.append((r, ri))
+
+    def member(r):
+        if r in own:
+            return True
+        while r != -1:
+            if r in blocks:
+                return True
+            r = par[r]
+        return False
+
+    for r, ri in lost:
+        R = refs[ri]
+        if R.act == RESTRICT:
+            fail(R.pos, r)
+            continue
+        if r in own:
+            continue
+        if g.removable[r]:
+            if not member(r):
+                agg.pending.append(r)
+            continue
+        if g.multi[r]:
+            agg.exact = True
+            continue
+        if R.act == NOACTION:
+            fail(R.pos, r)
+            continue
+        # setnull on a row with this single live reference
+        agg.cleared_n += 1
+        w = set(R.wipe)
+        t = g.node_tab[r]
+
+[stdout]
+            leafy_open[L] = e
+
+    def merge(y):
+        y = rep(alias, y)
+        if y in blocks:
+            return
+        blocks.add(y)
+        a = fin[y]
+        agg.n += a.n
+        agg.leafy_n += a.leafy_n
+        for L, e2 in a.leafy_open.items():
+            e = leafy_open.get(L)
+            if e is None:
+                leafy_open[L] = e2
+            else:
+                agg.leafy_n -= 1
+                e |= e2
+                if e == (1 << len(cgroups[L])) - 1:
+                    del leafy_open[L]
+                else:
+                    leafy_open[L] = e
+        for gid, (c, dyn) in a.groups.items():
+            e = groups.get(gid)
+            if e is None:
+                e = groups[gid] = [c, list(dyn) if dyn else None]
+                if c < gsize[gid]:
+                    continue
+            else:
+                e[0] += c
+                if dyn:
+                    e[1] = (e[1] or []) + dyn
+                if e[0] < gsize[gid]:
+                    continue
+                if c < gsize[gid]:
+                    # coverage completed by this merge: fire normally
+                    fires.append(gid)
+                    continue
+            # covered inside the block: its dependents fired there, only
+            # dynamic checks registered here are still outstanding
+            if e[1]:
+                for pos, node in e[1]:
+                    fail(pos, node)
+                e[1] = None
+        agg.cleared_n += a.cleared_n
+        for pos, rid in a.fails.items():
+            if pos not in fails or rid < fails[pos]:
+                fails[pos] = rid
+        agg.pending.extend(a.pending)
+        agg.exact = agg.exact or a.exact
+
+    add_row(x)
+    while fires:
+        gid = fires.pop()
+        e = groups.get(gid)
+        if e is None or e[0] != gsize[gid]:
+            continue
+        dyn = e[1]
+        if dyn:
+            for pos, node in dyn:
+                fail(pos, node)
+            e[1] = None
+        if (gkey[gid][0].name, gkey[gid][1]) not in potential:
+            del groups[gid]
+        for r, ri in gdeps[gid]:
+            if refs[ri].act == CASCADE:
+                if leafy[r]:
+                    leafy_fire(r, gid)
+                elif r in own or r in blocks:
+                    pass
+                elif fin[r] is not None and scc[r] != sx:
+                    merge(r)
+                else:
+                    add_row(r)
+            else:
+                lost.append((r, ri))
+
+    def member(r):
+        if r in own:
+            return True
+        while r != -1:
+            if r in blocks:
+                return True
+            r = par[r]
+        return False
+
+    for r, ri in lost:
+        R = refs[ri]
+        if R.act == RESTRICT:
+            fail(R.pos, r)
+            continue
+        if r in own:
+            continue
+ 
+… [clipped]
+collapse
+Thinking…
+Reviewing the merge and resolution code, I found three robustness gaps: a fired potential group could re-fire, a freed block could be merged again if the laminar assumption were violated, and a leafy seed could double-count itself. I'll patch these, then re-time deep.txt and check the mid fuzz progress.
+
+Bash(python3 - <<'EOF' s = open('/app/db/audit.py').read() old = """ def merge(y): y = rep(alias, y) if y in blocks…)
+
+tiny same
+loops same
+docs same
+
+real	0m6.899s
+user	0m6.619s
+sys	0m0.218s
+deep same
+tried 80 bad 0
+
+[stdout]
+tiny same
+loops same
+docs same
+
+real	0m6.899s
+user	0m6.619s
+sys	0m0.218s
+deep same
+tried 80 bad 0
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+The mid batch passed cleanly (80 tried, 0 bad), and deep.txt now runs in 6.9s. To close the remaining schema-shape coverage gap, I'll build a fully random-schema fuzzer to run in the background while measuring per-script interpreter overhead to estimate total runtime.
+
+Bash(cat > /tmp/fuzz_rand.py <<'EOF' import random, subprocess, sys, os sys.path.insert(0, "/app"); sys.path.insert…)
+
+started
+Shell cwd was reset to /app
+
+[stdout]
+started
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(time (for i in $(seq 10); do python3 run_db.py scripts/tiny.txt > /dev/null; done); time python3 run_db.py scr…)
+
+real	0m1.895s
+user	0m0.829s
+sys	0m0.119s
+
+real	0m0.199s
+user	0m0.087s
+sys	0m0.012s
+MISMATCH seed 274 
+  exp: t0 3 9 0 ok | got: t0 3 9 0 held
+tried 600 bad 1
+
+[stdout]
+real	0m1.895s
+user	0m0.829s
+sys	0m0.119s
+
+real	0m0.199s
+user	0m0.087s
+sys	0m0.012s
+MISMATCH seed 274 
+  exp: t0 3 9 0 ok | got: t0 3 9 0 held
+tried 600 bad 1
+[metadata] {"noOutputExpected": false}
+collapse
+Random schemas found one disagreement (seed 274: my audit says a row is held, the reference says ok). Let me dig into it.
+
+Bash(cat /tmp/fzr_274.txt; echo ---; python3 - <<'EOF' import sys sys.path.insert(0,'/tmp'); sys.path.insert(0,'/ap…)
+
+table t0 c0 c1 c2 c3
+table t1 c0 c1 c2
+table t2 c0 c1 c2 c3
+key k0 t0 c0
+ref r0 t0 c1 -> k0 simple noaction
+ref r1 t0 c3 -> k0 full cascade
+ref r2 t1 c1 -> k0 partial setnull
+ref r3 t1 c2 -> k0 partial cascade
+ref r4 t1 c0 -> k0 simple setnull c0
+row t0 2 d a a a
+row t0 3 c a - c
+row t0 5 a d c b
+row t0 8 b a e c
+row t0 9 e - - b
+row t1 1 e b b
+row t1 2 - - c
+row t1 3 c a a
+row t1 4 c b a
+row t2 1 d c c c
+row t2 2 - a b -
+audit
+delete t2 2
+dump t1
+delete t0 5 3
+dump t1
+audit
+---
+ref ('ok', 9, 0)
+exact removed [('t0', 2), ('t0', 3), ('t0', 5), ('t0', 8), ('t0', 9), ('t1', 1), ('t1', 2), ('t1', 3), ('t1', 4)] fails {}
+fast (9, 0, True) simple_only False
+
+[stdout]
+table t0 c0 c1 c2 c3
+table t1 c0 c1 c2
+table t2 c0 c1 c2 c3
+key k0 t0 c0
+ref r0 t0 c1 -> k0 simple noaction
+ref r1 t0 c3 -> k0 full cascade
+ref r2 t1 c1 -> k0 partial setnull
+ref r3 t1 c2 -> k0 partial cascade
+ref r4 t1 c0 -> k0 simple setnull c0
+row t0 2 d a a a
+row t0 3 c a - c
+row t0 5 a d c b
+row t0 8 b a e c
+row t0 9 e - - b
+row t1 1 e b b
+row t1 2 - - c
+row t1 3 c a a
+row t1 4 c b a
+row t2 1 d c c c
+row t2 2 - a b -
+audit
+delete t2 2
+dump t1
+delete t0 5 3
+dump t1
+audit
+---
+ref ('ok', 9, 0)
+exact removed [('t0', 2), ('t0', 3), ('t0', 5), ('t0', 8), ('t0', 9), ('t1', 1), ('t1', 2), ('t1', 3), ('t1', 4)] fails {}
+fast (9, 0, True) simple_only False
+[metadata] {"noOutputExpected": false}
+collapse
+The exact engine matches the reference, so the fast path is wrong here. I'll instrument the context for that row to see which failure it records.
+
+Bash(python3 - <<'EOF' import sys sys.path.insert(0,'/app') from db import parse, rows, match, audit sc = parse.rea…)
+
+t2 2 scc 12 n 1 fails {} pending [] exact False own [2] blocks [] res (1, 0, False)
+t2 1 scc 11 n 1 fails {} pending [] exact False own [1] blocks [] res (1, 0, False)
+t1 4 scc 10 n 1 fails {} pending [] exact False own [4] blocks [] res (1, 0, False)
+t1 3 scc 9 n 1 fails {} pending [] exact False own [3] blocks [] res (1, 0, False)
+t1 2 scc 8 n 1 fails {} pending [] exact False own [2] blocks [] res (1, 0, False)
+t1 1 scc 7 n 1 fails {} pending [] exact False own [1] blocks [] res (1, 0, False)
+t0 9 scc 6 n 1 fails {} pending [1] exact False own [9] blocks [] res (1, 1, False)
+t0 2 scc 5 n 1 fails {} pending [5] exact False own [2] blocks [] res (1, 0, True)
+t0 5 scc 3 n 4 fails {'r0': 3} pending [5, 8] exact False own [5] blocks [2, 3, 4] res (4, 0, True)
+t0 8 scc 1 n 7 fails {'r0': 3} pending [5, 8, 1] exact False own [8] blocks [1, 5, 9] res (7, 0, True)
+t0 3 scc 0 n 9 fails {'r0': 3} pending [5, 8, 1] exact False own [3] blocks [2, 8] res (9, 0, True)
+removable [('t0', 2, True, False), ('t0', 3, False, False), ('t0', 5, True, False), ('t0', 8, True, False), ('t0', 9, True, False), ('t1', 1, True, True), ('t1', 2, True, False), ('t1', 3, True, True), ('t1', 4, True, True), ('t2', 1, False, False), ('t2', 2, False, False)]
+
+[stdout]
+t2 2 scc 12 n 1 fails {} pending [] exact False own [2] blocks [] res (1, 0, False)
+t2 1 scc 11 n 1 fails {} pending [] exact False own [1] blocks [] res (1, 0, False)
+t1 4 scc 10 n 1 fails {} pending [] exact False own [4] blocks [] res (1, 0, False)
+t1 3 scc 9 n 1 fails {} pending [] exact False own [3] blocks [] res (1, 0, False)
+t1 2 scc 8 n 1 fails {} pending [] exact False own [2] blocks [] res (1, 0, False)
+t1 1 scc 7 n 1 fails {} pending [] exact False own [1] blocks [] res (1, 0, False)
+t0 9 scc 6 n 1 fails {} pending [1] exact False own [9] blocks [] res (1, 1, False)
+t0 2 scc 5 n 1 fails {} pending [5] exact False own [2] blocks [] res (1, 0, True)
+t0 5 scc 3 n 4 fails {'r0': 3} pending [5, 8] exact False own [5] blocks [2, 3, 4] res (4, 0, True)
+t0 8 scc 1 n 7 fails {'r0': 3} pending [5, 8, 1] exact False own [8] blocks [1, 5, 9] res (7, 0, True)
+t0 3 scc 0 n 9 fails {'r0': 3} pending [5, 8, 1] exact False own [3] blocks [2, 8] res (9, 0, True)
+removable [('t0', 2, True, False), ('t0', 3, False, False), ('t0', 5, True, False), ('t0', 8, True, False), ('t0', 9, True, False), ('t1', 1, True, True), ('t1', 2, True, False), ('t1', 3, True, True), ('t1', 4, True, True), ('t2', 1, False, False), ('t2', 2, False, False)]
+[metadata] {"noOutputExpected": false}
+collapse
+Thinking…
+Found the bug: when the audited row can never force itself out, merged sub-closures may carry stale failures/clearings about that same row, invalidating results once it's the one deleted. Fixing this by computing such seeds with the exact engine instead, since their closures are small—patching match.py and audit.py now.
+
+Bash(python3 - <<'EOF' s = open('/app/db/match.py').read() old = """ self.multi = [] refs = self.refs for node in r…)
+
+274 fixed
+tiny same
+loops same
+docs same
+
+real	0m7.167s
+user	0m6.866s
+sys	0m0.236s
+deep same
+
+[stdout]
+274 fixed
+tiny same
+loops same
+docs same
+
+real	0m7.167s
+user	0m6.866s
+sys	0m0.236s
+deep same
+[metadata] {"noOutputExpected": false}
+collapse
+The fix holds on all sample scripts and deep.txt is unchanged at ~7 s. Now I'll rerun all three fuzzers on fresh seeds concurrently (they no longer share temp files).
+
+Bash(cd /tmp && (nohup python3 /tmp/fuzz_rand.py 600 1200 > /tmp/fuzz_rand2.out 2>&1 &); (nohup python3 /tmp/fuzz.p…)
+
+started
+Shell cwd was reset to /app
+
+[stdout]
+started
+[stderr]
+
+Shell cwd was reset to /app
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(sleep 240; echo RAND; cat /tmp/fuzz_rand2.out; echo SMALL; cat /tmp/fuzz_small2.out; echo MID; cat /tmp/fuzz_m…)
+
+RAND
+tried 1200 bad 0
+SMALL
+tried 600 bad 0
+MID
+tried 40 bad 0
+/bin/bash: line 1: pgrep: command not found
+0
+
+[stdout]
+RAND
+tried 1200 bad 0
+SMALL
+tried 600 bad 0
+MID
+tried 40 bad 0
+/bin/bash: line 1: pgrep: command not found
+0
+[metadata] {"noOutputExpected": false}
+collapse
+All three fuzzers pass on fresh seeds. Two last independent checks: firm up the per-small-script cost with a batch timing, and confirm only the five permitted files changed under /app.
+
+Bash(time (for i in $(seq 30); do python3 run_db.py scripts/docs.txt > /dev/null; done))
+
+real	0m3.091s
+user	0m2.542s
+sys	0m0.350s
+
+[stdout]
+real	0m3.091s
+user	0m2.542s
+sys	0m0.350s
+[metadata] {"noOutputExpected": false}
+collapse
+Bash(find . -newer scripts/tiny.txt -type f | grep -v __pycache__ | sort; echo; ls db; grep -c . db/match.py db/dro…)
+
+./db/audit.py
+./db/clear.py
+./db/drop.py
+./db/hold.py
+./db/match.py
+
+__init__.py
+audit.py
+clear.py
+drop.py
+hold.py
+match.py
+parse.py
+rows.py
+say.py
+db/drop.py:47
+db/hold.py:63
+db/match.py:180
+db/clear.py:8
+db/audit.py:350
+
+[stdout]
+./db/audit.py
+./db/clear.py
+./db/drop.py
+./db/hold.py
+./db/match.py
+
+__init__.py
+audit.py
+clear.py
+drop.py
+hold.py
+match.py
+parse.py
+rows.py
+say.py
+db/drop.py:47
+db/hold.py:63
+db/match.py:180
+db/clear.py:8
+db/audit.py:350
+[metadata] {"noOutputExpected": false}
+collapse
+The referential pass is rewritten and verified. Only the five permitted files changed.
+
+**Result on tiny.txt**: the third line is now `ok 3 0`, and all sample scripts match an independent brute-force reference I wrote straight from the spec.
+
+**What was wrong.** The old pass rescanned the whole key table per row, treated a partially-null `partial` reference as inert, and removed rows greedily as it walked, so rows that should stay when they only match one another, or that match many rows through a null column, were misjudged. Its audit also deep-copied the store per row, which is quadratic.
+
+**What I built.**
+- `match.py` builds a match graph once per store state: every row that is not inert for a reference belongs to exactly one group (key, non-null mask, values), and each group knows its size and its dependents. Post-clear masks are pre-registered so setnull outcomes can be judged without rescans.
+- `drop.py` computes the exact least fixpoint of removal with per-group counters, then `hold.py` judges the end state (restrict losses, key nulls, broken rows, references left with no remaining match, including matches lost to nulled key columns) and reports the earliest declaration and smallest id. `clear.py` applies an accepted delete.
+- `audit.py` exploits that single-row closures form a laminar family. Seeds are processed dependents-first via an iterative Tarjan SCC pass, and each seed's aggregate (removed count, cleared count, open group counters, failures) is merged wholesale into the closures that contain it. Rows whose contributions cannot be aggregated safely fall back to the exact engine, so correctness never depends on the fast path.
+
+**Verification.**
+- Reference agreement on tiny, loops and docs.
+- Fuzzing against the reference with three generators: 2000 small sample-schema scripts, 120 mid-sized chain-heavy scripts with cycles and self-matches, and 1800 fully random schemas. All pass. The fuzzing caught and I fixed one real bug in the fast path: a row that can never be forced out could inherit failures recorded about itself from merged sub-closures. Such seeds now use the exact engine.
+- On deep.txt, the fast audit agrees with the exact engine for all 36,067 rows.
+
+**Timing** (wall clock, fresh interpreter each):
+
+| Script | Time |
+|---|---|
+| deep.txt | 7.2 s |
+| docs.txt (typical small) | 0.10 s |
+| Estimated graded set (3 big + ~300 small) | ~55 s |
+
+Peak memory on deep.txt is about 93 MB. No recursion is used, so the deep revision chains cannot overflow the stack.

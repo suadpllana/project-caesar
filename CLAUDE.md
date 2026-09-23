@@ -306,3 +306,43 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   why it lives beside `STATE.md` rather than replacing it, why the prompt says the record is never
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
+
+## Lessons, measured (2026-09-23, `partial-key-purge` easiness recovery)
+
+The first version was solved 3 of 3. All three agents wrote the whole plan after one read -
+counters for the delete's fixed point and an audit on nested removed sets ("single-row closures
+form a laminar family") - and checked it with their own brute force. The repair dropped one
+guarantee and added one real-database rule, and the lessons are from building it.
+
+- **The difficulty that lost was a guarantee I had written to make my own fast path exist.**
+  "No reference names a key of a table with two cascade references" kept removed sets nested, so
+  the tree the design called the second discovery was every agent's first idea. Dropping it
+  (merge revisions, referenced) makes the tree wrong and descendant counting wrong at once, each
+  on the half of the rule the other gets right. Before calling a structure the hard part, ask
+  which of your own guarantees it depends on.
+- **Measure the hybrid, not only the naive replay.** The first gate priced a full per-row replay
+  (820 s) and every agent shipped a tree plus replay of the few rows the tree could not express,
+  which was cheap because such rows were rare. After the rebuild the number that matters is the
+  share a hybrid must replay: 74.8% of a deep store's rows remove a row with two cascade
+  references when deleted alone. Write that number down beside the replay floor.
+- **A family drawn with `randint(1, length)` rarely reaches a limit.** The first depth family
+  put 4 of 569 lone deletes past round 15 and named none of its refusals by the depth rule.
+  Drawing chain lengths from the upper two thirds put deletes at 0 to 40 rounds and 74 refusals
+  on the depth rule. Shape the family to straddle the boundary it fences.
+- **"Equivalent" from readingcheck can mean the reading is mis-written.** rounds-longest-path
+  came back equivalent to the reference because it read rounds in removal order, where a merge's
+  shortcut makes the later parent look not yet removed, so it silently took the minimum. A
+  topological pass made it the reading it claimed to be, and depth-merge-shortcut separates it.
+  Before promoting an equivalent reading to a variant, check that it computes what its comment says.
+- **The old readings.py split scripts on a literal backslash-n.** `reductions()` read
+  `text.split("\\n")`, so readingcheck's shrinker had never shrunk anything; nothing failed,
+  it just never ran. It surfaced only because the file was rewritten. Grep authoring scripts for
+  a doubled backslash before `n` inside a string literal after any heredoc edit (the heredoc lesson of 2026-09-06 again).
+- **A rewrite of the brief moves the prose metrics even when the rules are right.** textcheck fell
+  from 8 of 12 to 5 of 12 after the new sentences went in; splitting two sentences, restoring one
+  long rules paragraph and varying three "A ..." openers brought it back to 8 without touching a
+  rule. Re-run textcheck after every rules edit, not only at the end.
+- **Read the finished brief once more for the other parse of each new sentence.** "The real
+  database stops a cascade at fifteen rounds" reads as truncation as easily as refusal, and "the
+  counts are given even when it would be refused" did not say which counts. Both were settled by
+  the rules and not by the words; both were reworded before packaging.

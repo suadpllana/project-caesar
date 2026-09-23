@@ -15,31 +15,37 @@ Graded, and settled the same way by two implementations written apart:
      its non-null referencing columns, pairwise in order, and a row can match itself
   2  a row loses a reference when it matched at least one row through it before the statement
      and every row it matched is removed; matching reads the values from before the statement
-  3  the removed set is the rows the statement names and every row that loses a cascade
-     reference, and nothing else: the smallest such set, so rows that match only one another
-     keep each other and a row that matches itself keeps itself
-  4  a row that is not removed and loses a setnull reference has that reference's listed
+  3  the removed set is the rows the statement names and every row that loses one of its
+     cascade references - any one, when it has two or more - and nothing else: the smallest
+     such set, so rows that match only one another keep each other and a row that matches
+     itself keeps itself, unless another of its cascade references is lost
+  4  removal runs in rounds: the named rows go in round 0, and a row that goes because it lost
+     a cascade reference goes one round after the last row it matched through that reference,
+     the earliest such round when it lost several
+  5  a row that is not removed and loses a setnull reference has that reference's listed
      columns, or all of its columns when none are listed, set to null; clearing never changes
      the removed set, and such a row counts as cleared even when the columns already held null
-  5  the statement is refused when any row, removed or not, loses a restrict reference
-  6  it is also refused when, after the removal and the clearing, a remaining row is broken, or
+  6  the statement is refused when any row, removed or not, loses a restrict reference, and
+     when any row goes in round 16 or later, which fails every cascade reference it lost
+  7  it is also refused when, after the removal and the clearing, a remaining row is broken, or
      matches no remaining row through a reference that is not inert for it (both rows with
      their values after clearing), or holds a null in a column of a key
-  7  a refusal names the failing key or reference declared first in the script, and the
+  8  a refusal names the failing key or reference declared first in the script, and the
      smallest id of a row that fails it, and changes nothing
-  8  `ok <removed> <cleared>`, `refused <name> <id>`, a dump line per row in id order, and an
+  9  `ok <removed> <cleared>`, `refused <name> <id>`, a dump line per row in id order, and an
      audit line per row, tables in declaration order and ids ascending, each giving what a
-     lone delete of that row would remove and clear and whether it would be refused, counts
-     included when it would be; the audit changes nothing
-  9  the whole graded set, one fresh interpreter per script, inside the worker's wall clock
+     lone delete of that row would remove and clear and then `ok` or the refusal it would
+     print, counts included when it is refused; the audit changes nothing
+  10 the whole graded set, one fresh interpreter per script, inside the worker's wall clock
 
-Implementation choice, and not graded: how match sets are indexed, how the removed set is
-grown, how the audit is computed (the reference builds an ownership tree top down with binary
-lifting and counts unions of chains by inclusion and exclusion; the model runs iterative
-dominators over reverse postorder with an Euler tour; a variant replays small stores), and any
-internal naming. Not a free choice, and not asserted here either: the audit cannot replay a
-delete per row on the deep stores, which the wall clock on the worker decides rather than any
-assertion in this file.
+Implementation choice, and not graded: how match sets are indexed, how the removed set and its
+rounds are grown, how the audit is computed (the reference keeps, for every row, the set of rows
+whose lone delete removes it, settled over Tarjan components, with the rounds built one layer at
+a time and the counts summed in bit-sliced counters; the model settles the same sets over
+Kosaraju components and finds the rounds by running bounded deletes forward from every row; one
+variant grows the sets with a worklist and keeps capped round maps), and any internal naming.
+Not a free choice, and not asserted here either: the audit cannot replay a delete per row on the
+deep stores, which the wall clock on the worker decides rather than any assertion in this file.
 
 Hand scripts are checked against `gt.json`, frozen before this file was written. Nonce scripts
 are generated before the worker starts, answered by the sealed model, and regenerated here from

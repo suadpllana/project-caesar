@@ -3,22 +3,24 @@ imports it, because it tracks store state with the model while it writes stateme
 
 Every family is shaped around one mechanism, at far above its natural rate, over a document
 store: documents, revisions based on other revisions (a null revision number means "whichever
-revision of that document"), and rows attached to revisions - notes, links between two
-revisions, holds, watches, pins, citations, tags and annotations. Per script the declaration
-order, the subset of attached tables and some modes and actions vary, so no single schema is
-graded. `mixed` draws abstract random schemas for breadth. `deep` is the scale family.
+revision of that document"), merge revisions with a second, merged-from parent, and rows
+attached to revisions - notes, links between two revisions, holds, watches, pins, citations,
+tags and annotations. Per script the declaration order, the subset of attached tables and some
+modes and actions vary, so no single schema is graded. `mixed` draws abstract random schemas for
+breadth. `deep` is the scale family.
 """
 import random
 
 import model
 
-SMALL = ("plain", "half", "loop", "hold", "clear", "multi", "fork", "order", "mixed", "chain")
+SMALL = ("plain", "half", "loop", "hold", "clear", "multi", "fork", "order", "mixed", "chain",
+         "merge", "depth")
 FAMILIES = [(f, True) for f in SMALL] + [("deep", False)]
 DEEP = 3
 
 COLS = {
     "doc": ["d"],
-    "rev": ["d", "n", "bd", "bn"],
+    "rev": ["d", "n", "bd", "bn", "md", "mn"],
     "note": ["k", "d", "n"],
     "link": ["k", "fd", "fn", "td", "tn"],
     "hold": ["k", "d", "n"],
@@ -44,6 +46,7 @@ KEYS = {
 REFS = [
     ("rev_doc", "rev", ["d"], "doc_k", "simple", "noaction", []),
     ("rev_base", "rev", ["bd", "bn"], "rev_k", "partial", "cascade", []),
+    ("rev_merge", "rev", ["md", "mn"], "rev_k", "partial", "cascade", []),
     ("note_on", "note", ["d", "n"], "rev_k", "partial", "cascade", []),
     ("link_from", "link", ["fd", "fn"], "rev_k", "simple", "cascade", []),
     ("link_to", "link", ["td", "tn"], "rev_k", "partial", "cascade", []),
@@ -75,8 +78,8 @@ class Story:
         self.rows["doc"].append([d])
         self.revs[d] = []
 
-    def rev(self, d, n, bd, bn):
-        self.rows["rev"].append([d, n, bd, bn])
+    def rev(self, d, n, bd, bn, md=None, mn=None):
+        self.rows["rev"].append([d, n, bd, bn, md, mn])
         self.revs[d].append(n)
 
     def pick(self, doclevel=0.0, docs=None):
@@ -123,18 +126,30 @@ def rev_chain(st, rng, d, length, shape):
             st.rev(d, str(n), rng.choice(others), None)
         elif kind == "ahead":
             st.rev(d, str(n), d, str(n + rng.randint(1, 2)))
+        elif kind == "merge" and n > 2:
+            st.rev(d, str(n), d, str(n - 1), d, str(rng.randint(1, n - 2)))
+        elif kind == "xmerge" and others:
+            e = rng.choice(others)
+            st.rev(d, str(n), d, str(n - 1), e, rng.choice(st.revs[e]))
+        elif kind == "wmerge" and others:
+            st.rev(d, str(n), d, str(n - 1), rng.choice(others), None)
+        elif kind == "amerge":
+            st.rev(d, str(n), d, str(n - 1), d, str(n + rng.randint(1, 3)))
         else:
             st.rev(d, str(n), d, str(n - 1))
 
 
 def fix_ahead(st):
-    """Bases that point forward at revisions that were never made fall back to the previous one."""
+    """Bases and merged-from parents that point forward at revisions that were never made fall
+    back to the previous revision, or are dropped when there is none."""
     have = {(r[0], r[1]) for r in st.rows["rev"]}
     for r in st.rows["rev"]:
         if r[2] is not None and r[3] is not None and (r[2], r[3]) not in have:
             r[3] = str(int(r[1]) - 1) if r[1] != "1" else None
             if r[3] is None:
                 r[2] = None
+        if r[4] is not None and r[5] is not None and (r[4], r[5]) not in have:
+            r[4], r[5] = None, None
 
 
 def text_of(tabs, refs, rows, rng, stmts, keys=None):
@@ -216,7 +231,8 @@ def story(rng, fam):
     """One small or medium document-store script of family fam."""
     tabs = ["doc", "rev"]
     extra = []
-    shape = {"root": 1, "prev": 6, "tree": 2, "self": 0, "cross": 1, "crossdoc": 0, "ahead": 0}
+    shape = {"root": 1, "prev": 6, "tree": 2, "self": 0, "cross": 1, "crossdoc": 0, "ahead": 0,
+             "merge": 1, "xmerge": 1, "wmerge": 0, "amerge": 0}
     ndocs, length = rng.randint(2, 4), rng.randint(2, 6)
     attach = {"note": 3, "link": 0, "hold": 0, "watch": 0, "pin": 0, "cite": 0, "tag": 0,
               "ann": 0}
@@ -259,9 +275,23 @@ def story(rng, fam):
         weights = (1, 1, 8)
     elif fam == "chain":
         ndocs, length = rng.randint(4, 8), rng.randint(20, 60)
-        shape.update(prev=12, tree=3, self=1, ahead=1, crossdoc=1, cross=1)
+        shape.update(prev=12, tree=3, self=1, ahead=1, crossdoc=1, cross=1, merge=2, xmerge=1)
         attach.update(note=4, link=2, hold=1, watch=1, pin=2, cite=1, tag=1, ann=1)
         nstmt = rng.randint(3, 6)
+    elif fam == "merge":
+        shape.update(prev=4, tree=3, cross=1, merge=4, xmerge=3, wmerge=2, amerge=2, ahead=1,
+                     self=1)
+        attach.update(note=4, hold=1, watch=1, pin=1)
+        doclevel = 0.4
+        weights = (3, 1, 6)
+    elif fam == "depth":
+        ndocs, length = rng.randint(2, 3), rng.randint(18, 34)
+        shape.update(prev=16, tree=1, cross=0, merge=2, xmerge=1)
+        attach.update(note=4, link=1, pin=1, hold=rng.choice((0, 0, 1)), watch=rng.choice((0, 1)))
+        doclevel = 0.15
+        weights = (3, 1, 5)
+    if fam == "plain":
+        shape.update(merge=0, xmerge=0)
     if fam in ("clear", "order", "chain") and rng.random() < 0.5:
         keys["tag"] = ("tag_k", ["t"])
     used = [t for t, w in attach.items() if w]
@@ -270,8 +300,9 @@ def story(rng, fam):
     refs = vary(rng, refs, fam)
     full = {(r[1], tuple(r[2])) for r in refs if r[4] == "full"}
     st = Story(rng, tabs)
+    shortest = length * 2 // 3 if fam == "depth" else 1
     for i in range(ndocs):
-        rev_chain(st, rng, "d%d" % (i + 1), rng.randint(1, length), shape)
+        rev_chain(st, rng, "d%d" % (i + 1), rng.randint(shortest, length), shape)
     fix_ahead(st)
     total = ndocs * length
     names, weights_a = zip(*[(t, w) for t, w in attach.items() if w])
@@ -299,7 +330,7 @@ def story(rng, fam):
 
 
 def vary(rng, refs, fam):
-    """Swap a mode, an action or a clear list now and then; two-cascade tables stay unreferenced."""
+    """Swap a mode, an action or a clear list now and then."""
     out = []
     for r in refs:
         name, t, cols, key, mode, act, wipe = r
@@ -333,12 +364,6 @@ def abstract(rng):
             act = rng.choices(("cascade", "restrict", "noaction", "setnull"), (5, 2, 2, 3))[0]
             wipe = rng.sample(cols, rng.randint(1, len(cols))) if act == "setnull" and rng.random() < 0.6 else []
             refs.append(["r%d" % i, ctab, cols, kname, rng.choice(("simple", "full", "partial")), act, wipe])
-        hit = {k[1] for k in keys if any(r[3] == k[0] for r in refs)}
-        for name, _ in tabs:
-            cas = [r for r in refs if r[1] == name and r[5] == "cascade"]
-            if len(cas) >= 2 and name in hit:
-                for r in cas[1:]:
-                    r[5] = rng.choice(("restrict", "noaction", "setnull"))
         rows = dense_rows(rng, tabs, keys, refs)
         if rows:
             break
@@ -410,20 +435,71 @@ def dense_rows(rng, tabs, keys, refs):
     return None
 
 
+def history(st, rng, d, total, sources):
+    """A long revision history of document d: a main line with side branches that fork from it
+    and are merged back a little later, merges from other documents' histories, and now and
+    then a base a few revisions back. Revision numbers run in creation order."""
+    st.doc(d)
+    made = 0
+    tip = None
+    branches = []
+    while made < total:
+        made += 1
+        n = str(made)
+        roll = rng.random()
+        if tip is None:
+            st.rev(d, n, None, None)
+            tip = made
+            continue
+        if branches and branches[0][0] <= made and roll < 0.9:
+            due, btip = branches.pop(0)
+            st.rev(d, n, d, str(tip), d, str(btip))
+            tip = made
+            continue
+        if roll < 0.035 and made + 14 < total:
+            fork = tip
+            length = rng.randint(2, 10)
+            last = fork
+            for _ in range(length):
+                st.rev(d, str(made), d, str(last))
+                last = made
+                made += 1
+            made -= 1
+            branches.append((made + rng.randint(3, 40), last))
+            continue
+        if roll < 0.045 and sources:
+            e = rng.choice(sources)
+            if rng.random() < 0.3:
+                st.rev(d, n, d, str(tip), e, None)
+            else:
+                st.rev(d, n, d, str(tip), e, rng.choice(st.revs[e]))
+            tip = made
+            continue
+        if roll < 0.08:
+            back = max(1, tip - rng.randint(2, 12))
+            st.rev(d, n, d, str(back))
+            tip = made
+            continue
+        st.rev(d, n, d, str(tip))
+        tip = made
+
+
 def deep(rng):
-    """About forty thousand rows: four revision chains six to seven thousand deep, thirty short
-    documents carrying most loops, pairs and cross-document bases, and rows attached throughout."""
+    """About forty thousand rows: four long revision histories, each a main line with side
+    branches merged back into it and merges from the histories made before it, thirty short
+    documents carrying most loops, pairs, cross-document bases and merges, and rows attached
+    throughout."""
     tabs = ["doc", "rev", "note", "link", "hold", "watch", "pin", "cite", "tag"]
     st = Story(rng, tabs)
     longs = ["d%d" % (i + 1) for i in range(4)]
-    for d in longs:
-        rev_chain(st, rng, d, rng.randint(6000, 7000), {"prev": 90, "tree": 10})
-        for r in st.rows["rev"]:
-            if r[0] == d and r[2] == d and r[3] is not None and int(r[1]) - int(r[3]) > 1:
-                r[3] = str(max(int(r[1]) - rng.randint(2, 12), 1))
     shorts = ["d%d" % (i + 5) for i in range(30)]
-    shape = {"root": 1, "prev": 30, "tree": 6, "self": 1, "cross": 2, "crossdoc": 2, "ahead": 1}
-    for d in shorts:
+    shape = {"root": 1, "prev": 30, "tree": 6, "self": 1, "cross": 2, "crossdoc": 2, "ahead": 1,
+             "merge": 3, "xmerge": 2, "wmerge": 1, "amerge": 1}
+    for d in shorts[:10]:
+        rev_chain(st, rng, d, rng.randint(50, 200), shape)
+    for i, d in enumerate(longs):
+        history(st, rng, d, rng.randint(6000, 7000), longs[:i] + shorts[:10])
+    for d in shorts[10:]:
         rev_chain(st, rng, d, rng.randint(50, 200), shape)
     bydoc = {}
     for r in st.rows["rev"]:
@@ -460,12 +536,12 @@ def deep(rng):
     refs = [r for r in REFS if r[1] in tabs]
     base = text_of(tabs, refs, st.rows, rng, [])
     db = model.DB(base)
-    early = [i for i, r in sorted(db.data["rev"].items())
-             if r[0] in longs and r[0] not in guarded and 50 < int(r[1]) < 600]
+    near = [i for i, r in sorted(db.data["rev"].items())
+            if r[0] in longs and r[0] not in guarded and len(st.revs[r[0]]) - 40 < int(r[1])]
     free = [i for i, r in sorted(db.data["rev"].items())
             if r[2] is not None and r[0] not in guarded]
     heads = [i for i, r in sorted(db.data["rev"].items()) if r[2] is not None]
-    stmts = ["audit", "delete rev %d" % rng.choice(early), "delete rev %d" % rng.choice(free),
+    stmts = ["audit", "delete rev %d" % rng.choice(near), "delete rev %d" % rng.choice(free),
              "delete rev %d" % rng.choice(heads), "dump doc", "audit"]
     return base + "\n".join(fixup(rng, base, stmts)) + "\n"
 

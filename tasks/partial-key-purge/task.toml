@@ -17,56 +17,53 @@ author_email = "aurigue.shielamarie20@gmail.com"
 
 difficulty_explanation = """
 The store is small and every rule is in the brief. The work is in what the rules do together,
-and in an audit that has to agree with them exactly at a scale where the obvious way of
-computing it runs for many times the limit.
+and in an audit that has to agree with them exactly at a scale where the obvious ways of
+computing it are either wrong or many times too slow.
 
 The first plan is the engine every solver has used, and it is what ships in `/app/db`: a
 reference with a null column is switched off, a deleted row settles the rows that reference it
-one at a time against what is still standing, clearing lands as it happens, RESTRICT and NO
-ACTION both refuse on the spot, and the audit copies the store and replays one delete per row.
-The rules break that plan in several places at once. Under `partial` a row with a null matches
-every row that agrees on its other columns, so whether it goes depends on a set of rows rather
-than one; it goes only once all of them are gone, and the removed set is the smallest one closed
-under that rule, so two rows that match each other survive the loss of everything outside them
-and a revision based on its own document keeps itself. Matching is judged on the values from
-before the statement, so clearing under one reference must not change what another removes, yet
-the end state is read with the cleared values: a cleared partial row that no longer matches
-anything refuses the delete, and so does a full reference left half-null or a key column cleared
-to null. RESTRICT refuses on any row that loses it, even one the same delete removes; NO ACTION
-only when the loss survives to the end. A refusal names the first declared failing key or
-reference, not the first failure met.
+one at a time, clearing lands as it happens, RESTRICT and NO ACTION both refuse on the spot,
+and the audit replays one delete per row. Under `partial` a row with a null matches every row
+that agrees on its other columns and goes only once all of them are gone, and the removed set is
+the smallest one closed under that rule, so rows that match only one another keep each other.
+The second plan, which an expert reaches for once the delete is right, is also wrong: it treats
+the rows a lone delete removes as nested - the subtrees of one ownership tree - and it is the
+plan a solver retrieves for this kind of question. Revision histories here have merges. A merge
+revision has a base and a merged-from parent, each a cascade reference, and it goes when it
+loses either, while later revisions are based on it; a row matching several revisions still
+goes only when all of them go. So removed sets overlap without nesting, the tree's counts are
+wrong at every merge, and counting descendants is wrong at every row that matches more than one
+row. What a lone delete removes has to be built from the stated rule itself: a union over a
+row's cascade references of an intersection over their matches, settled as a least fixed point
+because a loop through a merge can be broken from outside while a loop without one keeps itself.
 
-Once the delete is right, an audit that replays it for every row is right too, and far too slow.
-The deep stores have about 36,000 rows and four revision chains 6,000 to 7,000 deep, and a
-per-row replay does work proportional to the sum of all removed sets. Written as tightly as
-Python allows and counting removals only, it needs 820 seconds for the three graded deep scripts,
-against 180 seconds for the whole graded set; the reference's whole run takes 39 seconds in the
-capped container. The fast audit follows from a property of the removal rule rather than from a
-technique. Outside loops, a lone delete of r removes v exactly when every chain of matches that
-keeps v standing passes through r, so each row hangs under the lowest common owner of the rows
-it matches and a delete removes a subtree. That is a dominator tree, but a standard dominator
-computation over the match graph is the retained-set reading of a heap analyser, and it is wrong
-here: reachability frees a loop that has lost its outside support, and a row that matches
-itself, where the least fixed point keeps both. Loop members have to hang from the top and have
-their own deletes replayed. Rows of a table with two cascade references, which the brief
-guarantees are never referenced, sit outside the tree and go when either of two chains is cut.
-Clearing and refusal have to be read off the same tree rather than replayed: a setnull row is
-cleared by exactly the owners above its match set that do not also remove it, a RESTRICT row
-refuses every delete above its match set, and what a cleared row's end-state check reads depends
-on which of its setnull references fired. Signed marks summed up the tree and walks along each
-affected chain are both fast enough; a replay is not. Each piece is recoverable from the brief,
-and none of them is where the plan starts.
+The rehearsal store must refuse what the real database refuses, and the real database stops a
+cascade after fifteen rounds. A row's round is one after the last row it matched through a lost
+cascade reference, the earliest over its references - a minimum of maxima - so a merge can
+shorten a cascade, and a set that only records whether a row goes cannot answer when. The audit
+prints the refusal each delete would print: the first declared failing key or reference, then
+its smallest failing id. That is a minimum over failing rows, not a sum, and the rows removed too
+deep have to exclude the deleters that reach them within fifteen rounds.
 
-The shipped cascade also recurses once per row, so even a plain 1,500-row simple chain fails
-before any partial rule is involved. Identifiers are in a legacy register - `ups`, `downs`,
-`form`, `cut`, `wipe`, `used` - short but never misleading; each is recoverable from what calls
-it, and none names the structure the fast audit needs.
+The deep stores have about 36,000 rows, most in four revision histories of 6,000 to 7,000
+revisions with branches merged back and merges between histories. A per-row replay does work
+proportional to the sum of all removed sets, three to five thousand rows per delete: written as tightly as
+Python allows it needs about 2,400 seconds for the three graded deep scripts, against 180
+seconds for the whole graded set, while the reference's whole run takes 51 seconds in the capped
+container. A tree with a replay for the rows the tree cannot express does not escape it either:
+three rows in four of a deep store remove a row with two cascade references when deleted alone.
+
+The shipped cascade also recurses once per row, so even a plain 1,500-row chain fails before any
+partial rule is involved. Identifiers are in a legacy register - `ups`, `downs`, `form`, `cut`,
+`wipe`, `used` - short but never misleading; each is recoverable from what calls it, and none
+names the structure the fast audit needs.
 
 The data is synthetic: document stores with revisions based on revisions (a null revision number
-meaning any revision of that document), notes, links between two revisions, holds, watches,
-pins, citations and tags, in ten small families that concentrate half-null rows, shared matches,
-loops, clearing, refusal order and two-cascade rows far above their natural rate, plus the deep
-family. In a working database these shapes are rare, and they are where this class of bug lives.
+meaning any revision of that document), merge revisions, notes, links between two revisions,
+holds, watches, pins, citations and tags, in twelve small families that concentrate half-null
+rows, shared matches, loops, loops through merges, cascades near fifteen rounds, clearing,
+refusal order and two-cascade rows far above their natural rate, plus the deep family. In a
+working database these shapes are rare, and they are where this class of bug lives.
 """
 
 solution_explanation = """
@@ -77,30 +74,28 @@ can leave any subset null: key rows by the projection of their key onto the patt
 rows by the projection of their own values. One lookup then answers which rows a row matches and
 which rows match a given key row. The index is dropped whenever a delete changes the store.
 
-`drop.py` plans a delete against the store as it stands. Every (row, reference) pair holds a
-count of the rows it matched that are still standing. The named rows are removed and count down
-their referrers; a pair that reaches zero has lost its reference, and a pair on a cascade
-reference removes its row, which counts down its own referrers in turn. A row goes only after
-everything it matched has gone, which makes the result the smallest closed set: rows that match
-only one another never reach zero. `clear.py` nulls the listed columns of every row that lost a
-setnull reference and was not removed, after the removed set is settled. `hold.py` refuses on any
-row that lost a restrict reference, then checks against the end state only the rows whose
-position could have changed - rows that lost a reference, and rows matching a key row whose key
-was cleared - and names the first declared failure with its smallest row id. The delete is
-applied only when nothing fails.
+`drop.py` plans a delete against the store as it stands, one round at a time. Every (row,
+reference) pair holds a count of the rows it matched that are still standing. The named rows go
+in round 0 and count down their referrers; a pair that reaches zero has lost its reference, and
+a pair on a cascade reference removes its row in the next round unless another pair already did.
+A row goes only after everything it matched through that reference has gone, which makes the
+result the smallest closed set, and its round is the earliest its references allow. `clear.py`
+nulls the listed columns of every row that lost a setnull reference and was not removed.
+`hold.py` refuses on any row that lost a restrict reference, on any row removed after round
+fifteen through each cascade reference it lost, and on the end state, checking only the rows
+whose position could have changed, and names the first declared failure with its smallest id.
+The delete is applied only when nothing fails.
 
-`audit.py` answers every row at once. It gives each distinct match set one identity, so a set
-shared by thousands of rows is handled once, finds loops of mutual cascade matches with an
-iterative strongly-connected-components pass (a row that matches itself is left out and hangs
-from the top on its own account), and places every other row under the lowest common owner of
-its match set, top down, with binary lifting for the common owners. Removal counts are subtree
-sizes. A row of a table with two cascade references counts in every owner above either of its
-match sets, which inclusion and exclusion over lowest common owners turns into a few signed
-marks; clearing and refusals are marks of the same kind, with a row's setnull references
-enumerated by which of them fire, because the values its end-state check reads depend on that.
-The marks are summed up the tree in reverse order of placement. Loop members, whose own deletes
-can take other members with them, and two-cascade rows are replayed with the delete itself.
-Everything is iterative, so a chain thousands deep costs the same as a short one.
+`audit.py` answers every row at once by turning the question round: for every row it computes
+the set of rows whose lone delete removes it, as a Python integer used as a bit set. That set is
+the row plus, for each cascade reference, the rows common to the sets of all its matches, so the
+sets are settled over the strongly connected components of the cascade-match graph (Tarjan,
+iteratively), dependencies first, and a loop is grown from each row alone until it stops
+changing. The rows that remove a row within fifteen rounds are built the same way one round at a
+time. Removed and cleared counts are column sums over the sets in bit-sliced counters. Every
+failure a lone delete can cause - a restrict loss, a row removed too deep, and the end state for
+each set of setnull references that can fire - is a set of deleters; visiting them in declaration
+and id order, each deleter keeps the first that reaches it, which is its refusal.
 
 An expert works in that order because the audit is defined as the delete: the fast path is only
 worth trusting once the delete is right, and it is checked against a per-row replay on stores
@@ -114,30 +109,35 @@ touched, and nothing a script does while it runs, can change the driver, reader,
 printer. Every script runs in a fresh interpreter as an unprivileged user, and its standard
 output is compared line for line.
 
-Correct is defined twice over. Twenty-five hand scripts, one per graded decision plus the
+Correct is defined twice over. Thirty-three hand scripts, one per graded decision plus the
 ordinary side of each fence and a 1,500-row simple chain, are checked against `gt.json`; the
 grader first asserts that the sealed model still reproduces it, so a drifted model cannot quietly
-redefine correct. Three hundred and three more are generated from a nonce drawn at grading time,
-before the worker starts: thirty in each of ten small families that concentrate half-null rows,
-shared matches, loops, clearing, refusal order and two-cascade rows, and three deep stores of
-about 36,000 rows. Root writes and answers them; the answers sit in a directory the worker
-cannot read, and the grader regenerates the scripts from the nonce to confirm the answers belong
-to them. The model was written apart from the reference, on iterative dominators and an Euler
-tour where the reference uses binary lifting and inclusion and exclusion, and both agree with a
-brute-force transcription of the rules on more than two thousand generated stores.
+redefine correct. Three hundred and sixty-three more are generated from a nonce drawn at grading
+time, before the worker starts: thirty in each of twelve small families that concentrate
+half-null rows, shared matches, loops, merges, loops through merges, cascades near fifteen
+rounds, clearing, refusal order and two-cascade rows, and three deep stores of about 36,000 rows.
+Root writes and answers them; the answers sit in a directory the worker cannot read, and the
+grader regenerates the scripts from the nonce to confirm the answers belong to them. The model
+was written apart from the reference - Kosaraju components where the reference uses Tarjan, and
+rounds found by bounded forward deletes from every row where the reference builds them one layer
+at a time - and it, the reference and two variants agree with a brute-force transcription of the
+rules, which counts rounds straight from their definition, on 480 generated stores.
 
-The fences run both ways. Each of eighteen wrong readings is written as a whole solver and is
-caught by a named hand case: treating partial as simple fails `audit-diamond`, freeing loops by
-reachability fails `audit-loop`, timing RESTRICT like NO ACTION fails `restrict-removed-anyway`
-and the reverse fails `noaction-removed-anyway`, clearing that feeds back fails
-`clear-no-feedback`, a row that cannot match itself fails `self-restrict`, and naming by row
-first fails `order-decl`. Constant and positional answers match at most one hand script. An
-audit that replays the correct delete per row passes every hand script and is stopped by the
-180-second clock. Under the declared 1 CPU and 2 GB the reference's whole run takes 39 seconds,
-and two independently written variants, one on iterative dominators and one that walks each
-affected chain instead of summing marks, take 63 and 48 seconds with the same answers. Probes that read the sealed answers,
-plant a reward, rewrite the staged tree, delete graded scripts, try to become root, linger to
-write after grading, or kill the worker all score 0, each refused at its own layer.
+The fences run both ways. Each of twenty-five wrong readings is written as a whole solver and is
+caught by a named hand case: the ownership-tree audit the task was previously solved with fails
+`merge-either`, a merge that needs both parents fails `merge-either`, counting descendants fails
+`merge-wild-side`, loops that never break fail `or-loop-broken`, rounds as a longest path fail
+`depth-merge-shortcut`, a limit that bites at round fifteen and no limit at all fail
+`depth-limit`, a too-deep row failing only one reference fails `depth-both-refs`, treating
+partial as simple fails `audit-diamond` and freeing loops by reachability fails `audit-loop`.
+Constant and positional answers match at most one hand script and 24 of the 360 small
+generated ones. An audit that replays
+the correct delete per row passes every hand script and is stopped by the 180-second clock.
+Under the declared 1 CPU and 2 GB the reference's whole run takes 51 seconds, and two
+independently written variants take 65 and 71 seconds with the same answers. Probes that read the
+sealed answers, plant a reward, rewrite the staged tree, delete graded scripts, try to become
+root, linger to write after grading, or kill the worker all score 0, each refused at its own
+layer.
 """
 
 category = "Software"
@@ -149,21 +149,23 @@ tags = [
   "composite-foreign-keys",
   "partial-key-matching",
   "delete-impact-analysis",
-  "dominator-trees",
+  "cascade-depth-limit",
 ]
 
-expert_time_estimate_hours = 10
+expert_time_estimate_hours = 12
 
 relevant_experience = """
 This task is database-internals work: referential actions for composite foreign keys under MATCH
 SIMPLE, FULL and PARTIAL, constraint timing that tells RESTRICT from NO ACTION within one
-statement, and a delete-impact audit that has to agree with the delete exactly. Building it meant
-writing the engine three times - a brute-force transcription of the rules, a sealed model on
-iterative dominators, and a reference on lowest common owners with binary lifting - and making
-all three agree on thousands of generated stores, then measuring a per-row replay against the
-ownership tree at forty thousand rows. Comfortable with least fixed points over sets of rows
-rather than per-row walks, with dominator trees and where they part from reachability, and with
-keeping a verifier sound when the code it grades runs inside it.
+statement, a cascade depth limit counted in rounds, and a delete-impact audit that has to agree
+with the delete exactly. Building it meant writing the engine several times - a brute-force
+transcription of the rules, a sealed model on Kosaraju components with bounded forward deletes,
+and a reference on Tarjan components with layered rounds - plus two more correct variants, and
+making all of them agree on generated stores with merges, loops and cascades near the limit, then
+measuring a per-row replay against the deleter-set audit at thirty-six thousand rows. Comfortable
+with least fixed points over sets of rows rather than per-row walks, with why dominator trees and
+reachability each fail when a row can go with either of two parents, and with keeping a verifier
+sound when the code it grades runs inside it.
 """
 
 [verifier]

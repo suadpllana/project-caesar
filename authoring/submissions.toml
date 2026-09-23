@@ -133,10 +133,11 @@ verdict = "pending"
 slug = "partial-key-purge"
 category = "Software"
 label = "Databases"
-tags = ["referential-actions", "composite-foreign-keys", "partial-key-matching", "delete-impact-analysis", "dominator-trees"]
+tags = ["referential-actions", "composite-foreign-keys", "partial-key-matching", "delete-impact-analysis", "cascade-depth-limit"]
 substrate = "the referential-action pass and delete-impact audit of a relational database whose foreign references are composite and may carry null components"
-mechanism = "Decide what a delete does to rows that reference it through composite keys matched simply, fully or partially, where a row goes only after losing every row it matched, and give that answer for every row of a large database at once."
+mechanism = "Decide what a delete does to rows that reference it through composite keys matched simply, fully or partially, where a row goes after losing every row it matched through any one of its cascading references, in rounds the real database cuts off at fifteen, and give that answer, refusal included, for every row of a large database at once."
 verdict = "pending"
+note = "first submission (commit f31b80c) failed the easiness probe 3 of 3 on 2026-09-23; redesigned with merge revisions, the fifteen-round cascade limit and refusal lines in the audit, and resubmitted pending"
 
 # --- Submitted, bundle not in this checkout -----------------------------------------
 # README.md records these as passed. Their trees were removed, so their tags, substrate

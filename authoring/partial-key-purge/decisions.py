@@ -7,8 +7,9 @@ among them, whether the row matches itself, how many cascade, restrict, noaction
 references point at a row, how many live cascade references a row has. Nothing derived from the
 removal rule is offered, because the derivation is the task.
 
-Four questions, labelled by the reference:
+Five questions, labelled by the reference:
   removed-by-lone-delete   is row v removed when row r alone is deleted (every pair in a store)
+  removed-in-time          of the rows a lone delete of r removes, is v removed by round fifteen
   audit-removed            how many rows a lone delete of r removes
   audit-held               whether a lone delete of r is refused
   delete-refused           whether a delete statement of a generated script is refused
@@ -69,15 +70,16 @@ def _raw(store, match):
 
 def samples():
     audit_m, drop, match, parse, rows = _load()
-    out = {"removed-by-lone-delete": [], "audit-removed": [], "audit-held": [],
-           "delete-refused": []}
+    out = {"removed-by-lone-delete": [], "removed-in-time": [], "audit-removed": [],
+           "audit-held": [], "delete-refused": []}
     for i in range(160):
         fam = gen.SMALL[i % len(gen.SMALL)]
         rng = random.Random("decisions:%s:%d" % (fam, i))
         text = gen.abstract(rng) if fam == "mixed" else gen.story(rng, fam)
         script, store = _store(text)
         cas, pointed = _raw(store, match)
-        for t, r, gone, wiped, held in audit_m.audit(store):
+        for t, r, gone, wiped, fail in audit_m.audit(store):
+            held = fail is not None
             p = pointed[(t, r)]
             feats = {"cascade_in": p.get("cascade", 0), "restrict_in": p.get("restrict", 0),
                      "noaction_in": p.get("noaction", 0), "setnull_in": p.get("setnull", 0),
@@ -94,6 +96,8 @@ def samples():
                           "v_self": int(v in ms), "v_live_cascade": pointed[v]["live"],
                           "r_cascade_in": p.get("cascade", 0)}
                     out["removed-by-lone-delete"].append((f2, v in eff.gone))
+                    if v in eff.gone:
+                        out["removed-in-time"].append((f2, eff.gone[v] <= 15))
         for st in script.stmts:
             if st.op != "delete":
                 continue

@@ -63,5 +63,6 @@ PYEOF
 
 cat > /app/db/audit.py <<'PYEOF'
 def audit(store):
-    return [(t.name, rid, 1, 0, True) for t in store.script.tabs for rid in store.ids(t.name)]
+    return [(t.name, rid, 1, 0, (store.script.decls[0].name, rid)) for t in store.script.tabs
+            for rid in store.ids(t.name)]
 PYEOF

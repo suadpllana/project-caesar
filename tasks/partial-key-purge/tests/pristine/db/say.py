@@ -14,6 +14,7 @@ def dump(store, tab):
 
 def audit(rows):
     out = []
-    for tab, rid, gone, wiped, held in rows:
-        out.append("%s %d %d %d %s" % (tab, rid, gone, wiped, "held" if held else "ok"))
+    for tab, rid, gone, wiped, fail in rows:
+        end = "ok" if fail is None else "refused %s %d" % fail
+        out.append("%s %d %d %d %s" % (tab, rid, gone, wiped, end))
     return out

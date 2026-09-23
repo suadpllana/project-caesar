@@ -5,9 +5,148 @@ session starts with no memory of this one — anything not written here is lost.
 
 ## Current stage
 
-`Stage 7 — Final gates and delivery` (2026-09-22). Stage 1 closed with originality 100 and
-difficulty 100; Stage 2 froze the contract below; Stages 3-6 built and validated the bundle; the
-final container sweep and packaging are recorded under Validation status.
+`Easiness recovery, round 1` (2026-09-23). The easiness probe solved the bundle at commit f31b80c
+3 of 3. RAISE-DIFFICULTY.md is running from section 1; Stage 7 is blocked until the recovery
+exit gate. The entry below records the evidence, the diagnosis, the candidates and the chosen
+repair; the sections after it describe the bundle as it was probed until each is re-derived.
+
+## Easiness recovery - 2026-09-23 (probe 3 of 3)
+
+### 1. The failure, captured
+
+- Result: the easiness probe solved it in 3 of 3 trials. The contributor supplied the three
+  transcripts; they are in probes/partial-key-purge/2026-09-23-easiness-{1,2,3}.txt with the brief
+  stripped (probes/partial-key-purge/notes.md says exactly what was removed).
+- tools/leakcheck.py on the three: nothing above the floor. The brief did not supply the wording.
+- First plan, decisive discovery, final method:
+  - trial 1: first plan, before any experiment, "an indexed fixpoint delete and a tree-DP audit";
+    the audit folds the cascade structure into a forest with components for loops and
+    self-matches, sums path updates over subtrees, and replays any component the forest cannot
+    express. Decisive step: none - the plan was complete; profiling found one 289-row component
+    whose local fixpoint was slow and a worklist fixed it. deep.txt 4.2 s, graded set estimated
+    at 42 s.
+  - trial 2: "a cell-based index ... batch-process the single-parent forest bottom-up with a
+    fallback for cleared-but-referenced tables"; counters per match cell, small-to-large merges,
+    cycles judged together, whole-audit per-row fallback when a clearable table is referenced
+    (never true in the deep schema). deep.txt 3.4 s.
+  - trial 3: profiled deep.txt's structure (loops, depth, branching), then "an exact engine for
+    delete and an incremental closure-merging pass for audit" - "single-row closures form a
+    laminar family" - with the exact engine for seeds whose contributions cannot be aggregated.
+    Its fuzzing found and fixed one real fast-path bug. deep.txt 7.2 s, estimate 55 s.
+- Earliest commit point: after reading the nine modules and the four samples (tool calls 1-2 in
+  trials 1 and 2, call 4 in trial 3), before running any experiment. The complete plan existed
+  before any code.
+- Where the plan came from: the model's prior and the shape of the specification, not the brief's
+  wording (leakcheck clean) and not a verifier loophole. Every rule is individually implementable,
+  and the structure each wants is the standard one: a counter per match set for the least fixed
+  point, and nested removed sets (a dominator forest) for the audit. Confirmation came from each
+  agent's own brute-force transcription of the brief, random generators and sampled comparisons
+  on deep.txt - every rule was confirmed one at a time.
+- Tactics that failed in practice: A2 (the ownership tree was recognised at once, in the agents'
+  own words), A3 (loops and two-cascade rows were absorbed by components and per-row fallbacks),
+  C2 (the brief is a complete oracle on small stores), C3 (it priced only a full per-row replay;
+  replaying just the rows the tree cannot express was cheap because such rows are rare in the deep
+  stores and the deep schema is fixed).
+- Estimated solves out of 8 before repair: 8 (measured 3 of 3).
+
+### 2. The winning route, classified
+
+- The default plan was correct: all three named the right state model (counters on match sets)
+  and the right audit structure (nested removed sets) before exploring. Evidence: the planning
+  lines quoted in probes/partial-key-purge/notes.md.
+- The agent confirmed each step independently: a brute force written from the brief checked every
+  rule on small stores; the only thing it could not check, the fast audit at scale, was checked
+  by sampling the agents' own exact engines on deep.txt.
+- The naive method was fast enough: a hybrid - the tree where it applies, per-row replay where it
+  does not - fit the clock with room to spare. Replay of the few loop members and two-cascade rows
+  is exactly what the reference itself does, so the gate never touched the hybrids.
+- Not the cause: the instruction (leakcheck clean, no method named), a derived leak in the tree
+  (rows carry only ids and values), a verifier loophole (no probe exploited grading).
+
+### 3. Candidates
+
+A. Merge histories (drop the guarantee that no reference names a key of a table with two or more
+   cascade references). A merge revision has a base and a merged-from parent, each a cascade
+   reference, and it goes when it loses either; later revisions are based on it. Removed sets stop
+   nesting: deleting either parent's line removes the merge and everything based on it, while a
+   row matching several revisions still goes only when all of them go. The dominator forest gives
+   wrong counts, reachability (descendants) gives wrong counts on the rows with several matches,
+   and loops through a merge row can now be broken from outside. Attack: the correct structure is
+   the set of rows whose lone delete removes a row, which is an intersection over a reference's
+   matches and a union over a row's cascade references; an agent who sees merges while planning
+   drops the tree for that formulation. Alone it is one discovery made at planning time.
+B. The real database's cascade depth limit (the rehearsal store must refuse what the real one
+   refuses): a delete runs in rounds, and one that would remove a row in round 16 or later is
+   refused. The round of a row is one after the last of the rows it matched through a lost cascade
+   reference, the earliest over its lost cascade references. Attack: on its own, over single-parent
+   histories, the round is a longest-path difference and the tree still answers it; with A the
+   round is a max over matches and a min over references, so the set of deleters is not enough -
+   the round each deleter reaches is needed, and a representation built for A has to be rebuilt.
+C. The audit prints the refusal it would print (`refused <name> <id>`) instead of `held`. Attack:
+   the name is a minimum over failing rows ordered by declaration and id, and a minimum is not a
+   signed sum, so the marks that carried the old audit cannot express it; alone it is a technique
+   swap on the same tree.
+D. Rejected: a purge statement that deletes a table row by row, each on the store the last one
+   left. Removed sets change after every successful delete and rows move deeper in the ownership
+   structure; no expert path within ten hours maintains that without dynamic trees.
+E. Rejected: shaping the deep family so the hybrids' replays become quadratic (huge loops,
+   referenced clearable tables) without a rule change. It is more hidden cases on the same plan,
+   and the reference itself replays loop members.
+
+Selected: A with B and C together, as one change of what the store rehearses - merge histories
+under the real database's cascade limit, with the audit reporting what each delete would print.
+Why together: A makes the first plan wrong (the tree) and forces the deleter-set formulation; B
+invalidates that formulation's natural representation (one set per row) once it is built, because
+the depth refusal needs the round each deleter reaches, a min over references of a max over
+matches; C makes every failure a minimum, so the depth failures, the restrict losses and the
+end-state failures have to be merged in declaration order per deleter, with the depth failures
+excluding the rows a deleter reaches within fifteen rounds. The ordinary side stays graded:
+single-parent chains, a cascade exactly fifteen rounds deep (accepted), loops without merges.
+Contract change: this changes what "correct" means for the delete (depth refusals; merge rows
+referenced) and for the audit (the refusal line). The contributor's request of 2026-09-23 ("make
+the task substantially harder") is the approval; the change is recorded under the re-frozen
+contract.
+
+### 4. Rebuild, from Stage 2
+
+- Stage 2: contract re-frozen (section "Verifier contract - RE-FROZEN 2026-09-23" below) after
+  the brute force, the model, the reference and two variants agreed; tests/cases.py grew from 25
+  to 33 hand scripts (audit-names, depth-both-refs, depth-limit, depth-merge-shortcut,
+  merge-either, merge-self, merge-wild-side, or-loop-broken); gt.json rebuilt with
+  build_gt.py --contract-change, every moved answer listed and classified.
+- Stage 3: tests/seal/gen.py adds merged-from columns and the `rev_merge` reference to every
+  generated store, merge kinds (branch merges, merges from other documents and from whole
+  documents, forward merges that make loops), two new families (merge, depth) and a rebuilt
+  deep family of merge histories; the shipped samples were regenerated from it; the frozen
+  printer prints refusal lines; the pristine mirror was re-synced.
+- Stage 4: solution/drop.py counts rounds, solution/hold.py refuses past round 15,
+  solution/audit.py is new (deleter sets over Tarjan components, layered rounds, bit-sliced
+  counts, refusals painted in declaration order). The probed reference's audit is kept as
+  authoring/partial-key-purge/old/tree_audit.py for the tree-audit reading.
+- Stage 5: instruction.md rewritten where the rules changed (5,536 characters); trace.md walked
+  again from the top; tracecheck clean.
+- Stage 6: 41 cheats emitted (25 readings, 4 shortcuts, the replay audit, the gt.json forgery,
+  10 isolation probes); the old winning plan is `cheat-tree-audit.sh`, separated by the hand case
+  merge-either.
+
+### 5. Measurement before another probe
+
+- Reference scores 1 in the capped container (1 CPU, 2 GB): 37 passed, worker 51 s; nop scores 0
+  (27 failed, 10 passed); both variants score 1 (65 s and 71 s).
+- The old probe-winning plan fails a specific hand case (merge-either) and the sealed suite; the
+  probe's hybrid (tree plus replay of what it cannot express) would replay 74.8% of the rows of a
+  deep store, and the per-row replay floor is 2,402 s against 180 s.
+- No short expression reconstructs a graded decision: tools/onelinecheck.py finds no exact rule
+  at depth 2 for removed-by-lone-delete, audit-removed, audit-held or delete-refused.
+- Resource gate recorded for both families: correct fast family 51-71 s whole run in the
+  container; naive replay 2,402 s for the deep scripts alone on the host.
+- Cheat sweep, preflight and the manual quality review: recorded below.
+- Cold self-attack: recorded below; author-run and contaminated.
+
+### 6. Exit gate
+
+Not reached. Recovery ends only when the external easiness probe passes. The bundle is packaged
+for that probe; this entry is updated with the realized result when the contributor has it.
 
 ## Assistant's assigned role
 
@@ -35,25 +174,27 @@ and references (each with a match rule of simple, full or partial and a delete a
 cascade, restrict, noaction or setnull with an optional column list), gives rows, and then runs
 deletes, dumps and audits. The shipped referential pass treats every reference as simple and
 cascades row by row as each referenced row goes; the shipped audit replays a delete per row. The
-agent rewrites five modules so that deletes remove, clear and refuse exactly as the brief states,
-and so that the audit, which reports for every row what deleting that row alone would do, runs
-inside the stated limit on stores of about thirty-six thousand rows with revision chains six to
-seven thousand deep.
+agent rewrites five modules so that deletes remove, clear and refuse exactly as the brief states
+- including merge revisions, which go when either parent goes and are themselves referenced, and
+the real database's refusal of a cascade that runs past fifteen rounds - and so that the audit,
+which prints for every row what deleting that row alone would print, refusal included, runs
+inside the stated limit on stores of about thirty-six thousand rows, most in four merge
+histories of six to seven thousand revisions.
 
 ## Why it is hard
 
-- Expert time estimate: 10 hours
-- Why a frontier agent cannot one-shot the plan: the natural plan is the engine every solver knows (a null switches a reference off, each lost parent settles its children at once, clearing takes effect as it happens, the audit replays a delete per row), and the stated rules make a row's fate depend on a whole set of rows (a partial row goes only once every row it matched is gone, rows matching one another keep each other); once that is implemented the audit is correct and far too slow, and the structure that makes it fast (removal sets are the subtrees of one ownership tree) holds only outside loops of mutual matches and has no place for rows of tables with two cascading references, so the second discovery forces a new audit design, not a patch.
-- Tactics making that true: A1 (the familiar engine treats half-null rows as inert and cascades row by row), A2 (least fixed point, ownership tree and lowest common owners are described, never named), A3 (a retained-set computation is wrong on loops and has no place for two-cascade rows; replay is right but slow; they must be joined), B2 (match rules, fixpoint, pre-statement matching, column-list clearing, restrict against noaction timing, end checks and refusal naming all hold at once), C1 (both too much and too little removal are graded, and plain simple cascades must stay exactly right), C3 (the correct per-row replay is quadratic on the deep stores), C4 (every line of every script over hand scripts and a nonce population shaped around half-null rows, shared matches, loops and deep chains)
-- Assistant's attack on the plan: my own first plan was the recursive cascade taught the three match rules plus an audit that replays each delete on a copy; it is wrong on pre-statement matching (clearing fed back), on loops (rows matching each other were removed with their outside support), on restrict against noaction, and it cannot finish the deep stores; my second plan, a standard dominator tree over the match graph, is wrong on loops (reachability frees what the least fixed point keeps) and misses the two-cascade rows entirely
+- Expert time estimate: 12 hours
+- Why a frontier agent cannot one-shot the plan: the first version was solved 3 of 3 because the audit's structure - removed sets nest, so they are the subtrees of one ownership tree - was each agent's first idea. In the rebuilt task that structure is wrong: merge revisions go with either parent and are referenced, so removed sets overlap without nesting, and a row matching several revisions still needs all of them gone, so descendants are wrong too. The audit has to be built from the rule itself (a row's deleters are a union over its cascade references of an intersection over their matches, settled as least fixed points over loops that a merge can break). Once that is built, the depth limit invalidates its representation: the round is a minimum over references of a maximum over matches, so the deleters have to be rebuilt per round up to fifteen, and every refusal has to be named, a minimum over failing rows that signed sums cannot give.
+- Tactics making that true: A1 (the ownership tree and descendant counting are each the textbook answer for half of the removal rule and give confident wrong counts on the other half), A2 (deleter sets, least fixed points, rounds per deleter, column sums and painting are described through their rules, never named), A3 (dominators need one owner per row, reachability needs one match to be enough, the depth limit needs rounds per deleter; they have to be combined), B2 (match rules, the fixpoint, OR across cascade references, rounds and the limit, pre-statement matching, column-list clearing, RESTRICT against NO ACTION, end-state checks and naming hold at once), C1 (fifteen rounds pass and sixteen refuse; a merge goes with either parent while a several-match row needs all; plain chains cascade as any engine does), C3 (the correct per-row replay needs about 2,400 s against 180 s, and a tree-plus-replay hybrid replays three rows in four), C4 (every line of every script over 33 hand scripts and 363 generated ones shaped around merges, loops through merges, cascades near fifteen rounds and the old shapes)
+- Assistant's attack on the plan: author-run at design time and again on the finished bundle, so contaminated - the author chose the rules (see the recovery entry). My first plan would be the probe's plan plus the new rules bolted on: counters with rounds for the delete, and an ownership-tree audit with a replay fallback for merges. The tree is wrong at every merge (merge-either), and the fallback replays 74.8% of the rows of a deep store. My second plan, descendant bit sets, is wrong on every row with several matches (merge-wild-side). The deleter-set plan is the third, and its natural representation - one set per row - cannot answer the depth limit, which needs rounds per deleter; naming the refusal then needs a minimum, not the sums I would have carried over. I can see where to start, but I could not commit to the whole plan without exploring, and my first plan is wrong where it matters.
 - Estimated solves out of 8: 2 (range 1-3)
-- Difficulty record score: 2026-09-22, 100/100 IN BAND on the first complete record; revised the same day when insert and update were dropped from the statement set (wrong reading on unique-key swaps replaced by one on key columns cleared to null, expert path step replaced by end-state checks after clearing, second discovery restated with the two-cascade rows as unions of chains); re-scored 100/100
+- Difficulty record score: 2026-09-22, 100/100 IN BAND for the first design; 2026-09-23 the record was rewritten for the redesign (probe's plan as the first plan, merges as the breaking rule, the depth limit and refusal naming as the second discovery) and scored 94 on a first pass (first_plan_source not one of the fixed labels; hand cases named but not described), 100/100 IN BAND once both were in the rubric's form; no claim changed between the two
 - Difficulty score anchor: not yet set (set at first complete submission)
-- Score history: 2026-09-22 originality 100 (DISTINCT), difficulty 100 (IN BAND), revised record 100; at the final gates, originality 100 with the built instruction (nearest brief alias-settle-report, cosine 0.233, shingle 0.000 over 13 documents) and 100 with `--corpus` over 20 historical briefs from git history (nearest reach-pair-sweep, cosine 0.208, shingle 0.003 over 33 documents); difficulty 100 on the measured tree (372 environment lines, 5 editable files, 554 reference lines, 34 cheats, 2 module-form variants)
-- Leak audit: nothing. Rows carry only an id and values; the frozen store keeps rows by id and no index over values; no expected output ships; helper names never name owners, dominators or ancestors; the shipped audit is a replay of the wrong delete and confirms nothing
-- Expert path: see authoring/partial-key-purge/difficulty.toml [plan].expert_path, nine steps from reading the shipped pass to joining the ownership tree with the loop replay
-- Originality check: searched MATCH PARTIAL implementations (none implement its actions), composite-key half-null footguns, cascade-delete previews (Django's collector: one object, simple keys), retained sets and dominator trees (reachability, wrong on loops); nothing plans the task
-- Distinctness record score: 2026-09-22, 100/100 DISTINCT; crowded archetype named: garbage-collector retained sets (Languages list), no Databases entry fits
+- Score history: 2026-09-22 originality 100, difficulty 100 (first design; probed 3 of 3 solved); 2026-09-23 originality 100 (DISTINCT; nearest brief alias-settle-report, cosine 0.229, shingle 0.000 over 13 documents; nearest ledger mechanism alias-settle-report at cosine 0.18), difficulty 100 (IN BAND; 373 environment lines, 5 editable files, 571 reference lines, 41 cheats, 2 module-form variants)
+- Leak audit: nothing. Rows carry only an id and values; the frozen store keeps rows by id and no index over values; no expected output ships; helper names never name owners, dominators, deleters, rounds or bit sets; the shipped audit is a replay of the wrong delete and confirms nothing; tools/onelinecheck.py finds no exact rule at depth 2 for any graded decision
+- Expert path: authoring/partial-key-purge/difficulty.toml [plan].expert_path, ten steps from reading the shipped pass to checking the deleter-set audit against the replay
+- Originality check: searched MATCH PARTIAL implementations (none implement its actions), MySQL's fifteen-level cascade limit (recursion depth of a row-by-row cascade, not rounds), retained sets and dominator trees (one tree, reachability), bit-set descendant counting (every match enough); nothing plans the task
+- Distinctness record score: 2026-09-23, 100/100 DISTINCT; crowded archetype named: garbage-collector retained sets (Languages list), no Databases entry fits
 - Nearest already-submitted task: reach-pair-sweep (loss of support propagated through references); separated on mechanism, substrate, graded output, failure mode and interaction
 
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
@@ -63,20 +204,26 @@ and test.sh line by line into authoring/<slug>/trace.md, start it with
 `python tools/tracecheck.py <slug> --skeleton`, and keep `python tools/tracecheck.py <slug>` clean.
 `preflight.py` errors while any line below is unanswered.
 
-- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): authoring/partial-key-purge/trace.md walks 5 test functions, 25 hand cases, 5 artifacts, the 180 s clock, the exit-status, output-cap and encoding conditions of tests/worker.py, the standard-library condition, and 20 rule rows of tests/seal/model.py; three NOT STATED found on the walk were fixed in the instruction (a run ending in an error counts as wrong; no package outside the standard library can be relied on; a restrict reference also fails by the end-state conditions); 0 NOT STATED left; `python tools/tracecheck.py partial-key-purge` clean (2026-09-22)
-- Identifiability (readings enumerated, which survived the published evidence, what separated them): 18 wrong readings written as whole solvers in authoring/partial-key-purge/readings.py, from the shipped engine (simple-for-all, row-by-row clearing), the model's prior (retained-set audit, reachability, restrict/noaction timing swapped), the four clusters (named rows not counted, cleared only if changed, held counts zero, name by row first, clear all columns) and the other parse of each rule (no self-match, fork needs both, full half-null accepted, key null allowed, end check before clearing, restrict only by losing, audit sums children); every one is ruled out by a quoted sentence and separated by a named hand case (tools/readingcheck.py: 18/18 separated, 0 BLIND, 0 equivalent); the survivors that agree with the reference on everything are the three correct implementations kept as variants
-- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): all score 0 in the capped Docker trial; fraction matched on the 25 hand scripts and 300 small nonce scripts (authoring/partial-key-purge/shortcuts.py): shipped tree 4/25 and 45/300, constant 0/25 and 1/300, named-only 1/25 and 21/300, refuse-first 0/25 and 1/300, worked example replayed 0/25 and 0/300
-- Independent implementation behind every tolerance and limit (path, measured headroom): the only limit is the 180 s clock on the whole graded run; on the final images under 1 CPU and 2 GB, authoring/partial-key-purge/variants/chk (iterative dominators, Euler tour, replay below 2000 rows) ran it in 63 s (2.9x headroom), authoring/partial-key-purge/variants/walk (explicit chain walks instead of marks) in 48 s and the reference in 39 s; the per-row replay floor (authoring/partial-key-purge/time_naive.py, removal counting only, flat arrays) is 820 s for the three deep scripts on the host
-- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): author-run, mechanically (no fresh session: this session may not spawn one); every printed token of delete, dump and audit lines was put through the four clusters; three decisions were open and each got a sentence: whether a restrict reference can fail at the end state (sentence rewritten, hand case restrict-broken-by-clear added), whether a run that exits with an error but printed the right lines passes (sentence added), whether packages outside the standard library are there (sentence reworded after the walk found pytest in the verifier image); every other question was answered by a quote recorded in trace.md
+- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): authoring/partial-key-purge/trace.md, walked again from the top on 2026-09-23: 5 test functions, 33 hand cases, 5 artifacts, the 180 s clock, the exit-status, output-cap and encoding conditions of tests/worker.py, the standard-library condition, 20 rule rows of tests/seal/model.py, and the fifteen-round limit; three NOT STATED found on the second walk were fixed in the instruction (a row with two cascade references goes when it loses either; what a self-matching merge row does; which references a row removed too deep fails); 0 NOT STATED left; `python tools/tracecheck.py partial-key-purge` clean (2026-09-23)
+- Identifiability (readings enumerated, which survived the published evidence, what separated them): 25 wrong readings written as whole solvers in authoring/partial-key-purge/readings.py - the 18 of the first design, re-derived against the new reference, and seven new ones: the probe's winning ownership-tree audit (tree-audit), a merge needing both parents (fork-needs-both, now separated by merge-either), descendant reachability, loops that never break, rounds as a longest path, the limit biting at round fifteen, no limit, and a too-deep row failing only the reference that removed it; every one is ruled out by a quoted sentence and separated by a named hand case (tools/readingcheck.py: 25/25 separated once rounds-longest-path, first reported equivalent, was found to be mis-implemented - it read rounds in removal order and so collapsed into the correct rule - and was rewritten with a topological pass); the survivors that agree with the reference everywhere are the correct implementations kept as variants
+- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched): fractions on the 33 hand scripts and 360 small nonce scripts (authoring/partial-key-purge/shortcuts.py): shipped tree 7/33 and 50/360, constant 0/33 and 3/360, named-only 1/33 and 24/360, refuse-first 0/33 and 0/360, worked example replayed 0/33 and 0/360; container scores in the cheat report below
+- Independent implementation behind every tolerance and limit (path, measured headroom): the 180 s clock on the whole graded run: under 1 CPU and 2 GB the reference ran it in 51 s (3.5x headroom), authoring/partial-key-purge/variants/chk (worklist, capped round maps) in 65 s (2.8x) and authoring/partial-key-purge/variants/walk (Kosaraju, bounded forward deletes) in 71 s (2.5x); the per-row replay floor (authoring/partial-key-purge/time_naive.py) is 2,402 s for the three deep scripts on the host. The fifteen-round limit is a rule, validated by the brute force (rounds from their definition), both variants and the model on 480 generated scripts, and fenced on both sides by the hand case depth-limit
+- Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): author-run, mechanically (no fresh session: this session may not spawn one); every printed token of delete, dump and audit lines was put through the four clusters on 2026-09-23; four decisions were open after the redesign and each got a sentence or a case: whether a row with two cascade references goes on either (sentence rewritten: "loses any of its"), what a merge that matches itself does (sentence rewritten about the self-matching reference, hand case merge-self), which references a too-deep row fails (sentence added, hand case depth-both-refs), and whether a refused audit line keeps its counts (hand case audit-names). A last cold read of the finished brief found two more readings a careful solver could split on, both already settled by the rules but not by the words: "stops a cascade at fifteen rounds" could be read as truncating the cascade rather than refusing the delete (reworded: the delete is refused "because the real database refuses a cascade that deep"), and the counts on a refused audit line (now "the counts are still those of every row it would remove and clear if it went ahead"); every other question was answered by a quote recorded in trace.md
 
-## Verifier contract — FROZEN 2026-09-22 (end of Stage 2)
+## Verifier contract — RE-FROZEN 2026-09-23 (easiness recovery; first frozen 2026-09-22)
 
-Frozen after the brute force (authoring/partial-key-purge/brute.py), the sealed model
-(tests/seal/model.py), the reference (solution/) and a second correct variant
-(authoring/partial-key-purge/variants/chk/) agreed on every script checked: 1500 shaped small
-scripts plus 150 random ones for the model, 400 for the reference, 800 for the variant through
-its replay path and 800 through its forced fast path, and model = reference = variant on 20
-medium chain scripts and 3 deep ones. Changes from here need the contributor's approval.
+Re-frozen after the brute force (authoring/partial-key-purge/brute.py, rounds counted straight
+from their definition), the sealed model (tests/seal/model.py), the reference (solution/) and two
+correct variants (authoring/partial-key-purge/variants/chk and walk) agreed on every script
+checked: 480 generated scripts (40 in each of the twelve small families plus 40 random-schema
+fuzz scripts) through all five, the 33 hand scripts through all five (the brute force skips only
+chain-1500), and model = reference = both variants on a deep script (72,332 lines). The change
+from the first freeze is the contributor's: "make the task substantially harder" (2026-09-23),
+after the easiness probe solved the first version 3 of 3. What moved, measured against the 25
+answers frozen on 2026-09-22 (authoring/partial-key-purge/build_gt.py --contract-change): 13 hand
+answers changed only where an audit line said `held` and now says `refused <name> <id>`, with the
+same counts; chain-1500 changed because its deletes are now refused past round 15; no delete or
+dump line of any other frozen answer moved.
 
 - Artifacts the agent produces: `/app/db/match.py`, `/app/db/drop.py`, `/app/db/clear.py`,
   `/app/db/hold.py`, `/app/db/audit.py`. Nothing else is collected; the driver `/app/run_db.py`,
@@ -84,116 +231,159 @@ medium chain scripts and 3 deep ones. Changes from here need the contributor's a
   `/app/db/__init__.py` are the verifier's pristine copies. The driver calls
   `drop.delete(store, table, ids)` (returns `("ok", removed, cleared)` or
   `("refused", name, id)`) and `audit.audit(store)` (returns `(table, id, removed, cleared,
-  held)` per row, in output order). Only the standard library is available at grading.
-- Script grammar (one item per line, blank lines and `#` lines ignored; declarations, then rows,
-  then statements):
+  refusal)` per row, refusal `None` or `(name, id)`, in output order). Only the standard library
+  is available at grading.
+- Script grammar (unchanged; one item per line, blank lines and `#` lines ignored; declarations,
+  then rows, then statements):
   - `table <name> <col>...`
   - `key <name> <table> <col>...`
   - `ref <name> <table> <col>... -> <key> <simple|full|partial> <cascade|restrict|noaction|setnull> [<col>...]`
-    (a column list after the action only for `setnull`; it names some of the reference's columns)
   - `row <table> <id> <value>...` with `-` for null
   - `delete <table> <id>...`, `dump <table>`, `audit`
-  Guarantees: names distinct across tables, keys and references; ids positive and unique per
-  table; the given rows satisfy every key (no null key column, no two rows equal on a key) and
-  every reference (not broken; a reference that is not inert matches at least one row); a delete
-  names distinct rows present at that point; no reference names a key of a table that has two or
-  more cascade references.
+  Guarantees: names distinct; ids positive and unique per table; the given rows satisfy every key
+  (no null key column, no two rows equal on a key) and every reference (not broken; a reference
+  that is not inert matches at least one row); a delete names distinct rows present at that
+  point. Dropped at this freeze: "no reference names a key of a table that has two or more
+  cascade references" - merge revisions are exactly such rows, referenced by later revisions.
 - Semantics:
-  - A reference is inert for a row whose referencing columns are all null, and under `simple`
-    also for a row with any of them null. Under `full` a row with some but not all null is broken.
-    Otherwise the row matches every row of the key's table whose key columns equal its non-null
-    referencing columns, pairwise in order. A row can match itself.
-  - A row loses a reference when it matched at least one row through it before the statement
-    and every row it matched is removed. Matching always uses the values from before the
-    statement.
-  - Removed: the named rows and every row that loses a cascade reference; the smallest such set
-    (rows that match only one another keep each other; a row matching itself keeps itself).
+  - Matching as before: inert when all referencing columns are null, and under `simple` when any
+    is; broken under `full` when some but not all are; otherwise the row matches every row of
+    the key's table equal on its non-null referencing columns. A row can match itself.
+  - A row loses a reference when it matched at least one row through it before the statement and
+    every row it matched is removed. Matching always uses the values from before the statement.
+  - Removed: the named rows and every row that loses any of its cascade references; the smallest
+    such set (rows that match only one another keep each other; a reference through which a row
+    matches itself never removes it).
+  - Rounds: the named rows go in round 0; a row that goes because it lost a cascade reference goes
+    one round after the last row it matched through that reference, the earliest such round when
+    it lost more than one.
   - Cleared: every row not removed that loses a setnull reference has that reference's listed
     columns (all its columns when none are listed) set to null; clearing never changes the
-    removed set. Every such row counts as cleared, even if the columns already held null.
-  - Refused (nothing changes) when a row, removed or not, loses a restrict reference; or when,
-    after removal and clearing, a remaining row is broken under a reference, matches no
-    remaining row through a reference that is not inert for it (values after clearing, of both
-    rows), or has a null in a column of a key.
+    removed set; every such row counts as cleared.
+  - Refused (nothing changes) when a row, removed or not, loses a restrict reference; when a row
+    goes in round 16 or later (it fails every cascade reference it lost); or when, after removal
+    and clearing, a remaining row is broken, matches no remaining row through a reference that is
+    not inert for it (values after clearing, of both rows), or has a null in a key column.
   - Refusal names the failing key or reference declared first in the script and the smallest id
     of a row failing it.
 - Output, one line per item, nothing else:
   - delete: `ok <removed> <cleared>` or `refused <name> <id>`
   - dump: `<table> <id> <value>...` per row, ids ascending, `-` for null (no line for an empty table)
-  - audit: `<table> <id> <removed> <cleared> <ok|held>` for every row, tables in declaration
-    order and ids ascending, each line what `delete <table> <id>` alone would give, counts
-    included when it would be refused; the store is unchanged.
+  - audit: `<table> <id> <removed> <cleared> ok` or `<table> <id> <removed> <cleared> refused
+    <name> <id>` for every row, tables in declaration order and ids ascending, each line what
+    `delete <table> <id>` alone would print, counts included when it would be refused; the store
+    is unchanged.
 - What is checked: stdout of the pristine driver, one fresh interpreter per script, on every
-  graded script equals the expected text exactly. Hand scripts (`tests/cases/`) against
+  graded script equals the expected text exactly. 33 hand scripts (`tests/cases.py`) against
   `tests/seal/gt.json`; a nonce population generated as root before the worker starts
-  (`tests/seal/gen.py`: 30 scripts in each of ten small families and 3 `deep` scripts of about
-  36,000 rows with four revision chains 6,000-7,000 deep) against the sealed model. The whole
+  (`tests/seal/gen.py`: 30 scripts in each of twelve small families - plain, half, loop, hold,
+  clear, multi, fork, order, mixed, chain, merge, depth - and 3 `deep` scripts of about 36,000
+  rows, most in four merge histories of 6,000-7,000 revisions) against the sealed model. The whole
   graded set runs in one worker under a 180 second wall clock, declared 1 CPU and 2048 MB.
 - Tolerances: none; exact text.
 - Ground truth, and where it lives: `tests/seal/gt.json` (hand scripts, built by the model and
-  checked against the reference, the variant and the brute force); the nonce population is
-  generated and answered inside the verifier by `tests/seal/`, which is chmod 700 before any
-  agent code runs.
-- Measured at freeze (this machine, Xeon 2.1 GHz, Python 3.11, fresh interpreter per script):
-  start-up 26 ms per small script; per deep script the reference 2.7 s, the variant 7.5 s, the
-  model 7.3 s; peak memory about 90-100 MB. The per-row replay floor (removal counting only,
-  array-based, the fastest form of the naive family) is 820 s for the three deep scripts; the
-  model's own correct replay extrapolates to about 730 s for one audit of the earlier,
-  shallower deep shape. Container timings are re-measured at Stage 4.
+  checked against the brute force, the reference and both variants); the nonce population is
+  generated and answered inside the verifier by `tests/seal/`, chmod 700 before any agent code
+  runs.
+- Measured at re-freeze (host, Python 3.11, fresh interpreter per deep script): reference 6.1 s,
+  chk 9.5 s, walk 12.7 s, model 15.0 s, peak memory about 400-450 MB. Capped container (1 CPU,
+  2 GB, Python 3.12), whole graded run: reference 51 s, chk 65 s, walk (see Validation status).
+  The per-row replay floor (removal counting only, array-based) is 2,402 s for the three deep
+  scripts (authoring/partial-key-purge/time_naive.py, mean removed set 3,267-5,098 rows).
 
 ## Decisions and their reasons
+
+Decisions of the easiness recovery (2026-09-23) come first; those of the first design follow,
+each marked where the recovery superseded it.
+
+- The guarantee that no reference names a key of a two-cascade table was dropped. The first
+  design kept two-cascade rows as leaves precisely so the ownership tree would exist, and noted
+  that referencing them "makes the removal structure an AND-OR graph with no tree"; that is now
+  the point. The expert path that was said to be missing exists: deleter sets as bit sets, a
+  union over cascade references of an intersection over matches, settled over components. It is
+  measured: the reference runs a deep script in 6.1 s on the host, and three independent
+  implementations agree with it.
+- Merges are revisions with a second, merged-from parent (`md mn`, reference `rev_merge`,
+  partial cascade), not a separate table: a merge that nothing is based on would be a leaf again.
+  The deep family was rebuilt around them: four histories of 6,000-7,000 revisions with side
+  branches merged back 3-40 revisions after they fork, merges from earlier histories and from
+  short documents (some from a whole document), and the old loops, pairs and guards. 74.8% of the
+  rows of a deep store remove a row with two cascade references when deleted alone, which is what
+  makes a tree-plus-replay hybrid replay three rows in four.
+- The depth limit is fifteen rounds, after MySQL's fifteen-level cascade limit, counted as rounds
+  of the set-based delete: a row goes in the round after the last row it matched through the
+  first of its cascade references to run out. A delete that would remove a row in round 16 or
+  later is refused and each such row fails every cascade reference it lost - one sentence covers
+  merges without a tie-break rule. Fifteen keeps the fence reachable by small scripts (the depth
+  family's lone deletes run 0 to 40 rounds) and makes deep deletes refuse, so the audit's names
+  for chain rows come from the whole removed set.
+- The audit prints the refusal the delete would print instead of `held`, keeping the counts:
+  the counts carry the column-sum part of the gate and the names carry the minimum over failures.
+  Measured against the first freeze, 13 hand answers moved only in that token.
+- The shipped `say.py` printer changed with the audit format (`refused <name> <id>` in place of
+  `held`), and the shipped wrong `audit.py` returns the new tuple; both are frozen or shipped
+  files the agent sees as they are, and the pristine mirror was re-synced.
+- The samples were regenerated: `loops.txt` now comes from the merge family (seed chosen for
+  merges and loops through merges, with an audit appended); `docs.txt` and `deep.txt` from the
+  rebuilt chain and deep families.
+- A latent bug in the old authoring readings.py - `reductions()` split scripts on a literal
+  backslash-n, so readingcheck's shrinking had never run - was fixed in the rewrite.
+
+First design (2026-09-22):
 
 - Insert and update were designed and dropped before the contract froze (2026-09-22): they
   added end-state checks the delete already needs, one rule (unique keys at statement end)
   whose only interesting case needs a multi-row update, and roughly a thousand characters of
-  brief, against a 10000-character cap, for no new interaction. Deletes, dumps and audits carry
-  every interaction in the design record.
-- Rows of a table with two cascade references (an OR of two loss conditions) are never
-  referenced, by guarantee. With that, they are leaves: their removal is a union of two chains
-  of the ownership tree. Allowing references to them makes the removal structure an AND-OR graph
-  with no tree, which no expert path within ten hours covers.
+  brief, against a 10000-character cap, for no new interaction.
+- Superseded 2026-09-23: rows of a table with two cascade references were never referenced, by
+  guarantee, so they were leaves of the ownership tree (see the first decision above).
 - Key columns may be cleared, and the end check refuses a null in a key column. That gives
   setnull over an identifying column a defined meaning with one sentence rather than a
   declaration-time prohibition. Re-checking the rows that matched a row whose key was cleared is
-  unobservable (the key always fails first in declaration order) and is kept only for fidelity.
-- A row that matches itself through its cascade reference is a root of the ownership tree, not
-  a loop member: nothing outside it can remove it and what its own delete removes is its
-  subtree. Treating it as a loop made a whole chain one strongly connected component and the
-  model quadratic (95 s per deep script) before the fix.
-- The deep family was reshaped twice before the freeze, both times on a measurement: the first
-  shape cut the chains with self-matching rows and pairs, so the mean removed set was 35 rows
-  and an optimised replay could have fitted the clock; the current shape keeps four chains of
-  6,000-7,000 deep with loops, pairs and guards in short documents and at the tail of one long
-  chain, and the replay floor is 820 s for the three deep scripts.
-- The clock is 180 s for the whole graded run, measured before freezing and re-measured on the
-  final images: reference 39 s, walk variant 48 s, chk variant 63 s, replay floor 820 s (host). A variant that walks chains instead of summing marks also
-  fits, so the brief and metadata claim only that clearing and refusal have to be read off the
-  tree, not how.
+  unobservable (the key always fails first in declaration order, because a reference names its
+  key after the key is declared) and is kept only for fidelity; the fast audits of both designs
+  rely on it, and the brute force, which does re-check, agrees with them everywhere.
+- Superseded 2026-09-23: a row that matches itself through its cascade reference was a root of
+  the ownership tree. With merges a self-matching row can still go through its other parent, so
+  the brief now says only that the self-matching reference never removes it (hand case merge-self).
+- Superseded 2026-09-23: the deep family's first two shapes and the 820 s replay floor.
+- The clock stays 180 s for the whole graded run, re-measured on the rebuilt images: reference
+  51 s, chk 65 s, walk 71 s; replay floor 2,402 s (host).
 - The worker never imports agent code and never stages the tree: root stages the pristine tree
   with the five files, root-owned and read-only, before the worker starts, and root writes the
   nonce scripts and their answers (the answers into the chmod 700 seal). The worker streams one
   JSON line per script, so a run cut by the clock still grades its hand cases individually.
 - Boilerplate (both Dockerfiles, reap.py) was rewritten in this task's own terms after simcheck
-  measured them at 0.99-1.00 against retained bundles; they now sit below the 0.75 line.
-- textcheck against the retained briefs: no finding against 8 of 12 (publish-settle-order,
-  token-seam-emit, guard-mark-unwind, expert-defer-shed, focus-return-point, scope-hold-release,
-  share-register-screen, alias-settle-report); burstiness 0.814 is under note-carry-forward's
-  0.824 floor and the two outliers' (1.009, 1.112), and the type-token ratio 0.310 is under two
-  references', because a spec has to repeat its nouns. Left there rather than bend rule sentences.
+  measured them at 0.99-1.00 against retained bundles; on 2026-09-23 they measure 0.59-0.72, below
+  the 0.75 line, and simcheck finds nothing conceptual.
+- textcheck against the retained briefs, 2026-09-23: no finding against 8 of 12 (alias-settle-report,
+  expert-defer-shed, focus-return-point, guard-mark-unwind, publish-settle-order,
+  scope-hold-release, share-register-screen, token-seam-emit); burstiness 0.816 is under
+  note-carry-forward's 0.915 and the two outliers' (1.009, 1.112), and the type-token ratio 0.296
+  is under two references', because a spec has to repeat its nouns. The first rewrite of the
+  brief had fallen to 5 of 12 (burstiness 0.787); splitting two sentences and restoring one long
+  rules paragraph brought it back without changing a rule.
 
 ## Validation status
 
+Re-run 2026-09-23 on the rebuilt bundle.
+
 | Check | Status | Notes |
 |---|---|---|
-| Agent image builds | pass | Docker 29.3.1 here; the test image builds with a local accommodation only (authoring/partial-key-purge/local_trial.py drops the apt step because deb.debian.org answers 403 to this sandbox); the shipped Dockerfiles are unchanged |
-| No answer leaked into agent image | pass | tools/imagecheck.py assembles the image, 14 files, runs the four samples with the reference; tools/extraneouscheck.py clean |
-| `harbor run -a oracle` = 1 | pass (docker; harbor blocked) | tools/docker_trial.py flow via local_trial.py on the final images, --cpus 1 --memory 2g: reward 1, 29 passed, worker 39 s; `harbor run` itself stopped at the verifier image build on the 403 from the Debian mirror (see Harbor) |
-| `harbor run -a nop` = 0 | pass (docker) | final images: reward 0, 22 failed / 7 passed (the 4 hand cases the shipped engine gets right plus the 3 sealed-side checks) |
-| Cheats all score 0 | pass | `python tools/forgecheck.py partial-key-purge` on the final images: the gt.json forgery found, and `34/34 cheats scored 0 for the intended reason` through authoring/partial-key-purge/cheat_report.py, which asserts per cheat the separating hand case (readings), a failing hand case (shortcuts), the wall clock with every hand case passing (replay audit), the nonce set failing with every hand case passing (forgery), and the probe's own denial notes, reaping or refused report (probes) |
-| Correct variants score 1 | pass | variants/chk and variants/walk through the docker_trial flow: reward 1 each; whole-run worker time 63 s and 48 s |
+| Agent image builds | pass | Docker 29.3.1; the test image builds with the same local accommodation as before (authoring/partial-key-purge/local_trial.py drops the apt step because deb.debian.org answers 403 to this sandbox); the shipped Dockerfiles are unchanged |
+| No answer leaked into agent image | pass | tools/imagecheck.py assembles the image (14 files) and runs the four samples with the reference; tools/extraneouscheck.py clean |
+| `harbor run -a oracle` = 1 | pass (docker; harbor blocked) | local_trial.py on the rebuilt images, --cpus 1 --memory 2g: reward 1, 37 passed; time_container.sh: worker 51 s for the whole graded set; `harbor run` itself is still stopped by the 403 at the Debian mirror (see Harbor) |
+| `harbor run -a nop` = 0 | pass (docker) | reward 0, 27 failed / 10 passed (the 7 hand cases the shipped engine gets right plus the 3 sealed-side checks) |
+| Cheats all score 0 | CHEAT_STATUS | CHEAT_NOTES |
+| Correct variants score 1 | pass | variants/chk and variants/walk through time_container.sh: reward 1 each; whole-run worker time 65 s and 71 s |
+| Model = reference = variants = brute force | pass | 480 generated scripts through all five (agree.py 40), 33 hand scripts (brute skips chain-1500), deep scripts model = reference = both variants; deterministic across three hash seeds |
 | `tracecheck.py` (every graded assertion traced) | pass | clean |
-| `preflight.py` | pass with warnings | the unused-function warnings are false positives: the functions are reached through attribute calls (`parse.read`, `store.get`, `match.ups`), which the check's `(?<![\w.])` pattern does not count |
-| `harbor check` rubric | not run | manual criterion-by-criterion review recorded under Stage 7 |
+| `readingcheck.py` | pass | 25/25 readings separated, 0 BLIND, 0 equivalent (after rounds-longest-path was corrected) |
+| `onelinecheck.py` | pass | no graded decision reproduced by a rule of depth 2 or less |
+| `difficultycheck.py` / `originalitycheck.py` | pass | 100/100 IN BAND; 100/100 DISTINCT |
+| `preflight.py` | pass with warnings | no errors; the 12 unused-function warnings are the same false positives as before (attribute calls such as `parse.read`, `store.get`, `match.ups`), plus the notice that the verifier runs agent code, which the isolation probes cover |
+| hintcheck, structcheck, deadfieldcheck, catcheck, solvecheck, simcheck | pass | all clean; simcheck's boilerplate figures 0.59-0.72 stay under 0.75 and nothing conceptual |
+| `harbor check` rubric | not run | no provider key here; the manual criterion-by-criterion review is recorded below |
 
 ## Cheat report (Stage 6), second full run on the final images
 
@@ -240,63 +430,91 @@ nonce population. Every cheat scored 0 and each was caught by the layer named fo
 
 ## Cold self-attack (Stage 7) - author-run, contaminated
 
-The author wrote the sealed model and the reference before this pass, and this session may not
-start a fresh one, so this is not a cold solve and is not reported as one (CLAUDE.md: a
-self-probe reported as cold by a contaminated author is worse than none). What it can still
-measure: whether the brief alone fixes the semantics, and where the plan the brief induces fails.
+2026-09-23, on the rebuilt bundle. The author designed the new rules and wrote the model, so
+this is not a cold solve and is not reported as one (CLAUDE.md: a self-probe reported as cold by
+a contaminated author is worse than none). What it can still measure is whether the brief alone
+fixes the semantics, and where each plan the brief invites fails.
 
-- Setup: instruction.md and environment/app_src copied to a scratch directory; the first plan
-  written down before any code (match per null pattern with indexes; counters for the removed
-  set on pre-statement values; clearing after; restrict on loss, everything else at the end;
-  naming by declaration then id; audit by running the delete plan per row), then implemented in
-  fresh code from the brief's sentences without opening tests/ or solution/.
-- Semantics: the brief-derived implementation agrees with the brute force on 600 generated
-  scripts across all ten small families and the random fuzz, so no graded rule needed the model
-  to settle it.
-- Where it fails: `deep.txt` does not finish in 300 s (it prints nothing; the first statement is
-  an audit), against 180 s for the whole graded set. The plan is right everywhere and fails the
-  scale gate, which is where the design puts the second discovery. It is the same family as
-  `cheat/cheat-replay-audit.sh`, which passes every hand case and is stopped by the clock.
-- Rules confirmed independently: every rule could be confirmed against the brute force on small
-  stores; none could be confirmed about the audit's fast path except by building it.
+- Semantics from the brief: authoring/partial-key-purge/brute.py was extended from the brief's
+  sentences (rounds counted as the brief defines them, the limit as the brief states it, the
+  audit line as the brief prints it) before the new model was written, and agrees with the model, the
+  reference and both variants on 480 generated scripts and the 33 hand scripts. No graded rule
+  needed the model to settle it.
+- The plans the brief invites, in the order a solver meets them, each measured:
+  1. replay one delete per row: right everywhere, 2,402 s for the deep scripts against 180 s
+     (time_naive.py; `cheat-replay-audit.sh` is stopped by the clock with every hand case
+     passing);
+  2. the probe's plan, an ownership tree with a replay for what it cannot express: wrong at every
+     merge (`cheat-tree-audit.sh` fails merge-either), and its replay would cover 74.8% of the
+     rows of a deep store;
+  3. descendants in the merge DAG: wrong wherever a row matches several revisions
+     (`cheat-descendant-reach.sh` fails merge-wild-side);
+  4. deleter sets without rounds, then rounds as the longest chain: wrong where a merge shortens
+     a cascade (`cheat-rounds-longest-path.sh` fails depth-merge-shortcut); a limit off by one or
+     missing fails depth-limit; a too-deep merge failing one reference fails depth-both-refs;
+  5. refusals from signed marks: impossible, a name is a minimum; `cheat-held-counts-zero.sh`
+     and the naming readings fail audit-names, order-decl and depth-both-refs.
+- Rules confirmed independently: every delete rule can be confirmed against a brute force on
+  small stores, as before. The audit's structure cannot: the shapes that separate the tree, the
+  descendant count and the longest-path round from the correct answer need merges and
+  several-match rows in the same store, and at the deep scale only the solver's own fast path can
+  run.
+- Honest estimate: the design aims at 1-3 solves of 8. The risk in the easy direction is an agent
+  that goes straight to per-row bit sets and gets rounds and names right with its brute force;
+  the risk in the hard direction is the volume of rules the audit has to agree with. Estimated
+  2 of 8.
 
-## Manual quality review (docs/QUALITY-REVIEW.md), 2026-09-22
+## Manual quality review (docs/QUALITY-REVIEW.md), 2026-09-23 (rebuilt bundle)
 
 - Instruction and verifier agree both ways: authoring/partial-key-purge/trace.md walks every test
-  function, hand case, worker condition and model rule to a quoted sentence (tracecheck clean);
-  every rule in instruction.md has a hand case or a generated family that exercises it.
-- Collected files named with absolute paths (instruction.md paragraph 2); the result shapes are
-  fixed by the pristine driver and printer, which the brief says are put back as shipped.
-- Boundaries: removed counts include the named rows; cleared counts rows, once each, even when the
-  columns were already null; refusal ties break by declaration order then smallest id; an empty
-  table dumps nothing; audit lines run tables in declaration order and ids ascending; held lines
-  still carry their counts. Each has its sentence and a hand case.
+  function, all 33 hand cases, every worker condition and every model rule to a quoted sentence
+  (tracecheck clean); every rule in instruction.md has a hand case or a generated family that
+  exercises it, and the new rules each have both sides fenced (depth-limit, merge-either with
+  merge-wild-side, or-loop-broken with mutual-keep, depth-merge-shortcut).
+- Collected files named with absolute paths (instruction.md paragraph 2); the audit tuple and the
+  refusal line are fixed by the pristine printer (environment/app_src/db/say.py), which the brief
+  says is put back as shipped, and the brief states both output lines word for word.
+- Boundaries: the named rows are round 0; round 16 or later is refused and round 15 is not (both
+  graded by depth-limit); a row that lost several cascade references takes the earliest round;
+  the too-deep row fails every cascade reference it lost; refusal ties break by declaration
+  order then smallest id; removed counts include the named rows; cleared counts rows once each,
+  even when already null; refused audit lines keep their counts; an empty table dumps nothing.
+  Each has its sentence and a hand case.
 - Counts re-derived from the code after the last change: four sample scripts; about 36,000 rows
-  per deep store (deep.txt 36,066; graded 35,900-37,200); chains 6,000-7,000 deep; three deep
-  scripts; 300 small nonce scripts plus 25 hand scripts ("a little over three hundred"); 180 s;
-  the worked example's third line `ok 2 0` shipped and `ok 3 0` correct.
-- Prose: textcheck findings recorded under Decisions; no run of same-opener sentences on
-  re-reading; each requirement stated once.
-- Verifier rigor: outputs of real runs compared with sealed answers; test_outputs.py opens with the
-  frozen contract and sections its tests; the nonce population and the model are deterministic
-  across hash seeds (checked); the one clock is the stated execution limit.
+  per deep store (deep.txt 36,707, generated 35,759-36,457), most in four histories of
+  6,000-7,000 revisions (generator range; deep.txt 6,577-6,926); three deep scripts; 360 small
+  nonce scripts plus 33 hand scripts ("nearly four hundred small ones"); 180 s; fifteen rounds;
+  the worked example's third line `ok 2 0` shipped and `ok 3 0` correct (tiny.txt unchanged).
+- Prose: textcheck clean against 8 of 12 retained briefs, findings recorded under Decisions; the
+  one run of three sentences opening with "A" found on re-reading was broken up without changing
+  a rule; each requirement stated once.
+- Verifier rigor: outputs of real runs compared with sealed answers; test_outputs.py opens with
+  the re-frozen contract, numbered 1-10, and sections its tests; the nonce population and the
+  model are deterministic across hash seeds (three seeds, identical digest over a population
+  with a deep script's answers); the one clock is the stated execution limit.
 - Environment hygiene: environment/Dockerfile copies app_src only; test dependencies are baked in
   tests/Dockerfile with == pins; no apt pins; every path named in the brief exists
-  (tools/imagecheck.py ran the four samples in the assembled image).
-- Solution: solve.sh copies the five reference modules and runs two samples; nothing is echoed.
-- Anti-cheating: no answer in the image; exact comparison; 34 cheats including a gt.json forgery,
-  a corrupted report and the reward-tamper probes (results under Validation status).
-- Metadata: Software / Databases; five specific tags that do not restate the label; the
-  difficulty explanation names the steps that fail and the legacy-register naming as a choice;
-  the solution and verification explanations describe the built bundle; relevant_experience is
-  grounded in the work this bundle demonstrates; 10 expert hours matches the design record.
+  (tools/imagecheck.py ran the four samples in the assembled image: deep.txt 73,451 lines).
+- Solution: solve.sh copies the five reference modules from beside itself and runs two samples;
+  nothing is echoed; tools/solvecheck.py clean.
+- Anti-cheating: no answer in the image (imagecheck, extraneouscheck clean); exact comparison; 41
+  cheats including a gt.json forgery, a corrupted report and the reward-tamper probes (results
+  under Cheat report).
+- Metadata: Software / Databases; five specific tags, `dominator-trees` replaced by
+  `cascade-depth-limit` because the tree is no longer the method; the difficulty explanation
+  names the plans that fail (the engine every solver has used, the ownership tree, descendant
+  counting, the replay and the hybrid) and the legacy-register naming as a choice; the solution
+  and verification explanations describe the rebuilt bundle and its measured numbers (51 s, 65 s,
+  71 s, 2,400 s, 74.8%, 33 hand scripts, 363 generated, 25 readings); relevant_experience is
+  grounded in this rebuild; 12 expert hours matches the design record.
 
 ## Harbor
 
 `harbor run -p tasks/partial-key-purge -a oracle -e docker -o <scratch>` (harbor 0.23.0) built the
-agent image and ran the oracle agent, then failed building the verifier image: `apt-get update`
-got `403 Forbidden` from the Debian mirror (egress policy of this sandbox, recorded in the proxy's
-relay failures). Not retried. The equivalent two-container flow (tools/docker_trial.py through
+agent image and ran the oracle agent on 2026-09-22, then failed building the verifier image:
+`apt-get update` got `403 Forbidden` from the Debian mirror (egress policy of this sandbox). It
+was not retried on 2026-09-23 - an organisation policy denial is reported, not retried - and the
+Dockerfiles are unchanged since. The equivalent two-container flow (tools/docker_trial.py through
 authoring/partial-key-purge/local_trial.py, which drops only the apt step locally) is the
 container evidence recorded above.
 
@@ -310,15 +528,22 @@ container evidence recorded above.
 
 ## Open questions and next steps
 
-- Submission is the contributor's step: tasks/partial-key-purge.zip (82 entries, zipcheck clean)
-  is built from the committed bundle. When the platform answers, update the verdict of the
-  `partial-key-purge` entry in authoring/submissions.toml, and on a similarity flag record what
-  it was flagged against and the wording.
+- The easiness recovery's exit gate is the external probe: submit tasks/partial-key-purge.zip
+  (rebuilt 2026-09-23) and record the realized result in the recovery entry and in the
+  `partial-key-purge` ledger entry of authoring/submissions.toml. If the probe solves it again,
+  RAISE-DIFFICULTY.md runs again from section 1 with the new trajectories; the first thing to
+  look at is whether agents went straight to per-row bit sets and what, if anything, in the brief
+  or the samples led them there.
+- Similarity: this is a revision of the same task under the same slug, so its brief is close to
+  the first submission's (cosine 0.943, shingle 0.693 by tools/originalitycheck.py --nearest
+  against the f31b80c brief). Against every other brief in the checkout and 54 historical briefs
+  from git history it is distinct (nearest note-carry-forward at cosine 0.192, shingle 0.000;
+  originality 100). It has to go in as a revision of partial-key-purge; submitted as a new task
+  it would collide with its own first version.
+- If the probe returns 0 of 8, the likely causes to look at first are the volume of rules the
+  audit has to agree with and the time budget of the bit-set computation in the container; the
+  reference's 51 s and the variants' 65-71 s leave room, and no rule depends on a hidden fact.
 - Not run here, and why: a real `harbor run` (the verifier image build is refused by this
-  sandbox's egress policy at the Debian mirror; the two-container Docker flow stands in), a cold
-  solve by a fresh session (this session may not start one; the author-run pass is recorded as
-  contaminated), and the platform's easiness probe. The estimate of 2 solves in 8 is a design
-  estimate, not a measurement.
-- If the easiness probe solves it 8 of 8: follow RAISE-DIFFICULTY.md from the winning
-  trajectories; the lever to look at first is how much of the fast audit's structure the deep
-  samples and the brief's scale sentence give away, not the delete rules.
+  sandbox's egress policy at the Debian mirror), `harbor check` (no provider key), a cold solve
+  by a fresh session (this session may not start one), and the platform's easiness probe. The
+  estimate of 2 solves in 8 is a design estimate, not a measurement.

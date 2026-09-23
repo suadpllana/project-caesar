@@ -3,9 +3,10 @@
 Answers come from the sealed model and must agree with the brute force (all but the deep
 chain, which brute force cannot finish), the reference and the correct variant. When gt.json
 already exists, every answer already frozen in it must come out byte-identical; an answer that
-moves is a contract change and stops the build.
+moves is a contract change and stops the build, unless --contract-change is given for a change
+the contributor approved, in which case every moved answer is listed.
 
-    python build_gt.py [--show]
+    python build_gt.py [--show] [--contract-change]
 """
 import json
 import os
@@ -22,12 +23,15 @@ sys.path.insert(0, os.path.join(TASK, "tests"))
 import cases  # noqa: E402
 
 GT = os.path.join(TASK, "tests", "seal", "gt.json")
-IMPLS = [os.path.join(TASK, "solution"), os.path.join(HERE, "variants", "chk")]
+IMPLS = [os.path.join(TASK, "solution"), os.path.join(HERE, "variants", "chk"),
+         os.path.join(HERE, "variants", "walk")]
 BRUTE_SKIP = {"chain-1500"}
 
 
 def main():
     show = "--show" in sys.argv
+    change = "--contract-change" in sys.argv
+    moved = []
     old = {}
     if os.path.exists(GT):
         with open(GT, encoding="utf-8") as f:
@@ -49,8 +53,12 @@ def main():
                 bad += 1
                 print("DISAGREE", name, who)
         if name in old and old[name] != want:
-            bad += 1
-            print("MOVED", name, "- a frozen answer changed; that is a contract change")
+            if change:
+                moved.append((name, sum(1 for a, b in zip(old[name], want) if a != b)
+                              + abs(len(old[name]) - len(want))))
+            else:
+                bad += 1
+                print("MOVED", name, "- a frozen answer changed; that is a contract change")
         out[name] = want
         if show and name not in BRUTE_SKIP:
             print("==", name)
@@ -64,6 +72,8 @@ def main():
     with open(GT, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
     print("wrote", len(out), "answers;", len([n for n in out if n in old]), "were frozen already")
+    for name, lines in moved:
+        print("moved under the approved contract change:", name, lines, "lines")
     return 0
 
 

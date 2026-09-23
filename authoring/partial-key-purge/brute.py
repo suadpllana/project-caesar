@@ -1,11 +1,14 @@
-"""Brute-force transcription of the frozen contract. Authoring only, never ships.
+"""Brute-force transcription of the contract. Authoring only, never ships.
 
 Every rule is written the way the contract states it, with no index and no cleverness:
-match sets by scanning, the removed set by iterating the closure rule until nothing changes,
-the end state checked row by row over a full copy of the store. It is slow on purpose and is the
-semantic oracle that the sealed model, the reference and the correct variants are checked
-against on small stores.
+match sets by scanning, the removed set grown round by round exactly as the rounds are defined
+(round 0 the named rows, round k every row with a cascade reference whose matched rows were all
+removed in earlier rounds), the depth limit read off those rounds, the end state checked row by
+row over a full copy of the store. It is slow on purpose and is the semantic oracle that the
+sealed model, the reference and the correct variants are checked against on small stores.
 """
+
+LIMIT = 15
 import copy
 import sys
 
@@ -84,17 +87,21 @@ def attempt(db, data, tab, ids):
             for r in refs_of[t]:
                 if status(r, vals) == "live":
                     before[(t, c, r["name"])] = matches(db, r, vals, data)
-    gone = {(tab, i) for i in ids}
-    grew = True
-    while grew:
-        grew = False
+    gone = {(tab, i): 0 for i in ids}
+    k = 0
+    while True:
+        k += 1
+        now = []
         for (t, c, rn), ms in before.items():
             r = db["refs"][rn]
             ktab = db["keys"][r["key"]]["tab"]
             if (r["act"] == "cascade" and (t, c) not in gone and ms
                     and all((ktab, p) in gone for p in ms)):
-                gone.add((t, c))
-                grew = True
+                now.append((t, c))
+        if not now:
+            break
+        for row in now:
+            gone[row] = k
     lost = []
     for (t, c, rn), ms in before.items():
         r = db["refs"][rn]
@@ -104,6 +111,8 @@ def attempt(db, data, tab, ids):
     fails = []
     for t, c, rn in lost:
         if db["refs"][rn]["act"] == "restrict":
+            fails.append((db["refs"][rn]["pos"], c))
+        if db["refs"][rn]["act"] == "cascade" and gone.get((t, c), 0) > LIMIT:
             fails.append((db["refs"][rn]["pos"], c))
     end = copy.deepcopy(data)
     for t, c in gone:
@@ -151,8 +160,8 @@ def run(text):
             for t in db["order"]:
                 for rid in sorted(data[t]):
                     gone, wiped, fail, _ = attempt(db, data, t, [rid])
-                    out.append("%s %d %d %d %s" % (t, rid, len(gone), len(wiped),
-                                                   "held" if fail else "ok"))
+                    end = "refused %s %d" % fail if fail else "ok"
+                    out.append("%s %d %d %d %s" % (t, rid, len(gone), len(wiped), end))
     return out
 
 

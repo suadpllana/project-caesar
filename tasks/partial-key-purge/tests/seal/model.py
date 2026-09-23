@@ -4,25 +4,28 @@ Written apart from the reference in `solution/`, and checked against a brute-for
 of the contract on generated stores before anything was frozen. It reads scripts itself rather
 than through the shipped reader, so a change to the shipped tree cannot move it.
 
-Deletes: the removed set is grown from the named rows with a count of surviving matches per
-(row, reference); a row whose cascade count reaches zero is removed and its own referrers are
-counted down in turn. That is the smallest set closed under the rule, because nothing is ever
-removed without every row it matched being removed first. Matching reads the values from before
-the statement. Only rows that lost a reference, and rows that matched a row whose key column was
-cleared, can fail the end state, so only they are checked.
+Deletes: removal runs in rounds, breadth first. The named rows are round 0; every (row,
+reference) pair keeps a count of the rows it matched that are still standing, and a pair on a
+cascade reference that reaches zero while its row is standing removes that row in the next
+round. Processing a whole round before the next one makes a row's round one more than the round
+of the last row it matched through the first of its cascade references to run out. That is the
+smallest removed set closed under the rule, because nothing is removed before every row it
+matched through that reference has been. Matching reads the values from before the statement.
+A restrict reference fails on any row that lost it; a row removed after round fifteen fails
+every cascade reference it lost; everything else is read off the end state.
 
-Audit: for a row outside every loop of cascade matches, the rows a lone delete removes are
-exactly the rows it dominates in the flow graph whose edges run from each matched row to the row
-matching it, with loop members detached as roots (a loop keeps itself against any outside
-delete) and rows with two or more live cascade references (never referenced, by contract) kept
-out of the graph. Dominators come from the iterative two-finger algorithm over reverse
-postorder; ancestors are tested on an Euler tour with a sparse table. Every other effect of a
-lone delete of r is a question "is r an ancestor of y and of none of a few other nodes", which is
-answered for all r at once with signed marks summed over subtrees. A match set shared by
-several rows enters the flow graph once, as a join node between its rows and the rows that
-match it, so the graph stays linear in the store. A row that matches itself
-through its cascade reference is a root too: nothing outside it can ever remove it, and what a
-delete of it removes is its subtree. Members of loops of two or more rows are replayed.
+Audit: for every row v the model builds dels[v], the set of rows whose lone delete removes v,
+as a Python integer with one bit per row. A row goes when all rows it matched through one of
+its cascade references go, so dels[v] is v itself plus, over its cascade references, the
+intersection of dels over each reference's matches. Rows are grouped into strongly connected
+components of the "matched through a cascade reference" graph (Kosaraju), settled with every
+component they depend on first; inside a loop the sets are grown from the row alone until they
+stop changing, which is the smallest solution and so keeps rows that only match one another.
+Rounds come from a second, forward computation: a bounded breadth-first delete from every row,
+fifteen rounds deep, inverted into the set of rows that remove v within the limit. Counts are
+column sums over the sets. Every failure a lone delete can cause is written as (declaration
+position, row id, set of deleters); sorted, they are painted onto the deleters, and each
+deleter keeps the first one that reaches it, which is the refusal it prints.
 """
 
 EMPTY = ()
@@ -128,30 +131,41 @@ class Index:
         return out
 
 
+LIMIT = 15
+
+
 def attempt(db, ix, tab, ids):
-    """(removed, cleared, failure) of `delete tab ids` over ix.data; nothing is changed."""
+    """(removed, cleared, new values, failure) of `delete tab ids` over ix.data; nothing is
+    changed. `removed` maps every removed row to the round it goes in."""
     data = ix.data
-    gone = set((tab, i) for i in ids)
-    work = list(gone)
+    gone = {}
+    wave = []
+    for i in ids:
+        gone[(tab, i)] = 0
+        wave.append((tab, i))
     left = {}
     lost = []
-    while work:
-        pt, p = work.pop()
-        pv = data[pt][p]
-        for r in db.in_refs[pt]:
-            ct = r["tab"]
-            for c in ix.children(r, pv):
-                slot = (ct, c, r["name"])
-                n = left.get(slot)
-                if n is None:
-                    n = len(ix.parents(r, shape(r, data[ct][c]), data[ct][c]))
-                n -= 1
-                left[slot] = n
-                if n == 0:
-                    lost.append(slot)
-                    if r["act"] == "cascade" and (ct, c) not in gone:
-                        gone.add((ct, c))
-                        work.append((ct, c))
+    depth = 0
+    while wave:
+        depth += 1
+        nxt = []
+        for pt, p in wave:
+            pv = data[pt][p]
+            for r in db.in_refs[pt]:
+                ct = r["tab"]
+                for c in ix.children(r, pv):
+                    slot = (ct, c, r["name"])
+                    n = left.get(slot)
+                    if n is None:
+                        n = len(ix.parents(r, shape(r, data[ct][c]), data[ct][c]))
+                    n -= 1
+                    left[slot] = n
+                    if n == 0:
+                        lost.append(slot)
+                        if r["act"] == "cascade" and (ct, c) not in gone:
+                            gone[(ct, c)] = depth
+                            nxt.append((ct, c))
+        wave = nxt
     fails = []
     new = {}
     wiped = set()
@@ -159,6 +173,8 @@ def attempt(db, ix, tab, ids):
     for ct, c, rn in lost:
         r = db.refs[rn]
         if r["act"] == "restrict":
+            fails.append((r["pos"], c))
+        if r["act"] == "cascade" and gone.get((ct, c), 0) > LIMIT:
             fails.append((r["pos"], c))
         if (ct, c) in gone:
             continue
@@ -210,359 +226,246 @@ def attempt(db, ix, tab, ids):
     return gone, wiped, new, fail
 
 
-class Tree:
-    """Dominator tree over node ids 0..n, rooted at 0, with O(1) ancestor tests and LCA."""
-
-    def __init__(self, n, idom):
-        kids = [[] for _ in range(n + 1)]
-        for v in range(1, n + 1):
-            kids[idom[v]].append(v)
-        self.tin = [0] * (n + 1)
-        self.tout = [0] * (n + 1)
-        depth = [0] * (n + 1)
-        first = [0] * (n + 1)
-        euler = []
-        clock = 0
-        stack = [(0, 0)]
-        while stack:
-            v, i = stack.pop()
-            if i == 0:
-                self.tin[v] = clock
-                clock += 1
-                first[v] = len(euler)
-            euler.append(v)
-            if i < len(kids[v]):
-                stack.append((v, i + 1))
-                c = kids[v][i]
-                depth[c] = depth[v] + 1
-                stack.append((c, 0))
-            else:
-                self.tout[v] = clock - 1
-        self.first = first
-        self.depth = depth
-        table = [euler]
-        span = 1
-        while 2 * span <= len(euler):
-            prev = table[-1]
-            cur = []
-            for i in range(len(euler) - 2 * span + 1):
-                a, b = prev[i], prev[i + span]
-                cur.append(a if depth[a] <= depth[b] else b)
-            table.append(cur)
-            span *= 2
-        self.table = table
-
-    def lca(self, a, b):
-        i, j = self.first[a], self.first[b]
-        if i > j:
-            i, j = j, i
-        k = (j - i + 1).bit_length() - 1
-        x, y = self.table[k][i], self.table[k][j - (1 << k) + 1]
-        return x if self.depth[x] <= self.depth[y] else y
-
-
-def dominators(n, preds, roots):
-    """Iterative two-finger dominators on a flow graph from node 0."""
-    succ = [[] for _ in range(n + 1)]
-    for v in roots:
-        succ[0].append(v)
-    for v in range(1, n + 1):
-        for p in preds[v]:
-            succ[p].append(v)
-    post = [-1] * (n + 1)
+def components(n, deps):
+    """Strongly connected components of the graph v -> deps[v], each a list, ordered so that
+    every component comes after all components it has an edge into (Kosaraju)."""
+    back = [[] for _ in range(n)]
+    for v in range(n):
+        for u in deps[v]:
+            back[u].append(v)
+    seen = [False] * n
     order = []
-    seen = [False] * (n + 1)
-    seen[0] = True
-    stack = [(0, 0)]
-    while stack:
-        v, i = stack.pop()
-        if i < len(succ[v]):
-            stack.append((v, i + 1))
-            w = succ[v][i]
-            if not seen[w]:
-                seen[w] = True
-                stack.append((w, 0))
-        else:
-            post[v] = len(order)
-            order.append(v)
-    idom = [-1] * (n + 1)
-    idom[0] = 0
-    rpo = order[::-1]
-    preds = [sorted(ps, key=post.__getitem__) if len(ps) > 1 else ps for ps in preds]
-    changed = True
-    while changed:
-        changed = False
-        for v in rpo:
-            if v == 0:
-                continue
-            ps = [0] if v in roots else preds[v]
-            new = -1
-            for p in ps:
-                if idom[p] == -1:
-                    continue
-                if new == -1:
-                    new = p
-                    continue
-                a, b = p, new
-                while a != b:
-                    while post[a] < post[b]:
-                        a = idom[a]
-                    while post[b] < post[a]:
-                        b = idom[b]
-                new = a
-            if idom[v] != new:
-                idom[v] = new
-                changed = True
-    return idom
-
-
-def loops(n, edges):
-    """Nodes on a cycle of the graph (strongly connected with another node, or a self edge)."""
-    index = [0] * (n + 1)
-    low = [0] * (n + 1)
-    onstack = [False] * (n + 1)
-    stack = []
-    out = set()
-    counter = 1
-    for s in range(1, n + 1):
-        if index[s]:
+    for s in range(n):
+        if seen[s]:
             continue
-        call = [(s, 0)]
-        index[s] = low[s] = counter
-        counter += 1
-        stack.append(s)
-        onstack[s] = True
-        while call:
-            v, i = call[-1]
-            if i < len(edges[v]):
-                call[-1] = (v, i + 1)
-                w = edges[v][i]
-                if not index[w]:
-                    index[w] = low[w] = counter
-                    counter += 1
-                    stack.append(w)
-                    onstack[w] = True
-                    call.append((w, 0))
-                elif onstack[w] and index[w] < low[v]:
-                    low[v] = index[w]
+        seen[s] = True
+        stack = [(s, iter(deps[s]))]
+        while stack:
+            v, it = stack[-1]
+            for u in it:
+                if not seen[u]:
+                    seen[u] = True
+                    stack.append((u, iter(deps[u])))
+                    break
             else:
-                call.pop()
-                if call:
-                    u = call[-1][0]
-                    if low[v] < low[u]:
-                        low[u] = low[v]
-                if low[v] == index[v]:
-                    comp = []
-                    while True:
-                        w = stack.pop()
-                        onstack[w] = False
-                        comp.append(w)
-                        if w == v:
-                            break
-                    if len(comp) > 1 or v in edges[v]:
-                        out.update(comp)
+                stack.pop()
+                order.append(v)
+    comp = [-1] * n
+    comps = []
+    for s in reversed(order):
+        if comp[s] != -1:
+            continue
+        comp[s] = len(comps)
+        part = [s]
+        todo = [s]
+        while todo:
+            v = todo.pop()
+            for u in back[v]:
+                if comp[u] == -1:
+                    comp[u] = comp[s]
+                    part.append(u)
+                    todo.append(u)
+        comps.append(part)
+    comps.reverse()
+    return comps
+
+
+def columns(sets, n):
+    """For each bit position below n, how many of `sets` have it: vertical binary counters,
+    one integer per binary digit of the count."""
+    planes = []
+    for x in sets:
+        carry = x
+        k = 0
+        while carry:
+            if k == len(planes):
+                planes.append(0)
+            both = planes[k] & carry
+            planes[k] ^= carry
+            carry = both
+            k += 1
+    out = [0] * n
+    for k, plane in enumerate(planes):
+        bits = format(plane, "b")[::-1]
+        for v, ch in enumerate(bits[:n]):
+            if ch == "1":
+                out[v] += 1 << k
     return out
 
 
 def audit(db, ix):
+    """(table, id, removed, cleared, refusal or None) of a lone delete of every row."""
     data = ix.data
-    node = {}
-    rows = []
-    for t in db.order:
-        for rid in sorted(data[t]):
-            rows.append((t, rid))
-            node[(t, rid)] = len(rows)
+    rows = [(t, rid) for t in db.order for rid in sorted(data[t])]
+    pos = {row: i for i, row in enumerate(rows)}
     n = len(rows)
-    groups = {}
-    gid = {}
-
-    def group(r, vals):
-        pat = shape(r, vals)
-        if not pat:
-            return pat
-        slot = (r["key"], pat, tuple(vals[r["cols"][i]] for i in pat))
-        g = gid.get(slot)
-        if g is None:
-            g = len(groups)
-            gid[slot] = g
-            groups[g] = [node[(r["ktab"], p)] for p in ix.parents(r, pat, vals)]
-        return g
-
-    live = [None] * (n + 1)
-    casc = [EMPTY] * (n + 1)
-    for v in range(1, n + 1):
-        t, rid = rows[v - 1]
+    bit = [1 << v for v in range(n)]
+    live = []
+    for t, rid in rows:
         vals = data[t][rid]
         mine = []
-        cs = []
         for r in db.out_refs[t]:
-            g = group(r, vals)
-            mine.append((r, g))
-            if r["act"] == "cascade" and g is not None and g is not False and groups[g]:
-                cs.append(g)
-        live[v] = mine
-        casc[v] = tuple(cs)
+            pat = shape(r, vals)
+            if pat:
+                mine.append((r, pat, tuple(pos[(r["ktab"], p)] for p in ix.parents(r, pat, vals))))
+        live.append(mine)
+    sup = [[ms for r, _, ms in live[v] if r["act"] == "cascade" and ms] for v in range(n)]
+    deps = [sorted({u for ms in sup[v] for u in ms}) for v in range(n)]
 
-    edges = [[] for _ in range(n + 1)]
-    selfm = set()
-    for v in range(1, n + 1):
-        if len(casc[v]) == 1:
-            if v in groups[casc[v][0]]:
-                selfm.add(v)
-            else:
-                edges[v] = groups[casc[v][0]]
-    ring = loops(n, edges)
-    joins = {}
-    for v in range(1, n + 1):
-        if len(casc[v]) == 1 and v not in ring and v not in selfm:
-            g = casc[v][0]
-            if len(groups[g]) > 1 and g not in joins:
-                joins[g] = n + 1 + len(joins)
-    total = n + len(joins)
-    preds = [EMPTY] * (total + 1)
-    roots = set()
-    for v in range(1, n + 1):
-        if len(casc[v]) == 1 and v not in ring and v not in selfm:
-            g = casc[v][0]
-            preds[v] = (joins[g],) if g in joins else tuple(groups[g])
-        elif len(casc[v]) <= 1:
-            roots.add(v)
-    for g, j in joins.items():
-        preds[j] = tuple(groups[g])
-    idom = dominators(total, preds, roots)
-    for v in range(1, n + 1):
-        if len(casc[v]) > 1:
-            idom[v] = 0
-    tree = Tree(total, idom)
-    lca = tree.lca
+    dels = [0] * n
+    final = set()
+    meet_memo = {}
 
-    top = {}
-
-    def x(g):
-        got = top.get(g)
+    def meet(ms, cache=True):
+        if not ms:
+            return 0
+        got = meet_memo.get(ms) if cache else None
         if got is None:
-            got = -1
-            for m in groups[g]:
-                got = m if got == -1 else lca(got, m)
-                if got == 0:
+            got = dels[ms[0]]
+            for u in ms[1:]:
+                got &= dels[u]
+                if not got:
                     break
-            top[g] = got
+            if cache:
+                meet_memo[ms] = got
         return got
 
-    gone_m = [0] * (total + 1)
-    wipe_m = [0] * (total + 1)
-    held_m = [0] * (total + 1)
-    tin = tree.tin
+    for part in components(n, deps):
+        inside = set(part)
+        loop = len(part) > 1 or part[0] in deps[part[0]]
+        if not loop:
+            v = part[0]
+            got = bit[v]
+            for ms in sup[v]:
+                got |= meet(ms)
+            dels[v] = got
+            continue
+        for v in part:
+            dels[v] = bit[v]
+        grew = True
+        while grew:
+            grew = False
+            for v in part:
+                got = bit[v]
+                for ms in sup[v]:
+                    got |= meet(ms, cache=not inside.intersection(ms))
+                if got != dels[v]:
+                    dels[v] = got
+                    grew = True
 
-    def union(marks, tops, sign):
-        ts = sorted(set(t for t in tops if t > 0), key=lambda t: tin[t])
-        for i, t in enumerate(ts):
-            marks[t] += sign
-            if i:
-                a = lca(ts[i - 1], t)
-                if a > 0:
-                    marks[a] -= sign
+    # rows whose lone delete removes each row within LIMIT rounds, from bounded forward deletes
+    users = [[] for _ in range(n)]
+    for v in range(n):
+        for s, ms in enumerate(sup[v]):
+            for u in ms:
+                users[u].append((v, s))
+    within = [[] for _ in range(n)]
+    for r in range(n):
+        when = {r: 0}
+        count = {}
+        wave = [r]
+        for k in range(1, LIMIT + 1):
+            nxt = []
+            for u in wave:
+                for v, s in users[u]:
+                    c = count.get((v, s), 0) + 1
+                    count[(v, s)] = c
+                    if c == len(sup[v][s]) and v not in when:
+                        when[v] = k
+                        nxt.append(v)
+            if not nxt:
+                break
+            wave = nxt
+        for v in when:
+            within[v].append(r)
+    width = (n + 7) // 8
+    soon = []
+    for v in range(n):
+        buf = bytearray(width)
+        for r in within[v]:
+            buf[r >> 3] |= 1 << (r & 7)
+        soon.append(int.from_bytes(bytes(buf), "little"))
 
-    def minus(marks, y, avoid):
-        if y is None or y <= 0:
-            return
-        marks[y] += 1
-        union(marks, [lca(y, a) for a in avoid], -1)
+    removed = columns(dels, n)
+    wipes = []
+    for v in range(n):
+        lost = 0
+        for r, _, ms in live[v]:
+            if r["act"] == "setnull":
+                lost |= meet(ms)
+        lost &= ~dels[v]
+        if lost:
+            wipes.append(lost)
+    cleared = columns(wipes, n)
 
-    size = [1] * (n + 1) + [0] * len(joins)
-    size[0] = 0
-    for v in range(1, n + 1):
-        if len(casc[v]) > 1:
-            size[v] = 0
-            union(gone_m, [x(g) for g in casc[v]], 1)
-
-    for v in range(1, n + 1):
-        t, rid = rows[v - 1]
+    def situations(v):
+        """(deleters, values) for every way row v can stand at the end: it is not removed and
+        exactly the setnull references in some subset have lost, possibly none."""
+        t, rid = rows[v]
         vals = data[t][rid]
-        mine = live[v]
-        if len(casc[v]) > 1:
-            dtops = [x(g) for g in casc[v]]
-        else:
-            dtops = [v]
-        for r, g in mine:
-            if r["act"] == "restrict" and g is not None and g is not False and groups[g]:
-                xg = x(g)
-                if xg > 0:
-                    held_m[xg] += 1
-        sets = [(r, x(g)) for r, g in mine
-                if r["act"] == "setnull" and g is not None and g is not False and groups[g]]
-        sets = [(r, xg) for r, xg in sets if xg > 0]
-        if sets:
-            tops = [xg for _, xg in sets]
-            union(wipe_m, tops, 1)
-            union(wipe_m, [lca(a, d) for a in tops for d in dtops], -1)
-        for mask in range(1 << len(sets)):
-            on = [sets[i] for i in range(len(sets)) if mask >> i & 1]
-            off = [sets[i][1] for i in range(len(sets)) if not mask >> i & 1]
-            ys = None
-            for _, xg in on:
-                ys = xg if ys is None else lca(ys, xg)
-            if ys == 0:
-                continue
-            new = list(vals)
-            for r, _ in on:
-                for i in r["wipe"]:
-                    new[i] = None
-            avoid = off + dtops
-            always = False
-            for _, kc, _ in db.tab_keys[t]:
-                if any(new[i] is None for i in kc):
-                    always = True
-            conds = []
-            for r, g in mine:
-                pat = shape(r, new)
+        nulls = [(r, meet(ms)) for r, _, ms in live[v] if r["act"] == "setnull"]
+        out = []
+        for mask in range(1 << len(nulls)):
+            where = ~dels[v]
+            now = list(vals)
+            for i, (r, lost) in enumerate(nulls):
+                if mask >> i & 1:
+                    where &= lost
+                    for c in r["wipe"]:
+                        now[c] = None
+                else:
+                    where &= ~lost
+            if where:
+                out.append((where, now))
+        return out
+
+    def failing(v, decl):
+        t, rid = rows[v]
+        got = 0
+        if decl in db.refs:
+            r = db.refs[decl]
+            for rr, _, ms in live[v]:
+                if rr is r:
+                    if r["act"] == "restrict":
+                        got |= meet(ms)
+                    elif r["act"] == "cascade":
+                        got |= meet(ms) & ~soon[v]
+            for where, now in situations(v):
+                pat = shape(r, now)
                 if pat is None:
                     continue
                 if pat is False:
-                    always = True
+                    got |= where
                     continue
-                if not on and r["act"] != "noaction":
-                    continue
-                hits = ix.parents(r, pat, new)
-                if not hits:
-                    always = True
-                    continue
-                g2 = group(r, new)
-                conds.append(x(g2))
-            if always:
-                if ys is not None:
-                    minus(held_m, ys, avoid)
-                continue
-            for xc in conds:
-                if xc <= 0:
-                    continue
-                y = xc if ys is None else lca(ys, xc)
-                minus(held_m, y, avoid)
-
-    order = sorted(range(total + 1), key=lambda v: tin[v])
-
-    def sums(marks):
-        pre = [0] * (total + 2)
-        for i, v in enumerate(order):
-            pre[i + 1] = pre[i] + marks[v]
-        return [pre[tree.tout[v] + 1] - pre[tin[v]] for v in range(n + 1)]
-
-    gone_s = sums(gone_m)
-    wipe_s = sums(wipe_m)
-    held_s = sums(held_m)
-    size_s = sums(size)
-    out = []
-    for v in range(1, n + 1):
-        t, rid = rows[v - 1]
-        if v in ring:
-            gone, wiped, _, fail = attempt(db, ix, t, [rid])
-            out.append((t, rid, len(gone), len(wiped), fail is not None))
-        elif len(casc[v]) > 1:
-            gone, wiped, _, fail = attempt(db, ix, t, [rid])
-            out.append((t, rid, len(gone), len(wiped), fail is not None))
+                ms = tuple(pos[(r["ktab"], p)] for p in ix.parents(r, pat, now))
+                got |= where & meet(ms) if ms else where
         else:
-            out.append((t, rid, size_s[v] + gone_s[v], wipe_s[v], held_s[v] > 0))
-    return out
+            cols = db.keys[decl][1]
+            for where, now in situations(v):
+                if any(now[i] is None for i in cols):
+                    got |= where
+        return got
+
+    todo = []
+    for d, decl in enumerate(db.decls):
+        t = db.refs[decl]["tab"] if decl in db.refs else db.keys[decl][0]
+        for rid in sorted(data[t]):
+            todo.append((d, rid, pos[(t, rid)], decl))
+    todo.sort()
+    open_ = (1 << n) - 1
+    refusal = [None] * n
+    for d, rid, v, decl in todo:
+        if not open_:
+            break
+        hit = failing(v, decl) & open_
+        if not hit:
+            continue
+        open_ &= ~hit
+        while hit:
+            r = hit.bit_length() - 1
+            refusal[r] = (decl, rid)
+            hit ^= 1 << r
+    return [(t, rid, removed[v], cleared[v], refusal[v]) for v, (t, rid) in enumerate(rows)]
 
 
 def expect(text):
@@ -588,8 +491,9 @@ def expect(text):
                 vals = ["-" if v is None else v for v in data[tab][rid]]
                 out.append(" ".join([tab, str(rid)] + vals))
         else:
-            for t, rid, gone, wiped, held in audit(db, ix):
-                out.append("%s %d %d %d %s" % (t, rid, gone, wiped, "held" if held else "ok"))
+            for t, rid, gone, wiped, fail in audit(db, ix):
+                end = "ok" if fail is None else "refused %s %d" % fail
+                out.append("%s %d %d %d %s" % (t, rid, gone, wiped, end))
     return out
 
 

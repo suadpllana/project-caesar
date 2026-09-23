@@ -6,6 +6,11 @@ because the audit is defined as the delete: those readings carry a per-row repla
 their own delete, which is what a solver holding them would have. Readings of the audit alone
 replace only audit.py. Every edit to reference source asserts that it fired.
 
+`tree-audit` is the plan the easiness probe of 2026-09-23 won with, kept as the reference that
+was probed (authoring/partial-key-purge/old/tree_audit.py): removed sets nest, so they are the
+subtrees of one ownership tree, loop members and rows with two cascade references hang from the
+top, and only those are replayed. Its refusals come from the correct delete, replayed per row.
+
 Contract for tools/readingcheck.py: REFERENCE, READINGS, run(policy, text), enumerated(),
 generated(n). The cheats in tasks/partial-key-purge/cheat/ are emitted from this file.
 """
@@ -27,9 +32,14 @@ def src(name):
         return f.read()
 
 
-def edit(text, old, new):
-    assert text.count(old) == 1, "edit did not fire: %r" % old[:60]
-    return text.replace(old, new)
+def old(name):
+    with open(os.path.join(HERE, "old", name), encoding="utf-8") as f:
+        return f.read()
+
+
+def edit(text, before, after):
+    assert text.count(before) == 1, "edit did not fire: %r" % before[:60]
+    return text.replace(before, after)
 
 
 REPLAY = '''from db import drop
@@ -40,8 +50,33 @@ def audit(store):
     for tab in store.script.tabs:
         for rid in store.ids(tab.name):
             eff = drop.plan(store, tab.name, [rid])
-            out.append((tab.name, rid, len(eff.gone), len(eff.new), eff.fail is not None))
+            out.append((tab.name, rid, len(eff.gone), len(eff.new), eff.fail))
     return out
+'''
+
+LOOP_HEAD = '''    left = {}
+    tabs = store.tabs
+    step = 0
+    while todo:
+        step += 1
+        nxt = []
+        for pt, p in todo:
+            pv = store.get(pt, p)
+            for ref in tabs[pt].used:
+                ct = ref.tab.name
+                for c in bk.downs(ref, pv):
+                    slot = (ct, c, ref)
+                    n = left.get(slot)
+                    if n is None:
+                        n = len(bk.ups(ref, store.get(ct, c)))
+                    n -= 1
+                    left[slot] = n
+                    if n == 0:
+                        eff.lost.append(slot)
+                        if ref.act == "cascade" and (ct, c) not in gone:
+                            gone[(ct, c)] = step
+                            nxt.append((ct, c))
+        todo = nxt
 '''
 
 READINGS = {}
@@ -70,91 +105,45 @@ READINGS["full-half-null-accepted"] = {
 # Each lost row is settled at once against what is still standing, and clearing lands at once,
 # so a cleared row is seen with its new values by the rest of the statement.
 READINGS["row-by-row-clear-feeds-back"] = {
-    "drop.py": edit(src("drop.py"), '''    bk = match.book(store)
-    eff = Effect()
-    gone = eff.gone
-    todo = []
-    for rid in ids:
-        gone.add((tab, rid))
-        todo.append((tab, rid))
-    left = {}
+    "drop.py": edit(src("drop.py"), LOOP_HEAD + '''    eff.new = clear.wipe(store, eff)''', '''    now = {}
     tabs = store.tabs
+    step = 0
     while todo:
-        pt, p = todo.pop()
-        pv = store.get(pt, p)
-        for ref in tabs[pt].used:
-            ct = ref.tab.name
-            for c in bk.downs(ref, pv):
-                slot = (ct, c, ref)
-                n = left.get(slot)
-                if n is None:
-                    n = len(bk.ups(ref, store.get(ct, c)))
-                n -= 1
-                left[slot] = n
-                if n == 0:
-                    eff.lost.append(slot)
-                    if ref.act == "cascade" and (ct, c) not in gone:
-                        gone.add((ct, c))
-                        todo.append((ct, c))
-    eff.new = clear.wipe(store, eff)''', '''    bk = match.book(store)
-    eff = Effect()
-    gone = eff.gone
-    todo = []
-    for rid in ids:
-        gone.add((tab, rid))
-        todo.append((tab, rid))
-    now = {}
-    tabs = store.tabs
-    while todo:
-        pt, p = todo.pop()
-        pv = store.get(pt, p)
-        for ref in tabs[pt].used:
-            ct = ref.tab.name
-            kt = ref.key.tab.name
-            for c in bk.downs(ref, pv):
-                if (ct, c) in gone or (ct, c, ref) in eff.lost:
-                    continue
-                cv = now.get((ct, c)) or store.get(ct, c)
-                pat = match.form(ref, cv)
-                if not pat:
-                    continue
-                if any((kt, q) not in gone for q in bk.ups(ref, cv, pat)):
-                    continue
-                eff.lost.append((ct, c, ref))
-                if ref.act == "cascade":
-                    gone.add((ct, c))
-                    todo.append((ct, c))
-                elif ref.act == "setnull":
-                    cv = list(cv)
-                    for col in ref.wipe:
-                        cv[col] = None
-                    now[(ct, c)] = cv
+        step += 1
+        nxt = []
+        for pt, p in todo:
+            pv = store.get(pt, p)
+            for ref in tabs[pt].used:
+                ct = ref.tab.name
+                kt = ref.key.tab.name
+                for c in bk.downs(ref, pv):
+                    if (ct, c) in gone or (ct, c, ref) in eff.lost:
+                        continue
+                    cv = now.get((ct, c)) or store.get(ct, c)
+                    pat = match.form(ref, cv)
+                    if not pat:
+                        continue
+                    if any((kt, q) not in gone for q in bk.ups(ref, cv, pat)):
+                        continue
+                    eff.lost.append((ct, c, ref))
+                    if ref.act == "cascade":
+                        gone[(ct, c)] = step
+                        nxt.append((ct, c))
+                    elif ref.act == "setnull":
+                        cv = list(cv)
+                        for col in ref.wipe:
+                            cv[col] = None
+                        now[(ct, c)] = cv
+        todo = nxt
     eff.new = {k: v for k, v in now.items() if k not in gone}'''),
     "audit.py": REPLAY,
 }
 
 # Rows are removed when nothing that stays reaches them, as a collector frees what no root
-# reaches: rows that match only one another go once their outside support goes.
+# reaches: rows that match only one another go once their outside support goes. A solver with
+# this model has no rounds to count, so it has no depth limit either.
 READINGS["reachability-frees-loops"] = {
-    "drop.py": edit(src("drop.py"), '''    left = {}
-    tabs = store.tabs
-    while todo:
-        pt, p = todo.pop()
-        pv = store.get(pt, p)
-        for ref in tabs[pt].used:
-            ct = ref.tab.name
-            for c in bk.downs(ref, pv):
-                slot = (ct, c, ref)
-                n = left.get(slot)
-                if n is None:
-                    n = len(bk.ups(ref, store.get(ct, c)))
-                n -= 1
-                left[slot] = n
-                if n == 0:
-                    eff.lost.append(slot)
-                    if ref.act == "cascade" and (ct, c) not in gone:
-                        gone.add((ct, c))
-                        todo.append((ct, c))''', '''    tabs = store.tabs
+    "drop.py": edit(src("drop.py"), LOOP_HEAD, '''    tabs = store.tabs
     needs = {}
     kids = {}
     for t in tabs:
@@ -182,15 +171,16 @@ READINGS["reachability-frees-loops"] = {
                 held.add(c)
                 queue.append(c)
     for r in needs:
-        if r not in held:
-            gone.add(r)
+        if r not in held and r not in gone:
+            gone[r] = 1
     for t in tabs:
         for c in store.ids(t):
             cv = store.get(t, c)
             for ref in tabs[t].refs:
                 ms = bk.ups(ref, cv)
                 if ms and all((ref.key.tab.name, q) in gone for q in ms):
-                    eff.lost.append((t, c, ref))'''),
+                    eff.lost.append((t, c, ref))
+'''),
     "audit.py": REPLAY,
 }
 
@@ -243,10 +233,10 @@ READINGS["end-check-before-clearing"] = {
 
 # A row never matches itself.
 READINGS["no-self-match"] = {
-    "drop.py": edit(src("drop.py"), '''                if n is None:
-                    n = len(bk.ups(ref, store.get(ct, c)))''', '''                if n is None:
-                    n = len([q for q in bk.ups(ref, store.get(ct, c))
-                             if (ref.key.tab.name, q) != (ct, c)])'''),
+    "drop.py": edit(src("drop.py"), '''                    if n is None:
+                        n = len(bk.ups(ref, store.get(ct, c)))''', '''                    if n is None:
+                        n = len([q for q in bk.ups(ref, store.get(ct, c))
+                                 if (ref.key.tab.name, q) != (ct, c)])'''),
     "hold.py": edit(src("hold.py"), '''            if pat is False or not standing(bk, eff, moved, ref, pat, vals):''',
                     '''            if pat is False or not standing(bk, eff, moved, ref, pat, vals, (t, rid)):''').replace(
         '''def standing(bk, eff, moved, ref, pat, vals):''', '''def standing(bk, eff, moved, ref, pat, vals, me=None):''').replace(
@@ -262,19 +252,20 @@ READINGS["name-by-row-first"] = {
     return (store.script.decls[pos].name, min(rid for p, rid in bad if p == pos))''', '''    rid = min(r for _, r in bad)
     pos = min(p for p, r in bad if r == rid)
     return (store.script.decls[pos].name, rid)'''),
+    "audit.py": REPLAY,
 }
 
 # A row with two cascade references goes only once it has lost both.
 READINGS["fork-needs-both"] = {
-    "drop.py": edit(src("drop.py"), '''                if n == 0:
-                    eff.lost.append(slot)
-                    if ref.act == "cascade" and (ct, c) not in gone:''', '''                if n == 0:
-                    eff.lost.append(slot)
-                    others = [r for r in store.tabs[ct].refs if r.act == "cascade"
-                              and r is not ref and bk.ups(r, store.get(ct, c))]
-                    if any(left.get((ct, c, r)) != 0 for r in others):
-                        continue
-                    if ref.act == "cascade" and (ct, c) not in gone:'''),
+    "drop.py": edit(src("drop.py"), '''                    if n == 0:
+                        eff.lost.append(slot)
+                        if ref.act == "cascade" and (ct, c) not in gone:''', '''                    if n == 0:
+                        eff.lost.append(slot)
+                        others = [r for r in store.tabs[ct].refs if r.act == "cascade"
+                                  and r is not ref and bk.ups(r, store.get(ct, c))]
+                        if any(left.get((ct, c, r)) != 0 for r in others):
+                            continue
+                        if ref.act == "cascade" and (ct, c) not in gone:'''),
     "audit.py": REPLAY,
 }
 
@@ -299,16 +290,121 @@ READINGS["cleared-only-if-changed"] = {
 
 # A refused delete prints zero counts in the audit.
 READINGS["held-counts-zero"] = {
-    "audit.py": edit(src("audit.py"), '''            out.append((tab.name, rid, len(eff.gone), len(eff.new), eff.fail is not None))
-        else:
-            out.append((tab.name, rid, size[v] + gone[v], wipe[v], held[v] > 0))''', '''            out.append((tab.name, rid, len(eff.gone), len(eff.new), eff.fail is not None))
-        else:
-            out.append((tab.name, rid, size[v] + gone[v], wipe[v], held[v] > 0))
-    out = [(t, r, 0, 0, True) if h else (t, r, g, w, h) for t, r, g, w, h in out]'''),
+    "audit.py": edit(src("audit.py"), '''    return [(tab.name, rid, removed[v], cleared[v], named[v])
+            for v, (tab, rid) in enumerate(rows)]''', '''    return [(tab.name, rid, 0 if named[v] else removed[v], 0 if named[v] else cleared[v],
+             named[v]) for v, (tab, rid) in enumerate(rows)]'''),
 }
 
-# The audit adds up the counts of every row that matches through a cascade reference, over
-# every match, as a subtree size on the graph of matches.
+# A reference is lost as soon as any one row it matched is removed, so a row matching several
+# rows goes with the first of them: the removed set is everything the delete reaches.
+READINGS["descendant-reach"] = {
+    "drop.py": edit(src("drop.py"), '''                    if n is None:
+                        n = len(bk.ups(ref, store.get(ct, c)))''', '''                    if n is None:
+                        n = 1'''),
+    "audit.py": REPLAY,
+}
+
+# Rows on a loop keep one another against every delete but their own, and a loop member's own
+# delete takes only itself: the sets of deleters inside a loop are never grown.
+READINGS["loops-always-keep"] = {
+    "audit.py": edit(src("audit.py"), '''            moved = True
+            while moved:''', '''            for y in part:
+                if y >= n:
+                    meets[y - n] = settle(y)
+            moved = False
+            while moved:'''),
+}
+
+# A row's round is one after the latest of all the rows it matched through every cascade
+# reference it lost - the longest chain of lost references to it, not the earliest reference
+# to run out. Rows only a loop reaches keep the round the delete gave them.
+READINGS["rounds-longest-path"] = {
+    "drop.py": edit(src("drop.py"), '''        todo = nxt
+    eff.new = clear.wipe(store, eff)''', '''        todo = nxt
+    deps = {}
+    users = {}
+    for row in gone:
+        if gone[row] == 0:
+            continue
+        vals = store.get(row[0], row[1])
+        ds = set()
+        for ref in tabs[row[0]].refs:
+            if ref.act != "cascade":
+                continue
+            pat = match.form(ref, vals)
+            if not pat:
+                continue
+            kt = ref.key.tab.name
+            ms = [(kt, q) for q in bk.ups(ref, vals, pat)]
+            if ms and all(m in gone for m in ms):
+                ds.update(m for m in ms if m != row)
+        deps[row] = ds
+        for m in ds:
+            users.setdefault(m, []).append(row)
+    longest = {row: 0 for row in gone if gone[row] == 0}
+    waiting = {row: len(ds) for row, ds in deps.items()}
+    ready = [row for row in longest]
+    ready += [row for row, k in waiting.items() if k == 0]
+    while ready:
+        row = ready.pop()
+        if row not in longest:
+            longest[row] = 1 + max([longest[m] for m in deps[row]] or [0])
+        for u in users.get(row, ()):
+            waiting[u] -= 1
+            if waiting[u] == 0:
+                ready.append(u)
+    gone.update(longest)
+    eff.new = clear.wipe(store, eff)'''),
+    "audit.py": REPLAY,
+}
+
+# The limit bites at round fifteen instead of after it.
+READINGS["depth-at-fifteen"] = {
+    "hold.py": edit(src("hold.py"), "eff.gone.get((t, rid), 0) > LIMIT:", "eff.gone.get((t, rid), 0) >= LIMIT:"),
+    "audit.py": REPLAY,
+}
+
+# No depth limit at all: a cascade may run as deep as the store goes.
+READINGS["no-depth-limit"] = {
+    "hold.py": edit(src("hold.py"), '''        if ref.act == "cascade" and eff.gone.get((t, rid), 0) > LIMIT:
+            bad.append((ref.pos, rid))
+''', ""),
+    "audit.py": REPLAY,
+}
+
+# A row removed too deep fails only the cascade reference that removed it, not every cascade
+# reference it lost.
+READINGS["depth-fails-first-ref-only"] = {
+    "hold.py": edit(src("hold.py"), '''        if ref.act == "cascade" and eff.gone.get((t, rid), 0) > LIMIT:
+            bad.append((ref.pos, rid))''', '''        if ref.act == "cascade" and eff.gone.get((t, rid), 0) > LIMIT and (t, rid) not in first:
+            first.add((t, rid))
+            bad.append((ref.pos, rid))''').replace('''    bad = []
+    look = set()''', '''    bad = []
+    look = set()
+    first = set()'''),
+    "audit.py": REPLAY,
+}
+
+# The plan the probe won with: removed sets taken to nest, so counts are subtree sums on one
+# ownership tree, with loop members and rows with two cascade references at the top.
+READINGS["tree-audit"] = {
+    "audit.py": edit(old("tree_audit.py"), '''    out = []
+    for v, (tab, rid) in enumerate(rows):
+        if v in ring or len(casc[v]) > 1:
+            eff = drop.plan(store, tab.name, [rid])
+            out.append((tab.name, rid, len(eff.gone), len(eff.new), eff.fail is not None))
+        else:
+            out.append((tab.name, rid, size[v] + gone[v], wipe[v], held[v] > 0))
+    return out''', '''    out = []
+    for v, (tab, rid) in enumerate(rows):
+        eff = drop.plan(store, tab.name, [rid])
+        if v in ring or len(casc[v]) > 1:
+            out.append((tab.name, rid, len(eff.gone), len(eff.new), eff.fail))
+        else:
+            out.append((tab.name, rid, size[v] + gone[v], wipe[v], eff.fail))
+    return out'''),
+}
+
 READINGS["audit-sums-children"] = {
     "audit.py": '''from db import drop, match
 
@@ -342,7 +438,7 @@ def audit(store):
         for rid in store.ids(tab.name):
             eff = drop.plan(store, tab.name, [rid])
             out.append((tab.name, rid, count((tab.name, rid), set()), len(eff.new),
-                        eff.fail is not None))
+                        eff.fail))
     return out
 ''',
 }
@@ -425,7 +521,7 @@ def audit(store):
     for (t, rid), v in at.items():
         eff = drop.plan(store, t, [rid])
         gone = size[v] if post[v] != -1 else len(eff.gone)
-        out.append((t, rid, gone, len(eff.new), eff.fail is not None))
+        out.append((t, rid, gone, len(eff.new), eff.fail))
     return out
 ''',
 }
@@ -450,6 +546,13 @@ READINGS = {
     "held-counts-zero": READINGS["held-counts-zero"],
     "audit-sums-children": READINGS["audit-sums-children"],
     "audit-retained-set": READINGS["audit-retained-set"],
+    "descendant-reach": READINGS["descendant-reach"],
+    "loops-always-keep": READINGS["loops-always-keep"],
+    "rounds-longest-path": READINGS["rounds-longest-path"],
+    "depth-at-fifteen": READINGS["depth-at-fifteen"],
+    "no-depth-limit": READINGS["no-depth-limit"],
+    "depth-fails-first-ref-only": READINGS["depth-fails-first-ref-only"],
+    "tree-audit": READINGS["tree-audit"],
 }
 
 _TREES = {}
@@ -499,17 +602,20 @@ def generated(n):
 
 def reductions(text):
     """Drop one statement, one row, or one declaration with everything that names it."""
-    lines = text.split("\\n")
+    lines = text.split(NL)
     for i in range(len(lines) - 1, -1, -1):
         w = lines[i].split()
         if not w:
             continue
         if w[0] in ("delete", "dump", "audit", "row"):
-            yield "\\n".join(lines[:i] + lines[i + 1:])
+            yield NL.join(lines[:i] + lines[i + 1:])
         elif w[0] == "ref":
-            yield "\\n".join(lines[:i] + lines[i + 1:])
+            yield NL.join(lines[:i] + lines[i + 1:])
         elif w[0] in ("table", "key"):
             name = w[1]
             keep = [ln for ln in lines if name not in ln.split()]
             if len(keep) < len(lines):
-                yield "\\n".join(keep)
+                yield NL.join(keep)
+
+
+NL = chr(10)

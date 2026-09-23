@@ -283,7 +283,7 @@ SHORTCUTS = {
                  '''def delete(store, tab, ids):
     return ("ok", 1, 0)
 ''', '''def audit(store):
-    return [(t.name, rid, 1, 0, False) for t in store.script.tabs for rid in store.ids(t.name)]
+    return [(t.name, rid, 1, 0, None) for t in store.script.tabs for rid in store.ids(t.name)]
 '''),
     "named-only": ("removes exactly the rows a delete names and nothing else, never clears or refuses",
                    '''def delete(store, tab, ids):
@@ -291,20 +291,21 @@ SHORTCUTS = {
         store.drop(tab, rid)
     return ("ok", len(ids), 0)
 ''', '''def audit(store):
-    return [(t.name, rid, 1, 0, False) for t in store.script.tabs for rid in store.ids(t.name)]
+    return [(t.name, rid, 1, 0, None) for t in store.script.tabs for rid in store.ids(t.name)]
 '''),
     "refuse-first": ("refuses every delete, naming the first reference declared and the first id named",
                      '''def delete(store, tab, ids):
     first = next((d for d in store.script.decls if hasattr(d, "act")), store.script.decls[0])
     return ("refused", first.name, ids[0])
 ''', '''def audit(store):
-    return [(t.name, rid, 1, 0, True) for t in store.script.tabs for rid in store.ids(t.name)]
+    return [(t.name, rid, 1, 0, (store.script.decls[0].name, rid)) for t in store.script.tabs
+            for rid in store.ids(t.name)]
 '''),
     "example-replayed": ("answers every delete with the worked example's corrected line, ok 3 0",
                          '''def delete(store, tab, ids):
     return ("ok", 3, 0)
 ''', '''def audit(store):
-    return [(t.name, rid, 1, 0, False) for t in store.script.tabs for rid in store.ids(t.name)]
+    return [(t.name, rid, 1, 0, None) for t in store.script.tabs for rid in store.ids(t.name)]
 '''),
 }
 

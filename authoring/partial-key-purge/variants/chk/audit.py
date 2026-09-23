@@ -1,327 +1,209 @@
-from db import drop, match
-
-SMALL = 2000
+from db import hold, match
 
 
 def audit(store):
+    """Correct variant: deleter sets by a worklist, rounds by capped round maps.
+
+    For every row, the set of rows whose lone delete removes it (a bit set in an int) is grown
+    from the row alone by a worklist over the whole store, no components: a row is re-evaluated
+    whenever a row it matched through a cascade reference grows, starting from an order in
+    which what a row depends on comes first. For the depth limit each row keeps a small map
+    from deleter to the round it is removed in, capped at the limit: a match set's map holds
+    the deleters common to all its rows with the latest of their rounds plus one, and a row
+    takes, per deleter, the earliest round over its cascade references. Failures are listed as
+    (declaration, id, deleters), sorted, and the first to reach a deleter names its refusal."""
+    idx = match.ix(store)
     rows = [(t.name, rid) for t in store.script.tabs for rid in store.ids(t.name)]
-    if len(rows) <= SMALL:
-        out = []
-        for t, rid in rows:
-            gone, new, bad = drop.outcome(store, t, [rid])
-            out.append((t, rid, len(gone), len(new), bad is not None))
-        return out
-    return Fast(store, rows).run()
+    num = {r: i for i, r in enumerate(rows)}
+    n = len(rows)
+    refs_of = {t.name: t.refs for t in store.script.tabs}
+    live = []
+    for t, rid in rows:
+        vals = store.get(t, rid)
+        got = []
+        for ref in refs_of[t]:
+            pat = match.shape(ref, vals)
+            if pat:
+                got.append((ref, tuple(num[(ref.key.tab.name, p)]
+                                       for p in idx.parents(ref, pat, vals))))
+        live.append(got)
+    need = [[ms for ref, ms in live[v] if ref.act == "cascade" and ms] for v in range(n)]
+    watchers = [[] for _ in range(n)]
+    for v in range(n):
+        for ms in need[v]:
+            for u in ms:
+                watchers[u].append(v)
 
-
-class Fast:
-    def __init__(self, store, rows):
-        self.store = store
-        self.idx = match.ix(store)
-        self.rows = rows
-        self.node = {r: i + 1 for i, r in enumerate(rows)}
-        self.n = len(rows)
-        self.slots = {}
-        self.sets = []
-
-    def group(self, ref, vals):
-        pat = match.shape(ref, vals)
-        if not pat:
-            return pat
-        k = (ref.key.name, pat, tuple(vals[ref.cols[i]] for i in pat))
-        if k not in self.slots:
-            self.slots[k] = len(self.sets)
-            kt = ref.key.tab.name
-            self.sets.append([self.node[(kt, p)] for p in self.idx.parents(ref, pat, vals)])
-        return self.slots[k]
-
-    def run(self):
-        store, n = self.store, self.n
-        live = [None] * (n + 1)
-        casc = [()] * (n + 1)
-        for v in range(1, n + 1):
-            t, rid = self.rows[v - 1]
-            vals = store.get(t, rid)
-            mine = [(ref, self.group(ref, vals)) for ref in store.tabs[t].refs]
-            live[v] = mine
-            casc[v] = tuple(g for ref, g in mine
-                            if ref.act == "cascade" and g is not None and g is not False and self.sets[g])
-        selfm = set()
-        edges = [[] for _ in range(n + 1)]
-        for v in range(1, n + 1):
-            if len(casc[v]) == 1:
-                if v in self.sets[casc[v][0]]:
-                    selfm.add(v)
-                else:
-                    edges[v] = self.sets[casc[v][0]]
-        ring = tarjan(n, edges)
-        joins = {}
-        for v in range(1, n + 1):
-            if len(casc[v]) == 1 and v not in ring and v not in selfm:
-                g = casc[v][0]
-                if len(self.sets[g]) > 1 and g not in joins:
-                    joins[g] = n + 1 + len(joins)
-        total = n + len(joins)
-        preds = [()] * (total + 1)
-        roots = []
-        for v in range(1, n + 1):
-            if len(casc[v]) == 1 and v not in ring and v not in selfm:
-                g = casc[v][0]
-                preds[v] = (joins[g],) if g in joins else tuple(self.sets[g])
-            elif len(casc[v]) <= 1:
-                roots.append(v)
-        for g, j in joins.items():
-            preds[j] = tuple(self.sets[g])
-        idom = chk(total, preds, roots)
-        for v in range(1, n + 1):
-            if len(casc[v]) > 1:
-                idom[v] = 0
-        tree = Euler(total, idom)
-        lca = tree.lca
-        tops = {}
-
-        def top(g):
-            if g not in tops:
-                a = -1
-                for m in self.sets[g]:
-                    a = m if a == -1 else lca(a, m)
-                    if a == 0:
-                        break
-                tops[g] = a
-            return tops[g]
-
-        gm = [0] * (total + 1)
-        wm = [0] * (total + 1)
-        hm = [0] * (total + 1)
-        tin = tree.tin
-
-        def union(marks, ts, sign):
-            ts = sorted({t for t in ts if t > 0}, key=tin.__getitem__)
-            for i, t in enumerate(ts):
-                marks[t] += sign
-                if i:
-                    a = lca(ts[i - 1], t)
-                    if a > 0:
-                        marks[a] -= sign
-
-        def minus(marks, y, avoid):
-            if y is not None and y > 0:
-                marks[y] += 1
-                union(marks, [lca(y, a) for a in avoid], -1)
-
-        size = [0] * (total + 1)
-        for v in range(1, n + 1):
-            if len(casc[v]) > 1:
-                union(gm, [top(g) for g in casc[v]], 1)
+    deps_of = [[u for ms in need[v] for u in ms] for v in range(n)]
+    order = []
+    seen = [False] * n
+    for s in range(n):
+        if seen[s]:
+            continue
+        seen[s] = True
+        stack = [(s, 0)]
+        while stack:
+            v, i = stack[-1]
+            deps = deps_of[v]
+            if i < len(deps):
+                stack[-1] = (v, i + 1)
+                u = deps[i]
+                if not seen[u]:
+                    seen[u] = True
+                    stack.append((u, 0))
             else:
-                size[v] = 1
-        for v in range(1, n + 1):
-            t, rid = self.rows[v - 1]
-            vals = store.get(t, rid)
-            mine = live[v]
-            dt = [top(g) for g in casc[v]] if len(casc[v]) > 1 else [v]
-            for ref, g in mine:
-                if ref.act == "restrict" and g is not None and g is not False and self.sets[g]:
-                    y = top(g)
-                    if y > 0:
-                        hm[y] += 1
-            sn = [(ref, top(g)) for ref, g in mine
-                  if ref.act == "setnull" and g is not None and g is not False and self.sets[g]]
-            sn = [(ref, y) for ref, y in sn if y > 0]
-            if sn:
-                union(wm, [y for _, y in sn], 1)
-                union(wm, [lca(y, a) for _, y in sn for a in dt], -1)
-            for mask in range(1 << len(sn)):
-                on = [sn[i] for i in range(len(sn)) if mask >> i & 1]
-                off = [sn[i][1] for i in range(len(sn)) if not mask >> i & 1]
-                ys = None
-                for _, y in on:
-                    ys = y if ys is None else lca(ys, y)
-                if ys == 0:
-                    continue
-                now = list(vals)
-                for ref, _ in on:
+                stack.pop()
+                order.append(v)
+
+    kills = [1 << v for v in range(n)]
+
+    def both(ms):
+        acc = kills[ms[0]]
+        for u in ms[1:]:
+            acc &= kills[u]
+            if not acc:
+                break
+        return acc
+
+    for v in order:
+        got = 1 << v
+        for ms in need[v]:
+            got |= both(ms)
+        kills[v] = got
+    queued = [True] * n
+    work = list(reversed(order))
+    while work:
+        v = work.pop()
+        queued[v] = False
+        got = 1 << v
+        for ms in need[v]:
+            got |= both(ms)
+        if got != kills[v]:
+            kills[v] = got
+            for w in watchers[v]:
+                if not queued[w]:
+                    queued[w] = True
+                    work.append(w)
+
+    cap = hold.DEEPEST
+    rounds = [{v: 0} for v in range(n)]
+    for _ in range(cap):
+        nxt = []
+        for v in range(n):
+            if not need[v]:
+                nxt.append(rounds[v])
+                continue
+            mine = {v: 0}
+            for ms in need[v]:
+                common = dict(rounds[ms[0]])
+                for u in ms[1:]:
+                    other = rounds[u]
+                    common = {r: max(k, other[r]) for r, k in common.items() if r in other}
+                    if not common:
+                        break
+                for r, k in common.items():
+                    if k < cap and mine.get(r, cap + 1) > k + 1:
+                        mine[r] = k + 1
+            nxt.append(mine)
+        rounds = nxt
+    soon = []
+    size = (n + 7) // 8
+    for v in range(n):
+        raw = bytearray(size)
+        for r in rounds[v]:
+            raw[r >> 3] |= 1 << (r & 7)
+        soon.append(int.from_bytes(raw, "little"))
+
+    removed = columns(kills, n)
+    blanks = []
+    for v in range(n):
+        lost = 0
+        for ref, ms in live[v]:
+            if ref.act == "setnull" and ms:
+                lost |= both(ms)
+        lost &= ~kills[v]
+        if lost:
+            blanks.append(lost)
+    cleared = columns(blanks, n)
+
+    items = []
+    decls = store.script.decls
+    for d, decl in enumerate(decls):
+        for rid in store.ids(decl.tab.name):
+            items.append((d, rid, num[(decl.tab.name, rid)]))
+
+    def after(v):
+        t, rid = rows[v]
+        vals = store.get(t, rid)
+        nulls = [(ref, both(ms) if ms else 0) for ref, ms in live[v] if ref.act == "setnull"]
+        for mask in range(1 << len(nulls)):
+            left = ~kills[v]
+            now = list(vals)
+            for i, (ref, lost) in enumerate(nulls):
+                if mask >> i & 1:
+                    left &= lost
                     for c in ref.wipe:
                         now[c] = None
-                every = any(now[c] is None for key in store.tabs[t].keys for c in key.cols)
-                conds = []
-                for ref, _ in mine:
-                    pat = match.shape(ref, now)
-                    if pat is None:
-                        continue
-                    if pat is False:
-                        every = True
-                        continue
-                    if not on and ref.act != "noaction":
-                        continue
-                    if not self.idx.parents(ref, pat, now):
-                        every = True
-                        continue
-                    conds.append(top(self.group(ref, now)))
-                if every:
-                    if ys is not None:
-                        minus(hm, ys, off + dt)
+                else:
+                    left &= ~lost
+            if left:
+                yield left, now
+
+    def failing(decl, v):
+        acc = 0
+        if hasattr(decl, "act"):
+            for ref, ms in live[v]:
+                if ref is decl and ms:
+                    if decl.act == "restrict":
+                        acc |= both(ms)
+                    elif decl.act == "cascade":
+                        acc |= both(ms) & ~soon[v]
+            for left, now in after(v):
+                pat = match.shape(decl, now)
+                if pat is None:
                     continue
-                for xc in conds:
-                    if xc > 0:
-                        minus(hm, xc if ys is None else lca(ys, xc), off + dt)
-        order = sorted(range(total + 1), key=tin.__getitem__)
-
-        def sums(marks):
-            pre = [0]
-            for v in order:
-                pre.append(pre[-1] + marks[v])
-            return [pre[tree.tout[v] + 1] - pre[tin[v]] for v in range(n + 1)]
-
-        gs, ws, hs, ss = sums(gm), sums(wm), sums(hm), sums(size)
-        out = []
-        for v in range(1, n + 1):
-            t, rid = self.rows[v - 1]
-            if v in ring or len(casc[v]) > 1:
-                gone, new, bad = drop.outcome(store, t, [rid])
-                out.append((t, rid, len(gone), len(new), bad is not None))
-            else:
-                out.append((t, rid, ss[v] + gs[v], ws[v], hs[v] > 0))
-        return out
-
-
-def chk(n, preds, roots):
-    succ = [[] for _ in range(n + 1)]
-    succ[0] = list(roots)
-    for v in range(1, n + 1):
-        for p in preds[v]:
-            succ[p].append(v)
-    post = [-1] * (n + 1)
-    order = []
-    seen = [False] * (n + 1)
-    seen[0] = True
-    stack = [(0, 0)]
-    while stack:
-        v, i = stack.pop()
-        if i < len(succ[v]):
-            stack.append((v, i + 1))
-            w = succ[v][i]
-            if not seen[w]:
-                seen[w] = True
-                stack.append((w, 0))
+                if pat is False:
+                    acc |= left
+                    continue
+                ms = tuple(num[(decl.key.tab.name, p)] for p in idx.parents(decl, pat, now))
+                acc |= (left & both(ms)) if ms else left
         else:
-            post[v] = len(order)
-            order.append(v)
-    rootset = set(roots)
-    ps = [sorted(p, key=post.__getitem__) if len(p) > 1 else p for p in preds]
-    idom = [-1] * (n + 1)
-    idom[0] = 0
-    changed = True
-    while changed:
-        changed = False
-        for v in reversed(order):
-            if v == 0:
-                continue
-            new = -1
-            for p in ((0,) if v in rootset else ps[v]):
-                if idom[p] == -1:
-                    continue
-                if new == -1:
-                    new = p
-                    continue
-                a, b = p, new
-                while a != b:
-                    while post[a] < post[b]:
-                        a = idom[a]
-                    while post[b] < post[a]:
-                        b = idom[b]
-                new = a
-            if idom[v] != new:
-                idom[v] = new
-                changed = True
-    return idom
+            for left, now in after(v):
+                if any(now[c] is None for c in decl.cols):
+                    acc |= left
+        return acc
+
+    free = (1 << n) - 1
+    said = [None] * n
+    for d, rid, v in sorted(items):
+        if not free:
+            break
+        hit = failing(decls[d], v) & free
+        if hit:
+            free &= ~hit
+            while hit:
+                low = hit & -hit
+                said[low.bit_length() - 1] = (decls[d].name, rid)
+                hit ^= low
+    return [(t, rid, removed[v], cleared[v], said[v]) for v, (t, rid) in enumerate(rows)]
 
 
-def tarjan(n, edges):
-    index = [0] * (n + 1)
-    low = [0] * (n + 1)
-    on = [False] * (n + 1)
-    st = []
-    out = set()
-    c = 1
-    for s in range(1, n + 1):
-        if index[s]:
-            continue
-        index[s] = low[s] = c
-        c += 1
-        st.append(s)
-        on[s] = True
-        call = [(s, 0)]
-        while call:
-            v, i = call[-1]
-            if i < len(edges[v]):
-                call[-1] = (v, i + 1)
-                w = edges[v][i]
-                if not index[w]:
-                    index[w] = low[w] = c
-                    c += 1
-                    st.append(w)
-                    on[w] = True
-                    call.append((w, 0))
-                elif on[w]:
-                    low[v] = min(low[v], index[w])
-            else:
-                call.pop()
-                if call:
-                    u = call[-1][0]
-                    low[u] = min(low[u], low[v])
-                if low[v] == index[v]:
-                    comp = []
-                    while True:
-                        w = st.pop()
-                        on[w] = False
-                        comp.append(w)
-                        if w == v:
-                            break
-                    if len(comp) > 1:
-                        out.update(comp)
+def columns(sets, n):
+    levels = []
+    for x in sets:
+        k = 0
+        while x:
+            if k == len(levels):
+                levels.append(x)
+                break
+            y = levels[k]
+            levels[k] = y ^ x
+            x &= y
+            k += 1
+    out = [0] * n
+    for k, lv in enumerate(levels):
+        s = bin(lv)[2:][::-1]
+        for v in range(min(n, len(s))):
+            if s[v] == "1":
+                out[v] += 1 << k
     return out
-
-
-class Euler:
-    def __init__(self, n, idom):
-        kids = [[] for _ in range(n + 1)]
-        for v in range(1, n + 1):
-            kids[idom[v]].append(v)
-        self.tin = [0] * (n + 1)
-        self.tout = [0] * (n + 1)
-        self.depth = [0] * (n + 1)
-        self.first = [0] * (n + 1)
-        tour = []
-        clock = 0
-        stack = [(0, 0)]
-        while stack:
-            v, i = stack.pop()
-            if i == 0:
-                self.tin[v] = clock
-                clock += 1
-                self.first[v] = len(tour)
-            tour.append(v)
-            if i < len(kids[v]):
-                stack.append((v, i + 1))
-                w = kids[v][i]
-                self.depth[w] = self.depth[v] + 1
-                stack.append((w, 0))
-            else:
-                self.tout[v] = clock - 1
-        depth = self.depth
-        self.sp = [tour]
-        j = 1
-        while 2 * j <= len(tour):
-            prev = self.sp[-1]
-            self.sp.append([prev[i] if depth[prev[i]] <= depth[prev[i + j]] else prev[i + j]
-                            for i in range(len(tour) - 2 * j + 1)])
-            j *= 2
-
-    def lca(self, a, b):
-        i, j = self.first[a], self.first[b]
-        if i > j:
-            i, j = j, i
-        k = (j - i + 1).bit_length() - 1
-        x, y = self.sp[k][i], self.sp[k][j - (1 << k) + 1]
-        return x if self.depth[x] <= self.depth[y] else y

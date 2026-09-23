@@ -2,8 +2,8 @@
 
     python agree.py [count-per-family] [impl ...]
 
-Every script is first checked for the input guarantees (consistent initial rows, no reference
-to a two-cascade table, every delete naming present rows), then run through the brute force and
+Every script is first checked for the input guarantees (consistent initial rows, every delete
+naming present rows), then run through the brute force and
 through each named implementation: `model` (tests/seal/model.py) or a directory holding the five
 editable modules (the reference in solution/, or a variant under variants/). Prints mismatches
 and the coverage counters that say whether the population exercised each mechanism.
@@ -53,11 +53,6 @@ def consistent(text):
             if kv in seen:
                 return "duplicate key %s" % k["name"]
             seen.add(kv)
-    cas = collections.Counter(r["tab"] for r in db["refs"].values() if r["act"] == "cascade")
-    for r in db["refs"].values():
-        kt = db["keys"][r["key"]]["tab"]
-        if cas[kt] >= 2:
-            return "reference %s names a two-cascade table" % r["name"]
     return None
 
 

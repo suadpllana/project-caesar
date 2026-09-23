@@ -27,7 +27,7 @@ def floor(text, sample, rng):
     node = {r: i for i, r in enumerate(rows)}
     n = len(rows)
     kids = [[] for _ in range(n)]
-    need = [0] * n
+    need = []
     for v, (t, rid) in enumerate(rows):
         vals = data[t][rid]
         for r in db.out_refs[t]:
@@ -39,32 +39,37 @@ def floor(text, sample, rng):
             ms = ix.parents(r, pat, vals)
             if not ms:
                 continue
-            need[v] = len(ms)
+            slot = len(need)
+            need.append(len(ms))
             for p in ms:
-                kids[node[(r["ktab"], p)]].append(v)
-            break
+                kids[node[(r["ktab"], p)]].append((slot, v))
     picks = rng.sample(range(n), sample)
-    cnt = [0] * n
+    cnt = [0] * len(need)
+    gone = [False] * n
     t0 = time.perf_counter()
     total = 0
     for r in picks:
         touched = []
+        out = [r]
+        gone[r] = True
         stack = [r]
-        removed = 1
         while stack:
             p = stack.pop()
-            for c in kids[p]:
-                k = cnt[c]
+            for slot, c in kids[p]:
+                k = cnt[slot]
                 if k == 0:
-                    touched.append(c)
+                    touched.append(slot)
                 k += 1
-                cnt[c] = k
-                if k == need[c] and c != r:
-                    removed += 1
+                cnt[slot] = k
+                if k == need[slot] and not gone[c]:
+                    gone[c] = True
+                    out.append(c)
                     stack.append(c)
-        for c in touched:
-            cnt[c] = 0
-        total += removed
+        for slot in touched:
+            cnt[slot] = 0
+        for c in out:
+            gone[c] = False
+        total += len(out)
     el = time.perf_counter() - t0
     return n, el / sample, total / sample
 

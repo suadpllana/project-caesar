@@ -43,12 +43,6 @@ def schema(rng):
             if act == "setnull" and rng.random() < 0.6:
                 wipe = rng.sample(cols, rng.randint(1, len(cols)))
             refs.append(["r%d" % i, ctab, cols, kname, mode, act, wipe])
-    referenced = {ktab for kname, ktab, kcols in keys if any(r[3] == kname for r in refs)}
-    for name, _ in tabs:
-        cas = [r for r in refs if r[1] == name and r[5] == "cascade"]
-        if len(cas) >= 2 and name in referenced:
-            for r in cas[1:]:
-                r[5] = rng.choice(("restrict", "noaction", "setnull"))
     return tabs, keys, refs
 
 

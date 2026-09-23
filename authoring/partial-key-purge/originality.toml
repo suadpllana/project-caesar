@@ -1,19 +1,20 @@
-# Originality record for partial-key-purge, written at Stage 1 before any code.
+# Originality record for partial-key-purge, written at Stage 1 before any code and revised
+# 2026-09-23 for the easiness recovery (merge histories, the cascade depth limit, refusal lines).
 # Scored by: python tools/originalitycheck.py partial-key-purge
 
 [task]
 slug = "partial-key-purge"
 category = "Software"
 label = "Databases"
-tags = ["referential-actions", "composite-foreign-keys", "partial-key-matching", "delete-impact-analysis", "dominator-trees"]
-status = "idea"
+tags = ["referential-actions", "composite-foreign-keys", "partial-key-matching", "delete-impact-analysis", "cascade-depth-limit"]
+status = "recovery"
 
 [mechanism]
-sentence = "Decide what a delete does to rows that reference it through composite keys matched simply, fully or partially, where a row goes only after losing every row it matched, and give that answer for every row of a large database at once."
+sentence = "Decide what a delete does to rows that reference it through composite keys matched simply, fully or partially, where a row goes after losing every row it matched through any one of its cascading references, in rounds the real database cuts off at fifteen, and give that answer, refusal included, for every row of a large database at once."
 substrate = "the referential-action pass and delete-impact audit of a relational database whose foreign references are composite and may carry null components"
-graded_output = "per statement the rows removed and cleared or the key and row refusing it, and per audit, for every row, the rows a lone delete of it would remove and clear and whether it would be refused"
-failure_mode = "matching every composite reference as if one null switched it off, cascading row by row as each referenced row goes, and auditing by replaying a delete per row, which is wrong for partial references and quadratic on deep chains of them"
-interaction = "the partial-match rule makes whether a row goes depend on a set of rows rather than on one row, and the audit has to agree with that rule at a scale where only the ownership structure the rule induces can be computed in time"
+graded_output = "per statement the rows removed and cleared or the key and row refusing it, and per audit, for every row, the rows a lone delete of it would remove and clear and the refusal it would print"
+failure_mode = "auditing on one ownership tree whose subtrees are the removed sets, or on reachability, when merge revisions make removed sets overlap and rows matching several revisions need all of them; counting cascade depth as a longest path; and replaying a delete per row, which is quadratic on deep merge histories"
+interaction = "a row goes when all its matches through one cascading reference go, but when either of two references does, so removal is an intersection inside a reference and a union across them, and the depth limit needs the round each deleter reaches each row in, the earliest over references of the latest over matches"
 
 [nearest.public]
 name = "the SQL standard's referential constraints (MATCH SIMPLE, FULL and PARTIAL, unique matching rows) as summarised in Wikipedia's Foreign key article, and Eclipse MAT's dominator-tree definition of retained sets"

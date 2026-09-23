@@ -3,11 +3,13 @@ from db import clear, hold, match
 
 def outcome(store, tab, ids):
     idx = match.ix(store)
-    gone = {(tab, i) for i in ids}
+    gone = {(tab, i): 0 for i in ids}
     frontier = list(gone)
     alive = {}
     lost = []
+    level = 0
     while frontier:
+        level += 1
         nxt = []
         for pt, p in frontier:
             pv = store.get(pt, p)
@@ -23,7 +25,7 @@ def outcome(store, tab, ids):
                     if not left:
                         lost.append(key)
                         if ref.act == "cascade" and (ct, c) not in gone:
-                            gone.add((ct, c))
+                            gone[(ct, c)] = level
                             nxt.append((ct, c))
         frontier = nxt
     new = clear.cleared(store, gone, lost)

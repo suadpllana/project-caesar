@@ -3,7 +3,7 @@
 tiny.txt is written by hand and is the worked example the brief quotes. The other three come
 from the verifier's own generator with fixed seeds that the nonce population never uses, so
 they show the graded shapes and sizes without being graded: a medium chain store, a store of
-revisions based on one another, and one store of the deep family.
+merge revisions and revisions based on one another, and one store of the deep family.
 """
 import os
 import random
@@ -48,7 +48,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     write("tiny.txt", TINY)
     write("docs.txt", gen.story(random.Random("sample:docs"), "chain"))
-    write("loops.txt", gen.story(random.Random("sample:loops"), "loop"))
+    write("loops.txt", gen.story(random.Random("sample:loops:160"), "merge") + "audit\n")
     write("deep.txt", gen.deep(random.Random("sample:deep")))
     for name in sorted(os.listdir(OUT)):
         path = os.path.join(OUT, name)

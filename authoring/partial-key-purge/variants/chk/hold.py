@@ -1,5 +1,7 @@
 from db import match
 
+DEEPEST = 15
+
 
 def verdict(store, idx, gone, lost, new):
     fails = {}
@@ -11,6 +13,8 @@ def verdict(store, idx, gone, lost, new):
     suspects = {}
     for tab, rid, ref in lost:
         if ref.act == "restrict":
+            fail(ref, rid)
+        if ref.act == "cascade" and gone.get((tab, rid), 0) > DEEPEST:
             fail(ref, rid)
         if (tab, rid) not in gone:
             suspects[(tab, rid)] = True

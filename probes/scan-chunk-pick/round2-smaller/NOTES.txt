@@ -1,0 +1,19 @@
+Smaller-model probes of the round-2 design, 2026-09-23: calibrating the stand-in.
+
+The round-2 design is the one the external easiness screen solved 2 of 3 (commit 6148edf; its
+brief matches the three supplied trajectories character for character as far as they quote it).
+Three fresh agents on the same smaller model and with the same prompt as round4-smaller, each
+given only that design's instruction.md (paths rewritten to a scratch copy of its
+environment/app_src) and that tree. Graded by that design's own verifier in the container (a
+worktree at 6148edf, tools/docker_trial.py --dir), whose generated set is drawn from a nonce at
+run time, so each was graded five times. In the same setup that design's oracle scores 1 and its
+untouched tree 0.
+
+probe1  PASS on 5 of 5 verifier runs  (about 33 minutes, 62 tool calls)
+probe3  PASS on 5 of 5 verifier runs  (about 54 minutes, 108 tool calls; it also wrote a second,
+        whole-trace reference and diffed every rd and dc line against it)
+probe2  still running at the time of writing
+
+Reading: the stand-in solves the design the external screen solved, as the screen did. The same
+stand-in fails the round-3 rebuild on every run that finished (round4-smaller). It is not simply
+weaker than the screen, so its failures on the rebuild are evidence about the rebuild.

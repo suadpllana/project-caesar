@@ -1,0 +1,6 @@
+seg 10 3 1
+ch 0 3 3 - - e p - - -
+qry
+prd nu 0
+prj 0
+end

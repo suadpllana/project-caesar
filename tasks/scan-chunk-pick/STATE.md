@@ -5,7 +5,7 @@ session starts with no memory of this one - anything not written here is lost.
 
 ## Current stage
 
-`Easiness recovery round 3 - rebuilt for chunk sums and facts that act at once; local agents still solve it 3 of 3; external easiness probe pending`
+`Easiness recovery round 3 - rebuilt for chunk sums and facts that act at once; strong local agents solve it 3 of 3, as they solve tasks the platform passed; a smaller-model stand-in for the easiness screen solves the round-2 design and fails this one; external easiness probe pending`
 
 ## Assistant's assigned role
 
@@ -456,7 +456,42 @@ per-condition, per-page first plan, but it does not stop an agent who writes the
 the engine. The external easiness screen runs low-effort agents, which in round 2 mostly did
 not write a model (one of three fuzzed); the rules they now have to get right unaided are more
 and subtler than the ones one of them already missed. The eight-attempt difficulty probe runs
-strong agents, and on this evidence it would come back at or near 8 of 8.
+strong agents, and on this evidence it would come back at or near 8 of 8. (Section 7 revises
+this: the same agents solve tasks the platform passed about as readily.)
+
+### 7. What the local probes measure
+
+Neither local measurement meant much until it was run on something whose external result is
+known, so both were.
+
+Strong agents, the difficulty probe's class. The same prompt, model and effort that solved this
+design 3 of 3 were run on two retained tasks the platform passed, two agents each, graded by each
+task's own verifier in the container and re-run against fresh nonces
+(`probes/scan-chunk-pick/calibration/`): `guard-mark-unwind` 2 of 2, each right on nine runs;
+`alias-settle-report` 1 of 2, one right on seven runs and the other wrong on three runs in nine,
+having read an equal score the other way. About half an hour each, as here, and the three solves
+of this design are right on the 82 hand files and six generated seeds each. So these agents
+solve tasks inside the band about three times in four, and 3 of 3 here does not separate this
+design from them: section 6's "at or near 8 of 8" was the ceiling of the instrument, not a
+measurement of the task.
+
+Smaller agents, a stand-in for the low-effort screen. The same prompt on a smaller model, run on
+this design and on the round-2 design the external screen solved 2 of 3
+(`probes/scan-chunk-pick/round4-smaller/`, `probes/scan-chunk-pick/round2-smaller/`):
+
+| Design | External screen | Stand-in |
+|---|---|---|
+| round 2 | 2 of 3 solved | 2 of 2 finished runs solved, each right on five verifier runs (33 and 54 minutes); the third still running |
+| this design | not yet run | 0 of 2 finished runs solved, wrong on 19 and 17 of the 82 hand files (53 and 66 minutes); one run ended on an output-token error before writing code, its rerun still running |
+
+The stand-in solves what the screen solved and fails this, on the rules this round added: facts
+acting at once, exact counts after a read, the report told by chunk sums, the report's consult.
+Both failures checked only the numbers on `sel` and `prj` against a brute force, which cannot see
+which pages were read; the round-2 solves had no such rule to miss.
+
+What it says, as far as it goes: the easiness screen is likelier to pass than on any earlier
+design, and the difficulty probe is no likelier to come back 8 of 8 than it was for the two
+tasks calibrated on. Neither is a pass. The exit gate is still the external probe.
 
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 
@@ -628,7 +663,8 @@ moved are each explained by a new rule, and one was renamed for what it now pins
 | `zipcheck.py` | pass | 128 entries, nothing stray |
 | `difficultycheck.py` / `originalitycheck.py` | 100 / 97 | see the recovery sections for why 100 is not evidence |
 | `harbor check` rubric | not run | no API key in this environment |
-| Local calibration (three strong agents, full brief) | 3 of 3 solved | round 3, section 6; the external screen uses weaker agents, so this is an upper bound, not the result |
+| Local calibration (three strong agents, full brief) | 3 of 3 solved | round 3, section 6; the same agents solve two tasks the platform passed 3 of 4 (section 7), so this does not place the task above the band |
+| Smaller-model stand-in for the easiness screen | 0 of 2 finished | solves the round-2 design 2 of 2 finished; round 3, section 7 |
 | External easiness probe | not run | the recovery exit gate; required before calling the task ready |
 
 ## Quality self-review (docs/QUALITY-REVIEW.md), after the recovery, 2026-09-22
@@ -696,8 +732,11 @@ What it asks of a low-effort agent that does not write a model is more than befo
 principles whose consequences have to be worked out unaided, in a report pass that no longer
 works page by page.
 
-Estimated solves: 7 of 8 for the eight-attempt difficulty probe; the easiness screen with
-low-effort agents is the open question, and the local strong agents are not a measure of it.
+Estimated solves: 7 of 8 for the eight-attempt difficulty probe, with the uncertainty of the
+tasks it was calibrated on (round 3, section 7): the local strong agents solve those about three
+times in four and this 3 of 3, so they cannot place it inside the band or above it. For the
+easiness screen, the smaller-model stand-in that solves the round-2 design fails this one on
+every finished run.
 
 ## Open questions and next steps
 
@@ -708,8 +747,10 @@ run. `harbor check` was not run (no API key here).
 
 The risk carried forward is the other side of the band. Strong local agents solve this design
 3 of 3, so the eight-attempt difficulty probe may come back 8 of 8 even if the low-effort
-easiness screen passes. Two directions were weighed for that and not taken this round, both
-recorded so the next session does not re-derive them: a page's sum, once its chunk pins it,
+easiness screen passes; the same agents solve two tasks the platform passed about three times in
+four (round 3, section 7), so that risk is the ordinary one for a task inside the band, not a
+measured excess. If the probe does come back 8 of 8, two directions were weighed and not taken
+this round, both recorded so the next session does not re-derive them: a page's sum, once its chunk pins it,
 narrowing what its header proves in the filter (measured at 1.1% of files - too thin), and a
 scale family with many queries per file, where the fast path is batching and caching rather
 than an invariant (engineering an agent grinds through, not a plan it has to find).

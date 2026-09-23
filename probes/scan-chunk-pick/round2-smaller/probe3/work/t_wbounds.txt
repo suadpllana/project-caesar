@@ -1,0 +1,6 @@
+seg 10 1 1
+ch 0 1 0 20 20 w p 15
+qry
+prd le 0 25
+prj 0
+end

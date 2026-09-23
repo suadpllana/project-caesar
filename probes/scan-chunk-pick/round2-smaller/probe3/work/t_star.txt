@@ -1,0 +1,6 @@
+seg 10 3 1
+ch 0 3 0 10 99 e d 2 10 20 0 *99 1
+qry
+prd eq 0 99
+prj 0
+end

@@ -17,7 +17,8 @@ probe2  FAIL  (about 53 minutes, 70 tool calls). Wrong on 19 of 82 hand files an
         (prj-consult-needs-live-row, prj-consult-not-sparing, prj-one-entry-fallback) and
         upd-read-not-merged. Its brute force compared only the numbers on sel and prj, never
         which pages were read, so it could not see any of these.
-probe1  the first run ended on an output-token error before writing any code; rerun.
+probe1  the first run ended on an output-token error before writing any code; its rerun is
+        still running at the time of writing.
 probe3  FAIL  (about 66 minutes, 89 tool calls). Wrong on 17 of 82 hand files and on 214 and 220
         of 418 files for the two seeds. Same spread: facts acting at the query's start and after
         a consult (flt-header-kills-at-start, flt-header-kills-other-column,

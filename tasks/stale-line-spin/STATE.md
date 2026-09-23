@@ -73,15 +73,24 @@ breaks the incoherent one.
 - Collected: exactly `/app/sim/{line,mem,place,turn,step,clock}.py`; everything else under /app is
   the verifier's pristine copy (tests/pristine, synced by authoring/stale-line-spin/sync_pristine.py).
 - Interface: `clock.run(launch)` returns `(blocks, hang, left, gm)`; frozen `say.py` prints.
-- Graded set: the 30 hand launches in tests/cases.py against tests/seal/gt.json, and
-  `gen.programs(nonce, 40)` - eight small families x 40 and two large x 3 = 326 - against the
+- Graded set: the 42 hand launches in tests/cases.py against tests/seal/gt.json, and
+  `gen.programs(nonce, 40)` - nine small families x 40 and three large x 3 = 369 - against the
   sealed model, nonce drawn in test.sh at grading time. Exact, all-or-nothing.
-- Clock: the worker, all 356 launches in one process, under `timeout 60` at one CPU.
+- Clock: the worker, all 411 launches in one process, under `timeout 60` at one CPU.
 - Isolation: worker as uid 1002 via setpriv, own session, reaped by uid; /tests/seal and
   /logs/verifier chmod 700 before it runs; reward written 0 first, 1 only if both halves pass.
 - Additive changes since freeze, each proved by build_gt.py leaving every frozen answer
   byte-identical: the spin-tests hand case (2026-09-22) - no rule changed, a stated rule gained a
   test.
+- CONTRACT CHANGE, easiness recovery 1 (2026-09-23), made on the contributor's instruction to make
+  the task substantially harder after the 3/3 easiness failure: rule 12 is new - `sum.ca rd [a] n`
+  and `sum.cg rd [a] n`, n issues of one line each through the per-multiprocessor cache, the
+  total into rd at the n-th issue, a block at a sum ready and not at a spin. Every earlier rule
+  is unchanged: build_gt.py kept all 30 frozen answers byte-identical and added 12 sum cases, and
+  the rebuilt sealed model reproduces the delivered model on the 30 answers and on 978 generated
+  launches of the ten earlier families (three seeds). New families: `reduce` (small, 40 per
+  nonce) and `stream` (large, 3 per nonce). What "correct" means for any launch without a sum is
+  exactly what it was.
 
 ## Machine model (frozen; the instruction states it)
 
@@ -108,6 +117,13 @@ start empty and are never emptied by blocks arriving or leaving. `spin.ca` / `sp
 one attempt (the matching load into rd) per issue and move on when `rd cmp v` holds (`eq`,
 `ne`, `lt`, `ge`). `work v` keeps the block busy for v cycles. `out v` appends to the block's
 printed values. `exit` ends the block.
+
+Sum (2026-09-23): `sum.ca rd [a] n` / `sum.cg rd [a] n`, n a positive literal. The block's next
+n issues read lines L, L+1, ..., L+n-1, where L is the line holding word a at the first issue;
+each reads its line as the matching load would (sum.ca: the cached copy, else a fill that drops
+the earliest-filled line when C are held; sum.cg: global memory, dropping the multiprocessor's
+own copy if held) and adds its four words; the n-th issue writes the total to rd and moves on. A
+block at a sum is ready every cycle and is not at a spin.
 
 Hang: at cycle t if, from t on, every placed block that has not exited sits at a spin, none
 is busy, and no attempt at or after t succeeds.

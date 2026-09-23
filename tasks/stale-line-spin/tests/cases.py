@@ -29,6 +29,20 @@ failure says which rule broke rather than "a generated launch was wrong".
   spin-fenced          a stale spinner is released when a neighbour fences
   skip-rotation        after a long frozen stretch the rotation is where the stretch left it
   skip-not-frozen      a stretch with a missing spin line is not frozen and is not skipped
+  sum-issues           a sum takes one issue per line, sharing the rotation with its neighbours
+  sum-start-line       a sum starts at the whole line holding its address
+  sum-stale-copy       a cached sum adds a stale copy; a bypassing one reads memory and drops it
+  sum-fills            a cached sum fills every line it misses, oldest fill dropped first
+  sum-cg-no-fill       a bypassing sum fills nothing, so it pushes no other line out
+  sum-releases-spinner a stale spinner is let go at the fill of a neighbour's sum that evicts it
+  sum-cg-releases      a stale spinner is let go when a neighbour's bypassing sum drops its line
+  sum-race-order       a store lands in a sum only before the sum reaches its line, SM order
+                       deciding within a cycle
+  sum-trailing         a sum behind another on the same lines reads the leader's copies
+  sum-evicts-prefetch  a prefetched stale line survives to the sum on a quiet multiprocessor and
+                       is pushed out first on one whose neighbour streams
+  sum-interrupted      blocks waking mid-sum join the rotation and stretch it
+  sum-not-spin         no hang while a block is still summing
   hang-residency       a grid barrier larger than the device hangs, with blocks never placed
   hang-stale           a cached spin that nothing refreshes hangs
   hang-thrash          spinners that keep pushing each other out, all failing, hang from the start
@@ -479,6 +493,257 @@ exit
 far:
 work 30
 st [60] 1
+exit
+""",
+    # --- sums ----------------------------------------------------------------------------------
+    "sum-issues": """
+dev 1 2 4
+grid 2
+mem 0 1
+mem 5 2
+mem 10 3
+show 20
+prog
+mov r1 %bid
+brnz r1 other
+sum.ca r2 [0] 3
+st [20] r2
+out r2
+exit
+other:
+mov r3 7
+add r3 r3 1
+out r3
+exit
+""",
+    "sum-start-line": """
+dev 1 1 4
+grid 1
+mem 3 100
+mem 4 1
+mem 7 2
+mem 11 4
+mem 12 8
+show 0
+prog
+sum.ca r1 [6] 2
+out r1
+exit
+""",
+    "sum-stale-copy": """
+dev 2 2 4
+grid 2
+mem 8 5
+show 8
+prog
+mov r1 %bid
+brnz r1 writer
+ld.ca r2 [8]
+work 6
+sum.ca r3 [8] 1
+sum.cg r4 [8] 1
+sum.ca r5 [8] 1
+out r3
+out r4
+out r5
+exit
+writer:
+st [8] 9
+exit
+""",
+    "sum-fills": """
+dev 2 1 2
+grid 2
+mem 0 1
+show 0 4
+prog
+mov r1 %bid
+brnz r1 writer
+sum.ca r2 [0] 3
+work 4
+ld.ca r3 [4]
+ld.ca r4 [0]
+out r2
+out r3
+out r4
+exit
+writer:
+work 3
+st [4] 7
+st [0] 5
+exit
+""",
+    "sum-cg-no-fill": """
+dev 2 1 1
+grid 2
+mem 20 3
+show 20
+prog
+mov r1 %bid
+brnz r1 writer
+ld.ca r2 [20]
+work 6
+sum.cg r3 [0] 4
+ld.ca r4 [20]
+out r3
+out r4
+exit
+writer:
+st [20] 8
+st [1] 2
+exit
+""",
+    "sum-releases-spinner": """
+dev 2 2 2
+grid 3
+show 0
+prog
+mov r1 %bid
+sub r2 r1 1
+brz r2 setter
+brnz r1 streamer
+ld.ca r3 [0]
+spin.ca r4 [0] eq 1
+out r4
+exit
+setter:
+work 12
+st [0] 1
+exit
+streamer:
+work 10
+sum.ca r5 [40] 5
+out r5
+exit
+""",
+    "sum-cg-releases": """
+dev 2 2 4
+grid 3
+show 20
+prog
+mov r1 %bid
+sub r2 r1 1
+brz r2 setter
+brnz r1 sweeper
+ld.ca r3 [20]
+spin.ca r4 [20] eq 1
+out r4
+exit
+setter:
+work 10
+st [20] 1
+exit
+sweeper:
+work 12
+sum.cg r5 [12] 4
+out r5
+exit
+""",
+    "sum-race-order": """
+dev 3 1 4
+grid 3
+mem 0 1
+show 4 8
+prog
+mov r1 %bid
+sub r2 r1 1
+brz r2 reducer
+brz r1 early
+mov r3 0
+early:
+mul r3 r1 2
+st [r3+4] 9
+exit
+reducer:
+mov r5 0
+sum.cg r4 [0] 4
+out r4
+exit
+""",
+    "sum-trailing": """
+dev 2 2 4
+grid 3
+mem 0 1
+mem 5 2
+mem 12 4
+show 8
+prog
+mov r1 %bid
+sub r2 r1 1
+brz r2 writer
+brnz r1 trail
+sum.ca r3 [0] 4
+out r3
+exit
+trail:
+work 3
+sum.ca r3 [4] 3
+out r3
+exit
+writer:
+work 9
+st [8] 5
+exit
+""",
+    "sum-evicts-prefetch": """
+dev 3 2 4
+grid 4
+mem 12 1
+show 12
+prog
+mov r1 %bid
+sub r2 r1 2
+brz r2 writer
+sub r2 r1 3
+brz r2 side
+ld.ca r4 [12]
+work 8
+sum.ca r5 [0] 6
+out r5
+exit
+side:
+work 4
+sum.ca r5 [400] 12
+out r5
+exit
+writer:
+work 6
+st [12] 7
+exit
+""",
+    "sum-interrupted": """
+dev 1 3 4
+grid 3
+mem 0 1
+mem 17 2
+show 0
+prog
+mov r1 %bid
+brz r1 summer
+mul r2 r1 5
+work r2
+out r1
+exit
+summer:
+sum.cg r3 [0] 12
+out r3
+exit
+""",
+    "sum-not-spin": """
+dev 1 2 4
+grid 2
+mem 64 3
+show 0
+prog
+mov r1 %bid
+brnz r1 summer
+spin.cg r2 [0] eq 1
+out r2
+exit
+summer:
+sum.cg r3 [64] 6
+out r3
+spin.cg r4 [0] eq 1
 exit
 """,
     # --- hangs -------------------------------------------------------------------------------

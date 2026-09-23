@@ -6,9 +6,10 @@ down what came out. The grader treats this file's output as hostile input. A cra
 a silent exit loses the record, and a lost record is a failure, never a pass.
 
 The wall clock the platform puts on this process is also the task's execution limit, so a
-correct model that cannot get through the set in time is scored exactly like a wrong one. Two
+correct model that cannot get through the set in time is scored exactly like a wrong one. Three
 of the families exist for that: launches of thousands of blocks where long work overlaps
-blocks that spin, which a model that steps every cycle cannot finish.
+blocks that spin, which a model that steps every cycle cannot finish, and persistent launches
+where most multiprocessors sum for millions of cycles while the rest never stop issuing.
 """
 import hashlib
 import json

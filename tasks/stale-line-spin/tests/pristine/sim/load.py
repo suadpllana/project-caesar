@@ -100,6 +100,11 @@ def decode(f, labels):
         if at[0] == rd or b == ("r", rd):
             raise ValueError("spin reads its own destination")
         return Ins(op, rd=rd, at=at, cmp=x[2], b=b)
+    if op in ("sum.ca", "sum.cg"):
+        k = int(x[2])
+        if k <= 0:
+            raise ValueError("sum of %d lines" % k)
+        return Ins(op, rd=reg(x[0]), at=addr(x[1]), b=("k", k))
     if op == "work" or op == "out":
         return Ins(op, a=opnd(x[0]))
     if op == "bra":

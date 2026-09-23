@@ -37,8 +37,10 @@ FAMILIES = (
     ("thrash", False),
     ("mix", False),
     ("evict", False),
+    ("reduce", False),
     ("wide", True),
     ("deep", True),
+    ("stream", True),
 )
 
 BIG = 3
@@ -324,6 +326,191 @@ def evict(rng):
     return _head((S, R, C), 4, show=[FA, FB]) + body
 
 
+def reduce(rng):
+    """A tile summed by one block while the machine around it moves the tile's lines.
+
+    The tile is n lines. What varies is the one thing that decides the total or the timing:
+      stale     the reducer cached a line of the tile before a writer changed it; whether its
+                sum still finds the copy depends on how many lines a neighbour's sum filled since
+      release   a waiter holds a stale copy of its flag; it is let go only when a neighbour's
+                cached sum pushes the line out, or a bypassing sum passes over it and drops it
+      race      writers on a lower- and a higher-numbered multiprocessor store into the tile
+                around the cycles the sum reaches those lines
+      trail     two sums on one multiprocessor cover overlapping lines, one behind the other,
+                while a writer changes a shared line between their reads
+    Every block is resident from the start: block b is on multiprocessor b mod S.
+    """
+    S = rng.randint(2, 4)
+    shape = rng.choice(("stale", "release", "race", "trail"))
+    R = rng.randint(2, 3)
+    C = rng.randint(1, 6)
+    n = rng.randint(2, 8)
+    TILE = 4 * rng.randint(2, 6)
+    FLAG = TILE + 4 * n + 4 * rng.randint(0, 2) + rng.randint(0, 3)
+    SIDE = (FLAG // 4 + 1 + rng.randint(0, 2)) * 4        # lines a bystander streams over
+    tile_words = [TILE + i for i in range(4 * n)]
+    mem = [(w, rng.randint(1, 9)) for w in tile_words if rng.random() < 0.4]
+    mem += [(SIDE + i, rng.randint(1, 5)) for i in range(0, 32, 5) if rng.random() < 0.5]
+    kind = lambda: rng.choice(("sum.ca", "sum.ca", "sum.cg"))  # noqa: E731
+    scripts = {}
+
+    def at(sm, slot=0):
+        return sm + S * slot
+
+    def writer(times):
+        out = []
+        for w, v in times:
+            out += ["work %d" % w, "st [%d] %d" % (rng.choice(tile_words), v)]
+        return out
+
+    if shape == "stale":
+        d = rng.randint(0, n - 1)
+        red = ["ld.ca r7 [%d]" % (TILE + 4 * d + rng.randint(0, 3)),
+               "spin.cg r6 [%d] ge 1" % FLAG]
+        if rng.random() < 0.2:
+            red.append("fence")
+        red += ["%s r0 [%d] %d" % (kind(), TILE + rng.randint(0, 3), n), "out r0"]
+        scripts[at(0)] = red
+        scripts[at(1)] = ["work %d" % rng.randint(2, 12),
+                          "st [%d] %d" % (TILE + 4 * d + rng.randint(0, 3), rng.randint(10, 40))]
+        scripts[at(1)] += writer([(rng.randint(0, 4), rng.randint(10, 40))
+                                  for _ in range(rng.randint(0, 2))])
+        scripts[at(1)].append(rng.choice(("st [%d] 1", "atom.add r6 [%d] 1")) % FLAG)
+        if R > 1 and rng.random() < 0.8:
+            scripts[at(0, 1)] = ["work %d" % rng.randint(1, 20),
+                                 "sum.ca r0 [%d] %d" % (SIDE, rng.randint(1, 3 * C + 2)), "out r0"]
+    elif shape == "release":
+        waiter = ["ld.ca r7 [%d]" % FLAG, "spin.ca r6 [%d] ge 1" % FLAG, "out r6"]
+        scripts[at(0)] = waiter
+        scripts[at(1)] = ["work %d" % rng.randint(1, 8),
+                          rng.choice(("st [%d] 1", "atom.add r6 [%d] 1")) % FLAG]
+        how = rng.choice(("evict", "evict", "drop"))
+        if how == "evict":
+            scripts[at(0, 1)] = ["work %d" % rng.randint(8, 20),
+                                 "sum.ca r0 [%d] %d" % (SIDE, rng.randint(1, C + 3)), "out r0"]
+        else:
+            lo = FLAG // 4 - rng.randint(0, 2)
+            scripts[at(0, 1)] = ["work %d" % rng.randint(8, 20),
+                                 "sum.cg r0 [%d] %d" % (4 * lo, rng.randint(1, 5)), "out r0"]
+        if R > 2 and rng.random() < 0.5:
+            scripts[at(0, 2)] = ["work %d" % rng.randint(1, 30),
+                                 "%s r0 [%d] %d" % (kind(), SIDE + 16, rng.randint(1, 6)), "out r0"]
+    elif shape == "race":
+        red_sm = rng.randint(1, S - 1) if S > 2 else 1
+        w0 = rng.randint(0, 6)
+        scripts[at(red_sm)] = ["work %d" % w0, "%s r0 [%d] %d" % (kind(), TILE, n), "out r0"]
+        for sm in {0, rng.randint(0, S - 1)} | ({S - 1} if S > 2 else set()):
+            if sm == red_sm:
+                continue
+            scripts[at(sm)] = writer([(rng.randint(w0, w0 + 2 * n), rng.randint(10, 60))
+                                      for _ in range(rng.randint(1, 3))])
+        if R > 1 and rng.random() < 0.6:
+            scripts[at(red_sm, 1)] = ["work %d" % rng.randint(0, 4),
+                                      "%s r0 [%d] %d" % (kind(), SIDE, rng.randint(1, 2 * n)),
+                                      "out r0"]
+    else:
+        lag = rng.randint(1, 3)
+        scripts[at(0)] = ["%s r0 [%d] %d" % (kind(), TILE, n), "out r0"]
+        scripts[at(0, 1)] = ["work %d" % rng.randint(0, 2 * lag + 2),
+                             "%s r0 [%d] %d" % (kind(), TILE + 4 * rng.randint(0, 1), n),
+                             "out r0"]
+        scripts[at(1)] = writer([(rng.randint(0, 3 * n), rng.randint(10, 60))
+                                 for _ in range(rng.randint(1, 2))])
+    G = max(scripts) + 1
+    R = max(R, -(-G // S))
+    body = ["mov r1 %bid"]
+    for b in sorted(scripts):
+        body += ["sub r2 r1 %d" % b, "brz r2 b%d" % b]
+    body.append("exit")
+    for b in sorted(scripts):
+        body.append("b%d:" % b)
+        body += scripts[b]
+        body.append("exit")
+    show = [TILE, TILE + 4 * (n - 1) + 3, FLAG]
+    return _head((S, R, C), G, mem=sorted(set(mem)), show=show) + body
+
+
+def stream(rng):
+    """Persistent reducers on most multiprocessors, persistent workers on the rest.
+
+    Every block is resident from cycle 0, and a block's role comes from its multiprocessor:
+    one multiprocessor in four runs workers. A reducer sums T tiles of N lines each - cached on
+    even multiprocessors, bypassing on odd ones - touching a line a few lines into each tile
+    first, and counts every tile done with an atomic. A worker loops K times: work, then a
+    store a fixed stride further down through the tiles, each worker at its own pace, so a few
+    stores land in a tile while its reducer is reading it and most land far away. A few blocks on bypassing multiprocessors
+    watch the done-count through their own cache and are only let go when a fence on their
+    multiprocessor drops the stale copy.
+    """
+    S, P = 16, 4
+    R = rng.randint(5, 6)
+    C = rng.choice((16, 24, 32, 48))
+    G = S * R
+    off = rng.randint(0, P - 1)
+    T = rng.randint(30, 50)
+    N = rng.randint(30000, 50000)
+    K = rng.randint(7000, 9000)
+    DATA = 1 << 20
+    DONE = 64
+    RES = 128
+    SPAN = G * T * 4 * N
+    fence = rng.random() < 0.6
+    ahead = rng.randint(0, 6)
+    workers = [s for s in range(S) if s % P == off]
+    odd = [s for s in range(1, S, 2) if s % P != off]
+    watchers = set()
+    for s in rng.sample(odd, rng.randint(0, min(3, len(odd)))):
+        watchers.add(s + S * rng.randint(0, R - 1))
+    reducers = (S - len(workers)) * R - len(watchers)
+    target = rng.randint(T, reducers * T // 2)
+    body = ["mov r1 %bid"]
+    for b in sorted(watchers):
+        body += ["sub r2 r1 %d" % b, "brz r2 watch"]
+    body += ["mov r2 %sm", "mod r7 r2 %d" % P]
+    if off:
+        body.append("sub r7 r7 %d" % off)
+    body += ["brz r7 worker", "mod r7 r2 2", "mul r5 r1 %d" % T, "mov r4 %d" % T,
+             "brnz r7 cg"]
+    for tag, op in (("ca", "sum.ca"), ("cg", "sum.cg")):
+        body += ["%s:" % tag,
+                 "mul r6 r5 %d" % (4 * N),
+                 "ld.ca r7 [r6+%d]" % (DATA + 4 * ahead),
+                 "%s r0 [r6+%d] %d" % (op, DATA, N),
+                 "add r3 r3 r0"]
+        if fence:
+            body.append("fence")
+        body += ["atom.add r7 [%d] 1" % DONE,
+                 "add r5 r5 1",
+                 "sub r4 r4 1",
+                 "brnz r4 %s" % tag,
+                 "st [r1+%d] r3" % RES,
+                 "out r3",
+                 "exit"]
+    step = rng.randint(SPAN // K // 2, SPAN // K)
+    body += ["watch:",
+             "ld.ca r7 [%d]" % DONE,
+             "spin.ca r6 [%d] ge %d" % (DONE, target),
+             "out r6",
+             "exit",
+             "worker:",
+             "mul r5 r1 %d" % rng.randint(3, 40),
+             "mod r5 r5 %d" % 300,
+             "add r5 r5 %d" % rng.randint(1000, 1400),
+             "mov r6 %d" % (K * step),
+             "wloop:",
+             "work r5",
+             "st [r6+%d] r1" % DATA,
+             "sub r6 r6 %d" % step,
+             "brnz r6 wloop",
+             "exit"]
+    mem = set()
+    for _ in range(rng.randint(200, 400)):
+        tile = rng.randrange(G * T)
+        mem.add((DATA + tile * 4 * N + rng.randrange(4 * N), rng.randint(1, 9)))
+    show = [DONE, RES + rng.randrange(G), RES + rng.randrange(G)]
+    return _head((S, R, C), G, mem=sorted(mem), show=show) + body
+
+
 GEN = {
     "fixup": lambda rng: fixup(rng),
     "barrier": barrier,
@@ -333,8 +520,10 @@ GEN = {
     "thrash": thrash,
     "mix": mix,
     "evict": evict,
+    "reduce": reduce,
     "wide": lambda rng: fixup(rng, big=True),
     "deep": lambda rng: chain(rng, big=True),
+    "stream": stream,
 }
 
 

@@ -51,8 +51,10 @@ SAMPLES = {
     "lookback_scan.txt": "chain",
     "tile_queue.txt": "queue",
     "logit_stats.txt": "stats",
+    "tile_reduce.txt": "reduce",
     "splitk_wide.txt": "wide",
     "lookback_deep.txt": "deep",
+    "persistent_reduce.txt": "stream",
 }
 SEED = "shipped-samples"
 

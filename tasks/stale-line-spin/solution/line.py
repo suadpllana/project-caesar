@@ -30,3 +30,15 @@ class Lines:
         changed = bool(self.rows)
         self.rows.clear()
         return changed
+
+    def order(self):
+        """The cached lines, the one filled earliest first."""
+        return list(self.rows)
+
+    def keep(self, lines, fresh):
+        """Keep `lines` (cached now, in fill order) and then fill each of `fresh` in turn,
+        where fresh maps a line to its words and holds no line of `lines`."""
+        rows = self.rows
+        new = {ln: rows[ln] for ln in lines}
+        new.update(fresh)
+        self.rows = new

@@ -41,6 +41,8 @@ def step(launch, mem, b, t):
         return a
     elif op == "fence":
         mem.fence(b)
+    elif op in ("sum.ca", "sum.cg"):
+        b.reg[ins.rd] = mem.lines(load.ea(b, ins.at), ins.b[1])
     elif op in ("spin.ca", "spin.cg"):
         a = load.ea(b, ins.at)
         want = v(ins.b)

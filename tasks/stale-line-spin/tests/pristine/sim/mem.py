@@ -12,6 +12,10 @@ class Mem:
     def fetch(self, ln):
         return [self.word(ln * LW + i) for i in range(LW)]
 
+    def lines(self, a, n):
+        ln = a // LW
+        return sum(self.word(w) for w in range(ln * LW, (ln + n) * LW))
+
     def ld(self, blk, a, cached):
         if not cached:
             return self.word(a)

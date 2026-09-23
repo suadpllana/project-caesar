@@ -30,11 +30,18 @@ written apart from it:
  11  a hang is the first cycle from which every placed block that has not exited sits at a
      spin, none is busy, and no attempt succeeds again; the stuck blocks and the number never
      placed are reported with it
+ 12  a sum takes n issues of its block, one line per issue from the line holding its address
+     upward; each issue reads its line the way the matching load would - the cached copy or a
+     fill for sum.ca, memory and a drop of its own cached copy for sum.cg - and adds the four
+     words, and the n-th issue writes the total to rd; a block at a sum is ready, takes its
+     turn, and is not at a spin
 
 Left to the submission: how caches, rotations and blocks are held, whether the clock steps or
 jumps, how a hang is recognised. The one constraint on those choices is time, and it is the
 run stage's clock in test.sh that enforces it, not an assertion here: stepping every cycle in
-which a block spins cannot get through the two large families.
+which a block spins cannot get through the two older large families, and neither stepping
+every sum issue nor carrying every multiprocessor forward at every event anywhere on the device
+gets through the streaming one.
 
 The hand answers in gt.json were frozen from the sealed model, and the first test re-derives
 every one of them, so a model that drifted cannot redefine correct without failing here first.

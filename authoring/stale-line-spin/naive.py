@@ -1,4 +1,4 @@
-"""A plain cycle stepper for the launch machine: no jumps, no frozen shortcut.
+"""A plain cycle stepper for the launch machine: no jumps, no frozen shortcut, no plans.
 
 Two jobs. It is the naive-but-correct family the execution limit is meant to reject (it
 advances one cycle at a time and only skips cycles in which no block is ready at all), and it
@@ -55,7 +55,8 @@ def run(lines):
     caches = [[] for _ in range(S)]          # list of [line, words] in fill order
     slots = [[None] * R for _ in range(S)]
     last = [R - 1] * S
-    blk = [dict(pc=0, r=[0] * 8, outs=[], sm=None, slot=None, at=None, end=None, busy=0)
+    blk = [dict(pc=0, r=[0] * 8, outs=[], sm=None, slot=None, at=None, end=None, busy=0,
+                sline=0, sleft=0, sacc=0)
            for _ in range(G)]
     nxt = 0
     t = 0
@@ -104,6 +105,20 @@ def run(lines):
             caches[s].pop(i)
         return gm.get(a, 0)
 
+    def load_line(s, cached, line):
+        i = find(s, line)
+        if cached:
+            if i >= 0:
+                return list(caches[s][i][1])
+            if len(caches[s]) >= C:
+                caches[s].pop(0)
+            words = [gm.get(4 * line + k, 0) for k in range(4)]
+            caches[s].append([line, words])
+            return list(words)
+        if i >= 0:
+            caches[s].pop(i)
+        return [gm.get(4 * line + k, 0) for k in range(4)]
+
     def step(b, s):
         """Run one instruction; return True if it was a spin attempt that got through."""
         st = blk[b]
@@ -142,6 +157,16 @@ def run(lines):
                 ok = True
             else:
                 nxt_pc = st["pc"]
+        elif op in ("sum.ca", "sum.cg"):
+            if st["sleft"] == 0:
+                st["sline"], st["sleft"], st["sacc"] = addr(b, f[2]) // 4, int(f[3]), 0
+            st["sacc"] += sum(load_line(s, op == "sum.ca", st["sline"]))
+            st["sline"] += 1
+            st["sleft"] -= 1
+            if st["sleft"]:
+                nxt_pc = st["pc"]
+            else:
+                st["r"][int(f[1][1:])] = st["sacc"]
         elif op == "work":
             st["busy"] = t + max(1, get(b, f[1]))
         elif op == "bra":

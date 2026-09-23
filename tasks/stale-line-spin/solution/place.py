@@ -22,6 +22,8 @@ class Place:
         self.gone.append(b)
 
     def fill(self, blocks, t):
+        if not self.gone and self.next >= self.grid:
+            return ()
         for b in self.gone:
             self.rows[b.sm][b.slot] = None
             self.free[b.sm] += 1

@@ -2,12 +2,15 @@
 
 Every operand is read before the instruction writes anything. A spin makes exactly one
 attempt per issue - the load it names, into its destination - and moves on only when the
-comparison holds. The caller needs to know what kind of issue it was:
+comparison holds. A sum reads one line per issue, from the line holding its address upward,
+the way the load of the same kind would read it, and keeps a running total on the block; the
+issue that reads its last line writes the total to its destination and moves on. The caller
+needs to know what kind of issue it was:
 
   QUIET   a failing attempt that changed no cache: repeating it changes nothing
   MOVED   a failing attempt that filled or dropped a line
   PASS    an attempt that got through
-  OTHER   any other instruction
+  OTHER   any other instruction, a line of a sum included
 """
 from sim import load
 
@@ -21,6 +24,7 @@ TEST = {
 }
 
 SPIN = ("spin.ca", "spin.cg")
+SUM = ("sum.ca", "sum.cg")
 
 
 def spinning(launch, b):
@@ -32,6 +36,14 @@ def frozen(launch, mem, b):
     ins = launch.code[b.pc]
     got, changed = mem.peek(b.sm, load.ea(b, ins.at), ins.op == "spin.ca")
     return not changed and not TEST[ins.cmp](got, load.val(launch, b, ins.b))
+
+
+def begin_sum(b, ins):
+    """The state a sum starts from at its first issue: next line, lines left, total."""
+    if b.left == 0:
+        b.line = load.ea(b, ins.at) // 4
+        b.left = ins.b[1]
+        b.acc = 0
 
 
 def step(launch, mem, b, t):
@@ -47,6 +59,16 @@ def step(launch, mem, b, t):
             b.pc += 1
             return PASS
         return MOVED if changed else QUIET
+    if op in SUM:
+        begin_sum(b, ins)
+        row, _ = mem.row(b.sm, b.line, op == "sum.ca")
+        b.acc += row[0] + row[1] + row[2] + row[3]
+        b.line += 1
+        b.left -= 1
+        if b.left == 0:
+            r[ins.rd] = b.acc
+            b.pc += 1
+        return OTHER
     if op == "mov":
         r[ins.rd] = load.val(launch, b, ins.a)
     elif op in ("add", "sub", "mul", "slt", "mod"):

@@ -12,7 +12,8 @@ untouched tree 0.
 probe1  PASS on 5 of 5 verifier runs  (about 33 minutes, 62 tool calls)
 probe3  PASS on 5 of 5 verifier runs  (about 54 minutes, 108 tool calls; it also wrote a second,
         whole-trace reference and diffed every rd and dc line against it)
-probe2  still running at the time of writing
+probe2  ended on an output-token error (its thinking ran past the output cap) before writing any
+        code; not a result either way, and not rerun
 
 Reading: the stand-in solves the design the external screen solved, as the screen did. The same
 stand-in fails the round-3 rebuild on every run that finished (round4-smaller). It is not simply

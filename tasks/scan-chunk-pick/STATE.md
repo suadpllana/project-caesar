@@ -481,7 +481,7 @@ this design and on the round-2 design the external screen solved 2 of 3
 
 | Design | External screen | Stand-in |
 |---|---|---|
-| round 2 | 2 of 3 solved | 2 of 2 finished runs solved, each right on five verifier runs (33 and 54 minutes); the third still running |
+| round 2 | 2 of 3 solved | 2 of 2 finished runs solved, each right on five verifier runs (33 and 54 minutes); the third ended on an output-token error before writing code |
 | this design | not yet run | 0 of 2 finished runs solved, wrong on 19 and 17 of the 82 hand files (53 and 66 minutes); one run ended on an output-token error before writing code, its rerun still running |
 
 The stand-in solves what the screen solved and fails this, on the rules this round added: facts

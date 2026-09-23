@@ -307,7 +307,15 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
   tuned to the score, and why the built tree is re-measured at Stage 7: a design that scored in
   the band on paper and shrank during the build falls out of it there, with the axis named.
 
-## Lessons, measured (2026-09-22, `heard-cut-revoice`)
+## Lessons, measured (2026-09-22, `live-region-reader`, first submitted as `heard-cut-revoice`)
+
+- **The name is graded, and the house style of names failed it.** The quality review failed the
+  bundle on one blocking criterion only: "`heard-cut-revoice` is kebab-case and 3 words but
+  cryptic: nothing in it signals screen readers, ARIA live regions, or accessibility". Every local
+  gate checks the slug's shape (lowercase, three words) and none checks what it says, and the
+  retained bundles' abstract three-verb names made the style look safe. Name the domain in the
+  slug - here `live-region-reader` - and treat a name that needs the files opened to decode as a
+  blocking defect, not taste.
 
 - **A brief can promise something the pages break, and no test asserts a promise.** The brief
   said `aria-live` "is only ever set during the load"; three hand pages and the hide and mix

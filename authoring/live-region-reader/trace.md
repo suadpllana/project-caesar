@@ -1,9 +1,9 @@
-# Instruction trace: heard-cut-revoice
+# Instruction trace: live-region-reader
 
 Walked from the verifier toward the instruction (docs/INSTRUCTION-CONTRACT.md). The sealed model
 is the test file here, because every graded line is `assert got == want` against it, so it is
 split into one row per rule it applies, with its lines. Checked with
-`python tools/tracecheck.py heard-cut-revoice`.
+`python tools/tracecheck.py live-region-reader`.
 
 ## Graded assertions
 
@@ -88,9 +88,9 @@ split into one row per rule it applies, with its lines. Checked with
 
 ## Readings
 
-Every reading below is written as a whole reader by `authoring/heard-cut-revoice/readings.py`,
-measured by `python tools/readingcheck.py heard-cut-revoice` and emitted as a cheat by
-`authoring/heard-cut-revoice/emit.py`.
+Every reading below is written as a whole reader by `authoring/live-region-reader/readings.py`,
+measured by `python tools/readingcheck.py live-region-reader` and emitted as a cheat by
+`authoring/live-region-reader/emit.py`.
 
 | Reading | Sentence or published example that rules it out | Case that separates it |
 |---|---|---|
@@ -139,4 +139,4 @@ measured by `python tools/readingcheck.py heard-cut-revoice` and emitted as a ch
 
 | Tolerance or limit | Independent implementation | Measured |
 |---|---|---|
-| `tests/test.sh:33` a 60 s clock | `authoring/heard-cut-revoice/variants/ok-cache/voice.py` and `authoring/heard-cut-revoice/variants/ok-region/voice.py`, both written apart from the reference | the whole graded set as the worker inside the verifier image on one CPU, two runs each after the families were reshaped: ok-cache 1.90 and 2.06 s, ok-region 2.48 and 2.62 s, reference 2.29 and 2.40 s; exactly correct but naive readers 193 s (line rescan) and 434 s (whole-page recompute) on the final bundle, and cut off by the 60 s clock (cheat_report.py, docker_trial) |
+| `tests/test.sh:33` a 60 s clock | `authoring/live-region-reader/variants/ok-cache/voice.py` and `authoring/live-region-reader/variants/ok-region/voice.py`, both written apart from the reference | the whole graded set as the worker inside the verifier image on one CPU, two runs each after the families were reshaped: ok-cache 1.90 and 2.06 s, ok-region 2.48 and 2.62 s, reference 2.29 and 2.40 s; exactly correct but naive readers 193 s (line rescan) and 434 s (whole-page recompute) on the final bundle, and cut off by the 60 s clock (cheat_report.py, docker_trial) |

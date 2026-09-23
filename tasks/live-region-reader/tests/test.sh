@@ -1,5 +1,5 @@
 #!/bin/bash
-# heard-cut-revoice verifier.
+# live-region-reader verifier.
 #
 # The submitted reader is run exactly once, as its own unprivileged uid, and all it does is write
 # down the log every graded page printed. Root grades that record afterwards without running any

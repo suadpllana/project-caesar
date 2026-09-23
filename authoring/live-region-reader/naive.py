@@ -1,9 +1,9 @@
-"""The specification of heard-cut-revoice, encoded as directly as it can be.
+"""The specification of live-region-reader, encoded as directly as it can be.
 
 Authoring only; never ships. Everything is recomputed from scratch on every tick - the whole
 page walked for exposure and regions, every key compared, every waiting difference rescanned
 at every selection - so this is the slow, obviously-faithful reading of the model in
-tasks/heard-cut-revoice/STATE.md. It owns its own tree and parser so that a defect in the
+tasks/live-region-reader/STATE.md. It owns its own tree and parser so that a defect in the
 shipped page model cannot hide inside it. The sealed model and the reference are both checked
 against it on small and medium pages; it is also the "naive but correct" family whose timing
 the resource gate is measured against.

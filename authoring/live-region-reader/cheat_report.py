@@ -17,8 +17,8 @@ It also prints how much of the graded set each cheat still gets right, which is 
 shortcuts are measured. The submitted files are lifted out of each cheat's heredocs rather than
 by running it against /app, so the host pass is hermetic.
 
-    python3 -u authoring/heard-cut-revoice/cheat_report.py
-    python3 -u authoring/heard-cut-revoice/cheat_report.py --trial
+    python3 -u authoring/live-region-reader/cheat_report.py
+    python3 -u authoring/live-region-reader/cheat_report.py --trial
 """
 import os
 import pathlib
@@ -31,7 +31,7 @@ import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-TASK = ROOT / "tasks" / "heard-cut-revoice"
+TASK = ROOT / "tasks" / "live-region-reader"
 TESTS = TASK / "tests"
 CHEATS = TASK / "cheat"
 
@@ -117,7 +117,7 @@ UNLOCKED = {
 
 def submitted(sh):
     """The files the cheat leaves under /app/sr, lifted out of its heredocs."""
-    out = pathlib.Path(tempfile.mkdtemp(prefix="hcr-sub-"))
+    out = pathlib.Path(tempfile.mkdtemp(prefix="lrr-sub-"))
     for name, src in BLOCK.findall(sh.read_text(encoding="utf-8")):
         (out / name).write_text(src + "\n", encoding="utf-8")
     return out
@@ -125,7 +125,7 @@ def submitted(sh):
 
 def host_run(sub):
     """Worker then grader, host-side, every path pointed at a scratch directory."""
-    room = pathlib.Path(tempfile.mkdtemp(prefix="hcr-run-"))
+    room = pathlib.Path(tempfile.mkdtemp(prefix="lrr-run-"))
     work, logs = room / "work", room / "logs"
     work.mkdir()
     logs.mkdir()
@@ -134,8 +134,8 @@ def host_run(sub):
         (d / "nonce").write_text(nonce + "\n", encoding="utf-8")
         (d / "per").write_text("%d\n" % PER, encoding="utf-8")
     env = dict(os.environ)
-    env.update({"HCR_TESTS": str(TESTS), "HCR_WORK": str(work), "HCR_LOGS": str(logs),
-                "HCR_SEAL": str(TESTS / "seal"), "HCR_SUB": str(sub),
+    env.update({"LRR_TESTS": str(TESTS), "LRR_WORK": str(work), "LRR_LOGS": str(logs),
+                "LRR_SEAL": str(TESTS / "seal"), "LRR_SUB": str(sub),
                 "PYTHONDONTWRITEBYTECODE": "1", "COLUMNS": "4000"})
     try:
         w = subprocess.run([sys.executable, str(TESTS / "worker.py"),
@@ -217,7 +217,7 @@ def trial_pass():
     import cases  # noqa: E402
     sys.path.insert(0, str(ROOT / "tools"))
     import docker_trial
-    t = docker_trial.Trial("heard-cut-revoice")
+    t = docker_trial.Trial("live-region-reader")
     if t.build() != 0:
         print("   image build failed")
         return 1
@@ -228,7 +228,7 @@ def trial_pass():
             print("   cannot build the unlocked control: %r not found once" % old[:40])
             return 1
         loose = loose.replace(old, "")
-    ctl = pathlib.Path(tempfile.mkdtemp(prefix="hcr-ctl-"))
+    ctl = pathlib.Path(tempfile.mkdtemp(prefix="lrr-ctl-"))
     (ctl / "test.sh").write_text(loose, encoding="utf-8", newline="\n")
 
     def verify(art, script):
@@ -247,7 +247,7 @@ def trial_pass():
         # mkdtemp is 0700, and `cp -a /artifacts/. /app/` carries that mode onto /app, which
         # locks the sandbox uid out of the submission before anything is graded. docker_trial
         # uses a fresh subdirectory for the same reason.
-        tmp = pathlib.Path(tempfile.mkdtemp(prefix="hcr-art-"))
+        tmp = pathlib.Path(tempfile.mkdtemp(prefix="lrr-art-"))
         art = tmp / "art"
         t.agent_run(CHEATS / ("cheat-%s.sh" % name), art)
         reward, log = verify(art, "/tests/test.sh")
@@ -288,10 +288,10 @@ def trial_pass():
 def main(argv):
     sys.path.insert(0, str(TESTS))
     if "--trial" in argv:
-        print("== heard-cut-revoice probes, two containers")
+        print("== live-region-reader probes, two containers")
         bad = trial_pass()
     else:
-        print("== heard-cut-revoice cheat layers, host-side (%d s limit, %d per family)"
+        print("== live-region-reader cheat layers, host-side (%d s limit, %d per family)"
               % (LIMIT, PER))
         bad = host_pass()
     print("   %d findings" % bad)

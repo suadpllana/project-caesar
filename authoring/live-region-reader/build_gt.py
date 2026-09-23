@@ -12,7 +12,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "heard-cut-revoice")
+TASK = os.path.join(ROOT, "tasks", "live-region-reader")
 GT = os.path.join(TASK, "tests", "seal", "gt.json")
 
 sys.path.insert(0, HERE)

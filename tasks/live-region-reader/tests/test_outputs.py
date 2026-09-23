@@ -59,15 +59,15 @@ import pytest
 import cases
 import gen
 
-SEAL = os.environ.get("HCR_SEAL", "/tests/seal")
+SEAL = os.environ.get("LRR_SEAL", "/tests/seal")
 sys.path.insert(0, SEAL)
 
 import model  # noqa: E402
 
-WORK = pathlib.Path(os.environ.get("HCR_WORK", "/work"))
+WORK = pathlib.Path(os.environ.get("LRR_WORK", "/work"))
 OUT = WORK / "worker_out.json"
 GT = pathlib.Path(SEAL) / "gt.json"
-LOGS = pathlib.Path(os.environ.get("HCR_LOGS", "/logs/verifier"))
+LOGS = pathlib.Path(os.environ.get("LRR_LOGS", "/logs/verifier"))
 
 
 def _sig(lines):

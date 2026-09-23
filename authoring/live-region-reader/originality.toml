@@ -1,8 +1,8 @@
-# Originality record for heard-cut-revoice, written 2026-09-22 before any code existed.
-# The design it describes is restated in tasks/heard-cut-revoice/STATE.md.
+# Originality record for live-region-reader, written 2026-09-22 before any code existed.
+# The design it describes is restated in tasks/live-region-reader/STATE.md.
 
 [task]
-slug = "heard-cut-revoice"
+slug = "live-region-reader"
 category = "Software"
 label = "Frontend"
 tags = ["aria-live-regions", "screen-reader-speech", "accessibility-tree", "utterance-interruption", "net-change-detection"]

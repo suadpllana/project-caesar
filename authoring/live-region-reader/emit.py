@@ -1,4 +1,4 @@
-"""Write every cheat script into tasks/heard-cut-revoice/cheat/. Authoring only.
+"""Write every cheat script into tasks/live-region-reader/cheat/. Authoring only.
 
 Run after any change to readings.py, the reference or the shipped modules (CLAUDE.md,
 publish-settle-order: a cheat emitted before the reading was repaired tests the unrepaired
@@ -19,7 +19,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "heard-cut-revoice")
+TASK = os.path.join(ROOT, "tasks", "live-region-reader")
 CHEAT = os.path.join(TASK, "cheat")
 SHIPPED = os.path.join(TASK, "environment", "app_src", "sr")
 PARTS = ("look.py", "know.py", "watch.py", "unit.py", "line.py", "voice.py")
@@ -282,7 +282,7 @@ PROBES = {
         import os
         import sys
         try:
-            path = os.environ.get("HCR_WORK", "/work") + "/worker_out.json"
+            path = os.environ.get("LRR_WORK", "/work") + "/worker_out.json"
             with open(path, "w", encoding="utf-8") as fh:
                 json.dump([{"name": "plain-once", "got": [], "sig": ""}], fh)
             how = "planted a record"
@@ -296,7 +296,7 @@ PROBES = {
         import os
         import sys
         try:
-            path = os.environ.get("HCR_WORK", "/work") + "/worker_out.json"
+            path = os.environ.get("LRR_WORK", "/work") + "/worker_out.json"
             with open(path, "w", encoding="utf-8") as fh:
                 json.dump([], fh)
             how = "planted an empty record, exiting 0"
@@ -312,7 +312,7 @@ PROBES = {
 
         def spoil():
             try:
-                path = os.environ.get("HCR_WORK", "/work") + "/worker_out.json"
+                path = os.environ.get("LRR_WORK", "/work") + "/worker_out.json"
                 with open(path, "w", encoding="utf-8") as fh:
                     fh.write("{not json at all")
                 how = "spoiled the record at exit"

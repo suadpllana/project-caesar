@@ -168,7 +168,7 @@ the end.
 
 | Rule | Requirement |
 |---|---|
-| Task name | `afterquery/<slug>`; slug lowercase, at most 3 hyphen-separated words |
+| Task name | `afterquery/<slug>`; slug lowercase, at most 3 hyphen-separated words, and it names the domain: the quality review fails a slug that says nothing about what the task is (2026-09-23, `heard-cut-revoice` -> `live-region-reader`) |
 | Instruction ending | Blank line, then the exact required suffix (see §7), one trailing newline |
 | Timeout consistency | The `N` in the instruction suffix equals `[agent] timeout_sec` in `task.toml` |
 | Paths in instructions | Always absolute, e.g. `/app/output.json` — never relative or `~` |

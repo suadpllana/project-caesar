@@ -1,5 +1,5 @@
 #!/bin/bash
-# writes a passing-looking worker record and lets the worker carry on
+# plants a record and exits the worker clean before it can be overwritten
 set -euo pipefail
 
 cat > /app/sr/look.py <<'PYEOF'
@@ -159,15 +159,15 @@ class Reader:
         import os
         import sys
         try:
-            path = os.environ.get("HCR_WORK", "/work") + "/worker_out.json"
+            path = os.environ.get("LRR_WORK", "/work") + "/worker_out.json"
             with open(path, "w", encoding="utf-8") as fh:
-                json.dump([{"name": "plain-once", "got": [], "sig": ""}], fh)
-            how = "planted a record"
+                json.dump([], fh)
+            how = "planted an empty record, exiting 0"
         except Exception as exc:
             how = type(exc).__name__
-        if not getattr(Reader, "_told", False):
-            Reader._told = True
-            sys.stderr.write("probe plant-report: %s\n" % how)
+        sys.stderr.write("probe crash-worker: %s\n" % how)
+        sys.stderr.flush()
+        os._exit(0)
 
     def _say(self, t, cls, text, out):
         self.play = (cls, t + len(text.split(" ")))

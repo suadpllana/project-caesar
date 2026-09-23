@@ -1,4 +1,4 @@
-"""Wrong readings of heard-cut-revoice, each written down as a whole reader.
+"""Wrong readings of live-region-reader, each written down as a whole reader.
 
 Authoring only; never ships. Every reading is the reference with one or two of its files
 changed, produced by an exact-match patch that must fire exactly once - a patch that silently
@@ -16,7 +16,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "heard-cut-revoice")
+TASK = os.path.join(ROOT, "tasks", "live-region-reader")
 REFERENCE = os.path.join(TASK, "solution")
 SHIPPED = os.path.join(TASK, "environment", "app_src", "sr")
 FROZEN = ("__init__.py", "page.py", "script.py", "say.py")
@@ -381,7 +381,7 @@ def _load(policy):
     got = _BUILT.get(policy)
     if got is not None:
         return got
-    room = tempfile.mkdtemp(prefix="hcr-reading-")
+    room = tempfile.mkdtemp(prefix="lrr-reading-")
     pkg = "sr%d" % len(_BUILT)
     dst = os.path.join(room, pkg)
     os.makedirs(dst)

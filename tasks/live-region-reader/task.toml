@@ -10,7 +10,7 @@ artifacts = [
 ]
 
 [task]
-name = "afterquery/heard-cut-revoice"
+name = "afterquery/live-region-reader"
 
 [metadata]
 author_name = "Shiela marie"

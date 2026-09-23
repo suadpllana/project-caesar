@@ -22,7 +22,7 @@ from the parent it had when it was last believed, not from where it is. `cut` sh
 an edit that restores the believed words cuts nothing and a difference released by an inner busy
 element cuts without any assertive text being touched.
 
-    python3 tools/onelinecheck.py heard-cut-revoice
+    python3 tools/onelinecheck.py live-region-reader
 """
 import os
 import shutil
@@ -30,7 +30,7 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TASK = os.path.join(os.path.dirname(os.path.dirname(HERE)), "tasks", "heard-cut-revoice")
+TASK = os.path.join(os.path.dirname(os.path.dirname(HERE)), "tasks", "live-region-reader")
 PARTS = ("look.py", "know.py", "watch.py", "unit.py", "line.py", "voice.py")
 PER = 20
 
@@ -44,7 +44,7 @@ ROWS = {"cut": [], "unit": [], "held": []}
 
 
 def _reference():
-    room = tempfile.mkdtemp(prefix="hcr-decisions-")
+    room = tempfile.mkdtemp(prefix="lrr-decisions-")
     app = os.path.join(room, "app")
     shutil.copytree(os.path.join(TASK, "environment", "app_src"), app)
     for f in PARTS:

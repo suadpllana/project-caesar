@@ -4,11 +4,11 @@ Assembles a throwaway tree outside the bundle - the shipped app_src with a chose
 modules laid over sr/ - and imports its runner in a fresh subprocess, so two readers never share
 module state. Nothing here writes inside tasks/.
 
-    python authoring/heard-cut-revoice/lab.py diff <reader> <reader> [--per N] [--seed S] [--fam F]
-    python authoring/heard-cut-revoice/lab.py run <reader> <page-file>
-    python authoring/heard-cut-revoice/lab.py time <reader> [--per N] [--seed S] [--fam F]
+    python authoring/live-region-reader/lab.py diff <reader> <reader> [--per N] [--seed S] [--fam F]
+    python authoring/live-region-reader/lab.py run <reader> <page-file>
+    python authoring/live-region-reader/lab.py time <reader> [--per N] [--seed S] [--fam F]
 
-A reader is `naive` (authoring/heard-cut-revoice/naive.py), `model` (tests/seal/model.py),
+A reader is `naive` (authoring/live-region-reader/naive.py), `model` (tests/seal/model.py),
 `ref` (solution/), `ship` (the shipped modules) or a directory of the six modules.
 """
 import json
@@ -21,7 +21,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "heard-cut-revoice")
+TASK = os.path.join(ROOT, "tasks", "live-region-reader")
 APP = os.path.join(TASK, "environment", "app_src")
 PARTS = ("look.py", "know.py", "watch.py", "unit.py", "line.py", "voice.py")
 
@@ -30,7 +30,7 @@ import gen  # noqa: E402
 
 
 def tree(mods):
-    room = tempfile.mkdtemp(prefix="hcr-lab-")
+    room = tempfile.mkdtemp(prefix="lrr-lab-")
     app = os.path.join(room, "app")
     shutil.copytree(APP, app)
     if mods is not None:
@@ -64,7 +64,7 @@ json.dump(out, open(sys.argv[4], "w"))
 
 
 def run_reader(reader, pages):
-    room = tempfile.mkdtemp(prefix="hcr-run-")
+    room = tempfile.mkdtemp(prefix="lrr-run-")
     extra = None
     try:
         if reader == "naive":

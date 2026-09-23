@@ -21,14 +21,14 @@ import sys
 import tempfile
 import traceback
 
-TESTS = os.environ.get("HCR_TESTS", "/tests")
+TESTS = os.environ.get("LRR_TESTS", "/tests")
 sys.path.insert(0, TESTS)
 
 import cases  # noqa: E402
 import gen  # noqa: E402
 
-WORK = pathlib.Path(os.environ.get("HCR_WORK", "/work"))
-SENT = pathlib.Path(os.environ.get("HCR_SUB", "/app/sr"))
+WORK = pathlib.Path(os.environ.get("LRR_WORK", "/work"))
+SENT = pathlib.Path(os.environ.get("LRR_SUB", "/app/sr"))
 PRISTINE = pathlib.Path(TESTS) / "pristine"
 PARTS = ("look.py", "know.py", "watch.py", "unit.py", "line.py", "voice.py")
 

@@ -1,11 +1,11 @@
-# Difficulty record for heard-cut-revoice, written 2026-09-22 before any environment,
+# Difficulty record for live-region-reader, written 2026-09-22 before any environment,
 # verifier or solution code existed. Every claim here is restated in
-# tasks/heard-cut-revoice/STATE.md; at Stage 7 the tree shape is measured instead of read.
+# tasks/live-region-reader/STATE.md; at Stage 7 the tree shape is measured instead of read.
 
 [task]
-slug = "heard-cut-revoice"
+slug = "live-region-reader"
 status = "pending"
-sources = ["tasks/heard-cut-revoice/STATE.md", "authoring/heard-cut-revoice/originality.toml"]
+sources = ["tasks/live-region-reader/STATE.md", "authoring/live-region-reader/originality.toml"]
 expert_hours = 9
 estimated_solves = 2
 

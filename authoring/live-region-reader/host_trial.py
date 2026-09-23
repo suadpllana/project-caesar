@@ -4,7 +4,7 @@ Authoring only. It proves the grading logic and measures the worker's wall clock
 limit; it proves nothing about isolation, which only tools/docker_trial.py exercises. Every
 path it writes is under a fresh tempfile.mkdtemp, never inside tasks/.
 
-    python authoring/heard-cut-revoice/host_trial.py <reader-dir-or-ref-or-ship> [--seed S]
+    python authoring/live-region-reader/host_trial.py <reader-dir-or-ref-or-ship> [--seed S]
 """
 import os
 import secrets
@@ -16,7 +16,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-TASK = os.path.join(ROOT, "tasks", "heard-cut-revoice")
+TASK = os.path.join(ROOT, "tasks", "live-region-reader")
 TESTS = os.path.join(TASK, "tests")
 PARTS = ("look.py", "know.py", "watch.py", "unit.py", "line.py", "voice.py")
 
@@ -26,7 +26,7 @@ def main(argv):
     seed = argv[argv.index("--seed") + 1] if "--seed" in argv else secrets.token_hex(16)
     src = {"ref": os.path.join(TASK, "solution"),
            "ship": os.path.join(TASK, "environment", "app_src", "sr")}.get(who, who)
-    room = tempfile.mkdtemp(prefix="hcr-host-")
+    room = tempfile.mkdtemp(prefix="lrr-host-")
     try:
         sub = os.path.join(room, "sub")
         work = os.path.join(room, "work")
@@ -43,8 +43,8 @@ def main(argv):
                 fh.write(seed + "\n")
             with open(os.path.join(d, "per"), "w") as fh:
                 fh.write("30\n")
-        env = dict(os.environ, HCR_TESTS=tests, HCR_WORK=work, HCR_SUB=sub,
-                   HCR_SEAL=os.path.join(tests, "seal"), HCR_LOGS=logs,
+        env = dict(os.environ, LRR_TESTS=tests, LRR_WORK=work, LRR_SUB=sub,
+                   LRR_SEAL=os.path.join(tests, "seal"), LRR_LOGS=logs,
                    PYTHONDONTWRITEBYTECODE="1")
         t0 = time.perf_counter()
         w = subprocess.run([sys.executable, os.path.join(tests, "worker.py"), "--out",

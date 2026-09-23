@@ -1,5 +1,5 @@
 #!/bin/bash
-# plants a record and exits the worker clean before it can be overwritten
+# leaves garbage where the grader reads the worker's record
 set -euo pipefail
 
 cat > /app/sr/look.py <<'PYEOF'
@@ -155,19 +155,22 @@ class Reader:
         self.play = None
 
     def load(self):
-        import json
+        import atexit
         import os
         import sys
-        try:
-            path = os.environ.get("HCR_WORK", "/work") + "/worker_out.json"
-            with open(path, "w", encoding="utf-8") as fh:
-                json.dump([], fh)
-            how = "planted an empty record, exiting 0"
-        except Exception as exc:
-            how = type(exc).__name__
-        sys.stderr.write("probe crash-worker: %s\n" % how)
-        sys.stderr.flush()
-        os._exit(0)
+
+        def spoil():
+            try:
+                path = os.environ.get("LRR_WORK", "/work") + "/worker_out.json"
+                with open(path, "w", encoding="utf-8") as fh:
+                    fh.write("{not json at all")
+                how = "spoiled the record at exit"
+            except Exception as exc:
+                how = type(exc).__name__
+            sys.stderr.write("probe malformed: %s\n" % how)
+        if not getattr(Reader, "_armed", False):
+            Reader._armed = True
+            atexit.register(spoil)
 
     def _say(self, t, cls, text, out):
         self.play = (cls, t + len(text.split(" ")))

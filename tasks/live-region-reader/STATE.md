@@ -5,9 +5,12 @@ session starts with no memory of this one - anything not written here is lost.
 
 ## Current stage
 
-`Stage 7 complete - packaged and filed as pending` (2026-09-22). Built, measured and checked:
-`tasks/heard-cut-revoice.zip` is the submission, and `authoring/submissions.toml` records it with
-`verdict = "pending"`. Next is the platform's verdict.
+`Stage 7 again - renamed after the quality review` (2026-09-23). The bundle was first packaged
+and submitted as `heard-cut-revoice` on 2026-09-22. The quality review of 2026-09-23
+failed one blocking criterion, the task name: "kebab-case and 3 words but cryptic:
+nothing in it signals screen readers, ARIA live regions, or accessibility". Nothing else was
+raised. The task is now `live-region-reader`, the reviewer's own first suggestion, and every
+gate below was re-run on the renamed bundle before `tasks/live-region-reader.zip` was built.
 
 ## Assistant's assigned role
 
@@ -94,7 +97,7 @@ exactly correct and does not fit the stated limit.
   pages and replace the whole-page diff with keys dirtied by records and subtree walks, and the
   held rescan with differences pooled under what holds them.
 - Originality check: searched 2026-09-22 (seven queries, recorded in
-  `authoring/heard-cut-revoice/originality.toml`). What exists publicly is the WAI-ARIA attribute
+  `authoring/live-region-reader/originality.toml`). What exists publicly is the WAI-ARIA attribute
   definitions (including the aria-atomic walk up from the changed node), MDN's implementor hints
   (drop an earlier queued event for the same atomic region, wait for busy), the ariaNotify
   priority and interrupt explainers, virtual screen readers for tests that log what an
@@ -123,16 +126,16 @@ exactly correct and does not fit the stated limit.
 ## Instruction contract (docs/INSTRUCTION-CONTRACT.md, read before anything else)
 
 Every graded assertion traces to a sentence in the instruction. The walk is
-`authoring/heard-cut-revoice/trace.md`.
+`authoring/live-region-reader/trace.md`.
 
-- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): `authoring/heard-cut-revoice/trace.md` walks the 4 test functions, the 35 hand pages, the 6
+- Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): `authoring/live-region-reader/trace.md` walks the 4 test functions, the 35 hand pages, the 6
   artifacts, the pristine overlay, the 60 s clock and 29 rows of the sealed model (one per rule it
-  applies, with its lines). No row is NOT STATED. `python tools/tracecheck.py heard-cut-revoice`
+  applies, with its lines). No row is NOT STATED. `python tools/tracecheck.py live-region-reader`
   is clean (its one note: `READINGS` is built by a function, so the 30 readings are cited by hand).
-- Identifiability (readings enumerated, which survived the published evidence, what separated them): 30 readings are written as whole readers in `authoring/heard-cut-revoice/readings.py` (the
+- Identifiability (readings enumerated, which survived the published evidence, what separated them): 30 readings are written as whole readers in `authoring/live-region-reader/readings.py` (the
   shipped event-driven reader plus 29 wrong readings of the brief). None survives: each is ruled
   out by a quoted sentence and separated by a named hand page (`python3 tools/readingcheck.py
-  heard-cut-revoice`: 30 of 30 separated), and `cheat_report.py` shows each cheat failing the
+  live-region-reader`: 30 of 30 separated), and `cheat_report.py` shows each cheat failing the
   hand page written for its rule. On one draw of the 276 generated pages the 29 readings get
   between 3 (1%) and 242 (88%) pages wrong; on a second draw unit-carries-held got none wrong, so
   for the rarest readings the generated pages are a second layer and the hand page is the one they
@@ -144,7 +147,7 @@ Every graded assertion traces to a sentence in the instruction. The walk is
   32 generated; replaying the worked example is right on tiny-example only; carrying the frozen
   answers by page hash is right on all 35 hand pages and 35 of 276 generated, and fails the nonce
   test. Rows in the trace's Shortcuts table.
-- Independent implementation behind every tolerance and limit (path, measured headroom): the only limit is the 60 s wall clock on the worker. `authoring/heard-cut-revoice/variants/ok-cache/` and
+- Independent implementation behind every tolerance and limit (path, measured headroom): the only limit is the 60 s wall clock on the worker. `authoring/live-region-reader/variants/ok-cache/` and
   `variants/ok-region/`, both written apart from the reference, agree with the naive reader on
   1,800 generated pages each, then on 300 pages of the reshaped hide family and 400 of the final
   busy family, and read the whole graded set in
@@ -230,6 +233,12 @@ lowercase words.
 
 ## Decisions and their reasons
 
+- Renamed from `heard-cut-revoice` to `live-region-reader` (2026-09-23) because the quality review
+  failed the name as cryptic. The old slug followed the three-word style of the retained bundles,
+  which says nothing about the domain; the new one names the ARIA mechanism and the reader. The
+  rename moved `tasks/` and `authoring/` with `git mv`, changed the slug and the `HCR_`/`hcr-`
+  initials derived from it (83 substitutions, none of the old forms left), and changed no
+  behaviour: the instruction, environment, reference, model and answers are byte-identical.
 - Frontend, not an ML label: the graded work is ARIA live-region semantics over a DOM-shaped tree
   and a speech timeline; nothing in it needs ML knowledge, and the two unused ML labels had no
   design that survived the planning attack (a GPU exposed-pipeline simulator was one-shot
@@ -264,6 +273,12 @@ lowercase words.
 
 ## Validation status
 
+Every row below was run again on the renamed bundle on 2026-09-23 and came out the same: harbor
+oracle 1.0 (38 passed) and nop 0.0 (24 of 38 failing), `docker_trial --all` 47/47, both variants 1,
+the host cheat report and forgecheck 0 findings, the six privilege probes stopped with both
+unlocked controls scoring 1, and every local checker as recorded. The timings were not re-run:
+nothing that executes changed.
+
 | Check | Status | Notes |
 |---|---|---|
 | Agent image builds | pass | `tools/docker_trial.py` builds both images from the shipped Dockerfiles |
@@ -281,7 +296,7 @@ lowercase words.
 | originalitycheck | pass | 100/100; with 67 branch-only instructions as `--corpus`, nearest move-clash-merge at cosine 0.199, shingle 0.000 |
 | difficultycheck | pass | 100/100 on the measured tree |
 | `preflight.py` | pass | no errors; 24 warnings, all the unused-public-function heuristic, which counts no attribute calls (`run_sr.py` calls `pg.apply`, `rd.load` and `rd.step`); focus-return-point, which passed, draws 15 of the same |
-| zipcheck | pass | `tasks/heard-cut-revoice.zip`, 96 entries, built by `scripts/package.py`: no findings; STATE.md excluded, scripts 0755 |
+| zipcheck | pass | `tasks/live-region-reader.zip`, 96 entries, built by `scripts/package.py`: no findings; STATE.md excluded, scripts 0755, the old name nowhere in it |
 | `harbor check` rubric | not run | no provider API key in this session |
 | Easiness probe | not run | this session cannot spawn agents; no trajectories exist for leakcheck |
 | Cold self-probe | not run | the author wrote the model before the brief; a cold solve would measure memory (CLAUDE.md, reach-pair-sweep). The cold-reader pass on the brief was run and is recorded above |
@@ -299,7 +314,7 @@ lowercase words.
   same accommodation `tools/docker_trial.py` makes, and it does not exist on the platform.
 - Container evidence comes from `tools/docker_trial.py` (both images built from the shipped
   Dockerfiles, agent and verifier in separate containers, the verifier's own test.sh) and from
-  `harbor run -e docker`. The host emulation (`authoring/heard-cut-revoice/cheat_report.py`,
+  `harbor run -e docker`. The host emulation (`authoring/live-region-reader/cheat_report.py`,
   `host_trial.py`) runs the worker and grader as root with paths redirected, so it says nothing
   about the privilege drop; the probes that depend on it are judged only in containers
   (`cheat_report.py --trial`).
@@ -320,7 +335,7 @@ lowercase words.
   ok-cache 1.9-2.1 s, ok-region 2.5-2.6 s; the exactly correct whole-page recompute 433.9 s and
   line rescan 193.2 s on the final bundle (483.7 s and 208.3 s earlier, before the reshaping and
   under other load); a cached-flags reader with an O(depth) scan 15.4 s, which passes.
-- Cheats: 45. Host layer report (`authoring/heard-cut-revoice/cheat_report.py`): every one caught
+- Cheats: 45. Host layer report (`authoring/live-region-reader/cheat_report.py`): every one caught
   by the layer named for it, 0 findings. Two-container probe report (`--trial`): all six
   privilege probes stopped by their lock, both unlocked controls score 1, 0 findings.
 - Readings: 30 of 30 separated by a named hand page (`tools/readingcheck.py`).

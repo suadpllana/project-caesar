@@ -129,8 +129,10 @@ carries streams only while the whole device is quiet, a correct stepper of every
 isolation probes against the reward file, the grader, the sealed model, the collected set and the
 judge's own imports. Five of them attack a defence that is one line of test.sh or of the
 verifier's Dockerfile (the privilege drop, the root-only seal and verdict directory, the reaper,
-the judge's working directory); run against a copy of the verifier with those lines undone, each of
-the five scored 1, so its 0 on the real one is the defence and not an accident. The judge runs
+the judge's working directory and isolated interpreter); run against a copy of the verifier with
+those lines undone, each of the five scored 1, so its 0 on the real one is the defence and not an
+accident. Apart from the one that hides the reference in a seventh file, the probes fall back to
+an answer that is wrong on every launch, so the attack is their only way to 1. The judge runs
 from `/tests` with every root interpreter isolated (`python3 -I`). Two correct variants score 1: the sealed model's clock behind
 the six files, written apart from the reference, and the reference with a fast path that never
 works out when a cached line goes. Passing therefore means the six files implement the stated

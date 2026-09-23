@@ -3,10 +3,15 @@
 
 A cheat is a whole submission, so every script writes all six files. A wrong reading is the
 reference with that one reading changed; the isolation probes and the forgery sit on the
-SHIPPED model instead, because a probe built on correct work scores 1 for an honest reason and
-proves nothing. Every substitution asserts how many times it fired, since a patch that matches
-nothing ships the reference under a cheat's name and scores 0 for the wrong reason
-(CLAUDE.md, reach-pair-sweep).
+constant answer instead (the shipped files with const-none's clock), because a probe built on
+correct work scores 1 for an honest reason and proves nothing, and one built on a slow engine is
+stopped by the clock before its attack can pay off. They sat on the shipped model until the
+rebuild made it need 177.7 s for the graded set: probe-privilege and probe-disarm-grader then
+disarmed the grader of a defence-free verifier copy and still scored 0, on the clock. The
+constant answer is wrong on every launch and takes no time, so the attack is the only way to 1.
+Every substitution asserts how many times it fired, since a patch that matches nothing ships
+the reference under a cheat's name and scores 0 for the wrong reason (CLAUDE.md,
+reach-pair-sweep).
 
 Run after any change to solution/, and before cheat_report.py.
 
@@ -36,6 +41,23 @@ def base():
 
 def shipped():
     return {p: (SRC / p).read_text(encoding="utf-8") for p in PARTS}
+
+
+CONST_CLOCK = (
+    "from sim import load\n\n\n"
+    "def run(launch):\n"
+    "    blocks = [load.Blk(n) for n in range(launch.grid)]\n"
+    "    for b in blocks:\n"
+    "        b.sm, b.at, b.end = 0, 0, 0\n"
+    "    return blocks, None, 0, dict(launch.mem)\n"
+)
+
+
+def constant():
+    """The shipped files with the constant answer for a clock: wrong on every launch, instant."""
+    f = shipped()
+    f["clock.py"] = CONST_CLOCK
+    return f
 
 
 def sub(files, name, old, new, times=1):
@@ -601,14 +623,7 @@ def slow_step():
 
 def const_none():
     f = base()
-    f["clock.py"] = (
-        "from sim import load\n\n\n"
-        "def run(launch):\n"
-        "    blocks = [load.Blk(n) for n in range(launch.grid)]\n"
-        "    for b in blocks:\n"
-        "        b.sm, b.at, b.end = 0, 0, 0\n"
-        "    return blocks, None, 0, dict(launch.mem)\n"
-    )
+    f["clock.py"] = CONST_CLOCK
     write("const-none", "one fixed answer: every block on multiprocessor 0, done at cycle 0",
           f, reading=False)
 
@@ -651,7 +666,7 @@ def _probe():
 
 
 def probe(name, comment, body, extra=None):
-    f = shipped()
+    f = constant()
     sub(f, "clock.py", "def run(launch):\n    blocks = [load.Blk(n) for n in range(launch.grid)]",
         (PROBE_HEAD % body)
         + "def run(launch):\n    _probe()\n    blocks = [load.Blk(n) for n in range(launch.grid)]")
@@ -666,7 +681,7 @@ def probe_answer_key():
     scores 1. It leaves a marker in the worker's directory saying what stopped it, so the layer
     that caught it can be read off a container run.
     """
-    f = shipped()
+    f = constant()
     head = ("import os\nimport sys\n\n_MODEL = []\n\n\n"
             "def _probe():\n"
             "    if _MODEL:\n"
@@ -881,12 +896,14 @@ def probe_uncollected_file():
 
 def forge_hand(name="forge-hand", comment="carries the frozen answers for every enumerated launch",
                extra_body=None):
-    """The frozen answers for every enumerated launch, over the shipped model.
+    """The frozen answers for every enumerated launch, over the constant answer.
 
-    It sits on the shipped model, not the reference: a forgery that falls back to a correct
-    model is the reference with a lookup table in front of it and scores 1 for an honest reason.
-    The runner hands `run` a parsed launch, so the table is keyed on what the parsed launch
-    carries, and the four things `run` returns are rebuilt from the frozen lines.
+    It sits on the constant answer, not the reference: a forgery that falls back to a correct
+    model is the reference with a lookup table in front of it and scores 1 for an honest reason,
+    and one that falls back to the shipped model is stopped by the clock before the generated
+    launches can show what they catch. The runner hands `run` a parsed launch, so the table is
+    keyed on what the parsed launch carries, and the four things `run` returns are rebuilt from
+    the frozen lines.
     """
     sys.path.insert(0, str(TASK / "tests"))
     sys.path.insert(0, str(TASK / "environment" / "app_src"))
@@ -897,7 +914,7 @@ def forge_hand(name="forge-hand", comment="carries the frozen answers for every 
     for case in cases.ORDER:
         lc = envload.parse("\n".join(cases.prog(case)) + "\n")
         table[_forge_key(lc)] = gt[case]
-    f = shipped()
+    f = constant()
     first = ""
     if extra_body:
         first = (PROBE_HEAD % extra_body)

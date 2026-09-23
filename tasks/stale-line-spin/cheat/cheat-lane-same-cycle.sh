@@ -1,5 +1,5 @@
 #!/bin/bash
-# a store never reaches another multiprocessor's sum in the cycle it is made
+# a store never reaches a sum or bypassing spinner carried forward on another multiprocessor in the cycle it is made
 set -euo pipefail
 
 cat > /app/sim/line.py <<'PYEOF'

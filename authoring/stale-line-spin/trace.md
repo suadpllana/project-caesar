@@ -191,10 +191,10 @@ they are caught by their hand case before time matters.
 
 | Strategy | Result |
 |---|---|
-| the shipped tree unchanged (nop) | 0: host, wrong on 29 of 42 hand launches (all twelve sum cases among them) and 296 of 369 generated (seed `report`); two-container run, reward 0 with 43 tests in error because the worker, which writes its record only after the last launch, left none |
+| the shipped tree unchanged (nop) | 0: host, wrong on 29 of 42 hand launches (all twelve sum cases among them) and 296 of 369 generated (seed `report`); two-container run, reward 0 with 43 tests in error: the shipped engine needs 177.7 s for the whole set (host), so the 60 s clock stops the worker before it writes its record |
 | constant: the most common value of every graded field | `const-none` (every block on multiprocessor 0, placed and ended at cycle 0, no hang, memory as loaded): 0, wrong on all 42 hand launches and all 369 generated |
 | positional: always the first candidate | `pos-serial` (one block at a time on multiprocessor 0, in number order): 0, wrong on 38 of 42 hand launches and all 369 generated |
-| the worked example's output replayed | the example is not graded; `forge-hand` replays all 42 frozen hand answers keyed by launch and runs the shipped engine otherwise: 0, right on every hand launch and wrong on 296 of 369 generated |
+| the worked example's output replayed | the example is not graded; `forge-hand` replays all 42 frozen hand answers keyed by launch and gives the constant answer otherwise: 0, right on every hand launch and wrong on all 369 generated |
 | the delivered plan, which the easiness probe converged on | `old-plan` treats every sum as doing nothing: fails every sum hand case |
 | correct but stepping every line of every sum | `literal-sums` (the delivered plan with sums stepped): right output, 249.1 s on the shipped `persistent_reduce.txt` alone, where the reference takes 2.6 s, against the 60 s clock for the whole set; the sealed model run the same way takes 305.7 s and over 450 s on two graded launches of that kind (tiers.py) |
 | correct but carrying streams only while the whole device is quiet | `device-bulk`: right output, 161.5 s on the same sample; the sealed model's device-wide tier takes 230.7 s and over 450 s on the two graded launches |

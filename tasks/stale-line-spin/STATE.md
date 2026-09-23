@@ -5,10 +5,13 @@ memory of this one; anything not written here is lost.
 
 ## Current stage
 
-`Easiness recovery 1 - in progress` (2026-09-23: the easiness probe solved the delivered bundle
-3 of 3; the failure is captured and classified below, the replan is selected, and the task is
-being rebuilt from Stage 2. It is not ready and must not be presented as ready until an external
-easiness probe passes. Previous stage: `Delivered - submission pending`, 2026-09-22.)
+`Easiness recovery 1 - rebuilt and locally validated, PENDING the external easiness probe`
+(2026-09-23: the easiness probe solved the delivered bundle 3 of 3; the failure is captured and
+classified below, the replan was selected, the task was rebuilt from Stage 2 with one contract
+change made on the contributor's instruction - rule 12, streaming sums - and every local gate
+passes on the rebuilt bundle. It is not ready and must not be presented as ready until an
+external easiness probe passes; that probe cannot be run from an authoring session. Previous
+stage: `Delivered - submission pending`, 2026-09-22.)
 
 ## Assistant's assigned role
 
@@ -69,7 +72,7 @@ breaks the incoherent one.
 
 - Instruction trace (authoring/<slug>/trace.md; rows walked, NOT STATED left, tracecheck result): rewalked in full on 2026-09-23 after the rebuild: every test function, the 42 hand cases, the six artifacts, the worker's collection and import, the frozen interface and the parser's sum rule, the 60 s clock, and each rule of the rebuilt sealed model split by line range (sum start, sum line, sum end, plans, settling, observation); no NOT STATED row; tracecheck clean.
 - Identifiability (readings enumerated, which survived the published evidence, what separated them): 38 wrong readings built as file sets from the reference (authoring/stale-line-spin/readings.py, the same files the cheats ship), eleven of them new for sums and for carried streams (sum-one-issue, sum-coherent, sum-no-fill, sum-cg-keeps, sum-word-issues, sum-first-issue, sum-last-issue, sum-fills-at-end, sum-is-spin, lane-late-read, lane-same-cycle); every one is ruled out by a quoted sentence and failed by a named hand case (tools/readingcheck.py: 38 separated). Readings whose rules the fast path cannot model step every cycle, so several stall on the large launches after failing their hand case.
-- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched), rebuilt set, seed `report`: nop 0 (fails 29 of 42 hand cases, all twelve sum cases among them, and 296 of 369 generated); const-none 0 (fails all 42 and all 369); pos-serial 0 (fails 38 of 42 and all 369); forge-hand (frozen answers replayed by launch key, shipped engine otherwise) 0 - passes all 42 hand cases, fails 296 of 369 generated. The worked example is not in the graded set; replaying known answers is what forge-hand does for all 42 frozen ones. Before the rebuild: nop 17 of 30 and 253 of 326, pos-serial 27 of 30 and all 326.
+- Shortcut strategies scored (nop, constant, positional, replayed example; score and cases matched), rebuilt set, seed `report`: nop 0 (fails 29 of 42 hand cases, all twelve sum cases among them, and 296 of 369 generated); const-none 0 (fails all 42 and all 369); pos-serial 0 (fails 38 of 42 and all 369); forge-hand (frozen answers replayed by launch key, the constant answer otherwise) 0 - passes all 42 hand cases, fails all 369 generated. The worked example is not in the graded set; replaying known answers is what forge-hand does for all 42 frozen ones. Before the rebuild: nop 17 of 30 and 253 of 326, pos-serial 27 of 30 and all 326.
 - Independent implementation behind every tolerance and limit (path, measured headroom): the 60 s clock - authoring/stale-line-spin/variants/ok-model (the sealed model's clock behind the frozen interface, written apart from solution/) 27.1 and 28.6 s, and ok-edges (the reference with a fast path that never computes when a cached line goes) 14.4 and 14.7 s, against the reference's 14.7 and 15.1 s: the whole 411-launch set in the verifier image at --cpus=1, fresh nonce each run (authoring/stale-line-spin/container_time.py). Both variants score 1 in the two-container run.
 - Undecided decisions from the cold-reader pass (author-run or fresh session; sentence or example added for each): author-run, mechanically (trace.md header). Sentences added for: the comparison order, the mod range, operands read before writes, the rotation remembering the slot not the block, an atomic touching no cache, the frozen interface and the fields say.py reads, one process for all launches; for sums (2026-09-23): which line comes first, one line per issue, what an issue reads and does to the cache, when rd is written, that a summing block is ready, and that it does not count toward a hang. The one decision prose leaves loose - whether a block reaching its spin during cycle t sits at it at t - is settled by the worked example (hang 6, not 5).
 
@@ -220,32 +223,55 @@ is busy, and no attempt at or after t succeeds.
   contract and treat a sum as doing nothing. ok-model (the sealed model's clock behind the frozen
   interface) is the independent implementation; ok-edges is the reference with a different fast
   path, kept to show the verifier does not require the eviction arithmetic.
+- 2026-09-23, the isolation probes and the forgeries moved off the shipped model onto the
+  constant answer (the shipped files with const-none's clock). The rebuild made the shipped
+  engine need 177.7 s for the graded set, and potency.py then showed probe-privilege and
+  probe-disarm-grader disarming the grader of the defence-free verifier copy ("1 passed") and
+  still scoring 0, because the worker ran out of the clock: a probe that cannot reach 1 without
+  its defence attests nothing. The constant answer is wrong on every launch and instant, so the
+  attack is the only way to 1; forge-hand is now caught by the generated launches (all 369)
+  instead of by the clock.
+- 2026-09-23, verification_explanation corrected: it said every one of the ten probes had been
+  run against a verifier copy with its defence removed and scored 1 there. Five had - the five
+  whose defence is a line of test.sh or the Dockerfile; the other five meet defences that are not
+  a line to remove (the judge re-derives every answer, rejects a malformed record, and keeps its
+  own seed and a floor on the generated count, and only six files are collected). The claim was
+  already in the delivered bundle.
 
 ## Validation status
 
+The rebuilt bundle, easiness recovery 1 (2026-09-23). The delivered bundle's table is in git
+history (commit ef7a40e). Harbor is not available here: every two-container run below is
+tools/docker_trial.py, which builds both images and runs the agent and verifier containers the way
+the platform does; anything marked "host" is emulation outside any container.
+
 | Check | Status | Notes |
 |---|---|---|
-| Originality record | 100 | 2026-09-22 |
-| Difficulty record | 100 | 2026-09-22, on the built tree, gate measured |
+| External easiness probe | NOT RUN - pending | cannot be run from this session; the recovery is not complete without it (RAISE-DIFFICULTY exit gate) |
+| Originality record | 100 | rebuilt design; mechanism nearest ledger entry alias-settle-report at cosine 0.14 |
+| originalitycheck with --corpus | 100 | rebuilt brief against 384 documents (371 saved from the remote branches plus the local bundles); nearest cosine 0.175, shingle 0.000 |
+| Difficulty record | 100 | on the rebuilt tree: 410 environment lines, 6 editable files, 781 reference lines, 55 cheats (44 semantic), 2 variants |
 | Agent image builds | yes | docker, python:3.12-slim via the mirror.gcr.io registry mirror (Docker Hub's CDN is refused by the sandbox proxy with 403) |
-| No answer leaked into agent image | yes | launches carry inputs only; no gt, model or cases in the environment |
-| Oracle = 1 | 1 | tools/docker_trial.py two-container run, 33 passed (harbor not used: see notes) |
-| Nop = 0 | 0 | two-container run, 18 of 33 tests failed |
-| Correct variants = 1 | 1, 1 | ok-heap and ok-list, two-container run |
-| Cheats all score 0 | 0 | tools/docker_trial.py --all on the final bundle: 43/43 trials behaved as required - oracle 1 (33 passed), nop 0, all 41 cheats 0, each failing at its expected layer |
-| Probe potency | yes | potency.py, both runs started from /work: answer-key, privilege, late-reward, disarm-grader and cwd-plant score 1 against a defence-free verifier copy; all seven score 0 against the real one |
-| Host cheat report | caught | every semantic cheat fails a named hand case; slow-step and rotate-from-zero stall; probe-uncollected-file dies on import |
-| `readingcheck.py` | clean | 27 separated |
+| No answer leaked into agent image | yes | launches carry inputs only; imagecheck assembled the image and ran six shipped launches with the reference |
+| Oracle = 1 | 1 | two-container, images rebuilt from the final tree: 45 passed |
+| Nop = 0 | 0 | two-container: 43 tests in error - the shipped engine needs 177.7 s for the set (host), so the 60 s clock stops the worker before it writes its record; host: also wrong on 29 of 42 hand and 296 of 369 generated |
+| Correct variants = 1 | 1, 1 | ok-model and ok-edges, two-container on the rebuilt images, 45 passed each; whole set at --cpus=1: 27.1/28.6 s and 14.4/14.7 s against the reference's 14.7/15.1 s |
+| Cheats all score 0 | 0 | tools/docker_trial.py --all: 57 of 57 trials as required (oracle 1, nop 0, all 55 cheats 0). The nine probes and forge-hand were then moved onto the constant answer and re-run with lane-same-cycle: all 11 score 0, each at its layer (forge-hand and shrink-set: 1 failed, the generated set; malformed: record rejected; the rest: 43 failed) |
+| Probe potency | yes | potency.py after the move: answer-key, privilege, late-reward, disarm-grader and cwd-plant score 1 against the defence-free copy, all seven score 0 against the real image; before the move privilege and disarm-grader were not potent (recovery section 6) |
+| Host cheat report | caught | all 46 cheats graded on the host caught, each at a named layer (recovery section 6) |
+| forgecheck | clean | carriers forge-hand and probe-shrink-set; its re-run of the cheat report (three at a time): all 46 caught |
+| Old winning plan | fails | cheat-old-plan (the delivered reference) fails all twelve sum hand cases, 39 of 40 reduce launches and all three persistent launches; literal-sums and device-bulk are right and too slow (249.1 s and 161.5 s on the persistent sample alone) |
+| `readingcheck.py` | clean | 38 readings, 38 separated, none blind |
 | `tracecheck.py` | clean | |
-| `preflight.py` | 0 errors | 16 warnings are attribute calls its regex does not count (each checked); the ledger warning cleared by the entry |
+| `preflight.py` | 0 errors | 17 warnings are attribute calls its pattern does not see (each checked; the new one is `mem.lines`, called from step.py) |
 | simcheck, structcheck, textcheck, hintcheck, catcheck | clean | textcheck against publish-settle-order's brief |
-| deadfieldcheck, extraneouscheck, solvecheck, imagecheck | clean | imagecheck ran six shipped launches on the assembled image |
-| onelinecheck | OK | load_from_cache and spin_passes are short; frozen (234 rows) and hangs_here (73 rows) have no rule at depth 2 |
-| forgecheck | clean | carriers: forge-hand, probe-shrink-set; its full host cheat report: all 32 cheats graded on the host caught, exit 0 |
-| originalitycheck with --corpus | 100 | 384 documents from 108 remote branches; nearest cosine 0.177, shingle 0.002 |
-| Ledger entry | added | authoring/submissions.toml, verdict pending |
-| Package | built | scripts/package.py, tasks/stale-line-spin.zip, 96 entries; tools/zipcheck.py clean |
-| `harbor check` rubric | not run | manual quality review instead |
+| deadfieldcheck, extraneouscheck, solvecheck, imagecheck | clean | |
+| onelinecheck | OK | only load_from_cache is short; store_in_sum (254 rows), hangs_here, frozen and spin_passes have no rule at depth 2 |
+| leakcheck on the probe trajectories | clean | nothing above the floor with the brief stripped |
+| Manual quality review | walked | recovery section 6; three metadata claims and one cheat description fixed |
+| Ledger entry | updated | authoring/submissions.toml, verdict pending, note on the 3/3 failure and the rebuild |
+| Package | see recovery section 6 | built after the last change |
+| `harbor check` rubric | not run | no harbor here; manual quality review instead |
 
 ## Measurements (2026-09-22, the delivered bundle; the rebuilt bundle's are in recovery section 6)
 
@@ -465,7 +491,68 @@ see the cheat report in the validation table.
   host): sealed model with plans 6.9 s and 4.9 s; every sum line stepped over 450 s and 305.7 s;
   device-wide bulk over 450 s and 230.7 s. Whole graded set, verifier image, --cpus=1: reference
   14.7 and 15.1 s, ok-edges 14.4 and 14.7 s, ok-model 27.1 and 28.6 s.
-- Two-container runs: see the validation table.
+- The two slow tiers as cheat trees, on the shipped `persistent_reduce.txt` alone (host, other
+  jobs running): `literal-sums` 249.1 s and `device-bulk` 161.5 s, both with the right output,
+  against the reference's 2.6 s.
+- First two-container sweep (tools/docker_trial.py --all, probes still on the shipped engine): 57
+  of 57 trials as required - oracle 1 (45 passed in 30.8 s), nop 0 (43 tests in error: the
+  shipped engine needs 177.7 s for the whole set on the host and raises nothing, so the 60 s
+  clock stops the worker before it writes its record), all 55 cheats 0. Wrong answers fail by
+  name (old-plan 13 tests failed, sum-one-issue 13, pos-serial 39, const-none and
+  placed-next-cycle 43); engines too slow for the clock leave no record (device-bulk,
+  literal-sums, slow-step, the shipped engine under forge-hand then, and the readings built to
+  step every cycle or every sum line); probe-crash-worker and probe-plant-report failed all 43
+  judged tests and the other eight probes left no record the judge accepts - several of them for
+  the wrong reason, the clock, which is what the potency run below exposed. Its images were built
+  a minute before the ungraded persistent sample was regenerated and two docstrings re-wrapped;
+  the oracle, nop and variant runs were repeated on rebuilt images, and the eleven cheats changed
+  afterwards were re-run on their own (validation table).
+- Probe potency (authoring/stale-line-spin/potency.py, test.sh started from /work, after the
+  probes moved to the constant answer): against a copy of the verifier with the privilege drop,
+  the root-only seal and verdict directory, the reaper, `cd /tests` and `python3 -I` undone,
+  answer-key, privilege, late-reward, disarm-grader and cwd-plant each score 1 (markers: `gt.json
+  read, model imported`; `uid 0`); plant-report (43 failed) and shrink-set (1 failed: the judge's
+  own count of generated launches) score 0 there as well, stopped by defences that copy keeps.
+  Against the real image all seven score 0 on wrong answers, with the markers `gt.json
+  PermissionError, model ModuleNotFoundError` and `uid 1002`. Before the move, privilege and
+  disarm-grader scored 0 against the defence-free copy with the grader already disarmed ("1
+  passed"), because the shipped engine under them ran out of the clock (Decisions, 2026-09-23).
+- Host cheat report (authoring/stale-line-spin/cheat_report.py, seed `report`, run by
+  tools/forgecheck.py three cheats at a time; hand launches failed / generated launches failed of
+  369): const-none 42/369, placed-next-cycle 42/369, pos-serial 38/369, forge-hand 0/369 (on the
+  constant answer; 0/296 on the shipped engine before the probes were moved), work-plus-one
+  29/337, place-first-free 11/250, coherent 18/173, park-spinners 12/139, cmp-reversed
+  4/134, free-same-cycle 3/132, sm-reverse 5/130, skip-no-rotate 10/102, per-block-cache 9/97,
+  place-mod 1/75, lane-same-cycle 1/63, store-broadcast 13/60, skip-any-spin 1/59, line-word
+  10/58, store-leaves-copy 2/47, old-plan 12/42, sum-one-issue 12/42, sum-word-issues 12/40,
+  atom-updates-own 5/36, store-allocates 1/27, sum-first-issue 3/17, hang-last-start 1/16,
+  fence-noop 2/15, sum-last-issue 4/15, sum-is-spin 6/14, lru 2/9, sum-coherent 5/9, sum-no-fill
+  3/9, cg-keeps 4/6, fence-all 1/5, hang-no-store 1/5, lane-late-read 1/5 (all three persistent
+  launches among them), sum-fills-at-end 1/5, sum-cg-keeps 2/1, and caught only by their hand
+  case: cg-drops-all 1/0, hang-at-detect 1/0, lt-inclusive 1/0. device-bulk, literal-sums and
+  slow-step are right wherever they finish and stall on a large launch; rotate-from-zero fails 4
+  hand cases and then starves a block; probe-uncollected-file dies on import. All 46 graded on the
+  host caught; forgecheck found the answer-key carriers forge-hand and probe-shrink-set and passed.
+  Several sum readings move few generated launches (sum-cg-keeps 1, sum-fills-at-end 5): under
+  all-or-nothing grading the hand case that names each is what decides it.
+- Quality review walk (docs/QUALITY-REVIEW.md, 2026-09-23, on the rebuilt bundle). Instruction
+  and verifier agree both ways: trace.md walks every test and every model rule to a quoted
+  sentence (tracecheck clean), each sum sentence has a hand case (sum-issues ... sum-not-spin),
+  the six files are named with absolute paths in paragraph 2, the interface and printed fields in
+  paragraphs 2 and 7, the clock and the one-process run in the last paragraph; every count in the
+  brief was re-derived from gen.programs over 60 seeds (40 x 9 small, 3 x 3 large; small bounds 4
+  multiprocessors, 8 slots, 6 lines, 20 blocks; persistent sums up to 49,888 lines). Prose:
+  textcheck, structcheck and hintcheck clean. Verifier: the judge re-derives every answer from the
+  model and trusts nothing the run stage says beyond the lines printed for a launch whose digest
+  matches (test_outputs.py Records). Environment: imagecheck clean on the assembled image;
+  preflight's 17 unused-function warnings are attribute calls its pattern cannot see (each
+  checked, the new one is `mem.lines`, called from step.py). Metadata: found and fixed three
+  claims - the probe-potency sentence said all ten probes had been shown potent (five were, the
+  five whose defence is a line of test.sh or the Dockerfile; this was already in the delivered
+  bundle), both variants were said to be written apart from the reference (ok-edges is the
+  reference with another fast path), and the cheat list left out the plain stepper; one cheat
+  description (lane-same-cycle) named sums only where the reading also moves bypassing spinners;
+  two docstring lines ran past the wrap and were re-wrapped (ok-model regenerated).
 - Cold self-attack: author-run and contaminated; see "Assistant's attack" above. It does say the
   thing the exit gate asks for - I can see where to start, and I got the observation rule wrong
   the first time I wrote it - but a contaminated author's attack is not the probe.
@@ -473,11 +560,21 @@ see the cheat report in the validation table.
 
 ## Open questions and next steps
 
-Easiness recovery 1 is in progress; see the section above. Nothing below this line is current
-until the recovery is complete.
-
-None open for delivery. When the platform answers, update `verdict` in authoring/submissions.toml
-and record the verdict here. Not run in this session: `harbor run` (the two-container runs used
-tools/docker_trial.py) and any external probe; the self-probe was not run because the author wrote
-the model first (CLAUDE.md, reach-pair-sweep), with the reading separations, the no-oracle
-property and the cold attack on the verifier standing in its place.
+- Blocker for completing easiness recovery 1: the external easiness probe (normal frontier model,
+  internet, the full 14400 s, the platform environment) has not been run on the rebuilt bundle and
+  cannot be run from an authoring session. Until it reports a pass the recovery is pending and the
+  task is not ready.
+- When the probe answers: on a pass, record the realized result here (RAISE-DIFFICULTY exit gate
+  item 4), set the stage, and update `verdict` and `note` in authoring/submissions.toml. On a
+  fail, put the new trajectories under probes/stale-line-spin/ and repeat from section 1 of
+  RAISE-DIFFICULTY - diagnose the new winning route before adding anything.
+- What to look for in a new trajectory: whether the solver reaches per-multiprocessor stretches at
+  all, and if so whether its observation rule was derived or fuzzed into place. A solve that fuzzes
+  a lane engine against a self-built stepper on shrunk persistent launches is the expert path this
+  design expects; a solve that fits the clock without carrying multiprocessors apart would mean a
+  scale boundary this session did not find.
+- Not run in this session: `harbor run` and `harbor check` (no harbor here; the two-container runs
+  used tools/docker_trial.py) and any external probe. The self-probe was not run because the
+  author wrote the model first (CLAUDE.md, reach-pair-sweep); the tier timings, the reading
+  separations and the cold attack are the evidence available here, and none of them is a
+  substitute for the probe.

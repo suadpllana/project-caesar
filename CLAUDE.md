@@ -335,3 +335,33 @@ order) are standard techniques (ABA/generation tagging, a dict of lists)."
 - **A cadence edit can delete a definition.** Splitting sentences for `textcheck` turned
   "`ld.ca` answers..." into "A cached load answers...", and nothing said which op that was. Re-read
   the brief as a stranger after every edit made for a gate.
+
+## Lessons, measured (2026-09-23, `stale-line-spin` easiness recovery)
+
+The probe solved the delivered task 3 of 3 with a literal stepper, generic repeat detection and a
+self-built fuzz oracle. The repair adds streaming sums and a persistent large kind in which no
+state repeats, so the fast path has to be derived; these are from rebuilding around it.
+
+- **Making the shipped engine slower quietly disarms every probe built on it.** The isolation
+  probes sat on the shipped model so that none could pass honestly. The rebuild made that model
+  need 177.7 s for the graded set, and `potency.py` then showed probe-privilege and
+  probe-disarm-grader disarming the grader of a defence-free verifier copy ("1 passed") and still
+  scoring 0, because the worker never finished inside the clock. The two-container sweep was
+  57/57 green throughout, which is the trap: a 0 said nothing about the defence. Probes now sit on
+  a constant answer, wrong on every launch and instant. Re-run potency after anything that moves
+  the shipped engine's speed, not only after a verifier change.
+- **An inherited claim is an unchecked claim.** The delivered `verification_explanation` said all
+  ten probes had scored 1 against a copy with their defence removed. Five had; the other five meet
+  defences that are not a line to delete. It went through a review that way. Re-read every
+  sentence carried over from an earlier version as if writing it today - a second false one here
+  called both variants "written apart from the reference" after one was rebuilt from it.
+- **A gate with a fixed timeout cannot grade a task that grew.** `forgecheck` re-runs the host
+  cheat report under a 3600 s cap. With 46 host-graded cheats, many held to a 240 s stall limit,
+  that report needs about 1.7 hours serially, so the gate would have timed out rather than
+  failed. The task's report now runs cheats in parallel and tees every line to a file; the
+  re-run took 31 minutes. Estimate a gate's runtime before starting it, and fix the tool rather
+  than the cap.
+- **Measure the naive tiers before freezing the rule, on the real family shape.** The prototype
+  put stepping every sum line at 136 s and device-wide bulk at over 240 s against 7.4 s for
+  per-multiprocessor lanes, and only then was the sum rule frozen. On the final family the same
+  tiers are 305.7 s and 230.7 s against 4.9 s, so both claims in the metadata are measurements.

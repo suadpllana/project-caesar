@@ -1,0 +1,21 @@
+Smaller-model probes of the round-3 rebuild (chunk sums, known facts acting at once), 2026-09-23.
+
+A rough stand-in for the low-effort agents of the external easiness screen: three fresh agents on
+a smaller model than the round4-local ones, each given only instruction.md (paths rewritten to a
+scratch copy of environment/app_src) and that tree, with the same prompt as round4-local. No
+verifier, reference or model. Each directory keeps the agent's six submitted files (scn/) and its
+own scratch scripts (work/). Graded the way the worker and grader do: the 82 hand files against
+the sealed model's answers and the generated files of two fresh seeds (418 files per seed).
+
+probe2  FAIL  (about 53 minutes, 70 tool calls). Wrong on 19 of 82 hand files and on 177 and 202
+        of 418 files for the two seeds. The misses span the round-3 rules: a known fact acting at
+        once (dec-hits-whole-chunk, flt-consult-settles-whole-chunk, flt-dict-settles-every-page,
+        flt-memory-kills-at-start), exact counts after a read (ord-exact-after-read,
+        ord-read-counts-exact, ord-read-raises-stale), the report told by chunk sums
+        (prj-chunk-sum-together, -whole, -update, -pinned-dead, prj-dead-page-blocks-sum,
+        prj-pinned-nulls-sum, prj-void-no-read, prj-reads-in-page-order), the report's consult
+        (prj-consult-needs-live-row, prj-consult-not-sparing, prj-one-entry-fallback) and
+        upd-read-not-merged. Its brute force compared only the numbers on sel and prj, never
+        which pages were read, so it could not see any of these.
+probe1  the first run ended on an output-token error before writing any code; rerun.
+probe3  running.

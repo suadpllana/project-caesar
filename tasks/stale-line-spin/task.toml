@@ -125,12 +125,16 @@ over a thousand stores per launch land in a tile while it is being summed. Every
 each wrong reading built from the reference, one fixed answer for every launch, one block at a time
 in number order, a replay of the frozen hand answers keyed by launch, the delivered stepper that
 knows no sums, the correct stepper that steps every line of every sum, the correct engine that
-carries streams only while the whole device is quiet, and ten isolation probes against the reward
-file, the grader, the sealed model, the collected set and the judge's own imports. Each probe was
-also run against a copy of the verifier with its defence removed and scored 1 there, so its 0 is
-the defence and not an accident. The judge runs from `/tests` with every root interpreter isolated
-(`python3 -I`). Two correct variants written apart from the reference score 1. Passing therefore
-means the six files implement the stated machine exactly, fast enough, on launches nobody had seen.
+carries streams only while the whole device is quiet, a correct stepper of every cycle, and ten
+isolation probes against the reward file, the grader, the sealed model, the collected set and the
+judge's own imports. Five of them attack a defence that is one line of test.sh or of the
+verifier's Dockerfile (the privilege drop, the root-only seal and verdict directory, the reaper,
+the judge's working directory); run against a copy of the verifier with those lines undone, each of
+the five scored 1, so its 0 on the real one is the defence and not an accident. The judge runs
+from `/tests` with every root interpreter isolated (`python3 -I`). Two correct variants score 1: the sealed model's clock behind
+the six files, written apart from the reference, and the reference with a fast path that never
+works out when a cached line goes. Passing therefore means the six files implement the stated
+machine exactly, fast enough, on launches nobody had seen.
 """
 
 category = "ML"

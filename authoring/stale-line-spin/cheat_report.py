@@ -8,8 +8,14 @@ its engine in a seventh file is graded on what is collected (CLAUDE.md, token-se
 that never installs the cheat reports clean zeroes).
 
     python3 -u authoring/stale-line-spin/cheat_report.py [seed] [name-filter]
+
+Cheats run SLS_JOBS at a time (default: one fewer than the CPUs), each in its own process with
+its own 240 s stall limit, and are reported in name order. With SLS_REPORT_LOG set, every line
+is also appended to that file, so a caller that keeps only the last line (tools/forgecheck.py)
+still leaves the whole report behind.
 """
 import collections
+import concurrent.futures
 import json
 import os
 import pathlib
@@ -129,41 +135,58 @@ def timed(files, seed, per):
         shutil.rmtree(room, ignore_errors=True)
 
 
+def say(line):
+    print(line, flush=True)
+    log = os.environ.get("SLS_REPORT_LOG")
+    if log:
+        with open(log, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+
+
 def main():
     seed = sys.argv[1] if len(sys.argv) > 1 else "report"
     flt = sys.argv[2] if len(sys.argv) > 2 else ""
     per = 40
+    jobs = int(os.environ.get("SLS_JOBS", max(1, (os.cpu_count() or 2) - 1)))
     graded, missed = 0, []
+    todo = []
     for script in sorted((TASK / "cheat").glob("cheat-*.sh")):
         name = script.name[len("cheat-"):-3]
         if flt and flt not in name:
             continue
-        if name.startswith("probe-") and name != "probe-uncollected-file":
-            print("%-24s (isolation probe: container only)" % name, flush=True)
-            continue
-        files = files_of(script)
-        r = trial(files, seed, per)
-        graded += 1
-        fams = ", ".join("%s %d" % kv for kv in sorted(r["nonce"].items()))
-        if r["crash"] is not None:
-            last = [x for x in r["crash"].strip().splitlines() if x.strip()][-1:] or ["?"]
-            print("%-24s %-10s runner died after %d launches: %s" % (
-                name, "CAUGHT", r["ran"], last[0]), flush=True)
-            continue
-        slow = ""
-        if r["stalled"]:
-            slow = " | stalled in %s after %d launches over %ds" % (r["at"], r["ran"], LIMIT * 4)
-        elif not r["hand"] and not r["nonce"] and timed(files, seed, per):
-            slow = " | over the %ds limit" % LIMIT
-        verdict = "CAUGHT" if (r["hand"] or r["nonce"] or slow) else "NOT CAUGHT"
-        if verdict != "CAUGHT":
-            missed.append(name)
-        print("%-24s %-10s hand %2d %s | nonce %s%s" % (
-            name, verdict, len(r["hand"]), r["hand"][:4], fams or "-", slow), flush=True)
+        probe = name.startswith("probe-") and name != "probe-uncollected-file"
+        todo.append((name, None if probe else files_of(script)))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+        runs = {name: pool.submit(trial, files, seed, per)
+                for name, files in todo if files is not None}
+        for name, files in todo:
+            if files is None:
+                say("%-24s (isolation probe: container only)" % name)
+                continue
+            r = runs[name].result()
+            graded += 1
+            fams = ", ".join("%s %d" % kv for kv in sorted(r["nonce"].items()))
+            if r["crash"] is not None:
+                last = [x for x in r["crash"].strip().splitlines() if x.strip()][-1:] or ["?"]
+                say("%-24s %-10s runner died after %d launches: %s" % (
+                    name, "CAUGHT", r["ran"], last[0]))
+                continue
+            slow = ""
+            if r["stalled"]:
+                slow = " | stalled in %s after %d launches over %ds" % (
+                    r["at"], r["ran"], LIMIT * 4)
+            elif not r["hand"] and not r["nonce"] and timed(files, seed, per):
+                slow = " | over the %ds limit" % LIMIT
+            verdict = "CAUGHT" if (r["hand"] or r["nonce"] or slow) else "NOT CAUGHT"
+            if verdict != "CAUGHT":
+                missed.append(name)
+            say("%-24s %-10s hand %2d %s | nonce %s%s" % (
+                name, verdict, len(r["hand"]), r["hand"][:4], fams or "-", slow))
     if missed:
-        print("%d of %d cheats graded here NOT CAUGHT: %s" % (len(missed), graded, ", ".join(missed)))
+        say("%d of %d cheats graded here NOT CAUGHT: %s" % (len(missed), graded,
+                                                            ", ".join(missed)))
         return 1
-    print("all %d cheats graded here caught (isolation probes: container only)" % graded)
+    say("all %d cheats graded here caught (isolation probes: container only)" % graded)
     return 0
 
 

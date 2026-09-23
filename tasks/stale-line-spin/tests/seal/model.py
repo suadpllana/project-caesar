@@ -44,10 +44,10 @@ How this clock gets through the scale families, exactly:
     coming: a block of its own waking or being placed, or a store it can observe.
   * A store is observable by a plan when it writes a line one of the plan's sums reads from
     memory during the plan, or the line a bypassing spinner of the plan reads; a cached
-    spinner's line stays cached for the whole plan, so no store elsewhere reaches it. Before such a store
-    lands, the plan is carried up to it - through the storing cycle when the planned
-    multiprocessor issues before the storing one - so that every line it had already read keeps
-    the value it read and every line after sees the store.
+    spinner's line stays cached for the whole plan, so no store elsewhere reaches it. Before
+    such a store lands, the plan is carried up to it - through the storing cycle when the
+    planned multiprocessor issues before the storing one - so that every line it had already
+    read keeps the value it read and every line after sees the store.
   * An all-spinning stretch with nothing busy is stepped, and its snapshots (caches in fill
     order, rotations) are remembered; a frozen one, or a repeat, means no attempt will ever
     succeed, and the hang is dated from the stretch's first cycle.

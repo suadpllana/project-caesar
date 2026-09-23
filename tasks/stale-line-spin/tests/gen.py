@@ -438,9 +438,9 @@ def stream(rng):
     even multiprocessors, bypassing on odd ones - touching a line a few lines into each tile
     first, and counts every tile done with an atomic. A worker loops K times: work, then a
     store a fixed stride further down through the tiles, each worker at its own pace, so a few
-    stores land in a tile while its reducer is reading it and most land far away. A few blocks on bypassing multiprocessors
-    watch the done-count through their own cache and are only let go when a fence on their
-    multiprocessor drops the stale copy.
+    stores land in a tile while its reducer is reading it and most land far away. A few
+    blocks on bypassing multiprocessors watch the done-count through their own cache and are
+    only let go when a fence on their multiprocessor drops the stale copy.
     """
     S, P = 16, 4
     R = rng.randint(5, 6)

@@ -342,7 +342,8 @@ def lane_same_cycle():
     sub(f, "clock.py", "            close(j, now + 1 if j < sm else now)\n            shut.append(j)\n",
         "            close(j, now + 1)\n")
     write("lane-same-cycle",
-          "a store never reaches another multiprocessor's sum in the cycle it is made", f)
+          "a store never reaches a sum or bypassing spinner carried forward on another"
+          " multiprocessor in the cycle it is made", f)
 
 
 # --- placement, rotation, timing -----------------------------------------------------------

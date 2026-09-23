@@ -48,7 +48,8 @@ EDITS = {
     "sum-is-spin": "a block in the middle of a sum counts as sitting at a spin",
     "lane-late-read": "a sum carried forward reads each line as memory holds it when the "
                       "stretch is settled",
-    "lane-same-cycle": "a store never reaches another multiprocessor's sum in the cycle it is made",
+    "lane-same-cycle": "a store never reaches a sum or bypassing spinner carried forward on"
+                       " another multiprocessor in the cycle it is made",
     "place-mod": "block b goes to multiprocessor b mod S and waits for a slot there",
     "place-first-free": "a block goes to the lowest-numbered multiprocessor with room",
     "free-same-cycle": "an exit frees its slot in the same cycle",

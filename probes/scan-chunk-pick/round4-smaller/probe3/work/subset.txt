@@ -1,0 +1,11 @@
+seg 10 4 2
+ch 0 p 21
+pg 4 1 7 7 e v 7 - 7 7
+ch 1 p 10
+pg 4 0 1 4 e v 1 2 3 4
+del 1
+del 3
+qry
+prd nn 1
+prj 0
+end

@@ -1,0 +1,15 @@
+seg 10 2 1
+ch 0 p 100
+pg 2 0 50 50 w v 45 55
+qry
+prd ge 0 56
+prj 0
+end
+qry
+prd ge 0 42
+prj 0
+end
+qry
+prd ge 0 40
+prj 0
+end

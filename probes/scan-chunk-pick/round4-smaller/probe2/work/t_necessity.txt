@@ -1,0 +1,10 @@
+seg 10 2 2
+ch 0 p 100
+pg 2 0 10 90 e v 10 90
+ch 1 p 11
+pg 2 0 5 6 e v 5 6
+qry
+prd ge 1 100
+prd ge 0 50
+prj 0
+end

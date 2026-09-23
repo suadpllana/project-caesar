@@ -18,4 +18,12 @@ probe2  FAIL  (about 53 minutes, 70 tool calls). Wrong on 19 of 82 hand files an
         upd-read-not-merged. Its brute force compared only the numbers on sel and prj, never
         which pages were read, so it could not see any of these.
 probe1  the first run ended on an output-token error before writing any code; rerun.
-probe3  running.
+probe3  FAIL  (about 66 minutes, 89 tool calls). Wrong on 17 of 82 hand files and on 214 and 220
+        of 418 files for the two seeds. Same spread: facts acting at the query's start and after
+        a consult (flt-header-kills-at-start, flt-header-kills-other-column,
+        flt-memory-kills-at-start, flt-consult-settles-whole-chunk, flt-dict-settles-every-page,
+        dec-hits-whole-chunk, dec-hits-over-page), a read raising a count (ord-read-raises,
+        ord-read-raises-repush), counts over the page as written (upd-count-as-written), the
+        chunk-sum report and the report's consult. Like probe2, its brute force compared only the
+        numbers on sel and prj; its twelve hand-built files were checked by hand against its own
+        reading of the brief.

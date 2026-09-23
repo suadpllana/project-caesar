@@ -1,0 +1,15 @@
+seg 10 6 1
+ch 0 d 90 3 5 15 25
+pg 6 0 5 25 e i 0 1 2 0 1 2
+qry
+prd eq 0 10
+prj 0
+end
+qry
+prd ne 0 10
+prj 0
+end
+qry
+prd eq 0 15
+prj 0
+end

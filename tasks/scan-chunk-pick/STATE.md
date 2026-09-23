@@ -609,23 +609,26 @@ moved are each explained by a new rule, and one was renamed for what it now pins
   because two sums were typed wrong while the new cases were being written, which would have
   graded arithmetic that no writer could produce.
 
-## Validation status (after the recovery rebuild, 2026-09-22)
+## Validation status (after recovery round 3, 2026-09-23)
 
 | Check | Status | Notes |
 |---|---|---|
 | Agent image builds | pass | `tools/docker_trial.py scan-chunk-pick --build`; dockerd started in this sandbox, base image pulled from mirror.gcr.io |
-| No answer leaked into agent image | pass | `app_src/` only: engine, grammar, four segment files; `extraneouscheck` clean; stray `__pycache__` removed before the final build |
-| oracle = 1 (two-container stand-in for harbor) | pass | 50 grader tests; harbor not installable here (needs Python >= 3.12) |
-| nop = 0 | pass | the shipped engine's wide files do not finish inside the clock; on the host it matches 17 of 47 hand files and 0 of 308 small generated |
-| Cheats all score 0 | pass | `--all`: 57 of 57 trials behaved as required (oracle, nop, 55 cheats); the two cheats renamed afterwards re-run individually, both 0; `cheat_report.py` names the catching hand file for every semantic cheat |
-| Correct variants score 1 | pass | ok-slice and ok-tree via `--dir`, 50 tests each |
-| Wall clock headroom | pass | 361 files at 1 CPU / 2 GB in a container: reference 5.3 s, ok-slice 6.1 s, ok-tree 9.6 s, against 60 s |
-| `tracecheck.py` | pass | clean, 89 graded rows |
-| `readingcheck.py` | pass | 38 readings, all separated by a named hand file, exit 0 |
+| No answer leaked into agent image | pass | `app_src/` only: engine, grammar, four segment files; `extraneouscheck` clean |
+| oracle = 1 (two-container stand-in for harbor) | pass | 85 grader tests; harbor not installable here (needs Python >= 3.12) |
+| nop = 0 | pass | on the host the shipped engine matches 8 of the 82 hand files and 0 of 330 small generated files |
+| Cheats all score 0 | pass | `--all` in three shards plus the first eleven: 80 of 80 trials behaved as required (oracle, nop, 78 cheats); `cheat_report.py` names the catching hand file for every semantic cheat, 0 uncaught |
+| Correct variants score 1 | pass | ok-slice and ok-tree, both rewritten for the round-3 contract, via `--dir`, 85 tests each |
+| Wall clock headroom | pass | 418 files at 1 CPU / 2 GB in a container: reference 7.1 s, ok-slice 9.7 s, ok-tree 9.7 s, against 60 s; the rescan cheat does not finish |
+| Reference agrees with the sealed model | pass | 82 hand files and 1,908 generated files over several seeds, byte for byte |
+| `tracecheck.py` | pass | clean, 124 graded rows |
+| `readingcheck.py` | pass | 61 readings, all separated by a named hand file, exit 0 |
 | `onelinecheck.py` / `forgecheck.py` | pass | no decision with an exact rule at depth 2; the forgery carries gt.json and scores 0 |
 | `preflight.py` | pass | no errors; warnings are the module-qualified-call false positive |
-| `difficultycheck.py` / `originalitycheck.py` | 100 / 97 | see the recovery section for why 100 is not evidence |
+| `zipcheck.py` | pass | 128 entries, nothing stray |
+| `difficultycheck.py` / `originalitycheck.py` | 100 / 97 | see the recovery sections for why 100 is not evidence |
 | `harbor check` rubric | not run | no API key in this environment |
+| Local calibration (three strong agents, full brief) | 3 of 3 solved | round 3, section 6; the external screen uses weaker agents, so this is an upper bound, not the result |
 | External easiness probe | not run | the recovery exit gate; required before calling the task ready |
 
 ## Quality self-review (docs/QUALITY-REVIEW.md), after the recovery, 2026-09-22

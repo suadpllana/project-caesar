@@ -5,9 +5,10 @@ memory of this one; anything not written here is lost.
 
 ## Current stage
 
-`Delivered - submission pending` (2026-09-22: every gate green on the final bundle, packaged as
-tasks/stale-line-spin.zip, ledger entry pending; Stage 1 gates originality 100, difficulty 100;
-built tree re-measured: difficulty 100)
+`Easiness recovery 1 - in progress` (2026-09-23: the easiness probe solved the delivered bundle
+3 of 3; the failure is captured and classified below, the replan is selected, and the task is
+being rebuilt from Stage 2. It is not ready and must not be presented as ready until an external
+easiness probe passes. Previous stage: `Delivered - submission pending`, 2026-09-22.)
 
 ## Assistant's assigned role
 
@@ -223,7 +224,153 @@ is busy, and no attempt at or after t succeeds.
   then starves a block forever; slow-step is correct and runs out of time. Under all-or-nothing
   grading the hand case alone is decisive, and it names the rule that broke.
 
+## Easiness recovery - 2026-09-23
+
+### 1. The failure, captured before editing
+
+- Probe result: easiness failed, 3 of 3 trials solved the bundle at commit ef7a40e. The
+  contributor supplied the three transcripts; they are under `probes/stale-line-spin/`
+  (`2026-09-23-easiness-1.txt`, `-2.txt`, `-3.txt`, brief stripped from the top of each) with
+  `notes.md` beside them. The transcripts carry no reward lines; "solved" is the contributor's
+  report and each transcript ends with a finished, self-verified repair.
+- Trial 1. First plan (line 254, after one read of the tree): the defect list - per-block caches,
+  LRU, stores syncing every cache, no-op fence, round-robin placement, a wait-based hang - and a
+  rewrite of the six files. Decisive discovery (line 447): while every ready block spins, memory
+  cannot change, so each multiprocessor's state cycles; detect the period, jump to the next wake,
+  use the repeat as the hang test. Line 740 adds a closed form for all-bypassing spinners. Final
+  method: that clock, then a brute-force stepper from the brief and 2471 random plus 2000
+  structured launches diffed against it with no disagreement (lines 795-849); large launches
+  1.8 s and 2.1 s at the stated bounds.
+- Trial 2. First plan (line 678): the same defect list and "add cycle skipping for large
+  launches". Decisive discovery (line 1027): freeze each multiprocessor whose ready blocks all
+  spin, waking it only on a relevant store, a wake or a placement - per-multiprocessor laziness
+  keyed on (rotation, cache) repeats. One real bug found by its own fuzzing (line 1794: a spin
+  passing into another spin left the repeat key unchanged). Final method: 4200 fuzzed launches, no
+  disagreement; large launches 0.7-2.4 s.
+- Trial 3. First plan (line 712): the same list. Decisive discovery (line 1313): track each
+  multiprocessor's cache-plus-rotation state until it repeats and replay the remainder of the
+  period at a wake. One bug found by fuzzing (line 1165: the hang cycle when a block leaves its
+  work straight onto a spin). Final method: about 6800 fuzzed launches; large launches 1.5-2.7 s.
+- Earliest commit point: the first read. Every trial had the complete semantic plan before
+  running a single program, and the complete fast path after one profile of the shipped samples.
+- Where the plan came from: the instruction (every rule is stated operationally and each shipped
+  file maps onto one group of rules), the project tree (the six files are short enough to diff
+  against the brief by eye), and a self-built oracle (a literal stepper written from the brief).
+  Not from internet retrieval, not from a public helper, not from a verifier loophole.
+- Tactics on record and which failed: A1 failed - the coherent, per-block, round-robin and
+  spin-as-wait priors were each read off the brief and dropped at once; A2 did not matter - the
+  frozen condition was never named, and none of the three needed it, because detecting a repeated
+  state answers the same question without deriving it; B2 failed - the interactions are absorbed
+  by literal simulation; C2 failed - a self-written stepper is a complete oracle for a fully
+  specified deterministic machine; C3 failed - generic repeat detection made the scale families
+  fast. C1 and C4 held (each trial fixed one real bug its own oracle found) but only slow the
+  plan down.
+- Estimated solves out of 8 for the delivered bundle: 8 (the realized rate is 3 of 3).
+
+### 2. Classification of the winning route
+
+- **The default plan was correct.** A literal stepper of the stated rules is right on every graded
+  launch, and all three wrote it first (trial 1 line 254, trial 2 line 678, trial 3 line 712).
+  Direction: a specified interaction that makes that plan, and its obvious speed-up, wrong.
+- **The naive method was fast enough.** The design's C3 assumed the fast path had to come from
+  the frozen-attempt derivation; `tests/gen.py` `fixup(big)` and `chain(big)` put all the time in
+  stretches where every ready block spins, and any state that stops changing can be detected as a
+  repeat without knowing why it stopped. Measured by the agents at 0.7-2.9 s per large launch.
+  Direction: a scale regime in which nothing repeats, so the fast path has to be derived.
+- **The agent confirmed each step independently.** No oracle ships, but the brief is complete, so
+  a literal stepper is one. This cannot be removed from a fully specified machine; the direction
+  is that the literal stepper must be unable to run the regime that decides the grade, and the
+  fast path that can must rest on decisions a small fuzz does not settle by accident.
+- **The instruction delivered the plan** only in the sense the contract requires: every rule is
+  stated. Nothing is to be hidden. The repair is to make stating the rules insufficient.
+- Not a verifier defect: no trial exploited grading.
+
+### 3. The semantic replan - candidates, attacked
+
+**Candidate A: counted loops with a clock operand.** Blocks read `%clk` and spin in ordinary
+loops against a deadline, so no stretch is all-spinning and nothing freezes. Attacked: an affine
+loop in a steady rotation repeats up to its counter, and "repeat modulo a counter" is the same
+generic trick one step further; a timeout is also an arbitrary constant. Rejected.
+
+**Candidate B: preemption and migration.** A block spinning longer than a quantum is taken off
+its slot and requeued, so it may land on another multiprocessor with another cache. Attacked:
+the quantum is an arbitrary constant, each preemption is a scheduled event exactly like a wake,
+and the probes' freeze-until-event clock absorbs it unchanged. Rejected.
+
+**Candidate C: streaming reductions, device-wide.** New `sum.ca rd [a] n` and `sum.cg rd [a] n`:
+one line per issue through the per-multiprocessor cache, n issues, the total into rd at the end.
+A running sum never repeats a state, so repeat detection is useless and the fast path must be
+derived: range sums over memory for the lines read, the cache after a stream as its last fills,
+and the exceptions - a stale copy still cached when the stream reaches it, a waiter's line
+evicted at an exact fill count, a bypassing sum dropping a line. Attacked: with events rare, the
+probes' global clock survives with one new bulk step - step the first C fills after each event
+literally (that settles every stale copy and every eviction), then add range sums. One discovery,
+not two; estimated 5-6 of 8. Kept as the first half of the selection.
+
+**Candidate X (selected): streaming reductions on a device that is never quiet.** Candidate C
+plus a large family in which some multiprocessors run streams for millions of cycles while
+others issue ordinary instructions every few cycles (persistent kernels that dedicate
+multiprocessors to reduction and the rest to tiles, the pattern of communication-dedicated
+kernels). What it does to each plan:
+
+1. The probes' plan - a literal stepper with a generic freeze - steps every multiprocessor every
+   cycle, because a running sum is never frozen. Correct, and too slow by an order of magnitude.
+2. The second plan - between device-wide events, advance every multiprocessor's streams in bulk
+   - is correct and still too slow: a wake lands somewhere every few dozen cycles, so the bulk is
+   re-derived for every multiprocessor at every one of hundreds of thousands of events.
+3. The third plan keeps one plan per multiprocessor alive across other multiprocessors' events,
+   which is exact only with a new derivation: which stores a plan can observe. A store is seen by
+   a stream only if it lands before the stream reaches the line - cycle first, then
+   multiprocessor number, because an earlier multiprocessor's issue in the same cycle comes first
+   - and only if the line is not cached there when the stream reaches it; a store to a line the
+   plan already read changes nothing it read; a bypassing waiter sees a store to its word at its
+   next attempt; a cached waiter sees none, and is released only when its line is evicted or
+   dropped, at an exact fill count or an exact turn of a neighbour's sum. Plan 2's assumption that
+   memory is static between events is what plan 3 has to give up.
+
+Attacked: (a) can the third plan be reached by a generic trick? Per-multiprocessor repeat
+detection (trial 2's clock) does not apply: a stream's state never repeats, and the stores that
+end a stretch are other multiprocessors' ordinary instructions. (b) Can the literal transient
+stand in for the eviction arithmetic? Yes, inside a plan, cheaply - which is fine; the transient
+settles the local exceptions, and what it cannot settle is the cross-multiprocessor visibility.
+(c) Is it one-shot? The planning attack below says no: the first two plans are each reasonable and
+each measured wrong only at the stated scale. (d) Is there an expert path? Yes, step by step:
+literal sums; profile; bulk streams with range sums and the FIFO's last fills; profile again;
+per-multiprocessor plans with an observation test for stores; diff every tier against the plain
+stepper on launches it can still run. (e) Fairness: every rule is one sentence in the brief, the
+scale is stated, and the samples include one launch of the new kind.
+
+Tactics after the repair: A1 (a reduction is one read of memory - the shipped engine does that;
+memory is static between events - plan 2; a stream sees the latest store - plan 3's first draft),
+B2 (stream fills, stale copies, waiter evictions, bypass drops, store order within a cycle and the
+rotation all decide the same totals and cycles), C1 (ordinary small launches still grade every
+sum rule exactly), C3 (measured, both wrong tiers, before the contract is frozen - see section 6),
+C4 (exact all-or-nothing over hand launches and nonce launches, the new family included), plus
+the guard.
+
+Intake answers (docs/PASSING-TASK-RESEARCH.md): (1) first plan: literal stepper plus generic
+freeze; (2) what breaks it: a sum's state never repeats, and the new family is millions of cycles
+of sums; (3) second discovery: the device is never quiet, so memory is not static between the
+events the second plan bulks across, and per-multiprocessor plans need the store-observation rule;
+(4) leak audit: no shipped helper, field or sample output shows a turn, a fill or a plan; the
+samples carry inputs only; (5) ordinary cases that stop an overconservative solution: small
+`reduce` launches where a sum reads stale copies, is released early by eviction, or sees and
+misses stores by a cycle; (6) late failure: a store to a line a stream passed a million cycles
+earlier; a waiter released by a neighbour's sum at an exact fill; (7) the invariant: a plan's
+cache is its initial lines minus the evicted ones plus its last fills, and a store is observable
+only by the rule in (3); (8) cheats: the shipped one-issue sum, a coherent sum, the probes' plan
+with literal sums (too slow), the device-wide bulk (too slow), and a lazy plan that reads memory
+at the end of the plan instead of when each line is reached; (9) variants: the sealed model ported
+to the six files, and a second lazy clock written apart; (10) the expert sequence in (d).
+
+### 4. What was rebuilt
+
+(filled in as the rebuild proceeds)
+
 ## Open questions and next steps
+
+Easiness recovery 1 is in progress; see the section above. Nothing below this line is current
+until the recovery is complete.
 
 None open for delivery. When the platform answers, update `verdict` in authoring/submissions.toml
 and record the verdict here. Not run in this session: `harbor run` (the two-container runs used

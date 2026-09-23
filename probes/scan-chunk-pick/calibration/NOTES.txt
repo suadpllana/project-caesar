@@ -1,0 +1,31 @@
+Calibrating the local probes against tasks the platform has passed, 2026-09-23.
+
+Question: the strong local agents solved the round-3 rebuild of scan-chunk-pick 3 of 3. Is that
+a sign the eight-attempt difficulty probe would come back 8 of 8, or do the same agents solve
+tasks that landed inside the platform's band just as readily?
+
+Method: the same prompt, model and effort as round4-local, on two retained tasks the platform
+passed - alias-settle-report (passed the easiness and difficulty probes) and guard-mark-unwind
+(passed both, after an earlier 0 of 8 that was fixed by stating the input space) - two fresh
+agents each, given only that task's instruction.md (paths rewritten to a scratch copy of its
+environment/app_src) and that tree. Each agent's four files were graded by that task's own
+verifier in the container (tools/docker_trial.py --dir), then re-run against fresh nonces,
+because both verifiers draw their generated set from a nonce at run time. The untouched tree of
+each task scores 0 in the same setup, and each oracle scores 1.
+
+guard-mark-unwind  agent 1  pass on 9 of 9 verifier runs  (about 31 minutes)
+guard-mark-unwind  agent 2  pass on 9 of 9 verifier runs  (about 31 minutes)
+alias-settle-report agent 1 WRONG: fails 3 of 9 verifier runs (about 52 minutes). It read an
+                            earlier post with an equal score as not changing the row, and said
+                            so as its riskiest call; the failures are in the sets generated
+                            after the agent stopped.
+alias-settle-report agent 2 pass on 7 of 7 verifier runs  (about 29 minutes)
+
+scan-chunk-pick, round-3 rebuild, for comparison (round4-local): 3 of 3, each right on the 82
+hand files and on six generated seeds (2,016 generated files), about 31 minutes each.
+
+Reading: these agents solve tasks that landed inside the band about three times in four, in the
+same half hour. So 3 of 3 here does not separate this design from tasks that passed. The local
+strong agents are at least as strong as the platform's difficulty probe, and a sample of three
+cannot see the top of the band. It is evidence against "too easy by a wide margin", not
+evidence of a pass.
